@@ -56,7 +56,7 @@ const PUBBLICI = [
       "Ore PCTO certificate mentre ti orienti",
     ],
     cta: "Inizia il tuo percorso →",
-    href: "/contatti",
+    href: "/registrazione",
   },
   {
     tag: "Per le scuole",
@@ -107,7 +107,7 @@ export default function Home() {
             personalizzati. Studio o lavoro: la direzione giusta è quella che parte da chi sei.
           </p>
           <div className="mt-10 flex flex-col gap-4 md:flex-row">
-            <ButtonLink href="/contatti" variant="primary">
+            <ButtonLink href="/registrazione" variant="primary">
               Sono uno studente
             </ButtonLink>
             <ButtonLink href="/per-le-scuole" variant="outline">
@@ -203,7 +203,7 @@ export default function Home() {
             KIREO non vende percorsi. Li illumina.
           </p>
           <div className="mt-8">
-            <ButtonLink href="/contatti" variant="outline" className="border-kireo-light/60">
+            <ButtonLink href="/registrazione" variant="outline" className="border-kireo-light/60">
               Inizia il tuo orientamento
             </ButtonLink>
           </div>
