@@ -3,7 +3,7 @@ import SectionHeading from "@/components/SectionHeading";
 
 export const metadata: Metadata = {
   title: "Come funziona — KIREO",
-  description: "Scopri come KIREO aiuta studenti e istituzioni a incontrarsi, passo dopo passo.",
+  description: "Scopri come funziona il percorso di orientamento KIREO, passo dopo passo.",
 };
 
 const PASSI = [
@@ -11,53 +11,58 @@ const PASSI = [
     numero: "01",
     titolo: "Crea il tuo profilo",
     descrizione:
-      "In pochi minuti racconti i tuoi interessi, le materie in cui ti senti più portato e il tipo di futuro che immagini per te: universitario, tecnico-pratico o professionalizzante.",
+      "In pochi minuti racconti i tuoi interessi, le materie in cui ti senti più portato e il tipo di futuro che immagini per te. Da qui parte il tuo percorso di orientamento personalizzato.",
   },
   {
     numero: "02",
-    titolo: "Esplora i percorsi disponibili",
+    titolo: "Inizia a orientarti",
     descrizione:
-      "Sfoglia il catalogo di università, ITS Academy, accademie e corsi professionalizzanti, filtrando per area di interesse, città e tipologia di percorso.",
+      "Consulta guide, fai test attitudinali, segui webinar, partecipa a workshop e laboratori, mettiti alla prova con attività di gaming e sfide di orientamento. Ogni attività fa emergere qualcosa di te: interessi, punti di forza, inclinazioni che non sapevi di avere.",
   },
   {
     numero: "03",
-    titolo: "Confronta e restringi la scelta",
+    titolo: "Confrontati con orientatori esperti",
     descrizione:
-      "Metti a confronto i percorsi che ti interessano di più: durata, sbocchi, modalità di ammissione e caratteristiche distintive di ogni istituzione.",
+      "Non sei solo davanti alla scelta: puoi metterti in contatto diretto con orientatori esperti che ti aiutano a leggere i risultati del tuo percorso e a mettere a fuoco la direzione.",
   },
   {
     numero: "04",
-    titolo: "Contatta le istituzioni",
+    titolo: "Scopri le opportunità giuste per te",
     descrizione:
-      "Invia una richiesta di contatto diretta alle istituzioni scelte e ricevi tutte le informazioni che ti servono per decidere con consapevolezza.",
+      "Al termine del percorso, KIREO ti mostra le opportunità post-diploma coerenti con le tue attitudini e passioni: università, ITS Academy, accademie, formazione professionale o mondo del lavoro. La scelta resta tua — ora però è una scelta consapevole.",
   },
 ];
 
 const FAQ = [
   {
-    domanda: "KIREO è gratuito per gli studenti?",
+    domanda: "L'orientamento su KIREO è gratuito?",
     risposta:
-      "Sì, KIREO è e sarà sempre completamente gratuito per gli studenti e per le scuole secondarie. Nessun costo, nessun abbonamento nascosto.",
+      "Sì, completamente. Tutte le attività di orientamento — test attitudinali, guide, webinar, workshop, il confronto con gli orientatori — sono gratuite per gli studenti e per le scuole. Nessun costo nascosto, nessun abbonamento: l'orientamento è un diritto, non un prodotto.",
   },
   {
-    domanda: "Che tipo di istituzioni posso trovare su KIREO?",
+    domanda: "Come funziona il percorso di orientamento?",
     risposta:
-      "Università, ITS Academy, accademie e corsi professionalizzanti presenti in tutta Italia, con profili verificati e aggiornati.",
+      "Parti creando il tuo profilo, poi esplori le attività che preferisci: test, guide, webinar, laboratori, sfide di orientamento. Ogni attività contribuisce a costruire il tuo profilo attitudinale. Quando vuoi, ti confronti con un orientatore esperto. Alla fine hai due risultati concreti: una direzione chiara per il tuo futuro e le ore PCTO certificate.",
   },
   {
-    domanda: "Come faccio a contattare un'istituzione?",
+    domanda: "Le attività su KIREO valgono come PCTO?",
     risposta:
-      "Dal profilo di ogni istituzione puoi inviare una richiesta di contatto diretta: sarà l'istituzione a risponderti con le informazioni richieste.",
+      "Sì. Le attività di orientamento svolte su KIREO sono progettate per essere riconosciute come PCTO (Percorsi per le Competenze Trasversali e l'Orientamento), che la normativa prevede anche in modalità digitale. KIREO attiva una convenzione con la tua scuola e i giustificativi vengono generati automaticamente: né tu né i tuoi docenti dovete compilare moduli.",
   },
   {
-    domanda: "Cosa sono i giustificativi PCTO automatici?",
+    domanda: "Chi sono gli orientatori di KIREO?",
     risposta:
-      "Sono documenti PDF generati automaticamente dal tuo profilo che attestano le attività di orientamento svolte su KIREO, utili per il percorso PCTO della tua scuola.",
+      "Sono professionisti esperti nei diversi settori del mondo KIREO: università, formazione tecnica, professioni, mondo del lavoro. Non rappresentano nessuna istituzione e non hanno nulla da venderti: il loro compito è aiutarti a leggere i risultati del tuo percorso e a mettere a fuoco la tua direzione.",
   },
   {
-    domanda: "Le mie scuole superiori pagano per usare KIREO?",
+    domanda: "KIREO mi dirà cosa devo scegliere?",
     risposta:
-      "No. Le scuole secondarie non pagano mai: i ricavi di KIREO derivano esclusivamente dai piani a pagamento sottoscritti dalle istituzioni formative.",
+      "No, e questa è la differenza. KIREO non spinge verso nessun percorso: ti mostra le opportunità coerenti con le attitudini e le passioni emerse durante il tuo orientamento — università, ITS Academy, accademie, formazione professionale o lavoro. La scelta resta tua: noi la rendiamo consapevole.",
+  },
+  {
+    domanda: "Cosa ottengo alla fine del percorso?",
+    risposta:
+      "Due cose. La prima è l'obiettivo vero: sapere chi sei e quale direzione è coerente con te. La seconda è l'attestazione delle ore PCTO maturate durante le attività, che la tua scuola riceve automaticamente. Orientamento raggiunto, burocrazia azzerata.",
   },
 ];
 
@@ -73,8 +78,9 @@ export default function ComeFunziona() {
             Dal dubbio alla scelta, in quattro passi
           </h1>
           <p className="mt-6 text-lg text-kireo-muted">
-            KIREO accompagna studenti diplomandi lungo tutto il percorso di orientamento, dalla
-            scoperta dei propri interessi al contatto diretto con le istituzioni formative.
+            KIREO accompagna gli studenti lungo tutto il percorso di orientamento: dalla scoperta
+            delle proprie attitudini al confronto con gli orientatori, fino alle opportunità
+            coerenti con chi sei.
           </p>
         </div>
       </section>
@@ -92,6 +98,22 @@ export default function ComeFunziona() {
               <p className="mt-3 text-sm text-kireo-muted">{p.descrizione}</p>
             </div>
           ))}
+        </div>
+      </section>
+
+      <section className="bg-kireo-green">
+        <div className="mx-auto max-w-3xl px-6 py-16 text-center">
+          <span className="inline-block rounded-full bg-kireo-dark/20 px-4 py-1 font-sans text-sm font-semibold uppercase tracking-wide text-kireo-light">
+            PCTO
+          </span>
+          <h2 className="py-1 font-heading text-3xl font-bold leading-[1.25] text-kireo-light sm:text-4xl">
+            E mentre ti orienti, accumuli ore PCTO
+          </h2>
+          <p className="mx-auto mt-4 max-w-xl text-kireo-light/90">
+            Le attività di orientamento su KIREO sono certificate e valide come PCTO. I
+            giustificativi vengono generati automaticamente e la tua scuola li riceve senza moduli
+            né burocrazia: tu pensi a scoprire chi sei, al resto pensiamo noi.
+          </p>
         </div>
       </section>
 

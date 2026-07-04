@@ -1,7 +1,9 @@
 # KIREO — Piattaforma di orientamento post-diploma
 
 ## Cosa è KIREO
-KIREO (kireo.it) connette studenti diplomandi con università, ITS Academy, accademie e corsi professionalizzanti in Italia. Tre tipologie di utenti: studenti, istituzioni formative, docenti.
+KIREO (kireo.it) è una piattaforma di **orientamento**, non un marketplace di percorsi post-diploma: non deve mai passare l'idea che "vendiamo percorsi". Posizionamento orientamento-first: guida gli studenti a scoprire le proprie attitudini (verso lo studio o il lavoro) con percorsi di orientamento personalizzati e test attitudinali, e offre alle scuole secondarie superiori un servizio PCTO automatizzato (giustificativi generati automaticamente, dashboard con statistiche per i docenti).
+Tre tipologie di utenti: studenti, scuole superiori (PCTO, non pagano — vedi "Regole di business"), istituzioni formative post-diploma (università, ITS Academy, accademie, corsi professionalizzanti — sole a pagare, tramite i piani Base/Standard/Premium).
+Il tono verso studenti e scuole non deve MAI essere commerciale (niente linguaggio da "vendita" o da marketplace): sempre guida e orientamento. Il linguaggio commerciale (piani, prezzi, visibilità) è riservato esclusivamente alle istituzioni formative post-diploma.
 Claim: "Orientamento. Direzione. Futuro."
 
 ## Stack

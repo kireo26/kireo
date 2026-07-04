@@ -4,52 +4,55 @@ import SectionHeading from "@/components/SectionHeading";
 
 const PROBLEMI = [
   {
-    title: "Troppa scelta, poco orientamento",
+    title: "Scegliere senza conoscersi",
     description:
-      "Università, ITS Academy, accademie, corsi professionalizzanti: centinaia di percorsi diversi e nessuno che aiuti a scegliere quello giusto.",
+      "La maggior parte degli studenti sceglie il percorso post-diploma senza aver mai esplorato davvero le proprie attitudini. Il risultato: abbandoni, ripensamenti, tempo perso.",
   },
   {
-    title: "Informazioni sparse ovunque",
+    title: "L'orientamento a scuola non basta",
     description:
-      "Open day, siti web, brochure, passaparola: le informazioni utili sono frammentate e spesso difficili da confrontare.",
+      "Un incontro in aula magna e qualche brochure non sono un percorso di orientamento. Serve un metodo continuativo, personale, misurabile.",
   },
   {
-    title: "Zero contatto diretto",
+    title: "Il PCTO è un carico, non un'opportunità",
     description:
-      "Studenti e istituzioni faticano a incontrarsi davvero, con richieste che si perdono tra email generiche e moduli anonimi.",
+      "Per docenti e scuole la gestione dei percorsi è burocrazia: documenti, giustificativi, monitoraggio. Tutto a mano.",
   },
 ];
 
 const STEP = [
   {
     numero: "01",
-    titolo: "Racconta i tuoi interessi",
-    descrizione: "Crea il tuo profilo e indica cosa ti appassiona e dove vuoi arrivare.",
+    titolo: "Scopri chi sei",
+    descrizione:
+      "Test attitudinali e percorsi guidati che aiutano lo studente a far emergere interessi, punti di forza e inclinazioni reali.",
   },
   {
     numero: "02",
-    titolo: "Scopri i percorsi giusti per te",
-    descrizione: "Confronta università, ITS Academy, accademie e corsi in un unico posto.",
+    titolo: "Esplora le direzioni possibili",
+    descrizione:
+      "Studio o lavoro, università o formazione tecnica: KIREO mostra le strade coerenti con il profilo di ciascuno, senza spingere verso nessuna.",
   },
   {
     numero: "03",
-    titolo: "Entra in contatto",
-    descrizione: "Richiedi informazioni direttamente alle istituzioni che ti interessano.",
+    titolo: "Segui il percorso nel tempo",
+    descrizione:
+      "L'orientamento non è un giorno, è un processo. Lo studente costruisce il suo percorso, la scuola lo accompagna con dati concreti.",
   },
 ];
 
 const FEATURE_STUDENTI = [
-  "Profilo personale con interessi e obiettivi",
-  "Ricerca e confronto tra percorsi formativi",
-  "Richieste di contatto dirette alle istituzioni",
-  "Giustificativi PCTO generati automaticamente",
+  "Percorso di orientamento personalizzato",
+  "Test attitudinali progressivi",
+  "Profilo delle attitudini che cresce con te",
+  "Esplorazione guidata di studio e lavoro",
 ];
 
-const FEATURE_ISTITUZIONI = [
-  "Profilo gratuito con presentazione dell'offerta formativa",
-  "Gestione corsi e aggiornamenti in tempo reale",
-  "Ricezione richieste da studenti realmente interessati",
-  "Statistiche di visibilità con i piani Standard e Premium",
+const FEATURE_SCUOLE = [
+  "Giustificativi PCTO automatici",
+  "Dashboard docente con statistiche di attività",
+  "Monitoraggio attitudini e progressi degli studenti",
+  "Zero burocrazia aggiuntiva per la segreteria",
 ];
 
 export default function Home() {
@@ -65,15 +68,15 @@ export default function Home() {
             Orientamento. Direzione. Futuro.
           </h1>
           <p className="mt-6 max-w-xl text-lg text-kireo-muted">
-            KIREO connette studenti diplomandi con università, ITS Academy, accademie e corsi
-            professionalizzanti, per scegliere il proprio futuro con più chiarezza.
+            KIREO guida gli studenti a scoprire le proprie attitudini con percorsi di orientamento
+            personalizzati. Studio o lavoro: la direzione giusta è quella che parte da chi sei.
           </p>
           <div className="mt-10 flex flex-col gap-4 sm:flex-row">
             <ButtonLink href="/contatti" variant="primary">
               Sono uno studente
             </ButtonLink>
-            <ButtonLink href="/per-le-scuole" variant="outline">
-              Sono un&apos;istituzione
+            <ButtonLink href="/contatti" variant="outline">
+              Sono una scuola
             </ButtonLink>
           </div>
         </div>
@@ -96,7 +99,7 @@ export default function Home() {
       {/* Come funziona */}
       <section className="border-t border-white/5 bg-kireo-card/40">
         <div className="mx-auto max-w-6xl px-6 py-20">
-          <SectionHeading eyebrow="Come funziona" title="Tre passi verso il tuo futuro" align="center" />
+          <SectionHeading eyebrow="Come funziona" title="Tre passi verso la tua direzione" align="center" />
           <div className="mt-12 grid gap-10 sm:grid-cols-3">
             {STEP.map((s) => (
               <div key={s.numero} className="text-center">
@@ -118,15 +121,20 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Studenti / Istituzioni */}
+      {/* Studenti / Scuole superiori */}
       <section className="mx-auto max-w-6xl px-6 py-20">
-        <div className="grid gap-8 lg:grid-cols-2">
+        <SectionHeading eyebrow="Per chi è KIREO" title="Due mondi. Un'unica direzione." align="center" />
+        <div className="mt-12 grid gap-8 lg:grid-cols-2">
           <div className="rounded-2xl border border-white/5 bg-kireo-card p-8">
-            <h3 className="py-0.5 font-heading text-2xl font-bold leading-[1.25] text-kireo-light">
+            <p className="mb-2 font-sans text-sm font-semibold uppercase tracking-wide text-kireo-orange">
               Per gli studenti
+            </p>
+            <h3 className="py-0.5 font-heading text-2xl font-bold leading-[1.25] text-kireo-light">
+              Scopri le tue vere attitudini.
             </h3>
             <p className="mt-2 text-sm text-kireo-muted">
-              Sempre gratuito. Trova il percorso giusto senza girare a vuoto.
+              Non ti diciamo cosa scegliere: ti aiutiamo a capire chi sei. Percorsi personalizzati,
+              test attitudinali e una mappa chiara delle direzioni possibili — studio o lavoro.
             </p>
             <ul className="mt-6 space-y-3">
               {FEATURE_STUDENTI.map((f) => (
@@ -138,20 +146,24 @@ export default function Home() {
             </ul>
             <div className="mt-8">
               <ButtonLink href="/contatti" variant="primary">
-                Inizia ora
+                Inizia il tuo orientamento
               </ButtonLink>
             </div>
           </div>
 
           <div className="rounded-2xl border border-white/5 bg-kireo-card p-8">
+            <p className="mb-2 font-sans text-sm font-semibold uppercase tracking-wide text-kireo-orange">
+              Per le scuole superiori
+            </p>
             <h3 className="py-0.5 font-heading text-2xl font-bold leading-[1.25] text-kireo-light">
-              Per le istituzioni
+              Il PCTO, finalmente automatizzato.
             </h3>
             <p className="mt-2 text-sm text-kireo-muted">
-              Profilo base gratuito, visibilità avanzata con i piani a pagamento.
+              KIREO offre alle scuole superiori un servizio PCTO completo: percorsi validi,
+              giustificativi generati automaticamente, e strumenti di monitoraggio per i docenti.
             </p>
             <ul className="mt-6 space-y-3">
-              {FEATURE_ISTITUZIONI.map((f) => (
+              {FEATURE_SCUOLE.map((f) => (
                 <li key={f} className="flex items-start gap-3 text-sm text-kireo-light/90">
                   <span className="mt-0.5 text-kireo-orange">✓</span>
                   {f}
@@ -159,8 +171,8 @@ export default function Home() {
               ))}
             </ul>
             <div className="mt-8">
-              <ButtonLink href="/per-le-scuole" variant="outline">
-                Scopri i piani
+              <ButtonLink href="/contatti" variant="outline">
+                Contattaci
               </ButtonLink>
             </div>
           </div>
@@ -174,11 +186,11 @@ export default function Home() {
             Orientamento. Direzione. Futuro.
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-kireo-light/90">
-            Un unico punto di incontro tra chi cerca la propria strada e chi la può offrire.
+            KIREO non vende percorsi. Li illumina.
           </p>
           <div className="mt-8">
             <ButtonLink href="/contatti" variant="outline" className="border-kireo-light/60">
-              Contattaci
+              Inizia il tuo orientamento
             </ButtonLink>
           </div>
         </div>
@@ -189,9 +201,9 @@ export default function Home() {
         <div className="grid items-center gap-10 lg:grid-cols-2">
           <div>
             <SectionHeading
-              eyebrow="Per i docenti"
-              title="Risorse e webinar per l'orientamento in classe"
-              description="Accedi a materiali scaricabili, webinar formativi e alla newsletter dedicata ai docenti di orientamento."
+              eyebrow="Per gli insegnanti"
+              title="AI & EdTech: resta aggiornato."
+              description="KIREO ospita una sezione dedicata alla formazione docenti su intelligenza artificiale, strumenti digitali e innovazione didattica. Webinar gratuiti mensili, risorse scaricabili, newsletter."
             />
           </div>
           <div className="rounded-2xl border border-white/5 bg-kireo-card p-8">
@@ -199,12 +211,12 @@ export default function Home() {
               Prossimo webinar
             </p>
             <h3 className="mt-2 py-0.5 font-heading text-xl font-semibold leading-[1.25] text-kireo-light">
-              Orientare gli studenti dopo il diploma: strumenti pratici
+              Intelligenza artificiale in classe: strumenti e casi pratici
             </h3>
             <p className="mt-2 text-sm text-kireo-muted">15 settembre 2026 · ore 17:00 · online</p>
             <div className="mt-6">
               <ButtonLink href="/contatti" variant="primary">
-                Iscriviti
+                Scopri le risorse
               </ButtonLink>
             </div>
           </div>
