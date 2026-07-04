@@ -85,7 +85,7 @@ const PUBBLICI = [
       "Newsletter mensile su AI e scuola",
       "Una community di colleghi che innovano",
     ],
-    cta: "Iscriviti gratis →",
+    cta: "Iscriviti →",
     href: "/per-i-docenti",
   },
 ];

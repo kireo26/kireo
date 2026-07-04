@@ -33,8 +33,15 @@ Claim: "Orientamento. Direzione. Futuro."
 - istituzione: profilo ente, gestione corsi, ricezione richieste, statistiche (in base al piano)
 - docente: accesso webinar (con attestato di partecipazione), risorse scaricabili, newsletter — formazione continua su AI ed EdTech lungo 4 filoni tematici: AI nella didattica quotidiana (esercizi, verifiche, materiali), valutazione nell'era dell'AI (pensiero critico, non solo il prodotto), etica/privacy/normativa (linee guida MIM, AI Act, policy d'istituto), riduzione della burocrazia (programmazioni, relazioni, documentazione)
 
+## Dataset scuole secondarie (per il form /registrazione)
+- Fonte: MIM open data, dataset "Anagrafe Scuole Statali" (`DS0400SCUANAGRAFESTAT`) su https://dati.istruzione.it/opendata/opendata/catalogo/elements1/?area=Scuole
+- Script di trasformazione: `scripts/transform-scuole.js` — legge un CSV in `scripts/data/anagrafe-scuole-statali.csv` (non versionato, va scaricato/aggiornato a mano seguendo le istruzioni in testa al file) e genera `public/data/scuole-secondarie-superiori.json`, raggruppato per provincia → indirizzo (Liceo/Tecnico/Professionale) → elenco scuole. Il JSON generato (~430 KB) è invece versionato, perché è ciò che l'app consuma davvero
+- La tipologia MIM (es. "LICEO SCIENTIFICO", "IST PROF ALBERGHIERO") viene mappata sulle 3 macro-categorie del form; le tipologie non classificabili (scuole infanzia/primaria/medie, istituti comprensivi, istituti superiori generici non ancora scorporati per indirizzo, convitti) vengono escluse
+- **Limite noto**: Trento, Bolzano e Valle d'Aosta non compaiono nel dataset MIM perché lì la competenza sull'istruzione è provinciale/regionale autonoma — per queste 3 province il menu scuole resterà vuoto e l'utente dovrà usare "La mia scuola non è in elenco"
+- Il form legge il JSON via `fetch` client-side da `/data/scuole-secondarie-superiori.json` (non è importato nel bundle JS per non appesantirlo)
+
 ## Fasi del progetto
-1. FASE ATTUALE: sito pubblico statico a 7 pagine — Homepage, Come funziona, Per le scuole (scuole superiori, PCTO), Per le istituzioni (istituzioni formative post-diploma), Per i docenti (formazione AI/EdTech), Contatti, Privacy
+1. FASE ATTUALE: sito pubblico statico a 8 pagine — Homepage, Come funziona, Per le scuole (scuole superiori, PCTO), Per le istituzioni (istituzioni formative post-diploma), Per i docenti (formazione AI/EdTech), Registrazione (form studenti, solo UI), Contatti, Privacy
 2. Fase 2 (lug-ago 2026): auth Supabase con 3 ruoli + catalogo istituzioni
 3. Fase 3 (set 2026): profili studente + generazione PDF giustificativi PCTO
 
@@ -49,6 +56,7 @@ Aggiornato al 2026-07-04.
 - Homepage e Come funziona riposizionate in chiave orientamento-first (vedi sezione "Cosa è KIREO")
 - `/per-le-scuole` sdoppiata in due pagine con pubblici e toni opposti: `/per-le-scuole` per le scuole superiori (servizio PCTO gratuito, tono di servizio pubblico) e `/per-le-istituzioni` per le istituzioni formative post-diploma (unica pagina con piani a pagamento)
 - Homepage ristrutturata: la vecchia sezione doppia studenti/scuole e la sezione docenti sono state sostituite da un'unica sezione "Per chi è KIREO" con tre card fratelle di pari dignità (studenti, scuole, docenti); i contenuti tematici approfonditi sui docenti (AI in classe, valutazione, etica/privacy, burocrazia) sono stati spostati sulla nuova pagina `/per-i-docenti`. Nav aggiornata a 6 voci, CTA verde nell'header è "Inizia ora" → home
+- Nuova pagina `/registrazione`: form di registrazione studente (solo UI client-side, nessun salvataggio reale — da collegare a Supabase in Fase 2), con menu a cascata provincia → indirizzo → scuola basato sul dataset MIM (vedi sezione "Dataset scuole secondarie")
 
 **Problema font risolto:** i titoli (font Syne) mostravano lettere accentate e discendenti apparentemente tagliate. Causa: `line-height` troppo stretto (il font richiede un rapporto ascendenti+discendenti di almeno ~1.2, mentre diversi titoli non avevano `line-height` esplicito o usavano valori troppo bassi). Risolto impostando `line-height: 1.25` + padding verticale di sicurezza su tutti i titoli del sito, e rimuovendo l'unico `overflow-hidden` rimasto (tabella piani, sostituito con arrotondamento solo sulle celle d'angolo). In un secondo momento, per una lettera "g" dal design particolare di Syne (percepita come "tagliata" ma in realtà solo uno stile distintivo del font), si è deciso di sostituire il font titoli con **Space Grotesk**, più leggibile mantenendo comunque un look distintivo.
 

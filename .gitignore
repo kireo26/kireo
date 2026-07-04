@@ -42,3 +42,6 @@ next-env.d.ts
 
 # claude code local settings
 .claude/settings.local.json
+
+# dataset grezzo scuole MIM (va riscaricato, vedi scripts/transform-scuole.js)
+scripts/data/

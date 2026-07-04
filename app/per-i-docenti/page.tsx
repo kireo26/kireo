@@ -93,7 +93,7 @@ export default function PerIDocenti() {
           </p>
           <div className="mt-8">
             <ButtonLink href="/contatti" variant="primary">
-              Iscriviti al prossimo webinar
+              Iscriviti
             </ButtonLink>
           </div>
         </div>
@@ -131,7 +131,7 @@ export default function PerIDocenti() {
 
           <div className="mt-12 text-center">
             <ButtonLink href="/contatti" variant="primary">
-              Iscriviti al prossimo webinar
+              Iscriviti
             </ButtonLink>
           </div>
         </div>
