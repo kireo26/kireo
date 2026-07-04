@@ -5,6 +5,8 @@ const NAV_LINKS = [
   { href: "/", label: "Home" },
   { href: "/come-funziona", label: "Come funziona" },
   { href: "/per-le-scuole", label: "Per le scuole" },
+  { href: "/per-le-istituzioni", label: "Per le istituzioni" },
+  { href: "/per-i-docenti", label: "Per i docenti" },
   { href: "/contatti", label: "Contatti" },
 ];
 

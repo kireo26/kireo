@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ButtonLink } from "@/components/Button";
 import Card from "@/components/Card";
 import SectionHeading from "@/components/SectionHeading";
@@ -41,18 +42,52 @@ const STEP = [
   },
 ];
 
-const FEATURE_STUDENTI = [
-  "Percorso di orientamento personalizzato",
-  "Test attitudinali progressivi",
-  "Profilo delle attitudini che cresce con te",
-  "Esplorazione guidata di studio e lavoro",
-];
-
-const FEATURE_SCUOLE = [
-  "Giustificativi PCTO automatici",
-  "Dashboard docente con statistiche di attività",
-  "Monitoraggio attitudini e progressi degli studenti",
-  "Zero burocrazia aggiuntiva per la segreteria",
+const PUBBLICI = [
+  {
+    tag: "Per gli studenti",
+    tagClass: "bg-kireo-green/15 text-kireo-green-light",
+    titolo: "Scopri chi sei. Scegli con chiarezza.",
+    testo:
+      "Un percorso di orientamento personalizzato e gratuito che fa emergere le tue attitudini — e ti mostra le direzioni coerenti con te, che siano studio o lavoro.",
+    lista: [
+      "Percorso di orientamento su misura",
+      "Test, guide, webinar, workshop e sfide",
+      "Confronto diretto con orientatori esperti",
+      "Ore PCTO certificate mentre ti orienti",
+    ],
+    cta: "Inizia il tuo percorso →",
+    href: "/contatti",
+  },
+  {
+    tag: "Per le scuole",
+    tagClass: "bg-kireo-orange/15 text-kireo-orange",
+    titolo: "Il PCTO che si gestisce da solo.",
+    testo:
+      "Un servizio di orientamento certificato e gratuito per la tua scuola: gli studenti maturano ore PCTO, i docenti monitorano, la segreteria riceve tutto automaticamente.",
+    lista: [
+      "Percorsi validi come PCTO, in digitale",
+      "Giustificativi generati automaticamente",
+      "Dashboard docente con statistiche",
+      "Zero costi, oggi e domani",
+    ],
+    cta: "Scopri il servizio →",
+    href: "/per-le-scuole",
+  },
+  {
+    tag: "Per i docenti",
+    tagClass: "bg-kireo-logo/15 text-kireo-logo",
+    titolo: "L'aggiornamento che ti serve. Gratis.",
+    testo:
+      "L'AI sta cambiando la scuola e la formazione è ormai un obbligo. Iscrivendoti a KIREO hai formazione continua di qualità, senza costi e senza vincoli.",
+    lista: [
+      "Webinar mensili con attestato di partecipazione",
+      "Guide e materiali pronti per l'aula, scaricabili",
+      "Newsletter mensile su AI e scuola",
+      "Una community di colleghi che innovano",
+    ],
+    cta: "Iscriviti gratis →",
+    href: "/per-i-docenti",
+  },
 ];
 
 export default function Home() {
@@ -71,12 +106,15 @@ export default function Home() {
             KIREO guida gli studenti a scoprire le proprie attitudini con percorsi di orientamento
             personalizzati. Studio o lavoro: la direzione giusta è quella che parte da chi sei.
           </p>
-          <div className="mt-10 flex flex-col gap-4 sm:flex-row">
+          <div className="mt-10 flex flex-col gap-4 md:flex-row">
             <ButtonLink href="/contatti" variant="primary">
               Sono uno studente
             </ButtonLink>
-            <ButtonLink href="/contatti" variant="outline">
+            <ButtonLink href="/per-le-scuole" variant="outline">
               Sono una scuola
+            </ButtonLink>
+            <ButtonLink href="/per-i-docenti" variant="ghost">
+              Sono un docente
             </ButtonLink>
           </div>
         </div>
@@ -121,61 +159,37 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Studenti / Scuole superiori */}
+      {/* Per chi è KIREO */}
       <section className="mx-auto max-w-6xl px-6 py-20">
-        <SectionHeading eyebrow="Per chi è KIREO" title="Due mondi. Un'unica direzione." align="center" />
-        <div className="mt-12 grid gap-8 lg:grid-cols-2">
-          <div className="rounded-2xl border border-white/5 bg-kireo-card p-8">
-            <p className="mb-2 font-sans text-sm font-semibold uppercase tracking-wide text-kireo-orange">
-              Per gli studenti
-            </p>
-            <h3 className="py-0.5 font-heading text-2xl font-bold leading-[1.25] text-kireo-light">
-              Scopri le tue vere attitudini.
-            </h3>
-            <p className="mt-2 text-sm text-kireo-muted">
-              Non ti diciamo cosa scegliere: ti aiutiamo a capire chi sei. Percorsi personalizzati,
-              test attitudinali e una mappa chiara delle direzioni possibili — studio o lavoro.
-            </p>
-            <ul className="mt-6 space-y-3">
-              {FEATURE_STUDENTI.map((f) => (
-                <li key={f} className="flex items-start gap-3 text-sm text-kireo-light/90">
-                  <span className="mt-0.5 text-kireo-orange">✓</span>
-                  {f}
-                </li>
-              ))}
-            </ul>
-            <div className="mt-8">
-              <ButtonLink href="/contatti" variant="primary">
-                Inizia il tuo orientamento
-              </ButtonLink>
+        <SectionHeading eyebrow="Per chi è KIREO" title="Tre mondi. Un'unica direzione." align="center" />
+        <div className="mt-12 grid gap-6 lg:grid-cols-3">
+          {PUBBLICI.map((p) => (
+            <div key={p.tag} className="flex flex-col rounded-2xl border border-white/5 bg-kireo-card p-8">
+              <span
+                className={`inline-block w-fit rounded-full px-3 py-1 font-sans text-xs font-semibold uppercase tracking-wide ${p.tagClass}`}
+              >
+                {p.tag}
+              </span>
+              <h3 className="mt-4 py-0.5 font-heading text-2xl font-bold leading-[1.25] text-kireo-light">
+                {p.titolo}
+              </h3>
+              <p className="mt-2 text-sm text-kireo-muted">{p.testo}</p>
+              <ul className="mt-6 space-y-3">
+                {p.lista.map((f) => (
+                  <li key={f} className="flex items-start gap-3 text-sm text-kireo-light/90">
+                    <span className="mt-0.5 text-kireo-orange">✓</span>
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <Link
+                href={p.href}
+                className="mt-auto pt-8 text-sm font-semibold text-kireo-light transition-colors hover:text-kireo-orange"
+              >
+                {p.cta}
+              </Link>
             </div>
-          </div>
-
-          <div className="rounded-2xl border border-white/5 bg-kireo-card p-8">
-            <p className="mb-2 font-sans text-sm font-semibold uppercase tracking-wide text-kireo-orange">
-              Per le scuole superiori
-            </p>
-            <h3 className="py-0.5 font-heading text-2xl font-bold leading-[1.25] text-kireo-light">
-              Il PCTO, finalmente automatizzato.
-            </h3>
-            <p className="mt-2 text-sm text-kireo-muted">
-              KIREO offre alle scuole superiori un servizio PCTO completo: percorsi validi,
-              giustificativi generati automaticamente, e strumenti di monitoraggio per i docenti.
-            </p>
-            <ul className="mt-6 space-y-3">
-              {FEATURE_SCUOLE.map((f) => (
-                <li key={f} className="flex items-start gap-3 text-sm text-kireo-light/90">
-                  <span className="mt-0.5 text-kireo-orange">✓</span>
-                  {f}
-                </li>
-              ))}
-            </ul>
-            <div className="mt-8">
-              <ButtonLink href="/contatti" variant="outline">
-                Contattaci
-              </ButtonLink>
-            </div>
-          </div>
+          ))}
         </div>
       </section>
 
@@ -192,33 +206,6 @@ export default function Home() {
             <ButtonLink href="/contatti" variant="outline" className="border-kireo-light/60">
               Inizia il tuo orientamento
             </ButtonLink>
-          </div>
-        </div>
-      </section>
-
-      {/* Docenti */}
-      <section className="mx-auto max-w-6xl px-6 py-20">
-        <div className="grid items-center gap-10 lg:grid-cols-2">
-          <div>
-            <SectionHeading
-              eyebrow="Per gli insegnanti"
-              title="AI & EdTech: resta aggiornato."
-              description="KIREO ospita una sezione dedicata alla formazione docenti su intelligenza artificiale, strumenti digitali e innovazione didattica. Webinar gratuiti mensili, risorse scaricabili, newsletter."
-            />
-          </div>
-          <div className="rounded-2xl border border-white/5 bg-kireo-card p-8">
-            <p className="font-sans text-sm font-semibold uppercase tracking-wide text-kireo-orange">
-              Prossimo webinar
-            </p>
-            <h3 className="mt-2 py-0.5 font-heading text-xl font-semibold leading-[1.25] text-kireo-light">
-              Intelligenza artificiale in classe: strumenti e casi pratici
-            </h3>
-            <p className="mt-2 text-sm text-kireo-muted">15 settembre 2026 · ore 17:00 · online</p>
-            <div className="mt-6">
-              <ButtonLink href="/contatti" variant="primary">
-                Scopri le risorse
-              </ButtonLink>
-            </div>
           </div>
         </div>
       </section>

@@ -31,10 +31,10 @@ Claim: "Orientamento. Direzione. Futuro."
 ## Ruoli utente (per l'area riservata, fase 2)
 - studente: profilo con interessi, ricerca istituzioni, confronto percorsi, richieste contatto, giustificativi PCTO automatici (PDF)
 - istituzione: profilo ente, gestione corsi, ricezione richieste, statistiche (in base al piano)
-- docente: accesso webinar, risorse scaricabili, newsletter
+- docente: accesso webinar (con attestato di partecipazione), risorse scaricabili, newsletter — formazione continua su AI ed EdTech lungo 4 filoni tematici: AI nella didattica quotidiana (esercizi, verifiche, materiali), valutazione nell'era dell'AI (pensiero critico, non solo il prodotto), etica/privacy/normativa (linee guida MIM, AI Act, policy d'istituto), riduzione della burocrazia (programmazioni, relazioni, documentazione)
 
 ## Fasi del progetto
-1. FASE ATTUALE: sito pubblico statico — Homepage, Come funziona, Per le scuole, Contatti, Privacy
+1. FASE ATTUALE: sito pubblico statico a 7 pagine — Homepage, Come funziona, Per le scuole (scuole superiori, PCTO), Per le istituzioni (istituzioni formative post-diploma), Per i docenti (formazione AI/EdTech), Contatti, Privacy
 2. Fase 2 (lug-ago 2026): auth Supabase con 3 ruoli + catalogo istituzioni
 3. Fase 3 (set 2026): profili studente + generazione PDF giustificativi PCTO
 
@@ -43,9 +43,12 @@ Aggiornato al 2026-07-04.
 
 **Completato (Fase 1):**
 - Scaffold Next.js (App Router, TypeScript, Tailwind CSS v4) con font Google e colori brand configurati come token Tailwind (`kireo-green`, `kireo-orange`, `kireo-dark`, ecc.)
-- 5 pagine pubbliche con testi provvisori: Homepage, Come funziona, Per le scuole, Contatti, Privacy
+- 7 pagine pubbliche, testi definitivi sulla maggior parte: Homepage, Come funziona, Per le scuole, Per le istituzioni, Per i docenti, Contatti (testi provvisori), Privacy (testi provvisori)
 - Componenti condivisi in `/components`: Header (con nav mobile), Footer, Logo, Button, Card, SectionHeading, ContactForm (solo UI, nessun invio reale)
 - Dev server verificato e funzionante su http://localhost:3000
+- Homepage e Come funziona riposizionate in chiave orientamento-first (vedi sezione "Cosa è KIREO")
+- `/per-le-scuole` sdoppiata in due pagine con pubblici e toni opposti: `/per-le-scuole` per le scuole superiori (servizio PCTO gratuito, tono di servizio pubblico) e `/per-le-istituzioni` per le istituzioni formative post-diploma (unica pagina con piani a pagamento)
+- Homepage ristrutturata: la vecchia sezione doppia studenti/scuole e la sezione docenti sono state sostituite da un'unica sezione "Per chi è KIREO" con tre card fratelle di pari dignità (studenti, scuole, docenti); i contenuti tematici approfonditi sui docenti (AI in classe, valutazione, etica/privacy, burocrazia) sono stati spostati sulla nuova pagina `/per-i-docenti`. Nav aggiornata a 6 voci, CTA verde nell'header è "Inizia ora" → home
 
 **Problema font risolto:** i titoli (font Syne) mostravano lettere accentate e discendenti apparentemente tagliate. Causa: `line-height` troppo stretto (il font richiede un rapporto ascendenti+discendenti di almeno ~1.2, mentre diversi titoli non avevano `line-height` esplicito o usavano valori troppo bassi). Risolto impostando `line-height: 1.25` + padding verticale di sicurezza su tutti i titoli del sito, e rimuovendo l'unico `overflow-hidden` rimasto (tabella piani, sostituito con arrotondamento solo sulle celle d'angolo). In un secondo momento, per una lettera "g" dal design particolare di Syne (percepita come "tagliata" ma in realtà solo uno stile distintivo del font), si è deciso di sostituire il font titoli con **Space Grotesk**, più leggibile mantenendo comunque un look distintivo.
 

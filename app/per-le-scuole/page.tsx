@@ -6,63 +6,51 @@ import SectionHeading from "@/components/SectionHeading";
 export const metadata: Metadata = {
   title: "Per le scuole — KIREO",
   description:
-    "Aumenta la visibilità della tua istituzione formativa e raggiungi gli studenti giusti con KIREO.",
+    "KIREO offre alle scuole superiori un percorso di orientamento certificato e valido come PCTO. Gratuito, senza burocrazia.",
 };
 
-const BENEFICI = [
+const OFFERTA = [
   {
-    title: "Visibilità presso studenti in target",
+    title: "Percorsi validi come PCTO",
     description:
-      "Il tuo profilo raggiunge studenti diplomandi realmente interessati al tuo settore formativo.",
+      "Le attività di orientamento su KIREO — test attitudinali, guide, webinar, workshop, laboratori — sono progettate per essere riconosciute come PCTO in modalità digitale, in linea con le Linee guida ministeriali.",
   },
   {
-    title: "Richieste di contatto qualificate",
-    description: "Ricevi richieste da studenti che hanno già valutato la tua offerta formativa.",
-  },
-  {
-    title: "Statistiche e insight",
+    title: "Giustificativi automatici",
     description:
-      "Con i piani Standard e Premium monitora visualizzazioni, interesse e provenienza delle richieste.",
+      "Ogni ora di attività viene tracciata e i giustificativi si generano automaticamente. La segreteria li riceve già pronti: niente moduli, niente raccolta firme, niente fogli Excel.",
   },
   {
-    title: "Presenza sempre aggiornata",
-    description: "Gestisci corsi, contenuti e disponibilità direttamente dal tuo profilo.",
+    title: "Dashboard docente",
+    description:
+      "I docenti referenti seguono l'attività degli studenti in tempo reale: ore maturate, attività svolte, progressi del profilo attitudinale. Statistiche chiare, esportabili, sempre aggiornate.",
+  },
+  {
+    title: "Orientamento che funziona davvero",
+    description:
+      "Non solo ore da certificare: gli studenti escono dal percorso con una direzione. Il PCTO smette di essere un adempimento e torna a essere ciò per cui è nato — orientare.",
   },
 ];
 
-const PIANI = [
+const STEP = [
   {
-    nome: "Base",
-    prezzo: "Gratuito",
-    evidenziato: false,
+    numero: "01",
+    titolo: "La scuola firma la convenzione",
+    descrizione:
+      "Un accordo semplice e leggero tra la scuola e KIREO, come previsto dalla normativa PCTO. Ci pensiamo noi a prepararlo.",
   },
   {
-    nome: "Standard",
-    prezzo: "Su richiesta",
-    evidenziato: true,
+    numero: "02",
+    titolo: "Gli studenti si iscrivono",
+    descrizione:
+      "Ogni studente crea il proprio profilo gratuito e inizia il percorso di orientamento, a scuola o da casa, al proprio ritmo.",
   },
   {
-    nome: "Premium",
-    prezzo: "Su richiesta",
-    evidenziato: false,
+    numero: "03",
+    titolo: "La scuola monitora e riceve",
+    descrizione:
+      "I docenti seguono i progressi dalla dashboard e la segreteria riceve i giustificativi automaticamente. Fine della burocrazia.",
   },
-];
-
-const FEATURE_ROWS: { feature: string; base: boolean; standard: boolean; premium: boolean }[] = [
-  { feature: "Profilo istituzione nel catalogo", base: true, standard: true, premium: true },
-  { feature: "Gestione corsi ed elenco offerta formativa", base: true, standard: true, premium: true },
-  { feature: "Ricezione richieste di contatto", base: true, standard: true, premium: true },
-  { feature: "Posizionamento prioritario nei risultati", base: false, standard: true, premium: true },
-  { feature: "Statistiche di visibilità e interesse", base: false, standard: true, premium: true },
-  { feature: "Contenuti multimediali avanzati (video, gallery)", base: false, standard: false, premium: true },
-  { feature: "Referente dedicato KIREO", base: false, standard: false, premium: true },
-];
-
-const TIPOLOGIE = [
-  "Università statali e telematiche",
-  "ITS Academy",
-  "Accademie (moda, arte, musica, cinema)",
-  "Corsi professionalizzanti e centri di formazione",
 ];
 
 export default function PerLeScuole() {
@@ -71,104 +59,78 @@ export default function PerLeScuole() {
       <section className="mx-auto max-w-6xl px-6 pb-16 pt-20 sm:pt-28">
         <div className="max-w-2xl">
           <p className="mb-4 font-sans text-sm font-semibold uppercase tracking-wide text-kireo-orange">
-            Per le istituzioni formative
+            Per le scuole superiori
           </p>
           <h1 className="py-1 font-heading text-4xl font-bold leading-[1.25] text-kireo-light sm:text-5xl">
-            Incontra gli studenti giusti per la tua offerta formativa
+            Il PCTO che si gestisce da solo.
           </h1>
           <p className="mt-6 text-lg text-kireo-muted">
-            Entra gratis su KIREO con un profilo base e scegli i piani a pagamento per ottenere
-            visibilità avanzata e statistiche dettagliate.
+            KIREO offre alla tua scuola un percorso di orientamento certificato e valido come PCTO.
+            Giustificativi automatici, dashboard per i docenti, zero burocrazia. E completamente
+            gratuito.
           </p>
           <div className="mt-8">
             <ButtonLink href="/contatti" variant="primary">
-              Richiedi informazioni
+              Attiva la convenzione con la tua scuola
             </ButtonLink>
           </div>
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-6 py-16">
-        <SectionHeading eyebrow="Perché KIREO" title="Quattro motivi per esserci" />
-        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {BENEFICI.map((b) => (
-            <Card key={b.title} title={b.title} description={b.description} />
+      <section className="border-t border-white/5 bg-kireo-card/40">
+        <div className="mx-auto max-w-4xl px-6 py-16">
+          <SectionHeading
+            eyebrow="Il contesto"
+            title="90, 150, 210 ore. Per ogni studente."
+            description="La normativa richiede un monte ore minimo di PCTO nel triennio finale: 90 ore nei licei, 150 negli istituti tecnici, 210 nei professionali. Trovare percorsi validi, gestire convenzioni, raccogliere giustificativi e monitorare le attività di centinaia di studenti è un carico enorme per docenti e segreterie. KIREO lo azzera."
+          />
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-6 py-20">
+        <SectionHeading eyebrow="Il servizio" title="Orientamento vero. PCTO certificato." />
+        <div className="mt-12 grid gap-6 sm:grid-cols-2">
+          {OFFERTA.map((o) => (
+            <Card key={o.title} title={o.title} description={o.description} />
           ))}
         </div>
       </section>
 
       <section className="border-t border-white/5 bg-kireo-card/40">
         <div className="mx-auto max-w-6xl px-6 py-20">
-          <SectionHeading eyebrow="Piani" title="Scegli il piano più adatto alla tua istituzione" align="center" />
-
-          <div className="mt-12 overflow-x-auto">
-            <table className="w-full min-w-[640px] border-collapse text-left text-sm">
-              <thead>
-                <tr>
-                  <th className="rounded-tl-2xl bg-kireo-card p-4 font-sans font-medium text-kireo-muted">
-                    Funzionalità
-                  </th>
-                  {PIANI.map((p, idx) => (
-                    <th
-                      key={p.nome}
-                      className={`p-4 text-center font-heading text-base font-semibold leading-[1.25] ${
-                        idx === PIANI.length - 1 ? "rounded-tr-2xl" : ""
-                      } ${p.evidenziato ? "bg-kireo-green text-kireo-light" : "bg-kireo-card text-kireo-light"}`}
-                    >
-                      {p.nome}
-                      <div className="mt-1 font-sans text-xs font-normal opacity-80">{p.prezzo}</div>
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {FEATURE_ROWS.map((row, i) => {
-                  const isLast = i === FEATURE_ROWS.length - 1;
-                  return (
-                    <tr key={row.feature} className={i % 2 === 0 ? "bg-kireo-dark" : "bg-kireo-dark/60"}>
-                      <td className={`p-4 text-kireo-light/90 ${isLast ? "rounded-bl-2xl" : ""}`}>
-                        {row.feature}
-                      </td>
-                      {[row.base, row.standard, row.premium].map((incluso, idx) => (
-                        <td
-                          key={idx}
-                          className={`p-4 text-center ${
-                            isLast && idx === 2 ? "rounded-br-2xl" : ""
-                          }`}
-                        >
-                          {incluso ? (
-                            <span className="text-kireo-orange" aria-label="Incluso">
-                              ✓
-                            </span>
-                          ) : (
-                            <span className="text-kireo-muted" aria-label="Non incluso">
-                              —
-                            </span>
-                          )}
-                        </td>
-                      ))}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+          <SectionHeading eyebrow="Come si attiva" title="Tre passi, nessun costo." align="center" />
+          <div className="mt-12 grid gap-10 sm:grid-cols-3">
+            {STEP.map((s) => (
+              <div key={s.numero} className="text-center">
+                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full border border-kireo-orange/40 font-heading text-lg font-bold leading-[1.25] text-kireo-orange">
+                  {s.numero}
+                </div>
+                <h3 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">
+                  {s.titolo}
+                </h3>
+                <p className="mt-2 text-sm text-kireo-muted">{s.descrizione}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-6 py-20">
-        <SectionHeading eyebrow="Chi può iscriversi" title="Tipologie di istituzioni ammesse" />
-        <ul className="mt-10 grid gap-4 sm:grid-cols-2">
-          {TIPOLOGIE.map((t) => (
-            <li
-              key={t}
-              className="flex items-center gap-3 rounded-xl border border-white/5 bg-kireo-card p-5 text-kireo-light/90"
-            >
-              <span className="text-kireo-orange">✓</span>
-              {t}
-            </li>
-          ))}
-        </ul>
+      <section className="bg-kireo-green">
+        <div className="mx-auto max-w-2xl px-6 py-16 text-center">
+          <h2 className="py-1 font-heading text-3xl font-bold leading-[1.25] text-kireo-light sm:text-4xl">
+            Quanto costa? Niente.
+          </h2>
+          <p className="mx-auto mt-4 max-w-xl text-kireo-light/90">
+            KIREO è gratuito per le scuole e per gli studenti, oggi e domani. Il progetto si
+            sostiene con i servizi alle istituzioni formative post-diploma — mai con le scuole,
+            mai con le famiglie.
+          </p>
+          <div className="mt-8">
+            <ButtonLink href="/contatti" variant="outline" className="border-kireo-light/60">
+              Parla con noi
+            </ButtonLink>
+          </div>
+        </div>
       </section>
     </>
   );

@@ -9,6 +9,8 @@ const NAV_LINKS = [
   { href: "/", label: "Home" },
   { href: "/come-funziona", label: "Come funziona" },
   { href: "/per-le-scuole", label: "Per le scuole" },
+  { href: "/per-le-istituzioni", label: "Per le istituzioni" },
+  { href: "/per-i-docenti", label: "Per i docenti" },
   { href: "/contatti", label: "Contatti" },
 ];
 
@@ -33,8 +35,8 @@ export default function Header() {
         </nav>
 
         <div className="hidden md:block">
-          <ButtonLink href="/per-le-scuole" variant="primary">
-            Per le scuole
+          <ButtonLink href="/" variant="primary">
+            Inizia ora
           </ButtonLink>
         </div>
 
@@ -76,8 +78,8 @@ export default function Header() {
             ))}
           </ul>
           <div className="mt-4">
-            <ButtonLink href="/per-le-scuole" variant="primary" className="w-full">
-              Per le scuole
+            <ButtonLink href="/" variant="primary" className="w-full">
+              Inizia ora
             </ButtonLink>
           </div>
         </nav>
