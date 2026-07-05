@@ -27,6 +27,7 @@ Claim: "Orientamento. Direzione. Futuro."
 - Gli studenti NON pagano mai. Le scuole secondarie NON pagano mai.
 - I ricavi arrivano SOLO dalle istituzioni formative (piani Base gratuito / Standard / Premium)
 - Le istituzioni entrano gratis con profilo base; i piani a pagamento danno visibilità avanzata e statistiche
+- La parola "vendere" (e derivati: vendita, venditore, ecc.) e in generale il lessico commerciale sono VIETATI in tutti i testi rivolti a studenti, scuole e docenti — anche in frasi che negano la vendita (es. "non vendiamo percorsi"). Riformulare sempre senza quella parola
 
 ## Ruoli utente (per l'area riservata, fase 2)
 - studente: profilo con interessi, ricerca istituzioni, confronto percorsi, richieste contatto, giustificativi PCTO automatici (PDF)

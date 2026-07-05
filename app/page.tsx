@@ -5,19 +5,19 @@ import SectionHeading from "@/components/SectionHeading";
 
 const PROBLEMI = [
   {
-    title: "Scegliere senza conoscersi",
+    title: "Percorsi su misura, non uguali per tutti",
     description:
-      "La maggior parte degli studenti sceglie il percorso post-diploma senza aver mai esplorato davvero le proprie attitudini. Il risultato: abbandoni, ripensamenti, tempo perso.",
+      "Test attitudinali, guide, webinar, workshop, laboratori e sfide su numerose aree di interesse: ogni studente costruisce il proprio percorso di orientamento e scopre attitudini che non sapeva di avere.",
   },
   {
-    title: "L'orientamento a scuola non basta",
+    title: "Un metodo continuo e misurabile",
     description:
-      "Un incontro in aula magna e qualche brochure non sono un percorso di orientamento. Serve un metodo continuativo, personale, misurabile.",
+      "L'orientamento su KIREO non è un evento, è un percorso che cresce nel tempo: ogni attività arricchisce il profilo attitudinale dello studente e avvicina la direzione giusta — studio o lavoro.",
   },
   {
-    title: "Il PCTO è un carico, non un'opportunità",
+    title: "E intanto maturi ore PCTO",
     description:
-      "Per docenti e scuole la gestione dei percorsi è burocrazia: documenti, giustificativi, monitoraggio. Tutto a mano.",
+      "Le attività di orientamento valgono come PCTO: 90, 150 o 210 ore da completare nel triennio diventano un'occasione per conoscersi, con giustificativi automatici per la scuola. Zero burocrazia.",
   },
 ];
 
@@ -39,6 +39,24 @@ const STEP = [
     titolo: "Segui il percorso nel tempo",
     descrizione:
       "L'orientamento non è un giorno, è un processo. Lo studente costruisce il suo percorso, la scuola lo accompagna con dati concreti.",
+  },
+];
+
+const PUBBLICI_CTA = [
+  {
+    label: "Sono uno studente",
+    href: "/registrazione",
+    className: "bg-kireo-green text-kireo-light hover:bg-kireo-green-light",
+  },
+  {
+    label: "Sono una scuola",
+    href: "/per-le-scuole",
+    className: "bg-kireo-orange text-[#1A1A18] hover:opacity-90",
+  },
+  {
+    label: "Sono un docente",
+    href: "/per-i-docenti",
+    className: "bg-kireo-green-light text-kireo-light hover:opacity-90",
   },
 ];
 
@@ -106,15 +124,9 @@ export default function Home() {
             KIREO guida gli studenti a scoprire le proprie attitudini con percorsi di orientamento
             personalizzati. Studio o lavoro: la direzione giusta è quella che parte da chi sei.
           </p>
-          <div className="mt-10 flex flex-col gap-4 md:flex-row">
+          <div className="mt-10">
             <ButtonLink href="/registrazione" variant="primary">
-              Sono uno studente
-            </ButtonLink>
-            <ButtonLink href="/per-le-scuole" variant="outline">
-              Sono una scuola
-            </ButtonLink>
-            <ButtonLink href="/per-i-docenti" variant="ghost">
-              Sono un docente
+              Inizia il tuo percorso di orientamento
             </ButtonLink>
           </div>
         </div>
@@ -123,9 +135,9 @@ export default function Home() {
       {/* Problema */}
       <section className="mx-auto max-w-6xl px-6 py-20">
         <SectionHeading
-          eyebrow="Il problema"
-          title="Scegliere il percorso giusto è più difficile di quanto dovrebbe"
-          description="Ogni anno migliaia di diplomandi affrontano la scelta più importante senza gli strumenti giusti."
+          eyebrow="Perché KIREO"
+          title="Una scelta enorme merita strumenti all'altezza"
+          description="Ogni anno circa 500.000 studenti si diplomano in Italia. E quasi una matricola su tre, nei primi anni, cambia strada o abbandona. Non per mancanza di talento: per mancanza di orientamento. KIREO nasce per questo."
         />
         <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {PROBLEMI.map((p) => (
@@ -162,6 +174,19 @@ export default function Home() {
       {/* Per chi è KIREO */}
       <section className="mx-auto max-w-6xl px-6 py-20">
         <SectionHeading eyebrow="Per chi è KIREO" title="Tre mondi. Un'unica direzione." align="center" />
+
+        <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+          {PUBBLICI_CTA.map((c) => (
+            <Link
+              key={c.href}
+              href={c.href}
+              className={`inline-flex w-full items-center justify-center rounded-full px-6 py-3 font-sans text-sm font-semibold transition-colors sm:w-auto ${c.className}`}
+            >
+              {c.label}
+            </Link>
+          ))}
+        </div>
+
         <div className="mt-12 grid gap-6 lg:grid-cols-3">
           {PUBBLICI.map((p) => (
             <div key={p.tag} className="flex flex-col rounded-2xl border border-white/5 bg-kireo-card p-8">
@@ -200,7 +225,7 @@ export default function Home() {
             Orientamento. Direzione. Futuro.
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-kireo-light/90">
-            KIREO non vende percorsi. Li illumina.
+            La direzione giusta non si indovina. Si scopre.
           </p>
           <div className="mt-8">
             <ButtonLink href="/registrazione" variant="outline" className="border-kireo-light/60">

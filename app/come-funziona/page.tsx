@@ -52,7 +52,7 @@ const FAQ = [
   {
     domanda: "Chi sono gli orientatori di KIREO?",
     risposta:
-      "Sono professionisti esperti nei diversi settori del mondo KIREO: università, formazione tecnica, professioni, mondo del lavoro. Non rappresentano nessuna istituzione e non hanno nulla da venderti: il loro compito è aiutarti a leggere i risultati del tuo percorso e a mettere a fuoco la tua direzione.",
+      "Sono professionisti esperti nei diversi settori del mondo KIREO: università, formazione tecnica, professioni, mondo del lavoro. Non rappresentano nessuna istituzione e non hanno alcun interesse commerciale: il loro compito è aiutarti a leggere i risultati del tuo percorso e a mettere a fuoco la tua direzione.",
   },
   {
     domanda: "KIREO mi dirà cosa devo scegliere?",
