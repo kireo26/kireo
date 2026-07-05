@@ -252,6 +252,36 @@ export const AREE: Area[] = [
       "Arruolamento diretto nelle forze armate o nei corpi di polizia tramite concorso",
     ],
   },
+  {
+    slug: "lingue-relazioni-internazionali",
+    nome: "Lingue & Relazioni Internazionali",
+    icona: "LI",
+    descrizioneBreve: "Traduzione, interpretariato, mediazione culturale e carriere internazionali: le lingue come professione.",
+    descrizioneEstesa:
+      "Le lingue straniere aprono le porte a professioni di mediazione, traduzione e relazioni internazionali, in un mondo sempre più interconnesso. Chi lavora in quest'area traduce testi e conversazioni, facilita la comunicazione tra culture diverse o rappresenta organizzazioni e imprese all'estero. È un ambito che richiede precisione linguistica, curiosità culturale e capacità di adattarsi a contesti differenti.",
+    direzioni: [
+      "Corsi di laurea in lingue e letterature straniere, mediazione linguistica o relazioni internazionali",
+      "Percorsi ITS Academy in internazionalizzazione d'impresa o turismo internazionale",
+      "Scuole superiori per interpreti e traduttori",
+      "Corsi di formazione professionale in mediazione culturale e linguistica",
+      "Inserimento diretto in aziende con proiezione internazionale, organizzazioni o enti diplomatici",
+    ],
+  },
+  {
+    slug: "studi-umanistici-beni-culturali",
+    nome: "Studi Umanistici & Beni Culturali",
+    icona: "SU",
+    descrizioneBreve: "Lettere, filosofia, storia, archeologia, musei ed editoria: la cultura che diventa mestiere.",
+    descrizioneEstesa:
+      "Gli studi umanistici e i beni culturali riguardano la comprensione e la valorizzazione del patrimonio storico, artistico e letterario. Chi sceglie quest'area lavora con libri, archivi, musei, siti archeologici o ricerca storica e filosofica, contribuendo a preservare e raccontare la memoria collettiva. È un ambito che richiede curiosità intellettuale, rigore nella ricerca e sensibilità per il valore culturale del passato.",
+    direzioni: [
+      "Corsi di laurea in lettere, filosofia, storia, archeologia o beni culturali",
+      "Percorsi ITS Academy in turismo culturale o valorizzazione del patrimonio",
+      "Scuole di specializzazione in conservazione e restauro",
+      "Corsi di formazione professionale per operatore museale o bibliotecario",
+      "Inserimento diretto in musei, biblioteche, archivi o case editrici",
+    ],
+  },
 ];
 
 export function getAreaBySlug(slug: string): Area | undefined {

@@ -79,7 +79,7 @@ export default function Header() {
             </button>
 
             {areeOpen && (
-              <div className="absolute left-1/2 top-full z-50 mt-3 w-[min(90vw,56rem)] -translate-x-1/2 rounded-2xl border border-white/10 bg-kireo-card p-6 shadow-2xl">
+              <div className="absolute left-1/2 top-full z-50 mt-3 max-h-[80vh] w-[min(90vw,56rem)] -translate-x-1/2 overflow-y-auto rounded-2xl border border-white/10 bg-kireo-card p-6 shadow-2xl">
                 <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
                   {AREE.map((area) => (
                     <Link
