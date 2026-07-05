@@ -57,7 +57,7 @@ export default function RegistrazioneForm() {
 
     if (!classe) next.classe = "Seleziona la classe che frequenti.";
     if (!scuolaValue.provincia) next.provincia = "Seleziona la provincia della tua scuola.";
-    if (!scuolaValue.indirizzo) next.indirizzo = "Seleziona l'indirizzo della tua scuola.";
+    if (!scuolaValue.indirizzo) next.indirizzo = "Seleziona il tipo di istituto.";
 
     if (!scuolaValue.scuola) {
       next.scuola = "Seleziona la tua scuola.";

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { ButtonLink } from "@/components/Button";
 import SectionHeading from "@/components/SectionHeading";
+import DocenteForm from "@/components/DocenteForm";
 
 export const metadata: Metadata = {
   title: "Per i docenti — KIREO",
@@ -92,8 +93,8 @@ export default function PerIDocenti() {
             partecipazione.
           </p>
           <div className="mt-8">
-            <ButtonLink href="/contatti" variant="primary">
-              Iscriviti
+            <ButtonLink href="#entra-in-kireo" variant="primary">
+              Entra in KIREO
             </ButtonLink>
           </div>
         </div>
@@ -114,6 +115,11 @@ export default function PerIDocenti() {
             </div>
           ))}
         </div>
+        <p className="mx-auto mt-8 max-w-2xl text-center text-sm text-kireo-muted">
+          E non solo AI: metodologie didattiche innovative, inclusione, orientamento, competenze
+          digitali, benessere a scuola. Il calendario dei webinar cresce ogni mese, anche con i
+          temi che ci proponi tu.
+        </p>
       </section>
 
       <section className="border-t border-white/5 bg-kireo-card/40">
@@ -130,10 +136,26 @@ export default function PerIDocenti() {
           </div>
 
           <div className="mt-12 text-center">
-            <ButtonLink href="/contatti" variant="primary">
-              Iscriviti
+            <ButtonLink href="#entra-in-kireo" variant="primary">
+              Entra in KIREO
             </ButtonLink>
           </div>
+        </div>
+      </section>
+
+      <section id="entra-in-kireo" className="mx-auto max-w-2xl px-6 py-20">
+        <div className="text-center">
+          <h2 className="py-1 font-heading text-3xl font-bold leading-[1.25] text-kireo-light sm:text-4xl">
+            Entra in KIREO
+          </h2>
+          <p className="mx-auto mt-4 max-w-xl text-kireo-muted">
+            L&apos;iscrizione è gratuita e ti dà accesso a webinar con attestato, materiali
+            scaricabili e alla newsletter mensile.
+          </p>
+        </div>
+
+        <div className="mt-10">
+          <DocenteForm />
         </div>
       </section>
     </>

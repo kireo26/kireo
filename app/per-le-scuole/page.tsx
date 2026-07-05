@@ -51,7 +51,7 @@ export default function PerLeScuole() {
           </p>
           <div className="mt-8">
             <ButtonLink href="#richiedi-informazioni" variant="primary">
-              Attiva la convenzione con la tua scuola
+              Richiedi informazioni
             </ButtonLink>
           </div>
         </div>

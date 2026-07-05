@@ -88,7 +88,7 @@ export default function ScuolaCascadeFields({
 
       <div>
         <label htmlFor="indirizzo" className="mb-1.5 block text-sm font-medium text-kireo-light">
-          Indirizzo della scuola
+          Tipo di istituto
         </label>
         <select
           id="indirizzo"
@@ -100,7 +100,7 @@ export default function ScuolaCascadeFields({
           className={`${inputClass} ${fieldBorder(Boolean(errors.indirizzo))}`}
         >
           <option value="" disabled>
-            Seleziona l&apos;indirizzo
+            Seleziona il tipo di istituto
           </option>
           {INDIRIZZI.map((i) => (
             <option key={i.value} value={i.value}>

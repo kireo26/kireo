@@ -103,8 +103,8 @@ const PUBBLICI = [
       "Newsletter mensile su AI e scuola",
       "Una community di colleghi che innovano",
     ],
-    cta: "Iscriviti →",
-    href: "/per-i-docenti",
+    cta: "Entra in KIREO →",
+    href: "/per-i-docenti#entra-in-kireo",
   },
 ];
 

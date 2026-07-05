@@ -5,20 +5,33 @@ import { Button } from "./Button";
 import ScuolaCascadeFields, { SCUOLA_ALTRO, type ScuolaCascadeValue } from "./ScuolaCascadeFields";
 import { inputClass, fieldBorder } from "@/lib/formStyles";
 
-const RUOLI = ["Preside", "Vice Preside", "Referente Orientamento in uscita", "Tutor Orientamento"];
+const MATERIE = [
+  "Area umanistica",
+  "Area scientifica",
+  "Area linguistica",
+  "Area tecnica/tecnologica",
+  "Area economico-giuridica",
+  "Area artistica",
+  "Sostegno",
+  "Religione",
+  "Scienze motorie",
+  "Altro",
+];
 
-export default function RichiestaInformazioniForm() {
+export default function DocenteForm() {
   const [nome, setNome] = useState("");
   const [cognome, setCognome] = useState("");
   const [email, setEmail] = useState("");
   const [telefono, setTelefono] = useState("");
-  const [ruolo, setRuolo] = useState("");
+  const [materia, setMateria] = useState("");
   const [scuolaValue, setScuolaValue] = useState<ScuolaCascadeValue>({
     provincia: "",
     indirizzo: "",
     scuola: "",
     scuolaAltro: "",
   });
+  const [referenteOrientamento, setReferenteOrientamento] = useState(false);
+  const [dichiarazione, setDichiarazione] = useState(false);
   const [privacy, setPrivacy] = useState(false);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -50,8 +63,7 @@ export default function RichiestaInformazioniForm() {
       next.email = "Inserisci un indirizzo email valido.";
     }
 
-    if (!telefono.trim()) next.telefono = "Inserisci un numero di telefono.";
-    if (!ruolo) next.ruolo = "Seleziona il tuo ruolo.";
+    if (!materia) next.materia = "Seleziona la tua materia di insegnamento.";
     if (!scuolaValue.provincia) next.provincia = "Seleziona la provincia della scuola.";
     if (!scuolaValue.indirizzo) next.indirizzo = "Seleziona il tipo di istituto.";
 
@@ -61,6 +73,7 @@ export default function RichiestaInformazioniForm() {
       next.scuolaAltro = "Scrivi il nome della scuola.";
     }
 
+    if (!dichiarazione) next.dichiarazione = "Devi confermare di essere un docente o operatore scolastico.";
     if (!privacy) next.privacy = "Devi accettare la privacy policy per continuare.";
 
     return next;
@@ -79,10 +92,10 @@ export default function RichiestaInformazioniForm() {
     return (
       <div className="rounded-2xl border border-kireo-green/40 bg-kireo-card p-8 text-center">
         <h2 className="py-0.5 font-heading text-xl font-semibold leading-[1.25] text-kireo-light">
-          Richiesta inviata!
+          Benvenuto in KIREO!
         </h2>
         <p className="mt-2 text-sm text-kireo-muted">
-          Un esperto KIREO ti contatterà entro 48 ore.
+          Ti abbiamo inviato una email con i prossimi webinar in calendario.
         </p>
       </div>
     );
@@ -170,7 +183,7 @@ export default function RichiestaInformazioniForm() {
 
       <div>
         <label htmlFor="telefono" className="mb-1.5 block text-sm font-medium text-kireo-light">
-          Telefono
+          Telefono (facoltativo)
         </label>
         <input
           id="telefono"
@@ -178,55 +191,85 @@ export default function RichiestaInformazioniForm() {
           type="tel"
           autoComplete="tel"
           value={telefono}
-          onChange={(e) => {
-            setTelefono(e.target.value);
-            clearError("telefono");
-          }}
-          aria-invalid={Boolean(errors.telefono)}
-          aria-describedby={errors.telefono ? "telefono-error" : undefined}
-          className={`${inputClass} ${fieldBorder(Boolean(errors.telefono))}`}
+          onChange={(e) => setTelefono(e.target.value)}
+          className={`${inputClass} ${fieldBorder(false)}`}
           placeholder="Il tuo numero di telefono"
         />
-        {errors.telefono && (
-          <p id="telefono-error" className="mt-1.5 text-sm text-red-400">
-            {errors.telefono}
-          </p>
-        )}
       </div>
 
       <div>
-        <label htmlFor="ruolo" className="mb-1.5 block text-sm font-medium text-kireo-light">
-          Ruolo
+        <label htmlFor="materia" className="mb-1.5 block text-sm font-medium text-kireo-light">
+          Materia di insegnamento
         </label>
         <select
-          id="ruolo"
-          name="ruolo"
-          value={ruolo}
+          id="materia"
+          name="materia"
+          value={materia}
           onChange={(e) => {
-            setRuolo(e.target.value);
-            clearError("ruolo");
+            setMateria(e.target.value);
+            clearError("materia");
           }}
-          aria-invalid={Boolean(errors.ruolo)}
-          aria-describedby={errors.ruolo ? "ruolo-error" : undefined}
-          className={`${inputClass} ${fieldBorder(Boolean(errors.ruolo))}`}
+          aria-invalid={Boolean(errors.materia)}
+          aria-describedby={errors.materia ? "materia-error" : undefined}
+          className={`${inputClass} ${fieldBorder(Boolean(errors.materia))}`}
         >
           <option value="" disabled>
-            Seleziona il tuo ruolo
+            Seleziona la materia
           </option>
-          {RUOLI.map((r) => (
-            <option key={r} value={r}>
-              {r}
+          {MATERIE.map((m) => (
+            <option key={m} value={m}>
+              {m}
             </option>
           ))}
         </select>
-        {errors.ruolo && (
-          <p id="ruolo-error" className="mt-1.5 text-sm text-red-400">
-            {errors.ruolo}
+        {errors.materia && (
+          <p id="materia-error" className="mt-1.5 text-sm text-red-400">
+            {errors.materia}
           </p>
         )}
       </div>
 
       <ScuolaCascadeFields value={scuolaValue} onChange={handleScuolaChange} errors={errors} />
+
+      <div className="flex items-start gap-3">
+        <input
+          id="referenteOrientamento"
+          name="referenteOrientamento"
+          type="checkbox"
+          checked={referenteOrientamento}
+          onChange={(e) => setReferenteOrientamento(e.target.checked)}
+          className="mt-1 h-5 w-5 flex-none rounded border-white/20 bg-kireo-dark accent-kireo-green"
+        />
+        <label htmlFor="referenteOrientamento" className="text-sm text-kireo-muted">
+          Sono referente per l&apos;orientamento nella mia scuola
+        </label>
+      </div>
+
+      <div>
+        <div className="flex items-start gap-3">
+          <input
+            id="dichiarazione"
+            name="dichiarazione"
+            type="checkbox"
+            checked={dichiarazione}
+            onChange={(e) => {
+              setDichiarazione(e.target.checked);
+              clearError("dichiarazione");
+            }}
+            aria-invalid={Boolean(errors.dichiarazione)}
+            aria-describedby={errors.dichiarazione ? "dichiarazione-error" : undefined}
+            className="mt-1 h-5 w-5 flex-none rounded border-white/20 bg-kireo-dark accent-kireo-green"
+          />
+          <label htmlFor="dichiarazione" className="text-sm text-kireo-muted">
+            Dichiaro di essere un docente o operatore scolastico
+          </label>
+        </div>
+        {errors.dichiarazione && (
+          <p id="dichiarazione-error" className="mt-1.5 text-sm text-red-400">
+            {errors.dichiarazione}
+          </p>
+        )}
+      </div>
 
       <div>
         <div className="flex items-start gap-3">
@@ -258,7 +301,7 @@ export default function RichiestaInformazioniForm() {
       </div>
 
       <Button type="submit" variant="primary" className="w-full">
-        Richiedi informazioni
+        Entra in KIREO
       </Button>
     </form>
   );
