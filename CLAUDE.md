@@ -19,7 +19,8 @@ Claim: "Orientamento. Direzione. Futuro."
 - Arancione accento: #EF9F27 (highlight, badge, punto nord della bussola nel logo)
 - Sfondo scuro: #2C2C2A / card: #353533
 - Testo chiaro: #F0EDE8 / testo muted: #9A9890
-- Logo: K grande in verde petrolio (#5DCAA5), IREO in bianco, la O contiene una bussola con punto nord arancione
+- Logo definitivo (`components/Logo.tsx`): wordmark "KIRE" + O finale sostituita da un'icona bussola SVG (anello aperto in alto con terminali arrotondati, ago a rombo arancione #EF9F27 che punta a NE). Font logo: Poppins 300 (Google Fonts, token `--font-logo`), letter-spacing/gap 0.12em. Due varianti: `dark` (default, K e anello verde #2FA57B, IRE #F0EDE8, per sfondi scuri) e `light` (K e anello verde #0F6E56, IRE #2C2C2A, per sfondi chiari). **Regola inviolabile**: la spaziatura tra E e O deve restare identica a quella fra le altre lettere — nel componente questo è garantito da un flex `gap` uniforme fra tutti i caratteri e l'icona (non da letter-spacing CSS), da NON modificare con margini ad hoc. Lo stroke-width dell'anello (4.5 in un viewBox 80×80) è tarato per pesare otticamente come le aste sottili di Poppins 300: se si cambia il font o il peso, ritarare di conseguenza
+- Favicon: generata dalla sola icona bussola (senza lettere) — `app/icon.svg` (vettoriale, tutte le dimensioni) e `app/apple-icon.tsx` (PNG 180×180 via `next/og` `ImageResponse`, sfondo `#2C2C2A`). La geometria è duplicata in questi due file + nel componente Logo: se il disegno cambia, aggiornare in tutti e tre i punti
 - Font: Space Grotesk (titoli, Google Fonts) + DM Sans (testi, Google Fonts) — sostituito Syne per via di lettere (es. "g") poco leggibili a corpo piccolo
 - Estetica: dark theme, pulita, professionale ma calda
 
