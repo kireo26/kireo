@@ -1,21 +1,54 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Logo from "./Logo";
 import { ButtonLink } from "./Button";
+import { AREE } from "@/data/aree";
 
 const NAV_LINKS = [
   { href: "/", label: "Home" },
-  { href: "/come-funziona", label: "Come funziona" },
+  { href: "/per-gli-studenti", label: "Per gli studenti" },
   { href: "/per-le-scuole", label: "Per le scuole" },
-  { href: "/per-le-istituzioni", label: "Per le istituzioni" },
   { href: "/per-i-docenti", label: "Per i docenti" },
-  { href: "/contatti", label: "Contatti" },
 ];
+
+function ChevronIcon({ open }: { open: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`}
+      fill="none"
+      stroke="currentColor"
+      aria-hidden="true"
+    >
+      <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" />
+    </svg>
+  );
+}
 
 export default function Header() {
   const [open, setOpen] = useState(false);
+  const [areeOpen, setAreeOpen] = useState(false);
+  const [areeOpenMobile, setAreeOpenMobile] = useState(false);
+  const areeRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (areeRef.current && !areeRef.current.contains(e.target as Node)) {
+        setAreeOpen(false);
+      }
+    }
+    function handleEscape(e: KeyboardEvent) {
+      if (e.key === "Escape") setAreeOpen(false);
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, []);
 
   return (
     <header className="sticky top-0 z-50 border-b border-white/5 bg-kireo-dark/90 backdrop-blur">
@@ -32,6 +65,53 @@ export default function Header() {
               {link.label}
             </Link>
           ))}
+
+          <div ref={areeRef} className="relative">
+            <button
+              type="button"
+              onClick={() => setAreeOpen((v) => !v)}
+              aria-expanded={areeOpen}
+              aria-haspopup="true"
+              className="flex items-center gap-1 font-sans text-sm font-medium text-kireo-light/90 transition-colors hover:text-kireo-orange"
+            >
+              Aree di orientamento
+              <ChevronIcon open={areeOpen} />
+            </button>
+
+            {areeOpen && (
+              <div className="absolute left-1/2 top-full z-50 mt-3 w-[min(90vw,56rem)] -translate-x-1/2 rounded-2xl border border-white/10 bg-kireo-card p-6 shadow-2xl">
+                <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+                  {AREE.map((area) => (
+                    <Link
+                      key={area.slug}
+                      href={`/aree/${area.slug}`}
+                      onClick={() => setAreeOpen(false)}
+                      className="flex items-start gap-3 rounded-xl p-3 transition-colors hover:bg-white/5"
+                    >
+                      <span className="flex h-9 w-9 flex-none items-center justify-center rounded-full border border-kireo-orange/40 font-heading text-xs font-bold text-kireo-orange">
+                        {area.icona}
+                      </span>
+                      <span>
+                        <span className="block font-heading text-sm font-semibold leading-[1.25] text-kireo-light">
+                          {area.nome}
+                        </span>
+                        <span className="mt-0.5 block text-xs leading-snug text-kireo-muted">
+                          {area.descrizioneBreve}
+                        </span>
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <Link
+            href="/contatti"
+            className="font-sans text-sm font-medium text-kireo-light/90 transition-colors hover:text-kireo-orange"
+          >
+            Contatti
+          </Link>
         </nav>
 
         <div className="hidden md:block">
@@ -76,6 +156,43 @@ export default function Header() {
                 </Link>
               </li>
             ))}
+
+            <li>
+              <button
+                type="button"
+                onClick={() => setAreeOpenMobile((v) => !v)}
+                aria-expanded={areeOpenMobile}
+                className="flex w-full items-center justify-between rounded-lg px-2 py-3 font-sans text-base font-medium text-kireo-light hover:bg-white/5"
+              >
+                Aree di orientamento
+                <ChevronIcon open={areeOpenMobile} />
+              </button>
+              {areeOpenMobile && (
+                <ul className="mt-1 space-y-1 pb-2 pl-4">
+                  {AREE.map((area) => (
+                    <li key={area.slug}>
+                      <Link
+                        href={`/aree/${area.slug}`}
+                        onClick={() => setOpen(false)}
+                        className="block rounded-lg px-2 py-2 font-sans text-sm text-kireo-light/90 hover:bg-white/5"
+                      >
+                        {area.nome}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </li>
+
+            <li>
+              <Link
+                href="/contatti"
+                onClick={() => setOpen(false)}
+                className="block rounded-lg px-2 py-3 font-sans text-base font-medium text-kireo-light hover:bg-white/5"
+              >
+                Contatti
+              </Link>
+            </li>
           </ul>
           <div className="mt-4">
             <ButtonLink href="/" variant="primary" className="w-full">

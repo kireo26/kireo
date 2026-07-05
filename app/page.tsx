@@ -45,7 +45,7 @@ const STEP = [
 const PUBBLICI_CTA = [
   {
     label: "Sono uno studente",
-    href: "/registrazione",
+    href: "/per-gli-studenti",
     className: "bg-kireo-green text-kireo-light hover:bg-kireo-green-light",
   },
   {
@@ -74,7 +74,7 @@ const PUBBLICI = [
       "Ore PCTO certificate mentre ti orienti",
     ],
     cta: "Inizia il tuo percorso →",
-    href: "/registrazione",
+    href: "/per-gli-studenti",
   },
   {
     tag: "Per le scuole",
