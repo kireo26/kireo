@@ -5,18 +5,14 @@ import { Button } from "./Button";
 import ScuolaCascadeFields, { SCUOLA_ALTRO, type ScuolaCascadeValue } from "./ScuolaCascadeFields";
 import { inputClass, fieldBorder } from "@/lib/formStyles";
 
-const CLASSI = [
-  { value: "3", label: "3° anno" },
-  { value: "4", label: "4° anno" },
-  { value: "5", label: "5° anno" },
-];
+const RUOLI = ["Preside", "Vice Preside", "Referente Orientamento in uscita", "Tutor Orientamento"];
 
-export default function RegistrazioneForm() {
+export default function RichiestaInformazioniForm() {
   const [nome, setNome] = useState("");
   const [cognome, setCognome] = useState("");
   const [email, setEmail] = useState("");
   const [telefono, setTelefono] = useState("");
-  const [classe, setClasse] = useState("");
+  const [ruolo, setRuolo] = useState("");
   const [scuolaValue, setScuolaValue] = useState<ScuolaCascadeValue>({
     provincia: "",
     indirizzo: "",
@@ -24,7 +20,6 @@ export default function RegistrazioneForm() {
     scuolaAltro: "",
   });
   const [privacy, setPrivacy] = useState(false);
-  const [newsletter, setNewsletter] = useState(false);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [inviato, setInviato] = useState(false);
@@ -55,14 +50,15 @@ export default function RegistrazioneForm() {
       next.email = "Inserisci un indirizzo email valido.";
     }
 
-    if (!classe) next.classe = "Seleziona la classe che frequenti.";
-    if (!scuolaValue.provincia) next.provincia = "Seleziona la provincia della tua scuola.";
-    if (!scuolaValue.indirizzo) next.indirizzo = "Seleziona l'indirizzo della tua scuola.";
+    if (!telefono.trim()) next.telefono = "Inserisci un numero di telefono.";
+    if (!ruolo) next.ruolo = "Seleziona il tuo ruolo.";
+    if (!scuolaValue.provincia) next.provincia = "Seleziona la provincia della scuola.";
+    if (!scuolaValue.indirizzo) next.indirizzo = "Seleziona l'indirizzo della scuola.";
 
     if (!scuolaValue.scuola) {
-      next.scuola = "Seleziona la tua scuola.";
+      next.scuola = "Seleziona la scuola.";
     } else if (scuolaValue.scuola === SCUOLA_ALTRO && !scuolaValue.scuolaAltro.trim()) {
-      next.scuolaAltro = "Scrivi il nome della tua scuola.";
+      next.scuolaAltro = "Scrivi il nome della scuola.";
     }
 
     if (!privacy) next.privacy = "Devi accettare la privacy policy per continuare.";
@@ -83,10 +79,10 @@ export default function RegistrazioneForm() {
     return (
       <div className="rounded-2xl border border-kireo-green/40 bg-kireo-card p-8 text-center">
         <h2 className="py-0.5 font-heading text-xl font-semibold leading-[1.25] text-kireo-light">
-          Profilo creato!
+          Richiesta inviata!
         </h2>
         <p className="mt-2 text-sm text-kireo-muted">
-          Ti abbiamo inviato una email di benvenuto.
+          Un esperto KIREO ti contatterà entro 48 ore.
         </p>
       </div>
     );
@@ -174,7 +170,7 @@ export default function RegistrazioneForm() {
 
       <div>
         <label htmlFor="telefono" className="mb-1.5 block text-sm font-medium text-kireo-light">
-          Telefono (facoltativo)
+          Telefono
         </label>
         <input
           id="telefono"
@@ -182,40 +178,50 @@ export default function RegistrazioneForm() {
           type="tel"
           autoComplete="tel"
           value={telefono}
-          onChange={(e) => setTelefono(e.target.value)}
-          className={`${inputClass} ${fieldBorder(false)}`}
+          onChange={(e) => {
+            setTelefono(e.target.value);
+            clearError("telefono");
+          }}
+          aria-invalid={Boolean(errors.telefono)}
+          aria-describedby={errors.telefono ? "telefono-error" : undefined}
+          className={`${inputClass} ${fieldBorder(Boolean(errors.telefono))}`}
           placeholder="Il tuo numero di telefono"
         />
+        {errors.telefono && (
+          <p id="telefono-error" className="mt-1.5 text-sm text-red-400">
+            {errors.telefono}
+          </p>
+        )}
       </div>
 
       <div>
-        <label htmlFor="classe" className="mb-1.5 block text-sm font-medium text-kireo-light">
-          Classe frequentata
+        <label htmlFor="ruolo" className="mb-1.5 block text-sm font-medium text-kireo-light">
+          Ruolo
         </label>
         <select
-          id="classe"
-          name="classe"
-          value={classe}
+          id="ruolo"
+          name="ruolo"
+          value={ruolo}
           onChange={(e) => {
-            setClasse(e.target.value);
-            clearError("classe");
+            setRuolo(e.target.value);
+            clearError("ruolo");
           }}
-          aria-invalid={Boolean(errors.classe)}
-          aria-describedby={errors.classe ? "classe-error" : undefined}
-          className={`${inputClass} ${fieldBorder(Boolean(errors.classe))}`}
+          aria-invalid={Boolean(errors.ruolo)}
+          aria-describedby={errors.ruolo ? "ruolo-error" : undefined}
+          className={`${inputClass} ${fieldBorder(Boolean(errors.ruolo))}`}
         >
           <option value="" disabled>
-            Seleziona la classe
+            Seleziona il tuo ruolo
           </option>
-          {CLASSI.map((c) => (
-            <option key={c.value} value={c.value}>
-              {c.label}
+          {RUOLI.map((r) => (
+            <option key={r} value={r}>
+              {r}
             </option>
           ))}
         </select>
-        {errors.classe && (
-          <p id="classe-error" className="mt-1.5 text-sm text-red-400">
-            {errors.classe}
+        {errors.ruolo && (
+          <p id="ruolo-error" className="mt-1.5 text-sm text-red-400">
+            {errors.ruolo}
           </p>
         )}
       </div>
@@ -251,22 +257,8 @@ export default function RegistrazioneForm() {
         )}
       </div>
 
-      <div className="flex items-start gap-3">
-        <input
-          id="newsletter"
-          name="newsletter"
-          type="checkbox"
-          checked={newsletter}
-          onChange={(e) => setNewsletter(e.target.checked)}
-          className="mt-1 h-5 w-5 flex-none rounded border-white/20 bg-kireo-dark accent-kireo-green"
-        />
-        <label htmlFor="newsletter" className="text-sm text-kireo-muted">
-          Voglio ricevere aggiornamenti sulle attività di orientamento
-        </label>
-      </div>
-
       <Button type="submit" variant="primary" className="w-full">
-        Crea il mio profilo
+        Richiedi informazioni
       </Button>
     </form>
   );

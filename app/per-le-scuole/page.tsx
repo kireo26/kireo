@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { ButtonLink } from "@/components/Button";
 import Card from "@/components/Card";
 import SectionHeading from "@/components/SectionHeading";
+import RichiestaInformazioniForm from "@/components/RichiestaInformazioniForm";
 
 export const metadata: Metadata = {
   title: "Per le scuole — KIREO",
@@ -32,27 +33,6 @@ const OFFERTA = [
   },
 ];
 
-const STEP = [
-  {
-    numero: "01",
-    titolo: "La scuola firma la convenzione",
-    descrizione:
-      "Un accordo semplice e leggero tra la scuola e KIREO, come previsto dalla normativa PCTO. Ci pensiamo noi a prepararlo.",
-  },
-  {
-    numero: "02",
-    titolo: "Gli studenti si iscrivono",
-    descrizione:
-      "Ogni studente crea il proprio profilo gratuito e inizia il percorso di orientamento, a scuola o da casa, al proprio ritmo.",
-  },
-  {
-    numero: "03",
-    titolo: "La scuola monitora e riceve",
-    descrizione:
-      "I docenti seguono i progressi dalla dashboard e la segreteria riceve i giustificativi automaticamente. Fine della burocrazia.",
-  },
-];
-
 export default function PerLeScuole() {
   return (
     <>
@@ -70,7 +50,7 @@ export default function PerLeScuole() {
             gratuito.
           </p>
           <div className="mt-8">
-            <ButtonLink href="/contatti" variant="primary">
+            <ButtonLink href="#richiedi-informazioni" variant="primary">
               Attiva la convenzione con la tua scuola
             </ButtonLink>
           </div>
@@ -80,9 +60,9 @@ export default function PerLeScuole() {
       <section className="border-t border-white/5 bg-kireo-card/40">
         <div className="mx-auto max-w-4xl px-6 py-16">
           <SectionHeading
-            eyebrow="Il contesto"
-            title="90, 150, 210 ore. Per ogni studente."
-            description="La normativa richiede un monte ore minimo di PCTO nel triennio finale: 90 ore nei licei, 150 negli istituti tecnici, 210 nei professionali. Trovare percorsi validi, gestire convenzioni, raccogliere giustificativi e monitorare le attività di centinaia di studenti è un carico enorme per docenti e segreterie. KIREO lo azzera."
+            eyebrow="Il percorso"
+            title="Un percorso di orientamento completo. Chiavi in mano."
+            description="KIREO accompagna i tuoi studenti in un percorso di orientamento strutturato, con incontri online e in presenza, attività su innumerevoli aree di interesse — dai test attitudinali ai workshop, dai webinar ai laboratori pratici. Ogni attività è tracciata: i docenti referenti seguono tutto in tempo reale da una dashboard con statistiche complete, mentre i giustificativi PCTO si generano automaticamente. La scuola offre un orientamento di qualità; la burocrazia la gestiamo noi."
           />
         </div>
       </section>
@@ -96,39 +76,21 @@ export default function PerLeScuole() {
         </div>
       </section>
 
-      <section className="border-t border-white/5 bg-kireo-card/40">
-        <div className="mx-auto max-w-6xl px-6 py-20">
-          <SectionHeading eyebrow="Come si attiva" title="Tre passi, nessun costo." align="center" />
-          <div className="mt-12 grid gap-10 sm:grid-cols-3">
-            {STEP.map((s) => (
-              <div key={s.numero} className="text-center">
-                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full border border-kireo-orange/40 font-heading text-lg font-bold leading-[1.25] text-kireo-orange">
-                  {s.numero}
-                </div>
-                <h3 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">
-                  {s.titolo}
-                </h3>
-                <p className="mt-2 text-sm text-kireo-muted">{s.descrizione}</p>
-              </div>
-            ))}
+      <section id="richiedi-informazioni" className="border-t border-white/5 bg-kireo-card/40">
+        <div className="mx-auto max-w-2xl px-6 py-20">
+          <div className="text-center">
+            <h2 className="py-1 font-heading text-3xl font-bold leading-[1.25] text-kireo-light sm:text-4xl">
+              Parla con un esperto KIREO
+            </h2>
+            <p className="mx-auto mt-4 max-w-xl text-kireo-muted">
+              Lascia i tuoi riferimenti: un esperto di orientamento KIREO ti contatterà per
+              presentarti nel dettaglio il percorso, la dashboard e l&apos;attivazione della
+              convenzione. Senza impegno e senza costi.
+            </p>
           </div>
-        </div>
-      </section>
 
-      <section className="bg-kireo-green">
-        <div className="mx-auto max-w-2xl px-6 py-16 text-center">
-          <h2 className="py-1 font-heading text-3xl font-bold leading-[1.25] text-kireo-light sm:text-4xl">
-            Quanto costa? Niente.
-          </h2>
-          <p className="mx-auto mt-4 max-w-xl text-kireo-light/90">
-            KIREO è gratuito per le scuole e per gli studenti, oggi e domani. Il progetto si
-            sostiene con i servizi alle istituzioni formative post-diploma — mai con le scuole,
-            mai con le famiglie.
-          </p>
-          <div className="mt-8">
-            <ButtonLink href="/contatti" variant="outline" className="border-kireo-light/60">
-              Parla con noi
-            </ButtonLink>
+          <div className="mt-10">
+            <RichiestaInformazioniForm />
           </div>
         </div>
       </section>
