@@ -55,25 +55,26 @@ Menu principale (in quest'ordine): Home, Per gli studenti, Per le scuole, Per i 
 - `/per-gli-studenti` (nuova pagina hub, sostituisce la destinazione diretta a `/registrazione` dai CTA studenti di Homepage) include una griglia di link rapidi a tutte le 18 aree
 
 ## Fasi del progetto
-1. FASE ATTUALE: sito pubblico statico — Homepage, Per gli studenti, Come funziona, Per le scuole (scuole superiori, PCTO), Per le istituzioni (istituzioni formative post-diploma), Per i docenti (formazione AI/EdTech), 16 pagine Aree di orientamento, Registrazione (form studenti, solo UI), Contatti, Privacy
+1. FASE ATTUALE: sito pubblico statico — Homepage, Per gli studenti, Come funziona, Per le scuole (scuole superiori, PCTO), Per le istituzioni (istituzioni formative post-diploma), Per i docenti (formazione AI/EdTech), 18 pagine Aree di orientamento, Registrazione (form studenti, solo UI), Contatti, Privacy
 2. Fase 2 (lug-ago 2026): auth Supabase con 3 ruoli + catalogo istituzioni
 3. Fase 3 (set 2026): profili studente + generazione PDF giustificativi PCTO
 
 ## Stato attuale
-Aggiornato al 2026-07-04.
+Aggiornato al 2026-07-05.
 
 **Completato (Fase 1):**
 - Scaffold Next.js (App Router, TypeScript, Tailwind CSS v4) con font Google e colori brand configurati come token Tailwind (`kireo-green`, `kireo-orange`, `kireo-dark`, ecc.)
-- 7 pagine pubbliche, testi definitivi sulla maggior parte: Homepage, Come funziona, Per le scuole, Per le istituzioni, Per i docenti, Contatti (testi provvisori), Privacy (testi provvisori)
-- Componenti condivisi in `/components`: Header (con nav mobile), Footer, Logo, Button, Card, SectionHeading, ContactForm (solo UI, nessun invio reale)
+- 10 pagine pubbliche + 18 pagine Aree di orientamento, testi definitivi sulla maggior parte: Homepage, Per gli studenti, Come funziona, Per le scuole, Per le istituzioni, Per i docenti, Registrazione, Contatti (testi provvisori), Privacy (testi provvisori)
+- Componenti condivisi in `/components`: Header (con nav mobile e mega-menu), Footer, Logo (wordmark + O-bussola), Button, Card, SectionHeading, ContactForm, RegistrazioneForm, RichiestaInformazioniForm, DocenteForm, ScuolaCascadeFields, GuidaAreaForm
 - Dev server verificato e funzionante su http://localhost:3000
 - Homepage e Come funziona riposizionate in chiave orientamento-first (vedi sezione "Cosa è KIREO")
 - `/per-le-scuole` sdoppiata in due pagine con pubblici e toni opposti: `/per-le-scuole` per le scuole superiori (servizio PCTO gratuito, tono di servizio pubblico) e `/per-le-istituzioni` per le istituzioni formative post-diploma (unica pagina con piani a pagamento)
-- Homepage ristrutturata: la vecchia sezione doppia studenti/scuole e la sezione docenti sono state sostituite da un'unica sezione "Per chi è KIREO" con tre card fratelle di pari dignità (studenti, scuole, docenti); i contenuti tematici approfonditi sui docenti (AI in classe, valutazione, etica/privacy, burocrazia) sono stati spostati sulla nuova pagina `/per-i-docenti`. Nav aggiornata a 6 voci, CTA verde nell'header è "Inizia ora" → home
-- Nuova pagina `/registrazione`: form di registrazione studente (solo UI client-side, nessun salvataggio reale — da collegare a Supabase in Fase 2), con menu a cascata provincia → indirizzo → scuola basato sul dataset MIM (vedi sezione "Dataset scuole secondarie")
+- Homepage ristrutturata: la vecchia sezione doppia studenti/scuole e la sezione docenti sono state sostituite da un'unica sezione "Per chi è KIREO" con tre card fratelle di pari dignità (studenti, scuole, docenti); i contenuti tematici approfonditi sui docenti (AI in classe, valutazione, etica/privacy, burocrazia) sono stati spostati sulla nuova pagina `/per-i-docenti`. Nav aggiornata (vedi sezione "Navigazione"), CTA verde nell'header è "Inizia ora" → home
+- Nuova pagina `/registrazione`: form di registrazione studente (solo UI client-side, nessun salvataggio reale — da collegare a Supabase in Fase 2), con menu a cascata provincia → tipo di istituto → scuola basato sul dataset MIM (vedi sezione "Dataset scuole secondarie")
 - `/per-le-scuole` rivista: la sezione "Il contesto" (monte ore normativo) è stata sostituita da "Il percorso", che racconta il servizio invece dei numeri di legge; la sezione finale di attivazione è stata sostituita da un form lead ("Parla con un esperto KIREO", id `richiedi-informazioni`) con nome/cognome/email/telefono (obbligatorio)/ruolo del referente (Preside, Vice Preside, Referente Orientamento in uscita, Tutor Orientamento) + la stessa cascata scuole di `/registrazione`, tramite `RichiestaInformazioniForm`. Il CTA della hero è "Richiedi informazioni" (mai lessico contrattuale tipo "attiva la convenzione")
 - `/per-i-docenti` completata con form di iscrizione (`DocenteForm`, id `entra-in-kireo`): nome/cognome/email/telefono facoltativo/materia di insegnamento/cascata scuola/dichiarazione di essere docente/privacy. Tutte le CTA della pagina (e quella della card docenti in Homepage) sono "Entra in KIREO"
-- Navigazione ristrutturata (vedi sezione "Navigazione") e creata la sezione "Aree di orientamento" con 16 pagine dinamiche `/aree/[slug]` e relativo mega-menu; nuova pagina hub `/per-gli-studenti`
+- Navigazione ristrutturata (vedi sezione "Navigazione") e creata la sezione "Aree di orientamento" con 18 pagine dinamiche `/aree/[slug]` e relativo mega-menu (griglia su desktop con scroll oltre l'80vh, accordion su mobile); nuova pagina hub `/per-gli-studenti`
+- Logo definitivo implementato (vedi sezione "Brand"): wordmark "KIRE" + O-bussola SVG, font Poppins 300, favicon e apple-touch-icon rigenerate dalla sola icona
 
 **Problema font risolto:** i titoli (font Syne) mostravano lettere accentate e discendenti apparentemente tagliate. Causa: `line-height` troppo stretto (il font richiede un rapporto ascendenti+discendenti di almeno ~1.2, mentre diversi titoli non avevano `line-height` esplicito o usavano valori troppo bassi). Risolto impostando `line-height: 1.25` + padding verticale di sicurezza su tutti i titoli del sito, e rimuovendo l'unico `overflow-hidden` rimasto (tabella piani, sostituito con arrotondamento solo sulle celle d'angolo). In un secondo momento, per una lettera "g" dal design particolare di Syne (percepita come "tagliata" ma in realtà solo uno stile distintivo del font), si è deciso di sostituire il font titoli con **Space Grotesk**, più leggibile mantenendo comunque un look distintivo.
 
@@ -84,6 +85,12 @@ Aggiornato al 2026-07-04.
 - Fase 2 (lug-ago 2026): autenticazione Supabase con i 3 ruoli utente (studente, istituzione, docente) + catalogo istituzioni consultabile
 - Fase 3 (set 2026): profili studente completi + generazione automatica PDF dei giustificativi PCTO
 - Da rivalutare in futuro: rimuovere il workaround `--webpack` se un aggiornamento di Next.js risolve il crash di Turbopack in dev
+
+**Punti aperti (da chiudere in una prossima sessione):**
+- **Deploy Vercel**: il sito è online solo sull'URL `*.vercel.app` assegnato da Vercel — il dominio definitivo `kireo.it` non è ancora collegato al progetto (Project Settings → Domains su Vercel)
+- **Dataset scuole MIM**: il JSON versionato (`public/data/scuole-secondarie-superiori.json`) è generato dal CSV dell'anno scolastico 2026/27; non c'è automazione di aggiornamento — quando il MIM pubblica un nuovo anno, va riscaricato il CSV e rilanciato `scripts/transform-scuole.js` a mano (istruzioni in testa allo script)
+- **Guide PDF delle aree**: il form "Scarica la guida di orientamento" su ogni pagina `/aree/[slug]` è solo UI — mostra la conferma ma non esistono ancora i PDF veri né un invio email reale; da collegare quando le guide saranno pronte
+- **Area "Salute & Professioni sanitarie"**: la descrizione attuale in `data/aree.ts` copre medicina/infermieristica/benessere ma non menziona esplicitamente la veterinaria — da integrare in un prossimo aggiornamento dei contenuti
 
 ## Convenzioni
 - Commenti nel codice in italiano
