@@ -91,6 +91,29 @@ function normalizzaProvincia(raw) {
   return titleCase(raw);
 }
 
+// Alcune sedi non sono destinate a studenti PCTO "ordinari": le sedi
+// carcerarie vengono escluse dal menu, le sezioni ospedaliere restano ma
+// vengono etichettate in modo esplicito dal componente di rendering.
+function classificaAnomalia(nome) {
+  const n = nome.toUpperCase();
+  // "CARC" seguito da A è un falso positivo (cognomi/toponimi come CARCANO,
+  // CARCARE); tutte le sedi carcerarie usano invece abbreviazioni come
+  // "CARC.", "S.CARC", "SEZ CARC", "CARCERARIA".
+  if (/CARC(?!A)|CASA CIRCONDARIALE|DETENUT/.test(n)) return "carceraria";
+  if (/OSPEDAL/.test(n)) return "ospedaliera";
+  return null;
+}
+
+// Cerca l'indice di colonna provando più varianti di intestazione, per
+// tollerare piccole differenze tra le versioni del dataset MIM.
+function trovaColonna(header, varianti) {
+  for (const v of varianti) {
+    const i = header.indexOf(v);
+    if (i !== -1) return i;
+  }
+  return -1;
+}
+
 const raw = fs.readFileSync(SRC, "utf8");
 const lines = raw.split("\n").filter((l) => l.trim().length > 0);
 const header = parseCSVLine(lines[0]).map((h) => h.trim());
@@ -100,13 +123,19 @@ const idx = {
   codice: header.indexOf("CODICESCUOLA"),
   nome: header.indexOf("DENOMINAZIONESCUOLA"),
   tipo: header.indexOf("DESCRIZIONETIPOLOGIAGRADOISTRUZIONESCUOLA"),
+  // Colonne facoltative: se assenti nel CSV (versioni più vecchie del
+  // dataset), comune/indirizzo restano assenti e il componente ricade sulla
+  // disambiguazione tramite codice meccanografico.
+  comune: trovaColonna(header, ["DESCRIZIONECOMUNE", "COMUNE", "DENOMINAZIONECOMUNE"]),
+  indirizzoScuola: trovaColonna(header, ["INDIRIZZOSCUOLA", "INDIRIZZO"]),
 };
 
-// { [provincia]: { [indirizzo]: [{codice, nome}] } }
+// { [provincia]: { [indirizzo]: [{codice, nome, comune?, indirizzo?, ospedaliera?}] } }
 const grouped = {};
 const codiciVisti = new Set();
 let totali = 0;
 let inclusi = 0;
+let esclusiCarceraria = 0;
 
 for (let i = 1; i < lines.length; i++) {
   const f = parseCSVLine(lines[i]);
@@ -120,18 +149,30 @@ for (let i = 1; i < lines.length; i++) {
   if (codiciVisti.has(codice)) continue; // evita duplicati (stesso codice su più righe)
   codiciVisti.add(codice);
 
-  const provincia = normalizzaProvincia(f[idx.provincia].trim());
   const nome = f[idx.nome].trim();
+  const anomalia = classificaAnomalia(nome);
+  if (anomalia === "carceraria") {
+    esclusiCarceraria++;
+    continue;
+  }
+
+  const provincia = normalizzaProvincia(f[idx.provincia].trim());
+  const scuola = { codice, nome };
+  if (idx.comune !== -1 && f[idx.comune].trim()) scuola.comune = titleCase(f[idx.comune].trim());
+  if (idx.indirizzoScuola !== -1 && f[idx.indirizzoScuola].trim()) scuola.indirizzo = titleCase(f[idx.indirizzoScuola].trim());
+  if (anomalia === "ospedaliera") scuola.ospedaliera = true;
 
   grouped[provincia] ??= {};
   grouped[provincia][indirizzo] ??= [];
-  grouped[provincia][indirizzo].push({ codice, nome });
+  grouped[provincia][indirizzo].push(scuola);
   inclusi++;
 }
 
 for (const provincia of Object.keys(grouped)) {
   for (const indirizzo of Object.keys(grouped[provincia])) {
-    grouped[provincia][indirizzo].sort((a, b) => a.nome.localeCompare(b.nome, "it"));
+    grouped[provincia][indirizzo].sort(
+      (a, b) => a.nome.localeCompare(b.nome, "it") || (a.comune ?? "").localeCompare(b.comune ?? "", "it"),
+    );
   }
 }
 
@@ -140,5 +181,6 @@ fs.writeFileSync(OUT, JSON.stringify(grouped));
 
 console.log("Righe totali nel CSV:", totali);
 console.log("Scuole incluse (secondarie II grado classificate):", inclusi);
+console.log("Sedi carcerarie escluse:", esclusiCarceraria);
 console.log("Province presenti nel JSON:", Object.keys(grouped).length);
 console.log("Dimensione file JSON:", (fs.statSync(OUT).size / 1024 / 1024).toFixed(2), "MB");

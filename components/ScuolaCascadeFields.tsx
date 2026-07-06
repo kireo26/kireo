@@ -5,8 +5,69 @@ import { PROVINCE_ITALIANE } from "@/lib/province";
 import { inputClass, fieldBorder } from "@/lib/formStyles";
 
 export type Indirizzo = "Liceo" | "Tecnico" | "Professionale";
-type Scuola = { codice: string; nome: string };
+type Scuola = {
+  codice: string;
+  nome: string;
+  comune?: string;
+  indirizzo?: string;
+  ospedaliera?: boolean;
+};
 type ScuoleData = Record<string, Partial<Record<Indirizzo, Scuola[]>>>;
+
+// Ordina le scuole (denominazione, poi comune) e costruisce un'etichetta
+// disambiguata per ciascuna: quando più scuole condividono la stessa
+// denominazione si aggiunge il comune, e se anche denominazione+comune
+// coincidono si aggiunge l'indirizzo. Se il dataset non ha ancora il comune
+// (CSV MIM non rigenerato con quella colonna) si ricade sul codice
+// meccanografico, che è comunque univoco.
+function ordinaEEtichetta(scuole: Scuola[]): { codice: string; label: string }[] {
+  const ordinate = [...scuole].sort(
+    (a, b) => a.nome.localeCompare(b.nome, "it") || (a.comune ?? "").localeCompare(b.comune ?? "", "it"),
+  );
+
+  const perNome = new Map<string, Scuola[]>();
+  for (const s of ordinate) {
+    const gruppo = perNome.get(s.nome) ?? [];
+    gruppo.push(s);
+    perNome.set(s.nome, gruppo);
+  }
+
+  const etichette = new Map<string, string>();
+  for (const [nome, gruppoNome] of perNome) {
+    if (gruppoNome.length === 1) {
+      etichette.set(gruppoNome[0].codice, nome);
+      continue;
+    }
+
+    const perComune = new Map<string, Scuola[]>();
+    for (const s of gruppoNome) {
+      const chiave = s.comune ?? "";
+      const gruppo = perComune.get(chiave) ?? [];
+      gruppo.push(s);
+      perComune.set(chiave, gruppo);
+    }
+
+    for (const [comune, gruppoComune] of perComune) {
+      if (!comune) {
+        // Comune non disponibile: unica disambiguazione possibile è il codice.
+        for (const s of gruppoComune) etichette.set(s.codice, `${nome} (${s.codice})`);
+        continue;
+      }
+      if (gruppoComune.length === 1) {
+        etichette.set(gruppoComune[0].codice, `${nome} — ${comune}`);
+        continue;
+      }
+      for (const s of gruppoComune) {
+        etichette.set(s.codice, s.indirizzo ? `${nome} — ${comune}, ${s.indirizzo}` : `${nome} — ${comune} (${s.codice})`);
+      }
+    }
+  }
+
+  return ordinate.map((s) => ({
+    codice: s.codice,
+    label: s.ospedaliera ? `${etichette.get(s.codice)} — sezione ospedaliera` : (etichette.get(s.codice) as string),
+  }));
+}
 
 export const SCUOLA_ALTRO = "__altro";
 
@@ -50,7 +111,8 @@ export default function ScuolaCascadeFields({
 
   const scuoleDisponibili = useMemo(() => {
     if (!value.provincia || !value.indirizzo || !scuoleData) return [];
-    return scuoleData[value.provincia]?.[value.indirizzo] ?? [];
+    const scuole = scuoleData[value.provincia]?.[value.indirizzo] ?? [];
+    return ordinaEEtichetta(scuole);
   }, [value.provincia, value.indirizzo, scuoleData]);
 
   const scuolaSelectAbilitata = Boolean(value.provincia && value.indirizzo && !caricamentoScuole);
@@ -138,7 +200,7 @@ export default function ScuolaCascadeFields({
           </option>
           {scuoleDisponibili.map((s) => (
             <option key={s.codice} value={s.codice}>
-              {s.nome}
+              {s.label}
             </option>
           ))}
           {scuolaSelectAbilitata && <option value={SCUOLA_ALTRO}>La mia scuola non è in elenco</option>}
