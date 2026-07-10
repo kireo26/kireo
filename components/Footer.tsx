@@ -22,8 +22,8 @@ export default function Footer() {
               Orientamento. Direzione. Futuro.
             </p>
             <p className="mt-2 text-sm text-kireo-muted">
-              KIREO connette studenti diplomandi con università, ITS Academy, accademie e corsi
-              professionalizzanti in tutta Italia.
+              KIREO guida gli studenti delle scuole superiori a scoprire le proprie attitudini e la
+              direzione giusta dopo il diploma — studio o lavoro.
             </p>
           </div>
 

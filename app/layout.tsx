@@ -33,7 +33,7 @@ const poppins = Poppins({
 export const metadata: Metadata = {
   title: "KIREO — Orientamento. Direzione. Futuro.",
   description:
-    "KIREO connette studenti diplomandi con università, ITS Academy, accademie e corsi professionalizzanti in Italia.",
+    "KIREO guida gli studenti delle scuole superiori a scoprire le proprie attitudini e la direzione giusta dopo il diploma — studio o lavoro.",
 };
 
 export default function RootLayout({

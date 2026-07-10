@@ -70,7 +70,7 @@ const PUBBLICI = [
     lista: [
       "Percorso di orientamento su misura",
       "Test, guide, webinar, workshop e sfide",
-      "Confronto diretto con orientatori esperti",
+      "Un assistente digitale sempre disponibile per le tue domande",
       "Ore PCTO certificate mentre ti orienti",
     ],
     cta: "Inizia il tuo percorso →",

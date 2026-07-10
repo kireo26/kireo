@@ -115,7 +115,7 @@ export default function Header() {
         </nav>
 
         <div className="hidden md:block">
-          <ButtonLink href="/" variant="primary">
+          <ButtonLink href="/registrazione" variant="primary">
             Inizia ora
           </ButtonLink>
         </div>
@@ -195,7 +195,7 @@ export default function Header() {
             </li>
           </ul>
           <div className="mt-4">
-            <ButtonLink href="/" variant="primary" className="w-full">
+            <ButtonLink href="/registrazione" variant="primary" className="w-full">
               Inizia ora
             </ButtonLink>
           </div>
