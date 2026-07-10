@@ -30,6 +30,7 @@ Claim: "Orientamento. Direzione. Futuro."
 - Le istituzioni entrano gratis con profilo base; i piani a pagamento danno visibilità avanzata e statistiche
 - La parola "vendere" (e derivati: vendita, venditore, ecc.) e in generale il lessico commerciale sono VIETATI in tutti i testi rivolti a studenti, scuole e docenti — anche in frasi che negano la vendita (es. "non vendiamo percorsi"). Riformulare sempre senza quella parola
 - Le CTA del sito non usano mai lessico contrattuale o impegnativo (attiva, sottoscrivi, firma): il primo contatto è sempre leggero (richiedi informazioni, entra, inizia, scopri). Parole come "convenzione" possono restare nei testi descrittivi (spiegano come funziona il servizio) ma non nelle CTA
+- KIREO non promette mai contatto umano o orientatori: il riferimento è sempre l'assistente digitale, i webinar e i materiali
 
 ## Ruoli utente (per l'area riservata, fase 2)
 - studente: profilo con interessi, ricerca istituzioni, confronto percorsi, richieste contatto, giustificativi PCTO automatici (PDF)
