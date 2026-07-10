@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ButtonLink } from "@/components/Button";
 import Card from "@/components/Card";
 import SectionHeading from "@/components/SectionHeading";
+import FaqAccordion from "@/components/FaqAccordion";
 
 const PROBLEMI = [
   {
@@ -20,6 +21,41 @@ const PROBLEMI = [
       "Le attività di orientamento valgono come PCTO: 90, 150 o 210 ore da completare nel triennio diventano un'occasione per conoscersi, con giustificativi automatici per la scuola. Zero burocrazia.",
   },
 ];
+
+const NUMERI = [
+  { numero: "18", label: "aree di orientamento" },
+  { numero: "18", label: "guide gratuite" },
+  { numero: "Webinar", label: "ogni mese" },
+  { numero: "100%", label: "gratuito per studenti e scuole" },
+];
+
+const FAQ_HOME = [
+  {
+    domanda: "Quanto costa KIREO?",
+    risposta:
+      "Niente, per studenti e scuole superiori. Sempre. KIREO si sostiene con i servizi premium offerti alle istituzioni formative, mai con i dati o i soldi degli studenti.",
+  },
+  {
+    domanda: "Le attività valgono davvero come PCTO?",
+    risposta:
+      "Sì: con la convenzione attiva tra KIREO e la scuola, le ore di orientamento svolte sulla piattaforma sono certificate con giustificativi automatici per la segreteria.",
+  },
+  {
+    domanda: "Serve che la mia scuola sia convenzionata?",
+    risposta:
+      "Per il percorso PCTO sì. Ma puoi iniziare subito il tuo orientamento: test, guide e webinar sono aperti a tutti gli studenti registrati.",
+  },
+  {
+    domanda: "Chi mi aiuta se ho domande su un'area?",
+    risposta:
+      "L'assistente digitale KIREO: conosce ogni area di orientamento e risponde alle tue curiosità, gratis, quando vuoi.",
+  },
+];
+
+// Placeholder testuali in attesa dei loghi reali dei partner (scuole,
+// istituzioni formative): stessa struttura, da sostituire con <Image> quando
+// disponibili.
+const PARTNER_PLACEHOLDER = ["Scuole superiori", "Università", "ITS Academy", "Accademie", "Centri di formazione"];
 
 const STEP = [
   {
@@ -144,6 +180,25 @@ export default function Home() {
             <Card key={p.title} title={p.title} description={p.description} />
           ))}
         </div>
+        <p className="mx-auto mt-16 max-w-3xl py-1 text-center font-heading text-2xl font-bold leading-[1.25] text-kireo-light sm:text-3xl">
+          Non un corso uguale per tutti: un percorso che si adatta a chi sei.
+        </p>
+      </section>
+
+      {/* Numeri KIREO */}
+      <section className="border-t border-white/5">
+        <div className="mx-auto max-w-6xl px-6 py-14">
+          <div className="grid grid-cols-2 gap-8 sm:grid-cols-4">
+            {NUMERI.map((n) => (
+              <div key={n.label} className="text-center">
+                <p className="py-0.5 font-heading text-3xl font-bold leading-[1.25] text-kireo-green-light sm:text-4xl">
+                  {n.numero}
+                </p>
+                <p className="mt-2 text-sm text-kireo-muted">{n.label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
 
       {/* Come funziona */}
@@ -218,6 +273,16 @@ export default function Home() {
         </div>
       </section>
 
+      {/* FAQ */}
+      <section className="border-t border-white/5 bg-kireo-card/40">
+        <div className="mx-auto max-w-3xl px-6 py-20">
+          <SectionHeading eyebrow="Domande frequenti" title="Le domande che ci fanno più spesso" align="center" />
+          <div className="mt-10">
+            <FaqAccordion items={FAQ_HOME} />
+          </div>
+        </div>
+      </section>
+
       {/* Strip claim */}
       <section className="bg-kireo-green">
         <div className="mx-auto max-w-6xl px-6 py-16 text-center">
@@ -231,6 +296,22 @@ export default function Home() {
             <ButtonLink href="/registrazione" variant="outline" className="border-kireo-light/60">
               Inizia il tuo orientamento
             </ButtonLink>
+          </div>
+        </div>
+      </section>
+
+      {/* Trust strip: placeholder in attesa dei loghi reali dei partner */}
+      <section className="border-t border-white/5">
+        <div className="mx-auto max-w-6xl px-6 py-16">
+          <p className="text-center font-sans text-sm font-semibold uppercase tracking-wide text-kireo-muted">
+            Costruito con il mondo della scuola
+          </p>
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-x-12 gap-y-6">
+            {PARTNER_PLACEHOLDER.map((nome) => (
+              <span key={nome} className="font-heading text-lg font-semibold leading-[1.25] text-kireo-muted/70">
+                {nome}
+              </span>
+            ))}
           </div>
         </div>
       </section>
