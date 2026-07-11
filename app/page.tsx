@@ -52,9 +52,12 @@ const FAQ_HOME = [
   },
 ];
 
-// Placeholder testuali in attesa dei loghi reali dei partner (scuole,
-// istituzioni formative): stessa struttura, da sostituire con <Image> quando
-// disponibili.
+// Trust strip disattivata in produzione finché non ci sono partner reali
+// (vedi CLAUDE.md, sezione "Regole di business"): quando verrà riattivata,
+// PARTNER_PLACEHOLDER va sostituito con i soli partner reali (nome + logo,
+// mai categorie generiche, mai istituzioni formative clienti presentate
+// come co-costruttori). Struttura tenuta pronta, non cancellata.
+const MOSTRA_TRUST_STRIP = false;
 const PARTNER_PLACEHOLDER = ["Scuole superiori", "Università", "ITS Academy", "Accademie", "Centri di formazione"];
 
 const STEP = [
@@ -300,21 +303,23 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Trust strip: placeholder in attesa dei loghi reali dei partner */}
-      <section className="border-t border-white/5">
-        <div className="mx-auto max-w-6xl px-6 py-16">
-          <p className="text-center font-sans text-sm font-semibold uppercase tracking-wide text-kireo-muted">
-            Costruito con il mondo della scuola
-          </p>
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-x-12 gap-y-6">
-            {PARTNER_PLACEHOLDER.map((nome) => (
-              <span key={nome} className="font-heading text-lg font-semibold leading-[1.25] text-kireo-muted/70">
-                {nome}
-              </span>
-            ))}
+      {/* Trust strip: disattivata finché non ci sono partner reali da mostrare (nome + logo). Non cancellata: la struttura serve per quando ci saranno. */}
+      {MOSTRA_TRUST_STRIP && (
+        <section className="border-t border-white/5">
+          <div className="mx-auto max-w-6xl px-6 py-16">
+            <p className="text-center font-sans text-sm font-semibold uppercase tracking-wide text-kireo-muted">
+              Costruito con il mondo della scuola
+            </p>
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-x-12 gap-y-6">
+              {PARTNER_PLACEHOLDER.map((nome) => (
+                <span key={nome} className="font-heading text-lg font-semibold leading-[1.25] text-kireo-muted/70">
+                  {nome}
+                </span>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
     </>
   );
 }

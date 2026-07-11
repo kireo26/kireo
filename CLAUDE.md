@@ -31,6 +31,7 @@ Claim: "Orientamento. Direzione. Futuro."
 - La parola "vendere" (e derivati: vendita, venditore, ecc.) e in generale il lessico commerciale sono VIETATI in tutti i testi rivolti a studenti, scuole e docenti — anche in frasi che negano la vendita (es. "non vendiamo percorsi"). Riformulare sempre senza quella parola
 - Le CTA del sito non usano mai lessico contrattuale o impegnativo (attiva, sottoscrivi, firma): il primo contatto è sempre leggero (richiedi informazioni, entra, inizia, scopri). Parole come "convenzione" possono restare nei testi descrittivi (spiegano come funziona il servizio) ma non nelle CTA
 - KIREO non promette mai contatto umano o orientatori: il riferimento è sempre l'assistente digitale, i webinar e i materiali
+- La trust strip "Costruito con il mondo della scuola" in home (disattivata in produzione dietro il flag `MOSTRA_TRUST_STRIP` in `app/page.tsx`, struttura non cancellata) può contenere SOLO partner reali con nome e logo veri (es. un accordo annunciabile come docenti.it) quando verrà riattivata — mai categorie generiche (es. "Scuole superiori", "Università") e mai istituzioni formative clienti presentate come co-costruttori del prodotto
 
 ## Ruoli utente (per l'area riservata, fase 2)
 - studente: profilo con interessi, ricerca istituzioni, confronto percorsi, richieste contatto, giustificativi PCTO automatici (PDF)
