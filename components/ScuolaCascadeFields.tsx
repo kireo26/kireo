@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { PROVINCE_ITALIANE } from "@/lib/province";
 import { inputClass, fieldBorder } from "@/lib/formStyles";
+import Combobox from "./Combobox";
 
 export type Indirizzo = "Liceo" | "Tecnico" | "Professionale";
 type Scuola = {
@@ -115,6 +116,13 @@ export default function ScuolaCascadeFields({
     return ordinaEEtichetta(scuole);
   }, [value.provincia, value.indirizzo, scuoleData]);
 
+  const opzioniProvincia = useMemo(() => PROVINCE_ITALIANE.map((p) => ({ value: p, label: p })), []);
+
+  const opzioniScuola = useMemo(
+    () => scuoleDisponibili.map((s) => ({ value: s.codice, label: s.label })),
+    [scuoleDisponibili],
+  );
+
   const scuolaSelectAbilitata = Boolean(value.provincia && value.indirizzo && !caricamentoScuole);
 
   return (
@@ -123,24 +131,17 @@ export default function ScuolaCascadeFields({
         <label htmlFor="provincia" className="mb-1.5 block text-sm font-medium text-kireo-light">
           Provincia della scuola
         </label>
-        <select
+        <Combobox
           id="provincia"
-          name="provincia"
           value={value.provincia}
-          onChange={(e) => onChange({ provincia: e.target.value, scuola: "", scuolaAltro: "" })}
-          aria-invalid={Boolean(errors.provincia)}
-          aria-describedby={errors.provincia ? "provincia-error" : undefined}
+          onChange={(provincia) => onChange({ provincia, scuola: "", scuolaAltro: "" })}
+          options={opzioniProvincia}
+          placeholder="Scrivi per cercare la provincia…"
+          messaggioVuoto="Nessuna provincia trovata."
+          ariaInvalid={Boolean(errors.provincia)}
+          ariaDescribedBy={errors.provincia ? "provincia-error" : undefined}
           className={`${inputClass} ${fieldBorder(Boolean(errors.provincia))}`}
-        >
-          <option value="" disabled>
-            Seleziona la provincia
-          </option>
-          {PROVINCE_ITALIANE.map((p) => (
-            <option key={p} value={p}>
-              {p}
-            </option>
-          ))}
-        </select>
+        />
         {errors.provincia && (
           <p id="provincia-error" className="mt-1.5 text-sm text-red-400">
             {errors.provincia}
@@ -181,30 +182,22 @@ export default function ScuolaCascadeFields({
         <label htmlFor="scuola" className="mb-1.5 block text-sm font-medium text-kireo-light">
           Nome della scuola
         </label>
-        <select
+        <Combobox
           id="scuola"
-          name="scuola"
           value={value.scuola}
+          onChange={(scuola) => onChange({ scuola })}
+          options={opzioniScuola}
           disabled={!scuolaSelectAbilitata}
-          onChange={(e) => onChange({ scuola: e.target.value })}
-          aria-invalid={Boolean(errors.scuola)}
-          aria-describedby={errors.scuola ? "scuola-error" : undefined}
+          placeholder="Scrivi per cercare la scuola…"
+          disabledPlaceholder={
+            !value.provincia || !value.indirizzo ? "Seleziona prima provincia e indirizzo" : "Caricamento elenco scuole…"
+          }
+          messaggioVuoto="Nessuna scuola trovata — controlla provincia e tipo di istituto"
+          pinnedOption={scuolaSelectAbilitata ? { value: SCUOLA_ALTRO, label: "La mia scuola non è in elenco" } : undefined}
+          ariaInvalid={Boolean(errors.scuola)}
+          ariaDescribedBy={errors.scuola ? "scuola-error" : undefined}
           className={`${inputClass} ${fieldBorder(Boolean(errors.scuola))}`}
-        >
-          <option value="" disabled>
-            {!value.provincia || !value.indirizzo
-              ? "Seleziona prima provincia e indirizzo"
-              : caricamentoScuole
-                ? "Caricamento elenco scuole…"
-                : "Seleziona la scuola"}
-          </option>
-          {scuoleDisponibili.map((s) => (
-            <option key={s.codice} value={s.codice}>
-              {s.label}
-            </option>
-          ))}
-          {scuolaSelectAbilitata && <option value={SCUOLA_ALTRO}>La mia scuola non è in elenco</option>}
-        </select>
+        />
         {errors.scuola && (
           <p id="scuola-error" className="mt-1.5 text-sm text-red-400">
             {errors.scuola}

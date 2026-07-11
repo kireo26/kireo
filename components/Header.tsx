@@ -11,7 +11,6 @@ const NAV_LINKS = [
   { href: "/per-gli-studenti", label: "Per gli studenti" },
   { href: "/per-le-scuole", label: "Per le scuole" },
   { href: "/per-i-docenti", label: "Per i docenti" },
-  { href: "/news", label: "News" },
 ];
 
 function ChevronIcon({ open }: { open: boolean }) {
@@ -149,6 +148,13 @@ export default function Header() {
           </div>
 
           <Link
+            href="/news"
+            className="font-sans text-sm font-medium text-kireo-light/90 transition-colors hover:text-kireo-orange"
+          >
+            News
+          </Link>
+
+          <Link
             href="/contatti"
             className="font-sans text-sm font-medium text-kireo-light/90 transition-colors hover:text-kireo-orange"
           >
@@ -230,6 +236,16 @@ export default function Header() {
                   ))}
                 </ul>
               )}
+            </li>
+
+            <li>
+              <Link
+                href="/news"
+                onClick={() => setOpen(false)}
+                className="block rounded-lg px-2 py-3 font-sans text-base font-medium text-kireo-light hover:bg-white/5"
+              >
+                News
+              </Link>
             </li>
 
             <li>
