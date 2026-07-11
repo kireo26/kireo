@@ -32,6 +32,8 @@ export default function Header() {
   const [areeOpen, setAreeOpen] = useState(false);
   const [areeOpenMobile, setAreeOpenMobile] = useState(false);
   const areeRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLElement>(null);
+  const topBarRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -50,9 +52,48 @@ export default function Header() {
     };
   }, []);
 
+  // Misura l'altezza della barra superiore per sapere quanto spazio resta
+  // al drawer mobile sotto di essa (usato nel calc() del max-height sotto).
+  useEffect(() => {
+    const topBar = topBarRef.current;
+    const header = headerRef.current;
+    if (!topBar || !header) return;
+
+    const setHeight = () => {
+      header.style.setProperty("--kireo-topbar-h", `${topBar.offsetHeight}px`);
+    };
+    setHeight();
+
+    const observer = new ResizeObserver(setHeight);
+    observer.observe(topBar);
+    return () => observer.disconnect();
+  }, []);
+
+  // Blocca lo scroll della pagina mentre il drawer mobile è aperto e lo
+  // ripristina sempre alla chiusura — incluso quando si chiude per
+  // navigazione verso un'altra pagina (l'Header vive nel layout root e non
+  // viene smontato dal routing lato client, quindi il cleanup scatta anche
+  // in quel caso).
+  useEffect(() => {
+    if (!open) return;
+
+    const htmlStyle = document.documentElement.style;
+    const bodyStyle = document.body.style;
+    const prevHtmlOverflow = htmlStyle.overflow;
+    const prevBodyOverflow = bodyStyle.overflow;
+
+    htmlStyle.overflow = "hidden";
+    bodyStyle.overflow = "hidden";
+
+    return () => {
+      htmlStyle.overflow = prevHtmlOverflow;
+      bodyStyle.overflow = prevBodyOverflow;
+    };
+  }, [open]);
+
   return (
-    <header className="sticky top-0 z-50 border-b border-white/5 bg-kireo-dark/90 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+    <header ref={headerRef} className="sticky top-0 z-50 border-b border-white/5 bg-kireo-dark/90 backdrop-blur">
+      <div ref={topBarRef} className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
         <Logo />
 
         <nav className="hidden items-center gap-8 md:flex" aria-label="Navigazione principale">
@@ -148,7 +189,7 @@ export default function Header() {
         <nav
           id="mobile-nav"
           aria-label="Navigazione mobile"
-          className="border-t border-white/5 px-6 pb-6 md:hidden"
+          className="max-h-[calc(100dvh_-_var(--kireo-topbar-h,_4rem))] overflow-y-auto overscroll-contain border-t border-white/5 px-6 pb-6 [-webkit-overflow-scrolling:touch] md:hidden"
         >
           <ul className="flex flex-col gap-1 pt-4">
             {NAV_LINKS.map((link) => (
