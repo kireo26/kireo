@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Button } from "./Button";
 import ScuolaCascadeFields, { SCUOLA_ALTRO, type ScuolaCascadeValue } from "./ScuolaCascadeFields";
 import { inputClass, fieldBorder } from "@/lib/formStyles";
+import { createClient } from "@/lib/supabase/client";
+import { ETA_MINIMA, calcolaEta } from "@/lib/registrazione";
 
 const MATERIE = [
   "Area umanistica",
@@ -23,6 +25,9 @@ export default function DocenteForm() {
   const [cognome, setCognome] = useState("");
   const [email, setEmail] = useState("");
   const [telefono, setTelefono] = useState("");
+  const [dataNascita, setDataNascita] = useState("");
+  const [password, setPassword] = useState("");
+  const [confermaPassword, setConfermaPassword] = useState("");
   const [materia, setMateria] = useState("");
   const [scuolaValue, setScuolaValue] = useState<ScuolaCascadeValue>({
     provincia: "",
@@ -35,7 +40,11 @@ export default function DocenteForm() {
   const [privacy, setPrivacy] = useState(false);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [erroreGenerale, setErroreGenerale] = useState<string | null>(null);
+  const [caricamento, setCaricamento] = useState(false);
   const [inviato, setInviato] = useState(false);
+
+  const etaSottoMinimo = dataNascita !== "" && calcolaEta(dataNascita) < ETA_MINIMA;
 
   function clearError(field: string) {
     setErrors((prev) => {
@@ -63,14 +72,27 @@ export default function DocenteForm() {
       next.email = "Inserisci un indirizzo email valido.";
     }
 
+    if (!dataNascita) {
+      next.dataNascita = "Inserisci la tua data di nascita.";
+    } else if (calcolaEta(dataNascita) < ETA_MINIMA) {
+      next.dataNascita = `Per registrarti su KIREO devi avere almeno ${ETA_MINIMA} anni.`;
+    }
+
+    if (!password) {
+      next.password = "Scegli una password.";
+    } else if (password.length < 8) {
+      next.password = "La password deve avere almeno 8 caratteri.";
+    }
+    if (confermaPassword !== password) next.confermaPassword = "Le password non coincidono.";
+
     if (!materia) next.materia = "Seleziona la tua materia di insegnamento.";
     if (!scuolaValue.provincia) next.provincia = "Seleziona la provincia della scuola.";
     if (!scuolaValue.indirizzo) next.indirizzo = "Seleziona il tipo di istituto.";
 
     if (!scuolaValue.scuola) {
       next.scuola = "Seleziona la scuola.";
-    } else if (scuolaValue.scuola === SCUOLA_ALTRO && !scuolaValue.scuolaAltro.trim()) {
-      next.scuolaAltro = "Scrivi il nome della scuola.";
+    } else if (scuolaValue.scuola === SCUOLA_ALTRO) {
+      next.scuola = "Per ora la registrazione richiede una scuola presente nell'elenco. Scrivici da Contatti se non la trovi.";
     }
 
     if (!dichiarazione) next.dichiarazione = "Devi confermare di essere un docente o operatore scolastico.";
@@ -79,23 +101,56 @@ export default function DocenteForm() {
     return next;
   }
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    setErroreGenerale(null);
     const validation = validate();
     setErrors(validation);
-    if (Object.keys(validation).length === 0) {
-      setInviato(true);
+    if (Object.keys(validation).length > 0) return;
+
+    setCaricamento(true);
+    const supabase = createClient();
+
+    const { error } = await supabase.auth.signUp({
+      email: email.trim(),
+      password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/app`,
+        data: {
+          ruolo: "docente",
+          nome: nome.trim(),
+          cognome: cognome.trim(),
+          telefono: telefono.trim() || null,
+          data_nascita: dataNascita,
+          school_code: scuolaValue.scuola,
+          materia,
+          is_referente_orientamento: referenteOrientamento,
+        },
+      },
+    });
+
+    setCaricamento(false);
+
+    if (error) {
+      setErroreGenerale(
+        error.message.includes("already registered") || error.message.includes("already exists")
+          ? "Esiste già un profilo con questa email. Prova ad accedere."
+          : "Non siamo riusciti a completare la registrazione. Riprova.",
+      );
+      return;
     }
+
+    setInviato(true);
   }
 
   if (inviato) {
     return (
       <div className="rounded-2xl border border-kireo-green/40 bg-kireo-card p-8 text-center">
         <h2 className="py-0.5 font-heading text-xl font-semibold leading-[1.25] text-kireo-light">
-          Benvenuto in KIREO!
+          Controlla la tua email
         </h2>
         <p className="mt-2 text-sm text-kireo-muted">
-          Ti abbiamo inviato una email con i prossimi webinar in calendario.
+          Ti abbiamo inviato un link di conferma: aprilo per attivare il tuo profilo KIREO.
         </p>
       </div>
     );
@@ -103,6 +158,10 @@ export default function DocenteForm() {
 
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-5 rounded-2xl border border-white/5 bg-kireo-card p-6 sm:p-8">
+      {erroreGenerale && (
+        <p className="rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">{erroreGenerale}</p>
+      )}
+
       <div>
         <label htmlFor="nome" className="mb-1.5 block text-sm font-medium text-kireo-light">
           Nome
@@ -195,6 +254,83 @@ export default function DocenteForm() {
           className={`${inputClass} ${fieldBorder(false)}`}
           placeholder="Il tuo numero di telefono"
         />
+      </div>
+
+      <div>
+        <label htmlFor="dataNascita" className="mb-1.5 block text-sm font-medium text-kireo-light">
+          Data di nascita
+        </label>
+        <input
+          id="dataNascita"
+          name="dataNascita"
+          type="date"
+          autoComplete="bday"
+          value={dataNascita}
+          onChange={(e) => {
+            setDataNascita(e.target.value);
+            clearError("dataNascita");
+          }}
+          aria-invalid={Boolean(errors.dataNascita)}
+          aria-describedby={errors.dataNascita ? "dataNascita-error" : undefined}
+          className={`${inputClass} ${fieldBorder(Boolean(errors.dataNascita))}`}
+        />
+        {errors.dataNascita && (
+          <p id="dataNascita-error" className="mt-1.5 text-sm text-red-400">
+            {errors.dataNascita}
+          </p>
+        )}
+      </div>
+
+      <div>
+        <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-kireo-light">
+          Password
+        </label>
+        <input
+          id="password"
+          name="password"
+          type="password"
+          autoComplete="new-password"
+          value={password}
+          onChange={(e) => {
+            setPassword(e.target.value);
+            clearError("password");
+          }}
+          aria-invalid={Boolean(errors.password)}
+          aria-describedby={errors.password ? "password-error" : undefined}
+          className={`${inputClass} ${fieldBorder(Boolean(errors.password))}`}
+          placeholder="Almeno 8 caratteri"
+        />
+        {errors.password && (
+          <p id="password-error" className="mt-1.5 text-sm text-red-400">
+            {errors.password}
+          </p>
+        )}
+      </div>
+
+      <div>
+        <label htmlFor="confermaPassword" className="mb-1.5 block text-sm font-medium text-kireo-light">
+          Conferma password
+        </label>
+        <input
+          id="confermaPassword"
+          name="confermaPassword"
+          type="password"
+          autoComplete="new-password"
+          value={confermaPassword}
+          onChange={(e) => {
+            setConfermaPassword(e.target.value);
+            clearError("confermaPassword");
+          }}
+          aria-invalid={Boolean(errors.confermaPassword)}
+          aria-describedby={errors.confermaPassword ? "confermaPassword-error" : undefined}
+          className={`${inputClass} ${fieldBorder(Boolean(errors.confermaPassword))}`}
+          placeholder="Ripeti la password"
+        />
+        {errors.confermaPassword && (
+          <p id="confermaPassword-error" className="mt-1.5 text-sm text-red-400">
+            {errors.confermaPassword}
+          </p>
+        )}
       </div>
 
       <div>
@@ -300,8 +436,8 @@ export default function DocenteForm() {
         )}
       </div>
 
-      <Button type="submit" variant="primary" className="w-full">
-        Entra in KIREO
+      <Button type="submit" variant="primary" className="w-full" disabled={caricamento || etaSottoMinimo}>
+        {caricamento ? "Creazione in corso…" : "Entra in KIREO"}
       </Button>
     </form>
   );

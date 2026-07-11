@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Button } from "./Button";
 import ScuolaCascadeFields, { SCUOLA_ALTRO, type ScuolaCascadeValue } from "./ScuolaCascadeFields";
 import { inputClass, fieldBorder } from "@/lib/formStyles";
+import { createClient } from "@/lib/supabase/client";
+import { ETA_MINIMA, calcolaAnnoDiploma, calcolaEta } from "@/lib/registrazione";
 
 const CLASSI = [
   { value: "3", label: "3° anno" },
@@ -11,11 +13,16 @@ const CLASSI = [
   { value: "5", label: "5° anno" },
 ];
 
+type StatoCodice = "idle" | "verificando" | "valido" | "non_valido";
+
 export default function RegistrazioneForm() {
   const [nome, setNome] = useState("");
   const [cognome, setCognome] = useState("");
   const [email, setEmail] = useState("");
   const [telefono, setTelefono] = useState("");
+  const [dataNascita, setDataNascita] = useState("");
+  const [password, setPassword] = useState("");
+  const [confermaPassword, setConfermaPassword] = useState("");
   const [classe, setClasse] = useState("");
   const [scuolaValue, setScuolaValue] = useState<ScuolaCascadeValue>({
     provincia: "",
@@ -26,8 +33,17 @@ export default function RegistrazioneForm() {
   const [privacy, setPrivacy] = useState(false);
   const [newsletter, setNewsletter] = useState(false);
 
+  const [codiceClasse, setCodiceClasse] = useState("");
+  const [statoCodice, setStatoCodice] = useState<StatoCodice>("idle");
+  const [messaggioCodice, setMessaggioCodice] = useState<string | null>(null);
+
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [erroreGenerale, setErroreGenerale] = useState<string | null>(null);
+  const [caricamento, setCaricamento] = useState(false);
   const [inviato, setInviato] = useState(false);
+
+  const etaSottoMinimo = dataNascita !== "" && calcolaEta(dataNascita) < ETA_MINIMA;
+  const codiceValido = statoCodice === "valido";
 
   function clearError(field: string) {
     setErrors((prev) => {
@@ -43,6 +59,29 @@ export default function RegistrazioneForm() {
     Object.keys(patch).forEach((field) => clearError(field));
   }
 
+  async function verificaCodiceClasse() {
+    const codice = codiceClasse.trim().toUpperCase();
+    if (!codice) {
+      setStatoCodice("idle");
+      setMessaggioCodice(null);
+      return;
+    }
+
+    setStatoCodice("verificando");
+    const supabase = createClient();
+    const { data, error } = await supabase.rpc("check_class_code", { p_codice: codice });
+    const risultato = Array.isArray(data) ? data[0] : data;
+
+    if (error || !risultato?.valido) {
+      setStatoCodice("non_valido");
+      setMessaggioCodice(risultato?.messaggio ?? "Codice non valido.");
+      return;
+    }
+
+    setStatoCodice("valido");
+    setMessaggioCodice(`Codice valido: sarai collegato alla classe ${risultato.classe} della tua scuola.`);
+  }
+
   function validate() {
     const next: Record<string, string> = {};
 
@@ -55,14 +94,30 @@ export default function RegistrazioneForm() {
       next.email = "Inserisci un indirizzo email valido.";
     }
 
-    if (!classe) next.classe = "Seleziona la classe che frequenti.";
-    if (!scuolaValue.provincia) next.provincia = "Seleziona la provincia della tua scuola.";
-    if (!scuolaValue.indirizzo) next.indirizzo = "Seleziona il tipo di istituto.";
+    if (!dataNascita) {
+      next.dataNascita = "Inserisci la tua data di nascita.";
+    } else if (calcolaEta(dataNascita) < ETA_MINIMA) {
+      next.dataNascita = `Per registrarti su KIREO devi avere almeno ${ETA_MINIMA} anni. Se hai meno di ${ETA_MINIMA} anni, chiedi a un genitore o tutore di scrivere a KIREO tramite la pagina Contatti.`;
+    }
 
-    if (!scuolaValue.scuola) {
-      next.scuola = "Seleziona la tua scuola.";
-    } else if (scuolaValue.scuola === SCUOLA_ALTRO && !scuolaValue.scuolaAltro.trim()) {
-      next.scuolaAltro = "Scrivi il nome della tua scuola.";
+    if (!password) {
+      next.password = "Scegli una password.";
+    } else if (password.length < 8) {
+      next.password = "La password deve avere almeno 8 caratteri.";
+    }
+    if (confermaPassword !== password) next.confermaPassword = "Le password non coincidono.";
+
+    if (!classe) next.classe = "Seleziona la classe che frequenti.";
+
+    if (!codiceValido) {
+      if (!scuolaValue.provincia) next.provincia = "Seleziona la provincia della tua scuola.";
+      if (!scuolaValue.indirizzo) next.indirizzo = "Seleziona il tipo di istituto.";
+
+      if (!scuolaValue.scuola) {
+        next.scuola = "Seleziona la tua scuola.";
+      } else if (scuolaValue.scuola === SCUOLA_ALTRO) {
+        next.scuola = "Per ora la registrazione richiede una scuola presente nell'elenco. Scrivici da Contatti se non la trovi.";
+      }
     }
 
     if (!privacy) next.privacy = "Devi accettare la privacy policy per continuare.";
@@ -70,23 +125,59 @@ export default function RegistrazioneForm() {
     return next;
   }
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    setErroreGenerale(null);
     const validation = validate();
     setErrors(validation);
-    if (Object.keys(validation).length === 0) {
-      setInviato(true);
+    if (Object.keys(validation).length > 0) return;
+
+    setCaricamento(true);
+    const supabase = createClient();
+    const annoDiploma = calcolaAnnoDiploma(Number(classe));
+
+    const { error } = await supabase.auth.signUp({
+      email: email.trim(),
+      password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/app`,
+        data: {
+          ruolo: "studente",
+          nome: nome.trim(),
+          cognome: cognome.trim(),
+          telefono: telefono.trim() || null,
+          data_nascita: dataNascita,
+          anno_diploma: annoDiploma,
+          newsletter,
+          ...(codiceValido
+            ? { codice_classe: codiceClasse.trim().toUpperCase() }
+            : { school_code: scuolaValue.scuola, classe: CLASSI.find((c) => c.value === classe)?.label ?? classe }),
+        },
+      },
+    });
+
+    setCaricamento(false);
+
+    if (error) {
+      setErroreGenerale(
+        error.message.includes("already registered") || error.message.includes("already exists")
+          ? "Esiste già un profilo con questa email. Prova ad accedere."
+          : "Non siamo riusciti a completare la registrazione. Riprova.",
+      );
+      return;
     }
+
+    setInviato(true);
   }
 
   if (inviato) {
     return (
       <div className="rounded-2xl border border-kireo-green/40 bg-kireo-card p-8 text-center">
         <h2 className="py-0.5 font-heading text-xl font-semibold leading-[1.25] text-kireo-light">
-          Profilo creato!
+          Controlla la tua email
         </h2>
         <p className="mt-2 text-sm text-kireo-muted">
-          Ti abbiamo inviato una email di benvenuto.
+          Ti abbiamo inviato un link di conferma: aprilo per attivare il tuo profilo KIREO.
         </p>
       </div>
     );
@@ -94,6 +185,10 @@ export default function RegistrazioneForm() {
 
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-5 rounded-2xl border border-white/5 bg-kireo-card p-6 sm:p-8">
+      {erroreGenerale && (
+        <p className="rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">{erroreGenerale}</p>
+      )}
+
       <div>
         <label htmlFor="nome" className="mb-1.5 block text-sm font-medium text-kireo-light">
           Nome
@@ -189,6 +284,93 @@ export default function RegistrazioneForm() {
       </div>
 
       <div>
+        <label htmlFor="dataNascita" className="mb-1.5 block text-sm font-medium text-kireo-light">
+          Data di nascita
+        </label>
+        <input
+          id="dataNascita"
+          name="dataNascita"
+          type="date"
+          autoComplete="bday"
+          value={dataNascita}
+          onChange={(e) => {
+            setDataNascita(e.target.value);
+            clearError("dataNascita");
+          }}
+          aria-invalid={Boolean(errors.dataNascita)}
+          aria-describedby={errors.dataNascita ? "dataNascita-error" : undefined}
+          className={`${inputClass} ${fieldBorder(Boolean(errors.dataNascita))}`}
+        />
+        {errors.dataNascita && (
+          <p id="dataNascita-error" className="mt-1.5 text-sm text-red-400">
+            {errors.dataNascita}
+          </p>
+        )}
+        {!errors.dataNascita && etaSottoMinimo && (
+          <p className="mt-1.5 text-sm text-red-400">
+            Per registrarti su KIREO devi avere almeno {ETA_MINIMA} anni. Se hai meno di {ETA_MINIMA} anni, chiedi a un
+            genitore o tutore di scrivere a KIREO tramite la pagina{" "}
+            <a href="/contatti" className="underline underline-offset-2">
+              Contatti
+            </a>
+            .
+          </p>
+        )}
+      </div>
+
+      <div>
+        <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-kireo-light">
+          Password
+        </label>
+        <input
+          id="password"
+          name="password"
+          type="password"
+          autoComplete="new-password"
+          value={password}
+          onChange={(e) => {
+            setPassword(e.target.value);
+            clearError("password");
+          }}
+          aria-invalid={Boolean(errors.password)}
+          aria-describedby={errors.password ? "password-error" : undefined}
+          className={`${inputClass} ${fieldBorder(Boolean(errors.password))}`}
+          placeholder="Almeno 8 caratteri"
+        />
+        {errors.password && (
+          <p id="password-error" className="mt-1.5 text-sm text-red-400">
+            {errors.password}
+          </p>
+        )}
+      </div>
+
+      <div>
+        <label htmlFor="confermaPassword" className="mb-1.5 block text-sm font-medium text-kireo-light">
+          Conferma password
+        </label>
+        <input
+          id="confermaPassword"
+          name="confermaPassword"
+          type="password"
+          autoComplete="new-password"
+          value={confermaPassword}
+          onChange={(e) => {
+            setConfermaPassword(e.target.value);
+            clearError("confermaPassword");
+          }}
+          aria-invalid={Boolean(errors.confermaPassword)}
+          aria-describedby={errors.confermaPassword ? "confermaPassword-error" : undefined}
+          className={`${inputClass} ${fieldBorder(Boolean(errors.confermaPassword))}`}
+          placeholder="Ripeti la password"
+        />
+        {errors.confermaPassword && (
+          <p id="confermaPassword-error" className="mt-1.5 text-sm text-red-400">
+            {errors.confermaPassword}
+          </p>
+        )}
+      </div>
+
+      <div>
         <label htmlFor="classe" className="mb-1.5 block text-sm font-medium text-kireo-light">
           Classe frequentata
         </label>
@@ -220,7 +402,33 @@ export default function RegistrazioneForm() {
         )}
       </div>
 
-      <ScuolaCascadeFields value={scuolaValue} onChange={handleScuolaChange} errors={errors} />
+      <div>
+        <label htmlFor="codiceClasse" className="mb-1.5 block text-sm font-medium text-kireo-light">
+          Hai un codice della tua scuola? (facoltativo)
+        </label>
+        <input
+          id="codiceClasse"
+          name="codiceClasse"
+          type="text"
+          value={codiceClasse}
+          onChange={(e) => {
+            setCodiceClasse(e.target.value);
+            setStatoCodice("idle");
+            setMessaggioCodice(null);
+          }}
+          onBlur={verificaCodiceClasse}
+          className={`${inputClass} ${fieldBorder(statoCodice === "non_valido")}`}
+          placeholder="Es. KIREO-AB12"
+        />
+        {statoCodice === "verificando" && <p className="mt-1.5 text-sm text-kireo-muted">Verifica in corso…</p>}
+        {statoCodice === "valido" && <p className="mt-1.5 text-sm text-kireo-green-light">{messaggioCodice}</p>}
+        {statoCodice === "non_valido" && <p className="mt-1.5 text-sm text-red-400">{messaggioCodice}</p>}
+        {!codiceValido && (
+          <p className="mt-1.5 text-xs text-kireo-muted">Se non hai un codice, seleziona la scuola qui sotto.</p>
+        )}
+      </div>
+
+      {!codiceValido && <ScuolaCascadeFields value={scuolaValue} onChange={handleScuolaChange} errors={errors} />}
 
       <div>
         <div className="flex items-start gap-3">
@@ -265,8 +473,8 @@ export default function RegistrazioneForm() {
         </label>
       </div>
 
-      <Button type="submit" variant="primary" className="w-full">
-        Crea il mio profilo
+      <Button type="submit" variant="primary" className="w-full" disabled={caricamento || etaSottoMinimo}>
+        {caricamento ? "Creazione in corso…" : "Crea il mio profilo"}
       </Button>
     </form>
   );
