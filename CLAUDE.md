@@ -30,6 +30,7 @@ Claim: "Orientamento. Direzione. Futuro."
 - Le istituzioni entrano gratis con profilo base; i piani a pagamento danno visibilità avanzata e statistiche
 - La parola "vendere" (e derivati: vendita, venditore, ecc.) e in generale il lessico commerciale sono VIETATI in tutti i testi rivolti a studenti, scuole e docenti — anche in frasi che negano la vendita (es. "non vendiamo percorsi"). Riformulare sempre senza quella parola
 - Le CTA del sito non usano mai lessico contrattuale o impegnativo (attiva, sottoscrivi, firma): il primo contatto è sempre leggero (richiedi informazioni, entra, inizia, scopri). Parole come "convenzione" possono restare nei testi descrittivi (spiegano come funziona il servizio) ma non nelle CTA
+- KIREO non promette mai contatto umano o orientatori: il riferimento è sempre l'assistente digitale, i webinar e i materiali
 
 ## Ruoli utente (per l'area riservata, fase 2)
 - studente: profilo con interessi, ricerca istituzioni, confronto percorsi, richieste contatto, giustificativi PCTO automatici (PDF)
@@ -55,14 +56,16 @@ Menu principale (in quest'ordine): Home, Per gli studenti, Per le scuole, Per i 
 - `/per-gli-studenti` (nuova pagina hub, sostituisce la destinazione diretta a `/registrazione` dai CTA studenti di Homepage) include una griglia di link rapidi a tutte le 18 aree
 
 ## Fasi del progetto
-1. FASE ATTUALE: sito pubblico statico — Homepage, Per gli studenti, Come funziona, Per le scuole (scuole superiori, PCTO), Per le istituzioni (istituzioni formative post-diploma), Per i docenti (formazione AI/EdTech), 18 pagine Aree di orientamento, Registrazione (form studenti, solo UI), Contatti, Privacy
-2. Fase 2 (lug-ago 2026): auth Supabase con 3 ruoli + catalogo istituzioni
-3. Fase 3 (set 2026): profili studente + generazione PDF giustificativi PCTO
+1. Sito pubblico statico — Homepage, Per gli studenti, Come funziona, Per le scuole (scuole superiori, PCTO), Per le istituzioni (istituzioni formative post-diploma), Per i docenti (formazione AI/EdTech), 18 pagine Aree di orientamento, Contatti, Privacy — completato
+2. FASE ATTUALE (lug-ago 2026): database Supabase applicato; autenticazione (email+password, verifica email) e registrazione reale per studenti e docenti con collegamento scuola tramite codice meccanografico o codice classe, area privata `/app` minima — completate lato codice, da verificare end-to-end (vedi "Stato attuale"). Ancora da fare: catalogo istituzioni consultabile
+3. Fase 3 (set 2026): profili studente completi + generazione PDF giustificativi PCTO
 
 ## Stato attuale
 Aggiornato al 2026-07-11.
 
-**Database Supabase (Fase 2, in anticipo sul resto della UI):** le 5 migration in `supabase/migrations/` (20260710180000 → 20260710180400) sono state applicate al progetto Supabase reale ("kireo", eu-west-1, Irlanda) il 2026-07-11. Schema attivo: `profiles`, `schools` (6995 scuole importate dal dataset MIM), `student_profiles`, `teacher_profiles` (condivisa da docente e referente_scuola), `conventions`, `class_codes`, `activities`, `student_activities` — RLS abilitata su tutte le 8 tabelle con 22 policy totali, più i trigger di integrità e le funzioni helper (`current_ruolo`, `current_school_code`, ecc.) descritti nel messaggio di commit delle migration. Il frontend pubblico non usa ancora questo schema (nessuna auth collegata): resta da fare l'integrazione lato app (login, form collegati a Supabase invece che solo UI).
+**Database Supabase (Fase 2, in anticipo sul resto della UI):** le 5 migration di base in `supabase/migrations/` (20260710180000 → 20260710180400) sono state applicate al progetto Supabase reale ("kireo", eu-west-1, Irlanda) il 2026-07-11. Schema attivo: `profiles`, `schools` (6995 scuole importate dal dataset MIM), `student_profiles`, `teacher_profiles` (condivisa da docente e referente_scuola), `conventions`, `class_codes`, `activities`, `student_activities` — RLS abilitata su tutte le 8 tabelle con 22 policy totali, più i trigger di integrità e le funzioni helper (`current_ruolo`, `current_school_code`, ecc.) descritti nel messaggio di commit delle migration.
+
+**Autenticazione e registrazione (Fase 2, appena unita in main dal branch `claude/school-dropdown-disambiguation-o7m0yg`):** client Supabase ristrutturato con `@supabase/ssr`, `proxy.ts` di protezione route sotto `/app`, nuove pagine `/accedi`, `/recupera-password`, `/reimposta-password`, `/app`, form di registrazione/iscrizione aggiornati. La migration `20260711140000_auth_registration.sql` (vincolo età minima 14 anni su `profiles` + funzioni `check_class_code`, `redeem_class_code`, `finalize_registration`) è stata creata in questo merge ma **al momento del merge non è ancora applicata al database reale**: viene applicata subito dopo, vedi dettagli ed esito nelle sezioni sottostanti.
 
 **Completato (Fase 1):**
 - Scaffold Next.js (App Router, TypeScript, Tailwind CSS v4) con font Google e colori brand configurati come token Tailwind (`kireo-green`, `kireo-orange`, `kireo-dark`, ecc.)
@@ -82,15 +85,32 @@ Aggiornato al 2026-07-11.
 
 **Nota tecnica ambiente:** in locale Turbopack (bundler di default di Next 16) va in errore in modalità dev per un problema di spawn processi nel sandbox; il dev server è configurato per usare `--webpack` (vedi `package.json` e `scripts/dev.sh`). La build di produzione con Turbopack funziona regolarmente.
 
+**Fase 2 — database:** progetto Supabase "kireo" (region eu-west-1) **attivo e con schema applicato**: 8 tabelle con RLS (22 policy), 6.995 scuole importate, enum, trigger e funzioni helper (`current_ruolo`, `current_school_code`). Schema in `supabase/migrations/` (5 file: enum, tabelle, funzioni/trigger, RLS, import scuole MIM) — vedi anche la sezione "Dataset scuole secondarie" per i limiti noti del dataset.
+
+**Fase 2 — autenticazione e registrazione (completata lato codice, da verificare end-to-end):** Supabase Auth con email+password e verifica email, per studenti e docenti. Sotto il cofano:
+- `lib/supabase/client.ts` (browser), `lib/supabase/server.ts` (Server Component/Route Handler), `lib/supabase/proxy.ts` (refresh sessione) — tutti via `@supabase/ssr`, non più un client unico (necessario per leggere la sessione lato server/proxy). Il vecchio `lib/supabase.ts` è stato rimosso
+- `proxy.ts` in root (convenzione Next 16, ex `middleware.ts`) protegge tutto sotto `/app`: senza sessione reindirizza a `/accedi?redirectedFrom=...`, verificando l'utente con `getUser()` (non il solo cookie locale)
+- Migration `supabase/migrations/20260711140000_auth_registration.sql`: vincolo età minima 14 anni su `profiles` (difesa in profondità, il blocco primario è lato client prima di qualunque chiamata a Supabase Auth) + tre funzioni SQL: `check_class_code` (lettura pubblica, valida un codice classe senza consumarlo, usata per la verifica live nel form), `redeem_class_code` (autenticata, valida e incrementa `usi_correnti` in modo atomico), `finalize_registration` (SECURITY INVOKER — non definer: gli INSERT restano soggetti alle RLS esistenti, compreso il blocco anti-auto-elevazione a `referente_scuola`; crea `profiles` + `student_profiles`/`teacher_profiles` in un'unica transazione, idempotente su doppia chiamata)
+- `app/auth/confirm/route.ts`: punto unico di arrivo dei link email (conferma iscrizione e recupero password). Per l'iscrizione chiama `finalize_registration` leggendo i dati del form da `user_metadata` (impostati al momento della `signUp()`, sopravvivono al salto email anche su un altro dispositivo), poi porta l'utente in `/app`
+- `RegistrazioneForm`/`DocenteForm` aggiornati con password, conferma password, data di nascita (blocco under-14 lato client, submit disabilitato, nessuna chiamata a Supabase se sotto soglia). `RegistrazioneForm` ha in più il campo facoltativo "Hai un codice della tua scuola?" (verifica live via `check_class_code`; se valido nasconde la cascata scuola, altrimenti resta la selezione manuale esistente)
+- **Limite noto**: l'opzione "La mia scuola non è in elenco" di `ScuolaCascadeFields` (testo libero) non è compatibile con la foreign key reale verso `schools`; per ora il submit resta bloccato con un messaggio che rimanda a `/contatti`
+- `/app`: pagina minima protetta ("Ciao [nome]" + scuola + messaggio statico), Server Component, nessun altro contenuto
+- **Configurazione manuale richiesta sulla dashboard Supabase** (non applicabile da qui, stesso blocco di rete): Authentication → Email Templates, aggiornare "Confirm signup" e "Reset Password" a `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type={{ .Type }}&next={{ .RedirectTo }}`; Authentication → URL Configuration, aggiungere `http://localhost:3000/**` e il dominio Vercel ai Redirect URLs consentiti
+- **Limite di test**: questo sandbox non raggiunge `*.supabase.co` (stesso blocco di rete già noto per le migration). Verificato tutto ciò che non richiede una chiamata reale a Supabase: validazione client-side (under-14, mismatch password, blocco scuola non in elenco), redirect di `proxy.ts` per utente non autenticato su `/app` e `/reimposta-password`, rendering di tutte le pagine nuove, gestione pulita del fallimento di rete su `check_class_code`. **Non verificato**: il round-trip reale signup→email→conferma→login, va testato in un ambiente con accesso di rete a Supabase (es. dopo il deploy Vercel)
+
 **Prossimi interventi previsti sulla struttura:**
 - Sostituire tutti i testi provvisori con i testi definitivi
-- Fase 2 (lug-ago 2026): autenticazione Supabase con i 3 ruoli utente (studente, istituzione, docente) + catalogo istituzioni consultabile
+- Verificare end-to-end il flusso di autenticazione in un ambiente con accesso di rete a Supabase (vedi limite di test sopra), dopo aver applicato la migration `20260711140000` e configurato i template email
 - Fase 3 (set 2026): profili studente completi + generazione automatica PDF dei giustificativi PCTO
 - Da rivalutare in futuro: rimuovere il workaround `--webpack` se un aggiornamento di Next.js risolve il crash di Turbopack in dev
 
 **Punti aperti (da chiudere in una prossima sessione):**
+- **Migration `20260711140000_auth_registration.sql` non applicata**: scritta e validata localmente (vincolo età + 3 funzioni SQL testate scenario per scenario) ma non ancora eseguita sul progetto reale, stesso blocco di rete del sandbox descritto sopra
+- **Configurazione email templates e Redirect URLs su Supabase**: vedi sopra, necessaria perché il flusso di conferma email funzioni
+- **Test end-to-end autenticazione**: il round-trip reale signup→email→conferma→login non è mai stato eseguito contro il progetto reale, per il blocco di rete del sandbox
 - **Deploy Vercel**: il sito è online solo sull'URL `*.vercel.app` assegnato da Vercel — il dominio definitivo `kireo.it` non è ancora collegato al progetto (Project Settings → Domains su Vercel)
 - **Dataset scuole MIM**: il JSON versionato (`public/data/scuole-secondarie-superiori.json`) è generato dal CSV dell'anno scolastico 2026/27; non c'è automazione di aggiornamento — quando il MIM pubblica un nuovo anno, va riscaricato il CSV e rilanciato `scripts/transform-scuole.js` a mano (istruzioni in testa allo script)
+- **Comune/indirizzo scuole non ancora nel JSON**: `scripts/transform-scuole.js` sa già leggere le colonne comune/indirizzo dal CSV MIM (se presenti) e il componente `ScuolaCascadeFields` sa già disambiguare le denominazioni duplicate mostrando "DENOMINAZIONE — Comune" (e l'indirizzo se serve anche quello); ma il CSV grezzo attualmente usato per generare il JSON versionato non aveva quelle colonne popolate, quindi finché non si riscarica un CSV con comune/indirizzo e si rilancia lo script, le scuole con denominazione duplicata (es. i 3 "FRANCESCO DE SANCTIS" di Avellino) mostrano il codice meccanografico tra parentesi come fallback. Le sedi carcerarie sono già escluse dal dataset e le sezioni ospedaliere già etichettate con suffisso "— sezione ospedaliera"
 - **Guide PDF delle aree**: il form "Scarica la guida di orientamento" su ogni pagina `/aree/[slug]` è solo UI — mostra la conferma ma non esistono ancora i PDF veri né un invio email reale; da collegare quando le guide saranno pronte
 - **Area "Salute & Professioni sanitarie"**: la descrizione attuale in `data/aree.ts` copre medicina/infermieristica/benessere ma non menziona esplicitamente la veterinaria — da integrare in un prossimo aggiornamento dei contenuti
 

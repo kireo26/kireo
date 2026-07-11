@@ -17,8 +17,8 @@ const PUNTI = [
     description: "Test attitudinali, guide, webinar e workshop pensati per far emergere chi sei davvero.",
   },
   {
-    title: "Orientatori esperti",
-    description: "Confronto diretto con professionisti che ti aiutano a leggere i risultati del tuo percorso.",
+    title: "Assistente digitale",
+    description: "Un assistente digitale sempre disponibile per rispondere alle tue domande su ogni area di orientamento.",
   },
   {
     title: "Ore PCTO certificate",

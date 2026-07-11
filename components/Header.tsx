@@ -114,8 +114,14 @@ export default function Header() {
           </Link>
         </nav>
 
-        <div className="hidden md:block">
-          <ButtonLink href="/" variant="primary">
+        <div className="hidden items-center gap-5 md:flex">
+          <Link
+            href="/accedi"
+            className="font-sans text-sm font-medium text-kireo-light/90 transition-colors hover:text-kireo-orange"
+          >
+            Accedi
+          </Link>
+          <ButtonLink href="/registrazione" variant="primary">
             Inizia ora
           </ButtonLink>
         </div>
@@ -194,8 +200,15 @@ export default function Header() {
               </Link>
             </li>
           </ul>
-          <div className="mt-4">
-            <ButtonLink href="/" variant="primary" className="w-full">
+          <div className="mt-4 flex flex-col gap-3">
+            <Link
+              href="/accedi"
+              onClick={() => setOpen(false)}
+              className="block rounded-lg px-2 py-3 text-center font-sans text-base font-medium text-kireo-light hover:bg-white/5"
+            >
+              Accedi
+            </Link>
+            <ButtonLink href="/registrazione" variant="primary" className="w-full">
               Inizia ora
             </ButtonLink>
           </div>

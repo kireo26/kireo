@@ -21,9 +21,9 @@ const PASSI = [
   },
   {
     numero: "03",
-    titolo: "Confrontati con orientatori esperti",
+    titolo: "Approfondisci con l'assistente digitale",
     descrizione:
-      "Non sei solo davanti alla scelta: puoi metterti in contatto diretto con orientatori esperti che ti aiutano a leggere i risultati del tuo percorso e a mettere a fuoco la direzione.",
+      "Hai domande su un'area, un percorso, un mestiere? L'assistente digitale KIREO conosce ogni area di orientamento e risponde alle tue curiosità, gratis, in ogni momento del percorso.",
   },
   {
     numero: "04",
@@ -37,12 +37,12 @@ const FAQ = [
   {
     domanda: "L'orientamento su KIREO è gratuito?",
     risposta:
-      "Sì, completamente. Tutte le attività di orientamento — test attitudinali, guide, webinar, workshop, il confronto con gli orientatori — sono gratuite per gli studenti e per le scuole. Nessun costo nascosto, nessun abbonamento: l'orientamento è un diritto, non un prodotto.",
+      "Sì, completamente. Tutte le attività di orientamento — test attitudinali, guide, webinar, workshop, l'assistente digitale — sono gratuite per gli studenti e per le scuole. Nessun costo nascosto, nessun abbonamento: l'orientamento è un diritto, non un prodotto.",
   },
   {
     domanda: "Come funziona il percorso di orientamento?",
     risposta:
-      "Parti creando il tuo profilo, poi esplori le attività che preferisci: test, guide, webinar, laboratori, sfide di orientamento. Ogni attività contribuisce a costruire il tuo profilo attitudinale. Quando vuoi, ti confronti con un orientatore esperto. Alla fine hai due risultati concreti: una direzione chiara per il tuo futuro e le ore PCTO certificate.",
+      "Parti creando il tuo profilo, poi esplori le attività che preferisci: test, guide, webinar, laboratori, sfide di orientamento. Ogni attività contribuisce a costruire il tuo profilo attitudinale. Quando vuoi, puoi rivolgere le tue domande all'assistente digitale KIREO. Alla fine hai due risultati concreti: una direzione chiara per il tuo futuro e le ore PCTO certificate.",
   },
   {
     domanda: "Le attività su KIREO valgono come PCTO?",
@@ -50,9 +50,9 @@ const FAQ = [
       "Sì. Le attività di orientamento svolte su KIREO sono progettate per essere riconosciute come PCTO (Percorsi per le Competenze Trasversali e l'Orientamento), che la normativa prevede anche in modalità digitale. KIREO attiva una convenzione con la tua scuola e i giustificativi vengono generati automaticamente: né tu né i tuoi docenti dovete compilare moduli.",
   },
   {
-    domanda: "Chi sono gli orientatori di KIREO?",
+    domanda: "Cos'è l'assistente digitale di KIREO?",
     risposta:
-      "Sono professionisti esperti nei diversi settori del mondo KIREO: università, formazione tecnica, professioni, mondo del lavoro. Non rappresentano nessuna istituzione e non hanno alcun interesse commerciale: il loro compito è aiutarti a leggere i risultati del tuo percorso e a mettere a fuoco la tua direzione.",
+      "È uno strumento sempre disponibile che conosce a fondo tutte le aree di orientamento — dall'informatica alla sanità, dall'arte all'ingegneria — e ti aiuta a leggere i risultati del tuo percorso e a mettere a fuoco la tua direzione. Non rappresenta nessuna istituzione e non ha alcun interesse commerciale: il suo unico scopo è aiutarti a orientarti, gratis e in qualsiasi momento.",
   },
   {
     domanda: "KIREO mi dirà cosa devo scegliere?",
@@ -79,8 +79,8 @@ export default function ComeFunziona() {
           </h1>
           <p className="mt-6 text-lg text-kireo-muted">
             KIREO accompagna gli studenti lungo tutto il percorso di orientamento: dalla scoperta
-            delle proprie attitudini al confronto con gli orientatori, fino alle opportunità
-            coerenti con chi sei.
+            delle proprie attitudini al confronto con l&apos;assistente digitale, fino alle
+            opportunità coerenti con chi sei.
           </p>
         </div>
       </section>
