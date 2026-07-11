@@ -6,9 +6,9 @@ import FaqAccordion from "@/components/FaqAccordion";
 
 const PROBLEMI = [
   {
-    title: "Percorsi su misura, non uguali per tutti",
+    title: "Orientiamo, non spingiamo",
     description:
-      "Test attitudinali, guide, webinar, workshop, laboratori e sfide su numerose aree di interesse: ogni studente costruisce il proprio percorso di orientamento e scopre attitudini che non sapeva di avere.",
+      "Nessuna università o ente da piazzarti: KIREO ti aiuta a trovare la TUA direzione, e la scelta resta sempre tua.",
   },
   {
     title: "Un metodo continuo e misurabile",
@@ -16,9 +16,9 @@ const PROBLEMI = [
       "L'orientamento su KIREO non è un evento, è un percorso che cresce nel tempo: ogni attività arricchisce il profilo attitudinale dello studente e avvicina la direzione giusta — studio o lavoro.",
   },
   {
-    title: "E intanto maturi ore PCTO",
+    title: "Onestà prima di tutto",
     description:
-      "Le attività di orientamento valgono come PCTO: 90, 150 o 210 ore da completare nel triennio diventano un'occasione per conoscersi, con giustificativi automatici per la scuola. Zero burocrazia.",
+      "Accessi selettivi, tempi reali, difficoltà vere: te le diciamo come stanno, perché una scelta consapevole vale più di una promessa facile.",
   },
 ];
 
@@ -55,6 +55,32 @@ function IconaCalendario({ className = "" }: { className?: string }) {
       <rect x="5" y="8" width="22" height="19" rx="2.5" />
       <path d="M5 13h22" strokeLinecap="round" />
       <path d="M11 5v6M21 5v6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+// Stessa geometria della O-bussola del logo (components/Logo.tsx): anello
+// aperto via strokeDasharray + ago a rombo arancione. Qui isolata (senza le
+// lettere K-I-R-E) per il badge di gratuità.
+function IconaOBussola({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 80 80" className={className} aria-hidden="true">
+      <g transform="translate(40,40)">
+        <circle
+          cx="0"
+          cy="0"
+          r="33"
+          fill="none"
+          stroke="#2FA57B"
+          strokeWidth="6"
+          strokeLinecap="round"
+          strokeDasharray="165 42.3"
+          transform="rotate(-118)"
+        />
+        <g transform="rotate(40)">
+          <path d="M 0,-18 L 9,8 L 0,3 L -9,8 Z" fill="#EF9F27" />
+        </g>
+      </g>
     </svg>
   );
 }
@@ -246,7 +272,7 @@ export default function Home() {
           ))}
         </div>
         <p className="mx-auto mt-16 max-w-3xl py-1 text-center font-heading text-2xl font-bold leading-[1.25] text-kireo-light sm:text-3xl">
-          Non un corso uguale per tutti: un percorso che si adatta a chi sei.
+          Nessun percorso è uguale a un altro: il tuo si costruisce su chi sei.
         </p>
       </section>
 
@@ -274,9 +300,14 @@ export default function Home() {
             ))}
           </div>
 
-          <p className="mx-auto mt-14 max-w-3xl py-1 text-center font-heading text-2xl font-bold leading-[1.25] text-kireo-light sm:text-3xl">
-            Tutto questo è 100% gratuito per studenti e scuole. Sempre.
-          </p>
+          <div className="mt-14 flex justify-center px-4">
+            <div className="flex max-w-full items-center justify-center gap-3 rounded-2xl border border-[#2FA57Bb3] bg-[#2FA57B0d] px-6 py-4 shadow-[0_0_30px_-10px_#2FA57B] sm:gap-4 sm:px-9 sm:py-5">
+              <IconaOBussola className="h-8 w-8 flex-none sm:h-10 sm:w-10" />
+              <p className="py-0.5 text-left font-heading text-base font-bold leading-[1.35] text-kireo-light sm:text-xl">
+                Tutto questo è 100% gratuito per studenti e scuole. <span className="text-kireo-orange">Sempre.</span>
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
