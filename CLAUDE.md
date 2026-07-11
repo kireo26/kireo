@@ -61,7 +61,7 @@ Menu principale (in quest'ordine): Home, Per gli studenti, Per le scuole, Per i 
 3. Fase 3 (set 2026): profili studente + generazione PDF giustificativi PCTO
 
 ## Stato attuale
-Aggiornato al 2026-07-05.
+Aggiornato al 2026-07-11.
 
 **Completato (Fase 1):**
 - Scaffold Next.js (App Router, TypeScript, Tailwind CSS v4) con font Google e colori brand configurati come token Tailwind (`kireo-green`, `kireo-orange`, `kireo-dark`, ecc.)
@@ -81,13 +81,16 @@ Aggiornato al 2026-07-05.
 
 **Nota tecnica ambiente:** in locale Turbopack (bundler di default di Next 16) va in errore in modalità dev per un problema di spawn processi nel sandbox; il dev server è configurato per usare `--webpack` (vedi `package.json` e `scripts/dev.sh`). La build di produzione con Turbopack funziona regolarmente.
 
+**Fase 2 — database (in corso):** progetto Supabase "kireo" (region eu-west-1). Schema completo scritto in `supabase/migrations/` (5 file: enum, tabelle, funzioni/trigger, RLS, import scuole MIM): `profiles`, `schools`, `student_profiles`, `teacher_profiles` (condivisa da docente e referente_scuola), `conventions`, `class_codes`, più `activities`/`student_activities` predisposte per il futuro. RLS attiva su tutte le tabelle (22 policy: accesso per ruolo/scuola, nessun accesso anonimo a profili/attività, `referente_scuola` mai self-service). Schema validato localmente su Postgres 16 (sintassi, vincoli, trigger e RLS testati scenario per scenario) ma **non ancora applicato al progetto Supabase reale**: il sandbox di sviluppo non riesce a raggiungere né la connessione Postgres diretta né le API HTTPS di Supabase (rete del sandbox con allowlist ristretto). Le migration andranno applicate da un ambiente con accesso di rete a Supabase (es. SQL Editor della dashboard). Client Supabase scaffolded in `lib/supabase.ts` (usa `@supabase/supabase-js`), variabili d'ambiente `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` in `.env.local` (non versionato) — vanno impostate anche su Vercel.
+
 **Prossimi interventi previsti sulla struttura:**
 - Sostituire tutti i testi provvisori con i testi definitivi
-- Fase 2 (lug-ago 2026): autenticazione Supabase con i 3 ruoli utente (studente, istituzione, docente) + catalogo istituzioni consultabile
+- Fase 2 (lug-ago 2026): applicare le migration al progetto Supabase reale, poi autenticazione con i 3 ruoli utente (studente, docente, referente_scuola) + flussi di registrazione/collegamento scuola tramite codice meccanografico
 - Fase 3 (set 2026): profili studente completi + generazione automatica PDF dei giustificativi PCTO
 - Da rivalutare in futuro: rimuovere il workaround `--webpack` se un aggiornamento di Next.js risolve il crash di Turbopack in dev
 
 **Punti aperti (da chiudere in una prossima sessione):**
+- **Migration Supabase non applicate**: i 5 file in `supabase/migrations/` sono pronti e validati ma non ancora eseguiti sul progetto reale, per il blocco di rete del sandbox descritto sopra
 - **Deploy Vercel**: il sito è online solo sull'URL `*.vercel.app` assegnato da Vercel — il dominio definitivo `kireo.it` non è ancora collegato al progetto (Project Settings → Domains su Vercel)
 - **Dataset scuole MIM**: il JSON versionato (`public/data/scuole-secondarie-superiori.json`) è generato dal CSV dell'anno scolastico 2026/27; non c'è automazione di aggiornamento — quando il MIM pubblica un nuovo anno, va riscaricato il CSV e rilanciato `scripts/transform-scuole.js` a mano (istruzioni in testa allo script)
 - **Comune/indirizzo scuole non ancora nel JSON**: `scripts/transform-scuole.js` sa già leggere le colonne comune/indirizzo dal CSV MIM (se presenti) e il componente `ScuolaCascadeFields` sa già disambiguare le denominazioni duplicate mostrando "DENOMINAZIONE — Comune" (e l'indirizzo se serve anche quello); ma il CSV grezzo attualmente usato per generare il JSON versionato non aveva quelle colonne popolate, quindi finché non si riscarica un CSV con comune/indirizzo e si rilancia lo script, le scuole con denominazione duplicata (es. i 3 "FRANCESCO DE SANCTIS" di Avellino) mostrano il codice meccanografico tra parentesi come fallback. Le sedi carcerarie sono già escluse dal dataset e le sezioni ospedaliere già etichettate con suffisso "— sezione ospedaliera"
