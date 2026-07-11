@@ -22,12 +22,74 @@ const PROBLEMI = [
   },
 ];
 
-const NUMERI = [
-  { numero: "18", label: "aree di orientamento" },
-  { numero: "18", label: "guide gratuite" },
-  { numero: "Webinar", label: "ogni mese" },
-  { numero: "100%", label: "gratuito per studenti e scuole" },
-];
+function IconaBussola({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="1.5" className={className} aria-hidden="true">
+      <circle cx="16" cy="16" r="12" strokeLinecap="round" />
+      <path d="M20.5 11.5 17 18l-6.5 3.5L14 15z" strokeLinejoin="round" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+function IconaCheck({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="1.5" className={className} aria-hidden="true">
+      <circle cx="16" cy="16" r="12" strokeLinecap="round" />
+      <path d="M11 16.5 14.5 20 21 12" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function IconaMappa({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="1.5" className={className} aria-hidden="true">
+      <path d="M16 28s9-8.5 9-15a9 9 0 1 0-18 0c0 6.5 9 15 9 15Z" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="16" cy="13" r="3.2" />
+    </svg>
+  );
+}
+
+function IconaCalendario({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="1.5" className={className} aria-hidden="true">
+      <rect x="5" y="8" width="22" height="19" rx="2.5" />
+      <path d="M5 13h22" strokeLinecap="round" />
+      <path d="M11 5v6M21 5v6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+const ACCENTO_CLASSI = {
+  verde: "border-kireo-green-light/40 text-kireo-green-light",
+  arancio: "border-kireo-orange/40 text-kireo-orange",
+} as const;
+
+const OFFERTA = [
+  {
+    icona: IconaBussola,
+    titolo: "Percorso di orientamento",
+    testo: "Test attitudinali e tappe guidate per scoprire la tua direzione",
+    accento: "verde",
+  },
+  {
+    icona: IconaCheck,
+    titolo: "Ore PCTO mentre ti orienti",
+    testo: "Le attività valgono come PCTO, con giustificativi automatici per la tua scuola",
+    accento: "arancio",
+  },
+  {
+    icona: IconaMappa,
+    titolo: "Approfondimenti su 18 aree",
+    testo: "Guide, assistente digitale e strumenti per esplorare ogni mondo professionale",
+    accento: "verde",
+  },
+  {
+    icona: IconaCalendario,
+    titolo: "Webinar ed eventi",
+    testo: "Incontri dal vivo ogni mese con chi i mestieri li fa davvero",
+    accento: "verde",
+  },
+] satisfies { icona: typeof IconaBussola; titolo: string; testo: string; accento: keyof typeof ACCENTO_CLASSI }[];
 
 const FAQ_HOME = [
   {
@@ -188,19 +250,33 @@ export default function Home() {
         </p>
       </section>
 
-      {/* Numeri KIREO */}
+      {/* Offerta KIREO */}
       <section className="border-t border-white/5">
         <div className="mx-auto max-w-6xl px-6 py-14">
-          <div className="grid grid-cols-2 gap-8 sm:grid-cols-4">
-            {NUMERI.map((n) => (
-              <div key={n.label} className="text-center">
-                <p className="py-0.5 font-heading text-3xl font-bold leading-[1.25] text-kireo-green-light sm:text-4xl">
-                  {n.numero}
-                </p>
-                <p className="mt-2 text-sm text-kireo-muted">{n.label}</p>
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 lg:gap-6">
+            {OFFERTA.map((voce) => (
+              <div
+                key={voce.titolo}
+                className="flex min-w-0 flex-col items-start gap-3 rounded-2xl border border-white/5 bg-kireo-card p-4 sm:flex-row sm:gap-4 sm:p-5"
+              >
+                <span
+                  className={`flex h-11 w-11 flex-none items-center justify-center rounded-full border ${ACCENTO_CLASSI[voce.accento]}`}
+                >
+                  <voce.icona className="h-5 w-5" />
+                </span>
+                <div className="min-w-0">
+                  <h3 className="py-0.5 font-heading text-sm font-semibold leading-[1.25] text-kireo-light sm:text-base">
+                    {voce.titolo}
+                  </h3>
+                  <p className="mt-1 text-xs text-kireo-muted sm:text-sm">{voce.testo}</p>
+                </div>
               </div>
             ))}
           </div>
+
+          <p className="mx-auto mt-14 max-w-3xl py-1 text-center font-heading text-2xl font-bold leading-[1.25] text-kireo-light sm:text-3xl">
+            Tutto questo è 100% gratuito per studenti e scuole. Sempre.
+          </p>
         </div>
       </section>
 
