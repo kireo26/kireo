@@ -60,7 +60,9 @@ Menu principale (in quest'ordine): Home, Per gli studenti, Per le scuole, Per i 
 3. Fase 3 (set 2026): profili studente + generazione PDF giustificativi PCTO
 
 ## Stato attuale
-Aggiornato al 2026-07-05.
+Aggiornato al 2026-07-11.
+
+**Database Supabase (Fase 2, in anticipo sul resto della UI):** le 5 migration in `supabase/migrations/` (20260710180000 → 20260710180400) sono state applicate al progetto Supabase reale ("kireo", Frankfurt) il 2026-07-11. Schema attivo: `profiles`, `schools` (6995 scuole importate dal dataset MIM), `student_profiles`, `teacher_profiles` (condivisa da docente e referente_scuola), `conventions`, `class_codes`, `activities`, `student_activities` — RLS abilitata su tutte le 8 tabelle con 22 policy totali, più i trigger di integrità e le funzioni helper (`current_ruolo`, `current_school_code`, ecc.) descritti nel messaggio di commit delle migration. Il frontend pubblico non usa ancora questo schema (nessuna auth collegata): resta da fare l'integrazione lato app (login, form collegati a Supabase invece che solo UI).
 
 **Completato (Fase 1):**
 - Scaffold Next.js (App Router, TypeScript, Tailwind CSS v4) con font Google e colori brand configurati come token Tailwind (`kireo-green`, `kireo-orange`, `kireo-dark`, ecc.)
