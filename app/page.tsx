@@ -1,26 +1,7 @@
 import Link from "next/link";
 import { ButtonLink } from "@/components/Button";
-import Card from "@/components/Card";
 import SectionHeading from "@/components/SectionHeading";
 import FaqAccordion from "@/components/FaqAccordion";
-
-const PROBLEMI = [
-  {
-    title: "Orientiamo, non spingiamo",
-    description:
-      "Nessuna università o ente da piazzarti: KIREO ti aiuta a trovare la TUA direzione, e la scelta resta sempre tua.",
-  },
-  {
-    title: "Un metodo continuo e misurabile",
-    description:
-      "L'orientamento su KIREO non è un evento, è un percorso che cresce nel tempo: ogni attività arricchisce il profilo attitudinale dello studente e avvicina la direzione giusta — studio o lavoro.",
-  },
-  {
-    title: "Onestà prima di tutto",
-    description:
-      "Accessi selettivi, tempi reali, difficoltà vere: te le diciamo come stanno, perché una scelta consapevole vale più di una promessa facile.",
-  },
-];
 
 function IconaBussola({ className = "" }: { className?: string }) {
   return (
@@ -59,9 +40,28 @@ function IconaCalendario({ className = "" }: { className?: string }) {
   );
 }
 
+function IconaScudo({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="1.5" className={className} aria-hidden="true">
+      <path d="M16 4 26 8v7c0 7-4.5 11.5-10 13-5.5-1.5-10-6-10-13V8Z" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M11.5 16.5 14.5 19.5 21 12.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function IconaTraguardo({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="1.5" className={className} aria-hidden="true">
+      <circle cx="16" cy="16" r="11" />
+      <circle cx="16" cy="16" r="6.5" />
+      <circle cx="16" cy="16" r="2" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
 // Stessa geometria della O-bussola del logo (components/Logo.tsx): anello
 // aperto via strokeDasharray + ago a rombo arancione. Qui isolata (senza le
-// lettere K-I-R-E) per il badge di gratuità.
+// lettere K-I-R-E) per i badge-cornice della home.
 function IconaOBussola({ className = "" }: { className?: string }) {
   return (
     <svg viewBox="0 0 80 80" className={className} aria-hidden="true">
@@ -90,6 +90,35 @@ const ACCENTO_CLASSI = {
   arancio: "border-kireo-orange/40 text-kireo-orange",
 } as const;
 
+// Badge-cornice usato sia per la riga di differenziazione (arancio, cappello
+// ai quadranti) sia per il sigillo di gratuità (verde, chiusura): stesso
+// componente, solo colore d'accento e contenuto diversi.
+const BADGE_CLASSI = {
+  verde: "border-[#2FA57Bb3] bg-[#2FA57B0d] shadow-[0_0_30px_-10px_#2FA57B]",
+  arancio: "border-[#EF9F27b3] bg-[#EF9F270d] shadow-[0_0_30px_-10px_#EF9F27]",
+} as const;
+
+function BadgeCornice({
+  colore,
+  children,
+}: {
+  colore: keyof typeof BADGE_CLASSI;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex justify-center px-4">
+      <div
+        className={`flex max-w-full items-center justify-center gap-3 rounded-2xl border px-6 py-4 sm:gap-4 sm:px-9 sm:py-5 ${BADGE_CLASSI[colore]}`}
+      >
+        <IconaOBussola className="h-8 w-8 flex-none sm:h-10 sm:w-10" />
+        <p className="py-0.5 text-left font-heading text-base font-bold leading-[1.35] text-kireo-light sm:text-xl">
+          {children}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 const OFFERTA = [
   {
     icona: IconaBussola,
@@ -113,6 +142,18 @@ const OFFERTA = [
     icona: IconaCalendario,
     titolo: "Webinar ed eventi",
     testo: "Incontri dal vivo ogni mese con chi i mestieri li fa davvero",
+    accento: "verde",
+  },
+  {
+    icona: IconaScudo,
+    titolo: "La scelta resta tua",
+    testo: "Ti aiutiamo a trovare la tua direzione, con onestà su tempi e difficoltà",
+    accento: "verde",
+  },
+  {
+    icona: IconaTraguardo,
+    titolo: "Consigli su misura",
+    testo: "Alla fine del percorso, indicazioni personalizzate su studio o lavoro, costruite sul tuo profilo attitudinale",
     accento: "verde",
   },
 ] satisfies { icona: typeof IconaBussola; titolo: string; testo: string; accento: keyof typeof ACCENTO_CLASSI }[];
@@ -266,20 +307,17 @@ export default function Home() {
           title="Una scelta enorme merita strumenti all'altezza"
           description="Ogni anno circa 500.000 studenti si diplomano in Italia. E quasi una matricola su tre, nei primi anni, cambia strada o abbandona. Non per mancanza di talento: per mancanza di orientamento. KIREO nasce per questo."
         />
-        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {PROBLEMI.map((p) => (
-            <Card key={p.title} title={p.title} description={p.description} />
-          ))}
+        <div className="mt-12">
+          <BadgeCornice colore="arancio">
+            Nessun percorso è uguale a un altro: il tuo si costruisce su chi sei.
+          </BadgeCornice>
         </div>
-        <p className="mx-auto mt-16 max-w-3xl py-1 text-center font-heading text-2xl font-bold leading-[1.25] text-kireo-light sm:text-3xl">
-          Nessun percorso è uguale a un altro: il tuo si costruisce su chi sei.
-        </p>
       </section>
 
       {/* Offerta KIREO */}
       <section className="border-t border-white/5">
         <div className="mx-auto max-w-6xl px-6 py-14">
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 lg:gap-6">
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 lg:gap-6">
             {OFFERTA.map((voce) => (
               <div
                 key={voce.titolo}
@@ -300,13 +338,10 @@ export default function Home() {
             ))}
           </div>
 
-          <div className="mt-14 flex justify-center px-4">
-            <div className="flex max-w-full items-center justify-center gap-3 rounded-2xl border border-[#2FA57Bb3] bg-[#2FA57B0d] px-6 py-4 shadow-[0_0_30px_-10px_#2FA57B] sm:gap-4 sm:px-9 sm:py-5">
-              <IconaOBussola className="h-8 w-8 flex-none sm:h-10 sm:w-10" />
-              <p className="py-0.5 text-left font-heading text-base font-bold leading-[1.35] text-kireo-light sm:text-xl">
-                Tutto questo è 100% gratuito per studenti e scuole. <span className="text-kireo-orange">Sempre.</span>
-              </p>
-            </div>
+          <div className="mt-14">
+            <BadgeCornice colore="verde">
+              Tutto questo è 100% gratuito per studenti e scuole. <span className="text-kireo-orange">Sempre.</span>
+            </BadgeCornice>
           </div>
         </div>
       </section>
