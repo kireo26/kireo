@@ -11,6 +11,7 @@ const NAV_LINKS = [
   { href: "/per-gli-studenti", label: "Per gli studenti" },
   { href: "/per-le-scuole", label: "Per le scuole" },
   { href: "/per-i-docenti", label: "Per i docenti" },
+  { href: "/news", label: "News" },
 ];
 
 function ChevronIcon({ open }: { open: boolean }) {

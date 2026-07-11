@@ -3,6 +3,7 @@ import { Space_Grotesk, DM_Sans, Poppins } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { SITE_URL } from "@/lib/site";
 
 const spaceGrotesk = Space_Grotesk({
   variable: "--font-display",
@@ -31,6 +32,7 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: "KIREO — Orientamento. Direzione. Futuro.",
   description:
     "KIREO guida gli studenti delle scuole superiori a scoprire le proprie attitudini e la direzione giusta dopo il diploma — studio o lavoro.",
