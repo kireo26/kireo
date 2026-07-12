@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { ButtonLink } from "@/components/Button";
 import Card from "@/components/Card";
 import SectionHeading from "@/components/SectionHeading";
+import RichiestaAccessoEnteForm from "@/components/RichiestaAccessoEnteForm";
 
 export const metadata: Metadata = {
   title: "Per le istituzioni formative — KIREO",
@@ -23,28 +24,30 @@ const BENEFICI = [
   {
     title: "Profilo verificato",
     description:
-      "La tua istituzione appare con un profilo completo: corsi, sbocchi, modalità, contatti. Verificato da KIREO, aggiornabile in autonomia.",
+      "La tua istituzione appare con un profilo completo: eventi, guida scaricabile, sito ufficiale. Verificato da KIREO, aggiornabile in autonomia.",
   },
   {
     title: "Statistiche di interesse",
     description:
-      "Scopri quanti studenti hanno visualizzato il tuo profilo, quali corsi attraggono più interesse e da quali territori arrivano (in base al piano attivo).",
+      "Scopri quanti studenti hai raggiunto, quanti hanno scaricato la tua guida o si sono iscritti alla newsletter — solo dati aggregati e anonimi, mai un elenco di studenti (in base al piano attivo).",
   },
 ];
 
+// Nomi dei piani allineati all'enum piani.nome (free/plus/premium) invece
+// dei precedenti Base/Standard/Premium — stessi prezzi già comunicati.
 const PIANI = [
-  { nome: "Base", prezzo: "Gratis", evidenziato: false },
-  { nome: "Standard", prezzo: "€290 / anno", evidenziato: true },
+  { nome: "Free", prezzo: "Gratis", evidenziato: false },
+  { nome: "Plus", prezzo: "€290 / anno", evidenziato: true },
   { nome: "Premium", prezzo: "€590 / anno", evidenziato: false },
 ];
 
 const FEATURE_ROWS: { feature: string; base: string; standard: string; premium: string }[] = [
   { feature: "Profilo istituzione verificato", base: "✓", standard: "✓", premium: "✓" },
-  { feature: "Corsi inseribili", base: "3", standard: "Illimitati", premium: "Illimitati" },
-  { feature: "Ricezione richieste di contatto", base: "Email", standard: "Dashboard", premium: "Dashboard" },
-  { feature: 'Badge "In evidenza"', base: "—", standard: "✓", premium: "✓" },
-  { feature: "Statistiche avanzate", base: "—", standard: "—", premium: "✓" },
-  { feature: "Webinar co-branded per studenti", base: "—", standard: "—", premium: "✓" },
+  { feature: "Eventi/webinar proposti all'anno", base: "3", standard: "5", premium: "15" },
+  { feature: "Newsletter agli iscritti all'anno", base: "—", standard: "2", premium: "5" },
+  { feature: "CTA verso il sito esterno all'anno", base: "—", standard: "1", premium: "5" },
+  { feature: "Comunicazioni mirate KIREO all'anno", base: "—", standard: "—", premium: "5" },
+  { feature: "Statistiche aggregate", base: "✓", standard: "✓", premium: "✓" },
 ];
 
 const TIPOLOGIE = [
@@ -74,7 +77,7 @@ function CellValue({ value }: { value: string }) {
   return <span className="text-kireo-light/90">{value}</span>;
 }
 
-export default function PerLeIstituzioni() {
+export default function IstituzioniPage() {
   return (
     <>
       <section className="mx-auto max-w-6xl px-6 pb-16 pt-20 sm:pt-28">
@@ -91,7 +94,7 @@ export default function PerLeIstituzioni() {
             in base alle attitudini emerse. Contatti qualificati, non traffico generico.
           </p>
           <div className="mt-8">
-            <ButtonLink href="/contatti" variant="primary">
+            <ButtonLink href="#richiedi-accesso" variant="primary">
               Registra la tua istituzione
             </ButtonLink>
           </div>
@@ -112,7 +115,7 @@ export default function PerLeIstituzioni() {
           <SectionHeading
             eyebrow="Piani e prezzi"
             title="Entra gratis. Cresci quando vuoi."
-            description="Il profilo base è gratuito per sempre. I piani a pagamento aggiungono visibilità e strumenti, mai accesso privilegiato agli studenti: la coerenza attitudinale non si compra."
+            description="Il piano Free è gratuito per sempre. I piani a pagamento aggiungono visibilità e strumenti, mai accesso privilegiato agli studenti: la coerenza attitudinale non si compra."
             align="center"
           />
 
@@ -161,7 +164,7 @@ export default function PerLeIstituzioni() {
 
           <p className="mt-6 text-center text-xs text-kireo-muted">
             I prezzi sono indicativi e potranno essere aggiornati al lancio ufficiale. Le
-            istituzioni che aderiscono in fase beta ricevono 12 mesi di piano Standard inclusi.
+            istituzioni che aderiscono in fase beta ricevono 12 mesi di piano Plus inclusi.
           </p>
         </div>
       </section>
@@ -181,6 +184,20 @@ export default function PerLeIstituzioni() {
         </ul>
       </section>
 
+      <section id="richiedi-accesso" className="border-t border-white/5 bg-kireo-card/40">
+        <div className="mx-auto max-w-2xl px-6 py-20">
+          <SectionHeading
+            eyebrow="Richiedi l'accesso"
+            title="Registra la tua istituzione"
+            description="Crei subito un profilo, che resta in attesa di attivazione manuale da parte di KIREO prima di comparire pubblicamente."
+            align="center"
+          />
+          <div className="mt-10">
+            <RichiestaAccessoEnteForm />
+          </div>
+        </div>
+      </section>
+
       <section className="bg-kireo-green">
         <div className="mx-auto max-w-2xl px-6 py-16 text-center">
           <h2 className="py-1 font-heading text-3xl font-bold leading-[1.25] text-kireo-light sm:text-4xl">
@@ -192,7 +209,7 @@ export default function PerLeIstituzioni() {
             e i contatti che ricevi valgono.
           </p>
           <div className="mt-8">
-            <ButtonLink href="/contatti" variant="outline" className="border-kireo-light/60">
+            <ButtonLink href="#richiedi-accesso" variant="outline" className="border-kireo-light/60">
               Registra la tua istituzione
             </ButtonLink>
           </div>

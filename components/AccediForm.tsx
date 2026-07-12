@@ -16,6 +16,9 @@ const MESSAGGI_ERRORE: Record<string, string> = {
   scuola_non_valida: "La scuola collegata al tuo profilo non è più disponibile. Contattaci da /contatti.",
   codice_non_valido: "Il codice della tua scuola non è più valido. Contattaci da /contatti.",
   sconosciuto: "Non siamo riusciti a completare la registrazione. Contattaci da /contatti.",
+  ente_dati_incompleti: "Mancano alcuni dati per completare la registrazione del tuo ente. Contattaci da /contatti.",
+  ente_slug_non_disponibile: "Il nome del tuo ente genera un indirizzo già in uso. Contattaci da /contatti per sistemarlo.",
+  ente_sconosciuto: "Non siamo riusciti a completare la registrazione del tuo ente. Contattaci da /contatti.",
 };
 
 export default function AccediForm() {
@@ -56,7 +59,7 @@ export default function AccediForm() {
         return;
       }
 
-      router.push(redirectedFrom || "/app");
+      router.push(redirectedFrom || "/dopo-accesso");
       router.refresh();
     } catch {
       setErroreGenerale("Qualcosa è andato storto durante l'accesso. Riprova tra qualche istante.");
@@ -127,6 +130,12 @@ export default function AccediForm() {
         Non hai ancora un profilo?{" "}
         <Link href="/registrazione" className="text-kireo-orange underline underline-offset-2">
           Registrati
+        </Link>
+      </p>
+      <p className="text-center text-sm text-kireo-muted">
+        Sei un ente formativo?{" "}
+        <Link href="/istituzioni" className="text-kireo-orange underline underline-offset-2">
+          Scopri come aderire
         </Link>
       </p>
     </form>

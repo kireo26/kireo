@@ -12,9 +12,12 @@ export type Evento = {
   posti: number | null;
   ore_pcto: number;
   organizzatore_id: string | null;
+  cta_esterna_url: string | null;
+  cta_esterna_approvata: boolean;
 };
 
-const COLONNE_EVENTO = "id, titolo, descrizione, tipo, data_inizio, data_fine, sede, link, posti, ore_pcto, organizzatore_id";
+const COLONNE_EVENTO =
+  "id, titolo, descrizione, tipo, data_inizio, data_fine, sede, link, posti, ore_pcto, organizzatore_id, cta_esterna_url, cta_esterna_approvata";
 
 // Tutte le funzioni qui sotto non esplodono se le tabelle non esistono
 // ancora (migration preparata, non applicata): qualunque errore produce un
@@ -69,6 +72,23 @@ export async function getEventiPerArea(supabase: SupabaseClient, areaSlug: strin
       .map((riga) => (Array.isArray(riga.eventi) ? riga.eventi[0] : riga.eventi))
       .filter((e): e is Evento => Boolean(e))
       .sort((a, b) => new Date(a.data_inizio).getTime() - new Date(b.data_inizio).getTime());
+  } catch {
+    return [];
+  }
+}
+
+// Eventi approvati organizzati da una specifica istituzione, per il
+// profilo pubblico /istituzioni/[slug] — ordinati per data, futuri e
+// passati insieme (a differenza dell'Agenda studente, qui non si separano).
+export async function getEventiIstituzione(supabase: SupabaseClient, istituzioneId: string): Promise<Evento[]> {
+  try {
+    const { data, error } = await supabase
+      .from("eventi")
+      .select(COLONNE_EVENTO)
+      .eq("organizzatore_id", istituzioneId)
+      .order("data_inizio", { ascending: true });
+    if (error) return [];
+    return (data ?? []) as Evento[];
   } catch {
     return [];
   }

@@ -47,10 +47,21 @@ export default function CardEvento({
             {evento.sede ? ` · ${evento.sede}` : " · Online"}
           </p>
           {evento.descrizione && <p className="mt-2 text-sm text-kireo-muted">{evento.descrizione}</p>}
+          {evento.cta_esterna_url && evento.cta_esterna_approvata && (
+            <a
+              href={evento.cta_esterna_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 inline-block text-sm font-medium text-kireo-orange underline underline-offset-2"
+            >
+              Vai al sito ufficiale ↗
+            </a>
+          )}
         </div>
         <IscrivitiEventoButton
           eventoId={evento.id}
           areaSlug={areeSlugs[0] ?? null}
+          organizzatoreId={evento.organizzatore_id}
           userId={userId}
           iscrittoIniziale={iscritto}
         />

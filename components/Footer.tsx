@@ -6,7 +6,7 @@ const NAV_LINKS = [
   { href: "/per-gli-studenti", label: "Per gli studenti" },
   { href: "/come-funziona", label: "Come funziona" },
   { href: "/per-le-scuole", label: "Per le scuole" },
-  { href: "/per-le-istituzioni", label: "Per le istituzioni" },
+  { href: "/istituzioni", label: "Per le istituzioni formative" },
   { href: "/per-i-docenti", label: "Per i docenti" },
   { href: "/news", label: "News" },
   { href: "/contatti", label: "Contatti" },

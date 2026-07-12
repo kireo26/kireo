@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const AREA_PROTETTA = "/app";
+const AREE_PROTETTE = ["/app", "/ente", "/admin"];
 
 function redirectAccedi(request: NextRequest) {
   const url = request.nextUrl.clone();
@@ -10,18 +10,21 @@ function redirectAccedi(request: NextRequest) {
   return NextResponse.redirect(url);
 }
 
-// Aggiorna la sessione ad ogni richiesta e protegge le route sotto /app:
-// senza utente autenticato reindirizza a /accedi, preservando la pagina di
-// destinazione originale in redirectedFrom.
+// Aggiorna la sessione ad ogni richiesta e protegge le route sotto /app,
+// /ente e /admin: senza utente autenticato reindirizza a /accedi,
+// preservando la pagina di destinazione originale in redirectedFrom. Il
+// controllo del ruolo esatto (studente/istituzione/admin) resta comunque a
+// carico di ogni area (getAppContext/getEnteContext/requireAdmin) e delle
+// RLS: qui si verifica solo che ci sia una sessione, non chi sia.
 //
 // Il matcher in proxy.ts intercetta praticamente ogni pagina del sito, non
-// solo /app: questa funzione non deve mai lanciare, altrimenti un problema
-// di configurazione o di rete verso Supabase abbatterebbe l'intero sito
-// invece della sola area protetta. Se le credenziali mancano o la verifica
-// fallisce, le route pubbliche passano comunque (fail-open), quelle sotto
-// /app negano l'accesso per sicurezza (fail-closed).
+// solo queste aree: questa funzione non deve mai lanciare, altrimenti un
+// problema di configurazione o di rete verso Supabase abbatterebbe l'intero
+// sito invece della sola area protetta. Se le credenziali mancano o la
+// verifica fallisce, le route pubbliche passano comunque (fail-open),
+// quelle protette negano l'accesso per sicurezza (fail-closed).
 export async function updateSession(request: NextRequest) {
-  const isProtetta = request.nextUrl.pathname.startsWith(AREA_PROTETTA);
+  const isProtetta = AREE_PROTETTE.some((area) => request.nextUrl.pathname.startsWith(area));
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 

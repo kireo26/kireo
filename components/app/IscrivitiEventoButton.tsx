@@ -10,11 +10,13 @@ import { registraAttivita } from "@/lib/app/activityLog";
 export default function IscrivitiEventoButton({
   eventoId,
   areaSlug,
+  organizzatoreId,
   userId,
   iscrittoIniziale,
 }: {
   eventoId: string;
   areaSlug: string | null;
+  organizzatoreId?: string | null;
   userId: string | null;
   iscrittoIniziale: boolean;
 }) {
@@ -54,6 +56,14 @@ export default function IscrivitiEventoButton({
         if (!error) {
           setIscritto(true);
           if (areaSlug) registraAttivita(areaSlug, "iscrizione_webinar");
+          if (organizzatoreId) {
+            await supabase
+              .from("recinto_enti")
+              .upsert(
+                { student_id: userId, istituzione_id: organizzatoreId, origine: "evento" },
+                { onConflict: "student_id,istituzione_id", ignoreDuplicates: true },
+              );
+          }
         }
       }
       router.refresh();

@@ -11,7 +11,7 @@ const PAGINE_STATICHE = [
   "per-gli-studenti",
   "come-funziona",
   "per-le-scuole",
-  "per-le-istituzioni",
+  "istituzioni",
   "per-i-docenti",
   "registrazione",
   "contatti",
