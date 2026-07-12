@@ -1,9 +1,17 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ButtonLink } from "@/components/Button";
 import SectionHeading from "@/components/SectionHeading";
 import GuidaAreaForm from "@/components/GuidaAreaForm";
+import ArticoloCard from "@/components/news/ArticoloCard";
+import CardEvento from "@/components/app/CardEvento";
+import CtaAssistenteDigitale from "@/components/app/CtaAssistenteDigitale";
+import TracciaVisita from "@/components/app/TracciaVisita";
 import { AREE, getAreaBySlug } from "@/data/aree";
+import { getArticoliPerArea } from "@/lib/news";
+import { getEventiPerArea, getAreeDegliEventi, getIscrizioniStudente } from "@/lib/app/eventi";
+import { createClient } from "@/lib/supabase/server";
 
 export function generateStaticParams() {
   return AREE.map((area) => ({ slug: area.slug }));
@@ -28,8 +36,25 @@ export default async function AreaPage({ params }: { params: Promise<{ slug: str
   const area = getAreaBySlug(slug);
   if (!area) notFound();
 
+  const articoli = getArticoliPerArea(area.slug, 3);
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const tuttiEventi = await getEventiPerArea(supabase, area.slug);
+  const eventiFuturi = tuttiEventi.filter((e) => new Date(e.data_inizio) >= new Date());
+  const areeEventi = await getAreeDegliEventi(
+    supabase,
+    eventiFuturi.map((e) => e.id),
+  );
+  const iscrizioni = user ? new Set(await getIscrizioniStudente(supabase, user.id)) : new Set<string>();
+
   return (
     <>
+      <TracciaVisita areaSlug={area.slug} />
+
       <section className="mx-auto max-w-4xl px-6 pb-16 pt-20 sm:pt-28">
         <span className="flex h-14 w-14 items-center justify-center rounded-full border border-kireo-orange/40 font-heading text-base font-bold text-kireo-orange">
           {area.icona}
@@ -60,7 +85,56 @@ export default async function AreaPage({ params }: { params: Promise<{ slug: str
         </div>
       </section>
 
-      <section className="mx-auto max-w-2xl px-6 py-20">
+      <section className="mx-auto max-w-4xl px-6 py-16">
+        <SectionHeading eyebrow="Contenuti" title="Articoli di quest'area" />
+        {articoli.length === 0 ? (
+          <p className="mt-8 rounded-2xl border border-white/5 bg-kireo-card p-6 text-center text-kireo-muted">
+            I primi articoli di quest&apos;area arrivano presto.
+          </p>
+        ) : (
+          <>
+            <div className="mt-8 grid gap-6 sm:grid-cols-3">
+              {articoli.map((articolo) => (
+                <ArticoloCard key={articolo.slug} articolo={articolo} />
+              ))}
+            </div>
+            <div className="mt-6 text-center">
+              <Link href={`/news?area=${area.slug}`} className="text-sm font-medium text-kireo-orange underline underline-offset-2">
+                Vedi tutti gli articoli di quest&apos;area
+              </Link>
+            </div>
+          </>
+        )}
+      </section>
+
+      <section id="eventi" className="border-t border-white/5 bg-kireo-card/40">
+        <div className="mx-auto max-w-4xl px-6 py-16">
+          <SectionHeading eyebrow="Partecipa" title="Eventi e webinar" />
+          {eventiFuturi.length === 0 ? (
+            <p className="mt-8 rounded-2xl border border-white/5 bg-kireo-card p-6 text-center text-kireo-muted">
+              I prossimi eventi arrivano a settembre — intanto scarica la guida.
+            </p>
+          ) : (
+            <ul className="mt-8 space-y-4">
+              {eventiFuturi.map((evento) => (
+                <CardEvento
+                  key={evento.id}
+                  evento={evento}
+                  areeSlugs={areeEventi[evento.id] ?? [area.slug]}
+                  userId={user?.id ?? null}
+                  iscritto={iscrizioni.has(evento.id)}
+                />
+              ))}
+            </ul>
+          )}
+        </div>
+      </section>
+
+      <section id="assistente-digitale" className="mx-auto max-w-2xl px-6 py-16">
+        <CtaAssistenteDigitale areaSlug={area.slug} areaNome={area.nome} />
+      </section>
+
+      <section id="guida" className="mx-auto max-w-2xl px-6 py-20">
         <div className="text-center">
           <h2 className="py-1 font-heading text-2xl font-bold leading-[1.25] text-kireo-light sm:text-3xl">
             Scarica la guida di orientamento
@@ -71,7 +145,7 @@ export default async function AreaPage({ params }: { params: Promise<{ slug: str
           </p>
         </div>
         <div className="mt-10">
-          <GuidaAreaForm areaNome={area.nome} />
+          <GuidaAreaForm areaNome={area.nome} areaSlug={area.slug} />
         </div>
       </section>
 

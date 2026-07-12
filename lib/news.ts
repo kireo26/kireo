@@ -25,6 +25,10 @@ type NewsFrontmatter = {
   author: string;
   draft: boolean;
   ogImage?: string;
+  // Facoltativo: slug delle aree di orientamento (data/aree.ts) a cui
+  // l'articolo è pertinente, usato dalla sezione "Articoli di quest'area"
+  // nella pagina area pubblica. Un articolo generale può non averne nessuna.
+  aree?: string[];
 };
 
 export type NewsArticolo = NewsFrontmatter & {
@@ -103,5 +107,14 @@ export function getArticoloBySlug(slug: string): NewsArticolo | null {
 export function getArticoliCorrelati(articolo: NewsArticolo, limite = 3): NewsArticolo[] {
   return getTuttiGliArticoli()
     .filter((a) => a.slug !== articolo.slug && a.category === articolo.category)
+    .slice(0, limite);
+}
+
+// Articoli taggati per una specifica area di orientamento (sezione
+// "Articoli di quest'area" nella pagina area pubblica), già in ordine dal
+// più recente.
+export function getArticoliPerArea(areaSlug: string, limite = 3): NewsArticolo[] {
+  return getTuttiGliArticoli()
+    .filter((a) => a.aree?.includes(areaSlug))
     .slice(0, limite);
 }

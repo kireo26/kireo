@@ -8,6 +8,7 @@ import CategoriaBadge from "@/components/news/CategoriaBadge";
 import IndiceArticolo from "@/components/news/IndiceArticolo";
 import ArticoliCorrelati from "@/components/news/ArticoliCorrelati";
 import CtaArticolo from "@/components/news/CtaArticolo";
+import TracciaLetturaArticolo from "@/components/app/TracciaLetturaArticolo";
 import { formattaData } from "@/lib/formato";
 import { getArticoloBySlug, getArticoliCorrelati, getTuttiGliArticoli, estraiIndice } from "@/lib/news";
 import { SITE_URL } from "@/lib/site";
@@ -80,6 +81,7 @@ export default async function ArticoloPage({ params }: { params: Promise<{ slug:
 
   return (
     <>
+      {articolo.aree && articolo.aree.length > 0 && <TracciaLetturaArticolo aree={articolo.aree} />}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
       <article className="mx-auto max-w-2xl px-6 pb-12 pt-20 sm:pt-28">

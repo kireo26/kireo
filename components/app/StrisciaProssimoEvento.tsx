@@ -1,16 +1,16 @@
 import Link from "next/link";
-import type { ProssimoWebinar } from "@/lib/app/webinars";
+import type { Evento } from "@/lib/app/eventi";
 
-export default function StrisciaProssimoWebinar({ webinar }: { webinar: ProssimoWebinar | null }) {
+export default function StrisciaProssimoEvento({ evento }: { evento: Evento | null }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/5 bg-kireo-card px-6 py-4">
-      {webinar ? (
+      {evento ? (
         <>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-kireo-orange">Prossimo webinar</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-kireo-orange">Prossimo evento</p>
             <p className="mt-1 text-sm text-kireo-light">
-              {webinar.titolo} —{" "}
-              {new Date(webinar.data_ora).toLocaleString("it-IT", { dateStyle: "medium", timeStyle: "short" })}
+              {evento.titolo} —{" "}
+              {new Date(evento.data_inizio).toLocaleString("it-IT", { dateStyle: "medium", timeStyle: "short" })}
             </p>
           </div>
           <Link href="/app/agenda" className="text-sm font-medium text-kireo-orange underline underline-offset-2">

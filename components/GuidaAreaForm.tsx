@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button } from "./Button";
 import { inputClass, fieldBorder } from "@/lib/formStyles";
+import { registraAttivita } from "@/lib/app/activityLog";
 
 const CLASSI = [
   { value: "3", label: "3° anno" },
@@ -10,7 +11,7 @@ const CLASSI = [
   { value: "5", label: "5° anno" },
 ];
 
-export default function GuidaAreaForm({ areaNome }: { areaNome: string }) {
+export default function GuidaAreaForm({ areaNome, areaSlug }: { areaNome: string; areaSlug: string }) {
   const [nome, setNome] = useState("");
   const [cognome, setCognome] = useState("");
   const [email, setEmail] = useState("");
@@ -51,18 +52,36 @@ export default function GuidaAreaForm({ areaNome }: { areaNome: string }) {
     e.preventDefault();
     const validation = validate();
     setErrors(validation);
-    if (Object.keys(validation).length === 0) {
-      setInviato(true);
-    }
+    if (Object.keys(validation).length > 0) return;
+
+    setInviato(true);
+
+    // Download immediato: un segnaposto chiaramente marcato come tale, non
+    // ancora la guida reale (vedi report della sessione). Content-Disposition
+    // attachment fa scaricare senza lasciare la pagina.
+    window.location.href = `/api/guida/${areaSlug}`;
+
+    // Follow-up via email: predisposto ma non ancora collegato a un invio
+    // reale (nessun provider email configurato, vedi report). Non blocca
+    // né rallenta la conferma mostrata allo studente.
+    fetch("/api/guida-email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nome, cognome, email: email.trim(), areaSlug }),
+    }).catch(() => {});
+
+    registraAttivita(areaSlug, "download_guida");
   }
 
   if (inviato) {
     return (
       <div className="rounded-2xl border border-kireo-green/40 bg-kireo-card p-8 text-center">
         <h3 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">
-          La guida sarà disponibile a breve
+          Il download è partito
         </h3>
-        <p className="mt-2 text-sm text-kireo-muted">Ti avviseremo via email!</p>
+        <p className="mt-2 text-sm text-kireo-muted">
+          Controlla i download del tuo browser. Ti scriveremo anche via email con il link per riaprirla quando vuoi.
+        </p>
       </div>
     );
   }
