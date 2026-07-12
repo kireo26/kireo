@@ -29,17 +29,22 @@ export default function ReimpostaPasswordForm() {
     if (Object.keys(validation).length > 0) return;
 
     setCaricamento(true);
-    const supabase = createClient();
-    const { error } = await supabase.auth.updateUser({ password });
-    setCaricamento(false);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.updateUser({ password });
 
-    if (error) {
-      setErroreGenerale("Non siamo riusciti ad aggiornare la password. Riprova.");
-      return;
+      if (error) {
+        setErroreGenerale("Non siamo riusciti ad aggiornare la password. Riprova.");
+        return;
+      }
+
+      router.push("/app");
+      router.refresh();
+    } catch {
+      setErroreGenerale("Qualcosa è andato storto durante l'aggiornamento. Riprova tra qualche istante.");
+    } finally {
+      setCaricamento(false);
     }
-
-    router.push("/app");
-    router.refresh();
   }
 
   return (

@@ -21,18 +21,23 @@ export default function RecuperaPasswordForm() {
     }
 
     setCaricamento(true);
-    const supabase = createClient();
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: `${window.location.origin}/reimposta-password`,
-    });
-    setCaricamento(false);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/reimposta-password`,
+      });
 
-    if (error) {
-      setErrore("Non siamo riusciti a inviare l'email. Riprova.");
-      return;
+      if (error) {
+        setErrore("Non siamo riusciti a inviare l'email. Riprova.");
+        return;
+      }
+
+      setInviato(true);
+    } catch {
+      setErrore("Qualcosa è andato storto durante l'invio. Riprova tra qualche istante.");
+    } finally {
+      setCaricamento(false);
     }
-
-    setInviato(true);
   }
 
   if (inviato) {

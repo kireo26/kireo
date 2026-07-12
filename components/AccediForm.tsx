@@ -42,21 +42,26 @@ export default function AccediForm() {
     if (Object.keys(validation).length > 0) return;
 
     setCaricamento(true);
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-    setCaricamento(false);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
 
-    if (error) {
-      setErroreGenerale(
-        error.message.includes("Invalid login credentials")
-          ? "Email o password non corrette."
-          : "Non siamo riusciti ad accedere. Riprova.",
-      );
-      return;
+      if (error) {
+        setErroreGenerale(
+          error.message.includes("Invalid login credentials")
+            ? "Email o password non corrette."
+            : "Non siamo riusciti ad accedere. Riprova.",
+        );
+        return;
+      }
+
+      router.push(redirectedFrom || "/app");
+      router.refresh();
+    } catch {
+      setErroreGenerale("Qualcosa è andato storto durante l'accesso. Riprova tra qualche istante.");
+    } finally {
+      setCaricamento(false);
     }
-
-    router.push(redirectedFrom || "/app");
-    router.refresh();
   }
 
   return (

@@ -109,38 +109,42 @@ export default function DocenteForm() {
     if (Object.keys(validation).length > 0) return;
 
     setCaricamento(true);
-    const supabase = createClient();
+    try {
+      const supabase = createClient();
 
-    const { error } = await supabase.auth.signUp({
-      email: email.trim(),
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/app`,
-        data: {
-          ruolo: "docente",
-          nome: nome.trim(),
-          cognome: cognome.trim(),
-          telefono: telefono.trim() || null,
-          data_nascita: dataNascita,
-          school_code: scuolaValue.scuola,
-          materia,
-          is_referente_orientamento: referenteOrientamento,
+      const { error } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/app`,
+          data: {
+            ruolo: "docente",
+            nome: nome.trim(),
+            cognome: cognome.trim(),
+            telefono: telefono.trim() || null,
+            data_nascita: dataNascita,
+            school_code: scuolaValue.scuola,
+            materia,
+            is_referente_orientamento: referenteOrientamento,
+          },
         },
-      },
-    });
+      });
 
-    setCaricamento(false);
+      if (error) {
+        setErroreGenerale(
+          error.message.includes("already registered") || error.message.includes("already exists")
+            ? "Esiste già un profilo con questa email. Prova ad accedere."
+            : "Non siamo riusciti a completare la registrazione. Riprova.",
+        );
+        return;
+      }
 
-    if (error) {
-      setErroreGenerale(
-        error.message.includes("already registered") || error.message.includes("already exists")
-          ? "Esiste già un profilo con questa email. Prova ad accedere."
-          : "Non siamo riusciti a completare la registrazione. Riprova.",
-      );
-      return;
+      setInviato(true);
+    } catch {
+      setErroreGenerale("Qualcosa è andato storto durante la registrazione. Riprova tra qualche istante.");
+    } finally {
+      setCaricamento(false);
     }
-
-    setInviato(true);
   }
 
   if (inviato) {

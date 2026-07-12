@@ -68,18 +68,23 @@ export default function RegistrazioneForm() {
     }
 
     setStatoCodice("verificando");
-    const supabase = createClient();
-    const { data, error } = await supabase.rpc("check_class_code", { p_codice: codice });
-    const risultato = Array.isArray(data) ? data[0] : data;
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase.rpc("check_class_code", { p_codice: codice });
+      const risultato = Array.isArray(data) ? data[0] : data;
 
-    if (error || !risultato?.valido) {
+      if (error || !risultato?.valido) {
+        setStatoCodice("non_valido");
+        setMessaggioCodice(risultato?.messaggio ?? "Codice non valido.");
+        return;
+      }
+
+      setStatoCodice("valido");
+      setMessaggioCodice(`Codice valido: sarai collegato alla classe ${risultato.classe} della tua scuola.`);
+    } catch {
       setStatoCodice("non_valido");
-      setMessaggioCodice(risultato?.messaggio ?? "Codice non valido.");
-      return;
+      setMessaggioCodice("Non siamo riusciti a verificare il codice. Riprova tra qualche istante.");
     }
-
-    setStatoCodice("valido");
-    setMessaggioCodice(`Codice valido: sarai collegato alla classe ${risultato.classe} della tua scuola.`);
   }
 
   function validate() {
@@ -133,41 +138,45 @@ export default function RegistrazioneForm() {
     if (Object.keys(validation).length > 0) return;
 
     setCaricamento(true);
-    const supabase = createClient();
-    const annoDiploma = calcolaAnnoDiploma(Number(classe));
+    try {
+      const supabase = createClient();
+      const annoDiploma = calcolaAnnoDiploma(Number(classe));
 
-    const { error } = await supabase.auth.signUp({
-      email: email.trim(),
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/app`,
-        data: {
-          ruolo: "studente",
-          nome: nome.trim(),
-          cognome: cognome.trim(),
-          telefono: telefono.trim() || null,
-          data_nascita: dataNascita,
-          anno_diploma: annoDiploma,
-          newsletter,
-          ...(codiceValido
-            ? { codice_classe: codiceClasse.trim().toUpperCase() }
-            : { school_code: scuolaValue.scuola, classe: CLASSI.find((c) => c.value === classe)?.label ?? classe }),
+      const { error } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/app`,
+          data: {
+            ruolo: "studente",
+            nome: nome.trim(),
+            cognome: cognome.trim(),
+            telefono: telefono.trim() || null,
+            data_nascita: dataNascita,
+            anno_diploma: annoDiploma,
+            newsletter,
+            ...(codiceValido
+              ? { codice_classe: codiceClasse.trim().toUpperCase() }
+              : { school_code: scuolaValue.scuola, classe: CLASSI.find((c) => c.value === classe)?.label ?? classe }),
+          },
         },
-      },
-    });
+      });
 
-    setCaricamento(false);
+      if (error) {
+        setErroreGenerale(
+          error.message.includes("already registered") || error.message.includes("already exists")
+            ? "Esiste già un profilo con questa email. Prova ad accedere."
+            : "Non siamo riusciti a completare la registrazione. Riprova.",
+        );
+        return;
+      }
 
-    if (error) {
-      setErroreGenerale(
-        error.message.includes("already registered") || error.message.includes("already exists")
-          ? "Esiste già un profilo con questa email. Prova ad accedere."
-          : "Non siamo riusciti a completare la registrazione. Riprova.",
-      );
-      return;
+      setInviato(true);
+    } catch {
+      setErroreGenerale("Qualcosa è andato storto durante la registrazione. Riprova tra qualche istante.");
+    } finally {
+      setCaricamento(false);
     }
-
-    setInviato(true);
   }
 
   if (inviato) {
