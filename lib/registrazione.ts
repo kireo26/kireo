@@ -11,6 +11,14 @@ export function calcolaEta(dataNascita: string, oggi: Date = new Date()): number
 
 export const ETA_MINIMA = 14;
 
+// Condiviso tra RegistrazioneForm e ProfiloForm: il valore è quello inviato
+// a Supabase, la label quella salvata in student_profiles.classe.
+export const CLASSI = [
+  { value: "3", label: "3° anno" },
+  { value: "4", label: "4° anno" },
+  { value: "5", label: "5° anno" },
+];
+
 // Anno di diploma stimato dall'anno frequentato (3°/4°/5°), assumendo un
 // percorso di 5 anni e anno scolastico italiano settembre-giugno.
 export function calcolaAnnoDiploma(annoFrequentato: number, oggi: Date = new Date()): number {

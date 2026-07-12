@@ -5,15 +5,9 @@ import { Button } from "./Button";
 import ScuolaCascadeFields, { SCUOLA_ALTRO, type ScuolaCascadeValue } from "./ScuolaCascadeFields";
 import { inputClass, fieldBorder } from "@/lib/formStyles";
 import { createClient } from "@/lib/supabase/client";
-import { ETA_MINIMA, calcolaAnnoDiploma, calcolaEta } from "@/lib/registrazione";
+import { ETA_MINIMA, CLASSI, calcolaAnnoDiploma, calcolaEta } from "@/lib/registrazione";
 import { messaggioErroreAuth } from "@/lib/authErrors";
-import { AREE } from "@/data/aree";
-
-const CLASSI = [
-  { value: "3", label: "3° anno" },
-  { value: "4", label: "4° anno" },
-  { value: "5", label: "5° anno" },
-];
+import AreeInteresseGrid from "./app/AreeInteresseGrid";
 
 const MAX_AREE_INTERESSE = 3;
 
@@ -459,29 +453,7 @@ export default function RegistrazioneForm() {
             {areeInteresse.length}/{MAX_AREE_INTERESSE} selezionate
           </span>
         </div>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {AREE.map((area) => {
-            const selezionata = areeInteresse.includes(area.slug);
-            const disabilitata = !selezionata && areeInteresse.length >= MAX_AREE_INTERESSE;
-            return (
-              <button
-                key={area.slug}
-                type="button"
-                onClick={() => toggleArea(area.slug)}
-                disabled={disabilitata}
-                aria-pressed={selezionata}
-                className={`flex flex-col items-start gap-2 rounded-xl border p-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
-                  selezionata ? "border-kireo-green bg-kireo-green/10" : "border-white/10 hover:border-white/20"
-                }`}
-              >
-                <span className="flex h-8 w-8 flex-none items-center justify-center rounded-full border border-kireo-orange/40 font-heading text-xs font-bold text-kireo-orange">
-                  {area.icona}
-                </span>
-                <span className="text-sm font-medium leading-[1.25] text-kireo-light">{area.nome}</span>
-              </button>
-            );
-          })}
-        </div>
+        <AreeInteresseGrid selezionate={areeInteresse} onToggle={toggleArea} max={MAX_AREE_INTERESSE} />
         <p className="mt-3 text-sm text-kireo-muted">
           Facoltativo: puoi anche saltare questo passaggio e sceglierle in un secondo momento.
         </p>
