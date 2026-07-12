@@ -42,6 +42,10 @@ export async function finalizzaRegistrazioneSeNecessario(
     return { ok: false, motivo: "dati_incompleti" };
   }
 
+  const areeInteresse = Array.isArray(meta.aree_interesse)
+    ? meta.aree_interesse.filter((slug): slug is string => typeof slug === "string")
+    : [];
+
   const { error } = await supabase.rpc("finalize_registration", {
     p_ruolo: ruolo,
     p_nome: nome,
@@ -53,6 +57,7 @@ export async function finalizzaRegistrazioneSeNecessario(
     p_materia: typeof meta.materia === "string" ? meta.materia : null,
     p_is_referente: typeof meta.is_referente_orientamento === "boolean" ? meta.is_referente_orientamento : false,
     p_codice_classe: codiceClasse,
+    p_aree_interesse: areeInteresse.length > 0 ? areeInteresse : null,
   });
 
   if (!error) {

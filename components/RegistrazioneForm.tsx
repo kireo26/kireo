@@ -6,12 +6,15 @@ import ScuolaCascadeFields, { SCUOLA_ALTRO, type ScuolaCascadeValue } from "./Sc
 import { inputClass, fieldBorder } from "@/lib/formStyles";
 import { createClient } from "@/lib/supabase/client";
 import { ETA_MINIMA, calcolaAnnoDiploma, calcolaEta } from "@/lib/registrazione";
+import { AREE } from "@/data/aree";
 
 const CLASSI = [
   { value: "3", label: "3° anno" },
   { value: "4", label: "4° anno" },
   { value: "5", label: "5° anno" },
 ];
+
+const MAX_AREE_INTERESSE = 3;
 
 type StatoCodice = "idle" | "verificando" | "valido" | "non_valido";
 
@@ -32,6 +35,7 @@ export default function RegistrazioneForm() {
   });
   const [privacy, setPrivacy] = useState(false);
   const [newsletter, setNewsletter] = useState(false);
+  const [areeInteresse, setAreeInteresse] = useState<string[]>([]);
 
   const [codiceClasse, setCodiceClasse] = useState("");
   const [statoCodice, setStatoCodice] = useState<StatoCodice>("idle");
@@ -57,6 +61,14 @@ export default function RegistrazioneForm() {
   function handleScuolaChange(patch: Partial<ScuolaCascadeValue>) {
     setScuolaValue((prev) => ({ ...prev, ...patch }));
     Object.keys(patch).forEach((field) => clearError(field));
+  }
+
+  function toggleArea(slug: string) {
+    setAreeInteresse((prev) => {
+      if (prev.includes(slug)) return prev.filter((s) => s !== slug);
+      if (prev.length >= MAX_AREE_INTERESSE) return prev;
+      return [...prev, slug];
+    });
   }
 
   async function verificaCodiceClasse() {
@@ -155,6 +167,7 @@ export default function RegistrazioneForm() {
             data_nascita: dataNascita,
             anno_diploma: annoDiploma,
             newsletter,
+            aree_interesse: areeInteresse,
             ...(codiceValido
               ? { codice_classe: codiceClasse.trim().toUpperCase() }
               : { school_code: scuolaValue.scuola, classe: CLASSI.find((c) => c.value === classe)?.label ?? classe }),
@@ -438,6 +451,44 @@ export default function RegistrazioneForm() {
       </div>
 
       {!codiceValido && <ScuolaCascadeFields value={scuolaValue} onChange={handleScuolaChange} errors={errors} />}
+
+      <div>
+        <div className="mb-3 flex items-start justify-between gap-3">
+          <div>
+            <p className="font-medium text-kireo-light">Quali mondi ti incuriosiscono?</p>
+            <p className="text-sm text-kireo-muted">Scegline fino a {MAX_AREE_INTERESSE} — potrai sempre cambiarli.</p>
+          </div>
+          <span className="flex-none whitespace-nowrap text-sm text-kireo-muted">
+            {areeInteresse.length}/{MAX_AREE_INTERESSE} selezionate
+          </span>
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {AREE.map((area) => {
+            const selezionata = areeInteresse.includes(area.slug);
+            const disabilitata = !selezionata && areeInteresse.length >= MAX_AREE_INTERESSE;
+            return (
+              <button
+                key={area.slug}
+                type="button"
+                onClick={() => toggleArea(area.slug)}
+                disabled={disabilitata}
+                aria-pressed={selezionata}
+                className={`flex flex-col items-start gap-2 rounded-xl border p-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+                  selezionata ? "border-kireo-green bg-kireo-green/10" : "border-white/10 hover:border-white/20"
+                }`}
+              >
+                <span className="flex h-8 w-8 flex-none items-center justify-center rounded-full border border-kireo-orange/40 font-heading text-xs font-bold text-kireo-orange">
+                  {area.icona}
+                </span>
+                <span className="text-sm font-medium leading-[1.25] text-kireo-light">{area.nome}</span>
+              </button>
+            );
+          })}
+        </div>
+        <p className="mt-3 text-sm text-kireo-muted">
+          Facoltativo: puoi anche saltare questo passaggio e sceglierle in un secondo momento.
+        </p>
+      </div>
 
       <div>
         <div className="flex items-start gap-3">
