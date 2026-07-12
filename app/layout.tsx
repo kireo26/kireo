@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Space_Grotesk, DM_Sans, Poppins } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import FooterGate from "@/components/FooterGate";
 import { SITE_URL } from "@/lib/site";
 
 const spaceGrotesk = Space_Grotesk({
@@ -51,7 +51,7 @@ export default function RootLayout({
       <body className="flex min-h-full flex-col bg-kireo-dark font-sans text-kireo-light antialiased">
         <Header />
         <main className="flex-1">{children}</main>
-        <Footer />
+        <FooterGate />
       </body>
     </html>
   );

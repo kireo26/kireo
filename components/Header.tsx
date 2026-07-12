@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 import Logo from "./Logo";
 import { Button, ButtonLink } from "./Button";
@@ -49,6 +49,7 @@ function ChevronIcon({ open }: { open: boolean }) {
 
 export default function Header() {
   const router = useRouter();
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [areeOpen, setAreeOpen] = useState(false);
   const [areeOpenMobile, setAreeOpenMobile] = useState(false);
@@ -142,6 +143,12 @@ export default function Header() {
       bodyStyle.overflow = prevBodyOverflow;
     };
   }, [open]);
+
+  // L'area /app ha una propria navigazione (components/app/AppShell.tsx):
+  // l'header pubblico non deve comparire lì, per non duplicare i controlli.
+  if (pathname?.startsWith("/app")) {
+    return null;
+  }
 
   return (
     <header ref={headerRef} className="sticky top-0 z-50 border-b border-white/5 bg-kireo-dark/90 backdrop-blur">
