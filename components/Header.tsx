@@ -2,8 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import type { User } from "@supabase/supabase-js";
 import Logo from "./Logo";
-import { ButtonLink } from "./Button";
+import { Button, ButtonLink } from "./Button";
+import { createClient } from "@/lib/supabase/client";
 import { AREE } from "@/data/aree";
 
 const NAV_LINKS = [
@@ -12,6 +15,23 @@ const NAV_LINKS = [
   { href: "/per-le-scuole", label: "Per le scuole" },
   { href: "/per-i-docenti", label: "Per i docenti" },
 ];
+
+// Nome e iniziali si leggono da user_metadata (già nella sessione, nessuna
+// query a `profiles`): stessi campi salvati al signup e già usati in /app.
+function nomeUtente(user: User): string {
+  const meta = user.user_metadata as Record<string, unknown>;
+  if (typeof meta?.nome === "string" && meta.nome) return meta.nome;
+  return user.email ?? "Utente";
+}
+
+function inizialiUtente(user: User): string {
+  const meta = user.user_metadata as Record<string, unknown>;
+  const nome = typeof meta?.nome === "string" ? meta.nome : "";
+  const cognome = typeof meta?.cognome === "string" ? meta.cognome : "";
+  const iniziali = `${nome.charAt(0)}${cognome.charAt(0)}`.toUpperCase();
+  if (iniziali.trim()) return iniziali;
+  return (user.email ?? "?").charAt(0).toUpperCase();
+}
 
 function ChevronIcon({ open }: { open: boolean }) {
   return (
@@ -28,21 +48,53 @@ function ChevronIcon({ open }: { open: boolean }) {
 }
 
 export default function Header() {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [areeOpen, setAreeOpen] = useState(false);
   const [areeOpenMobile, setAreeOpenMobile] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [user, setUser] = useState<User | null | undefined>(undefined);
   const areeRef = useRef<HTMLDivElement>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLElement>(null);
   const topBarRef = useRef<HTMLDivElement>(null);
+
+  // Un'unica sottoscrizione legge la sessione corrente (fired subito con lo
+  // stato già in memoria, nessuna chiamata di rete) e resta aggiornata su
+  // login/logout — niente getSession()/getUser() aggiuntivi in parallelo.
+  useEffect(() => {
+    const supabase = createClient();
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  async function handleLogout() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    setUserMenuOpen(false);
+    setOpen(false);
+    router.push("/");
+    router.refresh();
+  }
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (areeRef.current && !areeRef.current.contains(e.target as Node)) {
         setAreeOpen(false);
       }
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setUserMenuOpen(false);
+      }
     }
     function handleEscape(e: KeyboardEvent) {
-      if (e.key === "Escape") setAreeOpen(false);
+      if (e.key === "Escape") {
+        setAreeOpen(false);
+        setUserMenuOpen(false);
+      }
     }
     document.addEventListener("mousedown", handleClickOutside);
     document.addEventListener("keydown", handleEscape);
@@ -163,15 +215,56 @@ export default function Header() {
         </nav>
 
         <div className="hidden items-center gap-5 md:flex">
-          <Link
-            href="/accedi"
-            className="font-sans text-sm font-medium text-kireo-light/90 transition-colors hover:text-kireo-orange"
-          >
-            Accedi
-          </Link>
-          <ButtonLink href="/registrazione" variant="primary">
-            Inizia ora
-          </ButtonLink>
+          {user === undefined ? null : user ? (
+            <div ref={userMenuRef} className="relative">
+              <button
+                type="button"
+                onClick={() => setUserMenuOpen((v) => !v)}
+                aria-expanded={userMenuOpen}
+                aria-haspopup="true"
+                className="flex items-center gap-2 rounded-full py-1 pl-1 pr-3 transition-colors hover:bg-white/5"
+              >
+                <span className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-kireo-green/20 font-heading text-xs font-bold text-kireo-green-light">
+                  {inizialiUtente(user)}
+                </span>
+                <span className="max-w-[10rem] truncate font-sans text-sm font-medium text-kireo-light/90">
+                  {nomeUtente(user)}
+                </span>
+                <ChevronIcon open={userMenuOpen} />
+              </button>
+
+              {userMenuOpen && (
+                <div className="absolute right-0 top-full z-50 mt-3 w-52 rounded-xl border border-white/10 bg-kireo-card p-2 shadow-2xl">
+                  <Link
+                    href="/app"
+                    onClick={() => setUserMenuOpen(false)}
+                    className="block rounded-lg px-3 py-2 font-sans text-sm text-kireo-light transition-colors hover:bg-white/5"
+                  >
+                    La mia area
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="block w-full rounded-lg px-3 py-2 text-left font-sans text-sm text-kireo-light transition-colors hover:bg-white/5"
+                  >
+                    Esci
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <>
+              <Link
+                href="/accedi"
+                className="font-sans text-sm font-medium text-kireo-light/90 transition-colors hover:text-kireo-orange"
+              >
+                Accedi
+              </Link>
+              <ButtonLink href="/registrazione" variant="primary">
+                Inizia ora
+              </ButtonLink>
+            </>
+          )}
         </div>
 
         <button
@@ -259,16 +352,36 @@ export default function Header() {
             </li>
           </ul>
           <div className="mt-4 flex flex-col gap-3">
-            <Link
-              href="/accedi"
-              onClick={() => setOpen(false)}
-              className="block rounded-lg px-2 py-3 text-center font-sans text-base font-medium text-kireo-light hover:bg-white/5"
-            >
-              Accedi
-            </Link>
-            <ButtonLink href="/registrazione" variant="primary" className="w-full">
-              Inizia ora
-            </ButtonLink>
+            {user === undefined ? null : user ? (
+              <>
+                <Link
+                  href="/app"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center justify-center gap-2 rounded-lg px-2 py-3 text-center font-sans text-base font-medium text-kireo-light hover:bg-white/5"
+                >
+                  <span className="flex h-7 w-7 flex-none items-center justify-center rounded-full bg-kireo-green/20 font-heading text-xs font-bold text-kireo-green-light">
+                    {inizialiUtente(user)}
+                  </span>
+                  La mia area
+                </Link>
+                <Button type="button" variant="outline" className="w-full" onClick={handleLogout}>
+                  Esci
+                </Button>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/accedi"
+                  onClick={() => setOpen(false)}
+                  className="block rounded-lg px-2 py-3 text-center font-sans text-base font-medium text-kireo-light hover:bg-white/5"
+                >
+                  Accedi
+                </Link>
+                <ButtonLink href="/registrazione" variant="primary" className="w-full">
+                  Inizia ora
+                </ButtonLink>
+              </>
+            )}
           </div>
         </nav>
       )}

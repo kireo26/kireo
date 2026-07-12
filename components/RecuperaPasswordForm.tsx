@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "./Button";
 import { inputClass, fieldBorder } from "@/lib/formStyles";
 import { createClient } from "@/lib/supabase/client";
+import { messaggioErroreAuth } from "@/lib/authErrors";
 
 export default function RecuperaPasswordForm() {
   const [email, setEmail] = useState("");
@@ -28,7 +29,7 @@ export default function RecuperaPasswordForm() {
       });
 
       if (error) {
-        setErrore("Non siamo riusciti a inviare l'email. Riprova.");
+        setErrore(messaggioErroreAuth(error));
         return;
       }
 

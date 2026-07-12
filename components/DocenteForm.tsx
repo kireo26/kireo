@@ -6,6 +6,7 @@ import ScuolaCascadeFields, { SCUOLA_ALTRO, type ScuolaCascadeValue } from "./Sc
 import { inputClass, fieldBorder } from "@/lib/formStyles";
 import { createClient } from "@/lib/supabase/client";
 import { ETA_MINIMA, calcolaEta } from "@/lib/registrazione";
+import { messaggioErroreAuth } from "@/lib/authErrors";
 
 const MATERIE = [
   "Area umanistica",
@@ -131,11 +132,7 @@ export default function DocenteForm() {
       });
 
       if (error) {
-        setErroreGenerale(
-          error.message.includes("already registered") || error.message.includes("already exists")
-            ? "Esiste già un profilo con questa email. Prova ad accedere."
-            : "Non siamo riusciti a completare la registrazione. Riprova.",
-        );
+        setErroreGenerale(messaggioErroreAuth(error));
         return;
       }
 

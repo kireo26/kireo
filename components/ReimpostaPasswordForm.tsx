@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "./Button";
 import { inputClass, fieldBorder } from "@/lib/formStyles";
 import { createClient } from "@/lib/supabase/client";
+import { messaggioErroreAuth } from "@/lib/authErrors";
 
 export default function ReimpostaPasswordForm() {
   const router = useRouter();
@@ -34,7 +35,7 @@ export default function ReimpostaPasswordForm() {
       const { error } = await supabase.auth.updateUser({ password });
 
       if (error) {
-        setErroreGenerale("Non siamo riusciti ad aggiornare la password. Riprova.");
+        setErroreGenerale(messaggioErroreAuth(error));
         return;
       }
 

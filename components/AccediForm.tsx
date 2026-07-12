@@ -6,10 +6,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "./Button";
 import { inputClass, fieldBorder } from "@/lib/formStyles";
 import { createClient } from "@/lib/supabase/client";
+import { messaggioErroreAuth } from "@/lib/authErrors";
 
 const MESSAGGI_ERRORE: Record<string, string> = {
   link_non_valido: "Il link non è valido. Riprova ad accedere.",
-  link_scaduto: "Il link è scaduto o è già stato usato. Richiedine uno nuovo.",
+  link_scaduto: "Il link è scaduto o già utilizzato: prova ad accedere, oppure richiedi un nuovo link.",
   registrazione_fallita: "Non siamo riusciti a completare la registrazione. Contattaci da /contatti.",
   dati_incompleti: "Mancano alcuni dati per completare la registrazione. Contattaci da /contatti.",
   scuola_non_valida: "La scuola collegata al tuo profilo non è più disponibile. Contattaci da /contatti.",
@@ -51,11 +52,7 @@ export default function AccediForm() {
       const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
 
       if (error) {
-        setErroreGenerale(
-          error.message.includes("Invalid login credentials")
-            ? "Email o password non corrette."
-            : "Non siamo riusciti ad accedere. Riprova.",
-        );
+        setErroreGenerale(messaggioErroreAuth(error));
         return;
       }
 
