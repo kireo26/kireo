@@ -11,6 +11,10 @@ const MESSAGGI_ERRORE: Record<string, string> = {
   link_non_valido: "Il link non è valido. Riprova ad accedere.",
   link_scaduto: "Il link è scaduto o è già stato usato. Richiedine uno nuovo.",
   registrazione_fallita: "Non siamo riusciti a completare la registrazione. Contattaci da /contatti.",
+  dati_incompleti: "Mancano alcuni dati per completare la registrazione. Contattaci da /contatti.",
+  scuola_non_valida: "La scuola collegata al tuo profilo non è più disponibile. Contattaci da /contatti.",
+  codice_non_valido: "Il codice della tua scuola non è più valido. Contattaci da /contatti.",
+  sconosciuto: "Non siamo riusciti a completare la registrazione. Contattaci da /contatti.",
 };
 
 export default function AccediForm() {

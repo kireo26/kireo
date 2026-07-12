@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { finalizzaRegistrazioneSeNecessario } from "@/lib/finalizzaRegistrazione";
 
 type EmailOtpType = "signup" | "invite" | "magiclink" | "recovery" | "email_change" | "email";
 
@@ -33,21 +34,10 @@ export async function GET(request: NextRequest) {
     const meta = data.user.user_metadata as Record<string, unknown>;
 
     if (meta?.ruolo === "studente" || meta?.ruolo === "docente") {
-      const { error: finalizeError } = await supabase.rpc("finalize_registration", {
-        p_ruolo: meta.ruolo,
-        p_nome: meta.nome,
-        p_cognome: meta.cognome,
-        p_data_nascita: meta.data_nascita,
-        p_school_code: meta.school_code ?? null,
-        p_classe: meta.classe ?? null,
-        p_anno_diploma: meta.anno_diploma ?? null,
-        p_materia: meta.materia ?? null,
-        p_is_referente: meta.is_referente_orientamento ?? false,
-        p_codice_classe: meta.codice_classe ?? null,
-      });
+      const esito = await finalizzaRegistrazioneSeNecessario(supabase, data.user);
 
-      if (finalizeError) {
-        redirect(`/accedi?errore=registrazione_fallita`);
+      if (!esito.ok) {
+        redirect(`/accedi?errore=${esito.motivo}`);
       }
     }
   }
