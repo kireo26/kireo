@@ -45,7 +45,11 @@ export async function GET(request: NextRequest) {
     if (meta?.ruolo === "istituzione") {
       const esito = await finalizzaRegistrazioneEnteSeNecessario(supabase, data.user);
       if (!esito.ok) {
-        redirect(`/accedi?errore=ente_${esito.motivo}`);
+        // A differenza di studente/docente, l'errore torna sulla pagina che
+        // ospita il form di richiesta accesso (non su /accedi, che non
+        // c'entra con la registrazione di un ente): RichiestaAccessoEnteForm
+        // legge ?errore= e mostra un messaggio specifico lì.
+        redirect(`/istituzioni?errore=ente_${esito.motivo}#richiedi-accesso`);
       }
     }
   }

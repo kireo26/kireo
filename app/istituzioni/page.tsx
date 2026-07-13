@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { ButtonLink } from "@/components/Button";
 import Card from "@/components/Card";
 import SectionHeading from "@/components/SectionHeading";
@@ -193,7 +194,9 @@ export default function IstituzioniPage() {
             align="center"
           />
           <div className="mt-10">
-            <RichiestaAccessoEnteForm />
+            <Suspense fallback={null}>
+              <RichiestaAccessoEnteForm />
+            </Suspense>
           </div>
         </div>
       </section>

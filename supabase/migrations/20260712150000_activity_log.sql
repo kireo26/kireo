@@ -48,8 +48,11 @@ create table public.activity_log (
 comment on table public.activity_log is
   'Traccia le attività di esplorazione dello studente per area, con un peso per attività (vedi lib/app/activityLog.ts per i valori: visita_area 1, lettura_articolo 2, chat_assistente 3, download_guida 5, iscrizione_webinar 8, partecipazione_webinar 15, workshop_pcto 25). Alimenta la vista score_aree e il radar attitudinale.';
 
+-- created_at::date non è IMMUTABLE (dipende dal timezone di sessione), non
+-- ammesso in un'espressione di indice: fissato al timezone UTC, così
+-- l'espressione diventa deterministica indipendentemente da chi scrive.
 create unique index activity_log_cap_giornaliero_idx
-  on public.activity_log (student_id, area_slug, tipo_attivita, (created_at::date));
+  on public.activity_log (student_id, area_slug, tipo_attivita, ((created_at at time zone 'utc')::date));
 
 create index activity_log_student_area_idx on public.activity_log (student_id, area_slug);
 

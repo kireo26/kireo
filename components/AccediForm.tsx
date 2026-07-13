@@ -16,9 +16,6 @@ const MESSAGGI_ERRORE: Record<string, string> = {
   scuola_non_valida: "La scuola collegata al tuo profilo non è più disponibile. Contattaci da /contatti.",
   codice_non_valido: "Il codice della tua scuola non è più valido. Contattaci da /contatti.",
   sconosciuto: "Non siamo riusciti a completare la registrazione. Contattaci da /contatti.",
-  ente_dati_incompleti: "Mancano alcuni dati per completare la registrazione del tuo ente. Contattaci da /contatti.",
-  ente_slug_non_disponibile: "Il nome del tuo ente genera un indirizzo già in uso. Contattaci da /contatti per sistemarlo.",
-  ente_sconosciuto: "Non siamo riusciti a completare la registrazione del tuo ente. Contattaci da /contatti.",
 };
 
 export default function AccediForm() {

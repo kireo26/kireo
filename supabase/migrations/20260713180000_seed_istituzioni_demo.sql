@@ -18,14 +18,19 @@
 --   referente con cui accedere (nessun account demo per loro). Per
 --   mostrare la dashboard /ente in demo, registra un ente vero dal form.
 
+-- I letterali 'free'/'plus'/'premium' vanno castati esplicitamente: in un
+-- insert...select con union, Postgres risolve il tipo comune delle colonne
+-- unite (testo) prima di verificare la compatibilità con la colonna di
+-- destinazione, quindi l'inferenza automatica di insert...values qui non si
+-- applica (errore 42804 senza il cast).
 insert into public.piani (nome, prezzo_min, prezzo_max, quota_webinar_anno, quota_newsletter, quota_cta_esterne, quota_comunicazioni_kireo)
-select 'free', 0, 0, 3, 0, 0, 0
+select 'free'::public.piano_nome, 0, 0, 3, 0, 0, 0
 where not exists (select 1 from public.piani where nome = 'free')
 union all
-select 'plus', 290, 290, 5, 2, 1, 0
+select 'plus'::public.piano_nome, 290, 290, 5, 2, 1, 0
 where not exists (select 1 from public.piani where nome = 'plus')
 union all
-select 'premium', 590, 590, 15, 5, 5, 5
+select 'premium'::public.piano_nome, 590, 590, 15, 5, 5, 5
 where not exists (select 1 from public.piani where nome = 'premium');
 
 insert into public.istituzioni (id, nome, slug, tipo, descrizione, sito_ufficiale, piano_id, stato)

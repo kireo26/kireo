@@ -1,11 +1,26 @@
 "use client";
 
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Button } from "./Button";
 import { inputClass, fieldBorder } from "@/lib/formStyles";
 import { createClient } from "@/lib/supabase/client";
 import { messaggioErroreAuth } from "@/lib/authErrors";
 import { generaSlug } from "@/lib/slug";
+
+// Messaggi per gli errori che possono arrivare da un link di conferma email
+// (app/auth/confirm/route.ts) o da un accesso successivo non ancora
+// finalizzato (lib/ente/context.ts) — mostrati qui, sul form da cui è
+// partita la richiesta, non sulla pagina di login. "ente_sconosciuto" è
+// pensato per essere ritentabile: la finalizzazione è idempotente, un nuovo
+// tentativo (accedendo di nuovo, o aprendo un'altra volta il link email) può
+// ripartire pulito.
+const MESSAGGI_ERRORE_CONFERMA: Record<string, string> = {
+  ente_dati_incompleti:
+    "Mancano alcuni dati per completare la registrazione del tuo ente: prova a registrarti di nuovo, oppure contattaci da /contatti.",
+  ente_sconosciuto:
+    "Qualcosa è andato storto nel completare la registrazione del tuo ente. Prova ad accedere di nuovo tra qualche istante: se il problema persiste, contattaci da /contatti.",
+};
 
 const TIPI_ISTITUZIONE = [
   { value: "universita", label: "Università" },
@@ -20,6 +35,9 @@ const TIPI_ISTITUZIONE = [
 // account — l'ente entra in stato "in_attesa" finché KIREO non lo attiva
 // manualmente (vedi finalize_registration_istituzione).
 export default function RichiestaAccessoEnteForm() {
+  const searchParams = useSearchParams();
+  const erroreParam = searchParams.get("errore");
+
   const [nomeEnte, setNomeEnte] = useState("");
   const [tipo, setTipo] = useState("");
   const [referenteNome, setReferenteNome] = useState("");
@@ -31,7 +49,9 @@ export default function RichiestaAccessoEnteForm() {
   const [privacy, setPrivacy] = useState(false);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [erroreGenerale, setErroreGenerale] = useState<string | null>(null);
+  const [erroreGenerale, setErroreGenerale] = useState<string | null>(
+    erroreParam ? (MESSAGGI_ERRORE_CONFERMA[erroreParam] ?? "Si è verificato un errore.") : null,
+  );
   const [caricamento, setCaricamento] = useState(false);
   const [inviato, setInviato] = useState(false);
 

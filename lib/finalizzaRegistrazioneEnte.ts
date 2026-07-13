@@ -3,9 +3,14 @@ import type { SupabaseClient, User } from "@supabase/supabase-js";
 // Stesso principio di lib/finalizzaRegistrazione.ts (studente/docente), per
 // il ruolo istituzione: auto-riparazione se la conferma email non ha
 // completato la creazione di istituzioni/profiles/institution_profiles.
+//
+// Nessun motivo "slug_non_disponibile": da 20260713190000_fix_finalize_
+// registration_istituzione.sql lo slug è reso univoco DENTRO la funzione SQL
+// (suffisso incrementale su collisione), quindi una collisione di slug non è
+// più un caso di fallimento visibile qui.
 export type EsitoFinalizzazioneEnte =
   | { ok: true }
-  | { ok: false; motivo: "dati_incompleti" | "slug_non_disponibile" | "sconosciuto" };
+  | { ok: false; motivo: "dati_incompleti" | "sconosciuto" };
 
 export async function finalizzaRegistrazioneEnteSeNecessario(
   supabase: SupabaseClient,
@@ -40,12 +45,19 @@ export async function finalizzaRegistrazioneEnteSeNecessario(
 
   if (!error) return { ok: true };
 
-  // Race tra due richieste concorrenti che finalizzano entrambe: il
-  // profilo esiste già, non è un fallimento (stesso trattamento del flusso
-  // studente/docente).
-  if (error.code === "23505") return { ok: true };
-
-  if (error.message.includes("slug")) return { ok: false, motivo: "slug_non_disponibile" };
+  // Race tra due richieste concorrenti che finalizzano entrambe (es. link
+  // email aperto due volte quasi in contemporanea): se il profilo esiste
+  // comunque, non è un fallimento, stesso trattamento del flusso
+  // studente/docente. Verifichiamo che sia davvero così invece di fidarci
+  // ciecamente del solo codice 23505: lo slug non può più collidere (reso
+  // univoco dentro la funzione SQL), quindi un 23505 residuo dovrebbe
+  // sempre essere questa race innocua sul profilo — ma se il profilo non
+  // c'è, non lo è, ed è comunque sicuro segnalare l'errore: la funzione è
+  // idempotente e un tentativo successivo può ripartire pulito.
+  if (error.code === "23505") {
+    const { data: profiloEsistente } = await supabase.from("profiles").select("id").eq("id", user.id).maybeSingle();
+    if (profiloEsistente) return { ok: true };
+  }
 
   return { ok: false, motivo: "sconosciuto" };
 }

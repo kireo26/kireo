@@ -30,7 +30,9 @@ export const getEnteContext = cache(async (): Promise<EnteContext> => {
   if (!profiloEsistente) {
     const esito = await finalizzaRegistrazioneEnteSeNecessario(supabase, user);
     if (!esito.ok) {
-      redirect(`/accedi?errore=ente_${esito.motivo}`);
+      // Come in app/auth/confirm/route.ts: l'errore torna sul form di
+      // richiesta accesso, non su /accedi.
+      redirect(`/istituzioni?errore=ente_${esito.motivo}#richiedi-accesso`);
     }
   } else if (profiloEsistente.ruolo !== "istituzione") {
     redirect("/dopo-accesso");
@@ -43,7 +45,7 @@ export const getEnteContext = cache(async (): Promise<EnteContext> => {
     .maybeSingle();
 
   if (!link) {
-    redirect("/accedi?errore=ente_dati_incompleti");
+    redirect("/istituzioni?errore=ente_dati_incompleti#richiedi-accesso");
   }
 
   const { data: istituzione } = await supabase
