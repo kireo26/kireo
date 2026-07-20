@@ -1,6 +1,6 @@
 import { getAppContext } from "@/lib/app/studentContext";
 import { createClient } from "@/lib/supabase/server";
-import { getProssimiEventi, getEventiPassati, getAreeDegliEventi, getIscrizioniStudente } from "@/lib/app/eventi";
+import { getProssimiEventi, getEventiPassati, getAreeDegliEventi, getIscrizioniStudenteConOrigine } from "@/lib/app/eventi";
 import ListaEventiProssimi from "@/components/app/ListaEventiProssimi";
 
 export default async function AgendaAppPage() {
@@ -10,7 +10,7 @@ export default async function AgendaAppPage() {
   const [prossimi, passati, iscrizioni] = await Promise.all([
     getProssimiEventi(supabase),
     getEventiPassati(supabase),
-    getIscrizioniStudente(supabase, contesto.userId),
+    getIscrizioniStudenteConOrigine(supabase, contesto.userId),
   ]);
   const areeDegliEventi = await getAreeDegliEventi(
     supabase,

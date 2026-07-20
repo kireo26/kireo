@@ -3,6 +3,8 @@ import { type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { finalizzaRegistrazioneSeNecessario } from "@/lib/finalizzaRegistrazione";
 import { finalizzaRegistrazioneEnteSeNecessario } from "@/lib/finalizzaRegistrazioneEnte";
+import { finalizzaRegistrazioneScuolaSeNecessario } from "@/lib/finalizzaRegistrazioneScuola";
+import { finalizzaInvitoTutorSeNecessario } from "@/lib/finalizzaInvitoTutor";
 
 type EmailOtpType = "signup" | "invite" | "magiclink" | "recovery" | "email_change" | "email";
 
@@ -50,6 +52,20 @@ export async function GET(request: NextRequest) {
         // c'entra con la registrazione di un ente): RichiestaAccessoEnteForm
         // legge ?errore= e mostra un messaggio specifico lì.
         redirect(`/istituzioni?errore=ente_${esito.motivo}#richiedi-accesso`);
+      }
+    }
+
+    if (meta?.ruolo === "referente_scuola") {
+      const esito = await finalizzaRegistrazioneScuolaSeNecessario(supabase, data.user);
+      if (!esito.ok) {
+        redirect(`/per-le-scuole?errore=scuola_${esito.motivo}#richiedi-accesso`);
+      }
+    }
+
+    if (meta?.ruolo === "tutor_scuola") {
+      const esito = await finalizzaInvitoTutorSeNecessario(supabase, data.user);
+      if (!esito.ok) {
+        redirect(`/scuola/invito?errore=${esito.motivo}`);
       }
     }
   }

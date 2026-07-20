@@ -13,11 +13,15 @@ export default function CardEvento({
   areeSlugs,
   userId,
   iscritto,
+  origineIscrizione = null,
 }: {
   evento: Evento;
   areeSlugs: string[];
   userId: string | null;
   iscritto: boolean;
+  // "scuola": iscrizione d'ufficio, non un segnale di interesse dello
+  // studente — solo un'etichetta informativa, il bottone resta invariato.
+  origineIscrizione?: "studente" | "scuola" | null;
 }) {
   return (
     <li className="rounded-2xl border border-white/5 bg-kireo-card p-6">
@@ -31,6 +35,9 @@ export default function CardEvento({
               <span className="rounded-full bg-kireo-green/15 px-2.5 py-0.5 text-xs font-semibold text-kireo-green-light">
                 {evento.ore_pcto}h PCTO
               </span>
+            )}
+            {iscritto && origineIscrizione === "scuola" && (
+              <span className="rounded-full bg-white/10 px-2.5 py-0.5 text-xs text-kireo-light/80">Iscritto dalla tua scuola</span>
             )}
             {areeSlugs.map((slug) => {
               const area = getAreaBySlug(slug);

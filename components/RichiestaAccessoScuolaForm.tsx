@@ -3,49 +3,37 @@
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Button } from "./Button";
+import ScuolaCascadeFields, { SCUOLA_ALTRO, type ScuolaCascadeValue } from "./ScuolaCascadeFields";
 import { inputClass, fieldBorder } from "@/lib/formStyles";
 import { createClient } from "@/lib/supabase/client";
 import { messaggioErroreAuth } from "@/lib/authErrors";
-import { generaSlug } from "@/lib/slug";
 
 // Messaggi per gli errori che possono arrivare da un link di conferma email
-// (app/auth/confirm/route.ts) o da un accesso successivo non ancora
-// finalizzato (lib/ente/context.ts) — mostrati qui, sul form da cui è
-// partita la richiesta, non sulla pagina di login. "ente_sconosciuto" è
-// pensato per essere ritentabile: la finalizzazione è idempotente, un nuovo
-// tentativo (accedendo di nuovo, o aprendo un'altra volta il link email) può
-// ripartire pulito.
+// o da un accesso successivo non ancora finalizzato (lib/scuola/context.ts)
+// — mostrati qui, sul form da cui è partita la richiesta, non sulla pagina
+// di login (stesso principio già applicato al form ente).
 const MESSAGGI_ERRORE_CONFERMA: Record<string, string> = {
-  ente_dati_incompleti:
-    "Mancano alcuni dati per completare la registrazione del tuo ente: prova a registrarti di nuovo, oppure contattaci da /contatti.",
-  ente_sconosciuto:
-    "Qualcosa è andato storto nel completare la registrazione del tuo ente. Prova ad accedere di nuovo tra qualche istante: se il problema persiste, contattaci da /contatti.",
+  scuola_dati_incompleti:
+    "Mancano alcuni dati per completare la registrazione della tua scuola: prova a registrarti di nuovo, oppure contattaci da /contatti.",
+  scuola_sconosciuto:
+    "Qualcosa è andato storto nel completare la registrazione. Se la tua scuola ha già un referente registrato, contattaci da /contatti per essere aggiunto come tutor; altrimenti prova ad accedere di nuovo tra qualche istante.",
 };
 
-const TIPI_ISTITUZIONE = [
-  { value: "universita", label: "Università" },
-  { value: "its", label: "ITS Academy" },
-  { value: "academy", label: "Accademia" },
-  { value: "ente_professionale", label: "Ente di formazione professionale" },
-  { value: "altro", label: "Altro" },
-];
-
-// Signup reale (email+password) per il ruolo istituzione, stesso principio
-// di RichiestaAccessoScuolaForm per le scuole: l'ente entra in stato
-// "in_attesa" finché KIREO non lo attiva
-// manualmente (vedi finalize_registration_istituzione).
-export default function RichiestaAccessoEnteForm() {
+export default function RichiestaAccessoScuolaForm() {
   const searchParams = useSearchParams();
   const erroreParam = searchParams.get("errore");
 
-  const [nomeEnte, setNomeEnte] = useState("");
-  const [tipo, setTipo] = useState("");
-  const [referenteNome, setReferenteNome] = useState("");
-  const [referenteCognome, setReferenteCognome] = useState("");
+  const [nome, setNome] = useState("");
+  const [cognome, setCognome] = useState("");
   const [email, setEmail] = useState("");
-  const [sitoUfficiale, setSitoUfficiale] = useState("");
   const [password, setPassword] = useState("");
   const [confermaPassword, setConfermaPassword] = useState("");
+  const [scuolaValue, setScuolaValue] = useState<ScuolaCascadeValue>({
+    provincia: "",
+    indirizzo: "",
+    scuola: "",
+    scuolaAltro: "",
+  });
   const [privacy, setPrivacy] = useState(false);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -64,17 +52,28 @@ export default function RichiestaAccessoEnteForm() {
     });
   }
 
+  function handleScuolaChange(patch: Partial<ScuolaCascadeValue>) {
+    setScuolaValue((prev) => ({ ...prev, ...patch }));
+    Object.keys(patch).forEach((field) => clearError(field));
+  }
+
   function validate() {
     const next: Record<string, string> = {};
-    if (!nomeEnte.trim()) next.nomeEnte = "Inserisci il nome dell'ente.";
-    if (!tipo) next.tipo = "Seleziona il tipo di istituzione.";
-    if (!referenteNome.trim()) next.referenteNome = "Inserisci il nome del referente.";
-    if (!referenteCognome.trim()) next.referenteCognome = "Inserisci il cognome del referente.";
+    if (!nome.trim()) next.nome = "Inserisci il tuo nome.";
+    if (!cognome.trim()) next.cognome = "Inserisci il tuo cognome.";
 
     if (!email.trim()) {
       next.email = "Inserisci un'email.";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       next.email = "Inserisci un indirizzo email valido.";
+    }
+
+    if (!scuolaValue.provincia) next.provincia = "Seleziona la provincia della scuola.";
+    if (!scuolaValue.indirizzo) next.indirizzo = "Seleziona il tipo di istituto.";
+    if (!scuolaValue.scuola) {
+      next.scuola = "Seleziona la scuola.";
+    } else if (scuolaValue.scuola === SCUOLA_ALTRO) {
+      next.scuola = "La tua scuola non è ancora nel nostro elenco: scrivici da /contatti per aggiungerla.";
     }
 
     if (!password) {
@@ -104,13 +103,10 @@ export default function RichiestaAccessoEnteForm() {
         options: {
           emailRedirectTo: `${window.location.origin}/dopo-accesso`,
           data: {
-            ruolo: "istituzione",
-            nome_ente: nomeEnte.trim(),
-            slug: generaSlug(nomeEnte.trim()),
-            tipo,
-            referente_nome: referenteNome.trim(),
-            referente_cognome: referenteCognome.trim(),
-            sito_ufficiale: sitoUfficiale.trim() || null,
+            ruolo: "referente_scuola",
+            scuola_id: scuolaValue.scuola,
+            nome: nome.trim(),
+            cognome: cognome.trim(),
           },
         },
       });
@@ -135,8 +131,8 @@ export default function RichiestaAccessoEnteForm() {
           Controlla la tua email
         </h3>
         <p className="mt-2 text-sm text-kireo-muted">
-          Conferma l&apos;indirizzo email per completare la richiesta. Il profilo del tuo ente resterà in attesa di
-          attivazione da parte di KIREO prima di comparire pubblicamente.
+          Conferma l&apos;indirizzo email per completare la registrazione. La tua scuola resterà in attesa finché
+          KIREO non attiva la convenzione.
         </p>
       </div>
     );
@@ -148,82 +144,38 @@ export default function RichiestaAccessoEnteForm() {
         <p className="rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">{erroreGenerale}</p>
       )}
 
-      <div>
-        <label htmlFor="nomeEnte" className="mb-1.5 block text-sm font-medium text-kireo-light">
-          Nome dell&apos;ente
-        </label>
-        <input
-          id="nomeEnte"
-          value={nomeEnte}
-          onChange={(e) => {
-            setNomeEnte(e.target.value);
-            clearError("nomeEnte");
-          }}
-          aria-invalid={Boolean(errors.nomeEnte)}
-          className={`${inputClass} ${fieldBorder(Boolean(errors.nomeEnte))}`}
-          placeholder="Es. Istituto Tecnico Superiore..."
-        />
-        {errors.nomeEnte && <p className="mt-1.5 text-sm text-red-400">{errors.nomeEnte}</p>}
-      </div>
-
-      <div>
-        <label htmlFor="tipo" className="mb-1.5 block text-sm font-medium text-kireo-light">
-          Tipo di istituzione
-        </label>
-        <select
-          id="tipo"
-          value={tipo}
-          onChange={(e) => {
-            setTipo(e.target.value);
-            clearError("tipo");
-          }}
-          aria-invalid={Boolean(errors.tipo)}
-          className={`${inputClass} ${fieldBorder(Boolean(errors.tipo))}`}
-        >
-          <option value="" disabled>
-            Seleziona il tipo
-          </option>
-          {TIPI_ISTITUZIONE.map((t) => (
-            <option key={t.value} value={t.value}>
-              {t.label}
-            </option>
-          ))}
-        </select>
-        {errors.tipo && <p className="mt-1.5 text-sm text-red-400">{errors.tipo}</p>}
-      </div>
-
       <div className="grid gap-5 sm:grid-cols-2">
         <div>
-          <label htmlFor="referenteNome" className="mb-1.5 block text-sm font-medium text-kireo-light">
-            Nome del referente
+          <label htmlFor="nome" className="mb-1.5 block text-sm font-medium text-kireo-light">
+            Nome
           </label>
           <input
-            id="referenteNome"
-            value={referenteNome}
+            id="nome"
+            value={nome}
             onChange={(e) => {
-              setReferenteNome(e.target.value);
-              clearError("referenteNome");
+              setNome(e.target.value);
+              clearError("nome");
             }}
-            aria-invalid={Boolean(errors.referenteNome)}
-            className={`${inputClass} ${fieldBorder(Boolean(errors.referenteNome))}`}
+            aria-invalid={Boolean(errors.nome)}
+            className={`${inputClass} ${fieldBorder(Boolean(errors.nome))}`}
           />
-          {errors.referenteNome && <p className="mt-1.5 text-sm text-red-400">{errors.referenteNome}</p>}
+          {errors.nome && <p className="mt-1.5 text-sm text-red-400">{errors.nome}</p>}
         </div>
         <div>
-          <label htmlFor="referenteCognome" className="mb-1.5 block text-sm font-medium text-kireo-light">
-            Cognome del referente
+          <label htmlFor="cognome" className="mb-1.5 block text-sm font-medium text-kireo-light">
+            Cognome
           </label>
           <input
-            id="referenteCognome"
-            value={referenteCognome}
+            id="cognome"
+            value={cognome}
             onChange={(e) => {
-              setReferenteCognome(e.target.value);
-              clearError("referenteCognome");
+              setCognome(e.target.value);
+              clearError("cognome");
             }}
-            aria-invalid={Boolean(errors.referenteCognome)}
-            className={`${inputClass} ${fieldBorder(Boolean(errors.referenteCognome))}`}
+            aria-invalid={Boolean(errors.cognome)}
+            className={`${inputClass} ${fieldBorder(Boolean(errors.cognome))}`}
           />
-          {errors.referenteCognome && <p className="mt-1.5 text-sm text-red-400">{errors.referenteCognome}</p>}
+          {errors.cognome && <p className="mt-1.5 text-sm text-red-400">{errors.cognome}</p>}
         </div>
       </div>
 
@@ -242,24 +194,12 @@ export default function RichiestaAccessoEnteForm() {
           }}
           aria-invalid={Boolean(errors.email)}
           className={`${inputClass} ${fieldBorder(Boolean(errors.email))}`}
-          placeholder="referente@ente.it"
+          placeholder="referente@scuola.edu.it"
         />
         {errors.email && <p className="mt-1.5 text-sm text-red-400">{errors.email}</p>}
       </div>
 
-      <div>
-        <label htmlFor="sitoUfficiale" className="mb-1.5 block text-sm font-medium text-kireo-light">
-          Sito ufficiale (facoltativo)
-        </label>
-        <input
-          id="sitoUfficiale"
-          type="url"
-          value={sitoUfficiale}
-          onChange={(e) => setSitoUfficiale(e.target.value)}
-          className={`${inputClass} ${fieldBorder(false)}`}
-          placeholder="https://..."
-        />
-      </div>
+      <ScuolaCascadeFields value={scuolaValue} onChange={handleScuolaChange} errors={errors} />
 
       <div className="grid gap-5 sm:grid-cols-2">
         <div>
@@ -325,10 +265,10 @@ export default function RichiestaAccessoEnteForm() {
       </div>
 
       <Button type="submit" variant="primary" className="w-full" disabled={caricamento}>
-        {caricamento ? "Invio in corso…" : "Richiedi l'accesso"}
+        {caricamento ? "Invio in corso…" : "Registra la tua scuola"}
       </Button>
       <p className="text-center text-xs text-kireo-muted">
-        Il profilo entra in stato di attesa: KIREO lo attiva manualmente prima che compaia pubblicamente.
+        La scuola resta in attesa di attivazione: KIREO la contatta per la convenzione prima di sbloccare le funzioni.
       </p>
     </form>
   );

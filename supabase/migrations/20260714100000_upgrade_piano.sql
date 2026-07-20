@@ -93,7 +93,14 @@ declare
   v_istituzione_id uuid;
   v_piano_id uuid;
 begin
-  if public.current_ruolo() <> 'admin' then
+  -- IS DISTINCT FROM, non <>: current_ruolo() è null per un utente
+  -- autenticato senza ancora un profilo (es. a metà registrazione), e
+  -- "null <> 'admin'" vale null, non true — un IF con condizione null non
+  -- solleva l'eccezione. In questo caso specifico la RLS di richieste_
+  -- upgrade fa comunque da rete di sicurezza (select sotto non troverebbe
+  -- righe), ma il controllo esplicito deve comunque essere corretto per
+  -- dare il messaggio d'errore giusto, non affidarsi al caso.
+  if public.current_ruolo() is distinct from 'admin' then
     raise exception 'non_autorizzato';
   end if;
 

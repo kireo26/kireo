@@ -106,15 +106,38 @@ function SezioneScuola({
   userId,
   scuolaValueIniziale,
   classeIniziale,
+  statoVerifica,
+  nomeScuolaAttuale,
 }: {
   userId: string;
   scuolaValueIniziale: ScuolaCascadeValue;
   classeIniziale: string;
+  statoVerifica: string | null;
+  nomeScuolaAttuale: string | null;
 }) {
   const [scuolaValue, setScuolaValue] = useState<ScuolaCascadeValue>(scuolaValueIniziale);
   const [classe, setClasse] = useState(classeIniziale);
   const [errori, setErrori] = useState<Record<string, string>>({});
   const [stato, setStato] = useState<StatoSalvataggio>("idle");
+
+  if (statoVerifica === "verificato") {
+    const classeLabel = CLASSI.find((c) => c.value === classeIniziale)?.label ?? classeIniziale;
+    return (
+      <div className="rounded-2xl border border-white/5 bg-kireo-card p-6">
+        <h2 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">Scuola e classe</h2>
+        <p className="mt-2 text-kireo-light/90">
+          {nomeScuolaAttuale ?? "—"} {classeLabel && `· ${classeLabel}`}
+        </p>
+        <p className="mt-3 text-sm text-kireo-muted">
+          La tua scuola ha verificato la tua appartenenza: non puoi più cambiarla da qui. Se ti sei trasferito, scrivici da{" "}
+          <Link href="/contatti" className="text-kireo-orange underline underline-offset-2">
+            Contatti
+          </Link>
+          .
+        </p>
+      </div>
+    );
+  }
 
   function handleScuolaChange(patch: Partial<ScuolaCascadeValue>) {
     setScuolaValue((prev) => ({ ...prev, ...patch }));
@@ -367,6 +390,8 @@ export default function ProfiloForm({
   scuolaValueIniziale,
   classeIniziale,
   areeInteresseIniziali,
+  statoVerifica = null,
+  nomeScuolaAttuale = null,
 }: {
   userId: string;
   nome: string;
@@ -376,12 +401,20 @@ export default function ProfiloForm({
   scuolaValueIniziale: ScuolaCascadeValue;
   classeIniziale: string;
   areeInteresseIniziali: string[];
+  statoVerifica?: string | null;
+  nomeScuolaAttuale?: string | null;
 }) {
   return (
     <div className="space-y-6">
       <SezioneAnagrafica nome={nome} cognome={cognome} dataNascita={dataNascita} />
       <SezioneTelefono userId={userId} telefonoIniziale={telefonoIniziale} />
-      <SezioneScuola userId={userId} scuolaValueIniziale={scuolaValueIniziale} classeIniziale={classeIniziale} />
+      <SezioneScuola
+        userId={userId}
+        scuolaValueIniziale={scuolaValueIniziale}
+        classeIniziale={classeIniziale}
+        statoVerifica={statoVerifica}
+        nomeScuolaAttuale={nomeScuolaAttuale}
+      />
       <SezioneAree userId={userId} areeIniziali={areeInteresseIniziali} />
       <BloccoPrivacy userId={userId} />
     </div>

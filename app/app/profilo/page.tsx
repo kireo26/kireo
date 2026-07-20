@@ -29,14 +29,25 @@ export default async function ProfiloAppPage() {
 
   let provincia = "";
   let indirizzo: Indirizzo | "" = "";
+  let nomeScuolaAttuale: string | null = null;
   if (contesto.schoolCode) {
     const { data: scuola } = await supabase
       .from("schools")
-      .select("provincia, tipo_istituto")
+      .select("provincia, tipo_istituto, denominazione")
       .eq("codice_meccanografico", contesto.schoolCode)
       .maybeSingle();
     provincia = scuola?.provincia ?? "";
     indirizzo = (scuola?.tipo_istituto as Indirizzo | undefined) ?? "";
+    nomeScuolaAttuale = scuola?.denominazione ?? null;
+  }
+
+  // stato_verifica: colonna aggiunta dalla migration dell'area scuola, non
+  // ancora applicata al DB reale finché Mario non la esegue — stesso
+  // ripiego già usato per il telefono più sopra.
+  let statoVerifica: string | null = null;
+  const conVerifica = await supabase.from("student_profiles").select("stato_verifica").eq("user_id", contesto.userId).maybeSingle();
+  if (!conVerifica.error) {
+    statoVerifica = conVerifica.data?.stato_verifica ?? null;
   }
 
   const { data: righeAree } = await supabase
@@ -61,6 +72,8 @@ export default async function ProfiloAppPage() {
         scuolaValueIniziale={{ provincia, indirizzo, scuola: contesto.schoolCode ?? "", scuolaAltro: "" }}
         classeIniziale={CLASSI.find((c) => c.label === contesto.classe)?.value ?? ""}
         areeInteresseIniziali={areeInteresseIniziali}
+        statoVerifica={statoVerifica}
+        nomeScuolaAttuale={nomeScuolaAttuale}
       />
     </div>
   );

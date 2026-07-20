@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const AREE_PROTETTE = ["/app", "/ente", "/admin"];
+const AREE_PROTETTE = ["/app", "/ente", "/admin", "/scuola"];
 
 function redirectAccedi(request: NextRequest) {
   const url = request.nextUrl.clone();
@@ -11,7 +11,7 @@ function redirectAccedi(request: NextRequest) {
 }
 
 // Aggiorna la sessione ad ogni richiesta e protegge le route sotto /app,
-// /ente e /admin: senza utente autenticato reindirizza a /accedi,
+// /ente, /admin e /scuola: senza utente autenticato reindirizza a /accedi,
 // preservando la pagina di destinazione originale in redirectedFrom. Il
 // controllo del ruolo esatto (studente/istituzione/admin) resta comunque a
 // carico di ogni area (getAppContext/getEnteContext/requireAdmin) e delle
@@ -24,7 +24,12 @@ function redirectAccedi(request: NextRequest) {
 // verifica fallisce, le route pubbliche passano comunque (fail-open),
 // quelle protette negano l'accesso per sicurezza (fail-closed).
 export async function updateSession(request: NextRequest) {
-  const isProtetta = AREE_PROTETTE.some((area) => request.nextUrl.pathname.startsWith(area));
+  // /scuola/invito resta pubblica sotto /scuola: un tutor invitato non ha
+  // ancora un account quando vi accede per la prima volta (deve poterla
+  // raggiungere per registrarsi).
+  const isProtetta =
+    request.nextUrl.pathname !== "/scuola/invito" &&
+    AREE_PROTETTE.some((area) => request.nextUrl.pathname.startsWith(area));
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 

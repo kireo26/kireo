@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { ButtonLink } from "@/components/Button";
 import Card from "@/components/Card";
 import SectionHeading from "@/components/SectionHeading";
-import RichiestaInformazioniForm from "@/components/RichiestaInformazioniForm";
+import RichiestaAccessoScuolaForm from "@/components/RichiestaAccessoScuolaForm";
 
 export const metadata: Metadata = {
   title: "Per le scuole — KIREO",
@@ -51,7 +52,7 @@ export default function PerLeScuole() {
           </p>
           <div className="mt-8">
             <ButtonLink href="#richiedi-informazioni" variant="primary">
-              Richiedi informazioni
+              Registra la tua scuola
             </ButtonLink>
           </div>
         </div>
@@ -80,17 +81,18 @@ export default function PerLeScuole() {
         <div className="mx-auto max-w-2xl px-6 py-20">
           <div className="text-center">
             <h2 className="py-1 font-heading text-3xl font-bold leading-[1.25] text-kireo-light sm:text-4xl">
-              Parla con un esperto KIREO
+              Registra la tua scuola
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-kireo-muted">
-              Lascia i tuoi riferimenti: un esperto di orientamento KIREO ti contatterà per
-              presentarti nel dettaglio il percorso, la dashboard e l&apos;attivazione della
-              convenzione. Senza impegno e senza costi.
+              Crei subito un account da referente: la scuola resta in attesa finché KIREO non
+              attiva la convenzione, poi sblocca verifica studenti, classi, eventi e comunicazioni.
             </p>
           </div>
 
           <div className="mt-10">
-            <RichiestaInformazioniForm />
+            <Suspense fallback={null}>
+              <RichiestaAccessoScuolaForm />
+            </Suspense>
           </div>
         </div>
       </section>

@@ -121,6 +121,26 @@ export async function getIscrizioniStudente(supabase: SupabaseClient, userId: st
   }
 }
 
+// Come sopra, ma con l'origine (studente/scuola): per mostrare l'etichetta
+// "Iscritto dalla tua scuola" quando l'iscrizione è d'ufficio (vedi
+// CLAUDE.md — non è un segnale di interesse, ma lo studente deve saperlo).
+export async function getIscrizioniStudenteConOrigine(
+  supabase: SupabaseClient,
+  userId: string,
+): Promise<Record<string, "studente" | "scuola">> {
+  try {
+    const { data, error } = await supabase.from("iscrizioni_eventi").select("evento_id, origine").eq("student_id", userId);
+    if (error) return {};
+    const mappa: Record<string, "studente" | "scuola"> = {};
+    for (const riga of data ?? []) {
+      mappa[riga.evento_id] = (riga.origine as "studente" | "scuola") ?? "studente";
+    }
+    return mappa;
+  } catch {
+    return {};
+  }
+}
+
 // Prossimi eventi (già iniziati esclusi) taggati su una qualunque delle
 // aree passate, deduplicati (un evento può avere più aree in comune),
 // ordinati per data. Usata dalla card "Prossimi eventi per te" in Home.

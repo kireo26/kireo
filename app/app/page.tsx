@@ -4,6 +4,7 @@ import { getAreaBySlug } from "@/data/aree";
 import { getOreCertificate } from "@/lib/app/pcto";
 import { getValoriRadar } from "@/lib/app/radarData";
 import { getProssimiEventi, getProssimiEventiPerAree } from "@/lib/app/eventi";
+import { getMessaggiScuolaStudente } from "@/lib/app/messaggi";
 import HeaderSaluto from "@/components/app/HeaderSaluto";
 import CardProssimaTappa from "@/components/app/CardProssimaTappa";
 import RadarAttitudinale from "@/components/app/RadarAttitudinale";
@@ -11,6 +12,7 @@ import BloccoLeMieAree, { type AreaInteresse } from "@/components/app/BloccoLeMi
 import ContatorePCTO from "@/components/app/ContatorePCTO";
 import StrisciaProssimoEvento from "@/components/app/StrisciaProssimoEvento";
 import CardEventiPerTe from "@/components/app/CardEventiPerTe";
+import MessaggiScuola, { type MessaggioRicevuto } from "@/components/app/MessaggiScuola";
 import type { VoceChecklist } from "@/components/app/BadgeProfiloPercentuale";
 
 // Segnaposto onesto, 5 voci da 20%: dati anagrafici e scuola/classe sono
@@ -44,11 +46,12 @@ export default async function AreaPersonaleHome() {
   const conTelefono = await supabase.from("profiles").select("telefono").eq("id", contesto.userId).maybeSingle();
   const telefonoCompilato = !conTelefono.error && Boolean(conTelefono.data?.telefono);
 
-  const [{ data: righeAree }, oreCertificate, valoriRadar, prossimoEvento] = await Promise.all([
+  const [{ data: righeAree }, oreCertificate, valoriRadar, prossimoEvento, messaggiScuola] = await Promise.all([
     supabase.from("student_area_interests").select("area_slug").eq("user_id", contesto.userId),
     getOreCertificate(supabase, contesto.userId),
     getValoriRadar(supabase, contesto.userId),
     getProssimiEventi(supabase, 1).then((e) => e[0] ?? null),
+    getMessaggiScuolaStudente(supabase, contesto.userId),
   ]);
 
   const areeInteresse: AreaInteresse[] = (righeAree ?? [])
@@ -74,6 +77,8 @@ export default async function AreaPersonaleHome() {
       />
 
       <CardProssimaTappa />
+
+      <MessaggiScuola messaggiIniziali={messaggiScuola} />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="rounded-2xl border border-white/5 bg-kireo-card p-6">

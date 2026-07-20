@@ -22,12 +22,15 @@ export default async function DopoAccesso() {
   if (ruolo === "istituzione") {
     redirect("/ente");
   }
+  if (ruolo === "referente_scuola" || ruolo === "tutor_scuola") {
+    redirect("/scuola");
+  }
   if (ruolo === "admin") {
     redirect("/admin");
   }
 
-  // Studente, docente, referente_scuola (o profilo non ancora finalizzato):
-  // /app fa già la sua auto-riparazione e mostra il fallback minimo per i
-  // ruoli non-studente.
+  // Studente, docente (o profilo non ancora finalizzato): /app fa già la
+  // sua auto-riparazione e mostra il fallback minimo per i ruoli
+  // non-studente.
   redirect("/app");
 }

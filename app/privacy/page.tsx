@@ -24,7 +24,7 @@ const SEZIONI = [
   {
     titolo: "4. Base giuridica",
     testo:
-      "Il trattamento si basa sull'esecuzione di un contratto o di misure precontrattuali richieste dall'interessato, sul consenso esplicito per finalità di comunicazione facoltative e sul legittimo interesse del Titolare.",
+      "Il trattamento si basa sull'esecuzione di un contratto o di misure precontrattuali richieste dall'interessato, sul consenso esplicito per finalità di comunicazione facoltative e sul legittimo interesse del Titolare. Per gli studenti minorenni (a partire dai 14 anni, età minima per l'iscrizione), la base di legittimazione è rafforzata dalla convenzione tra KIREO e la scuola secondaria superiore di appartenenza: il referente scolastico verifica l'identità e l'iscrizione effettiva dello studente alla propria scuola prima che i dati del profilo siano utilizzabili nell'ambito delle attività PCTO, a garanzia che il trattamento avvenga in un contesto istituzionale controllato.",
   },
   {
     titolo: "5. Modalità di trattamento e conservazione dei dati",

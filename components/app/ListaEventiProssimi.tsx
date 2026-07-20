@@ -13,11 +13,10 @@ export default function ListaEventiProssimi({
 }: {
   eventi: Evento[];
   areeDegliEventi: Record<string, string[]>;
-  iscrizioni: string[];
+  iscrizioni: Record<string, "studente" | "scuola">;
   userId: string;
 }) {
   const [filtro, setFiltro] = useState("");
-  const iscrizioniSet = new Set(iscrizioni);
 
   const slugPresenti = new Set(Object.values(areeDegliEventi).flat());
   const areeDisponibili = AREE.filter((a) => slugPresenti.has(a.slug));
@@ -53,7 +52,8 @@ export default function ListaEventiProssimi({
             evento={evento}
             areeSlugs={areeDegliEventi[evento.id] ?? []}
             userId={userId}
-            iscritto={iscrizioniSet.has(evento.id)}
+            iscritto={Boolean(iscrizioni[evento.id])}
+            origineIscrizione={iscrizioni[evento.id] ?? null}
           />
         ))}
         {eventiFiltrati.length === 0 && <p className="text-sm text-kireo-muted">Nessun evento per questa area al momento.</p>}
