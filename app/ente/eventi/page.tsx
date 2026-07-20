@@ -1,5 +1,7 @@
 import { getEnteContext } from "@/lib/ente/context";
+import { getQuoteEnte } from "@/lib/ente/quote";
 import { createClient } from "@/lib/supabase/server";
+import { ETICHETTA_PIANO, trovaPianoSuccessivo, type PianoQuote } from "@/lib/ente/pianoSuccessivo";
 import CreaEventoForm from "@/components/ente/CreaEventoForm";
 
 const ETICHETTA_STATO: Record<string, { label: string; classe: string }> = {
@@ -13,11 +15,22 @@ export default async function EnteEventiPage() {
   const contesto = await getEnteContext();
   const supabase = await createClient();
 
-  const { data: eventi } = await supabase
-    .from("eventi")
-    .select("id, titolo, tipo, data_inizio, stato")
-    .eq("organizzatore_id", contesto.istituzioneId)
-    .order("created_at", { ascending: false });
+  const [{ data: eventi }, { data: piani }, quote] = await Promise.all([
+    supabase
+      .from("eventi")
+      .select("id, titolo, tipo, data_inizio, stato")
+      .eq("organizzatore_id", contesto.istituzioneId)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("piani")
+      .select("id, nome, prezzo_min, prezzo_max, quota_webinar_anno, quota_newsletter, quota_cta_esterne, quota_comunicazioni_kireo"),
+    getQuoteEnte(supabase, contesto.istituzioneId, contesto.pianoNome),
+  ]);
+
+  const pianoSuccessivo = trovaPianoSuccessivo(contesto.pianoNome, (piani ?? []) as PianoQuote[]);
+  const nudgeUpgrade = pianoSuccessivo
+    ? `Il piano ${ETICHETTA_PIANO[pianoSuccessivo.nome] ?? pianoSuccessivo.nome} include fino a ${pianoSuccessivo.quota_webinar_anno} eventi/anno.`
+    : null;
 
   return (
     <div className="space-y-8">
@@ -54,7 +67,11 @@ export default async function EnteEventiPage() {
       <div>
         <h2 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">Proponi un nuovo evento</h2>
         <div className="mt-4">
-          <CreaEventoForm istituzioneId={contesto.istituzioneId} />
+          <CreaEventoForm
+            istituzioneId={contesto.istituzioneId}
+            quotaEventiRimasta={quote.webinarTotali - quote.webinarUsati}
+            nudgeUpgrade={nudgeUpgrade}
+          />
         </div>
       </div>
     </div>

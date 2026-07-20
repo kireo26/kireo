@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { href: "/ente/eventi", label: "Eventi", shortLabel: "Eventi", icon: IconEventi },
   { href: "/ente/comunicazioni", label: "Comunicazioni", shortLabel: "Comunica.", icon: IconComunicazioni },
   { href: "/ente/statistiche", label: "Statistiche", shortLabel: "Stats", icon: IconStatistiche },
+  { href: "/ente/piano", label: "Il tuo piano", shortLabel: "Piano", icon: IconPiano },
 ];
 
 function isAttivo(pathname: string, href: string) {
@@ -47,6 +48,14 @@ function IconStatistiche({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" aria-hidden="true">
       <path strokeWidth="2" strokeLinecap="round" d="M5 20V10M12 20V4M19 20v-7" />
+    </svg>
+  );
+}
+
+function IconPiano({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" aria-hidden="true">
+      <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M12 4v16M17 8.5c0-2-2.2-3.5-5-3.5s-5 1.4-5 3.2c0 4.3 10 2 10 6.3 0 1.8-2.2 3.2-5 3.2s-5-1.5-5-3.5" />
     </svg>
   );
 }

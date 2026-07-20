@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/Button";
 import { inputClass, fieldBorder } from "@/lib/formStyles";
 import { createClient } from "@/lib/supabase/client";
@@ -11,11 +12,17 @@ export default function CreaComunicazioneForm({
   pianoPremium,
   quotaNewsletterRimasta,
   quotaComunicazioniKireoRimasta,
+  nudgeNewsletter,
+  nudgeComunicazioneKireo,
 }: {
   istituzioneId: string;
   pianoPremium: boolean;
   quotaNewsletterRimasta: number;
   quotaComunicazioniKireoRimasta: number;
+  // null quando non c'è un piano superiore da suggerire (già su Premium) o
+  // quando il nudge non si applica al piano corrente.
+  nudgeNewsletter: string | null;
+  nudgeComunicazioneKireo: string | null;
 }) {
   const router = useRouter();
   const [tipo, setTipo] = useState<"newsletter" | "comunicazione_kireo">("newsletter");
@@ -100,6 +107,22 @@ export default function CreaComunicazioneForm({
         <p className="mt-1.5 text-xs text-kireo-muted">
           Quota rimasta quest&apos;anno accademico: {quotaRimasta < 0 ? 0 : quotaRimasta}
         </p>
+        {!pianoPremium && nudgeComunicazioneKireo && (
+          <p className="mt-1.5 text-xs text-kireo-orange">
+            {nudgeComunicazioneKireo}{" "}
+            <Link href="/ente/piano" className="underline underline-offset-2">
+              Scopri i piani →
+            </Link>
+          </p>
+        )}
+        {tipo === "newsletter" && quotaEsaurita && nudgeNewsletter && (
+          <p className="mt-1.5 text-xs text-kireo-orange">
+            {nudgeNewsletter}{" "}
+            <Link href="/ente/piano" className="underline underline-offset-2">
+              Scopri i piani →
+            </Link>
+          </p>
+        )}
       </div>
 
       <div>

@@ -1,6 +1,7 @@
 import { getEnteContext } from "@/lib/ente/context";
 import { getQuoteEnte } from "@/lib/ente/quote";
 import { createClient } from "@/lib/supabase/server";
+import { ETICHETTA_PIANO, trovaPianoSuccessivo, type PianoQuote } from "@/lib/ente/pianoSuccessivo";
 import CreaComunicazioneForm from "@/components/ente/CreaComunicazioneForm";
 
 const ETICHETTA_STATO: Record<string, { label: string; classe: string }> = {
@@ -15,14 +16,23 @@ export default async function EnteComunicazioniPage() {
   const contesto = await getEnteContext();
   const supabase = await createClient();
 
-  const [{ data: comunicazioni }, quote] = await Promise.all([
+  const [{ data: comunicazioni }, { data: piani }, quote] = await Promise.all([
     supabase
       .from("comunicazioni")
       .select("id, tipo, oggetto, stato, note_revisione, created_at")
       .eq("istituzione_id", contesto.istituzioneId)
       .order("created_at", { ascending: false }),
+    supabase
+      .from("piani")
+      .select("id, nome, prezzo_min, prezzo_max, quota_webinar_anno, quota_newsletter, quota_cta_esterne, quota_comunicazioni_kireo"),
     getQuoteEnte(supabase, contesto.istituzioneId, contesto.pianoNome),
   ]);
+
+  const pianoSuccessivo = trovaPianoSuccessivo(contesto.pianoNome, (piani ?? []) as PianoQuote[]);
+  const nudgeNewsletter = pianoSuccessivo
+    ? `Il piano ${ETICHETTA_PIANO[pianoSuccessivo.nome] ?? pianoSuccessivo.nome} include fino a ${pianoSuccessivo.quota_newsletter} newsletter/anno.`
+    : null;
+  const nudgeComunicazioneKireo = "Le comunicazioni mirate sono incluse nel piano Premium.";
 
   return (
     <div className="space-y-8">
@@ -75,6 +85,8 @@ export default async function EnteComunicazioniPage() {
             pianoPremium={contesto.pianoNome === "premium"}
             quotaNewsletterRimasta={quote.newsletterTotali - quote.newsletterUsate}
             quotaComunicazioniKireoRimasta={quote.comunicazioniKireoTotali - quote.comunicazioniKireoUsate}
+            nudgeNewsletter={nudgeNewsletter}
+            nudgeComunicazioneKireo={nudgeComunicazioneKireo}
           />
         </div>
       </div>
