@@ -79,15 +79,16 @@ create policy messaggi_scuola_select_destinatario
   to authenticated
   using (public.e_destinatario_messaggio(messaggi_scuola.id));
 
--- Insert riservato al referente (mai al tutor: solo la lettura è
--- condivisa, vedi commento su invia_messaggio_scuola sotto), sempre per la
--- propria scuola e come mittente se stesso — la funzione sotto è SECURITY
--- INVOKER apposta per restare sotto queste due policy invece di bypassarle.
-create policy messaggi_scuola_insert_referente
+-- Insert: referente sempre, tutor solo se delegato (puo_inviare_
+-- comunicazioni, vedi current_ha_permesso_staff in 20260715110000),
+-- sempre per la propria scuola e come mittente se stesso — la funzione
+-- sotto è SECURITY INVOKER apposta per restare sotto queste due policy
+-- invece di bypassarle.
+create policy messaggi_scuola_insert_autorizzato
   on public.messaggi_scuola for insert
   to authenticated
   with check (
-    public.current_ruolo_staff() = 'referente'
+    public.current_ha_permesso_staff('comunicazioni')
     and scuola_profilo_id = public.current_scuola_profilo_id()
     and mittente_user = auth.uid()
   );
@@ -122,10 +123,11 @@ create policy messaggi_scuola_destinatari_admin_select
   to authenticated
   using (public.current_ruolo() = 'admin');
 
--- Insert riservato al referente, e solo per destinatari di un messaggio
--- della propria scuola (la funzione sotto filtra comunque a studenti
--- verificati della propria scuola prima di arrivare qui: questa policy è
--- la seconda linea di difesa, non l'unica).
+-- Insert: stesso permesso di messaggi_scuola_insert_autorizzato sopra
+-- (referente sempre, tutor solo se puo_inviare_comunicazioni), e solo per
+-- destinatari di un messaggio della propria scuola (la funzione sotto
+-- filtra comunque a studenti verificati della propria scuola prima di
+-- arrivare qui: questa policy è la seconda linea di difesa, non l'unica).
 create policy messaggi_scuola_destinatari_insert_scuola
   on public.messaggi_scuola_destinatari for insert
   to authenticated
@@ -133,19 +135,18 @@ create policy messaggi_scuola_destinatari_insert_scuola
     exists (
       select 1 from public.messaggi_scuola m
       where m.id = messaggi_scuola_destinatari.messaggio_id
-        and public.current_ruolo_staff() = 'referente'
+        and public.current_ha_permesso_staff('comunicazioni')
         and m.scuola_profilo_id = public.current_scuola_profilo_id()
     )
   );
 
--- Invio: solo il referente compone nuove comunicazioni (il tutor le vede
--- ma non ne invia, vedi CLAUDE.md — "i tutor vedono... comunicazioni" senza
--- menzionare l'invio tra i loro poteri, a differenza delle azioni
--- esplicitamente condivise come classi/iscrizioni/certificazione).
--- SECURITY INVOKER: nessun ordinamento circolare qui (il mittente è già
--- staff attivo quando invia), le due insert restano sotto RLS — la
--- funzione serve solo a risolvere "tutta_scuola/classe/selezione" in una
--- lista di studenti e scriverla atomicamente, non a bypassare permessi.
+-- Invio: referente sempre, tutor solo se delegato (puo_inviare_
+-- comunicazioni) — aggiornato dalla delegabilità introdotta in
+-- 20260715110000 (in origine solo il referente poteva comporre). SECURITY
+-- INVOKER: nessun ordinamento circolare qui (il mittente è già staff
+-- attivo quando invia), le due insert restano sotto RLS — la funzione
+-- serve solo a risolvere "tutta_scuola/classe/selezione" in una lista di
+-- studenti e scriverla atomicamente, non a bypassare permessi.
 create or replace function public.invia_messaggio_scuola(
   p_destinatari text,
   p_oggetto text,
@@ -163,10 +164,7 @@ declare
   v_scuola_profilo_id uuid := public.current_scuola_profilo_id();
   v_messaggio_id uuid;
 begin
-  -- IS DISTINCT FROM, non <>: vedi commento in crea_invito_tutor
-  -- (20260715110000) sul perché <> da solo con un valore null lascerebbe
-  -- passare chiunque non sia staff.
-  if public.current_ruolo_staff() is distinct from 'referente' then
+  if not public.current_ha_permesso_staff('comunicazioni') then
     raise exception 'non_autorizzato';
   end if;
 

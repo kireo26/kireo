@@ -55,7 +55,14 @@ export default async function ScuolaClassiPage() {
         <p className="mt-2 text-kireo-muted">Solo studenti verificati della tua scuola possono entrare in una classe.</p>
       </div>
 
-      <CreaClasseForm scuolaProfiloId={contesto.scuolaProfiloId} />
+      {contesto.puoGestireClassi ? (
+        <CreaClasseForm scuolaProfiloId={contesto.scuolaProfiloId} />
+      ) : (
+        <p className="text-sm text-kireo-muted">
+          Puoi vedere le classi della tua scuola, ma non hai il permesso di crearne o modificarne: chiedi al referente di attivarlo da
+          Staff.
+        </p>
+      )}
 
       {!classi || classi.length === 0 ? (
         <p className="text-sm text-kireo-muted">Non hai ancora creato nessuna classe.</p>
@@ -69,7 +76,7 @@ export default async function ScuolaClassiPage() {
               <li key={c.id} className="rounded-2xl border border-white/5 bg-kireo-card p-5">
                 <p className="font-heading text-lg font-semibold text-kireo-light">{c.nome_visualizzato ?? `${c.anno}ª${c.sezione}`}</p>
                 <p className="text-xs text-kireo-muted">{membri.length} studenti</p>
-                <GestioneClasseStudenti classeId={c.id} membri={membri} disponibili={disponibili} />
+                <GestioneClasseStudenti classeId={c.id} membri={membri} disponibili={disponibili} puoGestire={contesto.puoGestireClassi} />
               </li>
             );
           })}

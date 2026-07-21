@@ -2,6 +2,7 @@ import { getScuolaContext, richiedeReferente } from "@/lib/scuola/context";
 import { createClient } from "@/lib/supabase/server";
 import InvitaTutorForm from "@/components/scuola/InvitaTutorForm";
 import DisattivaStaffButton from "@/components/scuola/DisattivaStaffButton";
+import TogglePermessiTutor from "@/components/scuola/TogglePermessiTutor";
 
 export default async function ScuolaStaffPage() {
   const contesto = await getScuolaContext();
@@ -10,7 +11,9 @@ export default async function ScuolaStaffPage() {
 
   const { data: staff, error: erroreStaff } = await supabase
     .from("school_staff")
-    .select("id, ruolo_staff, attivo, user_id, codice_invito, nome_invitato, email_invitato, profiles!user_id(nome, cognome)")
+    .select(
+      "id, ruolo_staff, attivo, user_id, codice_invito, nome_invitato, email_invitato, puo_verificare_studenti, puo_gestire_classi, puo_certificare_presenze, puo_inviare_comunicazioni, profiles!user_id(nome, cognome)",
+    )
     .eq("scuola_profilo_id", contesto.scuolaProfiloId)
     .order("created_at", { ascending: true });
 
@@ -38,13 +41,22 @@ export default async function ScuolaStaffPage() {
               const inAttesa = !t.user_id;
               return (
                 <li key={t.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/5 bg-kireo-card p-4">
-                  <div>
+                  <div className="flex-1">
                     <p className="font-heading text-sm font-semibold text-kireo-light">
                       {inAttesa ? (t.nome_invitato ?? "Invito in attesa") : `${profilo?.nome} ${profilo?.cognome}`}
                     </p>
                     <p className="mt-1 text-xs text-kireo-muted">
                       {inAttesa ? `In attesa di registrazione — codice ${t.codice_invito}` : t.attivo ? "Attivo" : "Disattivato"}
                     </p>
+                    <TogglePermessiTutor
+                      staffId={t.id}
+                      permessiIniziali={{
+                        puo_verificare_studenti: t.puo_verificare_studenti,
+                        puo_gestire_classi: t.puo_gestire_classi,
+                        puo_certificare_presenze: t.puo_certificare_presenze,
+                        puo_inviare_comunicazioni: t.puo_inviare_comunicazioni,
+                      }}
+                    />
                   </div>
                   {!inAttesa && <DisattivaStaffButton staffId={t.id} attivo={t.attivo} />}
                 </li>

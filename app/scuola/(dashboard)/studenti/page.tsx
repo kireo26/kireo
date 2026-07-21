@@ -1,13 +1,16 @@
 import Link from "next/link";
-import { getScuolaContext, richiedeReferente } from "@/lib/scuola/context";
+import { getScuolaContext } from "@/lib/scuola/context";
 import { createClient } from "@/lib/supabase/server";
 import { getEmailStudenti } from "@/lib/scuola/email";
 import { etichettaPrincipaleStudente, nomeCompletoStudente } from "@/lib/scuola/formatStudente";
 import GestioneStudentiDichiarati from "@/components/scuola/GestioneStudentiDichiarati";
 
+// Pagina sempre navigabile da qualunque staff attivo (referente o tutor,
+// con o senza delega): la lettura resta sempre disponibile, solo le azioni
+// di verifica/rifiuto sono gated da puoVerificareStudenti dentro
+// GestioneStudentiDichiarati — niente pagina che respinge in silenzio.
 export default async function ScuolaStudentiPage() {
   const contesto = await getScuolaContext();
-  richiedeReferente(contesto);
   const supabase = await createClient();
 
   const [{ data: dichiarati, error: erroreDichiarati }, { data: verificati, error: erroreVerificati }, { data: classiStudenti, error: erroreClassiStudenti }] =
@@ -65,7 +68,7 @@ export default async function ScuolaStudentiPage() {
       <div>
         <h2 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">In attesa di verifica</h2>
         <div className="mt-4">
-          <GestioneStudentiDichiarati studenti={studentiDichiarati} />
+          <GestioneStudentiDichiarati studenti={studentiDichiarati} puoAgire={contesto.puoVerificareStudenti} />
         </div>
       </div>
 

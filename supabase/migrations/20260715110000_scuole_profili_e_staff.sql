@@ -26,6 +26,16 @@ create type public.school_staff_ruolo as enum ('referente', 'tutor');
 -- tabella "inviti" separata, riusando school_staff per entrambi gli stati
 -- (in attesa / attivo). Un referente non è mai in questo stato "in attesa":
 -- si crea sempre già con user_id valorizzato (self-registrazione).
+-- I 4 permessi delegabili qui sotto valgono SOLO per ruolo_staff='tutor':
+-- il referente ha sempre tutto (governato in codice da
+-- current_ha_permesso_staff, non da queste colonne per il referente).
+-- Default false: un tutor appena invitato/riscattato non ha nessun potere
+-- finché il referente non lo abilita esplicitamente. Esplicitamente NON
+-- delegabili (nessuna colonna qui, nessuna policy le rende disponibili al
+-- tutor in nessun punto dello schema): gestione staff (invitare/
+-- disattivare tutor, school_staff_update_tutor_referente resta
+-- referente-only) e stato della scuola (scuole_profili.stato resta
+-- admin-only).
 create table public.school_staff (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references public.profiles (id) on delete cascade,
@@ -35,6 +45,12 @@ create table public.school_staff (
   codice_invito text unique,
   nome_invitato text,
   email_invitato text,
+  puo_verificare_studenti boolean not null default false,
+  puo_gestire_classi boolean not null default false,
+  puo_certificare_presenze boolean not null default false,
+  puo_inviare_comunicazioni boolean not null default false,
+  delega_aggiornata_da uuid references public.profiles (id),
+  delega_aggiornata_il timestamptz,
   creato_da uuid not null references public.profiles (id),
   created_at timestamptz not null default now(),
   constraint school_staff_referente_ha_utente check (ruolo_staff = 'tutor' or user_id is not null),
@@ -42,7 +58,32 @@ create table public.school_staff (
 );
 
 comment on table public.school_staff is
-  'Collega un utente (referente o tutor) alla scuola che rappresenta. Un tutor invitato ma non ancora registrato ha user_id null e un codice_invito da riscattare (redeem_invito_staff).';
+  'Collega un utente (referente o tutor) alla scuola che rappresenta. Un tutor invitato ma non ancora registrato ha user_id null e un codice_invito da riscattare (redeem_invito_staff). I 4 permessi puo_* si applicano solo ai tutor (il referente ha sempre tutto, vedi current_ha_permesso_staff); delega_aggiornata_da/il tracciano l''ultima modifica ai permessi (trigger tieni_traccia_delega_permessi).';
+
+-- Aggiorna delega_aggiornata_da/il ad ogni cambio di uno dei 4 permessi —
+-- indipendentemente da come viene scritto (UI dedicata o altro), non ci si
+-- affida al client per ricordarsi di valorizzarli.
+create or replace function public.tieni_traccia_delega_permessi()
+returns trigger
+language plpgsql
+as $$
+begin
+  if new.puo_verificare_studenti is distinct from old.puo_verificare_studenti
+     or new.puo_gestire_classi is distinct from old.puo_gestire_classi
+     or new.puo_certificare_presenze is distinct from old.puo_certificare_presenze
+     or new.puo_inviare_comunicazioni is distinct from old.puo_inviare_comunicazioni
+  then
+    new.delega_aggiornata_da := auth.uid();
+    new.delega_aggiornata_il := now();
+  end if;
+
+  return new;
+end;
+$$;
+
+create trigger tieni_traccia_delega_permessi
+before update on public.school_staff
+for each row execute function public.tieni_traccia_delega_permessi();
 
 -- Un solo referente attivo per scuola.
 create unique index school_staff_un_referente_attivo_idx
@@ -100,9 +141,44 @@ as $$
   select scuola_id from public.scuole_profili where id = public.current_scuola_profilo_id();
 $$;
 
+-- Autorizzazione granulare per le azioni delegabili al tutor: il referente
+-- ha sempre tutto (true a prescindere da p_permesso), un tutor solo se il
+-- rispettivo flag è true. COALESCE(..., false) garantisce che la funzione
+-- non torni MAI null (nemmeno per un utente senza alcuna riga school_staff
+-- attiva): un null qui, usato in "if not current_ha_permesso_staff(...)",
+-- varrebbe "if not null" = null, che in un IF equivale a false — lo stesso
+-- bug di "confronto nullable" già corretto altrove in questo schema, ma
+-- qui evitato per costruzione invece che con IS DISTINCT FROM, perché il
+-- valore di ritorno stesso (non un confronto) è quello a rischio null.
+create or replace function public.current_ha_permesso_staff(p_permesso text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce(
+    (
+      select case
+        when ss.ruolo_staff = 'referente' then true
+        when p_permesso = 'verifica_studenti' then ss.puo_verificare_studenti
+        when p_permesso = 'gestione_classi' then ss.puo_gestire_classi
+        when p_permesso = 'certificazione_presenze' then ss.puo_certificare_presenze
+        when p_permesso = 'comunicazioni' then ss.puo_inviare_comunicazioni
+        else false
+      end
+      from public.school_staff ss
+      where ss.user_id = auth.uid() and ss.attivo = true
+      limit 1
+    ),
+    false
+  );
+$$;
+
 grant execute on function public.current_scuola_profilo_id() to authenticated;
 grant execute on function public.current_ruolo_staff() to authenticated;
 grant execute on function public.current_scuola_id() to authenticated;
+grant execute on function public.current_ha_permesso_staff(text) to authenticated;
 
 -- ============ scuole_profili ============
 -- Referente/tutor si autenticano PRIMA di avere un school_staff (durante la

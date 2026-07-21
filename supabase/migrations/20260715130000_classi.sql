@@ -27,8 +27,12 @@ comment on table public.classi_studenti is
 alter table public.classi enable row level security;
 alter table public.classi_studenti enable row level security;
 
--- Referente e tutor gestiscono le classi della propria scuola (creazione
--- classi/assegnazione studenti: "anche i tutor possono", vedi CLAUDE.md).
+-- Lettura sempre aperta a referente e tutor (anche senza delega: niente
+-- pagine che respingono in silenzio, un tutor senza puo_gestire_classi
+-- deve comunque poter VEDERE le classi, solo non modificarle). Scrittura
+-- (creazione classi/assegnazione studenti) delegabile via
+-- puo_gestire_classi — il referente ha sempre tutto, vedi
+-- current_ha_permesso_staff in 20260715110000.
 create policy classi_select_propria_scuola
   on public.classi for select
   to authenticated
@@ -38,20 +42,20 @@ create policy classi_insert_propria_scuola
   on public.classi for insert
   to authenticated
   with check (
-    public.current_ruolo_staff() in ('referente', 'tutor')
+    public.current_ha_permesso_staff('gestione_classi')
     and scuola_profilo_id = public.current_scuola_profilo_id()
   );
 
 create policy classi_update_propria_scuola
   on public.classi for update
   to authenticated
-  using (public.current_ruolo_staff() in ('referente', 'tutor') and scuola_profilo_id = public.current_scuola_profilo_id())
-  with check (public.current_ruolo_staff() in ('referente', 'tutor') and scuola_profilo_id = public.current_scuola_profilo_id());
+  using (public.current_ha_permesso_staff('gestione_classi') and scuola_profilo_id = public.current_scuola_profilo_id())
+  with check (public.current_ha_permesso_staff('gestione_classi') and scuola_profilo_id = public.current_scuola_profilo_id());
 
 create policy classi_delete_propria_scuola
   on public.classi for delete
   to authenticated
-  using (public.current_ruolo_staff() in ('referente', 'tutor') and scuola_profilo_id = public.current_scuola_profilo_id());
+  using (public.current_ha_permesso_staff('gestione_classi') and scuola_profilo_id = public.current_scuola_profilo_id());
 
 create policy classi_admin_tutto
   on public.classi for all
@@ -82,7 +86,7 @@ create policy classi_studenti_insert_scuola
   on public.classi_studenti for insert
   to authenticated
   with check (
-    public.current_ruolo_staff() in ('referente', 'tutor')
+    public.current_ha_permesso_staff('gestione_classi')
     and exists (
       select 1 from public.classi c
       where c.id = classi_studenti.classe_id and c.scuola_profilo_id = public.current_scuola_profilo_id()
@@ -93,7 +97,7 @@ create policy classi_studenti_delete_scuola
   on public.classi_studenti for delete
   to authenticated
   using (
-    public.current_ruolo_staff() in ('referente', 'tutor')
+    public.current_ha_permesso_staff('gestione_classi')
     and exists (
       select 1 from public.classi c
       where c.id = classi_studenti.classe_id and c.scuola_profilo_id = public.current_scuola_profilo_id()

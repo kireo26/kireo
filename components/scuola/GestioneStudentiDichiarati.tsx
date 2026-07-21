@@ -15,7 +15,13 @@ type StudenteDichiarato = {
   dichiaratoIl: string;
 };
 
-export default function GestioneStudentiDichiarati({ studenti }: { studenti: StudenteDichiarato[] }) {
+export default function GestioneStudentiDichiarati({
+  studenti,
+  puoAgire,
+}: {
+  studenti: StudenteDichiarato[];
+  puoAgire: boolean;
+}) {
   const router = useRouter();
   const [selezionati, setSelezionati] = useState<string[]>([]);
   const [caricamento, setCaricamento] = useState<string | null>(null);
@@ -49,7 +55,12 @@ export default function GestioneStudentiDichiarati({ studenti }: { studenti: Stu
 
   return (
     <div>
-      {selezionati.length > 0 && (
+      {!puoAgire && (
+        <p className="mb-3 text-sm text-kireo-muted">
+          Puoi vedere gli studenti in attesa, ma non hai il permesso di verificarli o rifiutarli: chiedi al referente di attivarlo da Staff.
+        </p>
+      )}
+      {puoAgire && selezionati.length > 0 && (
         <div className="mb-3 flex flex-wrap items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3">
           <span className="text-sm text-kireo-light">{selezionati.length} selezionati</span>
           <Button type="button" variant="primary" onClick={() => agisciSu(selezionati, "verificato")} disabled={caricamento !== null}>
@@ -65,12 +76,14 @@ export default function GestioneStudentiDichiarati({ studenti }: { studenti: Stu
         {studenti.map((s) => (
           <li key={s.userId} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/5 bg-kireo-card p-4">
             <label className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                checked={selezionati.includes(s.userId)}
-                onChange={() => toggle(s.userId)}
-                className="h-4 w-4 rounded border-white/20 bg-kireo-dark accent-kireo-green"
-              />
+              {puoAgire && (
+                <input
+                  type="checkbox"
+                  checked={selezionati.includes(s.userId)}
+                  onChange={() => toggle(s.userId)}
+                  className="h-4 w-4 rounded border-white/20 bg-kireo-dark accent-kireo-green"
+                />
+              )}
               <span>
                 <span className="block">
                   <span className="font-heading text-sm font-semibold text-kireo-light">
@@ -86,14 +99,16 @@ export default function GestioneStudentiDichiarati({ studenti }: { studenti: Stu
                 </span>
               </span>
             </label>
-            <div className="flex gap-2">
-              <Button type="button" variant="primary" onClick={() => agisciSu([s.userId], "verificato")} disabled={caricamento !== null}>
-                Verifica
-              </Button>
-              <Button type="button" variant="outline" onClick={() => agisciSu([s.userId], "rifiutato")} disabled={caricamento !== null}>
-                Rifiuta
-              </Button>
-            </div>
+            {puoAgire && (
+              <div className="flex gap-2">
+                <Button type="button" variant="primary" onClick={() => agisciSu([s.userId], "verificato")} disabled={caricamento !== null}>
+                  Verifica
+                </Button>
+                <Button type="button" variant="outline" onClick={() => agisciSu([s.userId], "rifiutato")} disabled={caricamento !== null}>
+                  Rifiuta
+                </Button>
+              </div>
+            )}
           </li>
         ))}
       </ul>

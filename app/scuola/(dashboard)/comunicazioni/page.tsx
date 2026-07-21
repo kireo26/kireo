@@ -44,7 +44,13 @@ export default async function ScuolaComunicazioniPage() {
         <p className="mt-2 text-kireo-muted">Rapporto interno alla scuola: nessuna revisione KIREO prima dell&apos;invio.</p>
       </div>
 
-      {contesto.ruoloStaff === "referente" && <InviaMessaggioScuolaForm classi={classiOpzioni} studenti={studentiOpzioni} />}
+      {contesto.puoInviareComunicazioni ? (
+        <InviaMessaggioScuolaForm classi={classiOpzioni} studenti={studentiOpzioni} />
+      ) : (
+        <p className="text-sm text-kireo-muted">
+          Puoi vedere lo storico, ma non hai il permesso di inviare comunicazioni: chiedi al referente di attivarlo da Staff.
+        </p>
+      )}
 
       <div>
         <h2 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">Storico inviati</h2>

@@ -62,9 +62,10 @@ create trigger blocco_cambio_scuola_verificato
 before update on public.student_profiles
 for each row execute function public.blocco_cambio_scuola_verificato();
 
--- Verifica/rifiuto di uno studente: solo il referente (non il tutor, vedi
--- CLAUDE.md — "tutor non verifica studenti") della scuola che lo studente
--- ha dichiarato può agire, e solo su uno studente ancora "dichiarato" (uno
+-- Verifica/rifiuto di uno studente: il referente sempre, il tutor solo se
+-- delegato (school_staff.puo_verificare_studenti, vedi
+-- current_ha_permesso_staff in 20260715110000) della scuola che lo
+-- studente ha dichiarato, e solo su uno studente ancora "dichiarato" (uno
 -- studente verificato non può essere sganciato da qui: "la scuola non può
 -- sganciare"). SECURITY DEFINER: deve poter leggere/scrivere lo
 -- student_profiles di un altro utente, cosa che nessuna policy self-service
@@ -79,10 +80,7 @@ declare
   v_scuola_id text;
   v_school_code text;
 begin
-  -- IS DISTINCT FROM, non <>: vedi commento in crea_invito_tutor
-  -- (20260715110000) sul perché <> da solo con un valore null lascerebbe
-  -- passare chiunque non sia staff.
-  if public.current_ruolo_staff() is distinct from 'referente' then
+  if not public.current_ha_permesso_staff('verifica_studenti') then
     raise exception 'non_autorizzato';
   end if;
 

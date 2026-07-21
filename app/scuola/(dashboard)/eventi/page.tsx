@@ -52,8 +52,16 @@ export default async function ScuolaEventiPage() {
                   {new Date(e.data_inizio).toLocaleString("it-IT", { dateStyle: "long", timeStyle: "short" })}
                   {e.ore_pcto > 0 && ` · ${e.ore_pcto}h PCTO`}
                 </p>
-                <IscriviClasseEventoForm eventoId={e.id} classi={classiOpzioni} />
-                <IscriviTuttiVerificatiButton eventoId={e.id} studentIds={idVerificati} />
+                {contesto.puoGestireClassi ? (
+                  <>
+                    <IscriviClasseEventoForm eventoId={e.id} classi={classiOpzioni} />
+                    <IscriviTuttiVerificatiButton eventoId={e.id} studentIds={idVerificati} />
+                  </>
+                ) : (
+                  <p className="mt-2 text-xs text-kireo-muted">
+                    Non hai il permesso di iscrivere classi o studenti a questo evento.
+                  </p>
+                )}
               </li>
             ))}
           </ul>
@@ -73,7 +81,7 @@ export default async function ScuolaEventiPage() {
                 <p className="mt-1 text-xs text-kireo-muted">
                   {new Date(evento.data_inizio).toLocaleDateString("it-IT", { dateStyle: "long" })}
                 </p>
-                <RegistroPresenzeEvento eventoId={evento.id} righe={righe} />
+                <RegistroPresenzeEvento eventoId={evento.id} righe={righe} puoCertificare={contesto.puoCertificarePresenze} />
               </li>
             ))}
           </ul>

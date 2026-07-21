@@ -44,10 +44,17 @@ export default async function ScuolaHomePage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Link href="/scuola/studenti" className="rounded-2xl border border-white/5 bg-kireo-card p-5 transition-colors hover:bg-white/5">
-          <p className="text-xs font-semibold uppercase tracking-wide text-kireo-muted">Da verificare</p>
-          <p className="mt-1 font-heading text-3xl font-bold text-kireo-orange">{daVerificare ?? 0}</p>
-        </Link>
+        {contesto.puoVerificareStudenti ? (
+          <Link href="/scuola/studenti" className="rounded-2xl border border-white/5 bg-kireo-card p-5 transition-colors hover:bg-white/5">
+            <p className="text-xs font-semibold uppercase tracking-wide text-kireo-muted">Da verificare</p>
+            <p className="mt-1 font-heading text-3xl font-bold text-kireo-orange">{daVerificare ?? 0}</p>
+          </Link>
+        ) : (
+          <div className="rounded-2xl border border-white/5 bg-kireo-card p-5">
+            <p className="text-xs font-semibold uppercase tracking-wide text-kireo-muted">Da verificare</p>
+            <p className="mt-1 font-heading text-3xl font-bold text-kireo-muted">{daVerificare ?? 0}</p>
+          </div>
+        )}
         <Link href="/scuola/studenti" className="rounded-2xl border border-white/5 bg-kireo-card p-5 transition-colors hover:bg-white/5">
           <p className="text-xs font-semibold uppercase tracking-wide text-kireo-muted">Studenti verificati</p>
           <p className="mt-1 font-heading text-3xl font-bold text-kireo-light">{verificati ?? 0}</p>

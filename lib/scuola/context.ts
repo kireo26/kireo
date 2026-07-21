@@ -13,6 +13,14 @@ export type ScuolaContext = {
   scuolaId: string;
   nomeScuola: string;
   stato: string;
+  // Il referente ha sempre tutti e 4 true (governato lato DB da
+  // current_ha_permesso_staff); per un tutor riflettono i flag delegabili
+  // di school_staff. Gestione staff e stato scuola non sono mai delegabili
+  // e non hanno un flag: restano dietro richiedeReferente().
+  puoVerificareStudenti: boolean;
+  puoGestireClassi: boolean;
+  puoCertificarePresenze: boolean;
+  puoInviareComunicazioni: boolean;
 };
 
 // Stesso principio di lib/ente/context.ts (cache() di React: layout e
@@ -49,7 +57,9 @@ export const getScuolaContext = cache(async (): Promise<ScuolaContext> => {
 
   const { data: staff } = await supabase
     .from("school_staff")
-    .select("ruolo_staff, scuola_profilo_id")
+    .select(
+      "ruolo_staff, scuola_profilo_id, puo_verificare_studenti, puo_gestire_classi, puo_certificare_presenze, puo_inviare_comunicazioni",
+    )
     .eq("user_id", user.id)
     .eq("attivo", true)
     .maybeSingle();
@@ -57,6 +67,9 @@ export const getScuolaContext = cache(async (): Promise<ScuolaContext> => {
   if (!staff) {
     redirect("/per-le-scuole?errore=scuola_dati_incompleti#richiedi-accesso");
   }
+
+  const ruoloStaff = staff.ruolo_staff as "referente" | "tutor";
+  const eReferente = ruoloStaff === "referente";
 
   const { data: scuolaProfilo } = await supabase
     .from("scuole_profili")
@@ -76,18 +89,25 @@ export const getScuolaContext = cache(async (): Promise<ScuolaContext> => {
     userId: user.id,
     nome,
     cognome,
-    ruoloStaff: staff.ruolo_staff as "referente" | "tutor",
+    ruoloStaff,
     scuolaProfiloId: staff.scuola_profilo_id,
     scuolaId: scuolaProfilo?.scuola_id ?? "",
     nomeScuola: scuola?.denominazione ?? "",
     stato: scuolaProfilo?.stato ?? "richiesta",
+    puoVerificareStudenti: eReferente || Boolean(staff.puo_verificare_studenti),
+    puoGestireClassi: eReferente || Boolean(staff.puo_gestire_classi),
+    puoCertificarePresenze: eReferente || Boolean(staff.puo_certificare_presenze),
+    puoInviareComunicazioni: eReferente || Boolean(staff.puo_inviare_comunicazioni),
   };
 });
 
-// Guardia per le pagine riservate al solo referente (Studenti, Staff): un
-// tutor che tentasse l'URL diretto torna alla home /scuola invece di
-// vedere un errore — "i tutor non vedono verifica studenti, staff,
-// attivazione" (CLAUDE.md).
+// Guardia per le pagine riservate al solo referente e MAI delegabili
+// (Staff, attivazione): un tutor che tentasse l'URL diretto torna alla
+// home /scuola invece di vedere un errore. Le pagine il cui accesso è
+// delegabile (Studenti, Classi, Eventi, Comunicazioni) NON usano questa
+// guardia — restano navigabili da qualunque staff attivo, con le sole
+// azioni scritte gated dai 4 flag puo_* (niente pagine che respingono in
+// silenzio, vedi CLAUDE.md).
 export function richiedeReferente(contesto: ScuolaContext) {
   if (contesto.ruoloStaff !== "referente") {
     redirect("/scuola");

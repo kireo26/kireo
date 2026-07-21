@@ -13,10 +13,12 @@ export default function GestioneClasseStudenti({
   classeId,
   membri,
   disponibili,
+  puoGestire,
 }: {
   classeId: string;
   membri: Studente[];
   disponibili: Studente[];
+  puoGestire: boolean;
 }) {
   const router = useRouter();
   const [daAggiungere, setDaAggiungere] = useState("");
@@ -63,15 +65,17 @@ export default function GestioneClasseStudenti({
               <Link href={`/scuola/studenti/${s.userId}`} className="hover:underline">
                 {etichettaPrincipaleStudente(s.nome, s.cognome, s.email)}
               </Link>
-              <button type="button" onClick={() => handleRimuovi(s.userId)} disabled={caricamento} className="text-xs text-red-400 hover:underline">
-                Rimuovi
-              </button>
+              {puoGestire && (
+                <button type="button" onClick={() => handleRimuovi(s.userId)} disabled={caricamento} className="text-xs text-red-400 hover:underline">
+                  Rimuovi
+                </button>
+              )}
             </li>
           ))}
         </ul>
       )}
 
-      {disponibili.length > 0 && (
+      {puoGestire && disponibili.length > 0 && (
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <select
             value={daAggiungere}

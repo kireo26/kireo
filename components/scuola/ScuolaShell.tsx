@@ -15,7 +15,7 @@ type NavItem = {
 
 const NAV_ITEMS: NavItem[] = [
   { href: "/scuola", label: "Home", shortLabel: "Home", icon: IconHome },
-  { href: "/scuola/studenti", label: "Studenti", shortLabel: "Studenti", icon: IconStudenti, soloReferente: true },
+  { href: "/scuola/studenti", label: "Studenti", shortLabel: "Studenti", icon: IconStudenti },
   { href: "/scuola/classi", label: "Classi", shortLabel: "Classi", icon: IconClassi },
   { href: "/scuola/staff", label: "Staff", shortLabel: "Staff", icon: IconStaff, soloReferente: true },
   { href: "/scuola/eventi", label: "Eventi", shortLabel: "Eventi", icon: IconEventi },

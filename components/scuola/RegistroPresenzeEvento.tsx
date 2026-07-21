@@ -8,7 +8,15 @@ import { createClient } from "@/lib/supabase/client";
 import type { RigaPresenza } from "@/lib/scuola/eventi";
 import { etichettaPrincipaleStudente } from "@/lib/scuola/formatStudente";
 
-export default function RegistroPresenzeEvento({ eventoId, righe }: { eventoId: string; righe: RigaPresenza[] }) {
+export default function RegistroPresenzeEvento({
+  eventoId,
+  righe,
+  puoCertificare,
+}: {
+  eventoId: string;
+  righe: RigaPresenza[];
+  puoCertificare: boolean;
+}) {
   const router = useRouter();
   const [selezionati, setSelezionati] = useState<string[]>([]);
   const [caricamento, setCaricamento] = useState<string | null>(null);
@@ -38,14 +46,19 @@ export default function RegistroPresenzeEvento({ eventoId, righe }: { eventoId: 
 
   return (
     <div className="mt-3 border-t border-white/5 pt-3">
-      {selezionati.length > 0 && (
+      {!puoCertificare && (
+        <p className="mb-3 text-xs text-kireo-muted">
+          Puoi vedere il registro presenze, ma non hai il permesso di certificarle: chiedi al referente di attivarlo da Staff.
+        </p>
+      )}
+      {puoCertificare && selezionati.length > 0 && (
         <div className="mb-3">
           <Button type="button" variant="primary" onClick={() => certifica(selezionati)} disabled={caricamento !== null}>
             {caricamento ? "Certificazione…" : `Certifica presenza selezionati (${selezionati.length})`}
           </Button>
         </div>
       )}
-      {daCertificare.length > 1 && (
+      {puoCertificare && daCertificare.length > 1 && (
         <button
           type="button"
           onClick={() => certifica(daCertificare.map((r) => r.studentId))}
@@ -60,7 +73,7 @@ export default function RegistroPresenzeEvento({ eventoId, righe }: { eventoId: 
         {righe.map((r) => (
           <li key={r.studentId} className="flex items-center justify-between gap-3 text-sm">
             <label className="flex items-center gap-3">
-              {r.stato !== "partecipato" && (
+              {puoCertificare && r.stato !== "partecipato" && (
                 <input
                   type="checkbox"
                   checked={selezionati.includes(r.studentId)}
@@ -74,7 +87,7 @@ export default function RegistroPresenzeEvento({ eventoId, righe }: { eventoId: 
             </label>
             {r.stato === "partecipato" ? (
               <span className="rounded-full bg-kireo-green/15 px-2.5 py-0.5 text-xs font-semibold text-kireo-green-light">Presente ✓</span>
-            ) : (
+            ) : puoCertificare ? (
               <button
                 type="button"
                 onClick={() => certifica([r.studentId])}
@@ -83,6 +96,8 @@ export default function RegistroPresenzeEvento({ eventoId, righe }: { eventoId: 
               >
                 Certifica
               </button>
+            ) : (
+              <span className="text-xs text-kireo-muted">In attesa</span>
             )}
           </li>
         ))}

@@ -90,10 +90,10 @@ as $$
 declare
   v_scuola_profilo_id uuid;
 begin
-  -- current_ruolo_staff() è null per chi non è staff: null not in (...)
-  -- vale null, non true, quindi va reso esplicito (stesso bug spiegato in
-  -- 20260715110000_scuole_profili_e_staff.sql).
-  if public.current_ruolo_staff() is null or public.current_ruolo_staff() not in ('referente', 'tutor') then
+  -- Delegabile al tutor via puo_gestire_classi (vedi
+  -- current_ha_permesso_staff in 20260715110000); il referente ha sempre
+  -- tutto.
+  if not public.current_ha_permesso_staff('gestione_classi') then
     raise exception 'non_autorizzato';
   end if;
 
@@ -137,10 +137,10 @@ security definer
 set search_path = public
 as $$
 begin
-  -- current_ruolo_staff() è null per chi non è staff: null not in (...)
-  -- vale null, non true, quindi va reso esplicito (stesso bug spiegato in
-  -- 20260715110000_scuole_profili_e_staff.sql).
-  if public.current_ruolo_staff() is null or public.current_ruolo_staff() not in ('referente', 'tutor') then
+  -- Delegabile al tutor via puo_gestire_classi (vedi
+  -- current_ha_permesso_staff in 20260715110000); il referente ha sempre
+  -- tutto.
+  if not public.current_ha_permesso_staff('gestione_classi') then
     raise exception 'non_autorizzato';
   end if;
 
@@ -178,10 +178,10 @@ as $$
 declare
   v_raggiungibile boolean;
 begin
-  -- current_ruolo_staff() è null per chi non è staff: null not in (...)
-  -- vale null, non true, quindi va reso esplicito (stesso bug spiegato in
-  -- 20260715110000_scuole_profili_e_staff.sql).
-  if public.current_ruolo_staff() is null or public.current_ruolo_staff() not in ('referente', 'tutor') then
+  -- Delegabile al tutor via puo_certificare_presenze (vedi
+  -- current_ha_permesso_staff in 20260715110000); il referente ha sempre
+  -- tutto.
+  if not public.current_ha_permesso_staff('certificazione_presenze') then
     raise exception 'non_autorizzato';
   end if;
 
