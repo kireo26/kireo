@@ -2,10 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/Button";
 import { createClient } from "@/lib/supabase/client";
+import { etichettaPrincipaleStudente } from "@/lib/scuola/formatStudente";
 
-type Studente = { userId: string; nome: string; cognome: string };
+type Studente = { userId: string; nome: string; cognome: string; email: string | null };
 
 export default function GestioneClasseStudenti({
   classeId,
@@ -58,9 +60,9 @@ export default function GestioneClasseStudenti({
         <ul className="space-y-1.5">
           {membri.map((s) => (
             <li key={s.userId} className="flex items-center justify-between text-sm text-kireo-light/90">
-              <span>
-                {s.nome} {s.cognome}
-              </span>
+              <Link href={`/scuola/studenti/${s.userId}`} className="hover:underline">
+                {etichettaPrincipaleStudente(s.nome, s.cognome, s.email)}
+              </Link>
               <button type="button" onClick={() => handleRimuovi(s.userId)} disabled={caricamento} className="text-xs text-red-400 hover:underline">
                 Rimuovi
               </button>
@@ -79,7 +81,7 @@ export default function GestioneClasseStudenti({
             <option value="">Aggiungi studente verificato…</option>
             {disponibili.map((s) => (
               <option key={s.userId} value={s.userId}>
-                {s.nome} {s.cognome}
+                {etichettaPrincipaleStudente(s.nome, s.cognome, s.email)}
               </option>
             ))}
           </select>

@@ -1,9 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { getEmailStudenti } from "./email";
 
 export type RigaPresenza = {
   studentId: string;
   nome: string;
   cognome: string;
+  email: string | null;
   stato: "iscritto" | "partecipato";
   certificataDaTipo: string | null;
 };
@@ -44,6 +46,7 @@ export async function getRegistroPresenze(
       studentId: riga.student_id,
       nome: profilo?.nome ?? "",
       cognome: profilo?.cognome ?? "",
+      email: null,
       stato: riga.stato as "iscritto" | "partecipato",
       certificataDaTipo: riga.certificata_da_tipo,
     });
@@ -65,10 +68,16 @@ export async function getRegistroPresenze(
         studentId: riga.student_id,
         nome: profilo?.nome ?? "",
         cognome: profilo?.cognome ?? "",
+        email: null,
         stato: "iscritto",
         certificataDaTipo: null,
       });
     }
+  }
+
+  const emailPerStudente = await getEmailStudenti(supabase, Array.from(mappa.keys()));
+  for (const riga of mappa.values()) {
+    riga.email = emailPerStudente.get(riga.studentId) ?? null;
   }
 
   return Array.from(mappa.values()).sort((a, b) => a.cognome.localeCompare(b.cognome, "it"));

@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/Button";
 import { createClient } from "@/lib/supabase/client";
 import type { RigaPresenza } from "@/lib/scuola/eventi";
+import { etichettaPrincipaleStudente } from "@/lib/scuola/formatStudente";
 
 export default function RegistroPresenzeEvento({ eventoId, righe }: { eventoId: string; righe: RigaPresenza[] }) {
   const router = useRouter();
@@ -66,9 +68,9 @@ export default function RegistroPresenzeEvento({ eventoId, righe }: { eventoId: 
                   className="h-4 w-4 rounded border-white/20 bg-kireo-dark accent-kireo-green"
                 />
               )}
-              <span className="text-kireo-light/90">
-                {r.nome} {r.cognome}
-              </span>
+              <Link href={`/scuola/studenti/${r.studentId}`} className="text-kireo-light/90 hover:underline">
+                {etichettaPrincipaleStudente(r.nome, r.cognome, r.email)}
+              </Link>
             </label>
             {r.stato === "partecipato" ? (
               <span className="rounded-full bg-kireo-green/15 px-2.5 py-0.5 text-xs font-semibold text-kireo-green-light">Presente ✓</span>

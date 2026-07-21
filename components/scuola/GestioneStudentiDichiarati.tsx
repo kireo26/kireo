@@ -4,8 +4,16 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/Button";
 import { createClient } from "@/lib/supabase/client";
+import { etichettaPrincipaleStudente, nomeCompletoStudente } from "@/lib/scuola/formatStudente";
 
-type StudenteDichiarato = { userId: string; nome: string; cognome: string; classe: string | null };
+type StudenteDichiarato = {
+  userId: string;
+  nome: string;
+  cognome: string;
+  classe: string | null;
+  email: string | null;
+  dichiaratoIl: string;
+};
 
 export default function GestioneStudentiDichiarati({ studenti }: { studenti: StudenteDichiarato[] }) {
   const router = useRouter();
@@ -64,10 +72,18 @@ export default function GestioneStudentiDichiarati({ studenti }: { studenti: Stu
                 className="h-4 w-4 rounded border-white/20 bg-kireo-dark accent-kireo-green"
               />
               <span>
-                <span className="font-heading text-sm font-semibold text-kireo-light">
-                  {s.nome} {s.cognome}
+                <span className="block">
+                  <span className="font-heading text-sm font-semibold text-kireo-light">
+                    {etichettaPrincipaleStudente(s.nome, s.cognome, s.email)}
+                  </span>
+                  {nomeCompletoStudente(s.nome, s.cognome) && s.email && (
+                    <span className="ml-2 text-xs text-kireo-muted">{s.email}</span>
+                  )}
                 </span>
-                {s.classe && <span className="ml-2 text-xs text-kireo-muted">classe dichiarata: {s.classe}</span>}
+                <span className="mt-0.5 block text-xs text-kireo-muted">
+                  {s.classe && <>classe dichiarata: {s.classe} · </>}
+                  dichiarata il {new Date(s.dichiaratoIl).toLocaleDateString("it-IT", { dateStyle: "long" })}
+                </span>
               </span>
             </label>
             <div className="flex gap-2">

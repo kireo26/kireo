@@ -1,5 +1,8 @@
+import Link from "next/link";
 import { getScuolaContext, richiedeReferente } from "@/lib/scuola/context";
 import { createClient } from "@/lib/supabase/server";
+import { getEmailStudenti } from "@/lib/scuola/email";
+import { etichettaPrincipaleStudente, nomeCompletoStudente } from "@/lib/scuola/formatStudente";
 import GestioneStudentiDichiarati from "@/components/scuola/GestioneStudentiDichiarati";
 
 export default async function ScuolaStudentiPage() {
@@ -11,12 +14,12 @@ export default async function ScuolaStudentiPage() {
     await Promise.all([
       supabase
         .from("student_profiles")
-        .select("user_id, classe, profiles!user_id(nome, cognome)")
+        .select("user_id, classe, created_at, profiles!user_id(nome, cognome)")
         .eq("school_code", contesto.scuolaId)
         .eq("stato_verifica", "dichiarato"),
       supabase
         .from("student_profiles")
-        .select("user_id, classe, profiles!user_id(nome, cognome)")
+        .select("user_id, classe, created_at, profiles!user_id(nome, cognome)")
         .eq("school_code", contesto.scuolaId)
         .eq("stato_verifica", "verificato")
         .order("classe", { ascending: true }),
@@ -33,9 +36,19 @@ export default async function ScuolaStudentiPage() {
     if (classe?.nome_visualizzato) classePerStudente.set(riga.student_id, classe.nome_visualizzato);
   }
 
+  const tuttiGliId = [...(dichiarati ?? []).map((s) => s.user_id), ...(verificati ?? []).map((s) => s.user_id)];
+  const emailPerStudente = await getEmailStudenti(supabase, tuttiGliId);
+
   const studentiDichiarati = (dichiarati ?? []).map((s) => {
     const profilo = Array.isArray(s.profiles) ? s.profiles[0] : s.profiles;
-    return { userId: s.user_id, nome: profilo?.nome ?? "", cognome: profilo?.cognome ?? "", classe: s.classe };
+    return {
+      userId: s.user_id,
+      nome: profilo?.nome ?? "",
+      cognome: profilo?.cognome ?? "",
+      classe: s.classe,
+      email: emailPerStudente.get(s.user_id) ?? null,
+      dichiaratoIl: s.created_at as string,
+    };
   });
 
   return (
@@ -64,14 +77,23 @@ export default async function ScuolaStudentiPage() {
           <ul className="mt-3 space-y-2">
             {verificati.map((s) => {
               const profilo = Array.isArray(s.profiles) ? s.profiles[0] : s.profiles;
+              const nome = profilo?.nome ?? "";
+              const cognome = profilo?.cognome ?? "";
+              const email = emailPerStudente.get(s.user_id) ?? null;
+              const nomeCompleto = nomeCompletoStudente(nome, cognome);
               return (
-                <li key={s.user_id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/5 bg-kireo-card p-4">
-                  <span className="font-heading text-sm font-semibold text-kireo-light">
-                    {profilo?.nome} {profilo?.cognome}
-                  </span>
-                  <span className="text-xs text-kireo-muted">
-                    {classePerStudente.get(s.user_id) ?? "Nessuna classe assegnata"}
-                  </span>
+                <li key={s.user_id} className="rounded-xl border border-white/5 bg-kireo-card p-4">
+                  <Link href={`/scuola/studenti/${s.user_id}`} className="flex flex-wrap items-center justify-between gap-3 hover:underline">
+                    <span>
+                      <span className="font-heading text-sm font-semibold text-kireo-light">
+                        {etichettaPrincipaleStudente(nome, cognome, email)}
+                      </span>
+                      {nomeCompleto && email && <span className="ml-2 text-xs text-kireo-muted">{email}</span>}
+                    </span>
+                    <span className="text-xs text-kireo-muted">
+                      {classePerStudente.get(s.user_id) ?? "Nessuna classe assegnata"}
+                    </span>
+                  </Link>
                 </li>
               );
             })}
