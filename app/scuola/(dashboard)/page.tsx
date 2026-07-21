@@ -6,7 +6,11 @@ export default async function ScuolaHomePage() {
   const contesto = await getScuolaContext();
   const supabase = await createClient();
 
-  const [{ count: daVerificare }, { count: verificati }, { data: prossimiEventi }] = await Promise.all([
+  const [
+    { count: daVerificare, error: erroreDaVerificare },
+    { count: verificati, error: erroreVerificati },
+    { data: prossimiEventi, error: erroreProssimiEventi },
+  ] = await Promise.all([
     supabase
       .from("student_profiles")
       .select("user_id", { count: "exact", head: true })
@@ -24,6 +28,10 @@ export default async function ScuolaHomePage() {
       .order("created_at", { ascending: false })
       .limit(5),
   ]);
+
+  if (erroreDaVerificare) console.error("[/scuola] errore count daVerificare:", erroreDaVerificare);
+  if (erroreVerificati) console.error("[/scuola] errore count verificati:", erroreVerificati);
+  if (erroreProssimiEventi) console.error("[/scuola] errore query prossimiEventi:", erroreProssimiEventi);
 
   return (
     <div className="space-y-8">

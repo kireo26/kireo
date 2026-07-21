@@ -7,20 +7,25 @@ export default async function ScuolaStudentiPage() {
   richiedeReferente(contesto);
   const supabase = await createClient();
 
-  const [{ data: dichiarati }, { data: verificati }, { data: classiStudenti }] = await Promise.all([
-    supabase
-      .from("student_profiles")
-      .select("user_id, classe, profiles(nome, cognome)")
-      .eq("school_code", contesto.scuolaId)
-      .eq("stato_verifica", "dichiarato"),
-    supabase
-      .from("student_profiles")
-      .select("user_id, classe, profiles(nome, cognome)")
-      .eq("school_code", contesto.scuolaId)
-      .eq("stato_verifica", "verificato")
-      .order("classe", { ascending: true }),
-    supabase.from("classi_studenti").select("student_id, classi(nome_visualizzato)"),
-  ]);
+  const [{ data: dichiarati, error: erroreDichiarati }, { data: verificati, error: erroreVerificati }, { data: classiStudenti, error: erroreClassiStudenti }] =
+    await Promise.all([
+      supabase
+        .from("student_profiles")
+        .select("user_id, classe, profiles!user_id(nome, cognome)")
+        .eq("school_code", contesto.scuolaId)
+        .eq("stato_verifica", "dichiarato"),
+      supabase
+        .from("student_profiles")
+        .select("user_id, classe, profiles!user_id(nome, cognome)")
+        .eq("school_code", contesto.scuolaId)
+        .eq("stato_verifica", "verificato")
+        .order("classe", { ascending: true }),
+      supabase.from("classi_studenti").select("student_id, classi(nome_visualizzato)"),
+    ]);
+
+  if (erroreDichiarati) console.error("[/scuola/studenti] errore query dichiarati:", erroreDichiarati);
+  if (erroreVerificati) console.error("[/scuola/studenti] errore query verificati:", erroreVerificati);
+  if (erroreClassiStudenti) console.error("[/scuola/studenti] errore query classiStudenti:", erroreClassiStudenti);
 
   const classePerStudente = new Map<string, string>();
   for (const riga of classiStudenti ?? []) {

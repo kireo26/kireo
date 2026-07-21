@@ -7,20 +7,25 @@ export default async function ScuolaClassiPage() {
   const contesto = await getScuolaContext();
   const supabase = await createClient();
 
-  const [{ data: classi }, { data: verificati }, { data: classiStudenti }] = await Promise.all([
-    supabase
-      .from("classi")
-      .select("id, anno, sezione, nome_visualizzato")
-      .eq("scuola_profilo_id", contesto.scuolaProfiloId)
-      .order("anno", { ascending: true })
-      .order("sezione", { ascending: true }),
-    supabase
-      .from("student_profiles")
-      .select("user_id, profiles(nome, cognome)")
-      .eq("school_code", contesto.scuolaId)
-      .eq("stato_verifica", "verificato"),
-    supabase.from("classi_studenti").select("classe_id, student_id"),
-  ]);
+  const [{ data: classi, error: erroreClassi }, { data: verificati, error: erroreVerificati }, { data: classiStudenti, error: erroreClassiStudenti }] =
+    await Promise.all([
+      supabase
+        .from("classi")
+        .select("id, anno, sezione, nome_visualizzato")
+        .eq("scuola_profilo_id", contesto.scuolaProfiloId)
+        .order("anno", { ascending: true })
+        .order("sezione", { ascending: true }),
+      supabase
+        .from("student_profiles")
+        .select("user_id, profiles!user_id(nome, cognome)")
+        .eq("school_code", contesto.scuolaId)
+        .eq("stato_verifica", "verificato"),
+      supabase.from("classi_studenti").select("classe_id, student_id"),
+    ]);
+
+  if (erroreClassi) console.error("[/scuola/classi] errore query classi:", erroreClassi);
+  if (erroreVerificati) console.error("[/scuola/classi] errore query verificati:", erroreVerificati);
+  if (erroreClassiStudenti) console.error("[/scuola/classi] errore query classiStudenti:", erroreClassiStudenti);
 
   const studentiVerificati = (verificati ?? []).map((s) => {
     const profilo = Array.isArray(s.profiles) ? s.profiles[0] : s.profiles;

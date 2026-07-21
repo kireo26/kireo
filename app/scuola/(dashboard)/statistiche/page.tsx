@@ -6,10 +6,13 @@ export default async function ScuolaStatistichePage() {
   const contesto = await getScuolaContext();
   const supabase = await createClient();
 
-  const [{ data: stats }, { data: statsAree }] = await Promise.all([
+  const [{ data: stats, error: erroreStats }, { data: statsAree, error: erroreStatsAree }] = await Promise.all([
     supabase.from("stats_scuola").select("studenti_verificati, partecipazioni_totali, ore_pcto_totali").eq("scuola_profilo_id", contesto.scuolaProfiloId).maybeSingle(),
     supabase.from("stats_scuola_aree").select("area_slug, partecipazioni").eq("scuola_profilo_id", contesto.scuolaProfiloId).order("partecipazioni", { ascending: false }),
   ]);
+
+  if (erroreStats) console.error("[/scuola/statistiche] errore query stats:", erroreStats);
+  if (erroreStatsAree) console.error("[/scuola/statistiche] errore query statsAree:", erroreStatsAree);
 
   return (
     <div className="space-y-8">

@@ -8,11 +8,13 @@ export default async function ScuolaStaffPage() {
   richiedeReferente(contesto);
   const supabase = await createClient();
 
-  const { data: staff } = await supabase
+  const { data: staff, error: erroreStaff } = await supabase
     .from("school_staff")
-    .select("id, ruolo_staff, attivo, user_id, codice_invito, nome_invitato, email_invitato, profiles(nome, cognome)")
+    .select("id, ruolo_staff, attivo, user_id, codice_invito, nome_invitato, email_invitato, profiles!user_id(nome, cognome)")
     .eq("scuola_profilo_id", contesto.scuolaProfiloId)
     .order("created_at", { ascending: true });
+
+  if (erroreStaff) console.error("[/scuola/staff] errore query staff:", erroreStaff);
 
   const tutor = (staff ?? []).filter((s) => s.ruolo_staff === "tutor");
 

@@ -9,12 +9,17 @@ export default async function ScuolaEventiPage() {
   const contesto = await getScuolaContext();
   const supabase = await createClient();
 
-  const [{ data: prossimi }, { data: classi }, { data: verificati }, eventiConIscrizioni] = await Promise.all([
-    supabase.from("eventi").select("id, titolo, tipo, data_inizio, ore_pcto").eq("stato", "approvato").gte("data_inizio", new Date().toISOString()).order("data_inizio", { ascending: true }),
-    supabase.from("classi").select("id, nome_visualizzato").eq("scuola_profilo_id", contesto.scuolaProfiloId).order("anno", { ascending: true }),
-    supabase.from("student_profiles").select("user_id").eq("school_code", contesto.scuolaId).eq("stato_verifica", "verificato"),
-    getEventiConIscrizioniScuola(supabase, contesto.scuolaProfiloId, contesto.scuolaId),
-  ]);
+  const [{ data: prossimi, error: erroreProssimi }, { data: classi, error: erroreClassi }, { data: verificati, error: erroreVerificati }, eventiConIscrizioni] =
+    await Promise.all([
+      supabase.from("eventi").select("id, titolo, tipo, data_inizio, ore_pcto").eq("stato", "approvato").gte("data_inizio", new Date().toISOString()).order("data_inizio", { ascending: true }),
+      supabase.from("classi").select("id, nome_visualizzato").eq("scuola_profilo_id", contesto.scuolaProfiloId).order("anno", { ascending: true }),
+      supabase.from("student_profiles").select("user_id").eq("school_code", contesto.scuolaId).eq("stato_verifica", "verificato"),
+      getEventiConIscrizioniScuola(supabase, contesto.scuolaProfiloId, contesto.scuolaId),
+    ]);
+
+  if (erroreProssimi) console.error("[/scuola/eventi] errore query prossimi:", erroreProssimi);
+  if (erroreClassi) console.error("[/scuola/eventi] errore query classi:", erroreClassi);
+  if (erroreVerificati) console.error("[/scuola/eventi] errore query verificati:", erroreVerificati);
 
   const classiOpzioni = (classi ?? []).map((c) => ({ id: c.id, nomeVisualizzato: c.nome_visualizzato ?? "Classe" }));
   const idVerificati = (verificati ?? []).map((s) => s.user_id);

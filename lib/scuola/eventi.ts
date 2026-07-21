@@ -19,10 +19,10 @@ export async function getRegistroPresenze(
   scuolaProfiloId: string,
   scuolaId: string,
 ): Promise<RigaPresenza[]> {
-  const [{ data: righeDirette }, { data: classiDad }] = await Promise.all([
+  const [{ data: righeDirette, error: erroreRigheDirette }, { data: classiDad, error: erroreClassiDad }] = await Promise.all([
     supabase
       .from("iscrizioni_eventi")
-      .select("student_id, stato, certificata_da_tipo, profiles(nome, cognome)")
+      .select("student_id, stato, certificata_da_tipo, profiles!student_id(nome, cognome)")
       .eq("evento_id", eventoId)
       .eq("origine", "scuola"),
     supabase
@@ -32,6 +32,9 @@ export async function getRegistroPresenze(
       .eq("modalita", "dad")
       .eq("classi.scuola_profilo_id", scuolaProfiloId),
   ]);
+
+  if (erroreRigheDirette) console.error("[lib/scuola/eventi.ts:getRegistroPresenze] errore query righeDirette:", erroreRigheDirette);
+  if (erroreClassiDad) console.error("[lib/scuola/eventi.ts:getRegistroPresenze] errore query classiDad:", erroreClassiDad);
 
   const mappa = new Map<string, RigaPresenza>();
 
@@ -48,10 +51,12 @@ export async function getRegistroPresenze(
 
   const classeIds = (classiDad ?? []).map((c) => c.classe_id);
   if (classeIds.length > 0) {
-    const { data: membri } = await supabase
+    const { data: membri, error: erroreMembri } = await supabase
       .from("classi_studenti")
-      .select("student_id, profiles(nome, cognome)")
+      .select("student_id, profiles!student_id(nome, cognome)")
       .in("classe_id", classeIds);
+
+    if (erroreMembri) console.error("[lib/scuola/eventi.ts:getRegistroPresenze] errore query membri:", erroreMembri);
 
     for (const riga of membri ?? []) {
       if (mappa.has(riga.student_id)) continue;
