@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAreaBySlug } from "@/data/aree";
-import { generaPdfSegnaposto } from "@/lib/pdf";
+import { generaPdfSegnaposto } from "@/lib/pdf/segnaposto";
 
 // Download immediato della guida dopo il form (vedi GuidaAreaForm). Le 18
 // guide reali restano fuori scope in questa sessione (confermato

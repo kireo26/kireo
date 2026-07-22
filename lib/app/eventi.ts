@@ -37,6 +37,7 @@ export async function getProssimiEventi(supabase: SupabaseClient, limite?: numbe
     let query = supabase
       .from("eventi")
       .select(COLONNE_EVENTO)
+      .eq("pubblico", "studenti")
       .gte("data_inizio", new Date().toISOString())
       .order("data_inizio", { ascending: true });
     if (limite) query = query.limit(limite);
@@ -53,6 +54,7 @@ export async function getEventiPassati(supabase: SupabaseClient, limite = 20): P
     const { data, error } = await supabase
       .from("eventi")
       .select(COLONNE_EVENTO)
+      .eq("pubblico", "studenti")
       .lt("data_inizio", new Date().toISOString())
       .order("data_inizio", { ascending: false })
       .limit(limite);

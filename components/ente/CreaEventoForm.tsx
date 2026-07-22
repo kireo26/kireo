@@ -6,6 +6,7 @@ import { Button } from "@/components/Button";
 import { inputClass, fieldBorder } from "@/lib/formStyles";
 import { createClient } from "@/lib/supabase/client";
 import AreeInteresseGrid from "@/components/app/AreeInteresseGrid";
+import { FILONI_DOCENTI } from "@/data/filoniDocenti";
 
 const TIPI = [
   { value: "webinar", label: "Webinar" },
@@ -17,12 +18,18 @@ const MAX_AREE_EVENTO = 2;
 
 const MAX_EVENTI_IN_REVISIONE = 4;
 
+// Un'istituzione di tipo formazione_docenti propone SOLO eventi per
+// docenti (pubblico=docenti + filone al posto delle aree): niente
+// eventi_aree per questi eventi, il trigger blocca_aree_su_eventi_docenti
+// lo impedirebbe comunque, ma il client non deve nemmeno tentarlo.
 export default function CreaEventoForm({
   istituzioneId,
   eventiInRevisione,
+  perDocenti = false,
 }: {
   istituzioneId: string;
   eventiInRevisione: number;
+  perDocenti?: boolean;
 }) {
   const fairUseRaggiunto = eventiInRevisione >= MAX_EVENTI_IN_REVISIONE;
   const router = useRouter();
@@ -37,6 +44,7 @@ export default function CreaEventoForm({
   const [scaletta, setScaletta] = useState("");
   const [ctaEsternaUrl, setCtaEsternaUrl] = useState("");
   const [aree, setAree] = useState<string[]>([]);
+  const [filone, setFilone] = useState("");
 
   const [errori, setErrori] = useState<Record<string, string>>({});
   const [inviando, setInviando] = useState(false);
@@ -56,6 +64,7 @@ export default function CreaEventoForm({
     if (!titolo.trim()) next.titolo = "Inserisci un titolo.";
     if (!dataInizio) next.dataInizio = "Inserisci data e ora.";
     if (!scaletta.trim()) next.scaletta = "La scaletta/argomento è obbligatoria per la revisione di KIREO.";
+    if (perDocenti && !filone) next.filone = "Seleziona il filone del webinar.";
     return next;
   }
 
@@ -88,6 +97,8 @@ export default function CreaEventoForm({
           ore_pcto: orePcto ? Number(orePcto) : 0,
           cta_esterna_url: ctaEsternaUrl.trim() || null,
           stato: "in_approvazione",
+          pubblico: perDocenti ? "docenti" : "studenti",
+          filone: perDocenti ? filone : null,
         })
         .select("id")
         .single();
@@ -101,7 +112,7 @@ export default function CreaEventoForm({
         return;
       }
 
-      if (aree.length > 0) {
+      if (!perDocenti && aree.length > 0) {
         await supabase.from("eventi_aree").insert(aree.map((area_slug) => ({ evento_id: evento.id, area_slug })));
       }
 
@@ -271,15 +282,40 @@ export default function CreaEventoForm({
         <p className="mt-1.5 text-xs text-kireo-muted">Diventa la descrizione visibile pubblicamente una volta approvato.</p>
       </div>
 
-      <div>
-        <div className="mb-2 flex items-center justify-between">
-          <label className="text-sm font-medium text-kireo-light">Aree tematiche (fino a 2)</label>
-          <span className="text-sm text-kireo-muted">
-            {aree.length}/{MAX_AREE_EVENTO}
-          </span>
+      {perDocenti ? (
+        <div>
+          <label htmlFor="filone" className="mb-1.5 block text-sm font-medium text-kireo-light">
+            Filone
+          </label>
+          <select
+            id="filone"
+            value={filone}
+            onChange={(e) => setFilone(e.target.value)}
+            aria-invalid={Boolean(errori.filone)}
+            className={`${inputClass} ${fieldBorder(Boolean(errori.filone))}`}
+          >
+            <option value="" disabled>
+              Seleziona il filone
+            </option>
+            {FILONI_DOCENTI.map((f) => (
+              <option key={f.slug} value={f.slug}>
+                {f.nome}
+              </option>
+            ))}
+          </select>
+          {errori.filone && <p className="mt-1.5 text-sm text-red-400">{errori.filone}</p>}
         </div>
-        <AreeInteresseGrid selezionate={aree} onToggle={toggleArea} max={MAX_AREE_EVENTO} />
-      </div>
+      ) : (
+        <div>
+          <div className="mb-2 flex items-center justify-between">
+            <label className="text-sm font-medium text-kireo-light">Aree tematiche (fino a 2)</label>
+            <span className="text-sm text-kireo-muted">
+              {aree.length}/{MAX_AREE_EVENTO}
+            </span>
+          </div>
+          <AreeInteresseGrid selezionate={aree} onToggle={toggleArea} max={MAX_AREE_EVENTO} />
+        </div>
+      )}
 
       <Button type="submit" variant="primary" className="w-full" disabled={inviando || fairUseRaggiunto}>
         {fairUseRaggiunto ? "4 eventi già in revisione" : inviando ? "Invio in corso…" : "Invia in approvazione"}

@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const AREE_PROTETTE = ["/app", "/ente", "/admin", "/scuola"];
+const AREE_PROTETTE = ["/app", "/ente", "/admin", "/scuola", "/docente"];
 
 function redirectAccedi(request: NextRequest) {
   const url = request.nextUrl.clone();
@@ -11,7 +11,7 @@ function redirectAccedi(request: NextRequest) {
 }
 
 // Aggiorna la sessione ad ogni richiesta e protegge le route sotto /app,
-// /ente, /admin e /scuola: senza utente autenticato reindirizza a /accedi,
+// /ente, /admin, /scuola e /docente: senza utente autenticato reindirizza a /accedi,
 // preservando la pagina di destinazione originale in redirectedFrom. Il
 // controllo del ruolo esatto (studente/istituzione/admin) resta comunque a
 // carico di ogni area (getAppContext/getEnteContext/requireAdmin) e delle

@@ -5,6 +5,7 @@ import AttivaIstituzioneButton from "@/components/admin/AttivaIstituzioneButton"
 import AttivaScuolaControlli from "@/components/admin/AttivaScuolaControlli";
 import LogoutButton from "@/components/LogoutButton";
 import { ETICHETTA_PIANO } from "@/lib/ente/pianoSuccessivo";
+import { getFiloneBySlug } from "@/data/filoniDocenti";
 
 export default async function AdminPage() {
   const { supabase, nome } = await requireAdmin();
@@ -20,7 +21,7 @@ export default async function AdminPage() {
     supabase.from("istituzioni").select("id, nome, tipo, created_at").eq("stato", "in_attesa").order("created_at", { ascending: true }),
     supabase
       .from("eventi")
-      .select("id, titolo, descrizione, tipo, data_inizio, cta_esterna_url, istituzioni(nome)")
+      .select("id, titolo, descrizione, tipo, data_inizio, cta_esterna_url, pubblico, filone, istituzioni(nome)")
       .eq("stato", "in_approvazione")
       .order("created_at", { ascending: true }),
     supabase
@@ -103,6 +104,7 @@ export default async function AdminPage() {
                   <p className="mt-1 text-xs text-kireo-muted">
                     {organizzatore?.nome ?? "KIREO"} · {e.tipo} ·{" "}
                     {new Date(e.data_inizio).toLocaleString("it-IT", { dateStyle: "long", timeStyle: "short" })}
+                    {e.pubblico === "docenti" && ` · Docenti · ${getFiloneBySlug(e.filone)?.nome ?? e.filone}`}
                   </p>
                   <p className="mt-2 text-sm text-kireo-light/90">{e.descrizione}</p>
                   {e.cta_esterna_url && (

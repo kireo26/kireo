@@ -28,9 +28,11 @@ export default async function DopoAccesso() {
   if (ruolo === "admin") {
     redirect("/admin");
   }
+  if (ruolo === "docente") {
+    redirect("/docente");
+  }
 
-  // Studente, docente (o profilo non ancora finalizzato): /app fa già la
-  // sua auto-riparazione e mostra il fallback minimo per i ruoli
-  // non-studente.
+  // Studente (o profilo non ancora finalizzato): /app fa già la sua
+  // auto-riparazione e mostra il fallback minimo per i ruoli non-studente.
   redirect("/app");
 }

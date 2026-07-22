@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { ButtonLink } from "@/components/Button";
 import SectionHeading from "@/components/SectionHeading";
 import DocenteForm from "@/components/DocenteForm";
+import { createClient } from "@/lib/supabase/server";
+import { getProssimiWebinar } from "@/lib/docente/eventi";
+import { getFiloneBySlug } from "@/data/filoniDocenti";
 
 export const metadata: Metadata = {
   title: "Per i docenti — KIREO",
@@ -33,6 +36,12 @@ const TEMI_DOCENTI = [
     titolo: "L'AI che ti restituisce tempo",
     testo:
       "Programmazioni, relazioni, comunicazioni, documentazione: come usare l'AI per alleggerire il carico amministrativo e tornare a fare il mestiere che hai scelto.",
+  },
+  {
+    badge: "Orientamento",
+    titolo: "Orientamento e PCTO",
+    testo:
+      "Strumenti pratici per accompagnare gli studenti nella scelta post-diploma e integrare l'orientamento nel percorso PCTO.",
   },
 ];
 
@@ -74,7 +83,10 @@ const RISORSE_DOCENTI = [
   { icon: MailIcon, testo: "Newsletter con le novità su AI e scuola, una volta al mese" },
 ];
 
-export default function PerIDocenti() {
+export default async function PerIDocenti() {
+  const supabase = await createClient();
+  const prossimiWebinar = await getProssimiWebinar(supabase, 6);
+
   return (
     <>
       <section className="mx-auto max-w-6xl px-6 pb-16 pt-20 sm:pt-28">
@@ -101,7 +113,7 @@ export default function PerIDocenti() {
       </section>
 
       <section className="mx-auto max-w-6xl px-6 py-16">
-        <SectionHeading eyebrow="I temi" title="Quattro filoni, sempre aggiornati" />
+        <SectionHeading eyebrow="I temi" title="Cinque filoni, sempre aggiornati" />
         <div className="mt-12 grid gap-6 sm:grid-cols-2">
           {TEMI_DOCENTI.map((t) => (
             <div key={t.titolo} className="rounded-2xl border border-white/5 bg-kireo-card p-6">
@@ -120,6 +132,37 @@ export default function PerIDocenti() {
           digitali, benessere a scuola. Il calendario dei webinar cresce ogni mese, anche con i
           temi che ci proponi tu.
         </p>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-6 py-16">
+        <SectionHeading eyebrow="Il calendario" title="Prossimi webinar" />
+        {prossimiWebinar.length === 0 ? (
+          <p className="mx-auto mt-8 max-w-xl text-center text-kireo-muted">
+            I primi webinar arrivano a breve: iscriviti per essere avvisato non appena il calendario si apre.
+          </p>
+        ) : (
+          <ul className="mt-10 space-y-3">
+            {prossimiWebinar.map((w) => {
+              const filone = getFiloneBySlug(w.filone);
+              return (
+                <li key={w.id} className="rounded-2xl border border-white/5 bg-kireo-card p-6">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {filone && (
+                      <span className="rounded-full bg-kireo-orange/15 px-2.5 py-0.5 text-xs font-semibold text-kireo-orange">
+                        {filone.nome}
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="mt-2 font-heading text-base font-semibold text-kireo-light">{w.titolo}</h3>
+                  <p className="mt-1 text-sm text-kireo-muted">
+                    {new Date(w.data_inizio).toLocaleString("it-IT", { dateStyle: "full", timeStyle: "short" })}
+                    {w.organizzatore_nome ? ` · ${w.organizzatore_nome}` : ""}
+                  </p>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </section>
 
       <section className="border-t border-white/5 bg-kireo-card/40">

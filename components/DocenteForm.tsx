@@ -117,7 +117,7 @@ export default function DocenteForm() {
         email: email.trim(),
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/app`,
+          emailRedirectTo: `${window.location.origin}/dopo-accesso`,
           data: {
             ruolo: "docente",
             nome: nome.trim(),
