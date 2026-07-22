@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Button } from "./Button";
 import { inputClass, fieldBorder } from "@/lib/formStyles";
 import { registraAttivita } from "@/lib/app/activityLog";
+import { isAreaAttiva } from "@/lib/assistente/config";
 
 const CLASSI = [
   { value: "3", label: "3° anno" },
@@ -82,6 +84,13 @@ export default function GuidaAreaForm({ areaNome, areaSlug }: { areaNome: string
         <p className="mt-2 text-sm text-kireo-muted">
           Controlla i download del tuo browser. Ti scriveremo anche via email con il link per riaprirla quando vuoi.
         </p>
+        {isAreaAttiva(areaSlug) && (
+          <p className="mt-4 text-sm">
+            <Link href={`/app/assistente/${areaSlug}`} className="text-kireo-orange underline underline-offset-2">
+              Hai altre domande? Parla con l&apos;assistente digitale →
+            </Link>
+          </p>
+        )}
       </div>
     );
   }

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { registraAttivita } from "@/lib/app/activityLog";
+import { isAreaAttiva } from "@/lib/assistente/config";
 
 export type AreaInteresse = { slug: string; nome: string; icona: string };
 
@@ -38,7 +39,10 @@ export default function BloccoLeMieAree({ aree }: { aree: AreaInteresse[] }) {
                 >
                   Scarica la guida
                 </button>
-                <Link href={`/aree/${area.slug}#assistente-digitale`} className="text-kireo-orange underline underline-offset-2">
+                <Link
+                  href={isAreaAttiva(area.slug) ? `/app/assistente/${area.slug}` : `/aree/${area.slug}#assistente-digitale`}
+                  className="text-kireo-orange underline underline-offset-2"
+                >
                   Assistente
                 </Link>
               </div>
