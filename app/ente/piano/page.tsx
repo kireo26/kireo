@@ -5,7 +5,7 @@ import { ETICHETTA_PIANO, trovaPianiSuperiori, type PianoQuote } from "@/lib/ent
 import RichiediUpgradeButton from "@/components/ente/RichiediUpgradeButton";
 
 const RIGHE_QUOTA: { chiave: keyof PianoQuote; label: string }[] = [
-  { chiave: "quota_webinar_anno", label: "Eventi/webinar proposti all'anno" },
+  { chiave: "quota_eventi_promossi", label: "Eventi in evidenza all'anno" },
   { chiave: "quota_newsletter", label: "Newsletter agli iscritti all'anno" },
   { chiave: "quota_cta_esterne", label: "CTA verso il sito esterno all'anno" },
   { chiave: "quota_comunicazioni_kireo", label: "Comunicazioni mirate KIREO all'anno" },
@@ -25,7 +25,7 @@ export default async function EntePianoPage() {
     supabase.from("istituzioni").select("piano_attivato_il, piano_scade_il").eq("id", contesto.istituzioneId).maybeSingle(),
     supabase
       .from("piani")
-      .select("id, nome, prezzo_min, prezzo_max, quota_webinar_anno, quota_newsletter, quota_cta_esterne, quota_comunicazioni_kireo")
+      .select("id, nome, prezzo_min, prezzo_max, quota_eventi_promossi, quota_newsletter, quota_cta_esterne, quota_comunicazioni_kireo")
       .order("prezzo_min", { ascending: true }),
     supabase
       .from("richieste_upgrade")
@@ -41,7 +41,7 @@ export default async function EntePianoPage() {
   const pianoRichiesto = Array.isArray(richiestaInAttesa?.piani) ? richiestaInAttesa.piani[0] : richiestaInAttesa?.piani;
 
   const RIGHE_USO = [
-    { label: "Eventi", usati: quote.webinarUsati, totali: quote.webinarTotali },
+    { label: "Eventi in evidenza", usati: quote.evidenzaUsate, totali: quote.evidenzaTotali },
     { label: "Newsletter", usati: quote.newsletterUsate, totali: quote.newsletterTotali },
     { label: "CTA esterne", usati: quote.ctaUsate, totali: quote.ctaTotali },
     { label: "Comunicazioni KIREO", usati: quote.comunicazioniKireoUsate, totali: quote.comunicazioniKireoTotali },
@@ -87,7 +87,8 @@ export default async function EntePianoPage() {
       <div>
         <h2 className="py-0.5 font-heading text-xl font-semibold leading-[1.25] text-kireo-light">Confronto piani</h2>
         <p className="mt-1 text-sm text-kireo-muted">
-          Pagare aumenta le quote e la visibilità del tuo profilo, mai l&apos;accesso ai dati degli studenti.
+          La creazione di eventi è illimitata su tutti i piani (revisione KIREO sempre inclusa). Pagare aumenta promozione,
+          informazione e visibilità del tuo profilo, mai l&apos;accesso ai dati degli studenti.
         </p>
         <div className="mt-6 overflow-x-auto">
           <table className="w-full min-w-[640px] border-collapse text-left text-sm">

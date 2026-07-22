@@ -62,12 +62,27 @@ create policy richieste_upgrade_admin_tutto
 -- potersi scrivere da solo una scadenza piano — solo approva_richiesta_
 -- upgrade (sotto, chiamata solo da admin) o un admin diretto possono
 -- valorizzarle.
+--
+-- Trovato e corretto qui (opportunisticamente, mentre si toccava questa
+-- stessa funzione per le due colonne nuove): la versione originale
+-- (20260713130000, già live in produzione) confrontava con `<>` invece di
+-- `IS DISTINCT FROM` — `current_ruolo() <> 'admin'` vale null (non true)
+-- per un utente autenticato senza ancora un profilo, quindi l'IF non
+-- entrerebbe nel ramo che blocca l'escalation e i campi passerebbero
+-- invariati. Rischio reale basso oggi (istituzioni_update_propria richiede
+-- comunque id = current_istituzione_id(), che è null per chi non ha
+-- ancora un profilo collegato, quindi la RLS fa comunque da rete di
+-- sicurezza — stesso ragionamento già fatto per approva_richiesta_upgrade
+-- sotto), ma corretto per costruzione invece di affidarsi a quella
+-- coincidenza. Poiché questa migration fa comunque un CREATE OR REPLACE
+-- sulla stessa funzione, applicarla corregge anche la versione già live,
+-- senza bisogno di una migration di fix separata.
 create or replace function public.blocca_autoescalation_istituzione()
 returns trigger
 language plpgsql
 as $$
 begin
-  if public.current_ruolo() <> 'admin' then
+  if public.current_ruolo() is distinct from 'admin' then
     new.stato := old.stato;
     new.piano_id := old.piano_id;
     new.piano_attivato_il := old.piano_attivato_il;

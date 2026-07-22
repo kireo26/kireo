@@ -24,7 +24,7 @@ export default async function EnteComunicazioniPage() {
       .order("created_at", { ascending: false }),
     supabase
       .from("piani")
-      .select("id, nome, prezzo_min, prezzo_max, quota_webinar_anno, quota_newsletter, quota_cta_esterne, quota_comunicazioni_kireo"),
+      .select("id, nome, prezzo_min, prezzo_max, quota_eventi_promossi, quota_newsletter, quota_cta_esterne, quota_comunicazioni_kireo"),
     getQuoteEnte(supabase, contesto.istituzioneId, contesto.pianoNome),
   ]);
 

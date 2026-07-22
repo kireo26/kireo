@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { Button } from "@/components/Button";
 import { inputClass, fieldBorder } from "@/lib/formStyles";
 import { createClient } from "@/lib/supabase/client";
@@ -16,16 +15,16 @@ const TIPI = [
 
 const MAX_AREE_EVENTO = 2;
 
+const MAX_EVENTI_IN_REVISIONE = 4;
+
 export default function CreaEventoForm({
   istituzioneId,
-  quotaEventiRimasta,
-  nudgeUpgrade,
+  eventiInRevisione,
 }: {
   istituzioneId: string;
-  quotaEventiRimasta: number;
-  nudgeUpgrade: string | null;
+  eventiInRevisione: number;
 }) {
-  const quotaEsaurita = quotaEventiRimasta <= 0;
+  const fairUseRaggiunto = eventiInRevisione >= MAX_EVENTI_IN_REVISIONE;
   const router = useRouter();
   const [titolo, setTitolo] = useState("");
   const [tipo, setTipo] = useState("webinar");
@@ -63,8 +62,8 @@ export default function CreaEventoForm({
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setErroreGenerale(null);
-    if (quotaEsaurita) {
-      setErroreGenerale("Hai raggiunto il limite di eventi per il tuo piano in questo anno accademico.");
+    if (fairUseRaggiunto) {
+      setErroreGenerale("Hai già 4 eventi in attesa di revisione: attendi l'esito prima di proporne altri.");
       return;
     }
     const validazione = validate();
@@ -94,7 +93,11 @@ export default function CreaEventoForm({
         .single();
 
       if (error || !evento) {
-        setErroreGenerale("Non è stato possibile inviare l'evento. Riprova più tardi.");
+        if (error?.message?.includes("troppi_eventi_in_revisione")) {
+          setErroreGenerale("Hai già 4 eventi in attesa di revisione: attendi l'esito prima di proporne altri.");
+        } else {
+          setErroreGenerale("Non è stato possibile inviare l'evento. Riprova più tardi.");
+        }
         return;
       }
 
@@ -130,13 +133,9 @@ export default function CreaEventoForm({
         <p className="rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">{erroreGenerale}</p>
       )}
 
-      {quotaEsaurita && (
+      {fairUseRaggiunto && (
         <div className="rounded-lg border border-kireo-orange/40 bg-kireo-orange/10 px-4 py-3 text-sm text-kireo-orange">
-          Hai raggiunto il limite di eventi per il tuo piano in questo anno accademico.
-          {nudgeUpgrade && <span className="mt-1 block text-kireo-light/80">{nudgeUpgrade}</span>}{" "}
-          <Link href="/ente/piano" className="underline underline-offset-2">
-            Scopri i piani →
-          </Link>
+          Hai già 4 eventi in attesa di revisione. Attendi l&apos;esito di KIREO su almeno uno di questi prima di proporne altri.
         </div>
       )}
 
@@ -282,8 +281,8 @@ export default function CreaEventoForm({
         <AreeInteresseGrid selezionate={aree} onToggle={toggleArea} max={MAX_AREE_EVENTO} />
       </div>
 
-      <Button type="submit" variant="primary" className="w-full" disabled={inviando || quotaEsaurita}>
-        {quotaEsaurita ? "Quota esaurita" : inviando ? "Invio in corso…" : "Invia in approvazione"}
+      <Button type="submit" variant="primary" className="w-full" disabled={inviando || fairUseRaggiunto}>
+        {fairUseRaggiunto ? "4 eventi già in revisione" : inviando ? "Invio in corso…" : "Invia in approvazione"}
       </Button>
     </form>
   );

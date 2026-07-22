@@ -14,10 +14,18 @@ export type Evento = {
   organizzatore_id: string | null;
   cta_esterna_url: string | null;
   cta_esterna_approvata: boolean;
+  in_evidenza: boolean;
 };
 
 const COLONNE_EVENTO =
-  "id, titolo, descrizione, tipo, data_inizio, data_fine, sede, link, posti, ore_pcto, organizzatore_id, cta_esterna_url, cta_esterna_approvata";
+  "id, titolo, descrizione, tipo, data_inizio, data_fine, sede, link, posti, ore_pcto, organizzatore_id, cta_esterna_url, cta_esterna_approvata, in_evidenza";
+
+// Eventi in evidenza prima, poi per data crescente — stesso criterio usato
+// ovunque prima (solo data) con la priorità di promozione anteposta.
+function confrontaConEvidenzaPrima(a: Evento, b: Evento): number {
+  if (a.in_evidenza !== b.in_evidenza) return a.in_evidenza ? -1 : 1;
+  return new Date(a.data_inizio).getTime() - new Date(b.data_inizio).getTime();
+}
 
 // Tutte le funzioni qui sotto non esplodono se le tabelle non esistono
 // ancora (migration preparata, non applicata): qualunque errore produce un
@@ -71,7 +79,7 @@ export async function getEventiPerArea(supabase: SupabaseClient, areaSlug: strin
     return ((data ?? []) as { eventi: Evento | Evento[] | null }[])
       .map((riga) => (Array.isArray(riga.eventi) ? riga.eventi[0] : riga.eventi))
       .filter((e): e is Evento => Boolean(e))
-      .sort((a, b) => new Date(a.data_inizio).getTime() - new Date(b.data_inizio).getTime());
+      .sort(confrontaConEvidenzaPrima);
   } catch {
     return [];
   }
@@ -159,7 +167,7 @@ export async function getProssimiEventiPerAree(supabase: SupabaseClient, areeSlu
       .filter((e) => new Date(e.data_inizio) >= new Date());
 
     const unici = Array.from(new Map(eventi.map((e) => [e.id, e])).values());
-    return unici.sort((a, b) => new Date(a.data_inizio).getTime() - new Date(b.data_inizio).getTime()).slice(0, limite);
+    return unici.sort(confrontaConEvidenzaPrima).slice(0, limite);
   } catch {
     return [];
   }

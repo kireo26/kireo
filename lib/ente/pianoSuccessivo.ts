@@ -3,7 +3,7 @@ export type PianoQuote = {
   nome: "free" | "plus" | "premium";
   prezzo_min: number;
   prezzo_max: number;
-  quota_webinar_anno: number;
+  quota_eventi_promossi: number;
   quota_newsletter: number;
   quota_cta_esterne: number;
   quota_comunicazioni_kireo: number;

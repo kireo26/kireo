@@ -12,8 +12,8 @@ export function annoAccademicoCorrente(oggi: Date = new Date()): { inizio: strin
 }
 
 export type Quote = {
-  webinarUsati: number;
-  webinarTotali: number;
+  evidenzaUsate: number;
+  evidenzaTotali: number;
   newsletterUsate: number;
   newsletterTotali: number;
   ctaUsate: number;
@@ -23,8 +23,8 @@ export type Quote = {
 };
 
 const QUOTE_VUOTE: Quote = {
-  webinarUsati: 0,
-  webinarTotali: 0,
+  evidenzaUsate: 0,
+  evidenzaTotali: 0,
   newsletterUsate: 0,
   newsletterTotali: 0,
   ctaUsate: 0,
@@ -34,25 +34,27 @@ const QUOTE_VUOTE: Quote = {
 };
 
 // Conta l'utilizzo nell'anno accademico corrente contro i limiti del piano
-// attivo. "Webinar" conta tutti gli eventi creati (non solo tipo=webinar):
-// il piano non distingue per tipo di evento.
+// attivo. La creazione di eventi è illimitata (nessuna quota): "evidenza"
+// conta quanti eventi APPROVATI l'ente ha promosso (in_evidenza_dal
+// nell'anno accademico corrente), non quanti ne ha creati.
 export async function getQuoteEnte(supabase: SupabaseClient, istituzioneId: string, pianoNome: string): Promise<Quote> {
   try {
     const { inizio, fine } = annoAccademicoCorrente();
 
     const { data: piano } = await supabase
       .from("piani")
-      .select("quota_webinar_anno, quota_newsletter, quota_cta_esterne, quota_comunicazioni_kireo")
+      .select("quota_eventi_promossi, quota_newsletter, quota_cta_esterne, quota_comunicazioni_kireo")
       .eq("nome", pianoNome)
       .maybeSingle();
 
-    const [eventiRes, ctaRes, newsletterRes, comunicazioniKireoRes] = await Promise.all([
+    const [evidenzaRes, ctaRes, newsletterRes, comunicazioniKireoRes] = await Promise.all([
       supabase
         .from("eventi")
         .select("id", { count: "exact", head: true })
         .eq("organizzatore_id", istituzioneId)
-        .gte("created_at", inizio)
-        .lte("created_at", fine),
+        .eq("in_evidenza", true)
+        .gte("in_evidenza_dal", inizio)
+        .lte("in_evidenza_dal", fine),
       supabase
         .from("eventi")
         .select("id", { count: "exact", head: true })
@@ -77,8 +79,8 @@ export async function getQuoteEnte(supabase: SupabaseClient, istituzioneId: stri
     ]);
 
     return {
-      webinarUsati: eventiRes.count ?? 0,
-      webinarTotali: piano?.quota_webinar_anno ?? 0,
+      evidenzaUsate: evidenzaRes.count ?? 0,
+      evidenzaTotali: piano?.quota_eventi_promossi ?? 0,
       newsletterUsate: newsletterRes.count ?? 0,
       newsletterTotali: piano?.quota_newsletter ?? 0,
       ctaUsate: ctaRes.count ?? 0,

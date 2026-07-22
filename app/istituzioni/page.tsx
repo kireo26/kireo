@@ -44,8 +44,9 @@ const PIANI = [
 
 const FEATURE_ROWS: { feature: string; base: string; standard: string; premium: string }[] = [
   { feature: "Profilo istituzione verificato", base: "✓", standard: "✓", premium: "✓" },
-  { feature: "Eventi/webinar proposti all'anno", base: "3", standard: "5", premium: "15" },
-  { feature: "Newsletter agli iscritti all'anno", base: "—", standard: "2", premium: "5" },
+  { feature: "Creazione eventi/webinar", base: "Illimitata", standard: "Illimitata", premium: "Illimitata" },
+  { feature: "Eventi in evidenza all'anno", base: "—", standard: "5", premium: "20" },
+  { feature: "Newsletter agli iscritti all'anno", base: "—", standard: "3", premium: "12" },
   { feature: "CTA verso il sito esterno all'anno", base: "—", standard: "1", premium: "5" },
   { feature: "Comunicazioni mirate KIREO all'anno", base: "—", standard: "—", premium: "5" },
   { feature: "Statistiche aggregate", base: "✓", standard: "✓", premium: "✓" },

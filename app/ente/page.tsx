@@ -33,7 +33,7 @@ export default async function EnteProfiloPage() {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          { label: "Eventi", usati: quote.webinarUsati, totali: quote.webinarTotali },
+          { label: "Eventi in evidenza", usati: quote.evidenzaUsate, totali: quote.evidenzaTotali },
           { label: "Newsletter", usati: quote.newsletterUsate, totali: quote.newsletterTotali },
           { label: "CTA esterne", usati: quote.ctaUsate, totali: quote.ctaTotali },
           { label: "Comunicazioni KIREO", usati: quote.comunicazioniKireoUsate, totali: quote.comunicazioniKireoTotali },

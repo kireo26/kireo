@@ -28,6 +28,9 @@ export default function CardEvento({
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex flex-wrap items-center gap-2">
+            {evento.in_evidenza && (
+              <span className="rounded-full bg-kireo-orange px-2.5 py-0.5 text-xs font-semibold text-kireo-dark">★ In evidenza</span>
+            )}
             <span className="rounded-full bg-kireo-orange/15 px-2.5 py-0.5 text-xs font-semibold text-kireo-orange">
               {ETICHETTA_TIPO[evento.tipo]}
             </span>

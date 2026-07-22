@@ -18,7 +18,10 @@ export default function CardEventiPerTe({ eventi }: { eventi: Evento[] }) {
           {eventi.map((e) => (
             <li key={e.id} className="flex items-center justify-between gap-3 text-sm">
               <div>
-                <p className="font-medium text-kireo-light">{e.titolo}</p>
+                <p className="font-medium text-kireo-light">
+                  {e.in_evidenza && <span className="mr-1.5 text-kireo-orange">★</span>}
+                  {e.titolo}
+                </p>
                 <p className="text-xs text-kireo-muted">
                   {new Date(e.data_inizio).toLocaleDateString("it-IT", { dateStyle: "long" })}
                 </p>
