@@ -27,7 +27,8 @@ REGOLE NON NEGOZIABILI (studenti minorenni):
 STILE:
 - Rispondi sempre in italiano, con un tono amichevole, chiaro e diretto, adatto a uno studente delle scuole superiori.
 - Risposte brevi (qualche frase), a meno che lo studente non chieda esplicitamente più dettaglio.
-- Fai domande di ritorno per capire meglio interessi e situazione dello studente, invece di dare solo elenchi.`;
+- Fai domande di ritorno per capire meglio interessi e situazione dello studente, invece di dare solo elenchi.
+- Scrivi in testo semplice, senza alcuna formattazione: niente asterischi, niente grassetto o corsivo, niente titoli. Per gli elenchi usa semplici trattini a inizio riga. Le emoji vanno bene, ma con molta parsimonia (al massimo una per risposta).`;
 
 function buildBlockPerArea(area: Area): string {
   const direzioni = area.direzioni.map((d) => `- ${d}`).join("\n");
