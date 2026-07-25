@@ -3,6 +3,7 @@ import AzioneApprovazione from "@/components/admin/AzioneApprovazione";
 import AzioneApprovazioneUpgrade from "@/components/admin/AzioneApprovazioneUpgrade";
 import AttivaIstituzioneButton from "@/components/admin/AttivaIstituzioneButton";
 import AttivaScuolaControlli from "@/components/admin/AttivaScuolaControlli";
+import ToggleGestitaRichiesta from "@/components/admin/ToggleGestitaRichiesta";
 import LogoutButton from "@/components/LogoutButton";
 import { ETICHETTA_PIANO } from "@/lib/ente/pianoSuccessivo";
 import { getFiloneBySlug } from "@/data/filoniDocenti";
@@ -17,6 +18,7 @@ export default async function AdminPage() {
     { data: richiesteUpgrade },
     { data: scuoleInAttesa },
     { data: messaggiScuola },
+    { data: richiesteContatto },
   ] = await Promise.all([
     supabase.from("istituzioni").select("id, nome, tipo, created_at").eq("stato", "in_attesa").order("created_at", { ascending: true }),
     supabase
@@ -40,6 +42,11 @@ export default async function AdminPage() {
       .in("stato", ["richiesta", "convenzionata"])
       .order("created_at", { ascending: true }),
     supabase.from("messaggi_scuola").select("id, scuola_profilo_id, oggetto, corpo, destinatari, created_at").order("created_at", { ascending: false }).limit(20),
+    supabase
+      .from("richieste_contatto")
+      .select("id, origine, nome, ruolo, istituto, codice_meccanografico, email, messaggio, created_at")
+      .eq("gestita", false)
+      .order("created_at", { ascending: true }),
   ]);
 
   const { data: scuoleProfiloPerMessaggio } =
@@ -216,6 +223,40 @@ export default async function AdminPage() {
                 </li>
               );
             })}
+          </ul>
+        )}
+      </section>
+
+      <section className="mt-12">
+        <h2 className="py-0.5 font-heading text-xl font-semibold leading-[1.25] text-kireo-light">Richieste di contatto</h2>
+        <p className="mt-1 text-xs text-kireo-muted">
+          Dalle landing del funnel scuole (/dirigenti, /scuole) — sparisce dalla coda una volta segnata come gestita.
+        </p>
+        {!richiesteContatto || richiesteContatto.length === 0 ? (
+          <p className="mt-4 text-sm text-kireo-muted">Nessuna richiesta da gestire.</p>
+        ) : (
+          <ul className="mt-4 space-y-4">
+            {richiesteContatto.map((r) => (
+              <li key={r.id} className="rounded-xl border border-white/5 bg-kireo-card p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <span className="mr-2 inline-block rounded-full bg-kireo-orange/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-kireo-orange">
+                      {r.origine}
+                    </span>
+                    <p className="mt-1 font-heading text-sm font-semibold text-kireo-light">
+                      {r.nome} · {r.ruolo}
+                    </p>
+                    <p className="mt-1 text-xs text-kireo-muted">
+                      {r.istituto}
+                      {r.codice_meccanografico ? ` (${r.codice_meccanografico})` : ""} · {r.email} ·{" "}
+                      {new Date(r.created_at).toLocaleDateString("it-IT", { dateStyle: "long" })}
+                    </p>
+                  </div>
+                  <ToggleGestitaRichiesta id={r.id} gestita={false} />
+                </div>
+                <p className="mt-2 whitespace-pre-wrap text-sm text-kireo-light/90">{r.messaggio}</p>
+              </li>
+            ))}
           </ul>
         )}
       </section>

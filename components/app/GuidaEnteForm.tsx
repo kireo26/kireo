@@ -70,7 +70,7 @@ export default function GuidaEnteForm({
     fetch("/api/guida-email", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nome, cognome, email: email.trim(), istituzioneId }),
+      body: JSON.stringify({ nome, cognome, email: email.trim(), istituzioneId, istituzioneNome, pdfUrl }),
     }).catch(() => {});
 
     try {
