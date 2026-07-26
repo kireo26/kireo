@@ -4,6 +4,8 @@ import AzioneApprovazioneUpgrade from "@/components/admin/AzioneApprovazioneUpgr
 import AttivaIstituzioneButton from "@/components/admin/AttivaIstituzioneButton";
 import AttivaScuolaControlli from "@/components/admin/AttivaScuolaControlli";
 import ToggleGestitaRichiesta from "@/components/admin/ToggleGestitaRichiesta";
+import GestisciVideoDirettaForm from "@/components/admin/GestisciVideoDirettaForm";
+import ControlloDirettaEvento from "@/components/ente/ControlloDirettaEvento";
 import LogoutButton from "@/components/LogoutButton";
 import { ETICHETTA_PIANO } from "@/lib/ente/pianoSuccessivo";
 import { getFiloneBySlug } from "@/data/filoniDocenti";
@@ -19,11 +21,12 @@ export default async function AdminPage() {
     { data: scuoleInAttesa },
     { data: messaggiScuola },
     { data: richiesteContatto },
+    { data: webinarApprovati },
   ] = await Promise.all([
     supabase.from("istituzioni").select("id, nome, tipo, created_at").eq("stato", "in_attesa").order("created_at", { ascending: true }),
     supabase
       .from("eventi")
-      .select("id, titolo, descrizione, tipo, data_inizio, cta_esterna_url, pubblico, filone, istituzioni(nome)")
+      .select("id, titolo, descrizione, tipo, data_inizio, cta_esterna_url, pubblico, filone, hosting_diretta, youtube_video_id, istituzioni(nome)")
       .eq("stato", "in_approvazione")
       .order("created_at", { ascending: true }),
     supabase
@@ -47,6 +50,13 @@ export default async function AdminPage() {
       .select("id, origine, nome, ruolo, istituto, codice_meccanografico, email, messaggio, created_at")
       .eq("gestita", false)
       .order("created_at", { ascending: true }),
+    supabase
+      .from("eventi")
+      .select("id, titolo, pubblico, hosting_diretta, youtube_video_id, data_inizio, data_fine, istituzioni(nome)")
+      .eq("tipo", "webinar")
+      .eq("stato", "approvato")
+      .order("data_inizio", { ascending: false })
+      .limit(30),
   ]);
 
   const { data: scuoleProfiloPerMessaggio } =
@@ -117,7 +127,48 @@ export default async function AdminPage() {
                   {e.cta_esterna_url && (
                     <p className="mt-2 text-xs text-kireo-muted">CTA esterna richiesta: {e.cta_esterna_url}</p>
                   )}
+                  {e.tipo === "webinar" && (
+                    <p className="mt-2 text-xs text-kireo-muted">
+                      Hosting diretta: {e.hosting_diretta === "proprio" ? "canale proprio dell'ente" : "ospitata da KIREO"}
+                    </p>
+                  )}
+                  {e.tipo === "webinar" && e.hosting_diretta === "kireo" && (
+                    <GestisciVideoDirettaForm eventoId={e.id} videoIdAttuale={e.youtube_video_id} />
+                  )}
                   <AzioneApprovazione tabella="eventi" id={e.id} statoApprovato="approvato" statoRifiutato="rifiutato" />
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+
+      <section className="mb-12">
+        <h2 className="py-0.5 font-heading text-xl font-semibold leading-[1.25] text-kireo-light">Dirette webinar</h2>
+        <p className="mt-1 text-xs text-kireo-muted">
+          Stato/presenti in tempo reale, kill switch sul video, chiusura al posto dell&apos;ente, export presenze.
+        </p>
+        {!webinarApprovati || webinarApprovati.length === 0 ? (
+          <p className="mt-4 text-sm text-kireo-muted">Nessun webinar approvato al momento.</p>
+        ) : (
+          <ul className="mt-4 space-y-4">
+            {webinarApprovati.map((e) => {
+              const organizzatore = Array.isArray(e.istituzioni) ? e.istituzioni[0] : e.istituzioni;
+              return (
+                <li key={e.id} className="rounded-xl border border-white/5 bg-kireo-card p-4">
+                  <p className="font-heading text-sm font-semibold text-kireo-light">{e.titolo}</p>
+                  <p className="mt-1 text-xs text-kireo-muted">
+                    {organizzatore?.nome ?? "KIREO"} · {e.pubblico === "docenti" ? "Docenti" : "Studenti"} ·{" "}
+                    {new Date(e.data_inizio).toLocaleString("it-IT", { dateStyle: "long", timeStyle: "short" })} · hosting:{" "}
+                    {e.hosting_diretta === "proprio" ? "canale dell'ente" : "KIREO"}
+                  </p>
+                  {e.hosting_diretta === "kireo" && <GestisciVideoDirettaForm eventoId={e.id} videoIdAttuale={e.youtube_video_id} />}
+                  <ControlloDirettaEvento eventoId={e.id} />
+                  <div className="mt-3">
+                    <a href={`/api/admin/presenze/${e.id}`} className="text-xs text-kireo-orange underline underline-offset-2">
+                      Esporta presenze (CSV)
+                    </a>
+                  </div>
                 </li>
               );
             })}

@@ -1,5 +1,6 @@
 import { getAreaBySlug } from "@/data/aree";
 import IscrivitiEventoButton from "./IscrivitiEventoButton";
+import EntraDirettaLink from "@/components/EntraDirettaLink";
 import type { Evento } from "@/lib/app/eventi";
 
 const ETICHETTA_TIPO: Record<Evento["tipo"], string> = {
@@ -67,6 +68,13 @@ export default function CardEvento({
               Vai al sito ufficiale ↗
             </a>
           )}
+          <EntraDirettaLink
+            href={`/app/eventi/${evento.id}/live`}
+            dataInizio={evento.data_inizio}
+            dataFine={evento.data_fine}
+            youtubeVideoId={evento.youtube_video_id}
+            iscritto={iscritto}
+          />
         </div>
         <IscrivitiEventoButton
           eventoId={evento.id}

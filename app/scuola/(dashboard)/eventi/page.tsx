@@ -82,6 +82,14 @@ export default async function ScuolaEventiPage() {
                   {new Date(evento.data_inizio).toLocaleDateString("it-IT", { dateStyle: "long" })}
                 </p>
                 <RegistroPresenzeEvento eventoId={evento.id} righe={righe} puoCertificare={contesto.puoCertificarePresenze} />
+                {contesto.puoCertificarePresenze && (
+                  <a
+                    href={`/api/scuola/presenze/${evento.id}`}
+                    className="mt-3 inline-block text-xs text-kireo-orange underline underline-offset-2"
+                  >
+                    Esporta presenze (CSV)
+                  </a>
+                )}
               </li>
             ))}
           </ul>

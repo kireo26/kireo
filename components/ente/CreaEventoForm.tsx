@@ -7,6 +7,14 @@ import { inputClass, fieldBorder } from "@/lib/formStyles";
 import { createClient } from "@/lib/supabase/client";
 import AreeInteresseGrid from "@/components/app/AreeInteresseGrid";
 import { FILONI_DOCENTI } from "@/data/filoniDocenti";
+import { estraiIdYoutube } from "@/lib/youtube";
+
+const VOCI_CHECKLIST: { chiave: "non_in_elenco" | "incorporamento_attivo" | "chat_disattivata" | "no_contenuti_terzi"; testo: string }[] = [
+  { chiave: "non_in_elenco", testo: "La diretta è impostata come \"non in elenco\" su YouTube (non pubblica, raggiungibile solo dal link)." },
+  { chiave: "incorporamento_attivo", testo: "L'incorporamento (embed) del video è attivo nelle impostazioni dello studio di YouTube." },
+  { chiave: "chat_disattivata", testo: "La chat dal vivo di YouTube è disattivata (le domande passano solo dalla piattaforma KIREO)." },
+  { chiave: "no_contenuti_terzi", testo: "Non trasmetterò musica di alcun tipo né contenuti audio/video di terzi non licenziati." },
+];
 
 const TIPI = [
   { value: "webinar", label: "Webinar" },
@@ -45,6 +53,11 @@ export default function CreaEventoForm({
   const [ctaEsternaUrl, setCtaEsternaUrl] = useState("");
   const [aree, setAree] = useState<string[]>([]);
   const [filone, setFilone] = useState("");
+  const [hostingDiretta, setHostingDiretta] = useState<"kireo" | "proprio">("kireo");
+  const [youtubeLink, setYoutubeLink] = useState("");
+  const [checklist, setChecklist] = useState<Record<string, boolean>>({});
+
+  const eDiretta = tipo === "webinar";
 
   const [errori, setErrori] = useState<Record<string, string>>({});
   const [inviando, setInviando] = useState(false);
@@ -65,6 +78,13 @@ export default function CreaEventoForm({
     if (!dataInizio) next.dataInizio = "Inserisci data e ora.";
     if (!scaletta.trim()) next.scaletta = "La scaletta/argomento è obbligatoria per la revisione di KIREO.";
     if (perDocenti && !filone) next.filone = "Seleziona il filone del webinar.";
+    if (eDiretta) {
+      if (!dataFine) next.dataFine = "Per un webinar in diretta la data e ora di fine sono obbligatorie (servono a calcolare le presenze).";
+      if (hostingDiretta === "proprio") {
+        if (!estraiIdYoutube(youtubeLink)) next.youtubeLink = "Incolla il link della tua diretta YouTube (non in elenco).";
+        if (VOCI_CHECKLIST.some((v) => !checklist[v.chiave])) next.checklist = "Devi confermare tutte le voci della checklist per trasmettere dal tuo canale.";
+      }
+    }
     return next;
   }
 
@@ -82,6 +102,8 @@ export default function CreaEventoForm({
     setInviando(true);
     try {
       const supabase = createClient();
+      const usaChecklist = eDiretta && hostingDiretta === "proprio";
+      const oraAccettazione = usaChecklist ? new Date().toISOString() : null;
       const { data: evento, error } = await supabase
         .from("eventi")
         .insert({
@@ -99,6 +121,17 @@ export default function CreaEventoForm({
           stato: "in_approvazione",
           pubblico: perDocenti ? "docenti" : "studenti",
           filone: perDocenti ? filone : null,
+          hosting_diretta: eDiretta ? hostingDiretta : "kireo",
+          youtube_video_id: usaChecklist ? estraiIdYoutube(youtubeLink) : null,
+          checklist_diretta: usaChecklist
+            ? {
+                non_in_elenco: oraAccettazione,
+                incorporamento_attivo: oraAccettazione,
+                chat_disattivata: oraAccettazione,
+                no_contenuti_terzi: oraAccettazione,
+              }
+            : null,
+          checklist_diretta_accettata_il: oraAccettazione,
         })
         .select("id")
         .single();
@@ -210,15 +243,17 @@ export default function CreaEventoForm({
         </div>
         <div>
           <label htmlFor="dataFine" className="mb-1.5 block text-sm font-medium text-kireo-light">
-            Data e ora di fine (facoltativa)
+            Data e ora di fine {eDiretta ? "" : "(facoltativa)"}
           </label>
           <input
             id="dataFine"
             type="datetime-local"
             value={dataFine}
             onChange={(e) => setDataFine(e.target.value)}
-            className={`${inputClass} ${fieldBorder(false)}`}
+            aria-invalid={Boolean(errori.dataFine)}
+            className={`${inputClass} ${fieldBorder(Boolean(errori.dataFine))}`}
           />
+          {errori.dataFine && <p className="mt-1.5 text-sm text-red-400">{errori.dataFine}</p>}
         </div>
       </div>
 
@@ -244,12 +279,99 @@ export default function CreaEventoForm({
         </div>
       </div>
 
-      <div>
-        <label htmlFor="link" className="mb-1.5 block text-sm font-medium text-kireo-light">
-          Link di partecipazione (facoltativo)
-        </label>
-        <input id="link" type="url" value={link} onChange={(e) => setLink(e.target.value)} className={`${inputClass} ${fieldBorder(false)}`} />
-      </div>
+      {eDiretta ? (
+        <div className="space-y-4 rounded-xl border border-white/10 bg-kireo-dark/40 p-4">
+          <div>
+            <p className="mb-2 text-sm font-medium text-kireo-light">Dove si svolge la diretta?</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 ${hostingDiretta === "kireo" ? "border-kireo-green bg-kireo-green/10" : "border-white/10"}`}>
+                <input
+                  type="radio"
+                  name="hostingDiretta"
+                  checked={hostingDiretta === "kireo"}
+                  onChange={() => setHostingDiretta("kireo")}
+                  className="mt-1 h-4 w-4 accent-kireo-green"
+                />
+                <span>
+                  <span className="block text-sm font-semibold text-kireo-light">Ospitata da KIREO</span>
+                  <span className="block text-xs text-kireo-muted">Nessun link da fornire ora: riceverai la chiave di trasmissione da KIREO prima dell&apos;evento.</span>
+                </span>
+              </label>
+              <label className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 ${hostingDiretta === "proprio" ? "border-kireo-green bg-kireo-green/10" : "border-white/10"}`}>
+                <input
+                  type="radio"
+                  name="hostingDiretta"
+                  checked={hostingDiretta === "proprio"}
+                  onChange={() => setHostingDiretta("proprio")}
+                  className="mt-1 h-4 w-4 accent-kireo-green"
+                />
+                <span>
+                  <span className="block text-sm font-semibold text-kireo-light">Sul nostro canale YouTube</span>
+                  <span className="block text-xs text-kireo-muted">Trasmetti tu da una diretta YouTube "non in elenco".</span>
+                </span>
+              </label>
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-kireo-orange/30 bg-kireo-orange/5 p-3 text-xs text-kireo-light/90">
+            <p className="font-semibold text-kireo-orange">Nei webinar KIREO non è consentita musica di alcun tipo (nemmeno in attesa) né contenuti audio/video di terzi.</p>
+            <p className="mt-1 text-kireo-muted">Una diretta con audio non autorizzato rischia l&apos;interruzione automatica per copyright da parte di YouTube: protegge la diretta e chi partecipa.</p>
+          </div>
+
+          {hostingDiretta === "proprio" && (
+            <div className="space-y-4 border-t border-white/10 pt-4">
+              <div>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-kireo-muted">Come creare una diretta non in elenco su YouTube</p>
+                <ol className="list-decimal space-y-1 pl-5 text-xs text-kireo-muted">
+                  <li>Su YouTube Studio, crea una nuova diretta (o programmala per l&apos;orario dell&apos;evento).</li>
+                  <li>Visibilità: imposta "Non in elenco" (mai "Pubblica" o "Privata").</li>
+                  <li>Nelle impostazioni della diretta, disattiva la chat dal vivo.</li>
+                  <li>Verifica che l&apos;incorporamento (embed) sia consentito.</li>
+                  <li>Copia il link della diretta e incollalo qui sotto.</li>
+                </ol>
+              </div>
+
+              <div>
+                <label htmlFor="youtubeLink" className="mb-1.5 block text-sm font-medium text-kireo-light">
+                  Link della diretta YouTube
+                </label>
+                <input
+                  id="youtubeLink"
+                  type="url"
+                  value={youtubeLink}
+                  onChange={(e) => setYoutubeLink(e.target.value)}
+                  aria-invalid={Boolean(errori.youtubeLink)}
+                  className={`${inputClass} ${fieldBorder(Boolean(errori.youtubeLink))}`}
+                  placeholder="https://youtube.com/watch?v=..."
+                />
+                {errori.youtubeLink && <p className="mt-1.5 text-sm text-red-400">{errori.youtubeLink}</p>}
+              </div>
+
+              <div className="space-y-2">
+                {VOCI_CHECKLIST.map((voce) => (
+                  <label key={voce.chiave} className="flex items-start gap-3 text-sm text-kireo-light/90">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(checklist[voce.chiave])}
+                      onChange={(e) => setChecklist((prev) => ({ ...prev, [voce.chiave]: e.target.checked }))}
+                      className="mt-0.5 h-4 w-4 rounded border-white/20 bg-kireo-dark accent-kireo-green"
+                    />
+                    {voce.testo}
+                  </label>
+                ))}
+                {errori.checklist && <p className="mt-1.5 text-sm text-red-400">{errori.checklist}</p>}
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div>
+          <label htmlFor="link" className="mb-1.5 block text-sm font-medium text-kireo-light">
+            Link di partecipazione (facoltativo)
+          </label>
+          <input id="link" type="url" value={link} onChange={(e) => setLink(e.target.value)} className={`${inputClass} ${fieldBorder(false)}`} />
+        </div>
+      )}
 
       <div>
         <label htmlFor="ctaEsternaUrl" className="mb-1.5 block text-sm font-medium text-kireo-light">
