@@ -8,6 +8,9 @@ import { createClient } from "@/lib/supabase/client";
 const NAV_ITEMS = [
   { href: "/ente", label: "Profilo", shortLabel: "Profilo", icon: IconProfilo },
   { href: "/ente/eventi", label: "Eventi", shortLabel: "Eventi", icon: IconEventi },
+  { href: "/ente/bacheca", label: "Bacheca", shortLabel: "Bacheca", icon: IconBacheca },
+  { href: "/ente/interessati", label: "Interessati", shortLabel: "Interessati", icon: IconInteressati },
+  { href: "/ente/messaggi", label: "Messaggi", shortLabel: "Messaggi", icon: IconMessaggi },
   { href: "/ente/comunicazioni", label: "Comunicazioni", shortLabel: "Comunica.", icon: IconComunicazioni },
   { href: "/ente/statistiche", label: "Statistiche", shortLabel: "Stats", icon: IconStatistiche },
   { href: "/ente/piano", label: "Il tuo piano", shortLabel: "Piano", icon: IconPiano },
@@ -40,6 +43,31 @@ function IconComunicazioni({ className }: { className?: string }) {
     <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" aria-hidden="true">
       <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M4 6h16v12H4z" />
       <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="m4 7 8 6 8-6" />
+    </svg>
+  );
+}
+
+function IconBacheca({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" aria-hidden="true">
+      <rect x="4" y="4" width="16" height="16" rx="2" strokeWidth="2" />
+      <path strokeWidth="2" strokeLinecap="round" d="M8 9h8M8 13h5" />
+    </svg>
+  );
+}
+
+function IconInteressati({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" aria-hidden="true">
+      <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="m12 19-7-6.5A4 4 0 1 1 12 7a4 4 0 1 1 7 5.5Z" />
+    </svg>
+  );
+}
+
+function IconMessaggi({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" aria-hidden="true">
+      <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M4 6h16v11H8l-4 3.5V6Z" />
     </svg>
   );
 }

@@ -17,6 +17,14 @@ export const ETICHETTA_PIANO: Record<string, string> = {
   premium: "Premium",
 };
 
+// Gate booleano riusato ovunque un contenuto/funzione è riservata ai piani
+// a pagamento (embed social in bacheca, notifiche ai follower,
+// manifestazioni di interesse, messaggi) — mai accesso privilegiato ai
+// dati degli studenti, solo promozione/informazione, vedi CLAUDE.md.
+export function pianoAPagamento(pianoNome: string): boolean {
+  return pianoNome !== "free";
+}
+
 // Il piano subito sopra quello corrente (per i nudge "cosa sblocca l'upgrade")
 // — null se il piano corrente è già il più alto (Premium).
 export function trovaPianoSuccessivo(pianoCorrente: string, piani: PianoQuote[]): PianoQuote | null {

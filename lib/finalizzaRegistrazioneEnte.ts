@@ -29,6 +29,7 @@ export async function finalizzaRegistrazioneEnteSeNecessario(
   const referenteCognome =
     typeof meta.referente_cognome === "string" && meta.referente_cognome ? meta.referente_cognome : null;
   const sitoUfficiale = typeof meta.sito_ufficiale === "string" && meta.sito_ufficiale ? meta.sito_ufficiale : null;
+  const regolamentoAccettato = meta.regolamento_accettato === true;
 
   if (!nomeEnte || !slug || !tipo || !referenteNome || !referenteCognome) {
     return { ok: false, motivo: "dati_incompleti" };
@@ -43,7 +44,21 @@ export async function finalizzaRegistrazioneEnteSeNecessario(
     p_sito_ufficiale: sitoUfficiale,
   });
 
-  if (!error) return { ok: true };
+  if (!error) {
+    // Nessuna modifica alla firma di finalize_registration_istituzione (per
+    // non ricadere nella trappola dell'overload già documentata): un
+    // secondo update, subito dopo, sulla stessa sessione autenticata — a
+    // questo punto institution_profiles esiste già, quindi
+    // current_istituzione_id() risolve e istituzioni_update_propria copre
+    // la scrittura.
+    if (regolamentoAccettato) {
+      const { data: link } = await supabase.from("institution_profiles").select("istituzione_id").eq("user_id", user.id).maybeSingle();
+      if (link) {
+        await supabase.from("istituzioni").update({ regolamento_accettato_il: new Date().toISOString() }).eq("id", link.istituzione_id);
+      }
+    }
+    return { ok: true };
+  }
 
   // Race tra due richieste concorrenti che finalizzano entrambe (es. link
   // email aperto due volte quasi in contemporanea): se il profilo esiste

@@ -1,5 +1,6 @@
 import AppShell from "@/components/app/AppShell";
 import LogoutButton from "@/components/LogoutButton";
+import CompletaEtaForm from "@/components/app/CompletaEtaForm";
 import { getAppContext } from "@/lib/app/studentContext";
 
 // Guardia auth + shell di navigazione per tutta l'area /app. Il middleware
@@ -27,5 +28,27 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     );
   }
 
-  return <AppShell>{children}</AppShell>;
+  // Blocco obbligatorio, non aggirabile: senza data di nascita nessun gate
+  // 18+ (manifestazione di interesse, messaggi con gli enti) può funzionare
+  // in sicurezza. Stesso principio del blocco duro già in uso in
+  // app/scuola/(dashboard)/layout.tsx — non renderizza i figli finché la
+  // condizione non è soddisfatta.
+  if (!contesto.dataNascita) {
+    return (
+      <section className="mx-auto max-w-2xl px-6 py-20 text-center sm:pt-28">
+        <p className="mb-4 font-sans text-sm font-semibold uppercase tracking-wide text-kireo-orange">Un'ultima cosa</p>
+        <h1 className="py-1 font-heading text-3xl font-bold leading-[1.25] text-kireo-light">Completa il tuo profilo</h1>
+        <p className="mt-4 text-kireo-muted">
+          Ci serve la tua data di nascita per continuare: alcune funzioni di KIREO (come condividere il tuo profilo con
+          un ente o scrivergli un messaggio) sono riservate ai maggiorenni.
+        </p>
+        <CompletaEtaForm userId={contesto.userId} />
+        <div className="mt-6">
+          <LogoutButton />
+        </div>
+      </section>
+    );
+  }
+
+  return <AppShell userId={contesto.userId}>{children}</AppShell>;
 }

@@ -6,11 +6,14 @@ import SectionHeading from "@/components/SectionHeading";
 import GuidaAreaForm from "@/components/GuidaAreaForm";
 import ArticoloCard from "@/components/news/ArticoloCard";
 import CardEvento from "@/components/app/CardEvento";
+import CardEnte from "@/components/app/CardEnte";
+import SeguiButton from "@/components/app/SeguiButton";
 import CtaAssistenteDigitale from "@/components/app/CtaAssistenteDigitale";
 import TracciaVisita from "@/components/app/TracciaVisita";
 import { AREE, getAreaBySlug } from "@/data/aree";
 import { getArticoliPerArea } from "@/lib/news";
 import { getEventiPerArea, getAreeDegliEventi, getIscrizioniStudente } from "@/lib/app/eventi";
+import { cercaEnti } from "@/lib/app/esplora";
 import { createClient } from "@/lib/supabase/server";
 
 export function generateStaticParams() {
@@ -50,6 +53,10 @@ export default async function AreaPage({ params }: { params: Promise<{ slug: str
     eventiFuturi.map((e) => e.id),
   );
   const iscrizioni = user ? new Set(await getIscrizioniStudente(supabase, user.id)) : new Set<string>();
+
+  const enti = await cercaEnti(supabase, { areaSlug: area.slug });
+  const { data: seguitiRighe } = user ? await supabase.from("seguiti").select("istituzione_id").eq("student_id", user.id) : { data: [] };
+  const seguiti = new Set((seguitiRighe ?? []).map((s) => s.istituzione_id));
 
   return (
     <>
@@ -129,6 +136,21 @@ export default async function AreaPage({ params }: { params: Promise<{ slug: str
           )}
         </div>
       </section>
+
+      {enti.length > 0 && (
+        <section id="enti" className="border-t border-white/5">
+          <div className="mx-auto max-w-4xl px-6 py-16">
+            <SectionHeading eyebrow="Chi forma in quest'area" title="Enti di quest'area" />
+            <ul className="mt-8 grid gap-4 sm:grid-cols-2">
+              {enti.map((ente) => (
+                <li key={ente.id}>
+                  <CardEnte ente={ente} azioneExtra={<SeguiButton istituzioneId={ente.id} userId={user?.id ?? null} seguitoIniziale={seguiti.has(ente.id)} />} />
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      )}
 
       <section id="assistente-digitale" className="mx-auto max-w-2xl px-6 py-16">
         <CtaAssistenteDigitale areaSlug={area.slug} areaNome={area.nome} />

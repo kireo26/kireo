@@ -6,6 +6,8 @@ import AttivaScuolaControlli from "@/components/admin/AttivaScuolaControlli";
 import ToggleGestitaRichiesta from "@/components/admin/ToggleGestitaRichiesta";
 import GestisciVideoDirettaForm from "@/components/admin/GestisciVideoDirettaForm";
 import ControlloDirettaEvento from "@/components/ente/ControlloDirettaEvento";
+import AzioneApprovazionePost from "@/components/admin/AzioneApprovazionePost";
+import AzioneChiudiConversazione from "@/components/admin/AzioneChiudiConversazione";
 import LogoutButton from "@/components/LogoutButton";
 import { ETICHETTA_PIANO } from "@/lib/ente/pianoSuccessivo";
 import { getFiloneBySlug } from "@/data/filoniDocenti";
@@ -22,6 +24,8 @@ export default async function AdminPage() {
     { data: messaggiScuola },
     { data: richiesteContatto },
     { data: webinarApprovati },
+    { data: postInApprovazione },
+    { data: conversazioniEnti },
   ] = await Promise.all([
     supabase.from("istituzioni").select("id, nome, tipo, created_at").eq("stato", "in_attesa").order("created_at", { ascending: true }),
     supabase
@@ -57,6 +61,16 @@ export default async function AdminPage() {
       .eq("stato", "approvato")
       .order("data_inizio", { ascending: false })
       .limit(30),
+    supabase
+      .from("post_enti")
+      .select("id, tipo, corpo, immagine_url, embed_url, created_at, istituzioni(nome)")
+      .eq("stato", "in_approvazione")
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("conversazioni_enti")
+      .select("id, stato, created_at, profiles!student_id(nome, cognome), istituzioni(nome)")
+      .order("created_at", { ascending: false })
+      .limit(50),
   ]);
 
   const { data: scuoleProfiloPerMessaggio } =
@@ -169,6 +183,72 @@ export default async function AdminPage() {
                       Esporta presenze (CSV)
                     </a>
                   </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+
+      <section className="mb-12">
+        <h2 className="py-0.5 font-heading text-xl font-semibold leading-[1.25] text-kireo-light">Post in approvazione</h2>
+        {!postInApprovazione || postInApprovazione.length === 0 ? (
+          <p className="mt-4 text-sm text-kireo-muted">Nessun post in coda.</p>
+        ) : (
+          <ul className="mt-4 space-y-4">
+            {postInApprovazione.map((p) => {
+              const organizzatore = Array.isArray(p.istituzioni) ? p.istituzioni[0] : p.istituzioni;
+              return (
+                <li key={p.id} className="rounded-xl border border-white/5 bg-kireo-card p-4">
+                  <p className="font-heading text-sm font-semibold text-kireo-light">
+                    {organizzatore?.nome ?? "—"} ·{" "}
+                    <span className="text-xs font-normal uppercase tracking-wide text-kireo-muted">{p.tipo}</span>
+                  </p>
+                  <p className="mt-2 whitespace-pre-wrap text-sm text-kireo-light/90">{p.corpo}</p>
+                  {p.immagine_url && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={p.immagine_url} alt="" className="mt-3 max-h-64 rounded-lg object-cover" />
+                  )}
+                  {p.embed_url && (
+                    <a href={p.embed_url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-xs text-kireo-orange underline underline-offset-2">
+                      {p.embed_url}
+                    </a>
+                  )}
+                  <AzioneApprovazionePost id={p.id} />
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+
+      <section className="mb-12">
+        <h2 className="py-0.5 font-heading text-xl font-semibold leading-[1.25] text-kireo-light">Conversazioni enti</h2>
+        <p className="mt-1 text-xs text-kireo-muted">Ispezione completa (ultime 50) — le segnalate (bloccate dallo studente) sono evidenziate.</p>
+        {!conversazioniEnti || conversazioniEnti.length === 0 ? (
+          <p className="mt-4 text-sm text-kireo-muted">Nessuna conversazione ancora.</p>
+        ) : (
+          <ul className="mt-4 space-y-3">
+            {conversazioniEnti.map((c) => {
+              const studente = Array.isArray(c.profiles) ? c.profiles[0] : c.profiles;
+              const ente = Array.isArray(c.istituzioni) ? c.istituzioni[0] : c.istituzioni;
+              const segnalata = c.stato === "bloccata_da_studente";
+              return (
+                <li
+                  key={c.id}
+                  className={`rounded-xl border p-4 ${segnalata ? "border-red-500/40 bg-red-500/5" : "border-white/5 bg-kireo-card"}`}
+                >
+                  <p className="font-heading text-sm font-semibold text-kireo-light">
+                    {studente?.nome ?? "Studente"} {studente?.cognome ?? ""} ↔ {ente?.nome ?? "Ente"}
+                  </p>
+                  <p className="mt-1 text-xs text-kireo-muted">
+                    {c.stato} · {new Date(c.created_at).toLocaleDateString("it-IT", { dateStyle: "long" })}
+                  </p>
+                  {c.stato !== "chiusa_da_admin" && (
+                    <div className="mt-2">
+                      <AzioneChiudiConversazione id={c.id} />
+                    </div>
+                  )}
                 </li>
               );
             })}

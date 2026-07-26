@@ -37,12 +37,13 @@ function bottone(testo: string, href: string): string {
   return `<a href="${href}" style="display:inline-block;margin-top:16px;padding:12px 24px;background-color:#0F6E56;color:#F0EDE8;text-decoration:none;border-radius:999px;font-weight:600;font-size:14px;">${testo}</a>`;
 }
 
-const ETICHETTA_ORIGINE: Record<"dirigenti" | "scuole", string> = {
+const ETICHETTA_ORIGINE: Record<"dirigenti" | "scuole" | "enti", string> = {
   dirigenti: "Dirigenti Scolastici",
   scuole: "referenti orientamento e docenti",
+  enti: "istituzioni formative",
 };
 
-export function templateConfermaRichiestaContatto(nome: string, origine: "dirigenti" | "scuole"): string {
+export function templateConfermaRichiestaContatto(nome: string, origine: "dirigenti" | "scuole" | "enti"): string {
   return involucroEmail(`
     <p>Ciao ${nome},</p>
     <p>Abbiamo ricevuto la tua richiesta di informazioni su KIREO per ${ETICHETTA_ORIGINE[origine]}. Ti ricontatteremo entro 24 ore.</p>
@@ -52,7 +53,7 @@ export function templateConfermaRichiestaContatto(nome: string, origine: "dirige
 }
 
 export function templateNotificaRichiestaContatto(dati: {
-  origine: "dirigenti" | "scuole";
+  origine: "dirigenti" | "scuole" | "enti";
   nome: string;
   ruolo: string;
   istituto: string;

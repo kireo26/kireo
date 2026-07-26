@@ -27,7 +27,7 @@ export default async function ScuolaLayout({ children }: { children: React.React
   const messaggio = MESSAGGIO_STATO[contesto.stato];
 
   return (
-    <ScuolaShell nomeScuola={contesto.nomeScuola} ruoloStaff={contesto.ruoloStaff}>
+    <ScuolaShell nomeScuola={contesto.nomeScuola} ruoloStaff={contesto.ruoloStaff} userId={contesto.userId}>
       {contesto.stato !== "attiva" && messaggio ? (
         <div className="rounded-2xl border border-kireo-orange/40 bg-kireo-orange/10 p-6">
           <h1 className="py-0.5 font-heading text-xl font-semibold leading-[1.25] text-kireo-light">{messaggio.titolo}</h1>

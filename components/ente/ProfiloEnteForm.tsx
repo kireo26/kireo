@@ -1,9 +1,10 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/Button";
 import { inputClass, fieldBorder } from "@/lib/formStyles";
 import { createClient } from "@/lib/supabase/client";
+import AreeInteresseGrid from "@/components/app/AreeInteresseGrid";
 
 const MAX_COPERTINA_MB = 5;
 const MAX_GUIDA_MB = 20;
@@ -95,13 +96,16 @@ function SezioneDatiProfilo({
   istituzioneId,
   descrizioneIniziale,
   sitoIniziale,
+  provinciaIniziale,
 }: {
   istituzioneId: string;
   descrizioneIniziale: string | null;
   sitoIniziale: string | null;
+  provinciaIniziale: string | null;
 }) {
   const [descrizione, setDescrizione] = useState(descrizioneIniziale ?? "");
   const [sito, setSito] = useState(sitoIniziale ?? "");
+  const [provincia, setProvincia] = useState(provinciaIniziale ?? "");
   const [stato, setStato] = useState<Stato>("idle");
 
   async function handleSalva() {
@@ -110,7 +114,7 @@ function SezioneDatiProfilo({
       const supabase = createClient();
       const { error } = await supabase
         .from("istituzioni")
-        .update({ descrizione: descrizione.trim() || null, sito_ufficiale: sito.trim() || null })
+        .update({ descrizione: descrizione.trim() || null, sito_ufficiale: sito.trim() || null, provincia: provincia.trim() || null })
         .eq("id", istituzioneId);
       setStato(error ? "errore" : "ok");
     } catch {
@@ -153,6 +157,22 @@ function SezioneDatiProfilo({
             className={`${inputClass} ${fieldBorder(false)}`}
             placeholder="https://..."
           />
+        </div>
+        <div>
+          <label htmlFor="provincia" className="mb-1.5 block text-sm font-medium text-kireo-light">
+            Provincia (facoltativa)
+          </label>
+          <input
+            id="provincia"
+            value={provincia}
+            onChange={(e) => {
+              setProvincia(e.target.value);
+              setStato("idle");
+            }}
+            className={`${inputClass} ${fieldBorder(false)}`}
+            placeholder="Es. Milano"
+          />
+          <p className="mt-1.5 text-xs text-kireo-muted">Usata dal filtro provincia in Esplora.</p>
         </div>
       </div>
       <div className="mt-4 flex items-center gap-3">
@@ -261,23 +281,87 @@ function SezioneGuida({ istituzioneId, guideIniziali }: { istituzioneId: string;
   );
 }
 
+const MAX_AREE_COMPETENZA = 3;
+
+// Fino a 3 aree di competenza, in revisione KIREO (a differenza degli
+// altri campi di questa pagina, self-service senza revisione — vedi
+// migration istituzioni_aree). Solo le 18 aree di orientamento: la
+// selezione filoni per gli enti formazione_docenti resta fuori da questa
+// UI (loro categorizzazione interna, non serve a /app/esplora).
+function SezioneAreeCompetenza({ istituzioneId }: { istituzioneId: string }) {
+  const [righe, setRighe] = useState<{ area_slug: string; stato: string }[]>([]);
+  const [caricato, setCaricato] = useState(false);
+  const [errore, setErrore] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function carica() {
+      const supabase = createClient();
+      const { data } = await supabase.from("istituzioni_aree").select("area_slug, stato").eq("istituzione_id", istituzioneId);
+      setRighe(data ?? []);
+      setCaricato(true);
+    }
+    carica();
+  }, [istituzioneId]);
+
+  const attive = righe.filter((r) => r.stato !== "rifiutata").map((r) => r.area_slug);
+
+  async function toggle(slug: string) {
+    setErrore(null);
+    const supabase = createClient();
+    if (attive.includes(slug)) {
+      const { error } = await supabase.from("istituzioni_aree").delete().eq("istituzione_id", istituzioneId).eq("area_slug", slug);
+      if (!error) setRighe((prev) => prev.filter((r) => r.area_slug !== slug));
+      return;
+    }
+    if (attive.length >= MAX_AREE_COMPETENZA) return;
+    const { error } = await supabase.from("istituzioni_aree").insert({ istituzione_id: istituzioneId, area_slug: slug });
+    if (error) {
+      setErrore("Non è stato possibile aggiungere l'area. Riprova.");
+      return;
+    }
+    setRighe((prev) => [...prev, { area_slug: slug, stato: "in_approvazione" }]);
+  }
+
+  if (!caricato) return null;
+
+  return (
+    <div className="rounded-2xl border border-white/5 bg-kireo-card p-6">
+      <h2 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">Aree di competenza</h2>
+      <p className="mt-1 text-sm text-kireo-muted">
+        Fino a {MAX_AREE_COMPETENZA} aree, in revisione KIREO. Alimentano Esplora e la sezione dedicata sulle pagine
+        area di orientamento.
+      </p>
+      {errore && <p className="mt-2 text-sm text-red-400">{errore}</p>}
+      <div className="mt-4">
+        <AreeInteresseGrid selezionate={attive} onToggle={toggle} max={MAX_AREE_COMPETENZA} />
+      </div>
+      {righe.some((r) => r.stato === "in_approvazione") && (
+        <p className="mt-3 text-xs text-kireo-orange">Alcune aree sono in attesa di revisione da parte di KIREO.</p>
+      )}
+    </div>
+  );
+}
+
 export default function ProfiloEnteForm({
   istituzioneId,
   copertinaIniziale,
   descrizioneIniziale,
   sitoIniziale,
+  provinciaIniziale,
   guideIniziali,
 }: {
   istituzioneId: string;
   copertinaIniziale: string | null;
   descrizioneIniziale: string | null;
   sitoIniziale: string | null;
+  provinciaIniziale: string | null;
   guideIniziali: { id: string; titolo: string; pdf_url: string }[];
 }) {
   return (
     <div className="space-y-6">
       <SezioneCopertina istituzioneId={istituzioneId} copertinaIniziale={copertinaIniziale} />
-      <SezioneDatiProfilo istituzioneId={istituzioneId} descrizioneIniziale={descrizioneIniziale} sitoIniziale={sitoIniziale} />
+      <SezioneDatiProfilo istituzioneId={istituzioneId} descrizioneIniziale={descrizioneIniziale} sitoIniziale={sitoIniziale} provinciaIniziale={provinciaIniziale} />
+      <SezioneAreeCompetenza istituzioneId={istituzioneId} />
       <SezioneGuida istituzioneId={istituzioneId} guideIniziali={guideIniziali} />
     </div>
   );

@@ -26,9 +26,13 @@ function redirectAccedi(request: NextRequest) {
 export async function updateSession(request: NextRequest) {
   // /scuola/invito resta pubblica sotto /scuola: un tutor invitato non ha
   // ancora un account quando vi accede per la prima volta (deve poterla
-  // raggiungere per registrarsi).
+  // raggiungere per registrarsi). /ente/regolamento resta pubblica sotto
+  // /ente: deve essere leggibile prima della registrazione (linkata dal
+  // form di richiesta accesso) — stesso motivo per cui è stata spostata
+  // fuori dal route group app/ente/(dashboard)/.
+  const ROTTE_PUBBLICHE_SOTTO_AREA_PROTETTA = ["/scuola/invito", "/ente/regolamento"];
   const isProtetta =
-    request.nextUrl.pathname !== "/scuola/invito" &&
+    !ROTTE_PUBBLICHE_SOTTO_AREA_PROTETTA.includes(request.nextUrl.pathname) &&
     AREE_PROTETTE.some((area) => request.nextUrl.pathname.startsWith(area));
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;

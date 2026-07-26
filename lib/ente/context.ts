@@ -11,6 +11,7 @@ export type EnteContext = {
   stato: string;
   pianoNome: string;
   tipo: string | null;
+  regolamentoAccettato: boolean;
 };
 
 // Stesso principio di lib/app/studentContext.ts (cache() di React: layout
@@ -51,7 +52,7 @@ export const getEnteContext = cache(async (): Promise<EnteContext> => {
 
   const { data: istituzione } = await supabase
     .from("istituzioni")
-    .select("nome, slug, stato, tipo, piani(nome)")
+    .select("nome, slug, stato, tipo, regolamento_accettato_il, piani(nome)")
     .eq("id", link.istituzione_id)
     .maybeSingle();
 
@@ -66,5 +67,6 @@ export const getEnteContext = cache(async (): Promise<EnteContext> => {
     stato: istituzione?.stato ?? "in_attesa",
     pianoNome: pianoNome ?? "free",
     tipo: istituzione?.tipo ?? null,
+    regolamentoAccettato: Boolean(istituzione?.regolamento_accettato_il),
   };
 });

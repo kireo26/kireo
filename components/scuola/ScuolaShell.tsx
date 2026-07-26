@@ -4,6 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import Logo from "@/components/Logo";
 import { createClient } from "@/lib/supabase/client";
+import NotificheBell from "@/components/app/NotificheBell";
 
 type NavItem = {
   href: string;
@@ -18,6 +19,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/scuola/studenti", label: "Studenti", shortLabel: "Studenti", icon: IconStudenti },
   { href: "/scuola/classi", label: "Classi", shortLabel: "Classi", icon: IconClassi },
   { href: "/scuola/staff", label: "Staff", shortLabel: "Staff", icon: IconStaff, soloReferente: true },
+  { href: "/scuola/esplora", label: "Esplora", shortLabel: "Esplora", icon: IconEsplora },
   { href: "/scuola/eventi", label: "Eventi", shortLabel: "Eventi", icon: IconEventi },
   { href: "/scuola/comunicazioni", label: "Comunicazioni", shortLabel: "Comunica.", icon: IconComunicazioni },
   { href: "/scuola/statistiche", label: "Statistiche", shortLabel: "Stats", icon: IconStatistiche },
@@ -65,6 +67,15 @@ function IconStaff({ className }: { className?: string }) {
   );
 }
 
+function IconEsplora({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" aria-hidden="true">
+      <circle cx="11" cy="11" r="7" strokeWidth="2" />
+      <path strokeWidth="2" strokeLinecap="round" d="m20 20-3.5-3.5" />
+    </svg>
+  );
+}
+
 function IconEventi({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" aria-hidden="true">
@@ -102,10 +113,12 @@ function IconLogout({ className }: { className?: string }) {
 export default function ScuolaShell({
   nomeScuola,
   ruoloStaff,
+  userId,
   children,
 }: {
   nomeScuola: string;
   ruoloStaff: "referente" | "tutor";
+  userId: string;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -123,8 +136,9 @@ export default function ScuolaShell({
   return (
     <div className="min-h-screen bg-kireo-dark md:flex">
       <aside className="hidden w-60 flex-none flex-col border-r border-white/5 px-4 py-6 md:flex">
-        <div className="px-2 pb-2">
+        <div className="flex items-center justify-between px-2 pb-2">
           <Logo />
+          <NotificheBell userId={userId} />
         </div>
         <p className="truncate px-2 pb-0.5 text-xs text-kireo-light/80">{nomeScuola}</p>
         <p className="px-2 pb-6 text-[11px] uppercase tracking-wide text-kireo-muted">
@@ -161,14 +175,17 @@ export default function ScuolaShell({
       <div className="flex min-h-screen flex-1 flex-col">
         <header className="flex items-center justify-between border-b border-white/5 px-4 py-3 md:hidden">
           <span className="font-heading text-base font-semibold text-kireo-light">{sezioneCorrente}</span>
-          <button
-            type="button"
-            onClick={handleLogout}
-            aria-label="Esci"
-            className="flex h-9 w-9 items-center justify-center rounded-full text-kireo-light/80 transition-colors hover:bg-white/5"
-          >
-            <IconLogout className="h-5 w-5" />
-          </button>
+          <div className="flex items-center gap-1">
+            <NotificheBell userId={userId} />
+            <button
+              type="button"
+              onClick={handleLogout}
+              aria-label="Esci"
+              className="flex h-9 w-9 items-center justify-center rounded-full text-kireo-light/80 transition-colors hover:bg-white/5"
+            >
+              <IconLogout className="h-5 w-5" />
+            </button>
+          </div>
         </header>
 
         <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-24 pt-6 sm:px-6 md:pb-10 md:pt-10">{children}</main>

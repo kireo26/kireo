@@ -2,6 +2,7 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { finalizzaRegistrazioneSeNecessario } from "@/lib/finalizzaRegistrazione";
+import { isMaggiorenne } from "@/lib/eta";
 
 export type AppContext = {
   userId: string;
@@ -11,6 +12,8 @@ export type AppContext = {
   schoolCode: string | null;
   schoolName: string | null;
   classe: string | null;
+  dataNascita: string | null;
+  maggiorenne: boolean;
 };
 
 // Contesto condiviso da layout.tsx e da ogni pagina sotto /app: chi è
@@ -33,19 +36,21 @@ export const getAppContext = cache(async (): Promise<AppContext> => {
 
   const { data: profiloEsistente } = await supabase
     .from("profiles")
-    .select("nome, cognome, ruolo")
+    .select("nome, cognome, ruolo, data_nascita")
     .eq("id", user.id)
     .maybeSingle();
 
   let nome: string;
   let cognome: string;
   let ruolo: string;
+  let dataNascita: string | null = null;
   let schoolCodeDaMetadata: string | null = null;
 
   if (profiloEsistente) {
     nome = profiloEsistente.nome;
     cognome = profiloEsistente.cognome;
     ruolo = profiloEsistente.ruolo;
+    dataNascita = profiloEsistente.data_nascita;
   } else {
     const esito = await finalizzaRegistrazioneSeNecessario(supabase, user);
 
@@ -57,6 +62,7 @@ export const getAppContext = cache(async (): Promise<AppContext> => {
     nome = meta.nome as string;
     cognome = meta.cognome as string;
     ruolo = meta.ruolo as string;
+    dataNascita = typeof meta.data_nascita === "string" ? meta.data_nascita : null;
     schoolCodeDaMetadata = typeof meta.school_code === "string" ? meta.school_code : null;
   }
 
@@ -90,5 +96,5 @@ export const getAppContext = cache(async (): Promise<AppContext> => {
     schoolName = scuola?.denominazione ?? null;
   }
 
-  return { userId: user.id, nome, cognome, ruolo, schoolCode, schoolName, classe };
+  return { userId: user.id, nome, cognome, ruolo, schoolCode, schoolName, classe, dataNascita, maggiorenne: isMaggiorenne(dataNascita) };
 });

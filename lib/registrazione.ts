@@ -10,6 +10,10 @@ export function calcolaEta(dataNascita: string, oggi: Date = new Date()): number
 }
 
 export const ETA_MINIMA = 14;
+// Solo un controllo di plausibilità lato form (mai un vincolo DB): serve a
+// intercettare un anno di nascita digitato per errore, non è una regola di
+// business come ETA_MINIMA.
+export const ETA_MASSIMA_PLAUSIBILE = 25;
 
 // Condiviso tra RegistrazioneForm e ProfiloForm: il valore è quello inviato
 // a Supabase, la label quella salvata in student_profiles.classe.

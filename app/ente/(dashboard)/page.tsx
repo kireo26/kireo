@@ -11,7 +11,7 @@ export default async function EnteProfiloPage() {
   const [{ data: istituzione }, { data: guide }, quote] = await Promise.all([
     supabase
       .from("istituzioni")
-      .select("immagine_copertina_url, descrizione, sito_ufficiale")
+      .select("immagine_copertina_url, descrizione, sito_ufficiale, provincia")
       .eq("id", contesto.istituzioneId)
       .maybeSingle(),
     supabase.from("guide_enti").select("id, titolo, pdf_url").eq("istituzione_id", contesto.istituzioneId).order("created_at", { ascending: false }),
@@ -54,6 +54,7 @@ export default async function EnteProfiloPage() {
         copertinaIniziale={istituzione?.immagine_copertina_url ?? null}
         descrizioneIniziale={istituzione?.descrizione ?? null}
         sitoIniziale={istituzione?.sito_ufficiale ?? null}
+        provinciaIniziale={istituzione?.provincia ?? null}
         guideIniziali={guide ?? []}
       />
     </div>

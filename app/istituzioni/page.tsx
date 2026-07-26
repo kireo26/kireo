@@ -4,6 +4,7 @@ import { ButtonLink } from "@/components/Button";
 import Card from "@/components/Card";
 import SectionHeading from "@/components/SectionHeading";
 import RichiestaAccessoEnteForm from "@/components/RichiestaAccessoEnteForm";
+import RichiestaContattoForm from "@/components/landing/RichiestaContattoForm";
 
 export const metadata: Metadata = {
   title: "Per le istituzioni formative — KIREO",
@@ -46,9 +47,14 @@ const FEATURE_ROWS: { feature: string; base: string; standard: string; premium: 
   { feature: "Profilo istituzione verificato", base: "✓", standard: "✓", premium: "✓" },
   { feature: "Creazione eventi/webinar", base: "Illimitata", standard: "Illimitata", premium: "Illimitata" },
   { feature: "Eventi in evidenza all'anno", base: "—", standard: "5", premium: "20" },
+  { feature: "Post di bacheca (testo, immagine)", base: "✓", standard: "✓", premium: "✓" },
+  { feature: "Post con embed Instagram/TikTok", base: "—", standard: "✓", premium: "✓" },
+  { feature: "Notifiche ai follower su nuovi contenuti", base: "—", standard: "✓", premium: "✓" },
   { feature: "Newsletter agli iscritti all'anno", base: "—", standard: "3", premium: "12" },
   { feature: "CTA verso il sito esterno all'anno", base: "—", standard: "1", premium: "5" },
   { feature: "Comunicazioni mirate KIREO all'anno", base: "—", standard: "—", premium: "5" },
+  { feature: "Studenti interessati (dettaglio nominativo)", base: "Solo conteggio", standard: "✓", premium: "✓" },
+  { feature: "Messaggi con gli studenti", base: "—", standard: "✓", premium: "✓" },
   { feature: "Statistiche aggregate", base: "✓", standard: "✓", premium: "✓" },
 ];
 
@@ -95,9 +101,12 @@ export default function IstituzioniPage() {
             formative vengono mostrate agli studenti al termine del loro percorso di orientamento,
             in base alle attitudini emerse. Contatti qualificati, non traffico generico.
           </p>
-          <div className="mt-8">
+          <div className="mt-8 flex flex-wrap gap-4">
             <ButtonLink href="#richiedi-accesso" variant="primary">
-              Registra la tua istituzione
+              Registrati gratis
+            </ButtonLink>
+            <ButtonLink href="#richiedi-informazioni" variant="outline">
+              Richiedi informazioni
             </ButtonLink>
           </div>
         </div>
@@ -186,10 +195,30 @@ export default function IstituzioniPage() {
         </ul>
       </section>
 
+      <section id="richiedi-informazioni" className="border-t border-white/5">
+        <div className="mx-auto max-w-2xl px-6 py-20">
+          <SectionHeading
+            eyebrow="Hai qualche domanda?"
+            title="Richiedi informazioni"
+            description="Non sei ancora pronto a registrarti? Lasciaci i tuoi contatti: ti risponde una persona del team KIREO."
+            align="center"
+          />
+          <div className="mt-10">
+            <RichiestaContattoForm
+              origine="enti"
+              ruoliOpzioni={["Direttore/direttrice", "Responsabile marketing", "Responsabile orientamento", "Docente/formatore", "Altro"]}
+              etichettaBottone="Richiedi informazioni"
+              etichettaIstituto="Ente"
+              mostraCodiceMeccanografico={false}
+            />
+          </div>
+        </div>
+      </section>
+
       <section id="richiedi-accesso" className="border-t border-white/5 bg-kireo-card/40">
         <div className="mx-auto max-w-2xl px-6 py-20">
           <SectionHeading
-            eyebrow="Richiedi l'accesso"
+            eyebrow="Registrati"
             title="Registra la tua istituzione"
             description="Crei subito un profilo, che resta in attesa di attivazione manuale da parte di KIREO prima di comparire pubblicamente."
             align="center"

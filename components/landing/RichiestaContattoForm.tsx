@@ -14,10 +14,14 @@ export default function RichiestaContattoForm({
   origine,
   ruoliOpzioni,
   etichettaBottone,
+  etichettaIstituto = "Istituto",
+  mostraCodiceMeccanografico = true,
 }: {
-  origine: "dirigenti" | "scuole";
+  origine: "dirigenti" | "scuole" | "enti";
   ruoliOpzioni: string[];
   etichettaBottone: string;
+  etichettaIstituto?: string;
+  mostraCodiceMeccanografico?: boolean;
 }) {
   const [nome, setNome] = useState("");
   const [ruolo, setRuolo] = useState("");
@@ -155,10 +159,10 @@ export default function RichiestaContattoForm({
         {errors.ruolo && <p className="mt-1.5 text-sm text-red-400">{errors.ruolo}</p>}
       </div>
 
-      <div className="grid gap-5 sm:grid-cols-2">
+      <div className={mostraCodiceMeccanografico ? "grid gap-5 sm:grid-cols-2" : ""}>
         <div>
           <label htmlFor="istituto" className="mb-1.5 block text-sm font-medium text-kireo-light">
-            Istituto
+            {etichettaIstituto}
           </label>
           <input
             id="istituto"
@@ -169,22 +173,24 @@ export default function RichiestaContattoForm({
             }}
             aria-invalid={Boolean(errors.istituto)}
             className={`${inputClass} ${fieldBorder(Boolean(errors.istituto))}`}
-            placeholder="Nome dell'istituto"
+            placeholder={`Nome dell${etichettaIstituto === "Ente" ? "'ente" : "'istituto"}`}
           />
           {errors.istituto && <p className="mt-1.5 text-sm text-red-400">{errors.istituto}</p>}
         </div>
-        <div>
-          <label htmlFor="codiceMeccanografico" className="mb-1.5 block text-sm font-medium text-kireo-light">
-            Codice meccanografico (facoltativo)
-          </label>
-          <input
-            id="codiceMeccanografico"
-            value={codiceMeccanografico}
-            onChange={(e) => setCodiceMeccanografico(e.target.value)}
-            className={`${inputClass} ${fieldBorder(false)}`}
-            placeholder="Es. MIXX00000X"
-          />
-        </div>
+        {mostraCodiceMeccanografico && (
+          <div>
+            <label htmlFor="codiceMeccanografico" className="mb-1.5 block text-sm font-medium text-kireo-light">
+              Codice meccanografico (facoltativo)
+            </label>
+            <input
+              id="codiceMeccanografico"
+              value={codiceMeccanografico}
+              onChange={(e) => setCodiceMeccanografico(e.target.value)}
+              className={`${inputClass} ${fieldBorder(false)}`}
+              placeholder="Es. MIXX00000X"
+            />
+          </div>
+        )}
       </div>
 
       <div>

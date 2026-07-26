@@ -34,10 +34,14 @@ export default function CreaEventoForm({
   istituzioneId,
   eventiInRevisione,
   perDocenti = false,
+  propostaIncontroId = null,
+  descrizionePrefill = null,
 }: {
   istituzioneId: string;
   eventiInRevisione: number;
   perDocenti?: boolean;
+  propostaIncontroId?: string | null;
+  descrizionePrefill?: string | null;
 }) {
   const fairUseRaggiunto = eventiInRevisione >= MAX_EVENTI_IN_REVISIONE;
   const router = useRouter();
@@ -49,7 +53,7 @@ export default function CreaEventoForm({
   const [link, setLink] = useState("");
   const [posti, setPosti] = useState("");
   const [orePcto, setOrePcto] = useState("0");
-  const [scaletta, setScaletta] = useState("");
+  const [scaletta, setScaletta] = useState(descrizionePrefill ?? "");
   const [ctaEsternaUrl, setCtaEsternaUrl] = useState("");
   const [aree, setAree] = useState<string[]>([]);
   const [filone, setFilone] = useState("");
@@ -132,6 +136,7 @@ export default function CreaEventoForm({
               }
             : null,
           checklist_diretta_accettata_il: oraAccettazione,
+          proposta_incontro_id: propostaIncontroId,
         })
         .select("id")
         .single();
@@ -442,6 +447,13 @@ export default function CreaEventoForm({
       <Button type="submit" variant="primary" className="w-full" disabled={inviando || fairUseRaggiunto}>
         {fairUseRaggiunto ? "4 eventi già in revisione" : inviando ? "Invio in corso…" : "Invia in approvazione"}
       </Button>
+      <p className="text-center text-xs text-kireo-muted">
+        Ricorda il{" "}
+        <a href="/ente/regolamento" target="_blank" className="text-kireo-orange underline underline-offset-2">
+          regolamento enti
+        </a>
+        .
+      </p>
     </form>
   );
 }

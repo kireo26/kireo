@@ -47,6 +47,31 @@ export async function getGuideEnte(supabase: SupabaseClient, istituzioneId: stri
   }
 }
 
+export async function getConteggioFollower(supabase: SupabaseClient, istituzioneId: string): Promise<number> {
+  try {
+    const { data, error } = await supabase.rpc("conteggio_follower", { p_istituzione_id: istituzioneId });
+    if (error) return 0;
+    return typeof data === "number" ? data : 0;
+  } catch {
+    return 0;
+  }
+}
+
+export async function isSeguito(supabase: SupabaseClient, studentId: string, istituzioneId: string): Promise<boolean> {
+  try {
+    const { data, error } = await supabase
+      .from("seguiti")
+      .select("student_id")
+      .eq("student_id", studentId)
+      .eq("istituzione_id", istituzioneId)
+      .maybeSingle();
+    if (error) return false;
+    return Boolean(data);
+  } catch {
+    return false;
+  }
+}
+
 export async function isIscrittoNewsletter(supabase: SupabaseClient, studentId: string, istituzioneId: string): Promise<boolean> {
   try {
     const { data, error } = await supabase

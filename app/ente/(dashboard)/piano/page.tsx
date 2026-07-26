@@ -127,6 +127,28 @@ export default async function EntePianoPage() {
           </table>
         </div>
 
+        <div className="mt-6 overflow-x-auto">
+          <table className="w-full min-w-[640px] border-collapse text-left text-sm">
+            <tbody>
+              {[
+                "Post con embed Instagram/TikTok",
+                "Notifiche ai follower su nuovi contenuti",
+                "Studenti interessati (dettaglio nominativo)",
+                "Messaggi con gli studenti",
+              ].map((label, i, arr) => (
+                <tr key={label} className={i % 2 === 0 ? "bg-kireo-dark" : "bg-kireo-dark/60"}>
+                  <td className={`p-4 text-kireo-light/90 ${i === arr.length - 1 ? "rounded-bl-2xl" : ""}`}>{label}</td>
+                  {listaPiani.map((p, idx) => (
+                    <td key={p.id} className={`p-4 text-center text-kireo-light/90 ${i === arr.length - 1 && idx === listaPiani.length - 1 ? "rounded-br-2xl" : ""}`}>
+                      {p.nome === "free" ? "—" : "✓"}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
         {!richiestaInAttesa && pianiSuperiori.length > 0 && (
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
             {pianiSuperiori.map((p) => (

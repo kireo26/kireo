@@ -4,11 +4,15 @@ import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import Logo from "@/components/Logo";
 import { createClient } from "@/lib/supabase/client";
+import NotificheBell from "@/components/app/NotificheBell";
 
 const NAV_ITEMS = [
   { href: "/app", label: "Home", shortLabel: "Home", icon: IconHome },
   { href: "/app/aree", label: "Aree", shortLabel: "Aree", icon: IconAree },
+  { href: "/app/esplora", label: "Esplora", shortLabel: "Esplora", icon: IconEsplora },
   { href: "/app/agenda", label: "Agenda", shortLabel: "Agenda", icon: IconAgenda },
+  { href: "/app/bacheca", label: "Bacheca", shortLabel: "Bacheca", icon: IconBacheca },
+  { href: "/app/messaggi", label: "Messaggi", shortLabel: "Messaggi", icon: IconMessaggi },
   { href: "/app/attivita", label: "Le mie attività", shortLabel: "Attività", icon: IconAttivita },
   { href: "/app/profilo", label: "Profilo", shortLabel: "Profilo", icon: IconProfilo },
 ];
@@ -51,6 +55,32 @@ function IconAttivita({ className }: { className?: string }) {
   );
 }
 
+function IconEsplora({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" aria-hidden="true">
+      <circle cx="11" cy="11" r="7" strokeWidth="2" />
+      <path strokeWidth="2" strokeLinecap="round" d="m20 20-3.5-3.5" />
+    </svg>
+  );
+}
+
+function IconBacheca({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" aria-hidden="true">
+      <rect x="4" y="4" width="16" height="16" rx="2" strokeWidth="2" />
+      <path strokeWidth="2" strokeLinecap="round" d="M8 9h8M8 13h5" />
+    </svg>
+  );
+}
+
+function IconMessaggi({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" aria-hidden="true">
+      <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M4 6h16v11H8l-4 3.5V6Z" />
+    </svg>
+  );
+}
+
 function IconProfilo({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" aria-hidden="true">
@@ -68,7 +98,7 @@ function IconLogout({ className }: { className?: string }) {
   );
 }
 
-export default function AppShell({ children }: { children: React.ReactNode }) {
+export default function AppShell({ userId, children }: { userId: string; children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
 
@@ -84,8 +114,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-kireo-dark md:flex">
       <aside className="hidden w-60 flex-none flex-col border-r border-white/5 px-4 py-6 md:flex">
-        <div className="px-2 pb-8">
+        <div className="flex items-center justify-between px-2 pb-8">
           <Logo />
+          <NotificheBell userId={userId} />
         </div>
         <nav className="flex flex-1 flex-col gap-1" aria-label="Navigazione area personale">
           {NAV_ITEMS.map((item) => {
@@ -118,14 +149,17 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <div className="flex min-h-screen flex-1 flex-col">
         <header className="flex items-center justify-between border-b border-white/5 px-4 py-3 md:hidden">
           <span className="font-heading text-base font-semibold text-kireo-light">{sezioneCorrente}</span>
-          <button
-            type="button"
-            onClick={handleLogout}
-            aria-label="Esci"
-            className="flex h-9 w-9 items-center justify-center rounded-full text-kireo-light/80 transition-colors hover:bg-white/5"
-          >
-            <IconLogout className="h-5 w-5" />
-          </button>
+          <div className="flex items-center gap-1">
+            <NotificheBell userId={userId} />
+            <button
+              type="button"
+              onClick={handleLogout}
+              aria-label="Esci"
+              className="flex h-9 w-9 items-center justify-center rounded-full text-kireo-light/80 transition-colors hover:bg-white/5"
+            >
+              <IconLogout className="h-5 w-5" />
+            </button>
+          </div>
         </header>
 
         <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-24 pt-6 sm:px-6 md:pb-10 md:pt-10">{children}</main>

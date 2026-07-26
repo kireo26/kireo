@@ -6,6 +6,7 @@ import { templateConfermaRichiestaContatto, templateNotificaRichiestaContatto } 
 export const runtime = "nodejs";
 
 const EMAIL_NOTIFICA_INTERNA = "mario.izzo@hotmail.it";
+const EMAIL_NOTIFICA_ENTI = "info@kireo.it";
 
 function erroreDiCortesia(testo: string, status: number) {
   return NextResponse.json({ errore: testo }, { status });
@@ -35,7 +36,7 @@ export async function POST(request: NextRequest) {
 
   const { origine, nome, ruolo, istituto, email, messaggio, codiceMeccanografico } = body;
 
-  if (typeof origine !== "string" || (origine !== "dirigenti" && origine !== "scuole")) {
+  if (typeof origine !== "string" || (origine !== "dirigenti" && origine !== "scuole" && origine !== "enti")) {
     return erroreDiCortesia("Richiesta non valida.", 400);
   }
   const campiTesto = [nome, ruolo, istituto, email, messaggio];
@@ -75,11 +76,14 @@ export async function POST(request: NextRequest) {
     return erroreDiCortesia("Non è stato possibile inviare la richiesta. Riprova tra qualche istante.", 500);
   }
 
+  const emailNotificaDestinatario = origine === "enti" ? EMAIL_NOTIFICA_ENTI : EMAIL_NOTIFICA_INTERNA;
+  const oggettoNotifica = origine === "enti" ? "Richiesta informazione ente formativo" : `Nuova richiesta (${origine}) da ${istitutoStr}`;
+
   const [esitoConferma, esitoNotifica] = await Promise.all([
     inviaEmail(emailStr, "Abbiamo ricevuto la tua richiesta — KIREO", templateConfermaRichiestaContatto(nomeStr, origine), nomeStr),
     inviaEmail(
-      EMAIL_NOTIFICA_INTERNA,
-      `Nuova richiesta (${origine}) da ${istitutoStr}`,
+      emailNotificaDestinatario,
+      oggettoNotifica,
       templateNotificaRichiestaContatto({
         origine,
         nome: nomeStr,

@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getIstituzionePubblicaBySlug, getGuideEnte, isIscrittoNewsletter, etichettaTipoIstituzione } from "@/lib/app/istituzioni";
+import { getIstituzionePubblicaBySlug, getGuideEnte, isIscrittoNewsletter, getConteggioFollower, isSeguito, etichettaTipoIstituzione } from "@/lib/app/istituzioni";
 import { getEventiIstituzione, getAreeDegliEventi, getIscrizioniStudente } from "@/lib/app/eventi";
+import { isMaggiorenne } from "@/lib/eta";
 import GuidaEnteForm from "@/components/app/GuidaEnteForm";
 import IscrivitiNewsletterButton from "@/components/app/IscrivitiNewsletterButton";
+import SeguiButton from "@/components/app/SeguiButton";
+import ManifestazioneInteresseButton from "@/components/app/ManifestazioneInteresseButton";
+import MessaggioEnteButton from "@/components/app/MessaggioEnteButton";
 import CardEvento from "@/components/app/CardEvento";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -43,6 +47,37 @@ export default async function IstituzionePubblicaPage({ params }: { params: Prom
   const iscrittoNewsletter = user ? await isIscrittoNewsletter(supabase, user.id, istituzione.id) : false;
   const guidaPrincipale = guide[0] ?? null;
 
+  const conteggioFollower = await getConteggioFollower(supabase, istituzione.id);
+  const seguito = user ? await isSeguito(supabase, user.id, istituzione.id) : false;
+
+  let maggiorenne = false;
+  let manifestazioneAttivaId: string | null = null;
+  if (user) {
+    const { data: profilo } = await supabase.from("profiles").select("data_nascita").eq("id", user.id).maybeSingle();
+    maggiorenne = isMaggiorenne(profilo?.data_nascita ?? null);
+    const { data: manifestazione } = await supabase
+      .from("manifestazioni_interesse")
+      .select("id")
+      .eq("student_id", user.id)
+      .eq("istituzione_id", istituzione.id)
+      .is("revocata_il", null)
+      .maybeSingle();
+    manifestazioneAttivaId = manifestazione?.id ?? null;
+  }
+
+  let conversazioneEsistenteId: string | null = null;
+  if (user) {
+    const { data: conversazione } = await supabase
+      .from("conversazioni_enti")
+      .select("id")
+      .eq("student_id", user.id)
+      .eq("istituzione_id", istituzione.id)
+      .eq("stato", "aperta")
+      .order("created_at", { ascending: false })
+      .maybeSingle();
+    conversazioneEsistenteId = conversazione?.id ?? null;
+  }
+
   return (
     <>
       <section className="border-b border-white/5">
@@ -74,6 +109,28 @@ export default async function IstituzionePubblicaPage({ params }: { params: Prom
             Sito ufficiale ↗
           </a>
         )}
+
+        <div className="mt-6 flex flex-wrap items-center gap-4">
+          <SeguiButton istituzioneId={istituzione.id} userId={user?.id ?? null} seguitoIniziale={seguito} />
+          <p className="text-sm text-kireo-muted">
+            <strong className="text-kireo-light">{conteggioFollower}</strong> {conteggioFollower === 1 ? "follower" : "follower"}
+          </p>
+        </div>
+
+        <div className="mt-6 flex flex-wrap items-center gap-4">
+          <ManifestazioneInteresseButton
+            istituzioneId={istituzione.id}
+            userId={user?.id ?? null}
+            maggiorenne={maggiorenne}
+            manifestazioneAttivaId={manifestazioneAttivaId}
+          />
+          <MessaggioEnteButton
+            istituzioneId={istituzione.id}
+            userId={user?.id ?? null}
+            maggiorenne={maggiorenne}
+            conversazioneEsistenteId={conversazioneEsistenteId}
+          />
+        </div>
       </section>
 
       <section className="border-t border-white/5 bg-kireo-card/40">

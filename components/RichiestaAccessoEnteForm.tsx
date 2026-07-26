@@ -47,6 +47,7 @@ export default function RichiestaAccessoEnteForm() {
   const [password, setPassword] = useState("");
   const [confermaPassword, setConfermaPassword] = useState("");
   const [privacy, setPrivacy] = useState(false);
+  const [regolamento, setRegolamento] = useState(false);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [erroreGenerale, setErroreGenerale] = useState<string | null>(
@@ -84,6 +85,7 @@ export default function RichiestaAccessoEnteForm() {
     }
     if (confermaPassword !== password) next.confermaPassword = "Le password non coincidono.";
     if (!privacy) next.privacy = "Devi accettare la privacy policy per continuare.";
+    if (!regolamento) next.regolamento = "Devi accettare il regolamento enti per continuare.";
 
     return next;
   }
@@ -111,6 +113,7 @@ export default function RichiestaAccessoEnteForm() {
             referente_nome: referenteNome.trim(),
             referente_cognome: referenteCognome.trim(),
             sito_ufficiale: sitoUfficiale.trim() || null,
+            regolamento_accettato: true,
           },
         },
       });
@@ -322,6 +325,29 @@ export default function RichiestaAccessoEnteForm() {
           </label>
         </div>
         {errors.privacy && <p className="mt-1.5 text-sm text-red-400">{errors.privacy}</p>}
+      </div>
+
+      <div>
+        <div className="flex items-start gap-3">
+          <input
+            id="regolamento"
+            type="checkbox"
+            checked={regolamento}
+            onChange={(e) => {
+              setRegolamento(e.target.checked);
+              clearError("regolamento");
+            }}
+            aria-invalid={Boolean(errors.regolamento)}
+            className="mt-1 h-5 w-5 flex-none rounded border-white/20 bg-kireo-dark accent-kireo-green"
+          />
+          <label htmlFor="regolamento" className="text-sm text-kireo-muted">
+            Ho letto e accetto il{" "}
+            <a href="/ente/regolamento" target="_blank" className="text-kireo-orange underline underline-offset-2">
+              Regolamento enti
+            </a>
+          </label>
+        </div>
+        {errors.regolamento && <p className="mt-1.5 text-sm text-red-400">{errors.regolamento}</p>}
       </div>
 
       <Button type="submit" variant="primary" className="w-full" disabled={caricamento}>

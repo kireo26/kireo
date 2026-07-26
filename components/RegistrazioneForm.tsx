@@ -5,7 +5,7 @@ import { Button } from "./Button";
 import ScuolaCascadeFields, { SCUOLA_ALTRO, type ScuolaCascadeValue } from "./ScuolaCascadeFields";
 import { inputClass, fieldBorder } from "@/lib/formStyles";
 import { createClient } from "@/lib/supabase/client";
-import { ETA_MINIMA, CLASSI, calcolaAnnoDiploma, calcolaEta } from "@/lib/registrazione";
+import { ETA_MINIMA, ETA_MASSIMA_PLAUSIBILE, CLASSI, calcolaAnnoDiploma, calcolaEta } from "@/lib/registrazione";
 import { messaggioErroreAuth } from "@/lib/authErrors";
 import AreeInteresseGrid from "./app/AreeInteresseGrid";
 
@@ -110,6 +110,8 @@ export default function RegistrazioneForm() {
       next.dataNascita = "Inserisci la tua data di nascita.";
     } else if (calcolaEta(dataNascita) < ETA_MINIMA) {
       next.dataNascita = `Per registrarti su KIREO devi avere almeno ${ETA_MINIMA} anni. Se hai meno di ${ETA_MINIMA} anni, chiedi a un genitore o tutore di scrivere a KIREO tramite la pagina Contatti.`;
+    } else if (calcolaEta(dataNascita) > ETA_MASSIMA_PLAUSIBILE) {
+      next.dataNascita = "Controlla la data inserita: sembra implausibile per un profilo studente.";
     }
 
     if (!password) {

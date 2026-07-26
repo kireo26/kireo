@@ -6,6 +6,7 @@ import CreaEventoForm from "@/components/ente/CreaEventoForm";
 import RegistroPresenzeDocenti from "@/components/ente/RegistroPresenzeDocenti";
 import ControlloDirettaEvento from "@/components/ente/ControlloDirettaEvento";
 import ReportEventoButton from "@/components/ente/ReportEventoButton";
+import RispondiPropostaForm, { CreaEventoDaPropostaLink } from "@/components/ente/RispondiPropostaForm";
 import { getFiloneBySlug } from "@/data/filoniDocenti";
 
 const ETICHETTA_STATO: Record<string, { label: string; classe: string }> = {
@@ -15,19 +16,39 @@ const ETICHETTA_STATO: Record<string, { label: string; classe: string }> = {
   rifiutato: { label: "Rifiutato", classe: "bg-red-500/15 text-red-300" },
 };
 
-export default async function EnteEventiPage() {
+export default async function EnteEventiPage({ searchParams }: { searchParams: Promise<{ proposta?: string }> }) {
+  const { proposta: propostaIdParam } = await searchParams;
   const contesto = await getEnteContext();
   const supabase = await createClient();
   const perDocenti = contesto.tipo === "formazione_docenti";
 
-  const [{ data: eventi }, quote] = await Promise.all([
+  const [{ data: eventi }, quote, { data: proposte }] = await Promise.all([
     supabase
       .from("eventi")
       .select("id, titolo, tipo, data_inizio, data_fine, stato, in_evidenza, pubblico, filone, hosting_diretta, youtube_video_id")
       .eq("organizzatore_id", contesto.istituzioneId)
       .order("created_at", { ascending: false }),
     getQuoteEnte(supabase, contesto.istituzioneId, contesto.pianoNome),
+    supabase
+      .from("proposte_incontro")
+      .select("id, scuola_profilo_id, stato, descrizione, n_studenti_stimato, classi_coinvolte, date_preferite, created_at")
+      .eq("istituzione_id", contesto.istituzioneId)
+      .order("created_at", { ascending: false }),
   ]);
+
+  const scuolaProfiloIds = Array.from(new Set((proposte ?? []).map((p) => p.scuola_profilo_id)));
+  const nomeScuolaPerProposta = new Map<string, string>();
+  if (scuolaProfiloIds.length > 0) {
+    const { data: scuoleProfilo } = await supabase.from("scuole_profili").select("id, scuola_id").in("id", scuolaProfiloIds);
+    const codiciScuola = (scuoleProfilo ?? []).map((s) => s.scuola_id);
+    const { data: scuole } = codiciScuola.length > 0 ? await supabase.from("schools").select("codice_meccanografico, denominazione").in("codice_meccanografico", codiciScuola) : { data: [] };
+    const denominazionePerCodice = new Map((scuole ?? []).map((s) => [s.codice_meccanografico, s.denominazione]));
+    for (const sp of scuoleProfilo ?? []) {
+      nomeScuolaPerProposta.set(sp.id, denominazionePerCodice.get(sp.scuola_id) ?? "Scuola");
+    }
+  }
+
+  const propostaAccettataPerEvento = propostaIdParam ? (proposte ?? []).find((p) => p.id === propostaIdParam && p.stato === "accettata") : null;
 
   const eventiInRevisione = (eventi ?? []).filter((e) => e.stato === "in_approvazione").length;
   const quotaEvidenzaRimasta = quote.evidenzaTotali - quote.evidenzaUsate;
@@ -131,14 +152,44 @@ export default async function EnteEventiPage() {
         </ul>
       )}
 
-      <div>
+      {proposte && proposte.length > 0 && (
+        <div>
+          <h2 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">Proposte dalle scuole</h2>
+          <p className="mt-1 text-sm text-kireo-muted">Incontri di orientamento proposti da scuole che ti hanno trovato su Esplora.</p>
+          <ul className="mt-4 space-y-3">
+            {proposte.map((p) => (
+              <li key={p.id} className="rounded-xl border border-white/5 bg-kireo-card p-4">
+                <p className="font-heading text-sm font-semibold text-kireo-light">{nomeScuolaPerProposta.get(p.scuola_profilo_id) ?? "Scuola"}</p>
+                <p className="mt-1 text-xs text-kireo-muted">
+                  {p.stato === "inviata" ? "In attesa di risposta" : p.stato === "accettata" ? "Accettata" : p.stato === "rifiutata" ? "Rifiutata" : "Ritirata"}
+                  {p.n_studenti_stimato ? ` · ~${p.n_studenti_stimato} studenti` : ""}
+                  {p.classi_coinvolte ? ` · ${p.classi_coinvolte}` : ""}
+                  {p.date_preferite ? ` · ${p.date_preferite}` : ""}
+                </p>
+                <p className="mt-2 text-sm text-kireo-light/90">{p.descrizione}</p>
+                {p.stato === "inviata" && <RispondiPropostaForm propostaId={p.id} />}
+                {p.stato === "accettata" && <CreaEventoDaPropostaLink propostaId={p.id} />}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <div id="crea-evento">
         <h2 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">Proponi un nuovo evento</h2>
         <p className="mt-1 text-sm text-kireo-muted">
           Nessun limite di creazione: KIREO revisiona ogni proposta prima che compaia pubblicamente. Puoi avere al massimo 4 eventi
           in attesa di revisione contemporaneamente.
+          {propostaAccettataPerEvento && " Questo evento sarà collegato alla proposta della scuola che hai accettato."}
         </p>
         <div className="mt-4">
-          <CreaEventoForm istituzioneId={contesto.istituzioneId} eventiInRevisione={eventiInRevisione} perDocenti={perDocenti} />
+          <CreaEventoForm
+            istituzioneId={contesto.istituzioneId}
+            eventiInRevisione={eventiInRevisione}
+            perDocenti={perDocenti}
+            propostaIncontroId={propostaAccettataPerEvento?.id ?? null}
+            descrizionePrefill={propostaAccettataPerEvento?.descrizione ?? null}
+          />
         </div>
       </div>
     </div>
