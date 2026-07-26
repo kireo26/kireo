@@ -1,5 +1,6 @@
 import { getFiloneBySlug } from "@/data/filoniDocenti";
 import IscrivitiWebinarButton from "./IscrivitiWebinarButton";
+import EntraDirettaLink from "@/components/EntraDirettaLink";
 import type { WebinarDocente } from "@/lib/docente/eventi";
 
 export default function CardWebinarDocente({
@@ -33,6 +34,13 @@ export default function CardWebinarDocente({
           </p>
           {webinar.descrizione && <p className="mt-2 text-sm text-kireo-muted">{webinar.descrizione}</p>}
           <p className="mt-2 text-xs text-kireo-muted">Organizzato da {webinar.organizzatore_nome ?? "KIREO"}</p>
+          <EntraDirettaLink
+            href={`/docente/webinar/${webinar.id}/live`}
+            dataInizio={webinar.data_inizio}
+            dataFine={webinar.data_fine}
+            youtubeVideoId={webinar.youtube_video_id}
+            iscritto={Boolean(stato)}
+          />
         </div>
         {stato !== "partecipato" && <IscrivitiWebinarButton eventoId={webinar.id} userId={userId} iscrittoIniziale={Boolean(stato)} />}
       </div>

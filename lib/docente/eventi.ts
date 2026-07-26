@@ -10,9 +10,11 @@ export type WebinarDocente = {
   filone: string;
   organizzatore_id: string | null;
   organizzatore_nome: string | null;
+  youtube_video_id: string | null;
 };
 
-const COLONNE_WEBINAR = "id, titolo, descrizione, data_inizio, data_fine, link, filone, organizzatore_id, istituzioni(nome)";
+const COLONNE_WEBINAR =
+  "id, titolo, descrizione, data_inizio, data_fine, link, filone, organizzatore_id, youtube_video_id, istituzioni(nome)";
 
 function mappaRiga(riga: Record<string, unknown>): WebinarDocente {
   const org = riga.istituzioni as { nome: string } | { nome: string }[] | null;
@@ -27,6 +29,7 @@ function mappaRiga(riga: Record<string, unknown>): WebinarDocente {
     filone: riga.filone as string,
     organizzatore_id: (riga.organizzatore_id as string | null) ?? null,
     organizzatore_nome: organizzatore?.nome ?? null,
+    youtube_video_id: (riga.youtube_video_id as string | null) ?? null,
   };
 }
 

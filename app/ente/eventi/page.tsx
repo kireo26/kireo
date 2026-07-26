@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import MettiInEvidenzaButton from "@/components/ente/MettiInEvidenzaButton";
 import CreaEventoForm from "@/components/ente/CreaEventoForm";
 import RegistroPresenzeDocenti from "@/components/ente/RegistroPresenzeDocenti";
+import ControlloDirettaEvento from "@/components/ente/ControlloDirettaEvento";
+import ReportEventoButton from "@/components/ente/ReportEventoButton";
 import { getFiloneBySlug } from "@/data/filoniDocenti";
 
 const ETICHETTA_STATO: Record<string, { label: string; classe: string }> = {
@@ -21,7 +23,7 @@ export default async function EnteEventiPage() {
   const [{ data: eventi }, quote] = await Promise.all([
     supabase
       .from("eventi")
-      .select("id, titolo, tipo, data_inizio, stato, in_evidenza, pubblico, filone")
+      .select("id, titolo, tipo, data_inizio, data_fine, stato, in_evidenza, pubblico, filone, hosting_diretta, youtube_video_id")
       .eq("organizzatore_id", contesto.istituzioneId)
       .order("created_at", { ascending: false }),
     getQuoteEnte(supabase, contesto.istituzioneId, contesto.pianoNome),
@@ -100,6 +102,27 @@ export default async function EnteEventiPage() {
                   <div className="mt-4 border-t border-white/5 pt-4">
                     <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-kireo-muted">Registro presenze</p>
                     <RegistroPresenzeDocenti eventoId={e.id} iscritti={registriPresenze.get(e.id) ?? []} />
+                  </div>
+                )}
+                {e.tipo === "webinar" && (
+                  <div className="mt-4 border-t border-white/5 pt-4">
+                    <p className="text-xs text-kireo-muted">
+                      {e.hosting_diretta === "proprio"
+                        ? e.youtube_video_id
+                          ? "Diretta sul tuo canale YouTube."
+                          : "Diretta sul tuo canale YouTube (link in attesa di conferma)."
+                        : e.youtube_video_id
+                          ? "Diretta ospitata da KIREO — pronta."
+                          : "Diretta ospitata da KIREO: riceverai la chiave di trasmissione da KIREO prima dell'evento."}
+                    </p>
+                    {e.stato === "approvato" && (
+                      <>
+                        <ControlloDirettaEvento eventoId={e.id} />
+                        <div className="mt-3">
+                          <ReportEventoButton eventoId={e.id} />
+                        </div>
+                      </>
+                    )}
                   </div>
                 )}
               </li>

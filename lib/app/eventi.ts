@@ -15,10 +15,12 @@ export type Evento = {
   cta_esterna_url: string | null;
   cta_esterna_approvata: boolean;
   in_evidenza: boolean;
+  hosting_diretta: "kireo" | "proprio";
+  youtube_video_id: string | null;
 };
 
 const COLONNE_EVENTO =
-  "id, titolo, descrizione, tipo, data_inizio, data_fine, sede, link, posti, ore_pcto, organizzatore_id, cta_esterna_url, cta_esterna_approvata, in_evidenza";
+  "id, titolo, descrizione, tipo, data_inizio, data_fine, sede, link, posti, ore_pcto, organizzatore_id, cta_esterna_url, cta_esterna_approvata, in_evidenza, hosting_diretta, youtube_video_id";
 
 // Eventi in evidenza prima, poi per data crescente — stesso criterio usato
 // ovunque prima (solo data) con la priorità di promozione anteposta.
