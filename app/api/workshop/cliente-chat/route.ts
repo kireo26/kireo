@@ -5,6 +5,8 @@ import { MODELLO_CLIENTE_WORKSHOP, MAX_CARATTERI_MESSAGGIO_WORKSHOP, WORKSHOP_CL
 
 export const runtime = "nodejs";
 
+const FALLBACK_RISPOSTA_CLIENTE = "Scusa, mi si è accavallato un pensiero. Ripeti?";
+
 function erroreDiCortesia(testo: string, status: number) {
   return NextResponse.json({ errore: testo }, { status });
 }
@@ -95,18 +97,43 @@ export async function POST(request: NextRequest) {
     });
 
     const testoRisposta = risposta.content[0]?.type === "text" ? risposta.content[0].text : "";
+    const testoFinale = testoRisposta || FALLBACK_RISPOSTA_CLIENTE;
 
     const { error: erroreRisposta } = await supabase.rpc("invia_risposta_cliente_workshop", {
       p_iscrizione_id: iscrizioneId,
-      p_contenuto: testoRisposta || "Scusa, mi si è accavallato un pensiero. Ripeti?",
+      p_contenuto: testoFinale,
     });
     if (erroreRisposta) {
       console.error("Errore nel salvataggio della risposta del cliente:", erroreRisposta);
     }
 
-    return NextResponse.json({ risposta: testoRisposta });
+    return NextResponse.json({ risposta: testoFinale });
   } catch (errore) {
-    console.error("Errore chiamata Anthropic (chat cliente workshop):", errore);
+    // Log dettagliato per Vercel: con un APIError di Anthropic (modello
+    // inesistente, chiave non valida, rate limit...) status/type/message
+    // dicono esattamente cosa è successo, invece del solo oggetto generico.
+    if (errore instanceof Anthropic.APIError) {
+      console.error(
+        `Errore API Anthropic (chat cliente workshop): status=${errore.status} type=${errore.type ?? "sconosciuto"} messaggio=${errore.message}`,
+      );
+    } else {
+      console.error("Errore chiamata Anthropic (chat cliente workshop):", errore);
+    }
+
+    // Anche in caso di errore, registra un turno "cliente" (di cortesia):
+    // senza questo, la history letta alla chiamata successiva avrebbe due
+    // messaggi "user" consecutivi (il messaggio appena inviato + quello
+    // dopo) — l'API Anthropic richiede ruoli sempre alternati e rifiuta
+    // quella richiesta con un 400, un guasto che altrimenti non si ripara
+    // mai da solo dopo il primo fallimento.
+    const { error: erroreFallback } = await supabase.rpc("invia_risposta_cliente_workshop", {
+      p_iscrizione_id: iscrizioneId,
+      p_contenuto: FALLBACK_RISPOSTA_CLIENTE,
+    });
+    if (erroreFallback) {
+      console.error("Errore nel salvataggio della risposta di fallback:", erroreFallback);
+    }
+
     return erroreDiCortesia("Il cliente non è disponibile in questo momento. Riprova più tardi.", 503);
   }
 }
