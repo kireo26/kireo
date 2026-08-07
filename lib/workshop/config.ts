@@ -214,7 +214,7 @@ RICORDA: sei il cliente che deve essere convinto, non il professore che valuta. 
 export type MaterialeWorkshop = {
   titolo: string;
   descrizione: string;
-  tipo: "link" | "pdf" | "template" | "domanda";
+  tipo: "link" | "pdf" | "template" | "esempio" | "domanda";
   url?: string;
 };
 
@@ -515,9 +515,23 @@ export const WORKSHOP_KIT: Record<string, Record<string, MaterialeWorkshop[]>> =
       {
         titolo: "La palestra come presidio di salute",
         descrizione:
-          "Programma di attività per fasce d'età, figure e qualifiche necessarie, certificati medici e sicurezza (defibrillatore, BLSD). Con i dati ISTAT sulla sedentarietà e le linee guida OMS.",
+          "La guida: programma per fasce d'età, figure e qualifiche, sicurezza (defibrillatore, BLSD). Con i dati ISTAT sulla sedentarietà e le linee guida OMS, e il metodo passo-passo.",
         tipo: "pdf",
         url: "/materiali/workshop/palestra-popolare/salute-kit.pdf",
+      },
+      {
+        titolo: "Il template: la scheda del programma",
+        descrizione:
+          "Scheda da compilare per costruire la consegna: programma settimanale, figure e qualifiche, sicurezza, inclusione. Ti toglie il foglio bianco.",
+        tipo: "template",
+        url: "/materiali/workshop/palestra-popolare/salute-template.pdf",
+      },
+      {
+        titolo: "Un esempio svolto",
+        descrizione:
+          "Una consegna fatta bene per un progetto diverso (una scuola di pallavolo): guarda la forma, non copiare i contenuti.",
+        tipo: "esempio",
+        url: "/materiali/workshop/palestra-popolare/salute-esempio.pdf",
       },
       {
         titolo: "Domanda a cui rispondere nella consegna",
@@ -530,14 +544,28 @@ export const WORKSHOP_KIT: Record<string, Record<string, MaterialeWorkshop[]>> =
       {
         titolo: "Lo sport che tiene i ragazzi a scuola",
         descrizione:
-          "Come trasformare \"toglierli dalla strada\" in un progetto educativo finanziabile: attività, alleati (scuole, servizi sociali, ETS) e indicatori. Con i dati su dispersione scolastica e povertà educativa.",
+          "La guida: come trasformare \"toglierli dalla strada\" in un progetto finanziabile — attività, alleati, indicatori. Con i dati su dispersione e povertà educativa, e il metodo passo-passo.",
         tipo: "pdf",
         url: "/materiali/workshop/palestra-popolare/educazione-kit.pdf",
       },
       {
+        titolo: "Il template: la scheda del progetto educativo",
+        descrizione:
+          "Scheda da compilare: a chi ti rivolgi e perché, le attività, gli alleati, come misuri i risultati.",
+        tipo: "template",
+        url: "/materiali/workshop/palestra-popolare/educazione-template.pdf",
+      },
+      {
+        titolo: "Un esempio svolto",
+        descrizione:
+          "Una consegna fatta bene per un progetto diverso (un doposcuola in biblioteca): guarda la forma, non copiare i contenuti.",
+        tipo: "esempio",
+        url: "/materiali/workshop/palestra-popolare/educazione-esempio.pdf",
+      },
+      {
         titolo: "Domanda a cui rispondere nella consegna",
         descrizione:
-          "Scrivi il progetto educativo: a chi si rivolge, quali attività oltre all'allenamento, con quali alleati e come misuri i risultati. Tonino non è un professore: mostragli come si fa senza diventare una scuola.",
+          "Scrivi il progetto educativo: a chi si rivolge, quali attività oltre all'allenamento, con quali alleati e come misuri i risultati. Mostra a Tonino come si fa senza diventare una scuola.",
         tipo: "domanda",
       },
     ],
@@ -545,9 +573,23 @@ export const WORKSHOP_KIT: Record<string, Record<string, MaterialeWorkshop[]>> =
       {
         titolo: "Far quadrare i conti",
         descrizione:
-          "Struttura dei costi annuali, calcolo del punto di pareggio con i minori gratis, e il mix di entrate alternative alle quote (bandi, 5x1000, convenzioni, fondazioni).",
+          "La guida: struttura dei costi, calcolo del pareggio con i minori gratis, mix di entrate (bandi, 5x1000, convenzioni). Con il metodo passo-passo.",
         tipo: "pdf",
         url: "/materiali/workshop/palestra-popolare/economia-kit.pdf",
+      },
+      {
+        titolo: "Il template: la scheda dei conti",
+        descrizione:
+          "Scheda da compilare: tabella costi già impostata, calcolo del pareggio, entrate alternative, piano di investimento entro i 30.000€.",
+        tipo: "template",
+        url: "/materiali/workshop/palestra-popolare/economia-template.pdf",
+      },
+      {
+        titolo: "Un esempio svolto",
+        descrizione:
+          "Una consegna fatta bene per un progetto diverso (una ciclofficina popolare): guarda come si costruisce il ragionamento economico.",
+        tipo: "esempio",
+        url: "/materiali/workshop/palestra-popolare/economia-esempio.pdf",
       },
       {
         titolo: "Domanda a cui rispondere nella consegna",
@@ -560,9 +602,22 @@ export const WORKSHOP_KIT: Record<string, Record<string, MaterialeWorkshop[]>> =
       {
         titolo: "Da capannone vuoto a palestra",
         descrizione:
-          "Layout dello spazio, costi di ristrutturazione voce per voce (pavimentazione, spogliatoi, impianti), e cosa serve per legge: agibilità, accessibilità L.13/1989, sicurezza antincendio.",
+          "La guida: layout, costi di ristrutturazione voce per voce, cosa serve per legge (agibilità, accessibilità, antincendio). Con il metodo passo-passo.",
         tipo: "pdf",
         url: "/materiali/workshop/palestra-popolare/spazio-kit.pdf",
+      },
+      {
+        titolo: "Il template: la scheda dello spazio",
+        descrizione: "Scheda da compilare: la pianta a blocchi, il preventivo per fasi, la checklist \"a norma\".",
+        tipo: "template",
+        url: "/materiali/workshop/palestra-popolare/spazio-template.pdf",
+      },
+      {
+        titolo: "Un esempio svolto",
+        descrizione:
+          "Una consegna fatta bene per un progetto diverso (un ex negozio trasformato in sala studio): guarda la logica delle fasi e delle norme.",
+        tipo: "esempio",
+        url: "/materiali/workshop/palestra-popolare/spazio-esempio.pdf",
       },
       {
         titolo: "Domanda a cui rispondere nella consegna",
@@ -574,9 +629,23 @@ export const WORKSHOP_KIT: Record<string, Record<string, MaterialeWorkshop[]>> =
       {
         titolo: "Mettere in regola e trovare i fondi",
         descrizione:
-          "Forma giuridica (ASD/APS/SSD), adempimenti e RASD, riforma del lavoro sportivo (D.Lgs 36/2021), e 3 bandi reali con importi e requisiti (Sport di Tutti – Quartieri, Sport e Periferie, fondazioni).",
+          "La guida: forma giuridica (ASD/APS/SSD), adempimenti e RASD, riforma del lavoro sportivo, 3 bandi reali. Con il metodo passo-passo.",
         tipo: "pdf",
         url: "/materiali/workshop/palestra-popolare/legale-kit.pdf",
+      },
+      {
+        titolo: "Il template: la scheda legale e bandi",
+        descrizione:
+          "Scheda da compilare: la forma giuridica e il perché, gli adempimenti, i 3 bandi (nome, importo, scadenza), l'inquadramento degli istruttori.",
+        tipo: "template",
+        url: "/materiali/workshop/palestra-popolare/legale-template.pdf",
+      },
+      {
+        titolo: "Un esempio svolto",
+        descrizione:
+          "Una consegna fatta bene per un progetto diverso (un coro di quartiere che diventa APS): guarda come si motiva una scelta e si trovano i bandi.",
+        tipo: "esempio",
+        url: "/materiali/workshop/palestra-popolare/legale-esempio.pdf",
       },
       {
         titolo: "Domanda a cui rispondere nella consegna",
@@ -586,4 +655,15 @@ export const WORKSHOP_KIT: Record<string, Record<string, MaterialeWorkshop[]>> =
       },
     ],
   },
+};
+
+// Riga di chiusura del box "Come parlare con il cliente", specifica per
+// ogni cliente simulato (es. "Tonino ha la terza media, parla semplice").
+// Se un workshop non ha una voce qui, il box usa un fallback generico.
+export const WORKSHOP_CLIENTE_HINT: Record<string, string> = {
+  "enoteca-centocelle": "Gianni è diretto e pratico: vai al sodo con numeri e nomi veri.",
+  "cargo-bike-torino": "Renzo pensa in euro e chilometri: portagli conti e tempi, non promesse.",
+  "presidio-appennino": "La dott.ssa Ferretti ragiona da professionista: dati precisi, mai approssimazioni.",
+  "scuola-musica-napoli": "Ciro è di cuore ma non ingenuo: fatti sentire vicino al quartiere, con i conti in ordine.",
+  "palestra-popolare": "Parla semplice. Tonino ha la terza media.",
 };

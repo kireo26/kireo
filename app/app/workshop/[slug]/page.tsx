@@ -7,6 +7,7 @@ import IscrizioneRuolo from "@/components/workshop/IscrizioneRuolo";
 import KitRuolo from "@/components/workshop/KitRuolo";
 import NetworkPeers from "@/components/workshop/NetworkPeers";
 import ConsegnaUpload from "@/components/workshop/ConsegnaUpload";
+import ComeFunziona from "@/components/workshop/ComeFunziona";
 
 export const metadata = { title: "Workshop — KIREO" };
 
@@ -43,7 +44,12 @@ export default async function WorkshopPage({ params }: { params: Promise<{ slug:
         {ws.descrizione && <p className="mt-3 text-kireo-light/90">{ws.descrizione}</p>}
       </div>
 
-      {!iscrizione && <SceltaRuolo workshopId={ws.id} studentId={contesto.userId} supabase={supabase} />}
+      {!iscrizione && (
+        <>
+          <ComeFunziona />
+          <SceltaRuolo workshopId={ws.id} studentId={contesto.userId} supabase={supabase} />
+        </>
+      )}
 
       {iscrizione && ruoloIscritto && (
         <>

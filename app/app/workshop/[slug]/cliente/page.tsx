@@ -2,8 +2,9 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getAppContext } from "@/lib/app/studentContext";
-import { WORKSHOP_CLIENTE_NOME, WORKSHOP_CLIENTE_APERTURA } from "@/lib/workshop/config";
+import { WORKSHOP_CLIENTE_NOME, WORKSHOP_CLIENTE_APERTURA, WORKSHOP_CLIENTE_HINT } from "@/lib/workshop/config";
 import ChatCliente from "@/components/workshop/ChatCliente";
+import ComeParlareConCliente from "@/components/workshop/ComeParlareConCliente";
 
 export const metadata = { title: "Parla con il cliente — KIREO" };
 
@@ -29,6 +30,7 @@ export default async function ClienteWorkshopPage({ params }: { params: Promise<
       <Link href={`/app/workshop/${slug}`} className="text-xs text-kireo-muted hover:text-kireo-light">
         ← {ws.titolo}
       </Link>
+      <ComeParlareConCliente chiusura={WORKSHOP_CLIENTE_HINT[slug] ?? "Parla semplice e diretto."} />
       <ChatCliente
         iscrizioneId={iscrizione.id}
         nomeCliente={WORKSHOP_CLIENTE_NOME[slug] ?? "Il cliente"}

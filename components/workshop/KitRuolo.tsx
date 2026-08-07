@@ -4,7 +4,16 @@ const ETICHETTA_TIPO: Record<MaterialeWorkshop["tipo"], string> = {
   link: "Link",
   pdf: "PDF",
   template: "Template",
+  esempio: "Esempio",
   domanda: "Domanda",
+};
+
+const COLORE_BADGE: Record<MaterialeWorkshop["tipo"], string> = {
+  link: "bg-white/10 text-kireo-light/80",
+  pdf: "bg-white/10 text-kireo-light/80",
+  template: "bg-white/10 text-kireo-light/80",
+  esempio: "bg-kireo-green/15 text-kireo-green-light",
+  domanda: "bg-kireo-orange/15 text-kireo-orange",
 };
 
 export default function KitRuolo({ ruolo, materiali }: { ruolo: string; materiali: MaterialeWorkshop[] }) {
@@ -23,9 +32,7 @@ export default function KitRuolo({ ruolo, materiali }: { ruolo: string; material
               <div className="flex items-start justify-between gap-3">
                 <p className="font-heading text-sm font-semibold text-kireo-light">{materiale.titolo}</p>
                 <span
-                  className={`flex-none rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-                    isDomanda ? "bg-kireo-orange/15 text-kireo-orange" : "bg-white/10 text-kireo-light/80"
-                  }`}
+                  className={`flex-none rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${COLORE_BADGE[materiale.tipo]}`}
                 >
                   {ETICHETTA_TIPO[materiale.tipo]}
                 </span>
