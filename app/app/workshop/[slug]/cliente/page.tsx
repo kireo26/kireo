@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getAppContext } from "@/lib/app/studentContext";
-import { WORKSHOP_CLIENTE_NOME } from "@/lib/workshop/config";
+import { WORKSHOP_CLIENTE_NOME, WORKSHOP_CLIENTE_APERTURA } from "@/lib/workshop/config";
 import ChatCliente from "@/components/workshop/ChatCliente";
 
 export const metadata = { title: "Parla con il cliente — KIREO" };
@@ -29,7 +29,12 @@ export default async function ClienteWorkshopPage({ params }: { params: Promise<
       <Link href={`/app/workshop/${slug}`} className="text-xs text-kireo-muted hover:text-kireo-light">
         ← {ws.titolo}
       </Link>
-      <ChatCliente iscrizioneId={iscrizione.id} nomeCliente={WORKSHOP_CLIENTE_NOME[slug] ?? "Il cliente"} messaggiIniziali={storico ?? []} />
+      <ChatCliente
+        iscrizioneId={iscrizione.id}
+        nomeCliente={WORKSHOP_CLIENTE_NOME[slug] ?? "Il cliente"}
+        messaggioApertura={WORKSHOP_CLIENTE_APERTURA[slug] ?? "Allora, raccontami tutto. Da dove partiamo?"}
+        messaggiIniziali={storico ?? []}
+      />
       <p className="text-center text-xs text-kireo-muted">Questo è un personaggio simulato dall&apos;intelligenza artificiale. Usa dati reali per convincerlo.</p>
     </div>
   );

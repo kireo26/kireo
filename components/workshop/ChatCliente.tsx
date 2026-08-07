@@ -5,22 +5,20 @@ import { MAX_CARATTERI_MESSAGGIO_WORKSHOP } from "@/lib/workshop/config";
 
 type Messaggio = { mittente: "studente" | "cliente"; contenuto: string };
 
-const MESSAGGIO_INIZIALE: Messaggio = {
-  mittente: "cliente",
-  contenuto:
-    "Allora, eccoti qua. Ho letto che stai lavorando su un'idea per la mia enoteca. Dimmi tutto — cosa hai pensato? Partiamo dal nome e da come vuoi usare i soldi.",
-};
-
 export default function ChatCliente({
   iscrizioneId,
   nomeCliente,
+  messaggioApertura,
   messaggiIniziali,
 }: {
   iscrizioneId: string;
   nomeCliente: string;
+  messaggioApertura: string;
   messaggiIniziali: Messaggio[];
 }) {
-  const [messaggi, setMessaggi] = useState<Messaggio[]>(messaggiIniziali.length > 0 ? messaggiIniziali : [MESSAGGIO_INIZIALE]);
+  const [messaggi, setMessaggi] = useState<Messaggio[]>(
+    messaggiIniziali.length > 0 ? messaggiIniziali : [{ mittente: "cliente", contenuto: messaggioApertura }],
+  );
   const [testo, setTesto] = useState("");
   const [caricamento, setCaricamento] = useState(false);
   const [errore, setErrore] = useState<string | null>(null);

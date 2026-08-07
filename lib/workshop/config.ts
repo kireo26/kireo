@@ -26,6 +26,23 @@ export const WORKSHOP_CLIENTE_NOME: Record<string, string> = {
   "scuola-musica-napoli": "Ciro Amoroso",
 };
 
+// Primo messaggio del cliente quando la chat non ha ancora storico,
+// indicizzato per slug — mai un contenuto generico: ogni apertura è nella
+// voce del personaggio e finisce con una domanda concreta. Mostrato solo
+// lato client (mai scritto in workshop_chat_cliente): il primo turno reale
+// resta sempre dello studente, coerente con l'alternanza richiesta
+// dall'API Anthropic.
+export const WORKSHOP_CLIENTE_APERTURA: Record<string, string> = {
+  "enoteca-centocelle":
+    "Allora, eccoti qua. Ho letto che stai lavorando su un'idea per la mia enoteca. Dimmi tutto — cosa hai pensato? Partiamo dal nome e da come vuoi usare i soldi.",
+  "cargo-bike-torino":
+    "Allora, sei tu quello che mi deve aiutare con 'ste cargo bike? Ho tre furgoni, la ZTL che mi soffoca e sessantamila euro da spendere bene, non da buttare via. Dimmi: partiamo dai conti o da come organizziamo le consegne?",
+  "presidio-appennino":
+    "Buongiorno, sono la dottoressa Ferretti. Ho un vecchio ambulatorio di 90 metri quadri che il Comune mi presta e la voglia di farne un vero presidio per i miei pazienti — ma con questi fondi PNRR non so da dove cominciare. Lei da cosa partirebbe: dai servizi da offrire o dai soldi da trovare?",
+  "scuola-musica-napoli":
+    "Embè, sei tu che mi devi dare una mano con questo progetto? Ho un deposito di 120 metri quadri alla Sanità e venticinquemila euro di risparmi, non uno di più — e un sogno: che i ragazzini del quartiere possano suonare senza pensare ai soldi. Partiamo dalla musica o da come sistemare lo spazio?",
+};
+
 // System prompt per workshop, indicizzato per slug. Ogni personaggio ha
 // vincoli rigidi (mai negoziabili) e aspetti aperti (negoziabili con dati
 // concreti) — lo studente deve convincere il cliente, non il contrario.
