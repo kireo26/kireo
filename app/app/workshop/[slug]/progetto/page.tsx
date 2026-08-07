@@ -3,12 +3,11 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getAppContext } from "@/lib/app/studentContext";
 import { WORKSHOP_ELABORATO } from "@/lib/workshop/elaborato-config";
-import type { ValoreSezione } from "@/lib/workshop/elaboratoValore";
+import { WORKSHOP_CLIENTE_NOME } from "@/lib/workshop/config";
+import type { FaseStatoRiga, FeedbackFinale, ValoreSezione } from "@/lib/workshop/elaboratoValore";
 import ElaboratoEditor from "@/components/workshop/elaborato/ElaboratoEditor";
 
 export const metadata = { title: "Il tuo progetto — KIREO" };
-
-type FeedbackFinale = { punti_forza: string[]; aree_miglioramento: string[]; domanda_stimolante: string };
 
 export default async function ProgettoWorkshopPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -30,11 +29,49 @@ export default async function ProgettoWorkshopPage({ params }: { params: Promise
   const elaboratoConfig = ruoloIscritto ? WORKSHOP_ELABORATO[slug]?.[ruoloIscritto.slug] : undefined;
   if (!ruoloIscritto || !elaboratoConfig) redirect(`/app/workshop/${slug}`);
 
+  const COLONNE_FASI_STATO = "fase_id, stato, aperta_at, consegnata_at, revisionata_at, revisione, reazione_cliente";
+
+  const { data: fasiStatoEsistenti } = await supabase.from("workshop_fasi_stato").select("fase_id").eq("iscrizione_id", iscrizione.id);
+
+  // Primo accesso: nessuna riga di stato ancora creata — inizializza la
+  // tappa 1 come aperta e le altre come bloccate (idempotente, non fa
+  // nulla se richiamata di nuovo).
+  if (!fasiStatoEsistenti || fasiStatoEsistenti.length === 0) {
+    await supabase.rpc("inizializza_fasi_workshop", {
+      p_iscrizione_id: iscrizione.id,
+      p_fase_ids: elaboratoConfig.fasi.map((f) => f.id),
+    });
+  }
+
+  const { data: fasiStatoRighe } = await supabase.from("workshop_fasi_stato").select(COLONNE_FASI_STATO).eq("iscrizione_id", iscrizione.id);
+
+  const fasiStato: FaseStatoRiga[] = (fasiStatoRighe ?? []).map((r) => ({
+    faseId: r.fase_id,
+    stato: r.stato as FaseStatoRiga["stato"],
+    apertaAt: r.aperta_at,
+    consegnataAt: r.consegnata_at,
+    revisionataAt: r.revisionata_at,
+    revisione: r.revisione as FaseStatoRiga["revisione"],
+    reazioneCliente: r.reazione_cliente,
+  }));
+
   const { data: elaborato } = await supabase
     .from("workshop_elaborati")
-    .select("contenuto, fase_corrente, fasi_completate, stato, feedback_ai")
+    .select("contenuto, stato, fiducia, feedback_ai")
     .eq("iscrizione_id", iscrizione.id)
     .maybeSingle();
+
+  const tappaAperta = fasiStato.find((f) => f.stato === "aperta");
+  let messaggiTappaCorrente = 0;
+  if (tappaAperta?.apertaAt) {
+    const { count } = await supabase
+      .from("workshop_chat_cliente")
+      .select("id", { count: "exact", head: true })
+      .eq("iscrizione_id", iscrizione.id)
+      .eq("mittente", "studente")
+      .gte("created_at", tappaAperta.apertaAt);
+    messaggiTappaCorrente = count ?? 0;
+  }
 
   return (
     <div className="space-y-6">
@@ -50,17 +87,14 @@ export default async function ProgettoWorkshopPage({ params }: { params: Promise
         iscrizioneId={iscrizione.id}
         workshopSlug={slug}
         ruoloSlug={ruoloIscritto.slug}
-        ruoloTitolo={ruoloIscritto.titolo}
-        areaSlug={ruoloIscritto.area_slug}
-        iscrizioneCreataIl={iscrizione.created_at}
+        nomeCliente={WORKSHOP_CLIENTE_NOME[slug] ?? "il cliente"}
         elaborato={elaboratoConfig}
-        statoIniziale={{
-          contenuto: (elaborato?.contenuto ?? {}) as Record<string, ValoreSezione>,
-          faseCorrente: elaborato?.fase_corrente ?? null,
-          fasiCompletate: elaborato?.fasi_completate ?? [],
-          stato: (elaborato?.stato as "bozza" | "consegnato") ?? "bozza",
-          feedbackAi: (elaborato?.feedback_ai as FeedbackFinale | null) ?? null,
-        }}
+        fasiStato={fasiStato}
+        contenuto={(elaborato?.contenuto ?? {}) as Record<string, ValoreSezione>}
+        fiducia={elaborato?.fiducia ?? 0}
+        statoProgetto={(elaborato?.stato as "bozza" | "consegnato") ?? "bozza"}
+        feedbackFinale={(elaborato?.feedback_ai as FeedbackFinale | null) ?? null}
+        messaggiTappaCorrente={messaggiTappaCorrente}
       />
     </div>
   );

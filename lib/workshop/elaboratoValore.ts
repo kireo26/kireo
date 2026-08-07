@@ -1,4 +1,4 @@
-import type { SezioneElaborato } from "./elaborato-config";
+import type { FaseElaborato, SezioneElaborato } from "./elaborato-config";
 
 export type ValoreTesto = string;
 export type ValoreTabella = Record<string, string>[];
@@ -47,3 +47,71 @@ export function serializzaValoreSezione(sezione: SezioneElaborato, valore: Valor
     }
   }
 }
+
+// Una sezione "raggiunge il minimo" quando soddisfa la soglia dichiarata
+// nel config (minCaratteri/minRighe) o, in assenza di soglia, quando non è
+// vuota — usato sia lato client (per abilitare "Consegna la tappa") sia
+// lato server (route consegna-tappa, contro il contenuto autorevole letto
+// dal DB, mai quello del client).
+export function sezioneRaggiungeMinimo(sezione: SezioneElaborato, valore: ValoreSezione | undefined): boolean {
+  if (valore === undefined) return false;
+  switch (sezione.tipo) {
+    case "testo":
+    case "testo_lungo": {
+      const testo = typeof valore === "string" ? valore.trim() : "";
+      return sezione.minCaratteri ? testo.length >= sezione.minCaratteri : testo.length > 0;
+    }
+    case "tabella": {
+      const righe = Array.isArray(valore) ? (valore as ValoreTabella) : [];
+      return sezione.minRighe ? righe.length >= sezione.minRighe : righe.length > 0;
+    }
+    case "checklist": {
+      const v = valore as ValoreChecklist;
+      return Boolean(v?.voci && Object.values(v.voci).some(Boolean));
+    }
+    case "scelta": {
+      const v = valore as ValoreScelta;
+      return Boolean(v?.opzione);
+    }
+  }
+}
+
+// Titoli delle sezioni di una tappa che non raggiungono ancora il minimo
+// — array vuoto quando la tappa è pronta per essere consegnata.
+export function sezioniIncomplete(fase: FaseElaborato, contenuto: Record<string, ValoreSezione>): string[] {
+  return fase.sezioni.filter((s) => !sezioneRaggiungeMinimo(s, contenuto[s.id])).map((s) => s.titolo);
+}
+
+// Workshop 2.0 v2 — stato per-tappa (workshop_fasi_stato) e le forme dei
+// due feedback generati dal cron via lib/workshop/prompt-revisore.ts:
+// la revisione di OGNI tappa (promptRevisore, rubrica-based) e il
+// feedback finale dell'ULTIMA tappa (promptFeedbackFinale, complessivo
+// sull'intero progetto) — forme diverse apposta, non unificate, per
+// restare fedeli ai prompt forniti invece di inventarne una terza forma.
+export type RevisioneTappa = {
+  punti_forza: string[];
+  da_migliorare: string[];
+  domanda: string;
+  commento_breve: string;
+  punteggio_fiducia: number;
+};
+
+export type FeedbackFinale = {
+  punti_forza: string[];
+  da_migliorare: string[];
+  messaggio_chiusura: string;
+  chiusura_cliente: string;
+  punteggio_area: number;
+};
+
+export type StatoTappa = "bloccata" | "aperta" | "consegnata" | "revisionata";
+
+export type FaseStatoRiga = {
+  faseId: string;
+  stato: StatoTappa;
+  apertaAt: string | null;
+  consegnataAt: string | null;
+  revisionataAt: string | null;
+  revisione: RevisioneTappa | null;
+  reazioneCliente: string | null;
+};

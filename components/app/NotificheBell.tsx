@@ -4,16 +4,26 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
-type Notifica = { id: string; tipo: "nuovo_post" | "nuovo_evento_ente"; riferimento_id: string; letta: boolean; created_at: string };
+type Notifica = {
+  id: string;
+  tipo: "nuovo_post" | "nuovo_evento_ente" | "workshop_tappa_revisionata" | "workshop_tappa_aperta";
+  riferimento_id: string;
+  letta: boolean;
+  created_at: string;
+};
 
 const ETICHETTA_TIPO: Record<string, string> = {
   nuovo_post: "Nuovo post di un ente che segui",
   nuovo_evento_ente: "Nuovo evento di un ente che segui",
+  workshop_tappa_revisionata: "Il tuo workshop ha una nuova revisione",
+  workshop_tappa_aperta: "Si è aperta una nuova tappa del tuo workshop",
 };
 
 const LINK_TIPO: Record<string, string> = {
   nuovo_post: "/app/bacheca",
   nuovo_evento_ente: "/app/agenda",
+  workshop_tappa_revisionata: "/app/workshop",
+  workshop_tappa_aperta: "/app/workshop",
 };
 
 // Campanella con badge non-lette, solo in-app (nessun digest email, fuori

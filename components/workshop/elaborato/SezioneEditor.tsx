@@ -14,6 +14,7 @@ export default function SezioneEditor({
   workshopSlug,
   ruoloSlug,
   faseId,
+  disabled = false,
 }: {
   sezione: SezioneElaborato;
   valore: ValoreSezione;
@@ -22,6 +23,7 @@ export default function SezioneEditor({
   workshopSlug: string;
   ruoloSlug: string;
   faseId: string;
+  disabled?: boolean;
 }) {
   return (
     <div className="rounded-2xl border border-white/5 bg-kireo-card p-6 sm:p-8">
@@ -31,16 +33,17 @@ export default function SezioneEditor({
 
       <div className="mt-4">
         {(sezione.tipo === "testo" || sezione.tipo === "testo_lungo") && (
-          <TestoInput sezione={sezione} valore={typeof valore === "string" ? valore : ""} onChange={onChange} />
+          <TestoInput sezione={sezione} valore={typeof valore === "string" ? valore : ""} onChange={onChange} disabled={disabled} />
         )}
         {sezione.tipo === "tabella" && (
-          <TabellaInput sezione={sezione} valore={Array.isArray(valore) ? (valore as ValoreTabella) : []} onChange={onChange} />
+          <TabellaInput sezione={sezione} valore={Array.isArray(valore) ? (valore as ValoreTabella) : []} onChange={onChange} disabled={disabled} />
         )}
         {sezione.tipo === "checklist" && (
           <ChecklistInput
             sezione={sezione}
             valore={valore && typeof valore === "object" && "voci" in valore ? (valore as ValoreChecklist) : { voci: {}, nota: "" }}
             onChange={onChange}
+            disabled={disabled}
           />
         )}
         {sezione.tipo === "scelta" && (
@@ -48,6 +51,7 @@ export default function SezioneEditor({
             sezione={sezione}
             valore={valore && typeof valore === "object" && "opzione" in valore ? (valore as ValoreScelta) : { opzione: "", motivazione: "" }}
             onChange={onChange}
+            disabled={disabled}
           />
         )}
       </div>
@@ -64,7 +68,17 @@ export default function SezioneEditor({
   );
 }
 
-function TestoInput({ sezione, valore, onChange }: { sezione: SezioneElaborato; valore: string; onChange: (v: string) => void }) {
+function TestoInput({
+  sezione,
+  valore,
+  onChange,
+  disabled,
+}: {
+  sezione: SezioneElaborato;
+  valore: string;
+  onChange: (v: string) => void;
+  disabled?: boolean;
+}) {
   const righe = sezione.tipo === "testo_lungo" ? 6 : 3;
   return (
     <div>
@@ -73,7 +87,8 @@ function TestoInput({ sezione, valore, onChange }: { sezione: SezioneElaborato; 
         onChange={(e) => onChange(e.target.value)}
         rows={righe}
         placeholder="Scrivi qui la tua risposta…"
-        className={`${INPUT_CLASSI} resize-y`}
+        disabled={disabled}
+        className={`${INPUT_CLASSI} resize-y disabled:opacity-60`}
       />
       {sezione.minCaratteri && (
         <p className={`mt-1 text-xs ${valore.length >= sezione.minCaratteri ? "text-kireo-muted" : "text-kireo-orange"}`}>
@@ -88,10 +103,12 @@ function TabellaInput({
   sezione,
   valore,
   onChange,
+  disabled,
 }: {
   sezione: SezioneElaborato;
   valore: ValoreTabella;
   onChange: (v: ValoreTabella) => void;
+  disabled?: boolean;
 }) {
   const colonne = sezione.colonne ?? [];
 
@@ -130,12 +147,18 @@ function TabellaInput({
                     <input
                       value={riga[colonna] ?? ""}
                       onChange={(e) => aggiornaRiga(indice, colonna, e.target.value)}
-                      className="w-full rounded-lg border border-white/10 bg-kireo-dark px-2 py-1.5 text-sm text-kireo-light focus:outline-none focus:border-kireo-green"
+                      disabled={disabled}
+                      className="w-full rounded-lg border border-white/10 bg-kireo-dark px-2 py-1.5 text-sm text-kireo-light focus:outline-none focus:border-kireo-green disabled:opacity-60"
                     />
                   </td>
                 ))}
                 <td className="px-2 py-1.5">
-                  <button type="button" onClick={() => rimuoviRiga(indice)} className="text-xs text-kireo-muted hover:text-red-400">
+                  <button
+                    type="button"
+                    onClick={() => rimuoviRiga(indice)}
+                    disabled={disabled}
+                    className="text-xs text-kireo-muted hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
                     Rimuovi
                   </button>
                 </td>
@@ -144,7 +167,12 @@ function TabellaInput({
           </tbody>
         </table>
       </div>
-      <button type="button" onClick={aggiungiRiga} className="mt-3 rounded-full border border-white/10 px-4 py-1.5 text-xs font-semibold text-kireo-light hover:border-kireo-green">
+      <button
+        type="button"
+        onClick={aggiungiRiga}
+        disabled={disabled}
+        className="mt-3 rounded-full border border-white/10 px-4 py-1.5 text-xs font-semibold text-kireo-light hover:border-kireo-green disabled:cursor-not-allowed disabled:opacity-60"
+      >
         + Aggiungi riga
       </button>
       {sezione.minRighe && (
@@ -160,10 +188,12 @@ function ChecklistInput({
   sezione,
   valore,
   onChange,
+  disabled,
 }: {
   sezione: SezioneElaborato;
   valore: ValoreChecklist;
   onChange: (v: ValoreChecklist) => void;
+  disabled?: boolean;
 }) {
   const voci = sezione.voci ?? [];
 
@@ -176,11 +206,12 @@ function ChecklistInput({
       <ul className="space-y-2">
         {voci.map((voce) => (
           <li key={voce}>
-            <label className="flex cursor-pointer items-start gap-2 text-sm text-kireo-light/90">
+            <label className={`flex items-start gap-2 text-sm text-kireo-light/90 ${disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}>
               <input
                 type="checkbox"
                 checked={Boolean(valore.voci?.[voce])}
                 onChange={() => toggleVoce(voce)}
+                disabled={disabled}
                 className="mt-0.5 h-4 w-4 flex-none accent-kireo-green"
               />
               {voce}
@@ -193,7 +224,8 @@ function ChecklistInput({
         onChange={(e) => onChange({ ...valore, nota: e.target.value })}
         rows={2}
         placeholder="Note aggiuntive (facoltativo)…"
-        className={`${INPUT_CLASSI} mt-3 resize-y`}
+        disabled={disabled}
+        className={`${INPUT_CLASSI} mt-3 resize-y disabled:opacity-60`}
       />
     </div>
   );
@@ -203,15 +235,22 @@ function SceltaInput({
   sezione,
   valore,
   onChange,
+  disabled,
 }: {
   sezione: SezioneElaborato;
   valore: ValoreScelta;
   onChange: (v: ValoreScelta) => void;
+  disabled?: boolean;
 }) {
   const opzioni = sezione.opzioni ?? [];
   return (
     <div className="space-y-3">
-      <select value={valore.opzione} onChange={(e) => onChange({ ...valore, opzione: e.target.value })} className={INPUT_CLASSI}>
+      <select
+        value={valore.opzione}
+        onChange={(e) => onChange({ ...valore, opzione: e.target.value })}
+        disabled={disabled}
+        className={`${INPUT_CLASSI} disabled:opacity-60`}
+      >
         <option value="">Scegli…</option>
         {opzioni.map((opzione) => (
           <option key={opzione} value={opzione}>
@@ -223,8 +262,9 @@ function SceltaInput({
         value={valore.motivazione}
         onChange={(e) => onChange({ ...valore, motivazione: e.target.value })}
         rows={3}
+        disabled={disabled}
         placeholder="Perché hai scelto questa opzione?"
-        className={`${INPUT_CLASSI} resize-y`}
+        className={`${INPUT_CLASSI} resize-y disabled:opacity-60`}
       />
     </div>
   );

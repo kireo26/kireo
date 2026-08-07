@@ -1,133 +1,116 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { registraAttivita } from "@/lib/app/activityLog";
 import type { Elaborato } from "@/lib/workshop/elaborato-config";
-import { valoreVuoto, type ValoreSezione } from "@/lib/workshop/elaboratoValore";
+import { sezioniIncomplete, valoreVuoto, type FaseStatoRiga, type FeedbackFinale, type ValoreSezione } from "@/lib/workshop/elaboratoValore";
 import { Button } from "@/components/Button";
 import StepperFasi from "./StepperFasi";
+import FiduciaBar from "./FiduciaBar";
+import RevisionePanel from "./RevisionePanel";
+import FeedbackFinalePanel from "./FeedbackFinalePanel";
 import SezioneEditor from "./SezioneEditor";
-
-type FeedbackFinale = { punti_forza: string[]; aree_miglioramento: string[]; domanda_stimolante: string };
 
 export default function ElaboratoEditor({
   iscrizioneId,
   workshopSlug,
   ruoloSlug,
-  ruoloTitolo,
-  areaSlug,
-  iscrizioneCreataIl,
+  nomeCliente,
   elaborato,
-  statoIniziale,
+  fasiStato: fasiStatoIniziali,
+  contenuto: contenutoIniziale,
+  fiducia: fiduciaIniziale,
+  statoProgetto,
+  feedbackFinale,
+  messaggiTappaCorrente,
 }: {
   iscrizioneId: string;
   workshopSlug: string;
   ruoloSlug: string;
-  ruoloTitolo: string;
-  areaSlug: string;
-  iscrizioneCreataIl: string;
+  nomeCliente: string;
   elaborato: Elaborato;
-  statoIniziale: {
-    contenuto: Record<string, ValoreSezione>;
-    faseCorrente: string | null;
-    fasiCompletate: string[];
-    stato: "bozza" | "consegnato";
-    feedbackAi: FeedbackFinale | null;
-  };
+  fasiStato: FaseStatoRiga[];
+  contenuto: Record<string, ValoreSezione>;
+  fiducia: number;
+  statoProgetto: "bozza" | "consegnato";
+  feedbackFinale: FeedbackFinale | null;
+  messaggiTappaCorrente: number;
 }) {
   const router = useRouter();
-  const [contenuto, setContenuto] = useState<Record<string, ValoreSezione>>(statoIniziale.contenuto ?? {});
-  const [fasiCompletate, setFasiCompletate] = useState<string[]>(statoIniziale.fasiCompletate ?? []);
-  const [faseCorrenteId, setFaseCorrenteId] = useState<string>(
-    statoIniziale.faseCorrente && elaborato.fasi.some((f) => f.id === statoIniziale.faseCorrente)
-      ? statoIniziale.faseCorrente
-      : elaborato.fasi[0].id,
-  );
+  const [contenuto, setContenuto] = useState<Record<string, ValoreSezione>>(contenutoIniziale);
+  const [fasiStato, setFasiStato] = useState<FaseStatoRiga[]>(fasiStatoIniziali);
   const [statoSalvataggio, setStatoSalvataggio] = useState<"salvato" | "salvataggio" | "errore">("salvato");
-  const [consegnato, setConsegnato] = useState(statoIniziale.stato === "consegnato");
-  const [feedbackFinale, setFeedbackFinale] = useState<FeedbackFinale | null>(statoIniziale.feedbackAi);
   const [consegnaInCorso, setConsegnaInCorso] = useState(false);
   const [erroreConsegna, setErroreConsegna] = useState<string | null>(null);
+
+  const primaTappaAperta = fasiStato.find((f) => f.stato !== "bloccata")?.faseId ?? elaborato.fasi[0].id;
+  const [tappaSelezionataId, setTappaSelezionataId] = useState<string>(primaTappaAperta);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const primoRenderRef = useRef(true);
 
   const salva = useCallback(
-    async (dati: { contenuto: Record<string, ValoreSezione>; faseCorrente: string; fasiCompletate: string[] }) => {
+    async (nuovoContenuto: Record<string, ValoreSezione>) => {
       setStatoSalvataggio("salvataggio");
       const supabase = createClient();
-      const { error } = await supabase.from("workshop_elaborati").upsert(
-        {
-          iscrizione_id: iscrizioneId,
-          contenuto: dati.contenuto,
-          fase_corrente: dati.faseCorrente,
-          fasi_completate: dati.fasiCompletate,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "iscrizione_id" },
-      );
+      const { error } = await supabase
+        .from("workshop_elaborati")
+        .upsert({ iscrizione_id: iscrizioneId, contenuto: nuovoContenuto, updated_at: new Date().toISOString() }, { onConflict: "iscrizione_id" });
       setStatoSalvataggio(error ? "errore" : "salvato");
     },
     [iscrizioneId],
   );
 
-  // Salvataggio automatico con debounce ~1,5s: non al primo render (lo
-  // stato iniziale viene già dal DB, riscriverlo subito sarebbe inutile).
   useEffect(() => {
     if (primoRenderRef.current) {
       primoRenderRef.current = false;
       return;
     }
-    if (consegnato) return;
+    if (statoProgetto === "consegnato") return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      void salva({ contenuto, faseCorrente: faseCorrenteId, fasiCompletate });
+      void salva(contenuto);
     }, 1500);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [contenuto, faseCorrenteId, fasiCompletate, consegnato, salva]);
-
-  const faseCorrente = useMemo(
-    () => elaborato.fasi.find((f) => f.id === faseCorrenteId) ?? elaborato.fasi[0],
-    [elaborato, faseCorrenteId],
-  );
+  }, [contenuto, statoProgetto, salva]);
 
   function aggiornaValore(sezioneId: string, valore: ValoreSezione) {
     setContenuto((prev) => ({ ...prev, [sezioneId]: valore }));
   }
 
-  function completaIncarico() {
-    setFasiCompletate((prev) => (prev.includes(faseCorrente.id) ? prev : [...prev, faseCorrente.id]));
-    const indice = elaborato.fasi.findIndex((f) => f.id === faseCorrente.id);
-    const prossima = elaborato.fasi[indice + 1];
-    if (prossima) setFaseCorrenteId(prossima.id);
-  }
+  const indiceTappa = elaborato.fasi.findIndex((f) => f.id === tappaSelezionataId);
+  const tappa = elaborato.fasi[indiceTappa] ?? elaborato.fasi[0];
+  const rigaTappa = fasiStato.find((f) => f.faseId === tappa.id);
+  const statoTappa = rigaTappa?.stato ?? "bloccata";
 
-  async function consegnaProgetto() {
+  const incomplete = useMemo(() => sezioniIncomplete(tappa, contenuto), [tappa, contenuto]);
+  const chatSoddisfatta = statoTappa === "aperta" ? messaggiTappaCorrente >= tappa.chatMinima : true;
+  const puoConsegnare = statoTappa === "aperta" && incomplete.length === 0 && chatSoddisfatta;
+
+  async function consegnaTappa() {
     setErroreConsegna(null);
     setConsegnaInCorso(true);
-    // La route legge il contenuto autorevole dal DB, non quello del
-    // client: forza subito il salvataggio in sospeso prima di consegnare.
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    await salva({ contenuto, faseCorrente: faseCorrenteId, fasiCompletate });
+    await salva(contenuto);
 
     try {
-      const res = await fetch("/api/workshop/elaborato/consegna", {
+      const res = await fetch("/api/workshop/elaborato/consegna-tappa", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ iscrizioneId, workshopSlug, ruoloSlug }),
+        body: JSON.stringify({ iscrizioneId, workshopSlug, ruoloSlug, faseId: tappa.id }),
       });
       const data = await res.json();
       if (!res.ok) {
-        setErroreConsegna(data.errore ?? "Non è stato possibile consegnare il progetto.");
+        setErroreConsegna(data.errore ?? "Non è stato possibile consegnare la tappa.");
         return;
       }
-      await registraAttivita(areaSlug, "workshop_pcto");
-      setFeedbackFinale(data.feedback ?? null);
-      setConsegnato(true);
+      setFasiStato((prev) =>
+        prev.map((f) => (f.faseId === tappa.id ? { ...f, stato: "consegnata", consegnataAt: new Date().toISOString() } : f)),
+      );
       router.refresh();
     } catch {
       setErroreConsegna("Errore di connessione. Riprova.");
@@ -136,116 +119,99 @@ export default function ElaboratoEditor({
     }
   }
 
-  const percentualeCompletamento = Math.round((fasiCompletate.length / elaborato.fasi.length) * 100);
-  const ultimaFase = elaborato.fasi[elaborato.fasi.length - 1];
-  const tutteLeFasiCompletate = elaborato.fasi.every((f) => fasiCompletate.includes(f.id));
-
-  if (consegnato) {
+  if (statoProgetto === "consegnato") {
+    const ultima = elaborato.fasi.find((f) => f.ultima);
+    const rigaFinale = ultima ? fasiStato.find((f) => f.faseId === ultima.id) : undefined;
     return (
       <div className="space-y-6">
         <div className="rounded-2xl border border-kireo-green/30 bg-kireo-green/5 p-6 sm:p-8">
           <h2 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">Progetto consegnato</h2>
-          <p className="mt-1 text-sm text-kireo-muted">
-            Hai consegnato il progetto per il ruolo di {ruoloTitolo}. Ecco il feedback finale.
-          </p>
+          <p className="mt-1 text-sm text-kireo-muted">Hai completato il percorso. Ecco l&apos;esito finale.</p>
         </div>
+        <FiduciaBar fiducia={fiduciaIniziale} nomeCliente={nomeCliente} />
+        {rigaFinale?.revisione && (
+          <RevisionePanel revisione={rigaFinale.revisione} reazioneCliente={rigaFinale.reazioneCliente} nomeCliente={nomeCliente} />
+        )}
         {feedbackFinale ? (
-          <div className="space-y-3 rounded-2xl border border-white/5 bg-kireo-card p-6 text-sm sm:p-8">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-kireo-green-light">Punti di forza</p>
-              <ul className="mt-1 list-inside list-disc text-kireo-light/90">
-                {feedbackFinale.punti_forza.map((p, i) => (
-                  <li key={i}>{p}</li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-kireo-orange">Da migliorare</p>
-              <ul className="mt-1 list-inside list-disc text-kireo-light/90">
-                {feedbackFinale.aree_miglioramento.map((p, i) => (
-                  <li key={i}>{p}</li>
-                ))}
-              </ul>
-            </div>
-            <p className="rounded-lg bg-white/5 px-3 py-2 text-kireo-light/90">{feedbackFinale.domanda_stimolante}</p>
-          </div>
+          <FeedbackFinalePanel feedback={feedbackFinale} nomeCliente={nomeCliente} />
         ) : (
-          <p className="text-sm text-kireo-muted">Nessun feedback automatico disponibile per questa consegna.</p>
+          <p className="text-sm text-kireo-muted">Il feedback finale arriva a breve.</p>
         )}
       </div>
     );
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
-      <StepperFasi
-        fasi={elaborato.fasi}
-        faseCorrenteId={faseCorrenteId}
-        fasiCompletate={fasiCompletate}
-        iscrizioneCreataIl={iscrizioneCreataIl}
-        onSeleziona={setFaseCorrenteId}
-      />
+    <div className="space-y-6">
+      <FiduciaBar fiducia={fiduciaIniziale} nomeCliente={nomeCliente} />
 
-      <div className="space-y-6">
-        <div className="rounded-2xl border border-white/5 bg-kireo-card p-6 sm:p-8">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">{faseCorrente.titolo}</h2>
-            <span className="flex-none text-xs text-kireo-muted">
-              {statoSalvataggio === "salvataggio" ? "Salvataggio…" : statoSalvataggio === "errore" ? "Errore nel salvataggio" : "Salvato"}
-            </span>
+      <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
+        <StepperFasi fasi={elaborato.fasi} fasiStato={fasiStato} tappaSelezionataId={tappaSelezionataId} onSeleziona={setTappaSelezionataId} />
+
+        <div className="space-y-6">
+          <div className="rounded-2xl border border-white/5 bg-kireo-card p-6 sm:p-8">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">{tappa.titolo}</h2>
+              {statoTappa === "aperta" && (
+                <span className="flex-none text-xs text-kireo-muted">
+                  {statoSalvataggio === "salvataggio" ? "Salvataggio…" : statoSalvataggio === "errore" ? "Errore nel salvataggio" : "Salvato"}
+                </span>
+              )}
+            </div>
+            <p className="mt-1 text-sm text-kireo-muted">{tappa.obiettivo}</p>
           </div>
-          <p className="mt-1 text-sm text-kireo-muted">{faseCorrente.consegna}</p>
 
-          <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
-            <div className="h-full rounded-full bg-kireo-green transition-all" style={{ width: `${percentualeCompletamento}%` }} />
-          </div>
-          <p className="mt-1 text-xs text-kireo-muted">{percentualeCompletamento}% del progetto completato</p>
-        </div>
+          {statoTappa === "consegnata" && (
+            <div className="rounded-2xl border border-kireo-orange/30 bg-kireo-orange/5 p-6 sm:p-8">
+              <h3 className="font-heading text-base font-semibold text-kireo-light">In revisione</h3>
+              <p className="mt-1 text-sm text-kireo-muted">
+                Hai consegnato questa tappa. La revisione del tutor e la risposta di {nomeCliente} arrivano tra un paio di giorni.
+              </p>
+            </div>
+          )}
 
-        {faseCorrente.sezioni.map((sezione) => (
-          <SezioneEditor
-            key={sezione.id}
-            sezione={sezione}
-            valore={contenuto[sezione.id] ?? valoreVuoto(sezione)}
-            onChange={(valore) => aggiornaValore(sezione.id, valore)}
-            iscrizioneId={iscrizioneId}
-            workshopSlug={workshopSlug}
-            ruoloSlug={ruoloSlug}
-            faseId={faseCorrente.id}
-          />
-        ))}
+          {statoTappa === "revisionata" && rigaTappa?.revisione && (
+            <RevisionePanel revisione={rigaTappa.revisione} reazioneCliente={rigaTappa.reazioneCliente} nomeCliente={nomeCliente} />
+          )}
 
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/5 bg-kireo-card p-6">
-          <p className="text-sm text-kireo-muted">
-            {fasiCompletate.includes(faseCorrente.id)
-              ? "Incarico completato — puoi tornare indietro quando vuoi."
-              : "Quando hai finito, segna l'incarico come completato."}
-          </p>
-          {!fasiCompletate.includes(faseCorrente.id) && (
-            <Button type="button" onClick={completaIncarico} className="flex-none">
-              Completa incarico
-            </Button>
+          {tappa.sezioni.map((sezione) => (
+            <SezioneEditor
+              key={sezione.id}
+              sezione={sezione}
+              valore={contenuto[sezione.id] ?? valoreVuoto(sezione)}
+              onChange={(valore) => aggiornaValore(sezione.id, valore)}
+              iscrizioneId={iscrizioneId}
+              workshopSlug={workshopSlug}
+              ruoloSlug={ruoloSlug}
+              faseId={tappa.id}
+              disabled={statoTappa === "consegnata"}
+            />
+          ))}
+
+          {statoTappa === "aperta" && (
+            <div className="rounded-2xl border border-white/5 bg-kireo-card p-6 sm:p-8">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm text-kireo-light/90">
+                    Hai parlato con {nomeCliente}: {messaggiTappaCorrente}/{tappa.chatMinima} messaggi
+                  </p>
+                  {!chatSoddisfatta && (
+                    <Link href={`/app/workshop/${workshopSlug}/cliente`} className="text-xs text-kireo-orange underline underline-offset-2">
+                      Parla con {nomeCliente} prima di consegnare →
+                    </Link>
+                  )}
+                </div>
+                <Button type="button" onClick={consegnaTappa} disabled={!puoConsegnare || consegnaInCorso} className="flex-none">
+                  {consegnaInCorso ? "Consegna in corso…" : "Consegna la tappa"}
+                </Button>
+              </div>
+              {incomplete.length > 0 && (
+                <p className="mt-2 text-xs text-kireo-orange">Sezioni da completare: {incomplete.join(", ")}.</p>
+              )}
+              {erroreConsegna && <p className="mt-2 text-sm text-red-400">{erroreConsegna}</p>}
+            </div>
           )}
         </div>
-
-        {faseCorrente.id === ultimaFase.id && (
-          <div className="rounded-2xl border border-kireo-orange/30 bg-kireo-orange/5 p-6 sm:p-8">
-            <h2 className="font-heading text-base font-semibold text-kireo-light">Pronto a consegnare?</h2>
-            <p className="mt-1 text-sm text-kireo-muted">
-              Prima di consegnare, parla con il cliente in chat per presentargli il tuo lavoro — ti aiuta a capire se manca
-              qualcosa.
-            </p>
-            {!tutteLeFasiCompletate && (
-              <p className="mt-2 text-sm text-kireo-orange">
-                Non hai ancora completato tutti gli incarichi: puoi consegnare comunque, ma prova a finirli prima.
-              </p>
-            )}
-            <Button type="button" onClick={consegnaProgetto} disabled={consegnaInCorso} className="mt-4">
-              {consegnaInCorso ? "Consegna in corso…" : "Consegna il progetto"}
-            </Button>
-            {erroreConsegna && <p className="mt-2 text-sm text-red-400">{erroreConsegna}</p>}
-          </div>
-        )}
       </div>
     </div>
   );
