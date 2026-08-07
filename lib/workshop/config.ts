@@ -3,7 +3,10 @@
 // restano la fonte di verità per titoli/descrizioni/aree; questo file copre
 // solo i contenuti che non hanno bisogno di revisione dinamica.
 
-export const MODELLO_CLIENTE_WORKSHOP = "claude-sonnet-5";
+// Allineato a lib/assistente/config.ts (MODELLO_ASSISTENTE): stesso
+// identificativo, verificato funzionante in produzione lì — "claude-sonnet-5"
+// non è un identificativo API valido (causa della chat cliente rotta).
+export const MODELLO_CLIENTE_WORKSHOP = "claude-haiku-4-5";
 export const MAX_MESSAGGI_CHAT_CLIENTE = 30;
 export const MAX_CARATTERI_MESSAGGIO_WORKSHOP = 2000;
 export const MAX_FILE_SIZE_CONSEGNA = 10 * 1024 * 1024;
