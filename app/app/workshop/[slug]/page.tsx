@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getAppContext } from "@/lib/app/studentContext";
 import { WORKSHOP_KIT } from "@/lib/workshop/config";
+import { WORKSHOP_ELABORATO } from "@/lib/workshop/elaborato-config";
 import IscrizioneRuolo from "@/components/workshop/IscrizioneRuolo";
 import KitRuolo from "@/components/workshop/KitRuolo";
 import NetworkPeers from "@/components/workshop/NetworkPeers";
@@ -66,6 +67,21 @@ export default async function WorkshopPage({ params }: { params: Promise<{ slug:
               Parla con il cliente →
             </Link>
           </div>
+
+          {WORKSHOP_ELABORATO[ws.slug]?.[ruoloIscritto.slug] && (
+            <div className="rounded-2xl border border-kireo-orange/30 bg-kireo-orange/5 p-6 sm:p-8">
+              <h2 className="font-heading text-base font-semibold text-kireo-light">Il tuo progetto online</h2>
+              <p className="mt-1 text-sm text-kireo-muted">
+                Lavora al tuo elaborato a tappe, con salvataggio automatico e un tutor AI su richiesta.
+              </p>
+              <Link
+                href={`/app/workshop/${ws.slug}/progetto`}
+                className="mt-4 inline-flex rounded-full bg-kireo-orange px-5 py-2.5 text-sm font-semibold text-kireo-dark hover:bg-kireo-orange/90"
+              >
+                Vai al progetto →
+              </Link>
+            </div>
+          )}
 
           {WORKSHOP_KIT[ws.slug]?.[ruoloIscritto.slug] && <KitRuolo ruolo={ruoloIscritto.titolo} materiali={WORKSHOP_KIT[ws.slug][ruoloIscritto.slug]} />}
 
