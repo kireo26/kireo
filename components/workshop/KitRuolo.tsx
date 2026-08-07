@@ -7,10 +7,6 @@ const ETICHETTA_TIPO: Record<MaterialeWorkshop["tipo"], string> = {
   domanda: "Domanda",
 };
 
-// I materiali di tipo "pdf"/"template" non hanno ancora un file reale dietro
-// (vedi lib/workshop/config.ts): mostrati come card informative "in
-// preparazione", mai un link che porterebbe a un 404 — stesso principio già
-// in uso per le guide PDF delle aree di orientamento.
 export default function KitRuolo({ ruolo, materiali }: { ruolo: string; materiali: MaterialeWorkshop[] }) {
   return (
     <div className="rounded-2xl border border-white/5 bg-kireo-card p-6 sm:p-8">
@@ -20,7 +16,7 @@ export default function KitRuolo({ ruolo, materiali }: { ruolo: string; material
       <ul className="mt-5 space-y-3">
         {materiali.map((materiale, indice) => {
           const isDomanda = materiale.tipo === "domanda";
-          const cliccabile = materiale.tipo === "link" && Boolean(materiale.url);
+          const cliccabile = Boolean(materiale.url);
 
           const contenuto = (
             <>
@@ -35,7 +31,6 @@ export default function KitRuolo({ ruolo, materiali }: { ruolo: string; material
                 </span>
               </div>
               <p className="mt-1.5 text-sm text-kireo-muted">{materiale.descrizione}</p>
-              {!isDomanda && !cliccabile && <p className="mt-2 text-xs text-kireo-muted/70">Materiale in preparazione.</p>}
             </>
           );
 

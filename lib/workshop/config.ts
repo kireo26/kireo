@@ -64,24 +64,21 @@ export type MaterialeWorkshop = {
   url?: string;
 };
 
-// Kit materiali per ruolo, indicizzato [workshopSlug][ruoloSlug]. I
-// materiali di tipo "pdf"/"template" non hanno ancora un file reale dietro
-// (vedi KitRuolo.tsx: mostrati come "in preparazione", mai un link rotto —
-// stesso principio già in uso per le guide PDF delle aree di orientamento).
+// Kit materiali per ruolo, indicizzato [workshopSlug][ruoloSlug]. Un unico
+// PDF consolidato per ruolo (in public/materiali/workshop/enoteca/,
+// consegnato da Mario), non più 3-4 card frammentate che avrebbero puntato
+// tutte allo stesso file — un solo materiale "pdf" reale per ruolo, più gli
+// eventuali link interni genuinamente distinti e la domanda della consegna
+// (testo allineato al PDF reale, non più un placeholder).
 export const WORKSHOP_KIT: Record<string, Record<string, MaterialeWorkshop[]>> = {
   "enoteca-centocelle": {
     economia: [
       {
-        titolo: "Template business plan enoteca",
+        titolo: "Kit CFO junior — Business plan e break-even",
         descrizione:
-          "Foglio di calcolo con tutte le voci tipiche: investimento iniziale, costi fissi mensili, costi variabili, proiezione ricavi e calcolo del break-even.",
-        tipo: "template",
-      },
-      {
-        titolo: "Dati di settore",
-        descrizione:
-          "Margini medi nella ristorazione italiana, costo medio vino naturale all'ingrosso (4-12€ a bottiglia), markup tipico vendita al calice (2,5-3x) vs bottiglia (1,8-2,2x).",
+          "I numeri veri del settore, come si calcola il break-even, dove vanno gli 80.000€ voce per voce e un template di conto economico da compilare per 24 mesi.",
         tipo: "pdf",
+        url: "/materiali/workshop/enoteca/economia-kit.pdf",
       },
       {
         titolo: "Guida al conto economico semplificato",
@@ -92,76 +89,46 @@ export const WORKSHOP_KIT: Record<string, Record<string, MaterialeWorkshop[]>> =
       {
         titolo: "Domanda a cui rispondere nella consegna",
         descrizione:
-          "Con 80.000€ di budget totale, quanti mesi di runway hai prima di raggiungere il break-even? Gianni vuole un numero preciso e una tabella mensile.",
+          "Piano investimento iniziale (dove vanno gli 80.000€, voce per voce), conto economico mensile per i primi 24 mesi, calcolo del break-even e runway: quanti mesi di cassa hai prima di finire i soldi.",
         tipo: "domanda",
       },
     ],
     giurisprudenza: [
       {
-        titolo: "Licenze per vendita alcolici in Italia",
+        titolo: "Kit Legal junior — Licenze e forma societaria",
         descrizione:
-          "Differenza tra SCIA per somministrazione (art. 64 D.Lgs 59/2010) e licenza prefettizia ex art. 86 TULPS. Quando serve quale, tempi e costi.",
+          "Le pratiche in ordine cronologico con tempi e costi (partita IVA, SCIA al SUAP, HACCP...) e il confronto tra ditta individuale e SRL semplificata.",
         tipo: "pdf",
-      },
-      {
-        titolo: "Checklist apertura attività commerciale",
-        descrizione:
-          "Dal codice ATECO (56.30.00 per bar/enoteca) alla partita IVA, dalla SCIA comunale al registro imprese CCIAA. Tutti i passaggi in ordine cronologico con costi indicativi.",
-        tipo: "template",
-      },
-      {
-        titolo: "Ditta individuale vs SRL semplificata",
-        descrizione:
-          "Confronto pratico su costi di costituzione, responsabilità patrimoniale, tassazione (IRPEF progressiva vs IRES 24%) e obblighi contabili.",
-        tipo: "pdf",
+        url: "/materiali/workshop/enoteca/giurisprudenza-kit.pdf",
       },
       {
         titolo: "Domanda a cui rispondere nella consegna",
-        descrizione:
-          "Gianni vuole iniziare a vendere vino anche online (e-commerce). Cosa cambia dal punto di vista normativo rispetto alla vendita in loco? Serve un'autorizzazione aggiuntiva?",
+        descrizione: "Gianni vuole vendere vino anche online. Cosa cambia rispetto alla vendita in negozio? Serve un'autorizzazione in più?",
         tipo: "domanda",
       },
     ],
     grafica: [
       {
-        titolo: "Mood board — enoteche italiane vincenti",
-        descrizione: "20 esempi di identità visive di enoteche indipendenti italiane che funzionano. Analizza cosa hanno in comune quelle con più seguito sui social.",
-        tipo: "pdf",
-      },
-      {
-        titolo: "Brief visivo di Gianni",
+        titolo: "Kit Creative director — Brand identity e naming",
         descrizione:
-          "Il cliente vuole: caldo, artigianale, radici romane. Niente di minimal o nordico. Palette di partenza suggerita: terra (#8B5E3C), borgogna (#722F37), avorio (#F5F0E8).",
+          "Come tradurre il brief di Gianni (\"caldo, artigianale, romano\") in un sistema visivo: palette con codici esadecimali, filoni di naming che funzionano a Roma, strumenti gratuiti.",
         tipo: "pdf",
-      },
-      {
-        titolo: "Lavagna collaborativa — brand identity",
-        descrizione: "Template preimpostato con sezioni per palette, tipografia, logo concept e applicazioni.",
-        tipo: "template",
+        url: "/materiali/workshop/enoteca/grafica-kit.pdf",
       },
       {
         titolo: "Domanda a cui rispondere nella consegna",
         descrizione:
-          "Il logo deve funzionare su: insegna esterna (grande), etichette vino private label (piccola), profilo Instagram (quadrato), menù stampato (b/n). Hai testato tutte le applicazioni?",
+          "Il logo deve funzionare su insegna esterna, vetrofania, etichetta private label, profilo Instagram, menù stampato e scontrino. Hai testato tutte le applicazioni?",
         tipo: "domanda",
       },
     ],
     marketing: [
       {
-        titolo: "Analisi demografica Centocelle",
+        titolo: "Kit Marketing manager — Analisi mercato e piano lancio",
         descrizione:
-          "Dati reali sul quartiere: fascia d'età prevalente (25-44), reddito medio, locali aperti negli ultimi 3 anni, indice di gentrificazione. Fonte: elaborazione dati ISTAT/OpenStreetMap.",
+          "I dati reali del quartiere Centocelle, tre ipotesi di target da valutare, le tattiche a costo zero che funzionano davvero e il piano dei primi 3 mesi.",
         tipo: "pdf",
-      },
-      {
-        titolo: "Enoteche da studiare sui social",
-        descrizione: "Account selezionati di enoteche indipendenti romane con buon engagement. Per ognuna: follower, formato che funziona, tone of voice.",
-        tipo: "pdf",
-      },
-      {
-        titolo: "Template piano di lancio 3 mesi",
-        descrizione: "Schema settimana per settimana: pre-opening (buzz, lista early supporters), opening event, retention (fidelizzazione primi clienti).",
-        tipo: "template",
+        url: "/materiali/workshop/enoteca/marketing-kit.pdf",
       },
       {
         titolo: "Domanda a cui rispondere nella consegna",
@@ -172,25 +139,15 @@ export const WORKSHOP_KIT: Record<string, Record<string, MaterialeWorkshop[]>> =
     ],
     food: [
       {
-        titolo: "Guida ai vini naturali italiani",
+        titolo: "Kit Food & wine curator — Carta vini e food pairing",
         descrizione:
-          "Le principali denominazioni per i vini naturali e biodinamici in Italia. Come strutturare una carta da 30-40 etichette con budget limitato.",
+          "Cosa significa davvero \"vino naturale\", come strutturare una carta da 30-40 etichette, dove si compra nel Lazio e un menu food pairing a food cost contenuto.",
         tipo: "pdf",
-      },
-      {
-        titolo: "Fornitori vini naturali — Lazio e dintorni",
-        descrizione: "Lista di produttori del Lazio, Umbria e Abruzzo con cui trattare direttamente (senza intermediari). Prezzi medi all'ingrosso: 4-8€ fascia entry, 8-15€ fascia media.",
-        tipo: "pdf",
-      },
-      {
-        titolo: "Menu food pairing essenziale",
-        descrizione: "Cosa abbinare ai vini naturali mantenendo costi bassi: taglieri, conserve artigianali, formaggi a latte crudo del Lazio.",
-        tipo: "pdf",
+        url: "/materiali/workshop/enoteca/food-kit.pdf",
       },
       {
         titolo: "Domanda a cui rispondere nella consegna",
-        descrizione:
-          "Gianni vuole un piatto caldo serale (solo 1, semplice). Come lo integri nel menu senza aumentare i costi fissi di gestione della cucina? Considera che il locale ha solo 60 mq.",
+        descrizione: "Gianni vuole un piatto caldo serale — uno solo, semplice. Come lo integri senza aumentare i costi fissi di gestione della cucina?",
         tipo: "domanda",
       },
     ],
