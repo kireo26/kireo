@@ -819,6 +819,663 @@ export const WORKSHOP_ELABORATO: Record<string, Record<string, Elaborato>> = {
       ],
     },
   },
+
+  // Ricevuti da Mario in elaborato-enoteca-v2.ts (ELABORATO_ENOTECA), stesso
+  // schema di palestra-popolare > salute. Slug ruoli verificati contro
+  // supabase/migrations/20260807130000_workshop.sql (seed di
+  // enoteca-centocelle): economia/giurisprudenza/grafica/marketing/food,
+  // combaciano esattamente. Fiducia 25×4=100 per ruolo.
+  "enoteca-centocelle": {
+    // ══════════════════════════════════════════════════════════ ECONOMIA (CFO junior)
+    economia: {
+      fasi: [
+        {
+          id: "apertura",
+          titolo: "Tappa 1 — I costi per aprire",
+          obiettivo: "Metti in fila l'investimento iniziale per aprire l'enoteca, dentro gli 80.000€.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "costi_apertura",
+              titolo: "L'investimento iniziale",
+              tipo: "tabella",
+              prompt: "Stima le voci per aprire. Tutto incluso deve stare negli 80.000€.",
+              hint: "Ristrutturazione locale (60 mq), arredi e scaffalature, impianto frigo, licenze, prima scorta vini, cassa/POS, insegna.",
+              colonne: ["Voce", "Costo (€)"],
+              righeIniziali: [
+                ["Ristrutturazione e impianti", ""],
+                ["Arredi e scaffalature", ""],
+                ["Cantina/frigo e attrezzature", ""],
+                ["Licenze e pratiche", ""],
+                ["Prima scorta vini", ""],
+                ["Insegna e comunicazione iniziale", ""],
+                ["Totale", ""],
+              ],
+            },
+            {
+              id: "margine",
+              titolo: "Cosa tieni da parte",
+              tipo: "testo",
+              prompt: "Quanto lasci come cuscinetto per i primi mesi, prima che l'enoteca cammini da sola?",
+              hint: "Aprire e finire i soldi al secondo mese è l'errore classico: tieni una riserva.",
+              minCaratteri: 200,
+            },
+          ],
+          reazioneCliente:
+            "Gianni, da ex commercialista, va dritto al punto: «Ottantamila, non un euro di più. Fammi vedere che ci stai dentro e che non finiamo i soldi a gennaio». Apre di fatto la tappa sui costi mensili.",
+          revisioneFocus: [
+            "Le voci di apertura sono realistiche per un'enoteca di 60 mq?",
+            "Il totale sta dentro gli 80.000€?",
+            "Ha previsto un cuscinetto per i primi mesi?",
+            "Niente voci dimenticate (licenze, impianto frigo, prima scorta)?",
+          ],
+        },
+        {
+          id: "costi_ricavi",
+          titolo: "Tappa 2 — Costi fissi e ricavi",
+          obiettivo: "Stima quanto costa tenere aperto ogni mese e quanto puoi incassare.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "costi_fissi",
+              titolo: "I costi fissi mensili",
+              tipo: "tabella",
+              prompt: "Cosa paghi ogni mese a prescindere dagli incassi?",
+              hint: "Affitto (~1.200€), utenze, dipendente/collaboratore, commercialista, assicurazione, rifornimento vini.",
+              colonne: ["Voce", "Costo mensile (€)"],
+              minRighe: 4,
+            },
+            {
+              id: "ricavi",
+              titolo: "Come incassi",
+              tipo: "testo_lungo",
+              prompt:
+                "Da cosa arrivano i ricavi (bottiglie da asporto, mescita al calice, food)? Stima uno scontrino medio e quanti clienti al giorno servono.",
+              hint: "Markup vino: al calice 2,5–3x, a bottiglia 1,8–2,2x. Ragiona su coperti/serata realistici a Centocelle.",
+              minCaratteri: 300,
+            },
+          ],
+          reazioneCliente:
+            "Gianni fa il conto della serva: «Bello, ma quanto incasso davvero al mese? E quanta gente deve entrà ogni sera perché torni?». Apre di fatto la tappa sul break-even.",
+          revisioneFocus: [
+            "I costi fissi mensili sono completi e realistici?",
+            "La stima ricavi parte da numeri concreti (scontrino, clienti/giorno)?",
+            "I margini sul vino sono usati correttamente?",
+            "Le ipotesi sono plausibili per il quartiere, non ottimistiche?",
+          ],
+        },
+        {
+          id: "break_even",
+          titolo: "Tappa 3 — Il break-even",
+          obiettivo: "Calcola in quanti mesi l'enoteca va a pari e quanto runway hai.",
+          giorniConsigliati: 4,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "calcolo_be",
+              titolo: "Il punto di pareggio",
+              tipo: "testo_lungo",
+              prompt: "Con i tuoi costi fissi e i tuoi margini, quanti incassi servono al mese per andare a pari? In quanti mesi ci arrivi?",
+              hint: "Break-even = costi fissi ÷ margine. Poi confronta col cuscinetto: i soldi bastano ad arrivarci?",
+              minCaratteri: 350,
+            },
+            {
+              id: "rischio",
+              titolo: "Se va peggio del previsto",
+              tipo: "testo",
+              prompt: "Se nei primi mesi incassi il 30% in meno, cosa fai? Dove tagli senza chiudere?",
+              hint: "Gianni vuole sapere che hai un piano B, non solo lo scenario ottimista.",
+              minCaratteri: 200,
+            },
+          ],
+          reazioneCliente:
+            "Gianni vuole il numero: «In quanti mesi rientro? Dammi una cifra, non i giri di parole. E se va male?». Apre di fatto la tappa del pitch.",
+          revisioneFocus: [
+            "Il break-even è calcolato correttamente sui numeri delle tappe precedenti?",
+            "Il tempo di pareggio è coerente col cuscinetto disponibile?",
+            "C'è uno scenario prudente, non solo quello ottimista?",
+            "Il piano B è concreto?",
+          ],
+        },
+        {
+          id: "pitch",
+          titolo: "Tappa 4 — Il pitch a Gianni",
+          obiettivo: "Metti insieme i conti e convincilo che l'enoteca sta in piedi. Ultimo passo.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 4,
+          fiduciaMax: 25,
+          ultima: true,
+          sezioni: [
+            {
+              id: "sintesi",
+              titolo: "I conti, in chiaro",
+              tipo: "testo_lungo",
+              prompt: "Investimento, costi fissi, ricavi attesi e mesi al pareggio: spiegalo a Gianni in modo asciutto e con i numeri.",
+              hint: "Gianni è un ex commercialista: apprezza precisione e onestà, odia i numeri gonfiati.",
+              minCaratteri: 400,
+            },
+          ],
+          reazioneCliente:
+            "Gianni tira le somme sulla fiducia accumulata: se i conti tornano e sono onesti, ci sta; se qualcosa non quadra, lo dice senza giri. Chiusura del percorso.",
+          revisioneFocus: [
+            "La sintesi è chiara e sostenuta dai numeri?",
+            "È coerente con le tappe precedenti?",
+            "Rispetta il tetto di 80.000€ e niente banche/soci?",
+            "Convincerebbe un ex commercialista diffidente?",
+          ],
+        },
+      ],
+    },
+
+    // ══════════════════════════════════════════════════════════ GIURISPRUDENZA (Legal junior)
+    giurisprudenza: {
+      fasi: [
+        {
+          id: "licenze",
+          titolo: "Tappa 1 — Le licenze per vendere vino",
+          obiettivo: "Capisci quali autorizzazioni servono per aprire e vendere vino.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "quali_licenze",
+              titolo: "Cosa serve per aprire",
+              tipo: "testo_lungo",
+              prompt: "Quali autorizzazioni servono per vendere e somministrare vino? Spiega la differenza tra asporto e mescita.",
+              hint: "SCIA per somministrazione (art. 64 D.Lgs 59/2010), codice ATECO 56.30.00, requisiti professionali/onorabilità.",
+              minCaratteri: 300,
+            },
+            {
+              id: "checklist_apertura",
+              titolo: "La checklist di apertura",
+              tipo: "checklist",
+              prompt: "Spunta i passaggi burocratici da fare, in ordine.",
+              voci: [
+                "Partita IVA e codice ATECO",
+                "SCIA al Comune (SUAP)",
+                "Iscrizione Registro Imprese CCIAA",
+                "Requisiti igienico-sanitari (ASL/HACCP)",
+                "Insegna e autorizzazioni comunali",
+              ],
+            },
+          ],
+          reazioneCliente:
+            "Gianni sbuffa sulla burocrazia: «Quante carte servono per aprì 'sto posto? Io le rogne non le voglio». Apre di fatto la tappa sulla forma giuridica.",
+          revisioneFocus: [
+            "Distingue correttamente asporto e somministrazione?",
+            "Cita SCIA, ATECO e requisiti in modo corretto?",
+            "La checklist è completa e in ordine logico?",
+            "È spiegato in modo comprensibile a un non addetto?",
+          ],
+        },
+        {
+          id: "forma",
+          titolo: "Tappa 2 — La forma giuridica",
+          obiettivo: "Scegli tra ditta individuale e SRL semplificata, con una motivazione.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "scelta_forma",
+              titolo: "Quale forma",
+              tipo: "scelta",
+              prompt: "Cosa consigli a Gianni, e perché in una riga?",
+              hint: "Gianni non vuole soci né banche. Valuta responsabilità patrimoniale, costi e tassazione.",
+              opzioni: ["Ditta individuale", "SRL semplificata (SRLS)", "Impresa familiare"],
+            },
+            {
+              id: "motivazione",
+              titolo: "Il perché",
+              tipo: "testo_lungo",
+              prompt: "Spiega i pro e i contro della tua scelta: responsabilità, costi di costituzione, tasse (IRPEF vs IRES).",
+              hint: "Ditta individuale: semplice ma responsabilità illimitata. SRLS: protegge il patrimonio ma più adempimenti.",
+              minCaratteri: 300,
+            },
+          ],
+          reazioneCliente:
+            "Gianni, che di conti se ne intende, incalza: «Ditta o società? Guarda che coi miei risparmi ci gioco la casa, mica scherziamo». Apre di fatto la tappa sull'e-commerce.",
+          revisioneFocus: [
+            "La forma scelta è motivata con pro e contro reali?",
+            "Ha considerato la responsabilità patrimoniale (i risparmi di Gianni)?",
+            "Il confronto fiscale è corretto?",
+            "La scelta rispetta il no a soci e banche?",
+          ],
+        },
+        {
+          id: "ecommerce",
+          titolo: "Tappa 3 — Vendere anche online",
+          obiettivo: "Verifica cosa cambia se Gianni vuole vendere vino anche online.",
+          giorniConsigliati: 4,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "ecommerce_norme",
+              titolo: "E-commerce di alcolici",
+              tipo: "testo_lungo",
+              prompt: "Cosa serve in più per vendere vino online rispetto al negozio fisico?",
+              hint: "Comunicazione di vendita online, accise/registri se applicabili, verifica età, spedizione alcolici, privacy/termini.",
+              minCaratteri: 300,
+            },
+          ],
+          reazioneCliente:
+            "Gianni intravede un'opportunità ma diffida: «E se vendo pure su internet? Non è che poi mi arrivano multe che manco so'?». Apre di fatto la tappa del pitch.",
+          revisioneFocus: [
+            "Ha individuato cosa cambia davvero rispetto alla vendita in loco?",
+            "Cita adempimenti reali (comunicazione, verifica età, spedizione)?",
+            "Distingue ciò che è obbligatorio da ciò che è consigliato?",
+            "È realistico per una piccola enoteca?",
+          ],
+        },
+        {
+          id: "pitch",
+          titolo: "Tappa 4 — Il pitch a Gianni",
+          obiettivo: "Riassumi licenze, forma e online in modo che Gianni non abbia paura della burocrazia. Ultimo passo.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 4,
+          fiduciaMax: 25,
+          ultima: true,
+          sezioni: [
+            {
+              id: "sintesi",
+              titolo: "La parte legale, in chiaro",
+              tipo: "testo_lungo",
+              prompt: "Licenze, forma giuridica scelta e, se serve, l'online: spiega tutto a Gianni passo per passo, senza gergo.",
+              hint: "Fagli vedere che è tutto gestibile e che i suoi risparmi sono protetti.",
+              minCaratteri: 400,
+            },
+          ],
+          reazioneCliente:
+            "Gianni valuta se ora la burocrazia gli fa meno paura: se è convinto, ci sta; se no, dice cosa ancora lo blocca. Chiusura del percorso.",
+          revisioneFocus: [
+            "La sintesi tiene insieme licenze, forma ed e-commerce?",
+            "È chiara e senza gergo?",
+            "Rassicura sulla protezione del patrimonio?",
+            "È coerente con le tappe precedenti?",
+          ],
+        },
+      ],
+    },
+
+    // ══════════════════════════════════════════════════════════ GRAFICA (Creative director)
+    grafica: {
+      fasi: [
+        {
+          id: "nome",
+          titolo: "Tappa 1 — Il nome",
+          obiettivo: "Proponi il nome dell'enoteca: deve richiamare la tradizione romana.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "proposta_nome",
+              titolo: "La proposta di nome",
+              tipo: "testo_lungo",
+              prompt: "Proponi 2-3 nomi e spiega perché funzionano. Niente inglese, niente astratto: radici romane.",
+              hint: "Gianni vuole \"caldo e artigianale\", tradizione. Pensa a dialetto, storia del quartiere, mestieri.",
+              minCaratteri: 250,
+            },
+          ],
+          reazioneCliente:
+            "Gianni è netto: «Niente inglese eh, dev'esse' 'na cosa romana, che quando la senti sai già de che parliamo». Apre di fatto la tappa su logo e colori.",
+          revisioneFocus: [
+            "I nomi richiamano la tradizione romana (no inglese, no astratto)?",
+            "C'è una motivazione dietro ogni proposta?",
+            "Sono nomi pronunciabili e memorabili?",
+            "Funzionano per un'enoteca di quartiere?",
+          ],
+        },
+        {
+          id: "logo_palette",
+          titolo: "Tappa 2 — Logo e colori",
+          obiettivo: "Definisci il concept del logo e la palette dell'enoteca.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "concept",
+              titolo: "Il concept",
+              tipo: "testo_lungo",
+              prompt: "Descrivi l'idea del logo e la palette (2-3 colori) con il loro perché.",
+              hint: "Punto di partenza suggerito: terra (#8B5E3C), borgogna (#722F37), avorio (#F5F0E8). Caldo e artigianale.",
+              minCaratteri: 250,
+            },
+            {
+              id: "bozza",
+              titolo: "Una bozza (facoltativo)",
+              tipo: "immagine",
+              opzionale: true,
+              prompt: "Se vuoi, allega la foto di uno schizzo del logo o una moodboard.",
+            },
+          ],
+          reazioneCliente:
+            "Gianni vuole vedere, non sentire teorie: «Famme vede' com'è 'sta roba, che coi disegni astratti non ci capisco niente». Apre di fatto la tappa sulle applicazioni.",
+          revisioneFocus: [
+            "Il concept è coerente col nome e con \"caldo e artigianale\"?",
+            "La palette è motivata, non casuale?",
+            "È qualcosa di realizzabile, non solo bello a parole?",
+            "Rispetta il gusto del cliente (niente minimal/nordico)?",
+          ],
+        },
+        {
+          id: "applicazioni",
+          titolo: "Tappa 3 — Le applicazioni",
+          obiettivo: "Verifica che l'identità funzioni dove serve davvero.",
+          giorniConsigliati: 4,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "applicazioni",
+              titolo: "Dove vive il marchio",
+              tipo: "tabella",
+              prompt: "Per ogni supporto, di' come si adatta il logo/identità.",
+              hint: "Insegna esterna (grande), etichette vino (piccola), profilo Instagram (quadrato), menu stampato (b/n).",
+              colonne: ["Supporto", "Come si adatta"],
+              minRighe: 4,
+            },
+          ],
+          reazioneCliente:
+            "Gianni pensa al pratico: «E sull'insegna grande e sulle bottiglie piccole funziona uguale? Non è che poi non se legge?». Apre di fatto la tappa del pitch.",
+          revisioneFocus: [
+            "Ha testato le applicazioni chiave (insegna, etichetta, social, menu)?",
+            "Il logo regge sia in grande che in piccolo, a colori e in b/n?",
+            "Le scelte sono pratiche, non solo estetiche?",
+            "C'è coerenza tra tutte le applicazioni?",
+          ],
+        },
+        {
+          id: "pitch",
+          titolo: "Tappa 4 — Il pitch a Gianni",
+          obiettivo: "Presenta l'identità completa e convincilo. Ultimo passo.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 4,
+          fiduciaMax: 25,
+          ultima: true,
+          sezioni: [
+            {
+              id: "sintesi",
+              titolo: "L'identità, in breve",
+              tipo: "testo_lungo",
+              prompt: "Nome, logo, colori e come vivono sui vari supporti: racconta l'identità a Gianni in modo semplice e concreto.",
+              hint: "Gianni non è un creativo: collega ogni scelta a un motivo pratico o alla tradizione romana.",
+              minCaratteri: 400,
+            },
+          ],
+          reazioneCliente:
+            "Gianni valuta se l'identità gli \"suona\" romana e concreta: se sì, ci sta; se no, dice cosa non lo convince. Chiusura del percorso.",
+          revisioneFocus: [
+            "La sintesi tiene insieme nome, logo, colori e applicazioni?",
+            "Ogni scelta è motivata in modo concreto?",
+            "Rispetta il gusto del cliente e la tradizione romana?",
+            "È spiegata senza gergo da designer?",
+          ],
+        },
+      ],
+    },
+
+    // ══════════════════════════════════════════════════════════ MARKETING (Marketing manager)
+    marketing: {
+      fasi: [
+        {
+          id: "quartiere",
+          titolo: "Tappa 1 — Il quartiere e il target",
+          obiettivo: "Studia Centocelle e definisci a chi si rivolge l'enoteca.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "analisi",
+              titolo: "Chi c'è a Centocelle",
+              tipo: "testo_lungo",
+              prompt: "Descrivi il quartiere e il target: chi entrerebbe in un'enoteca di vini naturali qui?",
+              hint: "Centocelle: fascia 25-44 prevalente, quartiere in trasformazione, tanti locali aperti negli ultimi anni.",
+              minCaratteri: 300,
+            },
+          ],
+          reazioneCliente:
+            "Gianni è concreto: «Ma chi ce viene da me a beve vino naturale? Qui non è mica il centro». Apre di fatto la tappa sul piano di lancio.",
+          revisioneFocus: [
+            "L'analisi del quartiere è concreta, non generica?",
+            "Il target è definito con precisione?",
+            "Tiene conto che è vino naturale (nicchia) in periferia?",
+            "Individua un motivo per cui la gente entrerebbe?",
+          ],
+        },
+        {
+          id: "lancio",
+          titolo: "Tappa 2 — Il piano di lancio",
+          obiettivo: "Costruisci il piano dei primi 3 mesi, dall'apertura alla fidelizzazione.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "piano",
+              titolo: "Il piano 3 mesi",
+              tipo: "tabella",
+              prompt: "Cosa fai settimana per settimana (o mese per mese) per far conoscere e riempire l'enoteca?",
+              hint: "Pre-opening (buzz, lista amici), opening (serata inaugurale, degustazione), retention (fidelizzare i primi clienti).",
+              colonne: ["Periodo", "Azione", "Obiettivo"],
+              minRighe: 4,
+            },
+          ],
+          reazioneCliente:
+            "Gianni frena sui costi: «Io in pubblicità non ce voglio buttà soldi. Se me chiedi mille euro de Facebook, semo già fritti». Apre di fatto la tappa sui social senza budget.",
+          revisioneFocus: [
+            "Il piano copre pre-opening, opening e retention?",
+            "Le azioni sono concrete e realizzabili con pochi soldi?",
+            "C'è un obiettivo chiaro per ogni fase?",
+            "È adatto a un'enoteca di quartiere, non a una grande catena?",
+          ],
+        },
+        {
+          id: "social",
+          titolo: "Tappa 3 — Traffico senza budget",
+          obiettivo: "Trova come generare clienti nei primi mesi senza spendere in pubblicità.",
+          giorniConsigliati: 4,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "tattiche",
+              titolo: "Tre tattiche a costo zero",
+              tipo: "testo_lungo",
+              prompt: "Presenta 3 tattiche concrete per portare gente senza advertising, con una stima del risultato atteso.",
+              hint: "Passaparola strutturato, collaborazioni col quartiere, contenuti social organici, degustazioni/eventi.",
+              minCaratteri: 350,
+            },
+          ],
+          reazioneCliente:
+            "Gianni è diffidente ma curioso: «'Sti social funzionano davvero o è tempo perso? Fammi vede' che ci guadagno». Apre di fatto la tappa del pitch.",
+          revisioneFocus: [
+            "Le 3 tattiche sono concrete e a basso costo?",
+            "C'è una stima del risultato atteso, non solo idee?",
+            "Sono adatte a chi non vuole spendere in adv?",
+            "Sono sostenibili per una persona sola all'inizio?",
+          ],
+        },
+        {
+          id: "pitch",
+          titolo: "Tappa 4 — Il pitch a Gianni",
+          obiettivo: "Convincilo che riempirai l'enoteca senza svenarti in pubblicità. Ultimo passo.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 4,
+          fiduciaMax: 25,
+          ultima: true,
+          sezioni: [
+            {
+              id: "sintesi",
+              titolo: "Il piano, in breve",
+              tipo: "testo_lungo",
+              prompt: "Target, lancio e come porti gente senza budget: spiegalo a Gianni con esempi concreti e attese realistiche.",
+              hint: "Gianni odia i soldi buttati: mostra il ritorno di ogni azione, non la fuffa da marketer.",
+              minCaratteri: 400,
+            },
+          ],
+          reazioneCliente:
+            "Gianni valuta se il piano riempie l'enoteca senza spese folli: se lo convince, ci sta; se no, dice cosa non gli torna. Chiusura del percorso.",
+          revisioneFocus: [
+            "La sintesi tiene insieme target, lancio e crescita senza budget?",
+            "Le attese sono realistiche, non gonfiate?",
+            "Rispetta il no all'advertising a pagamento?",
+            "È spiegata senza gergo da marketer?",
+          ],
+        },
+      ],
+    },
+
+    // ══════════════════════════════════════════════════════════ FOOD (Food & wine curator)
+    food: {
+      fasi: [
+        {
+          id: "carta_vini",
+          titolo: "Tappa 1 — La carta vini",
+          obiettivo: "Costruisci una carta di soli vini naturali e biodinamici, con budget limitato.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "carta",
+              titolo: "La carta",
+              tipo: "tabella",
+              prompt: "Imposta una carta di partenza: tipologia, fascia di prezzo di vendita, note. Solo naturali/biodinamici.",
+              hint: "30-40 etichette bastano per partire. Mescola entry (€4-8 ingrosso) e fascia media (€8-15).",
+              colonne: ["Tipologia / zona", "Fascia prezzo vendita", "Note"],
+              minRighe: 4,
+            },
+          ],
+          reazioneCliente:
+            "Gianni è irremovibile: «Solo vini naturali, eh. Manco uno convenzionale \"per chi non è abituato\". Su questo non se discute». Apre di fatto la tappa sui fornitori.",
+          revisioneFocus: [
+            "La carta è solo di vini naturali/biodinamici?",
+            "C'è un mix di fasce di prezzo sensato?",
+            "È adatta a un quartiere periferico (non solo etichette costose)?",
+            "Il numero di etichette è gestibile all'avvio?",
+          ],
+        },
+        {
+          id: "fornitori",
+          titolo: "Tappa 2 — I fornitori",
+          obiettivo: "Trova da chi comprare, a quali prezzi, per reggere i margini.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "fornitori",
+              titolo: "Da chi compri",
+              tipo: "testo_lungo",
+              prompt: "Come ti rifornisci? Produttori diretti, distributori di naturali, prezzi indicativi all'ingrosso.",
+              hint: "Lazio, Umbria, Abruzzo: produttori con cui trattare diretti. Ingrosso €4-8 entry, €8-15 media.",
+              minCaratteri: 300,
+            },
+          ],
+          reazioneCliente:
+            "Gianni fa i conti: «Quanto me costano a bottiglia? Perché se le pago troppo, o le vendo care o ce rimetto». Apre di fatto la tappa sul food.",
+          revisioneFocus: [
+            "Le fonti di rifornimento sono concrete e realistiche?",
+            "I prezzi all'ingrosso reggono i margini di vendita?",
+            "Ha considerato l'acquisto diretto per risparmiare?",
+            "È sostenibile per una piccola enoteca?",
+          ],
+        },
+        {
+          id: "food",
+          titolo: "Tappa 3 — Il food pairing",
+          obiettivo: "Aggiungi un'offerta food semplice, incluso un piatto caldo serale, senza una cucina vera.",
+          giorniConsigliati: 4,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "menu",
+              titolo: "Il menu essenziale",
+              tipo: "tabella",
+              prompt: "Cosa abbini ai vini tenendo bassi i costi e senza una cucina attrezzata?",
+              hint: "Taglieri (materia prima €4-6, vendita €12-16), conserve, formaggi laziali. Un solo piatto caldo semplice.",
+              colonne: ["Piatto", "Costo materia prima", "Prezzo vendita"],
+              minRighe: 3,
+            },
+            {
+              id: "piatto_caldo",
+              titolo: "Il piatto caldo serale",
+              tipo: "testo",
+              prompt: "Quale piatto caldo (uno solo, semplice) proponi e come lo gestisci in 60 mq senza cucina completa?",
+              hint: "Deve essere fattibile con attrezzatura minima e non far esplodere i costi fissi.",
+              minCaratteri: 200,
+            },
+          ],
+          reazioneCliente:
+            "Gianni pone il vincolo pratico: «Un piatto caldo la sera me sta bene, ma io 'na cucina grande non ce l'ho e non la voglio». Apre di fatto la tappa del pitch.",
+          revisioneFocus: [
+            "Il menu è sostenibile senza una cucina completa?",
+            "I margini food sono corretti (costo vs vendita)?",
+            "Il piatto caldo è uno, semplice e gestibile in 60 mq?",
+            "L'offerta food valorizza i vini senza complicare la gestione?",
+          ],
+        },
+        {
+          id: "pitch",
+          titolo: "Tappa 4 — Il pitch a Gianni",
+          obiettivo: "Presenta carta, fornitori e food come un'offerta coerente. Ultimo passo.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 4,
+          fiduciaMax: 25,
+          ultima: true,
+          sezioni: [
+            {
+              id: "sintesi",
+              titolo: "L'offerta, in breve",
+              tipo: "testo_lungo",
+              prompt: "Carta vini, fornitori e food pairing: racconta a Gianni l'offerta completa e perché regge i conti.",
+              hint: "Solo naturali (non negoziabile), margini che tornano, food semplice: mettilo nero su bianco.",
+              minCaratteri: 400,
+            },
+          ],
+          reazioneCliente:
+            "Gianni valuta se l'offerta è coerente e sostenibile: se lo convince, ci sta; se no, dice cosa lo lascia perplesso. Chiusura del percorso.",
+          revisioneFocus: [
+            "La sintesi tiene insieme carta, fornitori e food?",
+            "Rispetta il vincolo \"solo vini naturali\"?",
+            "I margini reggono?",
+            "L'offerta è realistica per 60 mq senza grande cucina?",
+          ],
+        },
+      ],
+    },
+  },
 };
 
 // Contesto sintetico del cliente per il tutor AI (aiuto/revisione per
@@ -831,5 +1488,10 @@ export const WORKSHOP_TUTOR_CONTESTO: Record<string, { cliente: string; vincoli:
     cliente: "Tonino, 52 anni, ex pugile dilettante, terza media, parla in modo semplice e diretto.",
     vincoli:
       "Budget rigido di 30.000€, non un euro di più. I minori si allenano sempre gratis, non si tocca. Le quote degli adulti restano basse (circa 20€/mese). Non deve diventare una palestra fitness commerciale: niente abbonamenti col tornello, niente selezione all'ingresso.",
+  },
+  "enoteca-centocelle": {
+    cliente: "Gianni Tomassini, 52 anni, ex commercialista romano, parla in modo diretto e concreto, tipicamente romano.",
+    vincoli:
+      "Budget rigido di 80.000€ per l'apertura, non un euro di più. Vini solo naturali e biodinamici, nessuna etichetta convenzionale. Il nome e l'identità devono richiamare la tradizione romana, niente inglese o astratto. Niente soci né banche: i risparmi sono suoi. Diffidente verso proposte non motivate da dati reali.",
   },
 };
