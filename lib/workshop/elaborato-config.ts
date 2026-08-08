@@ -1476,6 +1476,613 @@ export const WORKSHOP_ELABORATO: Record<string, Record<string, Elaborato>> = {
       ],
     },
   },
+
+  // Ricevuti da Mario in elaborato-cargo-v2.ts (ELABORATO_CARGO), stesso
+  // schema degli altri workshop v2. Slug ruoli confermati contro
+  // WORKSHOP_KIT["cargo-bike-torino"] (config.ts) — quella mappa era già
+  // stata verificata contro il DB reale in una sessione precedente (vedi
+  // CLAUDE.md, "Verifica slug — DB come fonte di verità"): nessuna
+  // migration per questo workshop vive nel repo (seed applicato a mano da
+  // Mario), quindi non c'è un file da controllare qui, solo la mappa già
+  // verificata. Fiducia 25×4=100 per ruolo.
+  "cargo-bike-torino": {
+    // ══════════════════════════════════════════════════════ ECONOMIA (Analista di flotta)
+    economia: {
+      fasi: [
+        {
+          id: "confronto",
+          titolo: "Tappa 1 — Furgone vs cargo bike",
+          obiettivo: "Confronta i costi di un furgone e di una cargo bike, voce per voce.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "confronto_costi",
+              titolo: "Il confronto dei costi",
+              tipo: "tabella",
+              prompt: "Metti a confronto furgone e cargo bike su ogni voce di costo.",
+              hint: "Costo/km, carburante vs elettricità, manutenzione, assicurazione, bollo, multe/permessi ZTL.",
+              colonne: ["Voce di costo", "Furgone", "Cargo bike"],
+              minRighe: 5,
+            },
+            {
+              id: "voce_chiave",
+              titolo: "Dove si risparmia di più",
+              tipo: "testo",
+              prompt: "Qual è la voce dove la cargo bike fa davvero la differenza, e perché?",
+              hint: "A Torino pesano ZTL, multe e carburante: parti da lì.",
+              minCaratteri: 200,
+            },
+          ],
+          reazioneCliente:
+            "Renzo va al sodo, da piemontese: «Bene i conti, ma a me interessa una cosa: in quanto tempo rientro dei soldi che metto?». Apre di fatto la tappa sull'investimento.",
+          revisioneFocus: [
+            "Il confronto copre le voci reali (carburante, ZTL, manutenzione, assicurazione)?",
+            "I numeri sono plausibili per una piccola flotta a Torino?",
+            "Ha individuato dove la cargo bike conviene davvero?",
+            "Tiene conto della ZTL e delle multe, punto dolente di Renzo?",
+          ],
+        },
+        {
+          id: "investimento",
+          titolo: "Tappa 2 — Quante cargo bike e quanto costano",
+          obiettivo: "Dimensiona l'investimento restando nei 60.000€.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "investimento",
+              titolo: "L'investimento",
+              tipo: "tabella",
+              prompt: "Quante cargo bike compri e quanto costano, con gli extra (batterie, attrezzatura)?",
+              hint: "Renzo ne aveva in testa due, ma valuta se ne servono di più. Non tocca tutta la flotta: un furgone resta.",
+              colonne: ["Voce", "Quantità", "Costo (€)"],
+              minRighe: 3,
+            },
+            {
+              id: "budget",
+              titolo: "Il conto nel budget",
+              tipo: "testo",
+              prompt: "Come stai dentro i 60.000€ e cosa lasci come margine?",
+              hint: "Renzo ha già un mutuo: non si indebita oltre. Sii preciso.",
+              minCaratteri: 200,
+            },
+          ],
+          reazioneCliente:
+            "Renzo blocca subito gli entusiasmi: «Sessantamila, non un euro di più. Ce l'ho già il mutuo, non me ne accollo un altro. Rifai i conti se sfori». Apre di fatto la tappa sul break-even.",
+          revisioneFocus: [
+            "L'investimento sta dentro i 60.000€?",
+            "Il numero di cargo bike è motivato, non a caso?",
+            "Rispetta il vincolo di non convertire tutta la flotta?",
+            "C'è un margine, niente indebitamento extra?",
+          ],
+        },
+        {
+          id: "break_even",
+          titolo: "Tappa 3 — Il break-even della conversione",
+          obiettivo: "Calcola in quanti mesi le cargo bike ripagano l'investimento.",
+          giorniConsigliati: 4,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "calcolo",
+              titolo: "Il punto di pareggio",
+              tipo: "testo_lungo",
+              prompt: "Con i risparmi su carburante, multe ZTL e manutenzione, in quanti mesi rientri dell'investimento? Mostra il calcolo.",
+              hint: "Risparmio mensile stimato → mesi = investimento ÷ risparmio mensile. Sii onesto sulle ipotesi.",
+              minCaratteri: 350,
+            },
+          ],
+          reazioneCliente:
+            "Renzo pensa al concreto quotidiano: «E quando piove, o d'inverno, o in salita? Se le consegne rallentano i clienti se ne vanno». Apre di fatto la tappa del pitch.",
+          revisioneFocus: [
+            "Il break-even è calcolato sui risparmi reali (carburante, ZTL, manutenzione)?",
+            "Le ipotesi sono oneste, non ottimistiche?",
+            "Il tempo di rientro è coerente con l'investimento?",
+            "Tiene conto dei limiti (meteo, salite) senza gonfiare i numeri?",
+          ],
+        },
+        {
+          id: "pitch",
+          titolo: "Tappa 4 — Il pitch a Renzo",
+          obiettivo: "Convincilo che la conversione regge economicamente. Ultimo passo.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 4,
+          fiduciaMax: 25,
+          ultima: true,
+          sezioni: [
+            {
+              id: "sintesi",
+              titolo: "I conti, in chiaro",
+              tipo: "testo_lungo",
+              prompt: "Confronto costi, investimento e mesi di rientro: spiegalo a Renzo con numeri asciutti e onesti.",
+              hint: "Renzo è pratico e diffida di chi vende sogni: numeri veri e \"in quanto rientro\".",
+              minCaratteri: 400,
+            },
+          ],
+          reazioneCliente:
+            "Renzo tira le somme sulla fiducia accumulata: se i conti lo convincono, ci sta; se no, dice cosa non gli torna. Chiusura del percorso.",
+          revisioneFocus: [
+            "La sintesi è chiara e sostenuta dai numeri?",
+            "Rispetta i 60.000€ e la flotta mista?",
+            "Il rientro è credibile?",
+            "Convince un corriere pratico e diffidente?",
+          ],
+        },
+      ],
+    },
+
+    // ══════════════════════════════════════════════════════ MOBILITA (Progettista di rete)
+    mobilita: {
+      fasi: [
+        {
+          id: "hub",
+          titolo: "Tappa 1 — La rete di hub",
+          obiettivo: "Progetta dove appoggiare le cargo bike per coprire il centro di Torino.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "hub",
+              titolo: "Gli hub",
+              tipo: "testo_lungo",
+              prompt: "Dove metti gli hub (magazzino attuale, nano-hub in centro)? Quanti e perché?",
+              hint: "Tipi di hub: grandi, medi, nano-hub. Raggio di copertura efficace di una cargo bike dal punto di appoggio.",
+              minCaratteri: 300,
+            },
+          ],
+          reazioneCliente:
+            "Renzo parte dal suo: «Il magazzino ce l'ho già io fuori centro. Non basta quello? Perché mi servono altri punti?». Apre di fatto la tappa sulle zone di copertura.",
+          revisioneFocus: [
+            "Il numero e il tipo di hub è motivato?",
+            "Considera il raggio efficace di una cargo bike?",
+            "Sfrutta il magazzino esistente dove ha senso?",
+            "È realistico per il centro di Torino e la ZTL?",
+          ],
+        },
+        {
+          id: "copertura",
+          titolo: "Tappa 2 — Le zone di copertura",
+          obiettivo: "Definisci quali zone copre ogni cargo bike e quante consegne al giorno.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "zone",
+              titolo: "Zone e carichi",
+              tipo: "tabella",
+              prompt: "Per ogni zona/cargo bike: raggio coperto e consegne realistiche al giorno.",
+              hint: "Meglio numeri prudenti: un rider non fa 100 consegne. Guarda i dati dei progetti pilota europei.",
+              colonne: ["Zona", "Raggio", "Consegne/giorno"],
+              minRighe: 3,
+            },
+          ],
+          reazioneCliente:
+            "Renzo, che il mestiere lo conosce, incalza: «Ma quante consegne fa davvero un rider in un giorno? Non contarmi i sogni». Apre di fatto la tappa sui giri di consegna.",
+          revisioneFocus: [
+            "Le consegne/giorno sono realistiche, non ottimistiche?",
+            "La copertura ha senso geografico per Torino?",
+            "Il numero di cargo bike è coerente con la copertura?",
+            "Regge nelle ore di punta?",
+          ],
+        },
+        {
+          id: "giri",
+          titolo: "Tappa 3 — I giri di consegna",
+          obiettivo: "Organizza i giri in modo che il servizio non peggiori rispetto ai furgoni.",
+          giorniConsigliati: 4,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "giri",
+              titolo: "Come organizzi i giri",
+              tipo: "testo_lungo",
+              prompt: "Come pianifichi i giri (fasce orarie, priorità, rientri all'hub) per non far peggiorare i tempi di consegna?",
+              hint: "Renzo teme che le consegne rallentino e i clienti scappino: dimostra che i tempi tengono.",
+              minCaratteri: 300,
+            },
+          ],
+          reazioneCliente:
+            "Renzo ribadisce il suo chiodo fisso: «Il servizio NON deve peggiorare. Se il pacco arriva più tardi, il cliente cambia corriere e io chiudo». Apre di fatto la tappa del pitch.",
+          revisioneFocus: [
+            "I giri sono organizzati per tenere i tempi di consegna?",
+            "Considera le ore di punta e i rientri all'hub?",
+            "Dimostra che il servizio non peggiora?",
+            "È realizzabile con le cargo bike previste?",
+          ],
+        },
+        {
+          id: "pitch",
+          titolo: "Tappa 4 — Il pitch a Renzo",
+          obiettivo: "Convincilo che la rete copre Torino senza far peggiorare il servizio. Ultimo passo.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 4,
+          fiduciaMax: 25,
+          ultima: true,
+          sezioni: [
+            {
+              id: "sintesi",
+              titolo: "La rete, in breve",
+              tipo: "testo_lungo",
+              prompt: "Hub, zone e giri: spiega a Renzo come copri il centro tenendo i tempi.",
+              hint: "Concreto: mappa mentale chiara, numeri prudenti, servizio garantito.",
+              minCaratteri: 400,
+            },
+          ],
+          reazioneCliente:
+            "Renzo valuta se la rete regge senza peggiorare il servizio: se sì, ci sta; se no, dice cosa lo preoccupa. Chiusura del percorso.",
+          revisioneFocus: [
+            "La sintesi tiene insieme hub, zone e giri?",
+            "Il servizio resta all'altezza dei furgoni?",
+            "I numeri sono prudenti e credibili?",
+            "È coerente con le tappe precedenti?",
+          ],
+        },
+      ],
+    },
+
+    // ══════════════════════════════════════════════════════ TECNICA (Responsabile mezzi)
+    tecnica: {
+      fasi: [
+        {
+          id: "modelli",
+          titolo: "Tappa 1 — Quali cargo bike",
+          obiettivo: "Scegli i modelli giusti per il tipo di consegne di Renzo.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "modelli",
+              titolo: "I modelli",
+              tipo: "tabella",
+              prompt: "Confronta 2-3 modelli professionali: capacità di carico, autonomia, prezzo.",
+              hint: "Capacità tipiche 240 litri – 2 m³. Serve reggere i colli dell'e-commerce e dei negozi del centro.",
+              colonne: ["Modello", "Capacità", "Autonomia", "Prezzo"],
+              minRighe: 2,
+            },
+          ],
+          reazioneCliente:
+            "Renzo vuole capirci: «Quante ne servono e di che tipo? Non voglio comprà biciclette da passeggio, devono reggere i pacchi veri». Apre di fatto la tappa su batterie e ricarica.",
+          revisioneFocus: [
+            "I modelli sono professionali e adatti alle consegne (non da hobby)?",
+            "La capacità di carico regge i volumi?",
+            "I prezzi sono coerenti col budget?",
+            "La scelta è motivata sul tipo di merce?",
+          ],
+        },
+        {
+          id: "batterie",
+          titolo: "Tappa 2 — Batterie e ricarica",
+          obiettivo: "Risolvi autonomia e ricarica per una giornata di lavoro piena.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "batterie",
+              titolo: "Autonomia e ricarica",
+              tipo: "testo_lungo",
+              prompt: "Come garantisci che le cargo bike reggano tutta la giornata? Autonomia, batterie di scorta, dove e quando ricarichi.",
+              hint: "Batteria extra, ricarica in hub durante le pause, rotazione. Le salite di Torino consumano di più.",
+              minCaratteri: 300,
+            },
+          ],
+          reazioneCliente:
+            "Renzo pensa al peggio: «E quando la batteria è scarica a metà giornata? Mica posso lasciare i pacchi per strada». Apre di fatto la tappa su manutenzione e meteo.",
+          revisioneFocus: [
+            "La soluzione copre una giornata di lavoro piena?",
+            "Prevede batterie di scorta o ricarica in hub?",
+            "Tiene conto del consumo maggiore in salita?",
+            "È pratica e a costi ragionevoli?",
+          ],
+        },
+        {
+          id: "manutenzione",
+          titolo: "Tappa 3 — Manutenzione, pioggia e salite",
+          obiettivo: "Gestisci manutenzione e i limiti reali di Torino (meteo, dislivelli).",
+          giorniConsigliati: 4,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "manutenzione",
+              titolo: "Tenere in strada le bici",
+              tipo: "testo_lungo",
+              prompt: "Come gestisci manutenzione ordinaria, giorni di pioggia e le salite? Cosa fai quando una cargo bike è ferma?",
+              hint: "Manutenzione programmata, un mezzo di riserva o il furgone rimasto per i giorni difficili, motore adatto ai dislivelli.",
+              minCaratteri: 300,
+            },
+          ],
+          reazioneCliente:
+            "Renzo mette il dito nella piaga: «A Torino piove e ci stanno le salite. Con la pioggia i tuoi rider che fanno, si fermano?». Apre di fatto la tappa del pitch.",
+          revisioneFocus: [
+            "La manutenzione è pianificata, non improvvisata?",
+            "C'è un piano per pioggia e giorni difficili (furgone di riserva)?",
+            "Tiene conto delle salite di Torino nella scelta dei mezzi?",
+            "Il servizio regge anche nei casi peggiori?",
+          ],
+        },
+        {
+          id: "pitch",
+          titolo: "Tappa 4 — Il pitch a Renzo",
+          obiettivo: "Convincilo che la flotta di cargo bike è affidabile tutti i giorni. Ultimo passo.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 4,
+          fiduciaMax: 25,
+          ultima: true,
+          sezioni: [
+            {
+              id: "sintesi",
+              titolo: "I mezzi, in breve",
+              tipo: "testo_lungo",
+              prompt: "Modelli, batterie, manutenzione e piano per il maltempo: spiega a Renzo perché la flotta è affidabile.",
+              hint: "Renzo teme i fermi: mostragli che hai pensato a tutto, pioggia e salite comprese.",
+              minCaratteri: 400,
+            },
+          ],
+          reazioneCliente:
+            "Renzo valuta se può fidarsi dei mezzi ogni giorno: se sì, ci sta; se no, dice cosa lo preoccupa. Chiusura del percorso.",
+          revisioneFocus: [
+            "La sintesi copre mezzi, energia, manutenzione e maltempo?",
+            "Dà affidabilità quotidiana?",
+            "È realistica per Torino?",
+            "È coerente con le tappe precedenti?",
+          ],
+        },
+      ],
+    },
+
+    // ══════════════════════════════════════════════════════ DIGITALE (Product owner)
+    digitale: {
+      fasi: [
+        {
+          id: "cosa_serve",
+          titolo: "Tappa 1 — Cosa serve davvero",
+          obiettivo: "Definisci le funzioni minime indispensabili per gestire le consegne.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "funzioni",
+              titolo: "Le funzioni indispensabili",
+              tipo: "testo_lungo",
+              prompt: "Cosa serve davvero, senza fronzoli? Elenca le funzioni minime e perché ognuna serve.",
+              hint: "Assegnazione giri, tracciamento consegne, prova di consegna (foto/firma), comunicazione col cliente.",
+              minCaratteri: 300,
+            },
+          ],
+          reazioneCliente:
+            "Renzo è diffidente sulla tecnologia: «Io di app non ne so niente, e i miei ragazzi manco. Non voglio 'na roba che nessuno usa». Apre di fatto la tappa sul sistema minimo.",
+          revisioneFocus: [
+            "Le funzioni sono davvero le essenziali (niente fronzoli)?",
+            "Ogni funzione ha un motivo pratico?",
+            "È pensato per persone poco tecnologiche?",
+            "Copre il tracciamento e la prova di consegna?",
+          ],
+        },
+        {
+          id: "sistema",
+          titolo: "Tappa 2 — Il sistema minimo e i costi",
+          obiettivo: "Scegli gli strumenti concreti, con occhio ai costi.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "strumenti",
+              titolo: "Strumenti e costi",
+              tipo: "tabella",
+              prompt: "Per ogni funzione, quale strumento usi e quanto costa? Privilegia soluzioni no-code/economiche.",
+              hint: "Esistono app di gestione consegne già pronte a canone basso: meglio che farsi un software su misura.",
+              colonne: ["Funzione", "Strumento", "Costo"],
+              minRighe: 3,
+            },
+          ],
+          reazioneCliente:
+            "Renzo torna sui soldi: «Quanto mi costa 'sta roba al mese? Perché se è un salasso, i pacchi li segno sul quaderno come ho sempre fatto». Apre di fatto la tappa sul risparmio.",
+          revisioneFocus: [
+            "Gli strumenti sono economici e già pronti (no-code)?",
+            "I costi (canoni) sono chiari e sostenibili?",
+            "Copre tutte le funzioni minime?",
+            "Evita il software su misura inutile?",
+          ],
+        },
+        {
+          id: "risparmio",
+          titolo: "Tappa 3 — Convincere Renzo che serve",
+          obiettivo: "Dimostra il risparmio concreto in tempo ed errori.",
+          giorniConsigliati: 4,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "risparmio",
+              titolo: "Il risparmio concreto",
+              tipo: "testo_lungo",
+              prompt: "Come dimostri a uno scettico che il sistema fa risparmiare (meno errori, meno telefonate, meno pacchi persi)?",
+              hint: "Traduci in tempo e soldi: quante ore/telefonate/errori eviti a settimana.",
+              minCaratteri: 300,
+            },
+          ],
+          reazioneCliente:
+            "Renzo vuole la prova: «E 'sto affare mi fa risparmià davvero, o è solo 'na spesa in più che mi vendi bene?». Apre di fatto la tappa del pitch.",
+          revisioneFocus: [
+            "Il risparmio è tradotto in tempo e soldi concreti?",
+            "Gli esempi sono credibili per una piccola impresa?",
+            "Convince uno scettico, non un appassionato di tech?",
+            "Il beneficio supera chiaramente il costo?",
+          ],
+        },
+        {
+          id: "pitch",
+          titolo: "Tappa 4 — Il pitch a Renzo",
+          obiettivo: "Convincilo che vale la pena, spiegandolo semplice. Ultimo passo.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 4,
+          fiduciaMax: 25,
+          ultima: true,
+          sezioni: [
+            {
+              id: "sintesi",
+              titolo: "Il sistema, in parole semplici",
+              tipo: "testo_lungo",
+              prompt: "Funzioni, strumenti, costo e risparmio: spiegalo a Renzo come lo spiegheresti a chi non usa app.",
+              hint: "Niente paroloni tech: cosa fa, quanto costa, quanto fa risparmiare.",
+              minCaratteri: 400,
+            },
+          ],
+          reazioneCliente:
+            "Renzo valuta se la tecnologia gli conviene davvero: se sì, ci sta; se no, dice cosa non lo convince. Chiusura del percorso.",
+          revisioneFocus: [
+            "La sintesi è semplice, senza gergo tech?",
+            "È chiaro cosa fa, quanto costa e quanto fa risparmiare?",
+            "È adatta a chi non è tecnologico?",
+            "È coerente con le tappe precedenti?",
+          ],
+        },
+      ],
+    },
+
+    // ══════════════════════════════════════════════════════ SOSTENIBILITA (Sustainability manager)
+    sostenibilita: {
+      fasi: [
+        {
+          id: "emissioni",
+          titolo: "Tappa 1 — Le emissioni evitate",
+          obiettivo: "Calcola quanta CO₂ evita la conversione in un anno.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "co2",
+              titolo: "Il calcolo delle emissioni",
+              tipo: "testo_lungo",
+              prompt: "Come stimi la CO₂ evitata passando dai furgoni alle cargo bike? Mostra il ragionamento con numeri di massima.",
+              hint: "Km/anno per mezzo × emissioni furgone diesel al km, meno il quasi-zero della cargo bike elettrica.",
+              minCaratteri: 300,
+            },
+          ],
+          reazioneCliente:
+            "Renzo è pragmatico: «A me della CO₂ me ne frega il giusto. Dimmi piuttosto: 'sta cosa mi porta soldi o clienti?». Apre di fatto la tappa su bandi e incentivi.",
+          revisioneFocus: [
+            "Il calcolo della CO₂ è impostato in modo sensato?",
+            "Parte da dati concreti (km, tipo di mezzo)?",
+            "Collega la sostenibilità a un vantaggio pratico?",
+            "È onesto, senza numeri gonfiati?",
+          ],
+        },
+        {
+          id: "bandi",
+          titolo: "Tappa 2 — Bandi e incentivi",
+          obiettivo: "Trova contributi pubblici reali per finanziare le cargo bike.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "bandi",
+              titolo: "I contributi",
+              tipo: "tabella",
+              prompt: "Individua bandi/incentivi reali per cargo bike o logistica sostenibile, con importo e requisiti.",
+              hint: "Contributi regionali per mezzi cargo (es. Emilia-Romagna 500-1.000€ a mezzo), incentivi comunali/logistica urbana.",
+              colonne: ["Bando/incentivo", "Importo", "Requisiti"],
+              minRighe: 2,
+            },
+          ],
+          reazioneCliente:
+            "Renzo drizza le orecchie sui soldi: «'Sti contributi da dove escono? E quanto ci metto a prenderli, con che carte?». Apre di fatto la tappa sul vantaggio commerciale.",
+          revisioneFocus: [
+            "I bandi/incentivi sono reali e pertinenti?",
+            "Ci sono importo e requisiti per ognuno?",
+            "Sono accessibili a una piccola impresa?",
+            "Contribuiscono davvero a ridurre l'investimento?",
+          ],
+        },
+        {
+          id: "vantaggio",
+          titolo: "Tappa 3 — Il vantaggio commerciale",
+          obiettivo: "Trasforma la sostenibilità in un argomento che porta clienti.",
+          giorniConsigliati: 4,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "vantaggio",
+              titolo: "La sostenibilità che porta lavoro",
+              tipo: "testo_lungo",
+              prompt: "Come usi la consegna a zero emissioni per acquisire clienti (negozi green, e-commerce attenti, gare/appalti)?",
+              hint: "Molti committenti oggi vogliono fornitori sostenibili: è un argomento di vendita, non solo etica.",
+              minCaratteri: 300,
+            },
+          ],
+          reazioneCliente:
+            "Renzo diventa attento: «Quindi mi dici che coi cargo posso pure prendere clienti nuovi? Fammi capì come». Apre di fatto la tappa del pitch.",
+          revisioneFocus: [
+            "Collega la sostenibilità a nuovi clienti/ricavi, non solo all'etica?",
+            "Gli esempi sono concreti (chi cerca fornitori green)?",
+            "È credibile per il mercato di Torino?",
+            "Dà a Renzo un motivo commerciale, non solo ambientale?",
+          ],
+        },
+        {
+          id: "pitch",
+          titolo: "Tappa 4 — Il pitch a Renzo",
+          obiettivo: "Convincilo che la sostenibilità è anche un affare. Ultimo passo.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 4,
+          fiduciaMax: 25,
+          ultima: true,
+          sezioni: [
+            {
+              id: "sintesi",
+              titolo: "La sostenibilità, in concreto",
+              tipo: "testo_lungo",
+              prompt: "CO₂ evitata, contributi ottenibili e clienti nuovi: spiega a Renzo perché conviene anche in termini di soldi.",
+              hint: "Renzo non è un ambientalista: parlagli di incentivi e clienti, con la CO₂ come bonus.",
+              minCaratteri: 400,
+            },
+          ],
+          reazioneCliente:
+            "Renzo valuta se la sostenibilità gli porta soldi e clienti: se sì, ci sta; se no, dice cosa non lo convince. Chiusura del percorso.",
+          revisioneFocus: [
+            "La sintesi tiene insieme emissioni, incentivi e vantaggio commerciale?",
+            "Parla la lingua di Renzo (soldi e clienti)?",
+            "I contributi e i benefici sono credibili?",
+            "È coerente con le tappe precedenti?",
+          ],
+        },
+      ],
+    },
+  },
 };
 
 // Contesto sintetico del cliente per il tutor AI (aiuto/revisione per
@@ -1493,5 +2100,10 @@ export const WORKSHOP_TUTOR_CONTESTO: Record<string, { cliente: string; vincoli:
     cliente: "Gianni Tomassini, 52 anni, ex commercialista romano, parla in modo diretto e concreto, tipicamente romano.",
     vincoli:
       "Budget rigido di 80.000€ per l'apertura, non un euro di più. Vini solo naturali e biodinamici, nessuna etichetta convenzionale. Il nome e l'identità devono richiamare la tradizione romana, niente inglese o astratto. Niente soci né banche: i risparmi sono suoi. Diffidente verso proposte non motivate da dati reali.",
+  },
+  "cargo-bike-torino": {
+    cliente: "Renzo Bertolotti, 47 anni, titolare di una piccola impresa di consegne a Torino (3 furgoni, 5 dipendenti), parla in modo pratico e un po' spiccio, da piemontese concreto.",
+    vincoli:
+      "Budget rigido di 60.000€ per la conversione, non un euro di più (ha già un mutuo, non si indebita oltre). Nessun licenziamento tra i 5 dipendenti. Non converte tutta la flotta: tiene almeno un furgone per il pesante e le consegne fuori centro. Il servizio di consegna non deve peggiorare rispetto ai furgoni, altrimenti i clienti se ne vanno. Diffida di chi vende sogni: vuole numeri concreti (km, tempi, ZTL, meteo di Torino).",
   },
 };
