@@ -2690,6 +2690,610 @@ export const WORKSHOP_ELABORATO: Record<string, Record<string, Elaborato>> = {
       ],
     },
   },
+
+  // Ricevuti da Mario in elaborato-scuolamusica-v2.ts (ELABORATO_SCUOLA_MUSICA),
+  // stesso schema degli altri workshop v2. Slug ruoli confermati contro
+  // WORKSHOP_KIT["scuola-musica-napoli"] (config.ts, già verificata contro
+  // il DB reale in una sessione precedente — nessuna migration per questo
+  // workshop vive nel repo, seed applicato a mano da Mario). Fiducia
+  // 25×4=100 per ruolo.
+  "scuola-musica-napoli": {
+    // ══════════════════════════════════════════════════════ MUSICA (Direttore artistico)
+    musica: {
+      fasi: [
+        {
+          id: "offerta",
+          titolo: "Tappa 1 — L'offerta didattica",
+          obiettivo: "Costruisci i corsi della scuola: strumenti, fasce d'età, tariffe.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "corsi",
+              titolo: "I corsi",
+              tipo: "tabella",
+              prompt: "Quali corsi offri? Per ognuno: strumento/disciplina, fascia d'età, individuale o collettivo, tariffa.",
+              hint: "Chitarra, canto, percussioni, tastiere; individuali e collettivi. Tariffe di mercato ma sostenibili.",
+              colonne: ["Corso", "Fascia d'età", "Ind./collettivo", "Tariffa"],
+              minRighe: 4,
+            },
+          ],
+          reazioneCliente:
+            "Ciro parte dal cuore del progetto: «Bello, ma un ragazzino del quartiere se le deve poter permettere 'ste lezioni. Se no che scuola popolare è?». Apre di fatto la tappa sul palinsesto serale.",
+          revisioneFocus: [
+            "L'offerta è varia e adatta a diverse fasce d'età?",
+            "Le tariffe reggono i conti ma restano accessibili?",
+            "Bilancia lezioni individuali e collettive (più economiche)?",
+            "Rispetta la vocazione popolare del progetto?",
+          ],
+        },
+        {
+          id: "palinsesto",
+          titolo: "Tappa 2 — Concerti e residenze",
+          obiettivo: "Progetta la vita serale dello spazio senza trasformarlo in un locale.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "palinsesto",
+              titolo: "La sera",
+              tipo: "testo_lungo",
+              prompt: "Che vita ha lo spazio la sera (concerti, residenze artistiche, saggi)? Come resta un luogo di musica e non un bar?",
+              hint: "Concerti e residenze valorizzano la scuola; l'aperitivo no. Trova il confine.",
+              minCaratteri: 300,
+            },
+          ],
+          reazioneCliente:
+            "Ciro alza un paletto deciso: «Attento: non dev'essere 'nu locale co' l'aperitivo travestito da scuola. La musica sta al centro, non le birre». Apre di fatto la tappa sulle tariffe.",
+          revisioneFocus: [
+            "La programmazione serale valorizza la musica, non l'intrattenimento?",
+            "Rispetta il vincolo \"non un locale serale mascherato\"?",
+            "Concerti e residenze rafforzano la scuola?",
+            "È sostenibile senza snaturare il progetto?",
+          ],
+        },
+        {
+          id: "tariffe",
+          titolo: "Tappa 3 — Accessibili senza rimetterci",
+          obiettivo: "Tieni le lezioni alla portata dei ragazzi del quartiere senza andare in perdita.",
+          giorniConsigliati: 4,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "sostenibilita",
+              titolo: "Il conto che regge",
+              tipo: "testo_lungo",
+              prompt:
+                "Come tieni le tariffe basse per chi non può permettersi molto, senza chiudere? (borse, corsi collettivi, entrate da concerti, bandi)",
+              hint: "Chi può paga pieno, per chi non può ci sono gratuità coperte da bandi/concerti: un mix.",
+              minCaratteri: 300,
+            },
+          ],
+          reazioneCliente:
+            "Ciro fa la domanda pratica: «E questo chi lo paga? Io ho 25.000 euro miei, non i milioni. I conti devono torná». Apre di fatto la tappa del pitch.",
+          revisioneFocus: [
+            "Le lezioni restano accessibili a chi ha meno?",
+            "Il modello economico regge davvero (non solo buone intenzioni)?",
+            "Usa un mix (chi paga pieno, gratuità coperte, concerti)?",
+            "Rispetta il budget proprio di 25.000€?",
+          ],
+        },
+        {
+          id: "pitch",
+          titolo: "Tappa 4 — Il pitch a Ciro",
+          obiettivo: "Convincilo che l'offerta è ricca, popolare e sostenibile. Ultimo passo.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 4,
+          fiduciaMax: 25,
+          ultima: true,
+          sezioni: [
+            {
+              id: "sintesi",
+              titolo: "L'offerta, in breve",
+              tipo: "testo_lungo",
+              prompt: "Corsi, vita serale e tariffe accessibili: racconta a Ciro l'offerta e perché sta in piedi.",
+              hint: "Ciro è idealista ma non ingenuo: musica al centro, accessibile, conti che tornano.",
+              minCaratteri: 400,
+            },
+          ],
+          reazioneCliente:
+            "Ciro valuta se l'offerta è fedele allo spirito del progetto e regge: se sì, ci crede; se no, dice cosa non lo convince. Chiusura del percorso.",
+          revisioneFocus: [
+            "La sintesi tiene insieme corsi, sera e tariffe?",
+            "Resta popolare e centrata sulla musica?",
+            "I conti reggono?",
+            "È coerente con le tappe precedenti?",
+          ],
+        },
+      ],
+    },
+
+    // ══════════════════════════════════════════════════════ SPAZIO (Progettista dello spazio)
+    spazio: {
+      fasi: [
+        {
+          id: "divisione",
+          titolo: "Tappa 1 — Dividere i 120 mq",
+          obiettivo: "Organizza l'ex deposito di 120 mq tra aule, sala prove e spazio concerti.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "divisione",
+              titolo: "La divisione dello spazio",
+              tipo: "testo_lungo",
+              prompt: "Come dividi i 120 mq? Elenca le aree e i metri quadri (aule, sala prove, spazio concerti, ingresso).",
+              hint: "Serve flessibilità: la sala grande di giorno è lezione, la sera concerto.",
+              minCaratteri: 300,
+            },
+            {
+              id: "schizzo",
+              titolo: "Uno schizzo (facoltativo)",
+              tipo: "immagine",
+              opzionale: true,
+              prompt: "Se vuoi, allega la foto di uno schizzo della pianta.",
+            },
+          ],
+          reazioneCliente:
+            "Ciro conosce il posto: «È 'n ex deposito, 120 metri. Ci devo fa' lezione di giorno e concerti la sera. Come li faccio stare tutti?». Apre di fatto la tappa sull'insonorizzazione.",
+          revisioneFocus: [
+            "Lo spazio è diviso in modo sensato tra lezione, prove e concerti?",
+            "C'è flessibilità (stessa sala per usi diversi)?",
+            "I metri quadri sono realistici?",
+            "Tiene conto di ingresso e servizi?",
+          ],
+        },
+        {
+          id: "acustica",
+          titolo: "Tappa 2 — L'insonorizzazione",
+          obiettivo: "Risolvi l'acustica con budget minimo, in un edificio con vicini.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "acustica",
+              titolo: "Suonare senza far guerra ai vicini",
+              tipo: "testo_lungo",
+              prompt: "Come insonorizzi a costi bassi? Cosa tratti per primo e come eviti problemi coi vicini?",
+              hint: "Pannelli fonoassorbenti economici, materiali di recupero, orari, priorità alla sala più rumorosa.",
+              minCaratteri: 300,
+            },
+          ],
+          reazioneCliente:
+            "Ciro teme il problema più concreto di tutti: «Se no i vicini ce fanno chiude' prima ancora d'aprì. Al rione la musica piace, ma alle undici di sera no». Apre di fatto la tappa sull'identità.",
+          revisioneFocus: [
+            "L'insonorizzazione è realistica con budget minimo?",
+            "Dà priorità alla sala/attività più rumorosa?",
+            "Previene i conflitti coi vicini (materiali, orari)?",
+            "È fattibile in un ex deposito in condominio?",
+          ],
+        },
+        {
+          id: "identita",
+          titolo: "Tappa 3 — L'identità dello spazio",
+          obiettivo: "Dai allo spazio un'identità che lo faccia sentire del rione.",
+          giorniConsigliati: 4,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "identita",
+              titolo: "Un posto della Sanità",
+              tipo: "testo_lungo",
+              prompt: "Che identità visiva e che atmosfera dai allo spazio perché il quartiere lo senta suo e non un corpo estraneo?",
+              hint: "Materiali, colori, opere di artisti del rione, uno spazio aperto: che parli la lingua della Sanità.",
+              minCaratteri: 250,
+            },
+          ],
+          reazioneCliente:
+            "Ciro ci tiene tantissimo: «Dev'essere 'nu posto della Sanità, non 'na cosa carina buttata qua che potrebbe stá pure a Milano». Apre di fatto la tappa del pitch.",
+          revisioneFocus: [
+            "L'identità è radicata nel quartiere, non generica?",
+            "Coinvolge elementi/artisti del rione?",
+            "Trasmette apertura, non esclusività?",
+            "È realizzabile con budget contenuto?",
+          ],
+        },
+        {
+          id: "pitch",
+          titolo: "Tappa 4 — Il pitch a Ciro",
+          obiettivo: "Convincilo che lo spazio funziona, è a norma di vicini ed è del quartiere. Ultimo passo.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 4,
+          fiduciaMax: 25,
+          ultima: true,
+          sezioni: [
+            {
+              id: "sintesi",
+              titolo: "Lo spazio, in breve",
+              tipo: "testo_lungo",
+              prompt: "Divisione, acustica e identità: spiega a Ciro come lo spazio serve la scuola e appartiene alla Sanità.",
+              hint: "Concreto sui costi e sui vicini, ma con l'anima del quartiere.",
+              minCaratteri: 400,
+            },
+          ],
+          reazioneCliente:
+            "Ciro valuta se lo spazio è suo e del rione, e se non gli fa chiudere per i vicini: se sì, ci crede; se no, dice cosa non lo convince. Chiusura del percorso.",
+          revisioneFocus: [
+            "La sintesi tiene insieme divisione, acustica e identità?",
+            "Risolve il problema dei vicini?",
+            "Lo spazio è del quartiere?",
+            "È coerente con le tappe precedenti?",
+          ],
+        },
+      ],
+    },
+
+    // ══════════════════════════════════════════════════════ DIDATTICA (Responsabile didattico)
+    didattica: {
+      fasi: [
+        {
+          id: "metodo",
+          titolo: "Tappa 1 — Il metodo e le fasce",
+          obiettivo: "Definisci come si insegna, per fasce d'età e livelli.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "metodo",
+              titolo: "Come si insegna",
+              tipo: "testo_lungo",
+              prompt: "Che metodo usi per le diverse fasce (bambini, ragazzi, adulti) e per chi non ha mai suonato?",
+              hint: "Laboratori collettivi per iniziare, poi individuale; imparare suonando insieme, non solo solfeggio.",
+              minCaratteri: 300,
+            },
+          ],
+          reazioneCliente:
+            "Ciro pensa ai principianti veri: «E chi non ha mai toccato 'nu strumento in vita sua? Non voglio che se sente 'nu pesce fuor d'acqua e mo' lla'». Apre di fatto la tappa sull'inclusione.",
+          revisioneFocus: [
+            "Il metodo è adatto a diverse fasce d'età?",
+            "Accoglie chi parte da zero senza scoraggiarlo?",
+            "Bilancia collettivo e individuale?",
+            "È coerente con una scuola popolare, non da conservatorio elitario?",
+          ],
+        },
+        {
+          id: "inclusione",
+          titolo: "Tappa 2 — I ragazzi del quartiere",
+          obiettivo: "Fai entrare chi non ha strumento né soldi.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "inclusione",
+              titolo: "Nessuno resta fuori",
+              tipo: "testo_lungo",
+              prompt: "Come coinvolgi chi non ha mai suonato e non può comprarsi uno strumento?",
+              hint: "Strumenti in comodato/donati, borse, laboratori gratuiti, prestito strumenti della scuola.",
+              minCaratteri: 300,
+            },
+          ],
+          reazioneCliente:
+            "Ciro va dritto al senso del progetto: «I ragazzini de qua 'o strumento manco ce l'hanno. Se devono comprà 'a chitarra, non vengono proprio». Apre di fatto la tappa sui percorsi.",
+          revisioneFocus: [
+            "Risolve chi non può comprarsi lo strumento (comodato, donazioni)?",
+            "Abbatte le barriere economiche (borse, gratuità)?",
+            "È concreto, non solo un'intenzione?",
+            "Coglie il cuore popolare del progetto?",
+          ],
+        },
+        {
+          id: "percorsi",
+          titolo: "Tappa 3 — Percorsi e crescita",
+          obiettivo: "Mostra dove porta il percorso: dai primi passi ai saggi ed eventi.",
+          giorniConsigliati: 4,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "percorsi",
+              titolo: "Dove si arriva",
+              tipo: "tabella",
+              prompt: "Delinea i percorsi: dal principiante ai livelli successivi, con tappe visibili (saggi, band, concerti interni).",
+              hint: "I ragazzi hanno bisogno di traguardi: un saggio, una band, suonare a un concerto della scuola.",
+              colonne: ["Livello", "Cosa impari", "Traguardo"],
+              minRighe: 3,
+            },
+          ],
+          reazioneCliente:
+            "Ciro vuole che i ragazzi vedano un futuro: «E poi 'sti ragazzi dove arrivano? Devono senti' che vanno da qualche parte, se no mollano». Apre di fatto la tappa del pitch.",
+          revisioneFocus: [
+            "C'è un percorso con traguardi chiari e motivanti?",
+            "Prevede momenti di esibizione (saggi, band, concerti)?",
+            "Dà ai ragazzi un senso di crescita?",
+            "È realistico da sostenere per la scuola?",
+          ],
+        },
+        {
+          id: "pitch",
+          titolo: "Tappa 4 — Il pitch a Ciro",
+          obiettivo: "Convincilo che il metodo include tutti e fa crescere davvero. Ultimo passo.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 4,
+          fiduciaMax: 25,
+          ultima: true,
+          sezioni: [
+            {
+              id: "sintesi",
+              titolo: "La didattica, in breve",
+              tipo: "testo_lungo",
+              prompt: "Metodo, inclusione e percorsi: spiega a Ciro come la scuola accoglie tutti e li fa crescere.",
+              hint: "Ciro sogna una scuola che cambia la vita ai ragazzi: mostragli che è possibile e concreto.",
+              minCaratteri: 400,
+            },
+          ],
+          reazioneCliente:
+            "Ciro valuta se la didattica è davvero per tutti e porta i ragazzi da qualche parte: se sì, ci crede; se no, dice cosa non lo convince. Chiusura del percorso.",
+          revisioneFocus: [
+            "La sintesi tiene insieme metodo, inclusione e percorsi?",
+            "È davvero accessibile a chi parte da zero?",
+            "Dà traguardi e crescita?",
+            "È coerente con le tappe precedenti?",
+          ],
+        },
+      ],
+    },
+
+    // ══════════════════════════════════════════════════════ BANDI (Bid manager)
+    bandi: {
+      fasi: [
+        {
+          id: "forma",
+          titolo: "Tappa 1 — La forma giuridica",
+          obiettivo: "Scegli la forma giuridica giusta per la scuola.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "forma",
+              titolo: "Quale forma",
+              tipo: "scelta",
+              prompt: "Cosa consigli a Ciro, e perché in una riga?",
+              hint: "Ciro pensava a un'associazione e non vuole soci che decidano al posto suo. Valuta APS vs impresa culturale.",
+              opzioni: ["APS — Associazione di Promozione Sociale", "Impresa sociale / culturale", "Associazione culturale semplice"],
+            },
+            {
+              id: "motivazione",
+              titolo: "Il perché",
+              tipo: "testo_lungo",
+              prompt: "Spiega pro e contro della scelta: accesso ai bandi, governance (chi decide), obblighi.",
+              hint: "Ciro non vuole soci che comandano: attento a chi ha potere decisionale nella forma scelta.",
+              minCaratteri: 250,
+            },
+          ],
+          reazioneCliente:
+            "Ciro ha un dubbio e un paletto: «Io pensavo 'n'associazione, ma tu che dici? Basta che non me trovo soci che decidono al posto mio». Apre di fatto la tappa sui bandi.",
+          revisioneFocus: [
+            "La forma è motivata (bandi, governance, obblighi)?",
+            "Rispetta il no a soci che decidono al posto di Ciro?",
+            "Dà accesso ai bandi culturali?",
+            "È spiegata in modo comprensibile?",
+          ],
+        },
+        {
+          id: "bandi",
+          titolo: "Tappa 2 — I bandi",
+          obiettivo: "Trova i bandi reali che coprono ciò che i 25.000€ non bastano a pagare.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "bandi",
+              titolo: "I 3 bandi",
+              tipo: "tabella",
+              prompt: "Individua almeno 3 bandi reali con importo, scadenza e requisiti.",
+              hint: "Per Chi Crea (MiC-SIAE): linea scuole fino a 25.000€, formazione giovani fino a 30.000€. Più bandi regionali e Bonus Musica per le famiglie.",
+              colonne: ["Bando", "Importo", "Scadenza", "Requisiti"],
+              minRighe: 3,
+            },
+          ],
+          reazioneCliente:
+            "Ciro si aggrappa a questo: «Il resto dei soldi deve venì dai bandi, se no 'o progetto non se fa. Ma so' veri 'sti bandi? E le scadenze quando so'?». Apre di fatto la tappa su SIAE e obblighi.",
+          revisioneFocus: [
+            "I bandi sono reali e adatti a una scuola di musica popolare?",
+            "Ci sono importo, scadenza e requisiti per ognuno?",
+            "Coprono ciò che i 25.000€ propri non bastano a pagare?",
+            "Sono accessibili a una piccola realtà del rione?",
+          ],
+        },
+        {
+          id: "siae",
+          titolo: "Tappa 3 — SIAE e obblighi dei concerti",
+          obiettivo: "Chiarisci cosa serve (e cosa costa) per fare concerti in regola.",
+          giorniConsigliati: 4,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "siae",
+              titolo: "Concerti in regola",
+              tipo: "testo_lungo",
+              prompt: "Cosa serve per fare i concerti in regola (SIAE, agibilità, eventuale pubblica sicurezza) e quanto incide sul budget?",
+              hint: "Tariffe SIAE da ~50€ per eventi medi, con riduzioni per enti no profit. Metti in conto anche l'agibilità dello spazio.",
+              minCaratteri: 300,
+            },
+          ],
+          reazioneCliente:
+            "Ciro pensa ai costi ricorrenti: «E 'a SIAE ogni concerto quanto me costa? Perché se ogni volta è 'nu salasso, i concerti non li faccio proprio». Apre di fatto la tappa del pitch.",
+          revisioneFocus: [
+            "Spiega correttamente gli obblighi per i concerti (SIAE, agibilità)?",
+            "Dà un'idea realistica dei costi ricorrenti?",
+            "Segnala le riduzioni per il no profit?",
+            "È gestibile per una piccola scuola?",
+          ],
+        },
+        {
+          id: "pitch",
+          titolo: "Tappa 4 — Il pitch a Ciro",
+          obiettivo: "Convincilo che la parte legale e i fondi tengono in piedi il progetto. Ultimo passo.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 4,
+          fiduciaMax: 25,
+          ultima: true,
+          sezioni: [
+            {
+              id: "sintesi",
+              titolo: "Forma, bandi e regole, in chiaro",
+              tipo: "testo_lungo",
+              prompt: "Forma giuridica, i 3 bandi e gli obblighi dei concerti: spiega a Ciro come i soldi e le regole reggono il progetto.",
+              hint: "Ciro tiene al controllo e ai soldi dei bandi: rassicuralo su entrambi, in parole chiare.",
+              minCaratteri: 400,
+            },
+          ],
+          reazioneCliente:
+            "Ciro valuta se i fondi e le regole reggono senza togliergli il controllo: se sì, ci crede; se no, dice cosa non lo convince. Chiusura del percorso.",
+          revisioneFocus: [
+            "La sintesi tiene insieme forma, bandi e obblighi?",
+            "Rispetta il no a soci che comandano?",
+            "I fondi coprono ciò che serve oltre i 25.000€?",
+            "È coerente con le tappe precedenti?",
+          ],
+        },
+      ],
+    },
+
+    // ══════════════════════════════════════════════════════ COMUNICAZIONE (Responsabile comunità)
+    comunicazione: {
+      fasi: [
+        {
+          id: "radicarsi",
+          titolo: "Tappa 1 — Radicarsi nel rione",
+          obiettivo: "Fai in modo che la scuola sia sentita come parte del quartiere, non come un corpo estraneo.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "radicarsi",
+              titolo: "Del quartiere, per il quartiere",
+              tipo: "testo_lungo",
+              prompt: "Come fai in modo che la Sanità senta la scuola come sua fin dal primo giorno?",
+              hint: "Coinvolgere il rione dall'inizio, non calarla dall'alto: giornate aperte, musicisti locali, ascolto.",
+              minCaratteri: 300,
+            },
+          ],
+          reazioneCliente:
+            "Ciro parla per esperienza: «Ho visto arrivà posti \"culturali\" che al quartiere non hanno dato niente, solo la foto bella. Il mio non dev'essere così». Apre di fatto la tappa sugli alleati.",
+          revisioneFocus: [
+            "La scuola è radicata nel rione, non calata dall'alto?",
+            "Coinvolge la comunità fin dall'inizio?",
+            "Evita l'effetto \"corpo estraneo\"?",
+            "È credibile per la Sanità?",
+          ],
+        },
+        {
+          id: "alleati",
+          titolo: "Tappa 2 — Gli alleati del quartiere",
+          obiettivo: "Individua chi, nel rione, può aiutare la scuola a nascere e crescere.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "alleati",
+              titolo: "Chi ti dà una mano",
+              tipo: "tabella",
+              prompt: "Chi sono gli alleati alla Sanità e cosa può fare ognuno?",
+              hint: "Parrocchia (la Sanità ha una fortissima rete parrocchiale), scuole, associazioni del rione, musicisti locali, botteghe.",
+              colonne: ["Alleato", "Cosa può fare"],
+              minRighe: 3,
+            },
+          ],
+          reazioneCliente:
+            "Ciro pensa a chi c'è già: «Alla Sanità la parrocchia e le associazioni conoscono tutti. Ma come li porto dalla mia parte senza che se piglino 'o progetto?». Apre di fatto la tappa sul far conoscere.",
+          revisioneFocus: [
+            "Gli alleati sono reali e radicati alla Sanità?",
+            "Ogni alleato ha un ruolo concreto?",
+            "Il rapporto è di collaborazione, non di dipendenza?",
+            "Sfrutta la rete esistente del rione?",
+          ],
+        },
+        {
+          id: "far_conoscere",
+          titolo: "Tappa 3 — Far conoscere senza gentrificare",
+          obiettivo: "Porta allievi e pubblico senza trasformare lo spazio in una moda per gente di fuori.",
+          giorniConsigliati: 4,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "piano",
+              titolo: "Il piano di comunicazione",
+              tipo: "testo_lungo",
+              prompt:
+                "Come fai conoscere la scuola ad allievi e pubblico, tenendola un posto per chi ci abita e non per chi viene solo a farsi la foto?",
+              hint: "Passaparola nel rione, social senza estetizzare la povertà, eventi per il quartiere prima che per l'esterno.",
+              minCaratteri: 300,
+            },
+          ],
+          reazioneCliente:
+            "Ciro mette il suo confine più sentito: «Non voglio che diventa 'na cosa pe' quelli che vengono a farse 'a foto alla Sanità e po' se ne vanno. È 'nu posto pe' chi ci vive». Apre di fatto la tappa del pitch.",
+          revisioneFocus: [
+            "Il piano porta allievi e pubblico dal quartiere prima che da fuori?",
+            "Evita la gentrificazione e l'estetizzazione?",
+            "Usa i canali giusti (passaparola, rete locale)?",
+            "Resta fedele allo spirito \"per chi ci vive\"?",
+          ],
+        },
+        {
+          id: "pitch",
+          titolo: "Tappa 4 — Il pitch a Ciro",
+          obiettivo: "Convincilo che la scuola sarà conosciuta e amata dal rione, senza tradirlo. Ultimo passo.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 4,
+          fiduciaMax: 25,
+          ultima: true,
+          sezioni: [
+            {
+              id: "sintesi",
+              titolo: "La comunicazione, in breve",
+              tipo: "testo_lungo",
+              prompt: "Radicamento, alleati e piano: spiega a Ciro come la scuola diventa un punto di riferimento del rione senza snaturarsi.",
+              hint: "Ciro teme la gentrificazione più di tutto: mostragli che la scuola resta della Sanità.",
+              minCaratteri: 400,
+            },
+          ],
+          reazioneCliente:
+            "Ciro valuta se la scuola sarà del rione e non una moda passeggera: se sì, ci crede; se no, dice cosa lo lascia perplesso. Chiusura del percorso.",
+          revisioneFocus: [
+            "La sintesi tiene insieme radicamento, alleati e piano?",
+            "Evita la gentrificazione?",
+            "Rende la scuola un riferimento per il quartiere?",
+            "È coerente con le tappe precedenti?",
+          ],
+        },
+      ],
+    },
+  },
 };
 
 // Contesto sintetico del cliente per il tutor AI (aiuto/revisione per
@@ -2718,5 +3322,11 @@ export const WORKSHOP_TUTOR_CONTESTO: Record<string, { cliente: string; vincoli:
       "Dott.ssa Anna Ferretti, 58 anni, medico di medicina generale in un borgo dell'Appennino, 3.200 assistiti su 4 comuni. Parla con calma e precisione, da medico non da manager; stanca ma non rassegnata.",
     vincoli:
       "Niente app complicate: i pazienti hanno 75-80 anni e usano il telefonino a malapena. La relazione umana resta centrale, mai \"solo video\" al posto del rapporto medico-paziente. Il servizio deve restare gratuito per i cittadini. Il presidio deve reggere anche dopo la fine dei fondi PNRR, non solo nella fase iniziale finanziata.",
+  },
+  "scuola-musica-napoli": {
+    cliente:
+      "Ciro Amoroso, 41 anni, musicista e insegnante di chitarra, cresciuto e residente al rione Sanità di Napoli. Parla con calore, a volte si infervora, usa qualche espressione napoletana senza esagerare. Idealista ma non ingenuo.",
+    vincoli:
+      "Budget proprio di 25.000€: il resto deve arrivare da bandi, o il progetto non si fa. Le lezioni devono restare accessibili ai ragazzi del quartiere, non solo a chi può permettersele. Lo spazio non deve diventare un locale serale mascherato da scuola: la musica resta al centro, non l'aperitivo. Nessun socio che decida al posto suo.",
   },
 };
