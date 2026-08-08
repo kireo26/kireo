@@ -1,8 +1,14 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 import type { SezioneElaborato } from "@/lib/workshop/elaborato-config";
 import { serializzaValoreSezione, type ValoreChecklist, type ValoreScelta, type ValoreSezione, type ValoreTabella } from "@/lib/workshop/elaboratoValore";
 import TutorPanel from "./TutorPanel";
+
+const BUCKET_IMMAGINI = "workshop-consegne";
+const MAX_IMMAGINE_MB = 5;
+const TIPI_IMMAGINE_CONSENTITI = ["image/png", "image/jpeg"];
 
 const INPUT_CLASSI = "w-full rounded-lg border border-white/10 bg-kireo-dark px-3 py-2 text-sm text-kireo-light placeholder:text-kireo-muted focus:outline-none focus:border-kireo-green";
 
@@ -53,6 +59,9 @@ export default function SezioneEditor({
             onChange={onChange}
             disabled={disabled}
           />
+        )}
+        {sezione.tipo === "immagine" && (
+          <ImmagineInput iscrizioneId={iscrizioneId} faseId={faseId} sezioneId={sezione.id} valore={typeof valore === "string" ? valore : ""} onChange={onChange} disabled={disabled} />
         )}
       </div>
 
@@ -266,6 +275,102 @@ function SceltaInput({
         placeholder="Perché hai scelto questa opzione?"
         className={`${INPUT_CLASSI} resize-y disabled:opacity-60`}
       />
+    </div>
+  );
+}
+
+// Carica direttamente su Storage (bucket privato workshop-consegne, già
+// esistente dal v1 — stessa convenzione di percorso {student_id}/{iscrizione_id}/…,
+// nessuna nuova migration/policy) e salva il solo percorso come valore
+// della sezione. Il bucket è privato: per la sola visualizzazione genera
+// un signed URL client-side (già permesso dalla policy select esistente,
+// che verifica solo la cartella = auth.uid()), non un getPublicUrl.
+function ImmagineInput({
+  iscrizioneId,
+  faseId,
+  sezioneId,
+  valore,
+  onChange,
+  disabled,
+}: {
+  iscrizioneId: string;
+  faseId: string;
+  sezioneId: string;
+  valore: string;
+  onChange: (v: string) => void;
+  disabled?: boolean;
+}) {
+  const [caricamento, setCaricamento] = useState(false);
+  const [errore, setErrore] = useState<string | null>(null);
+  const [anteprimaUrl, setAnteprimaUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!valore) return;
+    let annullato = false;
+    const supabase = createClient();
+    supabase.storage
+      .from(BUCKET_IMMAGINI)
+      .createSignedUrl(valore, 3600)
+      .then(({ data }) => {
+        if (!annullato) setAnteprimaUrl(data?.signedUrl ?? null);
+      });
+    return () => {
+      annullato = true;
+    };
+  }, [valore]);
+
+  async function handleFile(file: File) {
+    setErrore(null);
+    if (!TIPI_IMMAGINE_CONSENTITI.includes(file.type)) {
+      setErrore("Carica un'immagine (PNG o JPG).");
+      return;
+    }
+    if (file.size > MAX_IMMAGINE_MB * 1024 * 1024) {
+      setErrore(`L'immagine deve essere sotto i ${MAX_IMMAGINE_MB} MB.`);
+      return;
+    }
+    setCaricamento(true);
+    try {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        setErrore("Sessione scaduta. Ricarica la pagina.");
+        return;
+      }
+      const estensione = file.name.split(".").pop() ?? "jpg";
+      const percorso = `${user.id}/${iscrizioneId}/immagine_${faseId}_${sezioneId}_${Date.now()}.${estensione}`;
+      const { error: erroreUpload } = await supabase.storage.from(BUCKET_IMMAGINI).upload(percorso, file, { contentType: file.type });
+      if (erroreUpload) throw erroreUpload;
+      onChange(percorso);
+    } catch {
+      setErrore("Non è stato possibile caricare l'immagine. Riprova.");
+    } finally {
+      setCaricamento(false);
+    }
+  }
+
+  return (
+    <div>
+      {valore && anteprimaUrl && (
+        // eslint-disable-next-line @next/next/no-img-element -- immagine caricata dallo studente su Storage privato, non un asset del sito da ottimizzare
+        <img src={anteprimaUrl} alt="Anteprima caricata" className="mb-3 max-h-64 rounded-lg border border-white/10 object-contain" />
+      )}
+      <input
+        type="file"
+        accept="image/png,image/jpeg"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) void handleFile(file);
+          e.target.value = "";
+        }}
+        disabled={disabled || caricamento}
+        className="text-sm text-kireo-light file:mr-3 file:rounded-full file:border-0 file:bg-kireo-green file:px-4 file:py-2 file:text-sm file:font-semibold file:text-kireo-light disabled:opacity-60"
+      />
+      {caricamento && <p className="mt-1 text-xs text-kireo-muted">Caricamento…</p>}
+      {errore && <p className="mt-1 text-xs text-red-400">{errore}</p>}
+      {!valore && !caricamento && <p className="mt-1 text-xs text-kireo-muted">Facoltativo: nessuna immagine caricata.</p>}
     </div>
   );
 }

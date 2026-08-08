@@ -10,9 +10,18 @@ export function valoreVuoto(sezione: SezioneElaborato): ValoreSezione {
   switch (sezione.tipo) {
     case "testo":
     case "testo_lungo":
+    case "immagine":
+      // 'immagine': stringa vuota = nessuna immagine caricata, altrimenti
+      // percorso Storage (bucket workshop-consegne) — stesso tipo di
+      // 'testo', mai un url pubblico (il bucket è privato).
       return "";
     case "tabella":
-      return [];
+      // righeIniziali (facoltativo): righe pre-compilate come punto di
+      // partenza (es. voci di costo già elencate), altrimenti tabella
+      // vuota — restano righe normali, modificabili/rimuovibili.
+      return sezione.righeIniziali
+        ? sezione.righeIniziali.map((riga) => Object.fromEntries((sezione.colonne ?? []).map((colonna, i) => [colonna, riga[i] ?? ""])))
+        : [];
     case "checklist":
       return { voci: {}, nota: "" };
     case "scelta":
@@ -29,6 +38,8 @@ export function serializzaValoreSezione(sezione: SezioneElaborato, valore: Valor
     case "testo":
     case "testo_lungo":
       return typeof valore === "string" ? valore : "";
+    case "immagine":
+      return typeof valore === "string" && valore ? "[immagine allegata]" : "(nessuna immagine)";
     case "tabella": {
       const righe = Array.isArray(valore) ? (valore as ValoreTabella) : [];
       if (righe.length === 0) return "";
@@ -54,6 +65,9 @@ export function serializzaValoreSezione(sezione: SezioneElaborato, valore: Valor
 // lato server (route consegna-tappa, contro il contenuto autorevole letto
 // dal DB, mai quello del client).
 export function sezioneRaggiungeMinimo(sezione: SezioneElaborato, valore: ValoreSezione | undefined): boolean {
+  // Una sezione facoltativa non blocca mai la consegna, a prescindere dal
+  // tipo — oggi usato solo per lo schizzo immagine di spazio/la_pianta.
+  if (sezione.opzionale) return true;
   if (valore === undefined) return false;
   switch (sezione.tipo) {
     case "testo":
@@ -61,6 +75,8 @@ export function sezioneRaggiungeMinimo(sezione: SezioneElaborato, valore: Valore
       const testo = typeof valore === "string" ? valore.trim() : "";
       return sezione.minCaratteri ? testo.length >= sezione.minCaratteri : testo.length > 0;
     }
+    case "immagine":
+      return typeof valore === "string" && valore.length > 0;
     case "tabella": {
       const righe = Array.isArray(valore) ? (valore as ValoreTabella) : [];
       return sezione.minRighe ? righe.length >= sezione.minRighe : righe.length > 0;
