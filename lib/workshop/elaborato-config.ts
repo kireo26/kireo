@@ -2083,6 +2083,613 @@ export const WORKSHOP_ELABORATO: Record<string, Record<string, Elaborato>> = {
       ],
     },
   },
+
+  // Ricevuti da Mario in elaborato-presidio-v2.ts (ELABORATO_PRESIDIO), stesso
+  // schema degli altri workshop v2. Slug ruoli confermati contro
+  // WORKSHOP_KIT["presidio-appennino"] (config.ts, già verificata contro il
+  // DB reale in una sessione precedente — nessuna migration per questo
+  // workshop vive nel repo, seed applicato a mano da Mario). Fiducia
+  // 25×4=100 per ruolo.
+  "presidio-appennino": {
+    // ══════════════════════════════════════════════════════ SALUTE (Coordinatore clinico)
+    salute: {
+      fasi: [
+        {
+          id: "servizi",
+          titolo: "Tappa 1 — I servizi del presidio",
+          obiettivo: "Definisci quali prestazioni offre il presidio di comunità.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "servizi",
+              titolo: "Le prestazioni",
+              tipo: "tabella",
+              prompt: "Quali servizi eroga il presidio? Per ognuno, a chi serve.",
+              hint: "Guarda il DM 77/2022 (Case della Comunità): prelievi, medicazioni, controlli cronici, prevenzione, telemedicina.",
+              colonne: ["Servizio", "A chi serve", "Ogni quanto"],
+              minRighe: 4,
+            },
+            {
+              id: "priorita",
+              titolo: "Da dove parti",
+              tipo: "testo",
+              prompt: "Con quali 2-3 servizi apri subito, e perché proprio quelli?",
+              hint: "Meglio pochi servizi che funzionano bene per gli anziani cronici, che tutto insieme.",
+              minCaratteri: 200,
+            },
+          ],
+          reazioneCliente:
+            "Anna ragiona da medico, con un caso vero: «Ho una signora di 82 anni con lo scompenso cardiaco. Per lei, in concreto, come funzionerebbe?». Apre di fatto la tappa sulle figure.",
+          revisioneFocus: [
+            "I servizi sono coerenti con un presidio di comunità (DM 77)?",
+            "Sono adatti a una popolazione anziana con cronicità?",
+            "Le priorità di apertura sono motivate?",
+            "Reggono a un caso reale come la paziente con scompenso?",
+          ],
+        },
+        {
+          id: "figure",
+          titolo: "Tappa 2 — Le figure necessarie",
+          obiettivo: "Stabilisci chi lavora nel presidio e con quale ruolo.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "figure",
+              titolo: "Chi ci lavora",
+              tipo: "tabella",
+              prompt: "Quali figure servono, con quale ruolo e quante ore?",
+              hint: "Medico, infermiere di comunità, personale amministrativo, eventuale specialista in telemedicina.",
+              colonne: ["Figura", "Ruolo", "Presenza"],
+              minRighe: 3,
+            },
+            {
+              id: "infermiere",
+              titolo: "L'infermiere di comunità",
+              tipo: "testo",
+              prompt: "Che ruolo dai all'infermiere di comunità, figura chiave nelle aree interne?",
+              hint: "Anna ci pensava ma non sa come inquadrarlo: visite a domicilio, monitoraggio cronici, ponte col medico.",
+              minCaratteri: 200,
+            },
+          ],
+          reazioneCliente:
+            "Anna conosce la realtà del posto: «Belle figure, ma chi le trovo quassù? I giovani se ne vanno, e chi resta ha già mille cose da fare». Apre di fatto la tappa sui percorsi di cura.",
+          revisioneFocus: [
+            "Le figure sono realistiche per un piccolo borgo montano?",
+            "Il ruolo dell'infermiere di comunità è ben definito?",
+            "La copertura oraria è sostenibile?",
+            "Tiene conto della difficoltà a reperire personale in area interna?",
+          ],
+        },
+        {
+          id: "percorsi",
+          titolo: "Tappa 3 — I percorsi di cura",
+          obiettivo: "Definisci come il presidio segue i malati cronici e fa prevenzione, senza sostituire il rapporto col medico.",
+          giorniConsigliati: 4,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "percorsi",
+              titolo: "Seguire i cronici",
+              tipo: "testo_lungo",
+              prompt:
+                "Come segui nel tempo un paziente cronico (es. diabete, scompenso)? Come si integra la tecnologia senza togliere la relazione col medico?",
+              hint: "La telemedicina affianca, non sostituisce. Anna: \"niente consulto solo via video\".",
+              minCaratteri: 350,
+            },
+          ],
+          reazioneCliente:
+            "Anna mette il paletto che le sta più a cuore: «Va bene la tecnologia, ma la relazione col medico resta al centro. Io i miei pazienti li guardo in faccia». Apre di fatto la tappa del pitch.",
+          revisioneFocus: [
+            "Il percorso per i cronici è concreto e continuativo?",
+            "La tecnologia affianca senza sostituire la relazione umana?",
+            "C'è attenzione alla prevenzione, non solo alla cura?",
+            "Rispetta il vincolo \"niente consulto solo via video\"?",
+          ],
+        },
+        {
+          id: "pitch",
+          titolo: "Tappa 4 — Il pitch ad Anna",
+          obiettivo: "Presenta servizi, figure e percorsi come un presidio che funziona davvero. Ultimo passo.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 4,
+          fiduciaMax: 25,
+          ultima: true,
+          sezioni: [
+            {
+              id: "sintesi",
+              titolo: "Il presidio, in breve",
+              tipo: "testo_lungo",
+              prompt: "Servizi, figure e percorsi di cura: spiega ad Anna come il presidio migliora la vita dei suoi assistiti.",
+              hint: "Anna parla da medico, non da manager: concretezza, casi reali, relazione umana.",
+              minCaratteri: 400,
+            },
+          ],
+          reazioneCliente:
+            "Anna valuta se il presidio aiuta davvero i suoi pazienti senza snaturare il suo modo di fare il medico: se sì, ci crede; se no, dice cosa la lascia perplessa. Chiusura del percorso.",
+          revisioneFocus: [
+            "La sintesi tiene insieme servizi, figure e percorsi?",
+            "È centrata sui bisogni reali degli anziani?",
+            "Mantiene la relazione umana al centro?",
+            "È coerente con le tappe precedenti?",
+          ],
+        },
+      ],
+    },
+
+    // ══════════════════════════════════════════════════════ DIGITALE (Responsabile telemedicina)
+    digitale: {
+      fasi: [
+        {
+          id: "quali_servizi",
+          titolo: "Tappa 1 — Quali servizi di telemedicina",
+          obiettivo: "Scegli quali servizi di telemedicina attivare per primi, pensati per anziani.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "servizi",
+              titolo: "Televisita, teleconsulto, telemonitoraggio",
+              tipo: "testo_lungo",
+              prompt: "Spiega la differenza tra televisita, teleconsulto e telemonitoraggio, e quali attivi per primi qui.",
+              hint: "Piattaforma Nazionale Telemedicina. Per anziani cronici il telemonitoraggio (pressione, glicemia) è spesso il più utile.",
+              minCaratteri: 300,
+            },
+          ],
+          reazioneCliente:
+            "Anna pone subito il suo limite: «Niente app complicate, mi raccomando. I miei pazienti hanno 75, 80 anni, il telefonino lo usano a malapena». Apre di fatto la tappa sulla connettività.",
+          revisioneFocus: [
+            "Distingue correttamente televisita/teleconsulto/telemonitoraggio?",
+            "La scelta dei servizi è adatta a pazienti molto anziani?",
+            "Parte da ciò che è davvero utile per i cronici?",
+            "Evita soluzioni troppo complesse da usare?",
+          ],
+        },
+        {
+          id: "connettivita",
+          titolo: "Tappa 2 — La connettività in montagna",
+          obiettivo: "Risolvi il problema del segnale, che in area interna non è ovunque.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "connettivita",
+              titolo: "Il segnale dove non c'è",
+              tipo: "testo_lungo",
+              prompt: "Come garantisci che la telemedicina funzioni dove la connessione è debole o assente?",
+              hint: "Connessione al presidio come punto forte, dispositivi che salvano e inviano dopo, alternative (SMS, telefono).",
+              minCaratteri: 300,
+            },
+          ],
+          reazioneCliente:
+            "Anna conosce il territorio: «Quassù il segnale non c'è ovunque. Nelle frazioni alte a volte non prende neanche il telefono. Come la mettiamo?». Apre di fatto la tappa sul supporto.",
+          revisioneFocus: [
+            "Affronta davvero il problema della connettività in area interna?",
+            "Propone soluzioni realistiche (presidio come hub, invio differito)?",
+            "Ha un piano B dove il segnale manca?",
+            "Non dà per scontato che la rete ci sia sempre?",
+          ],
+        },
+        {
+          id: "supporto",
+          titolo: "Tappa 3 — Chi installa, insegna, ripara",
+          obiettivo: "Organizza il supporto: senza, la tecnologia resta inutilizzata.",
+          giorniConsigliati: 4,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "supporto",
+              titolo: "Il supporto quotidiano",
+              tipo: "tabella",
+              prompt: "Per ogni tecnologia: chi la installa, chi insegna a usarla, chi la ripara se si rompe.",
+              hint: "Anna lo chiede sempre. Pensa a infermiere di comunità, familiari, assistenza tecnica, volontari formati.",
+              colonne: ["Tecnologia", "Chi installa/insegna", "Chi ripara"],
+              minRighe: 3,
+            },
+          ],
+          reazioneCliente:
+            "Anna fa le domande di sempre, quelle giuste: «Chi glielo installa? Chi glielo insegna? E chi lo ripara quando si rompe, che qui il tecnico non arriva in giornata?». Apre di fatto la tappa del pitch.",
+          revisioneFocus: [
+            "Risponde a chi installa, chi insegna e chi ripara?",
+            "Il supporto è realistico per un borgo isolato?",
+            "Coinvolge figure vicine ai pazienti (infermiere, familiari)?",
+            "Evita che la tecnologia resti in un cassetto?",
+          ],
+        },
+        {
+          id: "pitch",
+          titolo: "Tappa 4 — Il pitch ad Anna",
+          obiettivo: "Convincila che la telemedicina è usabile davvero dai suoi anziani. Ultimo passo.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 4,
+          fiduciaMax: 25,
+          ultima: true,
+          sezioni: [
+            {
+              id: "sintesi",
+              titolo: "La telemedicina, in concreto",
+              tipo: "testo_lungo",
+              prompt:
+                "Servizi, connettività e supporto: spiega ad Anna perché questa telemedicina funziona anche con pazienti di 80 anni in montagna.",
+              hint: "Semplicità, connessione risolta, supporto umano vicino: sono le sue tre preoccupazioni.",
+              minCaratteri: 400,
+            },
+          ],
+          reazioneCliente:
+            "Anna valuta se i suoi pazienti la useranno davvero: se è convinta, ci sta; se no, dice cosa non la convince. Chiusura del percorso.",
+          revisioneFocus: [
+            "La sintesi tiene insieme servizi, connettività e supporto?",
+            "È credibile per pazienti molto anziani?",
+            "Risolve segnale e assistenza?",
+            "È coerente con le tappe precedenti?",
+          ],
+        },
+      ],
+    },
+
+    // ══════════════════════════════════════════════════════ NORMATIVA (Referente istituzionale)
+    normativa: {
+      fasi: [
+        {
+          id: "fondi",
+          titolo: "Tappa 1 — I fondi accessibili",
+          obiettivo: "Individua i fondi pubblici reali per far partire il presidio.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "fondi",
+              titolo: "I fondi",
+              tipo: "tabella",
+              prompt: "Quali fondi puoi usare? Per ognuno: importo indicativo, a cosa serve, scadenza/condizioni.",
+              hint: "PNRR Missione 6 Componente 1 (Case della Comunità, telemedicina), fondi aree interne (SNAI), fondi regionali.",
+              colonne: ["Fondo", "Per cosa", "Note/scadenza"],
+              minRighe: 2,
+            },
+          ],
+          reazioneCliente:
+            "Anna ha già la preoccupazione di fondo: «Va bene i fondi PNRR, ma quando finiscono nel 2026? Non voglio aprire con i soldi di oggi e chiudere dopodomani». Apre di fatto la tappa sui requisiti.",
+          revisioneFocus: [
+            "I fondi citati sono reali e pertinenti (PNRR M6C1, aree interne)?",
+            "Sono indicati importi e condizioni?",
+            "Sono accessibili a un piccolo presidio di comunità?",
+            "Distingue fondi una tantum da risorse strutturali?",
+          ],
+        },
+        {
+          id: "requisiti",
+          titolo: "Tappa 2 — Requisiti e autorizzazioni",
+          obiettivo: "Metti in fila cosa serve per legge per aprire e operare.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "requisiti",
+              titolo: "Cosa serve per aprire",
+              tipo: "testo_lungo",
+              prompt: "Quali requisiti e autorizzazioni servono (DM 77, autorizzazioni ASL, comodato dell'immobile comunale)?",
+              hint: "Il Comune offre in comodato gratuito un ex ambulatorio da ristrutturare: come lo si formalizza?",
+              minCaratteri: 300,
+            },
+          ],
+          reazioneCliente:
+            "Anna teme la trafila: «Quante carte e permessi servono? Io il medico lo so fare, ma la burocrazia mi mangia il tempo che dovrei dare ai pazienti». Apre di fatto la tappa sulla sostenibilità.",
+          revisioneFocus: [
+            "Cita requisiti reali (DM 77, autorizzazioni ASL)?",
+            "Gestisce correttamente il comodato dell'immobile comunale?",
+            "La sequenza degli adempimenti è chiara?",
+            "È spiegato in modo comprensibile a un medico, non a un giurista?",
+          ],
+        },
+        {
+          id: "sostenibilita",
+          titolo: "Tappa 3 — Reggere dopo il PNRR",
+          obiettivo: "Assicura che il presidio sopravviva quando i fondi straordinari finiscono.",
+          giorniConsigliati: 4,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "dopo_pnrr",
+              titolo: "La sostenibilità nel tempo",
+              tipo: "testo_lungo",
+              prompt: "Come regge il presidio dopo il PNRR? Quali risorse ordinarie o convenzioni lo tengono in piedi?",
+              hint: "Convenzioni con ASL, fondi ordinari del SSN, integrazione coi servizi esistenti: non solo soldi straordinari.",
+              minCaratteri: 350,
+            },
+          ],
+          reazioneCliente:
+            "Anna torna sul suo timore più grande: «Il progetto deve reggere anche quando i fondi finiscono. Non voglio illudere la gente e poi chiudere». Apre di fatto la tappa del pitch.",
+          revisioneFocus: [
+            "C'è un piano di sostenibilità oltre i fondi straordinari?",
+            "Individua risorse ordinarie o convenzioni credibili?",
+            "Affronta davvero il \"dopo PNRR\"?",
+            "Evita di dipendere solo da fondi a termine?",
+          ],
+        },
+        {
+          id: "pitch",
+          titolo: "Tappa 4 — Il pitch ad Anna",
+          obiettivo: "Convincila che il presidio è finanziabile e durevole. Ultimo passo.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 4,
+          fiduciaMax: 25,
+          ultima: true,
+          sezioni: [
+            {
+              id: "sintesi",
+              titolo: "La parte istituzionale, in chiaro",
+              tipo: "testo_lungo",
+              prompt: "Fondi, autorizzazioni e sostenibilità dopo il PNRR: spiega ad Anna che il presidio può nascere e durare.",
+              hint: "Anna vuole rassicurazioni sul lungo periodo, non solo sull'apertura. Parlale chiaro.",
+              minCaratteri: 400,
+            },
+          ],
+          reazioneCliente:
+            "Anna valuta se il presidio reggerà negli anni: se è convinta, ci sta; se no, dice cosa ancora la preoccupa. Chiusura del percorso.",
+          revisioneFocus: [
+            "La sintesi tiene insieme fondi, autorizzazioni e durata?",
+            "Rassicura sul dopo-PNRR?",
+            "È chiara per chi non è del settore legale?",
+            "È coerente con le tappe precedenti?",
+          ],
+        },
+      ],
+    },
+
+    // ══════════════════════════════════════════════════════ COMUNICAZIONE (Community manager)
+    comunicazione: {
+      fasi: [
+        {
+          id: "fiducia",
+          titolo: "Tappa 1 — La fiducia degli anziani",
+          obiettivo: "Costruisci la fiducia verso il presidio e la tecnologia in una popolazione anziana.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "fiducia",
+              titolo: "Farsi accettare",
+              tipo: "testo_lungo",
+              prompt: "Come costruisci fiducia verso il presidio e la telemedicina in persone anziane, spesso diffidenti col nuovo?",
+              hint: "La fiducia passa da chi già conoscono: il medico, l'infermiere, il parroco, i familiari.",
+              minCaratteri: 300,
+            },
+          ],
+          reazioneCliente:
+            "Anna conosce la sua gente: «Qui la gente si fida di me perché mi conosce da trent'anni, mica di un'app o di un manifesto». Apre di fatto la tappa sugli alleati.",
+          revisioneFocus: [
+            "Capisce che la fiducia passa dalle relazioni esistenti?",
+            "Le leve proposte sono adatte agli anziani (non social/manifesti astratti)?",
+            "Valorizza il ruolo del medico e delle figure note?",
+            "È realistico per un piccolo borgo?",
+          ],
+        },
+        {
+          id: "alleati",
+          titolo: "Tappa 2 — Gli alleati sul territorio",
+          obiettivo: "Individua chi, sul territorio, può aiutare a far conoscere e usare il presidio.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "alleati",
+              titolo: "Chi ti aiuta",
+              tipo: "tabella",
+              prompt: "Chi sono gli alleati sul territorio e cosa può fare ognuno?",
+              hint: "Familiari, farmacie, parrocchie, Comune, associazioni di anziani, medici e infermieri.",
+              colonne: ["Alleato", "Cosa può fare"],
+              minRighe: 3,
+            },
+          ],
+          reazioneCliente:
+            "Anna pensa a chi può dare una mano: «La farmacia del paese e il parroco li conoscono tutti. Ma come li coinvolgo senza scaricargli addosso il lavoro?». Apre di fatto la tappa sul piano.",
+          revisioneFocus: [
+            "Gli alleati sono reali e presenti in un borgo montano?",
+            "Ogni alleato ha un ruolo concreto?",
+            "Il coinvolgimento è sostenibile per loro?",
+            "Sfrutta la fiducia che questi soggetti già hanno?",
+          ],
+        },
+        {
+          id: "piano",
+          titolo: "Tappa 3 — Far conoscere e usare il presidio",
+          obiettivo: "Costruisci un piano concreto per portare le persone a usarlo.",
+          giorniConsigliati: 4,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "piano",
+              titolo: "Il piano",
+              tipo: "testo_lungo",
+              prompt: "Cosa fai, nei primi mesi, per far conoscere il presidio e convincere le persone a usarlo?",
+              hint: "Passaparola tramite il medico, giornate aperte, spiegazioni faccia a faccia, coinvolgimento dei familiari.",
+              minCaratteri: 300,
+            },
+          ],
+          reazioneCliente:
+            "Anna è concreta: «Va bene farlo conoscere, ma poi la gente ci deve venire davvero. Come li convinco a fidarsi di una visita col computer?». Apre di fatto la tappa del pitch.",
+          revisioneFocus: [
+            "Il piano è concreto e adatto al territorio?",
+            "Punta sul faccia a faccia e sul passaparola, non sul digitale astratto?",
+            "Coinvolge i familiari e gli alleati?",
+            "Porta davvero le persone a usare il presidio?",
+          ],
+        },
+        {
+          id: "pitch",
+          titolo: "Tappa 4 — Il pitch ad Anna",
+          obiettivo: "Convincila che il quartiere userà davvero il presidio. Ultimo passo.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 4,
+          fiduciaMax: 25,
+          ultima: true,
+          sezioni: [
+            {
+              id: "sintesi",
+              titolo: "La comunicazione, in breve",
+              tipo: "testo_lungo",
+              prompt: "Fiducia, alleati e piano: spiega ad Anna come farai conoscere e usare il presidio dalla gente del posto.",
+              hint: "Anna crede nelle relazioni: mostra che la comunicazione parte da chi la gente già conosce.",
+              minCaratteri: 400,
+            },
+          ],
+          reazioneCliente:
+            "Anna valuta se la gente si fiderà e userà il presidio: se sì, ci crede; se no, dice cosa non la convince. Chiusura del percorso.",
+          revisioneFocus: [
+            "La sintesi tiene insieme fiducia, alleati e piano?",
+            "È radicata nelle relazioni reali del territorio?",
+            "Porta davvero le persone a usarlo?",
+            "È coerente con le tappe precedenti?",
+          ],
+        },
+      ],
+    },
+
+    // ══════════════════════════════════════════════════════ DATI (Analista sanitario)
+    dati: {
+      fasi: [
+        {
+          id: "bisogni",
+          titolo: "Tappa 1 — I bisogni di salute del territorio",
+          obiettivo: "Fotografa i bisogni di salute della popolazione servita.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "bisogni",
+              titolo: "Il profilo di salute",
+              tipo: "testo_lungo",
+              prompt: "Che bisogni ha questa popolazione (3.200 assistiti, età media alta, 4 comuni)? Su quali dati ti basi?",
+              hint: "Prevalenza cronicità negli over 65, indicatori demografici delle aree interne, distanza dall'ospedale.",
+              minCaratteri: 300,
+            },
+          ],
+          reazioneCliente:
+            "Anna, che i pazienti li conosce a uno a uno, sfida i numeri: «I miei assistiti li conosco per nome. Che mi dicono i tuoi dati che io già non sappia?». Apre di fatto la tappa sugli indicatori.",
+          revisioneFocus: [
+            "Il profilo di salute è basato su dati concreti (cronicità, età, distanze)?",
+            "Coglie i bisogni tipici di un'area interna anziana?",
+            "Aggiunge qualcosa alla conoscenza diretta del medico?",
+            "È utile a decidere quali servizi attivare?",
+          ],
+        },
+        {
+          id: "indicatori",
+          titolo: "Tappa 2 — Gli indicatori di esito",
+          obiettivo: "Definisci come misurare se il presidio funziona.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "indicatori",
+              titolo: "Cosa misuri",
+              tipo: "tabella",
+              prompt: "Quali indicatori dicono che il presidio sta funzionando? Per ognuno, come lo misuri.",
+              hint: "Accessi al pronto soccorso evitati, cronici monitorati, distanze/viaggi risparmiati, prevenzione fatta.",
+              colonne: ["Indicatore", "Come lo misuro"],
+              minRighe: 3,
+            },
+          ],
+          reazioneCliente:
+            "Anna vuole cose vere, non numeri per far bella figura: «Va bene misurare, ma misuriamo le cose che contano per i malati, non quelle che fanno scena nei report». Apre di fatto la tappa sul valore.",
+          revisioneFocus: [
+            "Gli indicatori sono misurabili e rilevanti per i pazienti?",
+            "Misurano esiti di salute, non solo attività?",
+            "Sono sostenibili da raccogliere per un piccolo presidio?",
+            "Evitano gli indicatori \"di facciata\"?",
+          ],
+        },
+        {
+          id: "valore",
+          titolo: "Tappa 3 — Dimostrare il valore",
+          obiettivo: "Usa i dati per dimostrare, dopo 12 mesi, che il presidio serve — e va rifinanziato.",
+          giorniConsigliati: 4,
+          cooldownGiorni: 2,
+          chatMinima: 3,
+          fiduciaMax: 25,
+          sezioni: [
+            {
+              id: "valore",
+              titolo: "La prova dopo 12 mesi",
+              tipo: "testo_lungo",
+              prompt: "Come useresti i dati raccolti per dimostrare a ASL/finanziatori che il presidio va tenuto e rifinanziato?",
+              hint: "Collega gli esiti al risparmio per il sistema (meno ricoveri, meno accessi impropri): è ciò che convince chi paga.",
+              minCaratteri: 300,
+            },
+          ],
+          reazioneCliente:
+            "Anna pensa al futuro del presidio: «Tra un anno, quando dovrò chiedere di andare avanti, cosa gli faccio vedere per non farmelo chiudere?». Apre di fatto la tappa del pitch.",
+          revisioneFocus: [
+            "Collega gli esiti al valore per il sistema sanitario?",
+            "È un argomento credibile per ASL/finanziatori?",
+            "Usa i dati raccolti nelle tappe precedenti?",
+            "Aiuta davvero a difendere il rifinanziamento?",
+          ],
+        },
+        {
+          id: "pitch",
+          titolo: "Tappa 4 — Il pitch ad Anna",
+          obiettivo: "Convincila che i dati dimostrano il valore del presidio. Ultimo passo.",
+          giorniConsigliati: 3,
+          cooldownGiorni: 2,
+          chatMinima: 4,
+          fiduciaMax: 25,
+          ultima: true,
+          sezioni: [
+            {
+              id: "sintesi",
+              titolo: "I numeri, in chiaro",
+              tipo: "testo_lungo",
+              prompt: "Bisogni, indicatori e prova del valore: spiega ad Anna come i dati raccontano che il presidio serve e va tenuto.",
+              hint: "Anna diffida dei numeri fini a sé stessi: mostra che servono ai pazienti e a difendere il presidio.",
+              minCaratteri: 400,
+            },
+          ],
+          reazioneCliente:
+            "Anna valuta se i dati raccontano una storia vera e utile: se sì, ci crede; se no, dice cosa non la convince. Chiusura del percorso.",
+          revisioneFocus: [
+            "La sintesi tiene insieme bisogni, indicatori e valore?",
+            "I dati servono ai pazienti, non alla scena?",
+            "Aiuta a difendere il presidio nel tempo?",
+            "È coerente con le tappe precedenti?",
+          ],
+        },
+      ],
+    },
+  },
 };
 
 // Contesto sintetico del cliente per il tutor AI (aiuto/revisione per
@@ -2105,5 +2712,11 @@ export const WORKSHOP_TUTOR_CONTESTO: Record<string, { cliente: string; vincoli:
     cliente: "Renzo Bertolotti, 47 anni, titolare di una piccola impresa di consegne a Torino (3 furgoni, 5 dipendenti), parla in modo pratico e un po' spiccio, da piemontese concreto.",
     vincoli:
       "Budget rigido di 60.000€ per la conversione, non un euro di più (ha già un mutuo, non si indebita oltre). Nessun licenziamento tra i 5 dipendenti. Non converte tutta la flotta: tiene almeno un furgone per il pesante e le consegne fuori centro. Il servizio di consegna non deve peggiorare rispetto ai furgoni, altrimenti i clienti se ne vanno. Diffida di chi vende sogni: vuole numeri concreti (km, tempi, ZTL, meteo di Torino).",
+  },
+  "presidio-appennino": {
+    cliente:
+      "Dott.ssa Anna Ferretti, 58 anni, medico di medicina generale in un borgo dell'Appennino, 3.200 assistiti su 4 comuni. Parla con calma e precisione, da medico non da manager; stanca ma non rassegnata.",
+    vincoli:
+      "Niente app complicate: i pazienti hanno 75-80 anni e usano il telefonino a malapena. La relazione umana resta centrale, mai \"solo video\" al posto del rapporto medico-paziente. Il servizio deve restare gratuito per i cittadini. Il presidio deve reggere anche dopo la fine dei fondi PNRR, non solo nella fase iniziale finanziata.",
   },
 };
