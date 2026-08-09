@@ -1,4 +1,4 @@
-// Le 16 aree di orientamento di KIREO. Contenuto centralizzato: menu,
+// Le 18 aree di orientamento di KIREO. Contenuto centralizzato: menu,
 // pagine /aree/[slug] e ogni altro punto del sito che le elenca leggono
 // da qui, così i testi si aggiornano in un punto solo.
 
