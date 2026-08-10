@@ -11,8 +11,9 @@
 // Valori di partenza, da affinare alla validazione live.
 
 import Anthropic from "@anthropic-ai/sdk";
-import { getAreaBySlug } from "@/data/aree";
+import { AREE, getAreaBySlug } from "@/data/aree";
 import type {
+  Dimensione,
   EscapeMission,
   EvidenceInput,
   Payload,
@@ -27,6 +28,30 @@ import type {
 import { stepDellaMissione } from "./config";
 
 const MODELLO_ESCAPE = "claude-haiku-4-5"; // stesso modello provato in prod (workshop/assistente)
+
+const DIMENSIONI_VALIDE = new Set<Dimensione>(["interest", "performance", "self_efficacy", "curiosity"]);
+const AREE_VALIDE = new Set(AREE.map((a) => a.slug));
+const PESO_MINIMO = 0.01;
+
+// Paracadute finale prima di passare l'array a registra_evidence: garantisce
+// che nessuna prova violi i CHECK del DB (valore in [0,1], peso > 0, dimensione
+// ed eventuale area_slug validi) — altrimenti una singola prova malformata
+// farebbe fallire l'INTERO insert e quindi la finalizzazione. valore e peso
+// vengono FORZATI nel range; le prove con dimensione o area_slug non validi
+// vengono SCARTATE. Così un output AI malformato degrada a zero prove aperte,
+// senza mai bloccare la missione.
+function sanitizzaEvidenze(evidenze: EvidenceInput[]): EvidenceInput[] {
+  const pulite: EvidenceInput[] = [];
+  for (const e of evidenze) {
+    if (!DIMENSIONI_VALIDE.has(e.dimensione)) continue;
+    if (e.area_slug !== null && !AREE_VALIDE.has(e.area_slug)) continue;
+    const valore = Number.isFinite(e.valore) ? Math.max(0, Math.min(1, e.valore)) : 0;
+    const peso = Number.isFinite(e.peso) && e.peso > 0 ? e.peso : PESO_MINIMO;
+    const motivazione = (typeof e.motivazione === "string" ? e.motivazione.trim() : "") || "Segnale rilevato durante la missione.";
+    pulite.push({ ...e, valore, peso, motivazione: motivazione.slice(0, 2000) });
+  }
+  return pulite;
+}
 
 const PESO_INTERESSE = 0.5;
 const PESO_CURIOSITA = 0.5;
@@ -264,6 +289,5 @@ export async function calcolaEvidenze(
     }
   }
 
-  // scarta prove a peso/valore nullo (difensivo)
-  return evidenze.filter((e) => e.peso > 0);
+  return sanitizzaEvidenze(evidenze);
 }
