@@ -54,9 +54,31 @@ export default async function MissionePage({ params }: { params: Promise<{ slug:
 
   // Completata: restituzione narrativa (v2) + profilo aggregato + motivazioni.
   if (attempt.stato === "completata") {
-    const { data: prove } = await supabase.from("evidence").select("area_slug, motivazione").eq("attempt_id", attempt.id);
+    const { data: prove } = await supabase.from("evidence").select("area_slug, motivazione, peso").eq("attempt_id", attempt.id);
     const areeToccate = Array.from(new Set((prove ?? []).map((p) => p.area_slug).filter((a): a is string => Boolean(a))));
-    const motivazioni = Array.from(new Set((prove ?? []).map((p) => p.motivazione).filter(Boolean)));
+
+    // "Perché lo diciamo": una riga per AZIONE, non una per coppia azione-area.
+    // Le motivazioni degli step strutturati sono indipendenti dall'area (l'area
+    // sta in area_slug), quindi righe della stessa azione condividono lo stesso
+    // testo e si raggruppano; le aree vengono elencate insieme. Si mostrano solo
+    // le 8 più significative (per peso).
+    type Gruppo = { testo: string; aree: string[]; areeViste: Set<string>; peso: number };
+    const gruppi = new Map<string, Gruppo>();
+    for (const p of prove ?? []) {
+      if (!p.motivazione) continue;
+      const g: Gruppo = gruppi.get(p.motivazione) ?? { testo: p.motivazione, aree: [], areeViste: new Set<string>(), peso: 0 };
+      const nome = p.area_slug ? getAreaBySlug(p.area_slug)?.nome ?? p.area_slug : null;
+      if (nome && !g.areeViste.has(nome)) {
+        g.areeViste.add(nome);
+        g.aree.push(nome);
+      }
+      g.peso = Math.max(g.peso, Number(p.peso) || 0);
+      gruppi.set(p.motivazione, g);
+    }
+    const spiegazioni = Array.from(gruppi.values())
+      .sort((a, b) => b.peso - a.peso)
+      .slice(0, 8)
+      .map((g) => ({ testo: g.testo, aree: g.aree }));
 
     let aree: AreaEsito[] = [];
     if (areeToccate.length > 0) {
@@ -97,7 +119,7 @@ export default async function MissionePage({ params }: { params: Promise<{ slug:
             <IniziaMissione missionSlug={slug} etichetta="Rigioca la missione" />
           </div>
         </div>
-        <EsitoMissione titolo={mission.titolo} restituzione={restituzione} aree={aree} motivazioni={motivazioni} />
+        <EsitoMissione titolo={mission.titolo} restituzione={restituzione} aree={aree} spiegazioni={spiegazioni} />
       </div>
     );
   }

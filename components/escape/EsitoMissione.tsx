@@ -53,12 +53,12 @@ export default function EsitoMissione({
   titolo,
   restituzione,
   aree,
-  motivazioni,
+  spiegazioni,
 }: {
   titolo: string;
   restituzione: Restituzione;
   aree: AreaEsito[];
-  motivazioni: string[];
+  spiegazioni: { testo: string; aree: string[] }[];
 }) {
   return (
     <div className="space-y-5">
@@ -107,12 +107,15 @@ export default function EsitoMissione({
         )}
       </div>
 
-      {motivazioni.length > 0 && (
+      {spiegazioni.length > 0 && (
         <details className="rounded-2xl border border-white/5 bg-kireo-card p-6">
           <summary className="cursor-pointer font-heading text-base font-semibold text-kireo-light">Perché lo diciamo</summary>
           <ul className="mt-3 space-y-2 text-sm text-kireo-light/90">
-            {motivazioni.map((m, i) => (
-              <li key={i} className="rounded-lg bg-white/5 px-3 py-2">{m}</li>
+            {spiegazioni.map((s, i) => (
+              <li key={i} className="rounded-lg bg-white/5 px-3 py-2">
+                {s.testo}
+                {s.aree.length > 0 && <span className="text-kireo-muted"> → {s.aree.join(", ")}</span>}
+              </li>
             ))}
           </ul>
         </details>

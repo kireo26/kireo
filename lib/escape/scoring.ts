@@ -148,7 +148,7 @@ export async function calcolaEvidenze(
               dimensione: "interest",
               valore: 0.9,
               peso: PESO_MANDATO,
-              motivazione: `Hai scelto il mandato ${opz.label.split(" — ")[0]}: una dichiarazione di campo verso ${nomeArea(area)}.`,
+              motivazione: `Hai scelto il mandato ${opz.label.split(" — ")[0]}: una dichiarazione di campo.`,
               step_id: s.id,
             });
           }
@@ -172,7 +172,7 @@ export async function calcolaEvidenze(
               dimensione: "interest",
               valore,
               peso: PESO_ORDINA,
-              motivazione: `Hai messo «${el.label.toLowerCase()}» al ${i + 1}° posto tra le priorità: attrazione verso ${nomeArea(area)}.`,
+              motivazione: `Hai messo «${el.label.toLowerCase()}» al ${i + 1}° posto tra le priorità.`,
               step_id: s.id,
             });
           }
@@ -193,7 +193,7 @@ export async function calcolaEvidenze(
               dimensione: "curiosity",
               valore: 0.8,
               peso: PESO_SELEZIONA_CUR,
-              motivazione: `Hai speso un gettone per «${d.titolo.toLowerCase()}»: la tua curiosità si è diretta verso ${nomeArea(area)}.`,
+              motivazione: `Hai speso un gettone per «${d.titolo.toLowerCase()}».`,
               step_id: s.id,
             });
             evidenze.push({
@@ -201,7 +201,7 @@ export async function calcolaEvidenze(
               dimensione: "interest",
               valore: 0.4,
               peso: PESO_SELEZIONA_INT,
-              motivazione: `Interesse verso ${nomeArea(area)}, emerso dagli approfondimenti che hai voluto leggere.`,
+              motivazione: `Un interesse emerso da «${d.titolo.toLowerCase()}», che hai voluto approfondire.`,
               step_id: s.id,
             });
           }
@@ -227,7 +227,7 @@ export async function calcolaEvidenze(
               dimensione: "interest",
               valore: clamp01(a / maxAlloc),
               peso: PESO_BUDGET_INT,
-              motivazione: `Hai investito risorse su «${voce.label.toLowerCase()}»: interesse concreto verso ${nomeArea(area)}.`,
+              motivazione: `Hai investito risorse su «${voce.label.toLowerCase()}».`,
               step_id: s.id,
             });
           }
@@ -295,7 +295,7 @@ export async function calcolaEvidenze(
               dimensione: "interest",
               valore: 0.6,
               peso: PESO_SCARTO_INT,
-              motivazione: `Hai scelto di tenere «${o.label.toLowerCase()}»: lo consideri essenziale (${nomeArea(area)}).`,
+              motivazione: `Hai scelto di tenere «${o.label.toLowerCase()}»: lo consideri essenziale.`,
               step_id: s.id,
             });
           }
@@ -345,7 +345,7 @@ export async function calcolaEvidenze(
             const v = clamp01(Number(parsed.consapevolezza));
             const mot = parsed.motivazione || "Hai saputo dire perché hai rinunciato a un'informazione: è consapevolezza del tuo metodo.";
             evidenze.push({ area_slug: areaMandato, dimensione: "self_efficacy", valore: v, peso: PESO_AI, motivazione: mot, step_id: s.id });
-            evidenze.push({ area_slug: areaMandato, dimensione: "performance", valore: v, peso: PESO_AI, motivazione: `Sapere cosa hai deciso di non sapere è parte del mestiere (${nomeArea(areaMandato)}).`, step_id: s.id });
+            evidenze.push({ area_slug: areaMandato, dimensione: "performance", valore: v, peso: PESO_AI, motivazione: `Sapere cosa hai deciso di non sapere è parte del mestiere.`, step_id: s.id });
           }
           break;
         }
@@ -362,7 +362,7 @@ export async function calcolaEvidenze(
           const inter = clamp01(Number(a.interest ?? 0));
           const mot = typeof a.motivazione === "string" && a.motivazione ? a.motivazione : `La tua proposta valorizza ${nomeArea(a.area_slug)}.`;
           evidenze.push({ area_slug: a.area_slug, dimensione: "performance", valore: perf, peso: PESO_AI, motivazione: mot, step_id: s.id });
-          evidenze.push({ area_slug: a.area_slug, dimensione: "interest", valore: inter, peso: PESO_AI, motivazione: `Interesse verso ${nomeArea(a.area_slug)}, al centro della tua proposta.`, step_id: s.id });
+          evidenze.push({ area_slug: a.area_slug, dimensione: "interest", valore: inter, peso: PESO_AI, motivazione: `Un interesse al centro della tua proposta.`, step_id: s.id });
           evidenze.push({
             area_slug: a.area_slug,
             dimensione: "self_efficacy",
@@ -382,8 +382,8 @@ export async function calcolaEvidenze(
         const ass = p?.assegnazioni ?? {};
         for (const r of s.ruoli) {
           if (ass[r.id] !== "io") continue;
-          evidenze.push({ area_slug: r.area, dimensione: "interest", valore: 0.8, peso: PESO_RUOLI, motivazione: `Ti sei preso «${r.label.toLowerCase()}»: un compito che senti tuo (${nomeArea(r.area)}).`, step_id: s.id });
-          evidenze.push({ area_slug: r.area, dimensione: "self_efficacy", valore: 0.8, peso: PESO_RUOLI, motivazione: `Prendendoti «${r.label.toLowerCase()}» hai mostrato di sentirti capace su ${nomeArea(r.area)}.`, step_id: s.id });
+          evidenze.push({ area_slug: r.area, dimensione: "interest", valore: 0.8, peso: PESO_RUOLI, motivazione: `Ti sei preso «${r.label.toLowerCase()}»: un compito che senti tuo.`, step_id: s.id });
+          evidenze.push({ area_slug: r.area, dimensione: "self_efficacy", valore: 0.8, peso: PESO_RUOLI, motivazione: `Prendendoti «${r.label.toLowerCase()}» hai mostrato di sentirti capace.`, step_id: s.id });
         }
         break;
       }
@@ -400,7 +400,7 @@ export async function calcolaEvidenze(
           if (!a.area_slug || !mission.areeCandidate.includes(a.area_slug)) continue;
           const mot = typeof a.motivazione === "string" && a.motivazione ? a.motivazione : `Dalla tua riflessione traspare un legame con ${nomeArea(a.area_slug)}.`;
           evidenze.push({ area_slug: a.area_slug, dimensione: "curiosity", valore: clamp01(Number(a.curiosity ?? 0)), peso: PESO_AI, motivazione: mot, step_id: s.id });
-          evidenze.push({ area_slug: a.area_slug, dimensione: "self_efficacy", valore: clamp01(Number(a.self_efficacy ?? 0)), peso: PESO_AI, motivazione: `Ti sei sentito a tuo agio con ${nomeArea(a.area_slug)} mentre ripensavi al percorso.`, step_id: s.id });
+          evidenze.push({ area_slug: a.area_slug, dimensione: "self_efficacy", valore: clamp01(Number(a.self_efficacy ?? 0)), peso: PESO_AI, motivazione: `Ti sei sentito a tuo agio mentre ripensavi al percorso.`, step_id: s.id });
         }
         break;
       }
