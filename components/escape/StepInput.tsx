@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { valutaPiano } from "@/lib/escape/config";
 import type {
   Materiale,
   Payload,
   PayloadAlloca,
   PayloadAssegna,
   PayloadEsplora,
+  PayloadLavori,
   PayloadOrdina,
   PayloadPianifica,
   PayloadPrevisione,
@@ -20,6 +22,7 @@ import type {
   StepDecisioneScritta,
   StepEsploraLibero,
   StepOrdinaPriorita,
+  StepPianificaLavori,
   StepPianificaPassi,
   StepRiflessione,
   StepScartaOpzione,
@@ -202,6 +205,49 @@ function AllocaInput({ step, valore, onChange }: { step: StepAllocaBudget; valor
   );
 }
 
+// ─────────────────────────────────────────── pianifica_lavori (3.1, Missione 04)
+function LavoriInput({ step, valore, onChange }: { step: StepPianificaLavori; valore: PayloadLavori | null; onChange: OnChange }) {
+  const sel = valore?.selezionati ?? [];
+  const toggle = (id: string) => {
+    const nuovo = sel.includes(id) ? sel.filter((x) => x !== id) : [...sel, id];
+    onChange({ selezionati: nuovo }, nuovo.length > 0);
+  };
+  const { soldi, giorni, dipendenzeMancanti, secondaSquadra } = valutaPiano(step, sel);
+  const overSoldi = soldi > step.budgetSoldi;
+  const overGiorni = giorni > step.budgetGiorni;
+  const labelDi = (id: string) => step.lavori.find((l) => l.id === id)?.label ?? id;
+  return (
+    <div className="space-y-2">
+      <div className="grid grid-cols-2 gap-2">
+        <div className="rounded-xl border border-white/10 bg-kireo-card px-3 py-2 text-sm">
+          <p className="text-[11px] text-kireo-muted">Soldi</p>
+          <p className={overSoldi ? "text-red-400" : "text-kireo-light"}>{soldi.toLocaleString("it-IT")} / {step.budgetSoldi.toLocaleString("it-IT")} €</p>
+        </div>
+        <div className="rounded-xl border border-white/10 bg-kireo-card px-3 py-2 text-sm">
+          <p className="text-[11px] text-kireo-muted">Giorni {secondaSquadra ? "(due squadre)" : ""}</p>
+          <p className={overGiorni ? "text-red-400" : "text-kireo-light"}>{giorni} / {step.budgetGiorni}</p>
+        </div>
+      </div>
+      {(overSoldi || overGiorni) && (
+        <p className="text-xs text-red-400">Il piano sfora {overSoldi ? "il budget" : ""}{overSoldi && overGiorni ? " e " : ""}{overGiorni ? "i giorni" : ""}: togli qualcosa o cambia lavoro.</p>
+      )}
+      {dipendenzeMancanti.map((d) => (
+        <p key={d.lavoro} className="text-xs text-kireo-orange">«{labelDi(d.lavoro)}» va fatto dopo: {d.mancanti.map(labelDi).join(", ")}. Manca nel piano.</p>
+      ))}
+      {step.lavori.map((l) => {
+        const on = sel.includes(l.id);
+        return (
+          <label key={l.id} className={`flex cursor-pointer items-center gap-3 ${CARD} ${on ? "border-kireo-green" : ""}`}>
+            <input type="checkbox" checked={on} onChange={() => toggle(l.id)} className="accent-kireo-green" />
+            <span className="flex-1">{l.label}</span>
+            <span className="flex-none text-[11px] text-kireo-muted">{l.costo.toLocaleString("it-IT")} €{l.giorni > 0 ? ` · ${l.giorni} gg` : ""}</span>
+          </label>
+        );
+      })}
+    </div>
+  );
+}
+
 // ─────────────────────────────────────────── scarta_opzione (3.2)
 function ScartaInput({ step, valore, onChange }: { step: StepScartaOpzione; valore: PayloadScarta | null; onChange: OnChange }) {
   const scartati = valore?.scartati ?? [];
@@ -357,6 +403,8 @@ export default function StepInput({ step, valore, onChange }: { step: Step; valo
       return <SelezionaInput step={step} valore={valore as PayloadSeleziona | null} onChange={onChange} />;
     case "alloca_budget":
       return <AllocaInput step={step} valore={valore as PayloadAlloca | null} onChange={onChange} />;
+    case "pianifica_lavori":
+      return <LavoriInput step={step} valore={valore as PayloadLavori | null} onChange={onChange} />;
     case "scarta_opzione":
       return <ScartaInput step={step} valore={valore as PayloadScarta | null} onChange={onChange} />;
     case "previsione_poi_esito":

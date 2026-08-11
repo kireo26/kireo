@@ -17,6 +17,7 @@
 
 import type {
   EscapeMission,
+  Lavoro,
   LeggiRisposta,
   Mandato,
   Materiale,
@@ -30,12 +31,14 @@ import type {
   PayloadSeleziona,
   Ruolo,
   Step,
+  StepPianificaLavori,
   VoceBudget,
 } from "./tipi";
 
 export const SLUG_QUARTIERE = "progetto-quartiere";
 export const SLUG_MEDIATECA = "crisi-mediateca";
 export const SLUG_SERRA = "guasto-serra";
+export const SLUG_CANTIERE = "cantiere-scuola";
 
 // ─────────────────────────────────────────── tipi interni di definizione
 
@@ -76,6 +79,14 @@ type MissioneDef = {
     unita: string;
     passo: number;
     voci: (m: Mandato | null, letti: Set<string>) => VoceBudget[];
+  };
+  // Se presente, la Stanza 3.1 è un "pianifica_lavori" (doppio budget soldi+
+  // giorni + dipendenze) invece di un "alloca_budget". L'id dello step resta
+  // comunque "s3_budget" (canonico). Missione 04.
+  piano?: {
+    budgetSoldi: number;
+    budgetGiorni: number;
+    lavori: (letti: Set<string>) => Lavoro[];
   };
   scarto: (letti: Set<string>) => OpzioneScarto[];
   introStanza3: (m: Mandato | null, letti: Set<string>) => string;
@@ -624,9 +635,185 @@ const MD03: MissioneDef = {
   },
 };
 
+// =====================================================================
+// MISSIONE 04 — "Il cantiere della scuola" (la palestra dell'Istituto Fermi)
+// =====================================================================
+
+const K_M1: Materiale = { id: "M1", titolo: "Verbale del sopralluogo tecnico (marzo)", aree: [], costo: 0, contenuto: "900 m² di palestra + spogliatoi. Rilevati: controsoffitto ammalorato su tutta la superficie (caduta parziale); impianto elettrico del 1988, non a norma; infiltrazioni dalla copertura in tre punti; caldaia a gasolio del 2003, funzionante ma fuori norma sulle emissioni; pavimentazione sportiva usurata; nessun accesso per sedie a rotelle agli spogliatoi." };
+const K_M2: Materiale = {
+  id: "M2", titolo: "L'assemblea di giugno", aree: [], costo: 0,
+  contenuto: "In cinque, un'ora di discussione. Le voci non vanno d'accordo: ognuno guarda il problema da dove ci vive. Alcune, testuali:",
+  estratti: [
+    { chi: "Prof. Baldini, educazione fisica", testo: "A me serve il campo. Se a settembre non ho un pavimento su cui far giocare i ragazzi, il resto non è servito a niente." },
+    { chi: "Sig.ra Ferro, RSPP", testo: "Il pavimento è un problema di comodità. Il controsoffitto è un problema di teste. Non sono la stessa cosa e non si discutono insieme." },
+    { chi: "Marta, rappresentante d'istituto", testo: "Noi in palestra ci passiamo due ore a settimana. Negli spogliatoi venti minuti ogni volta, e sono uno schifo." },
+    { chi: "Il tecnico del Comune", testo: "Se sforate il 5 settembre, i soldi tornano indietro. Non è una minaccia, è il regolamento del finanziamento." },
+    { chi: "Il custode, sig. Rota", testo: "Io ci sto dentro tutti i giorni. Quando piove forte, l'acqua entra dall'angolo nord. Sempre lo stesso. L'ho detto tre volte." },
+    { chi: "Un genitore", testo: "Mio figlio è in carrozzina. Alle medie non è mai potuto entrare nello spogliatoio con gli altri. Speravo cambiasse." },
+  ],
+};
+const K_M3: Materiale = { id: "M3", titolo: "Il quadro economico", aree: [], costo: 0, contenuto: "240.000 € totali. Vincoli del finanziamento: lavori conclusi e collaudati entro il 5 settembre; nessuna proroga; le economie non spese non restano alla scuola." };
+const K_M4: Materiale = { id: "M4", titolo: "Relazione sull'impianto elettrico", aree: ["informatica-digitale", "sicurezza-difesa", "meccanica-meccatronica"], costo: 1, contenuto: "Quadro del 1988, nessun differenziale sulle linee della palestra, cavi in canaline non ignifughe. NON certificabile: senza rifacimento il collaudo finale non passa e la palestra non riapre, comunque siano andati gli altri lavori. Costo 62.000 €, 25 giorni. Va fatto PRIMA del controsoffitto, perché i cavi passano lì sopra." };
+const K_M5: Materiale = { id: "M5", titolo: "Perizia sulla copertura", aree: ["edilizia-architettura"], costo: 1, contenuto: "Le infiltrazioni vengono da 40 m² di guaina degenerata sull'angolo nord (conferma il custode). Rifacimento 34.000 €, 15 giorni. Se non si fa PRIMA del controsoffitto nuovo, l'acqua rovinerà il controsoffitto nuovo entro il primo inverno." };
+const K_M6: Materiale = { id: "M6", titolo: "Preventivo del controsoffitto", aree: ["edilizia-architettura", "sicurezza-difesa"], costo: 1, contenuto: "Smontaggio del vecchio e nuovo in fibra minerale antisfondamento: 71.000 €, 20 giorni. È il lavoro che ha causato la chiusura. Senza, la palestra resta chiusa." };
+const K_M7: Materiale = { id: "M7", titolo: "Diagnosi energetica", aree: ["energia-sostenibilita"], costo: 1, contenuto: "Caldaia a gasolio del 2003: 19.000 €/anno di riscaldamento. Sostituzione con pompa di calore: 48.000 €, 18 giorni, spesa a regime 7.400 €/anno. NON è obbligatoria per il collaudo. Rientro in circa 6 anni." };
+const K_M8: Materiale = { id: "M8", titolo: "Preventivo della pavimentazione sportiva", aree: ["edilizia-architettura", "meccanica-meccatronica"], costo: 1, contenuto: "Parquet sportivo omologato 39.000 €, 12 giorni; alternativa in PVC sportivo 21.000 €, 6 giorni, durata inferiore. Va posato per ULTIMO, dopo tutti i lavori in quota, altrimenti si rovina." };
+const K_M9: Materiale = { id: "M9", titolo: "Dossier accessibilità degli spogliatoi", aree: ["mobilita-sostenibile", "sicurezza-difesa"], costo: 1, contenuto: "Gradino di 18 cm all'ingresso spogliatoi, porte da 70 cm, nessun servizio attrezzato. Adeguamento 27.000 €, 14 giorni. Nell'istituto ci sono quattro studenti con disabilità motoria. Obbligo normativo in caso di ristrutturazione significativa: il collaudo può rilevarlo." };
+const K_M10: Materiale = { id: "M10", titolo: "Cronoprogramma della ditta", aree: ["meccanica-meccatronica", "edilizia-architettura"], costo: 1, contenuto: "Cinque operai, una sola squadra: i lavori vanno in fila, non in parallelo, salvo che spogliatoi e palestra si possono fare in contemporanea con due squadre (la seconda costa +18.000 €). Giorni disponibili: 83." };
+const K_M11: Materiale = { id: "M11", titolo: "Regolamento del finanziamento comunale", aree: ["sicurezza-difesa", "edilizia-architettura"], costo: 1, contenuto: "Art. 4: collaudo entro il 5 settembre, pena revoca. Art. 9: le varianti in corso d'opera superiori al 10% richiedono una nuova approvazione, con 20 giorni di istruttoria. Tradotto: cambiare idea a metà cantiere costa venti giorni che non hai." };
+const K_M12: Materiale = { id: "M12", titolo: "Storico delle manutenzioni", aree: ["edilizia-architettura"], costo: 1, contenuto: "2009: rifacimento parziale della guaina, «da completare l'anno successivo». Mai completato. 2015: preventivo per l'elettrico, mai approvato. 2019: segnalazione infiltrazioni dal custode, archiviata. Il crollo non è stato un incidente, è stato un calendario." };
+const K_M13: Materiale = { id: "M13", titolo: "Nota della ditta sui tempi di consegna", aree: ["meccanica-meccatronica"], costo: 1, contenuto: "I pannelli antisfondamento del controsoffitto hanno 35 giorni di consegna dall'ordine. Se l'ordine non parte entro la prima settimana, il lavoro slitta a fine agosto e trascina tutto il resto." };
+
+const K_MANDATI: Mandato[] = [
+  {
+    id: "sicurezza", label: "«Prima che nessuno si faccia male»", frase: "La sicurezza viene prima di tutto il resto.",
+    aree: ["sicurezza-difesa", "edilizia-architettura"],
+    vincolo: { id: "ispezione", testo: "Verifica ispettiva a sorpresa a metà cantiere: se trovano difformità, sospensione di 10 giorni." },
+    consulenze: [
+      consulenza("K_rspp", "Consulenza: l'RSPP", "sicurezza-difesa", "Il controsoffitto è un problema di teste, non di comodità. Finché non è a norma, per me la palestra non riapre — e lo metto per iscritto."),
+      consulenza("K_ispettore", "Consulenza: un ispettore", "edilizia-architettura", "Un cantiere in ordine si vede da come sono documentati i lavori. Se la sequenza non è tracciata, alla verifica saltano fuori le difformità."),
+    ],
+  },
+  {
+    id: "acqua", label: "«Prima che l'acqua entri di nuovo»", frase: "È inutile rifare, se poi si rovina.",
+    aree: ["edilizia-architettura", "energia-sostenibilita"],
+    vincolo: { id: "pioggia", testo: "Due settimane di pioggia a fine giugno: nove giorni di lavori in quota persi." },
+    consulenze: [
+      consulenza("K_coperture", "Consulenza: un tecnico delle coperture", "edilizia-architettura", "La guaina va sull'angolo nord, sono 40 m². Ma se ci mettete sopra il controsoffitto nuovo prima di averla rifatta, la prossima pioggia ve lo rovina."),
+      consulenza("K_custode", "Consulenza: il custode", "edilizia-architettura", "Ve lo dico da nove anni: l'acqua entra sempre dallo stesso angolo. Non è un mistero, è che nessuno l'ha mai rifatto."),
+    ],
+  },
+  {
+    id: "elettrico", label: "«Prima che si riaccenda la luce»", frase: "Senza impianto non si collauda niente.",
+    aree: ["informatica-digitale", "meccanica-meccatronica"],
+    vincolo: { id: "quadro", testo: "Il quadro elettrico ordinato arriva difettoso: dodici giorni per la sostituzione." },
+    consulenze: [
+      consulenza("K_impiantista", "Consulenza: un impiantista", "informatica-digitale", "L'impianto è del 1988, senza differenziali. Il rifacimento va fatto prima del controsoffitto: i cavi passano lì sopra, dopo non ci arrivate più."),
+      consulenza("K_collaudatore", "Consulenza: il collaudatore", "meccanica-meccatronica", "Al collaudo guardo prima l'elettrico. Se non è certificabile, tutto il resto non conta: la palestra non la faccio riaprire."),
+    ],
+  },
+  {
+    id: "gioco", label: "«Prima che ci si possa giocare»", frase: "È una palestra: deve funzionare da palestra.",
+    aree: ["meccanica-meccatronica", "edilizia-architettura"],
+    vincolo: { id: "parquet", testo: "Il parquet omologato non è disponibile prima di settembre: o si mette il PVC, o si aspetta." },
+    consulenze: [
+      consulenza("K_baldini", "Consulenza: il prof di educazione fisica", "edilizia-architettura", "A me serve un pavimento su cui i ragazzi possano giocare a settembre. Non m'importa se è parquet o PVC: m'importa che ci sia."),
+      consulenza("K_posatore", "Consulenza: un posatore", "meccanica-meccatronica", "Il pavimento si posa per ultimo, dopo tutti i lavori in quota. Se lo mettete prima, tra polvere e cadute dall'alto lo buttate via."),
+    ],
+  },
+  {
+    id: "accessibilita", label: "«Prima che ci possano entrare tutti»", frase: "Una palestra da cui qualcuno è escluso non è finita.",
+    aree: ["mobilita-sostenibile", "sicurezza-difesa"],
+    vincolo: { id: "idrico", testo: "L'adeguamento rivela che serve rifare anche l'impianto idrico degli spogliatoi: +19.000 €." },
+    consulenze: [
+      consulenza("K_accessibilita", "Consulenza: un tecnico dell'accessibilità", "mobilita-sostenibile", "Gradino di 18 cm, porte da 70: oggi quattro studenti non entrano. In una ristrutturazione significativa l'adeguamento è un obbligo, e il collaudo può rilevarlo."),
+      consulenza("K_genitore", "Consulenza: un genitore", "sicurezza-difesa", "Mio figlio in tre anni di medie non è mai entrato in uno spogliatoio con i suoi compagni. Non chiedo un favore, chiedo che sia finita per tutti."),
+    ],
+  },
+];
+
+const MD04: MissioneDef = {
+  meta: {
+    slug: SLUG_CANTIERE,
+    titolo: "Il cantiere della scuola",
+    sottotitolo: "La palestra dell'Istituto Fermi, ottantatré giorni per riaprirla",
+    descrizione:
+      "La palestra dell'Istituto Fermi è chiusa da marzo, da quando un pezzo di controsoffitto è caduto di notte. Il Comune ha stanziato 240.000 € e una finestra sola: dal 15 giugno al 5 settembre, ottantatré giorni, perché il 12 settembre la scuola riapre. Una ditta, cinque operai, nessuna proroga. Tu entri nel gruppo che decide cosa fare e in che ordine — su un cantiere le decisioni hanno conseguenze fisiche e irreversibili, e alcuni lavori sono vincolati tra loro. Niente cronometro, niente sconfitta: puoi riprendere quando vuoi.",
+    tipo: "cross-area",
+  },
+  areeCandidate: ["edilizia-architettura", "meccanica-meccatronica", "energia-sostenibilita", "sicurezza-difesa", "mobilita-sostenibile", "informatica-digitale"],
+  ruoliStanza: 3,
+  daScartare: 2,
+  quantiPassi: 3,
+  materialiLiberi: [K_M1, K_M2, K_M3],
+  materialiGettone: [K_M4, K_M5, K_M6, K_M7, K_M8, K_M9, K_M10, K_M11, K_M12, K_M13],
+  mandati: K_MANDATI,
+  prioritaVoci: [
+    { id: "controsoffitto", label: "Il controsoffitto è caduto una volta e può cadere ancora", aree: ["sicurezza-difesa", "edilizia-architettura"] },
+    { id: "elettrico", label: "L'impianto elettrico è del 1988 e non è a norma", aree: ["informatica-digitale", "sicurezza-difesa"] },
+    { id: "tetto", label: "Dal tetto entra acqua da anni", aree: ["edilizia-architettura"] },
+    { id: "pavimento", label: "Il pavimento è finito: non ci si può giocare", aree: ["meccanica-meccatronica", "edilizia-architettura"] },
+    { id: "caldaia", label: "La caldaia consuma il doppio del necessario", aree: ["energia-sostenibilita"] },
+    { id: "spogliatoi", label: "Quattro studenti non possono entrare negli spogliatoi", aree: ["mobilita-sostenibile", "sicurezza-difesa"] },
+  ],
+  ruoli: [
+    { id: "ditta", label: "Stare dietro alla ditta ogni giorno", area: "edilizia-architettura" },
+    { id: "conti", label: "Tenere i conti e le varianti", area: "informatica-digitale" },
+    { id: "sicurezza", label: "Controllare la sicurezza in cantiere", area: "sicurezza-difesa" },
+    { id: "materiali", label: "Verificare che i materiali arrivino in tempo", area: "meccanica-meccatronica" },
+    { id: "famiglie", label: "Parlare con la scuola e le famiglie", area: "mobilita-sostenibile" },
+  ],
+  passi: [
+    { id: "accessibilita", label: "Completare l'accessibilità" },
+    { id: "caldaia", label: "Sostituire la caldaia" },
+    { id: "pavimento", label: "Rifare il pavimento definitivo" },
+    { id: "registro", label: "Istituire un registro delle manutenzioni" },
+    { id: "controlli", label: "Programmare i controlli annuali" },
+    { id: "formazione", label: "Formare il personale sulla sicurezza" },
+    { id: "sensori", label: "Installare sensori di infiltrazione" },
+    { id: "documentare", label: "Documentare tutto l'impianto" },
+  ],
+  // budget alloca non usato (Stanza 3.1 è un pianifica_lavori): stub richiesto
+  // dal tipo, mai costruito perché `piano` è presente.
+  budget: { totale: () => 0, unita: "€", passo: 1000, voci: () => [] },
+  piano: {
+    budgetSoldi: 240000,
+    budgetGiorni: 83,
+    lavori: (letti) => {
+      const richiedeControsoffitto: string[] = [];
+      if (letti.has("M5")) richiedeControsoffitto.push("copertura");
+      if (letti.has("M4")) richiedeControsoffitto.push("elettrico");
+      const lavori: Lavoro[] = [
+        { id: "elettrico", label: "Rifacimento impianto elettrico", aree: ["informatica-digitale", "sicurezza-difesa", "meccanica-meccatronica"], costo: 62000, giorni: 25, essenziale: true },
+        { id: "copertura", label: "Rifacimento della copertura (angolo nord)", aree: ["edilizia-architettura"], costo: 34000, giorni: 15 },
+        { id: "controsoffitto", label: "Controsoffitto nuovo antisfondamento", aree: ["edilizia-architettura", "sicurezza-difesa"], costo: 71000, giorni: 20, essenziale: true, richiede: richiedeControsoffitto },
+        { id: "parquet", label: "Pavimento in parquet sportivo omologato", aree: ["edilizia-architettura", "meccanica-meccatronica"], costo: 39000, giorni: 12, parallelizzabile: true, richiede: ["controsoffitto"] },
+        { id: "pvc", label: "Pavimento in PVC sportivo (più rapido)", aree: ["edilizia-architettura", "meccanica-meccatronica"], costo: 21000, giorni: 6, parallelizzabile: true, richiede: ["controsoffitto"] },
+        { id: "pompa_calore", label: "Pompa di calore al posto della caldaia", aree: ["energia-sostenibilita"], costo: 48000, giorni: 18 },
+        { id: "accessibilita", label: "Adeguamento accessibilità degli spogliatoi", aree: ["mobilita-sostenibile", "sicurezza-difesa"], costo: 27000, giorni: 14, parallelizzabile: true },
+        { id: "fondo_imprevisti", label: "Fondo imprevisti (per le varianti)", aree: [], costo: 15000, giorni: 0 },
+      ];
+      if (letti.has("M10")) lavori.push({ id: "seconda_squadra", label: "Seconda squadra (lavori in parallelo)", aree: [], costo: 18000, giorni: 0, gate: "M10" });
+      return lavori;
+    },
+  },
+  scarto: (letti) => [
+    { id: "accessibilita", label: "L'adeguamento degli spogliatoi (rimandato al prossimo finanziamento)", aree: ["mobilita-sostenibile"], qualita: 0.85, trappola: true, trappolaSeScartata: true, avviso: letti.has("M9") ? "Il dossier accessibilità (che hai letto): quattro studenti restano fuori, e in una ristrutturazione significativa il collaudo può rilevarlo. Non è un «di più»." : undefined },
+    { id: "pompa_calore", label: "La pompa di calore (si tiene la vecchia caldaia)", aree: ["energia-sostenibilita"], qualita: 0.1 },
+    { id: "parquet", label: "Il parquet omologato (si ripiega sul PVC)", aree: ["edilizia-architettura"], qualita: 0.2 },
+    { id: "copertura", label: "La copertura del tetto (rimandata al prossimo anno)", aree: ["edilizia-architettura"], qualita: 0.6, avviso: letti.has("M5") ? "La perizia (che hai letto): senza rifare la guaina, l'acqua rovinerà il controsoffitto nuovo entro il primo inverno." : undefined },
+    { id: "elettrico", label: "Il rifacimento dell'impianto elettrico (si tiene com'è)", aree: ["sicurezza-difesa"], qualita: 0.75, avviso: letti.has("M4") ? "La relazione (che hai letto): senza rifacimento il collaudo non passa e la palestra non riapre, comunque siano andati gli altri lavori." : undefined },
+    { id: "controsoffitto", label: "Il controsoffitto nuovo (si rinvia)", aree: ["edilizia-architettura", "sicurezza-difesa"], qualita: 0.9 },
+  ],
+  introStanza3: (m, letti) => {
+    const parti = ["14 luglio, ventinovesimo giorno. Il capocantiere vi chiama nel container."];
+    if (m) parti.push(m.vincolo.testo);
+    if (!letti.has("M13")) parti.push("E la ditta comunica: «I pannelli del controsoffitto arrivano il 20 agosto. Nessuno li aveva ordinati.» Trentacinque giorni di consegna che nessuno aveva contato, e adesso trascinano tutto il resto.");
+    return parti.join("\n\n");
+  },
+  testi: {
+    introS1: "È il 9 giugno. Siete in cinque nell'aula di tecnologia, con le finestre aperte e il rumore degli esami dal corridoio. Sul tavolo: un verbale di sopralluogo di tre mesi fa, un quadro economico, e un calendario con due date cerchiate in rosso — 15 giugno e 5 settembre.\n\nIn mezzo ci sono ottantatré giorni e duecentoquarantamila euro. La palestra ha sei problemi. Voi non potete risolverne sei.",
+    introS2: "Il cantiere apre lunedì. Prima di lunedì avete tempo per cinque approfondimenti: cinque preventivi da farsi mandare, cinque tecnici da sentire, cinque documenti da tirare fuori dall'archivio della segreteria.\n\nNon di più. Quello che non chiedete adesso, lo scoprirete a lavori iniziati — quando cambiare idea costa venti giorni.",
+    introS4: "20 agosto. Mancano sedici giorni al collaudo. Il documento che scrivete adesso lo leggeranno il dirigente, il Comune, e a settembre milleduecento studenti che entreranno da quella porta.",
+    introS5: "Il cantiere è chiuso. Il 12 settembre si vedrà se la palestra riapre. Ma una cosa la sapete già: cosa avete scelto di fare, e cosa avete lasciato indietro.",
+    materiali: { titolo: "Prima di tutto: cosa c'è da sistemare?", prompt: "Apri i documenti che vuoi leggere. C'è il verbale del sopralluogo, quello che si sono detti in assemblea e il quadro economico.", hint: "In un cantiere le persone contano quanto i numeri: leggi anche le voci, non solo i tecnici." },
+    priorita: { titolo: "Sei problemi. Metteteli in ordine: da cosa partite?", prompt: "Mettili in ordine, dal più importante. Le prime scelte pesano di più." },
+    mandato: { titolo: "Il gruppo vi chiede la frase che aprirà il documento. Quale?", prompt: "È la scelta che decide il resto: da qui in poi tutto ruota attorno a questo.", hint: "Tutte e cinque sono difendibili. Scegli quella in cui credi di più." },
+    informazioni: { titolo: "Avete 5 gettoni. Cosa andate a verificare?", prompt: "Ogni approfondimento costa un gettone e non torna indietro. Aprilo per leggerlo: quello che non chiedi adesso, lo scoprirai a lavori iniziati.", hint: "Puoi restare nel tuo campo o guardarti intorno: sono due stili diversi, nessuno è migliore." },
+    nonApprofondire: { titolo: "Una cosa che avete deciso di non verificare: perché?", prompt: "Due o tre righe. Non c'è una risposta giusta: conta che tu sappia perché hai rinunciato a saperlo.", hint: "Puoi anche lasciarlo vuoto — ma provarci dice qualcosa di come decidi." },
+    budget: { titolo: "Il piano dei lavori: cosa entra, dentro soldi e giorni?", prompt: "Restano i soldi che restano e i giorni che restano. Scegli i lavori: il piano deve stare dentro 240.000 € e 83 giorni, e rispettare le dipendenze (alcuni lavori vanno fatti prima di altri).", hint: "Dove metti le risorse quando sei stretto racconta le tue priorità più delle parole." },
+    scarto: { titolo: "Non ci stanno tutti. Due lavori restano fuori: quali due lasciate fuori?", prompt: "Rinuncia a due. Scegli con attenzione: qualcuno di questi «tagli» costa più di quanto sembra.", hint: "Ciò che tieni conta più di ciò che togli." },
+    ruoli: { titolo: "Da qui al 5 settembre, chi segue cosa?", prompt: "Per ogni compito: te ne occupi tu o lo lascia a un altro del gruppo? Quello che ti prendi è quello che ti senti di saper fare." },
+    previsione: { titolo: "Prima di scriverlo: quanto sarà agibile il 12 settembre?", prompt: "Quanto pensate che la palestra sarà davvero agibile il 12 settembre, quando entrano i ragazzi?", domanda: "La tua sensazione, prima di scrivere" },
+    proposta: { titolo: "Scrivete cosa avete fatto e cosa no", prompt: "Cosa avete fatto, cosa NON avete fatto e perché, e cosa resta da fare. Lo leggeranno il dirigente, il Comune e gli studenti.", hint: "Di' chiaramente cosa hai lasciato indietro e chi ne paga il prezzo. Niente toni trionfali.", minCaratteri: 250 },
+    riflessione: { titolo: "Ripensando a questi mesi di cantiere…", prompt: "C'è stata una cosa che avete deciso di non fare e che vi è rimasta addosso? E un momento in cui avete capito qualcosa che gli altri non vedevano?", hint: "Questa è la parte che resta tua: la salviamo nel tuo diario.", minCaratteri: 120 },
+    passi: { titolo: "L'anno prossimo ci sarà un altro finanziamento. I primi tre passi?", prompt: "Scegli tre passi e mettili in ordine: quale per primo, quale per secondo, quale per terzo.", hint: "L'ordine conta: da dove è più saggio cominciare?" },
+  },
+};
+
 // ─────────────────────────────────────────── registro delle missioni
 
-const DEFS: MissioneDef[] = [MD01, MD02, MD03];
+const DEFS: MissioneDef[] = [MD01, MD02, MD03, MD04];
 const DEF_BY_SLUG = new Map(DEFS.map((d) => [d.meta.slug, d]));
 
 // Tutti i mandati di tutte le missioni. Gli id dei mandati sono unici a livello
@@ -661,6 +848,34 @@ export function dossierStanza2(def: MissioneDef, mandato: Mandato | null): Mater
   return mandato ? [...def.materialiGettone, ...mandato.consulenze] : [...def.materialiGettone];
 }
 
+// Valuta un piano di lavori (Missione 04) sulle DUE grandezze e sulle dipendenze.
+// Logica pura (nessun punteggio): riusata identica da UI (client) e scoring
+// (server). `giorni` tiene conto della seconda squadra: i lavori parallelizzabili
+// selezionati girano in contemporanea (contano per il massimo, non per la somma).
+export function valutaPiano(step: StepPianificaLavori, selezionati: string[]): {
+  soldi: number;
+  giorni: number;
+  dipendenzeMancanti: { lavoro: string; mancanti: string[] }[];
+  secondaSquadra: boolean;
+} {
+  const sel = new Set(selezionati);
+  const scelti = step.lavori.filter((l) => sel.has(l.id));
+  const secondaSquadra = sel.has("seconda_squadra");
+  const soldi = scelti.reduce((s, l) => s + l.costo, 0);
+
+  const parall = scelti.filter((l) => l.parallelizzabile);
+  const seriali = scelti.filter((l) => !l.parallelizzabile && l.id !== "seconda_squadra");
+  let giorni = seriali.reduce((s, l) => s + l.giorni, 0);
+  if (parall.length > 0) giorni += secondaSquadra ? Math.max(...parall.map((l) => l.giorni)) : parall.reduce((s, l) => s + l.giorni, 0);
+
+  const dipendenzeMancanti: { lavoro: string; mancanti: string[] }[] = [];
+  for (const l of scelti) {
+    const mancanti = (l.richiede ?? []).filter((id) => !sel.has(id));
+    if (mancanti.length > 0) dipendenzeMancanti.push({ lavoro: l.id, mancanti });
+  }
+  return { soldi, giorni, dipendenzeMancanti, secondaSquadra };
+}
+
 // ─────────────────────────────────────────── costruzione della missione
 
 function costruisciMissioneDef(def: MissioneDef, get: LeggiRisposta): EscapeMission {
@@ -676,7 +891,9 @@ function costruisciMissioneDef(def: MissioneDef, get: LeggiRisposta): EscapeMiss
   const stepInformazioni: Step = { id: "s2_informazioni", stanza: 2, tipo: "seleziona_informazioni", titolo: t.informazioni.titolo, prompt: t.informazioni.prompt, hint: t.informazioni.hint, budget: 5, dossier: dossierStanza2(def, mandato) };
   const stepNonApprofondire: Step = { id: "s2_non_approfondire", stanza: 2, tipo: "decisione_scritta", titolo: t.nonApprofondire.titolo, prompt: t.nonApprofondire.prompt, hint: t.nonApprofondire.hint, minCaratteri: 0, facoltativo: true };
 
-  const stepBudget: Step = { id: "s3_budget", stanza: 3, tipo: "alloca_budget", titolo: t.budget.titolo, prompt: t.budget.prompt, hint: t.budget.hint, totale: def.budget.totale(mandato), unita: def.budget.unita, passo: def.budget.passo, voci: def.budget.voci(mandato, letti) };
+  const stepBudget: Step = def.piano
+    ? { id: "s3_budget", stanza: 3, tipo: "pianifica_lavori", titolo: t.budget.titolo, prompt: t.budget.prompt, hint: t.budget.hint, budgetSoldi: def.piano.budgetSoldi, budgetGiorni: def.piano.budgetGiorni, lavori: def.piano.lavori(letti) }
+    : { id: "s3_budget", stanza: 3, tipo: "alloca_budget", titolo: t.budget.titolo, prompt: t.budget.prompt, hint: t.budget.hint, totale: def.budget.totale(mandato), unita: def.budget.unita, passo: def.budget.passo, voci: def.budget.voci(mandato, letti) };
   const stepScarto: Step = { id: "s3_scarto", stanza: 3, tipo: "scarta_opzione", titolo: t.scarto.titolo, prompt: t.scarto.prompt, hint: t.scarto.hint, daScartare: def.daScartare, opzioni: def.scarto(letti) };
 
   const stepPrevisione: Step = { id: "s4_previsione", stanza: 4, tipo: "previsione_poi_esito", titolo: t.previsione.titolo, prompt: t.previsione.prompt, domanda: t.previsione.domanda };

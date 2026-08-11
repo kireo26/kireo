@@ -60,7 +60,28 @@ export type VoceBudget = {
 // Opzione da scartare (Stanza 3.2). `trappola` = scelta che farebbe respingere
 // la domanda; `avviso` viene popolato da costruisciMissione quando lo studente
 // ha letto il materiale che la smaschera (M6 → facciata tutelata).
-export type OpzioneScarto = OpzioneArea & { trappola?: boolean; avviso?: string };
+// `trappolaSeScartata` inverte la semantica: la trappola scatta quando l'opzione
+// viene SCELTA/scartata (es. Missione 04, dove "rimandare l'accessibilità" è una
+// mossa che sembra sensata ma è dannosa), non quando viene tenuta.
+export type OpzioneScarto = OpzioneArea & { trappola?: boolean; trappolaSeScartata?: boolean; avviso?: string };
+
+// Un lavoro del cantiere (Missione 04): a differenza di una voce di budget, ha
+// DUE grandezze — costo (€) e durata (giorni) — e può dipendere dall'ordine di
+// altri lavori. `richiede` = lavori che devono essere inclusi prima (dipendenza
+// d'ordine); `essenziale` = senza, il piano non raggiunge l'obiettivo (collaudo);
+// `parallelizzabile` = può girare in contemporanea con altri se c'è la seconda
+// squadra; `gate` = compare solo se il materiale è stato letto.
+export type Lavoro = {
+  id: string;
+  label: string;
+  aree: string[];
+  costo: number;
+  giorni: number;
+  richiede?: string[];
+  essenziale?: boolean;
+  parallelizzabile?: boolean;
+  gate?: string;
+};
 
 // Compito da assegnare a sé o ad altri (Stanza 4.3): quello che ci si prende è
 // quello che ci si sente di saper fare.
@@ -97,6 +118,12 @@ export type StepSelezionaInformazioni = StepBase & { tipo: "seleziona_informazio
 // `unita` è l'unità di misura del budget (es. "€", "giornate", "ore") e `passo`
 // l'incremento dell'input numerico (1000 per gli euro, 1 per giornate/ore).
 export type StepAllocaBudget = StepBase & { tipo: "alloca_budget"; totale: number; unita: string; passo: number; voci: VoceBudget[] };
+
+// Pianificazione dei lavori (Missione 04): il piano è valutato su DUE grandezze
+// (soldi e giorni) e sul rispetto delle dipendenze d'ordine. Lo studente
+// SELEZIONA i lavori (ognuno con costo e durata fissi); il totale sta o non sta
+// dentro budgetSoldi e budgetGiorni.
+export type StepPianificaLavori = StepBase & { tipo: "pianifica_lavori"; lavori: Lavoro[]; budgetSoldi: number; budgetGiorni: number };
 export type StepScartaOpzione = StepBase & { tipo: "scarta_opzione"; opzioni: OpzioneScarto[]; daScartare: number };
 export type StepPrevisionePoiEsito = StepBase & { tipo: "previsione_poi_esito"; domanda: string };
 export type StepDecisioneScritta = StepBase & { tipo: "decisione_scritta"; minCaratteri: number; facoltativo?: boolean };
@@ -110,6 +137,7 @@ export type Step =
   | StepOrdinaPriorita
   | StepSelezionaInformazioni
   | StepAllocaBudget
+  | StepPianificaLavori
   | StepScartaOpzione
   | StepPrevisionePoiEsito
   | StepDecisioneScritta
@@ -140,6 +168,7 @@ export type PayloadSceltaSingola = { opzioneId: string };
 export type PayloadOrdina = { ordine: string[] }; // ids in ordine di priorità (0 = più prioritario)
 export type PayloadSeleziona = { selezionati: string[] };
 export type PayloadAlloca = { allocazioni: Record<string, number> };
+export type PayloadLavori = { selezionati: string[] };
 export type PayloadScarta = { scartati: string[]; motivazione?: string };
 export type PayloadPrevisione = { fiducia: number }; // 0..100
 export type PayloadTesto = { testo: string };
@@ -152,6 +181,7 @@ export type Payload =
   | PayloadOrdina
   | PayloadSeleziona
   | PayloadAlloca
+  | PayloadLavori
   | PayloadScarta
   | PayloadPrevisione
   | PayloadTesto

@@ -8,7 +8,7 @@
 // Retro-compatibile: su un tentativo senza i nuovi step i blocchi restano
 // null/vuoti.
 
-import type { LeggiRisposta, Mandato, PayloadAlloca, PayloadScarta, PayloadSeleziona, StepAllocaBudget, StepSelezionaInformazioni } from "./tipi";
+import type { LeggiRisposta, Mandato, PayloadAlloca, PayloadLavori, PayloadScarta, PayloadSeleziona, StepAllocaBudget, StepPianificaLavori, StepSelezionaInformazioni } from "./tipi";
 import { getMissione, mandatoScelto, materialiLetti } from "./config";
 
 export type AreaTop = { slug: string; nome: string; status: "emergente" | "confermata" | "da_verificare" };
@@ -21,12 +21,14 @@ export type Restituzione = {
   notaVerifica: string | null;
 };
 
-type OccasioneCtx = { letti: Set<string>; alloc?: Record<string, number>; scartati?: string[]; mandato: Mandato | null };
+type OccasioneCtx = { letti: Set<string>; alloc?: Record<string, number>; pianoSel?: string[]; scartati?: string[]; mandato: Mandato | null };
 type OccasioneRule = { quando: (c: OccasioneCtx) => boolean; testo: string };
 type Narrativa = { costruito: (mandato: Mandato, topVoce: string | null) => string; occasioni: OccasioneRule[] };
 
 const elenco = (nomi: string[]) => (nomi.length <= 1 ? nomi[0] ?? "" : `${nomi.slice(0, -1).join(", ")} e ${nomi[nomi.length - 1]}`);
 const facciataTenuta = (c: OccasioneCtx, trapId: string) => c.scartati !== undefined && !c.scartati.includes(trapId);
+const scartato = (c: OccasioneCtx, id: string) => c.scartati !== undefined && c.scartati.includes(id);
+const nelPiano = (c: OccasioneCtx, id: string) => c.pianoSel?.includes(id) ?? false;
 const speso = (c: OccasioneCtx, id: string) => Number(c.alloc?.[id]) || 0;
 
 const NARRATIVA: Record<string, Narrativa> = {
@@ -66,19 +68,34 @@ const NARRATIVA: Record<string, Narrativa> = {
       { quando: (c) => !(c.letti.has("M4") && c.letti.has("M13")), testo: "C'era una riga di codice che scriveva «irrigato» nell'istante in cui mandava il comando, senza controllare se l'acqua uscisse davvero. Tutto il problema era lì — nel log e nel codice, che non hai letto insieme." },
     ],
   },
+
+  "cantiere-scuola": {
+    costruito: (mandato, topVoce) =>
+      `Hai aperto il documento con la frase ${mandato.label}.` + (topVoce ? ` Nel tuo piano, il lavoro più impegnativo è stato «${topVoce}».` : ""),
+    occasioni: [
+      { quando: (c) => c.pianoSel !== undefined && !nelPiano(c, "elettrico") && !c.letti.has("M4"), testo: "Il tuo piano stava nei tempi e nel budget, ma l'impianto elettrico era del 1988 e senza rifacimento il collaudo non passa. La palestra non ha riaperto il 12 settembre. C'era una relazione che lo diceva: non l'hai chiesta." },
+      { quando: (c) => c.pianoSel !== undefined && !nelPiano(c, "elettrico") && c.letti.has("M4"), testo: "Hai lasciato fuori il rifacimento elettrico anche sapendo, dalla relazione che avevi letto, che senza non si collauda. La palestra non ha riaperto il 12 settembre." },
+      { quando: (c) => scartato(c, "accessibilita"), testo: "Hai rimandato l'adeguamento degli spogliatoi. È la scelta che avrebbero fatto in molti. Ma in quell'istituto ci sono quattro studenti che a settembre sono rimasti fuori — e il collaudo poteva rilevarlo comunque." },
+      { quando: (c) => c.pianoSel !== undefined && nelPiano(c, "controsoffitto") && !nelPiano(c, "copertura"), testo: "Hai messo un controsoffitto nuovo sotto un tetto che perde da nove anni: la prima pioggia forte se lo riprende. La copertura andava fatta prima." },
+      { quando: (c) => !c.letti.has("M13"), testo: "I pannelli del controsoffitto avevano 35 giorni di consegna e nessuno li aveva ordinati. Il ritardo non è nato in cantiere, è nato la prima settimana." },
+      { quando: (c) => c.letti.has("M11") && c.pianoSel !== undefined && !nelPiano(c, "fondo_imprevisti"), testo: "Sapevi che una variante in corso d'opera costa venti giorni d'istruttoria, ma non hai lasciato un fondo imprevisti: se qualcosa fosse cambiato, non avevi margine." },
+    ],
+  },
 };
 
 export function costruisciRestituzione(slug: string, get: LeggiRisposta, areeTop: AreaTop[]): Restituzione {
   const mandato = mandatoScelto(get);
   const letti = materialiLetti(get);
-  const alloc = (get("s3_budget") as PayloadAlloca | undefined)?.allocazioni;
+  const s3 = get("s3_budget") as (PayloadAlloca & PayloadLavori) | undefined;
+  const alloc = s3?.allocazioni; // Stanza 3.1 alloca_budget (Missioni 01-03)
+  const pianoSel = s3?.selezionati; // Stanza 3.1 pianifica_lavori (Missione 04)
   const scartati = (get("s3_scarto") as PayloadScarta | undefined)?.scartati;
   const narr = NARRATIVA[slug];
 
-  // Missione risolta: per leggere le voci del budget (etichetta della fetta più
-  // grande) e i dossier della Stanza 2 (mappatura id → aree per il metodo).
+  // Missione risolta: per leggere le voci del budget / i lavori del piano
+  // (etichetta della fetta più grande) e i dossier della Stanza 2.
   const mission = getMissione(slug, get);
-  const stepBudget = mission?.stanze.flatMap((s) => s.step).find((s) => s.id === "s3_budget") as StepAllocaBudget | undefined;
+  const stepBudget = mission?.stanze.flatMap((s) => s.step).find((s) => s.id === "s3_budget") as StepAllocaBudget | StepPianificaLavori | undefined;
   const stepDossier = mission?.stanze.flatMap((s) => s.step).find((s) => s.id === "s2_informazioni") as StepSelezionaInformazioni | undefined;
 
   // ── 1. Cosa hai costruito
@@ -86,9 +103,15 @@ export function costruisciRestituzione(slug: string, get: LeggiRisposta, areeTop
   if (mandato && narr) {
     let topLabel: string | null = null;
     let topVal = 0;
-    for (const v of stepBudget?.voci ?? []) {
-      const a = Number(alloc?.[v.id]) || 0;
-      if (a > topVal) { topVal = a; topLabel = v.label.toLowerCase(); }
+    if (stepBudget?.tipo === "alloca_budget") {
+      for (const v of stepBudget.voci) {
+        const a = Number(alloc?.[v.id]) || 0;
+        if (a > topVal) { topVal = a; topLabel = v.label.toLowerCase(); }
+      }
+    } else if (stepBudget?.tipo === "pianifica_lavori") {
+      for (const l of stepBudget.lavori) {
+        if ((pianoSel?.includes(l.id) ?? false) && l.costo > topVal) { topVal = l.costo; topLabel = l.label.toLowerCase(); }
+      }
     }
     costruito = narr.costruito(mandato, topLabel);
   }
@@ -118,7 +141,7 @@ export function costruisciRestituzione(slug: string, get: LeggiRisposta, areeTop
   // ── 3. Le occasioni (conseguenze)
   const occasioni: string[] = [];
   if (narr) {
-    const ctx: OccasioneCtx = { letti, alloc, scartati, mandato };
+    const ctx: OccasioneCtx = { letti, alloc, pianoSel, scartati, mandato };
     for (const r of narr.occasioni) if (r.quando(ctx)) occasioni.push(r.testo);
   }
 
