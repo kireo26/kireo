@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/lib/supabase/server";
-import { getMissione } from "@/lib/escape/config";
+import { accessoreDaMappa, getMissione, mandatoScelto } from "@/lib/escape/config";
 import { calcolaEvidenze } from "@/lib/escape/scoring";
-import type { Payload } from "@/lib/escape/tipi";
+import type { Payload, PayloadAlloca } from "@/lib/escape/tipi";
 
 export const runtime = "nodejs";
 
@@ -41,9 +41,6 @@ export async function POST(request: NextRequest) {
     .maybeSingle();
   if (!attempt) return erroreDiCortesia("Tentativo non trovato.", 404);
 
-  const mission = getMissione(attempt.mission_slug);
-  if (!mission) return erroreDiCortesia("Missione non trovata.", 404);
-
   // risposte autorevoli dal DB
   const { data: righe } = await supabase
     .from("step_response")
@@ -52,6 +49,13 @@ export async function POST(request: NextRequest) {
 
   const risposte = new Map<string, Payload>();
   for (const r of righe ?? []) risposte.set(r.step_id, r.payload as Payload);
+
+  // missione RISOLTA dalle risposte (mandato + materiali letti): così il motore
+  // di scoring vede gli stessi dossier/voci che lo studente ha effettivamente
+  // avuto davanti.
+  const get = accessoreDaMappa(risposte);
+  const mission = getMissione(attempt.mission_slug, get);
+  if (!mission) return erroreDiCortesia("Missione non trovata.", 404);
 
   // motore di scoring (AI solo se la chiave è configurata; altrimenti solo
   // prove strutturate, la missione si completa comunque)
@@ -76,20 +80,24 @@ export async function POST(request: NextRequest) {
     return p?.testo?.trim() ?? "";
   };
   const riflessione = testoDi("s5_riflessione");
-  const proposta = testoDi("s4_decisione");
+  const proposta = testoDi("s4_proposta");
 
   await supabase.from("journal_entry").delete().eq("attempt_id", attempt.id);
   if (riflessione) {
     await supabase.from("journal_entry").insert({ student_id: user.id, attempt_id: attempt.id, testo: riflessione });
   }
 
+  // Portfolio: l'artefatto "La mia proposta per l'ex mercato di Via Sanzio"
+  // (mandato + allocazione + testo), come da design 5.3.
   await supabase.from("portfolio_item").delete().eq("attempt_id", attempt.id);
   if (proposta) {
+    const mandato = mandatoScelto(get);
+    const allocazione = (risposte.get("s3_budget") as PayloadAlloca | undefined)?.allocazioni ?? {};
     await supabase.from("portfolio_item").insert({
       student_id: user.id,
       attempt_id: attempt.id,
       titolo: `La mia proposta — ${mission.titolo}`,
-      contenuto: { testo: proposta },
+      contenuto: { mandato: mandato?.label ?? null, allocazione, testo: proposta },
     });
   }
 
