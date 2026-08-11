@@ -35,7 +35,7 @@ import type {
   StepPianificaLavori,
   VoceBudget,
 } from "./tipi";
-import { mandatoScelto, materialiLetti, stepDellaMissione, valutaPiano, SLUG_CANTIERE, SLUG_MEDIATECA, SLUG_QUARTIERE, SLUG_SERRA } from "./config";
+import { mandatoScelto, materialiLetti, stepDellaMissione, valutaPiano, SLUG_CANTIERE, SLUG_FILIERA, SLUG_MEDIATECA, SLUG_QUARTIERE, SLUG_SERRA, SLUG_SPORTELLO } from "./config";
 
 const MODELLO_ESCAPE = "claude-haiku-4-5"; // stesso modello provato in prod (workshop/assistente)
 
@@ -83,7 +83,7 @@ type ScoringSpec = {
   ordinaPerformance?: { area: string; peso: number };
   budgetPerformance?: (c: BudgetCtx) => { valore: number; buona: string; migliora: string };
   pianoPerformance?: (c: PianoCtx) => { valore: number; buona: string; migliora: string };
-  promptProposta: (aree: string[]) => string;
+  promptProposta: (aree: string[], ctx: { letti: Set<string> }) => string;
 };
 
 // pienezza (uso del budget) × equilibrio (non tutto su una voce) — comuni.
@@ -212,9 +212,10 @@ const SPEC: Record<string, ScoringSpec> = {
     pianificaIdeali: ["registro", "controlli", "accessibilita"],
     pianoPerformance: ({ step, sel, letti }) => {
       const { soldi, giorni, dipendenzeMancanti } = valutaPiano(step, sel);
+      const budgetGiorni = step.budgetGiorni ?? Number.POSITIVE_INFINITY;
       let punti = 0, max = 0;
       max += 2; punti += soldi <= step.budgetSoldi ? 2 : clamp01(1 - (soldi - step.budgetSoldi) / step.budgetSoldi) * 2;
-      max += 2; punti += giorni <= step.budgetGiorni ? 2 : clamp01(1 - (giorni - step.budgetGiorni) / step.budgetGiorni) * 2;
+      max += 2; punti += giorni <= budgetGiorni ? 2 : clamp01(1 - (giorni - budgetGiorni) / budgetGiorni) * 2;
       max += 1.5; punti += dipendenzeMancanti.length === 0 ? 1.5 : 0;
       const essenziali = step.lavori.filter((l) => l.essenziale).map((l) => l.id);
       const incl = essenziali.filter((id) => sel.includes(id)).length;
@@ -229,7 +230,85 @@ const SPEC: Record<string, ScoringSpec> = {
     promptProposta: (aree) =>
       `Sei un analista di orientamento per studenti italiani di 16-19 anni. Uno studente ha scritto il resoconto di un cantiere: la ristrutturazione della palestra della sua scuola, con budget e scadenza rigidi. Individua da 1 a 3 aree — SCEGLIENDO SOLO tra questi slug: ${aree.join(", ")} — che il testo tocca di più. Per ognuna valuta: performance = coerenza tra il piano, i vincoli e la realtà di tempi e dipendenze, e soprattutto ONESTÀ (0-1). REGOLE: premia chi NOMINA esplicitamente ciò che ha lasciato indietro e chi ne paga il prezzo; NON premiare i toni trionfali; se il testo riconosce che il problema viene da anni di rinvii senza usarlo come scusa, premialo. interest = quanto emerge quell'area (0-1). Motivazione breve, calda, IPOTETICA, in italiano semplice. Rispondi SOLO con JSON valido: {"aree":[{"area_slug":"...","performance":0.0,"interest":0.0,"motivazione":"..."}]}`,
   },
+
+  // ── Missione 05 — "Il pronto soccorso organizzativo"
+  // Requisito di progetto: NESSUN bonus di velocità. La performance del budget
+  // (minuti-operatore) NON usa la pienezza né il totale speso: un piano che usa
+  // tutti i 210 minuti non vale meno di uno che ne usa 140. Conta solo se i
+  // compiti giusti sono presi in carico (>0 minuti).
+  [SLUG_SPORTELLO]: {
+    pesi: { ...PESI_BASE, mandato: 1.4, budgetPerf: 1.4, scartoPerf: 1.5, previsione: 1.0, passi: 1.0 },
+    esploraTesti: {
+      conBonus: "Hai voluto sentire le voci degli operatori, non solo leggere le richieste: già lì c'erano tre priorità diverse e incompatibili.",
+      base: "Hai letto le richieste prima di decidere l'ordine: parti dai fatti, non dall'istinto.",
+    },
+    pianificaIdeali: ["procedura_anonime", "segnala_ferme", "sociale_alunno"],
+    budgetPerformance: ({ alloc, letti }) => {
+      // Solo presenza/assenza dei compiti giusti: mai il totale dei minuti.
+      let punti = 0, max = 0;
+      if (letti.has("M5")) { max += 2; punti += (Number(alloc["trasmetti_segnalazione"]) || 0) > 0 ? 2 : 0; }
+      max += 1.5; punti += ((Number(alloc["protocolla_kaur"]) || 0) + (Number(alloc["compila_kaur"]) || 0)) > 0 ? 1.5 : 0;
+      if (letti.has("M12")) { max += 1.5; punti += (Number(alloc["data_per_ciascuno"]) || 0) > 0 ? 1.5 : 0; }
+      max += 1; punti += (Number(alloc["rispondi_mail"]) || 0) > 0 ? 1 : 0;
+      return {
+        valore: clamp01(max > 0 ? punti / max : 0.5),
+        buona: "Hai preso in carico ciò che oggi non poteva aspettare — il termine sul minore, la scadenza della domanda, chi non va lasciato senza una data: scelte lucide, senza correre.",
+        migliora: "Qualcosa che oggi aveva un termine o una conseguenza è rimasto scoperto. Non è questione di fare in fretta: è questione di cosa hai messo davanti.",
+      };
+    },
+    promptProposta: (aree) =>
+      `Sei un analista di orientamento per studenti italiani di 16-19 anni. Uno studente, tirocinante in uno sportello di ascolto sociale, ha scritto la risposta a una MAIL ANONIMA: qualcuno che chiede aiuto senza farsi identificare, ha scritto una volta sola e potrebbe non riscrivere. Individua da 1 a 3 aree — SCEGLIENDO SOLO tra questi slug: ${aree.join(", ")}. Per ognuna valuta: performance = la risposta NON chiede informazioni identificative (nome, età, famiglia), tiene aperto il canale e offre un appiglio concreto e raggiungibile (0-1). REGOLA DURA: premia le risposte BREVI, non invadenti, con un contatto raggiungibile; NON premiare le risposte lunghe, protettive o piene di domande, per quanto ben intenzionate. Chi scrive «dimmi chi sei e ti aiutiamo» ha sbagliato pur volendo bene: valutalo basso. interest = quanto emerge quell'area (0-1). Motivazione breve, calda, IPOTETICA, in italiano. Rispondi SOLO JSON: {"aree":[{"area_slug":"...","performance":0.0,"interest":0.0,"motivazione":"..."}]}`,
+  },
+
+  // ── Missione 06 — "La filiera trasparente"
+  // Stanza 3.1 è un pianifica_lavori a magnitudo singola (centesimi), con una
+  // voce a costo NEGATIVO (eliminare il sacchetto: libera 8 cent). Il prompt
+  // 4.2 ha una LISTA NERA di parole e riceve i materiali letti per distinguere
+  // un numero verificato da uno inventato.
+  [SLUG_FILIERA]: {
+    pesi: { ...PESI_BASE, mandato: 1.4, budgetPerf: 1.5, scartoPerf: 1.5, previsione: 1.0, passi: 1.0 },
+    esploraTesti: {
+      conBonus: "Hai letto le voci della riunione, non solo i numeri: una di quelle persone stava proponendo qualcosa di illegale.",
+      base: "Hai guardato la filiera e i vincoli prima di decidere: parti dai dati, non dagli slogan.",
+    },
+    pianificaIdeali: ["misura_impatto", "pubblica_dati", "forma_commerciale"],
+    pianoPerformance: ({ step, sel, letti }) => {
+      const { soldi } = valutaPiano(step, sel); // la voce negativa riduce il totale: gestito nativamente
+      let punti = 0, max = 0;
+      max += 2; punti += soldi <= step.budgetSoldi ? 2 : clamp01(1 - (soldi - step.budgetSoldi) / step.budgetSoldi) * 2;
+      max += 1.5; punti += sel.includes("documentazione") ? 1.5 : 0; // per poter dichiarare senza mentire
+      if (letti.has("M11")) { max += 1; punti += sel.includes("sacchetto") ? 1 : 0; } // il guadagno gratuito
+      if (letti.has("M7") && letti.has("M8")) { max += 1; punti += sel.includes("accessori_europei") ? 1 : 0; } // miglior rapporto impatto/costo
+      max += 1; punti += sel.includes("tessuto_alfa") || sel.includes("tessuto_beta") ? 1 : 0; // hai comunque migliorato il materiale
+      return {
+        valore: clamp01(max > 0 ? punti / max : 0.5),
+        buona: "Hai comprato più impatto possibile con il margine che c'era — sfruttando anche il risparmio del sacchetto — e ti sei tenuto i soldi per documentare ciò che dichiari.",
+        migliora: "Il piano sfora il margine, oppure ha comprato il materiale giusto senza lasciare nulla per documentarlo: la cosa giusta che non puoi dimostrare, in questo mestiere, conta poco.",
+      };
+    },
+    promptProposta: (aree, { letti }) => {
+      const numeri: string[] = [];
+      if (letti.has("M1")) numeri.push("ripartizione impatto: materie prime 48%, trasporti 21%, trasformazione 11%, distribuzione 9%, imballaggio 6%, fine vita 5%");
+      if (letti.has("M4")) numeri.push("tessuto: Alfa −34% impatto (certificato), Beta −28% dichiarato ma non verificato");
+      if (letti.has("M7")) numeri.push("trasporti: 14% accessori in aereo dalla Cina, 7% filato via nave");
+      if (letti.has("M8")) numeri.push("accessori europei: −12% impatto a +0,35 € a zaino");
+      if (letti.has("M9")) numeri.push("prodotto smontabile: +0,45 € a zaino");
+      if (letti.has("M10")) numeri.push("resistenza: tessuto Alfa 92%, Beta non testato");
+      if (letti.has("M11")) numeri.push("eliminare il sacchetto: −4% impatto e −0,08 € (si risparmia)");
+      const verificati = numeri.length
+        ? `Numeri che lo studente ha EFFETTIVAMENTE verificato e può citare: ${numeri.join("; ")}.`
+        : "Lo studente non ha verificato alcun numero specifico: qualsiasi percentuale nel testo è inventata.";
+      return `Sei un analista di orientamento per studenti italiani di 16-19 anni. Uno studente ha scritto l'ETICHETTA di uno zaino scolastico: cosa è stato cambiato, di quanto, e cosa non è stato fatto. Ogni affermazione dovrebbe essere sostenuta da un dato che ha davvero verificato. ${verificati} Individua da 1 a 3 aree — SCEGLIENDO SOLO tra questi slug: ${aree.join(", ")}. Per ognuna valuta: performance = ogni affermazione è sostenuta da un dato verificato e non ci sono termini generici né numeri inventati (0-1). REGOLE DURE: PENALIZZA ESPLICITAMENTE le parole «eco», «green», «100% sostenibile», «amico dell'ambiente» e QUALSIASI percentuale o numero NON presente nell'elenco dei numeri verificati (è inventato). PREMIA chi cita solo numeri verificati e chi dichiara cosa è rimasto fuori. Una comunicazione modesta e dimostrabile vale più di una entusiasta. interest = quanto emerge quell'area (0-1). Motivazione breve, calda, IPOTETICA, in italiano. Rispondi SOLO JSON: {"aree":[{"area_slug":"...","performance":0.0,"interest":0.0,"motivazione":"..."}]}`;
+    },
+  },
 };
+
+// Seam di test (server-only): espone il prompt 4.2 costruito per una missione,
+// così i test possono verificare la lista nera e i numeri verificati senza una
+// vera chiamata AI. Non usato in produzione.
+export function costruisciPromptPropostaPerTest(slug: string, aree: string[], letti: Set<string>): string | null {
+  return SPEC[slug]?.promptProposta(aree, { letti }) ?? null;
+}
 
 const PROMPT_RIFLESSIONE = (aree: string[]) =>
   `Sei un analista di orientamento per studenti italiani di 16-19 anni. Leggi la riflessione che uno studente ha scritto DOPO aver completato una missione (dove si è sentito nel suo, dove fuori posto). Individua da 1 a 2 aree — SCEGLIENDO SOLO tra questi slug: ${aree.join(", ")} — che sembrano averlo attratto o messo a suo agio. Per ognuna valuta: curiosity = quanta voglia di esplorare quell'area traspare (0-1); self_efficacy = quanto si è sentito capace su quell'area (0-1). Motivazione breve, calda, IPOTETICA, in italiano. Rispondi SOLO JSON: {"aree":[{"area_slug":"...","curiosity":0.0,"self_efficacy":0.0,"motivazione":"..."}]}`;
@@ -447,7 +526,7 @@ export async function calcolaEvidenze(
           break;
         }
 
-        const parsed = (await chiamaHaikuJson(anthropic, spec.promptProposta(mission.areeCandidate), testo)) as { aree?: unknown[] } | null;
+        const parsed = (await chiamaHaikuJson(anthropic, spec.promptProposta(mission.areeCandidate, { letti }), testo)) as { aree?: unknown[] } | null;
         const aree = Array.isArray(parsed?.aree) ? parsed!.aree : [];
         for (const raw of aree) {
           const a = raw as { area_slug?: string; performance?: number; interest?: number; motivazione?: string };

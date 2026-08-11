@@ -81,6 +81,31 @@ const NARRATIVA: Record<string, Narrativa> = {
       { quando: (c) => c.letti.has("M11") && c.pianoSel !== undefined && !nelPiano(c, "fondo_imprevisti"), testo: "Sapevi che una variante in corso d'opera costa venti giorni d'istruttoria, ma non hai lasciato un fondo imprevisti: se qualcosa fosse cambiato, non avevi margine." },
     ],
   },
+
+  "sportello-insieme": {
+    costruito: (mandato, topVoce) =>
+      `Hai deciso con la regola ${mandato.label}.` + (topVoce ? ` Il tempo più lungo, quando eri stretto, è andato a «${topVoce}».` : ""),
+    occasioni: [
+      { quando: (c) => facciataTenuta(c, "chiedi_identita"), testo: "Hai risposto alla mail chiedendo chi fosse. È la domanda che verrebbe a chiunque. Ma sei mesi fa era già successo, e quella persona non ha più scritto. C'era una nota che lo spiegava: non l'hai aperta." },
+      { quando: (c) => !c.letti.has("M5"), testo: "La segnalazione della scuola andava trasmessa entro 48 ore, ed erano scadute stamattina. Sembrava la richiesta meno urgente delle cinque: era quella con il termine più stretto." },
+      { quando: (c) => !c.letti.has("M4") && speso(c, "compila_kaur") > 0, testo: "Hai dedicato tempo a compilare per intero la domanda Kaur. Bastava protocollarla entro le 12: i documenti si potevano integrare in dieci giorni. Era scritto nel regolamento del bando." },
+      { quando: (c) => !c.letti.has("M11"), testo: "Il tuo piano contava su tre operatori. Dalle 11 in poi ne restavano due, e una non poteva gestire un colloquio da sola." },
+      { quando: (c) => c.letti.has("M7"), testo: "Hai capito che il sig. Muratori non era un impaziente: era uno a cui nessuno aveva detto niente per settantaquattro giorni. Non è una sfumatura da poco." },
+    ],
+  },
+
+  "filiera-borea": {
+    costruito: (mandato, topVoce) =>
+      `Sei partito dall'idea ${mandato.label}.` + (topVoce ? ` Nel piano, la voce su cui hai speso di più è stata «${topVoce}».` : ""),
+    occasioni: [
+      { quando: (c) => facciataTenuta(c, "beta_dichiara"), testo: "Hai scelto Beta e l'hai scritto in etichetta. Costava meno ed era più vicino: sulla carta la scelta migliore. Ma il riciclato non era tracciabile, e la responsabilità di quella frase era di Borea. Due anni fa un concorrente distrusse sessantamila confezioni per lo stesso motivo." },
+      { quando: (c) => !(c.letti.has("M7") && c.letti.has("M8")), testo: "Il ventuno per cento dell'impatto stava nei trasporti, e quasi tutto in fibbie e zip che arrivavano dalla Cina in aereo. C'era un fornitore europeo a trentacinque centesimi. Guardavi il tessuto e il guadagno più grande era altrove." },
+      { quando: (c) => !c.letti.has("M11"), testo: "Eliminare il sacchetto di plastica avrebbe tolto il quattro per cento d'impatto facendoti risparmiare otto centesimi. Era l'unica cosa gratis della missione." },
+      { quando: (c) => !c.letti.has("M12"), testo: "L'ordine ad Alfa andava fatto entro il 15 maggio. Te ne sei accorto quando il commerciale è entrato con il calendario in mano." },
+      { quando: (c) => c.pianoSel !== undefined && nelPiano(c, "tessuto_alfa") && !nelPiano(c, "documentazione"), testo: "Hai comprato il materiale migliore e non ti sono rimasti centesimi per documentarlo. Hai fatto la cosa giusta senza poterla provare — che in questo mestiere conta meno di quanto dovrebbe." },
+      { quando: (c) => scartato(c, "beta_dichiara") && !scartato(c, "beta_muto"), testo: "Hai scartato la scorciatoia di dichiarare un riciclato che non potevi certificare, e hai tenuto la strada di migliorare senza vantartene. È la risposta più sottile di questa missione: si può migliorare un prodotto senza scriverci sopra cose che non si dimostrano." },
+    ],
+  },
 };
 
 export function costruisciRestituzione(slug: string, get: LeggiRisposta, areeTop: AreaTop[]): Restituzione {

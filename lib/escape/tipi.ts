@@ -119,11 +119,14 @@ export type StepSelezionaInformazioni = StepBase & { tipo: "seleziona_informazio
 // l'incremento dell'input numerico (1000 per gli euro, 1 per giornate/ore).
 export type StepAllocaBudget = StepBase & { tipo: "alloca_budget"; totale: number; unita: string; passo: number; voci: VoceBudget[] };
 
-// Pianificazione dei lavori (Missione 04): il piano è valutato su DUE grandezze
-// (soldi e giorni) e sul rispetto delle dipendenze d'ordine. Lo studente
-// SELEZIONA i lavori (ognuno con costo e durata fissi); il totale sta o non sta
-// dentro budgetSoldi e budgetGiorni.
-export type StepPianificaLavori = StepBase & { tipo: "pianifica_lavori"; lavori: Lavoro[]; budgetSoldi: number; budgetGiorni: number };
+// Pianificazione a selezione (Stanza 3.1): lo studente SELEZIONA voci con costo
+// FISSO; il totale sta o non sta dentro il budget. `unitaSoldi` è l'unità del
+// costo (es. "€", "cent"). Due varianti:
+//  - Missione 04: doppia grandezza (soldi + giorni, `budgetGiorni` presente) +
+//    dipendenze d'ordine tra i lavori;
+//  - Missione 06: singola grandezza (`budgetGiorni` assente), e una voce può
+//    avere COSTO NEGATIVO (libera margine invece di consumarlo).
+export type StepPianificaLavori = StepBase & { tipo: "pianifica_lavori"; lavori: Lavoro[]; budgetSoldi: number; unitaSoldi: string; budgetGiorni?: number };
 export type StepScartaOpzione = StepBase & { tipo: "scarta_opzione"; opzioni: OpzioneScarto[]; daScartare: number };
 export type StepPrevisionePoiEsito = StepBase & { tipo: "previsione_poi_esito"; domanda: string };
 export type StepDecisioneScritta = StepBase & { tipo: "decisione_scritta"; minCaratteri: number; facoltativo?: boolean };

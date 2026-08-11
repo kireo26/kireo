@@ -214,33 +214,40 @@ function LavoriInput({ step, valore, onChange }: { step: StepPianificaLavori; va
   };
   const { soldi, giorni, dipendenzeMancanti, secondaSquadra } = valutaPiano(step, sel);
   const overSoldi = soldi > step.budgetSoldi;
-  const overGiorni = giorni > step.budgetGiorni;
+  const doppio = step.budgetGiorni !== undefined; // Missione 04 = soldi + giorni; Missione 06 = solo soldi
+  const overGiorni = doppio && giorni > (step.budgetGiorni ?? 0);
+  const u = step.unitaSoldi;
   const labelDi = (id: string) => step.lavori.find((l) => l.id === id)?.label ?? id;
   return (
     <div className="space-y-2">
-      <div className="grid grid-cols-2 gap-2">
+      <div className={`grid ${doppio ? "grid-cols-2" : "grid-cols-1"} gap-2`}>
         <div className="rounded-xl border border-white/10 bg-kireo-card px-3 py-2 text-sm">
-          <p className="text-[11px] text-kireo-muted">Soldi</p>
-          <p className={overSoldi ? "text-red-400" : "text-kireo-light"}>{soldi.toLocaleString("it-IT")} / {step.budgetSoldi.toLocaleString("it-IT")} €</p>
+          <p className="text-[11px] text-kireo-muted">Speso</p>
+          <p className={overSoldi ? "text-red-400" : "text-kireo-light"}>{soldi.toLocaleString("it-IT")} / {step.budgetSoldi.toLocaleString("it-IT")} {u}</p>
         </div>
-        <div className="rounded-xl border border-white/10 bg-kireo-card px-3 py-2 text-sm">
-          <p className="text-[11px] text-kireo-muted">Giorni {secondaSquadra ? "(due squadre)" : ""}</p>
-          <p className={overGiorni ? "text-red-400" : "text-kireo-light"}>{giorni} / {step.budgetGiorni}</p>
-        </div>
+        {doppio && (
+          <div className="rounded-xl border border-white/10 bg-kireo-card px-3 py-2 text-sm">
+            <p className="text-[11px] text-kireo-muted">Giorni {secondaSquadra ? "(due squadre)" : ""}</p>
+            <p className={overGiorni ? "text-red-400" : "text-kireo-light"}>{giorni} / {step.budgetGiorni}</p>
+          </div>
+        )}
       </div>
       {(overSoldi || overGiorni) && (
-        <p className="text-xs text-red-400">Il piano sfora {overSoldi ? "il budget" : ""}{overSoldi && overGiorni ? " e " : ""}{overGiorni ? "i giorni" : ""}: togli qualcosa o cambia lavoro.</p>
+        <p className="text-xs text-red-400">Il piano sfora {overSoldi ? "il budget" : ""}{overSoldi && overGiorni ? " e " : ""}{overGiorni ? "i giorni" : ""}: togli qualcosa o cambia scelta.</p>
       )}
       {dipendenzeMancanti.map((d) => (
         <p key={d.lavoro} className="text-xs text-kireo-orange">«{labelDi(d.lavoro)}» va fatto dopo: {d.mancanti.map(labelDi).join(", ")}. Manca nel piano.</p>
       ))}
       {step.lavori.map((l) => {
         const on = sel.includes(l.id);
+        const risparmio = l.costo < 0;
         return (
           <label key={l.id} className={`flex cursor-pointer items-center gap-3 ${CARD} ${on ? "border-kireo-green" : ""}`}>
             <input type="checkbox" checked={on} onChange={() => toggle(l.id)} className="accent-kireo-green" />
             <span className="flex-1">{l.label}</span>
-            <span className="flex-none text-[11px] text-kireo-muted">{l.costo.toLocaleString("it-IT")} €{l.giorni > 0 ? ` · ${l.giorni} gg` : ""}</span>
+            <span className={`flex-none text-[11px] ${risparmio ? "text-kireo-green-light" : "text-kireo-muted"}`}>
+              {risparmio ? `−${Math.abs(l.costo).toLocaleString("it-IT")} ${u} (risparmio)` : `${l.costo.toLocaleString("it-IT")} ${u}`}{l.giorni > 0 ? ` · ${l.giorni} gg` : ""}
+            </span>
           </label>
         );
       })}

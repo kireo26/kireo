@@ -39,6 +39,8 @@ export const SLUG_QUARTIERE = "progetto-quartiere";
 export const SLUG_MEDIATECA = "crisi-mediateca";
 export const SLUG_SERRA = "guasto-serra";
 export const SLUG_CANTIERE = "cantiere-scuola";
+export const SLUG_SPORTELLO = "sportello-insieme";
+export const SLUG_FILIERA = "filiera-borea";
 
 // ─────────────────────────────────────────── tipi interni di definizione
 
@@ -85,7 +87,8 @@ type MissioneDef = {
   // comunque "s3_budget" (canonico). Missione 04.
   piano?: {
     budgetSoldi: number;
-    budgetGiorni: number;
+    unitaSoldi: string;
+    budgetGiorni?: number;
     lavori: (letti: Set<string>) => Lavoro[];
   };
   scarto: (letti: Set<string>) => OpzioneScarto[];
@@ -758,6 +761,7 @@ const MD04: MissioneDef = {
   budget: { totale: () => 0, unita: "€", passo: 1000, voci: () => [] },
   piano: {
     budgetSoldi: 240000,
+    unitaSoldi: "€",
     budgetGiorni: 83,
     lavori: (letti) => {
       const richiedeControsoffitto: string[] = [];
@@ -811,9 +815,348 @@ const MD04: MissioneDef = {
   },
 };
 
+// =====================================================================
+// MISSIONE 05 — "Il pronto soccorso organizzativo" (lo Sportello Insieme)
+// =====================================================================
+
+const P_M1: Materiale = { id: "M1", titolo: "Le cinque richieste", aree: [], costo: 0, contenuto: "R1 · Sig.ra Colella, 68 anni (in sala): una lettera le chiede di restituire 2.400 € di un contributo, non capisce perché; è agitata. R2 · Famiglia Kaur (in sala, in tre): la domanda per il contributo affitto SCADE OGGI alle 12:00; documenti forse incompleti; la signora parla poco italiano, traduce il figlio di 14 anni. R3 · Telefonata in sospeso, sig. Muratori: vuole l'esito di una pratica di marzo, «è la quarta volta che chiamo». R4 · Mail delle 7:40, mittente non identificato: «esiste un modo di chiedere aiuto senza che lo sappia la mia famiglia?»; nessun nome. R5 · Segnalazione dalla scuola media Ada Negri: un alunno «da tre settimane arriva senza colazione e si addormenta in classe»." };
+const P_M2: Materiale = {
+  id: "M2", titolo: "Il quarto d'ora prima dell'apertura", aree: [], costo: 0,
+  contenuto: "Prima di aprire, gli operatori si confrontano. Dicono cose diverse e incompatibili tra loro:",
+  estratti: [
+    { chi: "Nadia, operatrice esperta", testo: "La Kaur ha una scadenza alle 12. Le scadenze non si discutono: o si fa o non si fa." },
+    { chi: "Paolo, operatore (parla arabo)", testo: "La signora Colella è qui e sta male adesso. Non possiamo lasciarla lì a urlare da sola per due ore." },
+    { chi: "Sofia, in formazione", testo: "Quella mail mi ha fatto una strana impressione. Non so dire perché." },
+    { chi: "La coordinatrice, al telefono da casa", testo: "Ragazzi, decidete voi. Ma qualunque cosa fate, che sia una cosa che sapreste spiegare." },
+    { chi: "Il custode, passando", testo: "Comunque quello che ha telefonato quattro volte prima o poi si presenta qui di persona." },
+  ],
+};
+const P_M3: Materiale = { id: "M3", titolo: "Come funziona lo sportello", aree: [], costo: 0, contenuto: "Non prende decisioni sulle pratiche, indirizza; può accompagnare alla compilazione; deve registrare ogni contatto; non può contattare terzi senza consenso della persona interessata, salvo i casi previsti per i minori." };
+const P_M4: Materiale = { id: "M4", titolo: "Regolamento del bando affitti", aree: ["giurisprudenza-pa"], costo: 1, contenuto: "Art. 6: la domanda si considera presentata con la ricevuta di protocollo; la documentazione mancante può essere integrata entro 10 giorni. Cioè: basta protocollare entro le 12, il resto si sistema dopo. Non serve avere i documenti perfetti, serve protocollare." };
+const P_M5: Materiale = { id: "M5", titolo: "Protocollo per le segnalazioni sui minori", aree: ["salute-professioni-sanitarie", "giurisprudenza-pa", "sicurezza-difesa"], costo: 1, contenuto: "Le segnalazioni provenienti da istituzioni scolastiche relative a minori vanno trasmesse al servizio sociale competente entro 48 ore e non possono essere gestite dallo sportello in autonomia. La segnalazione della scuola è arrivata lunedì: il termine scade oggi." };
+const P_M6: Materiale = { id: "M6", titolo: "Nota sulla riservatezza dei contatti anonimi", aree: ["salute-professioni-sanitarie", "sicurezza-difesa"], costo: 1, contenuto: "A una richiesta anonima non si risponde con domande identificative; si risponde tenendo aperto il canale, indicando un contatto raggiungibile e senza chiedere nome, età o famiglia. Chiedere «chi sei?» è il modo più rapido per non ricevere più risposta." };
+const P_M7: Materiale = { id: "M7", titolo: "Registro degli accessi degli ultimi 3 mesi", aree: ["comunicazione-media", "giurisprudenza-pa"], costo: 1, contenuto: "Il sig. Muratori risulta venuto due volte di persona e aver chiamato quattro volte. La pratica di marzo risulta «in attesa di integrazione» da 74 giorni: nessuno gliel'ha mai comunicato. Non è un impaziente: è uno a cui non è stato detto." };
+const P_M8: Materiale = { id: "M8", titolo: "Nota sulla mediazione linguistica", aree: ["lingue-relazioni-internazionali", "salute-professioni-sanitarie"], costo: 1, contenuto: "È sconsigliato far tradurre a un minore in situazioni che riguardano la famiglia: mette il ragazzino in una posizione che non gli spetta e rende inaffidabile la comunicazione. Paolo parla arabo ed è disponibile." };
+const P_M9: Materiale = { id: "M9", titolo: "Cosa dice davvero la lettera della sig.ra Colella", aree: ["giurisprudenza-pa"], costo: 1, contenuto: "Non è una richiesta di restituzione: è una comunicazione di avvio di verifica, con 30 giorni per presentare osservazioni. Nessuno le sta chiedendo indietro 2.400 € adesso. Si può calmarla in tre minuti con un'informazione vera, invece che con un'ora di ascolto." };
+const P_M10: Materiale = { id: "M10", titolo: "La scheda dell'alunno segnalato", aree: ["scienze-educazione", "salute-professioni-sanitarie"], costo: 1, contenuto: "12 anni, arrivato a gennaio da un'altra città, due fratelli più piccoli, madre sola con turni notturni. Nessun contatto precedente con i servizi." };
+const P_M11: Materiale = { id: "M11", titolo: "Le disponibilità reali degli operatori oggi", aree: ["comunicazione-media"], costo: 1, contenuto: "Nadia esce alle 11:00 (commissione). Paolo è l'unico che parla arabo. Sofia è in formazione: non può gestire un colloquio da sola, può affiancare. Cioè dalle 11 in poi restano due persone, di cui una non autonoma." };
+const P_M12: Materiale = { id: "M12", titolo: "Le indicazioni della coordinatrice, per iscritto", aree: ["scienze-educazione", "comunicazione-media"], costo: 1, contenuto: "«Non lasciate nessuno senza sapere quando avrà una risposta. Anche un “non lo so ancora” è una risposta, se ha una data.»" };
+const P_M13: Materiale = { id: "M13", titolo: "Precedente: la mail di aprile", aree: ["salute-professioni-sanitarie", "sicurezza-difesa"], costo: 1, contenuto: "Sei mesi fa arrivò una mail simile. Fu risposto chiedendo nome e recapito per «poter aiutare meglio». Non arrivò mai una seconda mail. Nessuno ha mai saputo chi fosse." };
+
+const P_MANDATI: Mandato[] = [
+  {
+    id: "scadenza", label: "«Prima chi ha una scadenza»", frase: "Ciò che scade non torna.",
+    aree: ["giurisprudenza-pa", "comunicazione-media"],
+    vincolo: { id: "protocollo", testo: "Il protocollo va in tilt per un'ora: le domande cartacee vanno portate a mano in Comune." },
+    consulenze: [
+      consulenza("P_protocollo", "Consulenza: l'ufficio protocollo", "giurisprudenza-pa", "Per il bando affitti conta la ricevuta di protocollo, non i documenti perfetti. Se protocollate entro le 12, la domanda è salva: il resto si integra dopo."),
+      consulenza("P_amministrativa", "Consulenza: un'assistente amministrativa", "comunicazione-media", "Le scadenze rigide sono poche, ma quando ci sono vengono prima di tutto. Il resto si può spiegare, una scadenza persa no."),
+    ],
+  },
+  {
+    id: "sofferenza", label: "«Prima chi sta peggio adesso»", frase: "La sofferenza visibile non si mette in coda.",
+    aree: ["salute-professioni-sanitarie", "comunicazione-media"],
+    vincolo: { id: "colella", testo: "La sig.ra Colella si sente male e va accompagnata: due persone impegnate per 40 minuti." },
+    consulenze: [
+      consulenza("P_psicologa", "Consulenza: una psicologa dei servizi", "salute-professioni-sanitarie", "Chi sta male e alza la voce non va zittito, va accolto. Ma spesso basta un'informazione vera per far scendere l'ansia: prima di ascoltare per un'ora, verificate cosa dice davvero quella lettera."),
+      consulenza("P_ascolto", "Consulenza: un'operatrice di ascolto", "comunicazione-media", "La sofferenza che vedi rischia di prendersi tutto il tempo, e intanto quella che non vedi resta indietro. Tienile presenti entrambe."),
+    ],
+  },
+  {
+    id: "minori", label: "«Prima i minori»", frase: "Dove c'è un minore, decide la tutela.",
+    aree: ["scienze-educazione", "salute-professioni-sanitarie"],
+    vincolo: { id: "sociale_chiuso", testo: "Il servizio sociale competente è chiuso il giovedì pomeriggio: o entro le 13 o domani." },
+    consulenze: [
+      consulenza("P_sociale", "Consulenza: un'assistente sociale", "scienze-educazione", "Le segnalazioni sui minori dalle scuole hanno un termine di 48 ore e non le gestisce lo sportello: vanno trasmesse al servizio sociale. Controllate da quando è arrivata."),
+      consulenza("P_referente_scuola", "Consulenza: la referente della scuola", "salute-professioni-sanitarie", "Un bambino che arriva senza colazione e si addormenta da tre settimane non è un capriccio: è un segnale che va preso sul serio, e in fretta."),
+    ],
+  },
+  {
+    id: "rischio", label: "«Prima chi non può aspettare senza rischio»", frase: "Conta la conseguenza, non la voce.",
+    aree: ["salute-professioni-sanitarie", "sicurezza-difesa"],
+    vincolo: { id: "seconda_mail", testo: "Arriva una seconda mail dallo stesso indirizzo: due righe, più brevi." },
+    consulenze: [
+      consulenza("P_antiviolenza", "Consulenza: un referente del numero antiviolenza", "sicurezza-difesa", "A chi scrive in forma anonima non si chiede chi è: si tiene aperto il canale e si dà un appiglio raggiungibile. La domanda «chi sei?» è il modo più veloce per non ricevere più risposta."),
+      consulenza("P_medico", "Consulenza: un medico di comunità", "salute-professioni-sanitarie", "La richiesta più silenziosa può essere la più urgente. Chi urla di solito può aspettare; chi scrive una riga e sparisce, a volte no."),
+    ],
+  },
+  {
+    id: "trascurato", label: "«Prima chi è già stato lasciato indietro»", frase: "Chi è stato trascurato ha una precedenza.",
+    aree: ["comunicazione-media", "giurisprudenza-pa"],
+    vincolo: { id: "muratori", testo: "Il sig. Muratori si presenta di persona alle 10:30, e non è contento." },
+    consulenze: [
+      consulenza("P_pratiche", "Consulenza: il responsabile delle pratiche", "giurisprudenza-pa", "La pratica di Muratori è ferma «in attesa di integrazione» da 74 giorni, e nessuno gliel'ha mai detto. Non è un impaziente: è uno a cui non abbiamo comunicato niente."),
+      consulenza("P_custode", "Consulenza: il custode", "comunicazione-media", "Chi ha chiamato quattro volte prima o poi arriva di persona. Meglio richiamarlo prima, che ricevere una lite allo sportello dopo."),
+    ],
+  },
+];
+
+const MD05: MissioneDef = {
+  meta: {
+    slug: SLUG_SPORTELLO,
+    titolo: "Il pronto soccorso organizzativo",
+    sottotitolo: "Lo Sportello Insieme, cinque richieste in una mattina",
+    descrizione:
+      "Lo Sportello Insieme è un servizio comunale di primo ascolto e orientamento. È giovedì mattina, 9:10, e cinque richieste sono arrivate insieme: due persone in sala, una telefonata in sospeso, una mail anonima, una segnalazione dalla scuola. Gli operatori disponibili sono tre. Tu affianchi il coordinamento: proponi come muoversi e devi saper dire perché. Urgente e importante non sono la stessa cosa, e non hai tutte le informazioni. Niente cronometro, niente sconfitta: puoi riprendere quando vuoi.",
+    tipo: "cross-area",
+  },
+  areeCandidate: ["salute-professioni-sanitarie", "scienze-educazione", "sicurezza-difesa", "giurisprudenza-pa", "lingue-relazioni-internazionali", "comunicazione-media"],
+  ruoliStanza: 3,
+  daScartare: 2,
+  quantiPassi: 3,
+  materialiLiberi: [P_M1, P_M2, P_M3],
+  materialiGettone: [P_M4, P_M5, P_M6, P_M7, P_M8, P_M9, P_M10, P_M11, P_M12, P_M13],
+  mandati: P_MANDATI,
+  prioritaVoci: [
+    { id: "kaur", label: "R2 · la famiglia con la scadenza alle 12", aree: ["giurisprudenza-pa", "lingue-relazioni-internazionali"] },
+    { id: "colella", label: "R1 · la signora che sta male qui e adesso", aree: ["salute-professioni-sanitarie", "comunicazione-media"] },
+    { id: "alunno", label: "R5 · il ragazzino segnalato dalla scuola", aree: ["scienze-educazione", "salute-professioni-sanitarie"] },
+    { id: "mail", label: "R4 · la mail anonima di cui non si sa niente", aree: ["salute-professioni-sanitarie", "sicurezza-difesa"] },
+    { id: "muratori", label: "R3 · l'uomo che ha chiamato quattro volte", aree: ["comunicazione-media", "giurisprudenza-pa"] },
+  ],
+  ruoli: [
+    { id: "colella", label: "Stare con la signora Colella", area: "salute-professioni-sanitarie" },
+    { id: "kaur", label: "Seguire la famiglia Kaur", area: "lingue-relazioni-internazionali" },
+    { id: "muratori", label: "Richiamare il sig. Muratori", area: "comunicazione-media" },
+    { id: "segnalazione", label: "Occuparsi della segnalazione della scuola", area: "scienze-educazione" },
+    { id: "mail", label: "Rispondere alla mail", area: "sicurezza-difesa" },
+  ],
+  passi: [
+    { id: "colella_esito", label: "Richiamare la sig.ra Colella per l'esito" },
+    { id: "kaur_verifica", label: "Verificare che l'integrazione Kaur sia arrivata" },
+    { id: "muratori_chiudi", label: "Chiudere la pratica del sig. Muratori" },
+    { id: "sociale_alunno", label: "Sentire il servizio sociale sull'alunno" },
+    { id: "canale_mail", label: "Lasciare aperto il canale della mail" },
+    { id: "procedura_anonime", label: "Scrivere una procedura per le richieste anonime" },
+    { id: "segnala_ferme", label: "Segnalare che le pratiche restano ferme senza avvisare" },
+    { id: "mediazione", label: "Organizzare una mediazione linguistica stabile" },
+  ],
+  budget: {
+    totale: () => 210,
+    unita: "minuti",
+    passo: 10,
+    voci: (m, letti) => {
+      const voci: VoceBudget[] = [
+        { id: "ascolto_colella", label: "Accogliere e ascoltare la sig.ra Colella", aree: ["salute-professioni-sanitarie"] },
+      ];
+      if (letti.has("M9")) voci.push({ id: "spiega_colella", label: "Spiegarle cosa dice davvero la lettera", aree: ["giurisprudenza-pa"], soloSe: "M9" });
+      voci.push({ id: "compila_kaur", label: "Compilare la domanda Kaur per intero", aree: ["giurisprudenza-pa"] });
+      if (letti.has("M4")) voci.push({ id: "protocolla_kaur", label: "Protocollare la domanda Kaur e integrare dopo", aree: ["giurisprudenza-pa"], soloSe: "M4" });
+      voci.push({ id: "richiama_muratori", label: "Richiamare il sig. Muratori", aree: ["comunicazione-media"] });
+      voci.push({ id: "trasmetti_segnalazione", label: letti.has("M5") ? "Trasmettere la segnalazione al servizio sociale (scade oggi!)" : "Trasmettere la segnalazione al servizio sociale", aree: ["salute-professioni-sanitarie", "sicurezza-difesa"] });
+      voci.push({ id: "rispondi_mail", label: "Rispondere alla mail anonima", aree: ["salute-professioni-sanitarie", "sicurezza-difesa"] });
+      voci.push({ id: "registra_contatti", label: "Registrare i contatti", aree: ["comunicazione-media"] });
+      if (letti.has("M12")) voci.push({ id: "data_per_ciascuno", label: "Lasciare a ciascuno una data per la risposta", aree: ["comunicazione-media", "scienze-educazione"], soloSe: "M12" });
+      return voci;
+    },
+  },
+  scarto: (letti) => [
+    { id: "chiedi_identita", label: "Rispondere alla mail anonima chiedendo nome ed età, per poter aiutare meglio", aree: ["salute-professioni-sanitarie", "sicurezza-difesa"], qualita: 0.05, trappola: true, avviso: letti.has("M6") ? "La nota sulla riservatezza (che hai letto): a una richiesta anonima non si chiede chi è. E sei mesi fa, chiedendo il nome, quella persona non ha più scritto." : undefined },
+    { id: "traduce_figlio", label: "Far tradurre al figlio di 14 anni per fare prima", aree: ["lingue-relazioni-internazionali"], qualita: 0.1, avviso: letti.has("M8") ? "La nota sulla mediazione (che hai letto): non si fa tradurre a un minore ciò che riguarda la sua famiglia. Paolo parla arabo." : undefined },
+    { id: "segnalazione_qui", label: "Trattare la segnalazione della scuola qui, senza trasmetterla", aree: ["giurisprudenza-pa"], qualita: 0.12, avviso: letti.has("M5") ? "Il protocollo minori (che hai letto): la segnalazione va trasmessa al servizio sociale entro 48 ore, non gestita qui." : undefined },
+    { id: "colella_domani", label: "Dire alla sig.ra Colella di tornare domani perché oggi c'è troppa gente", aree: ["comunicazione-media"], qualita: 0.25 },
+    { id: "muratori_dopo", label: "Richiamare il sig. Muratori solo quando la pratica sarà definita", aree: ["comunicazione-media"], qualita: 0.3 },
+    { id: "registra_dopo", label: "Rimandare la registrazione dei contatti a fine giornata", aree: ["comunicazione-media"], qualita: 0.6 },
+  ],
+  introStanza3: (m, letti) => {
+    const parti = ["Sono le 10:20. Nadia si affaccia dalla stanza accanto con la faccia di chi sta per dire una cosa che complica tutto."];
+    if (m) parti.push(m.vincolo.testo);
+    if (!letti.has("M5")) parti.push("E dalla scuola richiamano: «La segnalazione dell'alunno è di lunedì, sono passate 48 ore. È stata trasmessa al servizio sociale?» Se nel piano non c'è, è fuori termine.");
+    return parti.join("\n\n");
+  },
+  testi: {
+    introS1: "Sono le 9:10. In sala d'attesa ci sono quattro persone; il telefono ha una chiamata in sospeso da ieri; sul computer una mail delle 7:40; sulla scrivania un foglio arrivato dalla scuola media.\n\nNadia vi guarda: «Allora? Da dove cominciamo?» Non potete rispondere a tutti insieme. E la cosa complicata non è scegliere in fretta: è scegliere in un modo che sappiate spiegare.",
+    introS2: "Prima di muovervi, potete chiedere cinque cose: tirare fuori un documento, telefonare a qualcuno, leggere un regolamento, guardare un registro.\n\nCinque, non di più: intanto la gente aspetta. Quello che non chiedete adesso, deciderete senza.",
+    introS4: "Sono le 12:40. La sala si sta svuotando. Sul vostro schermo c'è una finestra aperta da stamattina: la risposta alla mail delle 7:40, che non avete ancora scritto.",
+    introS5: "La mattina è finita. Non tutti hanno avuto risposta, e va bene così: quello che conta è come avete deciso di chi occuparvi, e chi avete deciso di non lasciare al buio.",
+    materiali: { titolo: "Prima di tutto: chi c'è, e cosa chiede?", prompt: "Apri i documenti che vuoi leggere. Ci sono le cinque richieste, quello che si sono detti gli operatori e come funziona lo sportello.", hint: "Leggi anche le voci degli operatori: già lì ci sono tre priorità diverse e incompatibili." },
+    priorita: { titolo: "Cinque richieste. In che ordine le prendete?", prompt: "Mettile in ordine. Non c'è un ordine giusto in assoluto: conta verso quale bisogno ti giri per primo.", hint: "Le prime scelte pesano di più." },
+    mandato: { titolo: "Nadia vi chiede la regola con cui state decidendo. Quale?", prompt: "È la regola che deciderà a chi rispondere prima sapendo che qualcun altro aspetterà.", hint: "Nessuna è quella giusta. Scegli quella in cui credi di più." },
+    informazioni: { titolo: "Avete 5 gettoni. Cosa chiedete prima di decidere?", prompt: "Ogni approfondimento costa un gettone e non torna indietro. Aprilo per leggerlo: quello che non chiedi adesso, deciderai senza.", hint: "Puoi restare nel tuo campo o guardarti intorno: sono due stili diversi, nessuno è migliore." },
+    nonApprofondire: { titolo: "Una cosa che avete deciso di non chiedere: perché?", prompt: "Due o tre righe. Non c'è una risposta giusta: conta che tu sappia perché hai rinunciato a saperlo.", hint: "Puoi anche lasciarlo vuoto — ma provarci dice qualcosa di come decidi." },
+    budget: { titolo: "Restano tre ore e mezza e le persone che ci sono. Come le distribuite?", prompt: "Avete 210 minuti-operatore. Distribuiteli tra le cose da fare: dove metti il tempo dice a chi hai deciso di dare la precedenza. Fare prima non conta: conta fare bene le cose che vanno fatte oggi.", hint: "Dove metti il tempo quando è poco racconta le tue priorità più delle parole." },
+    scarto: { titolo: "Tre modi di procedere non stanno in piedi. Tagliatene due.", prompt: "Rinuncia a due delle strade sul tavolo. Tieni quelle che reggono davvero.", hint: "Ciò che tieni conta più di ciò che togli." },
+    ruoli: { titolo: "Siete in tre più voi. Chi si occupa di cosa?", prompt: "Per ogni compito: te ne occupi tu o lo lasci a Nadia, Paolo o Sofia? Quello che ti prendi è quello che ti senti di saper fare.", hint: "Il compito più incerto e meno gratificante dice di te più degli altri." },
+    previsione: { titolo: "Prima di scriverla: quanto ve la sentite di rispondere a questa mail?", prompt: "Quanto ve la sentite di rispondere alla mail anonima delle 7:40?", domanda: "La tua sensazione, prima di scrivere" },
+    proposta: { titolo: "Scrivete la risposta alla mail", prompt: "Dall'altra parte c'è qualcuno che ha scritto una volta sola e potrebbe non scrivere più. Rispondete tenendo aperto il canale.", hint: "Breve, non invadente, con un appiglio raggiungibile. Non chiedere chi è.", minCaratteri: 150 },
+    riflessione: { titolo: "Ripensando a questa mattina…", prompt: "C'è qualcuno che avete lasciato aspettare più di quanto vi sembrasse giusto? E un momento in cui avreste voluto chiedere aiuto e non l'avete fatto?", hint: "Questa è la parte che resta tua: la salviamo nel tuo diario.", minCaratteri: 120 },
+    passi: { titolo: "Domani mattina, i primi tre passi?", prompt: "Scegli tre passi e mettili in ordine: quale per primo, quale per secondo, quale per terzo.", hint: "Alcuni problemi di oggi sono difetti di sistema, non giornate storte." },
+  },
+};
+
+// =====================================================================
+// MISSIONE 06 — "La filiera trasparente" (l'azienda Borea)
+// =====================================================================
+
+const B_M1: Materiale = { id: "M1", titolo: "La filiera dello zaino, sei tappe", aree: [], costo: 0, contenuto: "Impatto stimato per tappa: Materie prime (poliestere vergine fossile, 620 g/zaino) 48%; Trasformazione (taglio e cucitura, Prato) 11%; Trasporti (filato dalla Turchia, accessori dalla Cina) 21%; Imballaggio (sacchetto plastica monouso + cartone) 6%; Distribuzione (magazzino unico, spedizioni frazionate) 9%; Fine vita (non riciclabile: tessuto, zip e imbottitura non separabili) 5% dichiarato, ma il 100% finisce in discarica." };
+const B_M2: Materiale = {
+  id: "M2", titolo: "La riunione di aprile", aree: [], costo: 0,
+  contenuto: "Sei persone, cinque posizioni diverse — e una di loro propone qualcosa di illegale. Testuali:",
+  estratti: [
+    { chi: "La proprietaria", testo: "Non voglio scriverci sopra cose che non possiamo dimostrare. Se lo facciamo, prima o poi qualcuno controlla." },
+    { chi: "Il commerciale", testo: "Sopra i 42 euro le catene non ci prendono. Non è un'opinione, è quello che mi dicono al telefono." },
+    { chi: "La responsabile di produzione", testo: "Se cambiamo materiale, le mie macchine da cucire vanno ritarate. Non è gratis e non è immediato." },
+    { chi: "Il giovane del marketing", testo: "Basta scriverci «eco» e «green» sopra, lo fanno tutti. Chi va a controllare?" },
+    { chi: "L'operaia più anziana", testo: "Io ci lavoro da diciannove anni. Se lo zaino dura meno di prima, ce ne accorgiamo noi per primi — e i genitori dopo." },
+  ],
+};
+const B_M3: Materiale = { id: "M3", titolo: "Il vincolo commerciale", aree: [], costo: 0, contenuto: "Costo industriale attuale 14,20 € a zaino; prezzo a scaffale 39 €. Tetto invalicabile: 42 € a scaffale, che corrisponde a circa 15,30 € di costo industriale. Margine di manovra reale: 1,10 € a zaino." };
+const B_M4: Materiale = { id: "M4", titolo: "Le tre offerte per il tessuto", aree: ["agrifood-ambiente", "economia-management"], costo: 1, contenuto: "Attuale (poliestere vergine, Turchia): 4,10 €/zaino, 2.100 km, riferimento, 98% puntualità, 20 gg. Alfa (poliestere riciclato CERTIFICATO, Portogallo): 5,40 €, 1.900 km, −34% impatto, 91%, 35 gg. Beta (riciclato NON certificato, Italia): 4,60 €, 320 km, −28% dichiarato non verificato, 88%, 12 gg." };
+const B_M5: Materiale = { id: "M5", titolo: "Cosa significa davvero «certificato»", aree: ["scienze-ricerca", "economia-management"], costo: 1, contenuto: "La certificazione di Alfa traccia il materiale con documenti verificabili lungo tutta la catena. Beta dichiara il riciclato ma non ha tracciabilità: non è detto che menta, è che non lo si può dimostrare. Se lo si scrive in etichetta e un'autorità controlla, la contestazione è a carico di Borea, non del fornitore." };
+const B_M6: Materiale = { id: "M6", titolo: "La normativa sulle dichiarazioni ambientali", aree: ["economia-management", "scienze-ricerca"], costo: 1, contenuto: "Le affermazioni ambientali generiche («eco», «green», «amico dell'ambiente») senza prova documentale sono pratica commerciale scorretta. Sanzione fino al 10% del fatturato, e obbligo di ritirare le confezioni già stampate." };
+const B_M7: Materiale = { id: "M7", titolo: "Analisi dei trasporti", aree: ["mobilita-sostenibile", "energia-sostenibilita"], costo: 1, contenuto: "Il 21% d'impatto dei trasporti si divide così: 14% gli accessori dalla Cina (zip, fibbie, regolatori: pezzi piccoli, spediti in aereo per non fermare la produzione), 7% il filato dalla Turchia via nave. Il grosso non è il tessuto: sono le fibbie che viaggiano in aereo." };
+const B_M8: Materiale = { id: "M8", titolo: "Offerta accessori europei", aree: ["meccanica-meccatronica", "mobilita-sostenibile"], costo: 1, contenuto: "Un fornitore slovacco: zip e fibbie a +0,35 € a zaino, consegna via camion in 6 giorni, −12% d'impatto sul totale del prodotto. Le fibbie sono leggermente diverse: serve ritarare le macchine, 3 giorni di fermo produzione. È il miglior rapporto impatto/costo della missione." };
+const B_M9: Materiale = { id: "M9", titolo: "Studio sulla riciclabilità a fine vita", aree: ["agrifood-ambiente", "scienze-ricerca"], costo: 1, contenuto: "Lo zaino oggi non è riciclabile perché tessuto, imbottitura e zip sono incollati e cuciti insieme. Rendere il prodotto smontabile costa +0,45 € a zaino e non cambia nulla nell'impatto misurato oggi — cambia tutto tra otto anni, quando lo zaino verrà buttato." };
+const B_M10: Materiale = { id: "M10", titolo: "Il test di resistenza", aree: ["meccanica-meccatronica", "scienze-ricerca"], costo: 1, contenuto: "Il tessuto riciclato di Alfa, testato a 12.000 cicli di abrasione, tiene il 92% della resistenza del vergine. Quello di Beta non è stato testato. La durata media di uno zaino è due anni e mezzo: sotto il 90% di resistenza si scende a poco più di uno." };
+const B_M11: Materiale = { id: "M11", titolo: "L'imballaggio", aree: ["agrifood-ambiente", "economia-management"], costo: 1, contenuto: "Eliminare il sacchetto in plastica monouso e usare solo il cartone: −0,08 € a zaino (si risparmia), −4% d'impatto, nessun problema tecnico. Non è stato fatto finora solo perché nessuno ci ha pensato. Il guadagno gratuito." };
+const B_M12: Materiale = { id: "M12", titolo: "Le condizioni di consegna e il calendario scolastico", aree: ["economia-management", "mobilita-sostenibile"], costo: 1, contenuto: "L'80% delle vendite si concentra tra il 20 agosto e il 20 settembre. La produzione deve finire entro il 31 luglio. Alfa consegna in 35 giorni: l'ordine va fatto entro il 15 maggio, o si salta la stagione." };
+const B_M13: Materiale = { id: "M13", titolo: "Il precedente di un concorrente", aree: ["economia-management", "comunicazione-media"], costo: 1, contenuto: "Un'azienda del settore lanciò due anni fa una linea «100% sostenibile» senza documentazione. Un'associazione di consumatori fece un esposto; l'azienda ritirò la linea, distrusse 60.000 confezioni e pagò una sanzione. Il danno peggiore non fu la multa: fu che le catene smisero di rispondere al telefono." };
+
+const B_MANDATI: Mandato[] = [
+  {
+    id: "materiale", label: "«Cambiamo il materiale»", frase: "Metà dell'impatto è lì, si parte da lì.",
+    aree: ["agrifood-ambiente", "scienze-ricerca"],
+    vincolo: { id: "alfa_prezzo", testo: "Alfa alza il prezzo di 0,30 €: il margine si assottiglia a 0,80 €." },
+    consulenze: [
+      consulenza("B_tessile", "Consulenza: un tecnico tessile", "scienze-ricerca", "Il riciclato certificato di Alfa tiene bene alla prova di resistenza; quello non certificato di Beta non è stato testato. Se il tessuto dura meno, non è più sostenibile: è solo più economico."),
+      consulenza("B_certificatore", "Consulenza: un ente di certificazione", "economia-management", "Certificato vuol dire tracciabile con documenti lungo tutta la catena. Senza tracciabilità puoi migliorare davvero, ma non puoi scriverlo in etichetta: la responsabilità della frase è tua."),
+    ],
+  },
+  {
+    id: "trasporti", label: "«Cambiamo come si muove»", frase: "Il guadagno vero è nei trasporti.",
+    aree: ["mobilita-sostenibile", "meccanica-meccatronica"],
+    vincolo: { id: "slovacco_quantita", testo: "Il fornitore slovacco garantisce solo l'80% delle quantità il primo anno." },
+    consulenze: [
+      consulenza("B_spedizioniere", "Consulenza: uno spedizioniere", "mobilita-sostenibile", "Le fibbie viaggiano in aereo per non fermare la produzione: sono piccole ma pesano tanto sull'impatto. Portarle su camion dall'Europa taglia più del cambio di tessuto."),
+      consulenza("B_slovacco", "Consulenza: il fornitore slovacco", "meccanica-meccatronica", "Zip e fibbie europee a +0,35 € a zaino, in camion in sei giorni. Sono un po' diverse: le macchine vanno ritarate, tre giorni di fermo."),
+    ],
+  },
+  {
+    id: "prodotto", label: "«Cambiamo come è fatto»", frase: "Va ripensato il prodotto, non i pezzi.",
+    aree: ["meccanica-meccatronica", "scienze-ricerca"],
+    vincolo: { id: "ritaratura", testo: "Ritarare le macchine richiede 6 giorni invece di 3: si mangia il margine di tempo." },
+    consulenze: [
+      consulenza("B_progettista", "Consulenza: un progettista", "scienze-ricerca", "Se tessuto, imbottitura e zip sono incollati e cuciti insieme, lo zaino non è riciclabile. Renderlo smontabile costa poco oggi e cambia tutto quando verrà buttato."),
+      consulenza("B_produzione", "Consulenza: la responsabile di produzione", "meccanica-meccatronica", "Ogni cambio di materiale o di accessori mi ferma le macchine per ritararle. Non è gratis e non è immediato: mettetelo nei conti dei tempi."),
+    ],
+  },
+  {
+    id: "finevita", label: "«Cambiamo cosa succede dopo»", frase: "Uno zaino che finisce in discarica non è sostenibile.",
+    aree: ["agrifood-ambiente", "energia-sostenibilita"],
+    vincolo: { id: "impianto_lontano", testo: "L'unico impianto che tratta questo materiale è a 700 km: il fine vita costa più del previsto." },
+    consulenze: [
+      consulenza("B_consorzio", "Consulenza: un consorzio del riciclo", "agrifood-ambiente", "Un prodotto smontabile a fine vita non migliora i numeri di oggi, ma è l'unico modo perché tra otto anni non finisca tutto in discarica."),
+      consulenza("B_ricercatrice", "Consulenza: una ricercatrice", "energia-sostenibilita", "Attenzione a spostare l'impatto: se per riciclare mandi il materiale a 700 km, il beneficio a fine vita se lo mangia il trasporto. Va misurato, non dichiarato."),
+    ],
+  },
+  {
+    id: "racconto", label: "«Cambiamo quello che raccontiamo»", frase: "Prima di tutto va detta la verità.",
+    aree: ["economia-management", "scienze-ricerca"],
+    vincolo: { id: "documentazione_10gg", testo: "Una catena chiede la documentazione completa entro dieci giorni, o niente ordine." },
+    consulenze: [
+      consulenza("B_legale", "Consulenza: una consulente legale", "economia-management", "«Eco», «green», «100% sostenibile» senza prova documentale sono pratica scorretta: sanzione fino al 10% del fatturato e ritiro delle confezioni. Ogni parola in etichetta va dimostrata."),
+      consulenza("B_consumatori", "Consulenza: un'associazione di consumatori", "scienze-ricerca", "Controlliamo le etichette. Un'azienda che scrive «100% sostenibile» senza carte prima o poi riceve un esposto — e le catene se ne accorgono prima dei giudici."),
+    ],
+  },
+];
+
+const MD06: MissioneDef = {
+  meta: {
+    slug: SLUG_FILIERA,
+    titolo: "La filiera trasparente",
+    sottotitolo: "L'azienda Borea, uno zaino da riprogettare senza mentire",
+    descrizione:
+      "Borea produce 40.000 zaini scolastici l'anno. Le vendite calano, due catene chiedono una certificazione ambientale che non ha, un concorrente vende «riciclato» a meno. La proprietaria vuole riprogettare il prodotto, con una frase sola: «Non voglio scriverci sopra cose che non possiamo dimostrare». Tu sei nel gruppo. Il vincolo è triplo: ridurre l'impatto, tenere la qualità, non superare i 42 € a scaffale. Ogni scelta migliora una cosa e ne peggiora un'altra: chi accetta il compromesso e sa dichiararlo vince. Niente cronometro, niente sconfitta: puoi riprendere quando vuoi.",
+    tipo: "cross-area",
+  },
+  areeCandidate: ["agrifood-ambiente", "energia-sostenibilita", "scienze-ricerca", "mobilita-sostenibile", "meccanica-meccatronica", "economia-management"],
+  ruoliStanza: 3,
+  daScartare: 2,
+  quantiPassi: 3,
+  materialiLiberi: [B_M1, B_M2, B_M3],
+  materialiGettone: [B_M4, B_M5, B_M6, B_M7, B_M8, B_M9, B_M10, B_M11, B_M12, B_M13],
+  mandati: B_MANDATI,
+  prioritaVoci: [
+    { id: "materie", label: "Le materie prime: sono quasi metà dell'impatto", aree: ["agrifood-ambiente"] },
+    { id: "trasporti", label: "I trasporti: ventuno per cento e nessuno ci guarda", aree: ["mobilita-sostenibile"] },
+    { id: "trasformazione", label: "La trasformazione: è l'unica cosa che controlliamo davvero", aree: ["meccanica-meccatronica"] },
+    { id: "imballaggio", label: "L'imballaggio: piccolo ma è quello che il cliente vede", aree: ["agrifood-ambiente", "economia-management"] },
+    { id: "distribuzione", label: "La distribuzione: spediamo male e lo sappiamo", aree: ["mobilita-sostenibile", "economia-management"] },
+    { id: "finevita", label: "Il fine vita: oggi finisce tutto in discarica", aree: ["agrifood-ambiente", "scienze-ricerca"] },
+  ],
+  ruoli: [
+    { id: "fornitori", label: "Trattare con i fornitori", area: "economia-management" },
+    { id: "macchine", label: "Far ritarare le macchine", area: "meccanica-meccatronica" },
+    { id: "documentazione", label: "Raccogliere la documentazione", area: "scienze-ricerca" },
+    { id: "etichetta", label: "Scrivere quello che va in etichetta", area: "agrifood-ambiente" },
+    { id: "test", label: "Verificare i test di resistenza", area: "mobilita-sostenibile" },
+  ],
+  passi: [
+    { id: "certifica_italiano", label: "Certificare anche il fornitore italiano" },
+    { id: "misura_impatto", label: "Misurare l'impatto reale del nuovo prodotto" },
+    { id: "progetta_smontabile", label: "Progettare lo zaino smontabile" },
+    { id: "ritiro_vecchi", label: "Avviare un ritiro dei vecchi zaini" },
+    { id: "spedizioni", label: "Ridurre le spedizioni frazionate" },
+    { id: "durata_scuole", label: "Testare la durata sul campo con le scuole" },
+    { id: "forma_commerciale", label: "Formare il commerciale su cosa si può dire" },
+    { id: "pubblica_dati", label: "Pubblicare i dati verificati" },
+  ],
+  // budget alloca non usato (Stanza 3.1 è un pianifica_lavori): stub.
+  budget: { totale: () => 0, unita: "cent", passo: 1, voci: () => [] },
+  piano: {
+    budgetSoldi: 110,
+    unitaSoldi: "cent",
+    lavori: (letti) => {
+      const lavori: Lavoro[] = [
+        { id: "tessuto_alfa", label: "Tessuto Alfa riciclato certificato (−34% impatto)", aree: ["agrifood-ambiente"], costo: 130, giorni: 0 },
+        { id: "tessuto_beta", label: "Tessuto Beta riciclato non certificato (−28% dichiarato)", aree: ["agrifood-ambiente"], costo: 50, giorni: 0 },
+      ];
+      if (letti.has("M7") && letti.has("M8")) lavori.push({ id: "accessori_europei", label: "Accessori europei in camion (−12% impatto)", aree: ["mobilita-sostenibile", "meccanica-meccatronica"], costo: 35, giorni: 0, gate: "M7+M8" });
+      if (letti.has("M9")) lavori.push({ id: "smontabile", label: "Prodotto smontabile a fine vita", aree: ["agrifood-ambiente", "scienze-ricerca"], costo: 45, giorni: 0, gate: "M9" });
+      if (letti.has("M11")) lavori.push({ id: "sacchetto", label: "Eliminare il sacchetto di plastica (fa RISPARMIARE, −4% impatto)", aree: ["agrifood-ambiente"], costo: -8, giorni: 0, gate: "M11" });
+      lavori.push({ id: "test_resistenza", label: "Test di resistenza indipendente", aree: ["meccanica-meccatronica", "scienze-ricerca"], costo: 12, giorni: 0 });
+      lavori.push({ id: "documentazione", label: "Documentazione e tracciabilità (per poter dichiarare)", aree: ["economia-management", "scienze-ricerca"], costo: 18, giorni: 0 });
+      lavori.push({ id: "fondo_imprevisti", label: "Fondo per gli imprevisti di produzione", aree: [], costo: 15, giorni: 0 });
+      return lavori;
+    },
+  },
+  scarto: (letti) => [
+    { id: "beta_dichiara", label: "Scegliere Beta e scrivere in etichetta «tessuto riciclato»", aree: ["agrifood-ambiente", "economia-management"], qualita: 0.05, trappola: true, avviso: letti.has("M5") ? "Beta non ha tracciabilità (l'hai letto): scriverlo in etichetta mette la responsabilità su Borea, non sul fornitore. Due anni fa un concorrente distrusse 60.000 confezioni così." : undefined },
+    { id: "eco_friendly", label: "Scrivere «eco-friendly» senza specificare", aree: ["economia-management"], qualita: 0.08, avviso: letti.has("M6") ? "La normativa (che hai letto): le affermazioni generiche senza prova sono pratica scorretta, sanzione fino al 10% del fatturato." : undefined },
+    { id: "alza_prezzo", label: "Tenere tutto com'è e alzare il prezzo a 44 €", aree: ["economia-management"], qualita: 0.2 },
+    { id: "rimanda", label: "Rimandare tutto alla prossima stagione", aree: ["economia-management"], qualita: 0.3 },
+    { id: "smontabile_comunica", label: "Fare il prodotto smontabile e comunicare solo quello", aree: ["scienze-ricerca", "agrifood-ambiente"], qualita: 0.7 },
+    { id: "beta_muto", label: "Scegliere Beta e NON scrivere niente in etichetta", aree: ["agrifood-ambiente"], qualita: 0.85 },
+  ],
+  introStanza3: (m, letti) => {
+    const parti = ["8 maggio, riunione del comitato. La proprietaria entra con un foglio in mano e non si siede."];
+    if (m) parti.push(m.vincolo.testo);
+    if (!letti.has("M12")) parti.push("E il commerciale entra con il calendario in mano: «Se l'ordine ad Alfa non parte entro il 15 maggio, la merce non c'è per la stagione. Consegnano in 35 giorni.»");
+    return parti.join("\n\n");
+  },
+  testi: {
+    introS1: "Siete in sei nella sala riunioni sopra il magazzino, con l'odore del tessuto che sale dalle scale. Sul tavolo c'è uno zaino blu tagliato a metà, per mostrare com'è fatto dentro.\n\nLa proprietaria ve lo indica: «Questo costa 14,20 a farlo e 39 in negozio. Deve inquinare meno, durare uguale, e non costare più di 42.» Poi aggiunge la frase che conta: «E non voglio scriverci sopra cose che non possiamo dimostrare.»",
+    introS2: "Avete due settimane prima del comitato. Due settimane sono cinque verifiche: un preventivo chiesto, un test commissionato, una norma letta, un fornitore sentito.\n\nCinque, non di più. Quello che non verificate adesso, dovrete scriverlo senza poterlo dimostrare — e la proprietaria ha detto che non si fa.",
+    introS4: "20 maggio. Sul tavolo c'è la bozza della nuova etichetta, vuota. Quello che ci scrivete sopra finirà su quarantamila zaini e lo leggeranno dei genitori mentre decidono se spendere quaranta euro.",
+    introS5: "Il comitato ha deciso. La stagione dirà se ha funzionato. Ma una cosa la sapete già: quanto di ciò che avete scritto in etichetta lo potete davvero dimostrare.",
+    materiali: { titolo: "Prima di tutto: com'è fatto lo zaino, e dove inquina?", prompt: "Apri i documenti che vuoi leggere. C'è la filiera con gli impatti, quello che si sono detti in riunione e il vincolo commerciale.", hint: "Leggi anche le voci: cinque persone dicono cinque cose incompatibili, e una propone qualcosa di illegale." },
+    priorita: { titolo: "Sei tappe della filiera. Da quale partite a intervenire?", prompt: "Mettile in ordine, da dove conviene partire. Le prime scelte pesano di più." },
+    mandato: { titolo: "La proprietaria vuole una frase sola per capire dove andate. Quale?", prompt: "È la scelta che decide dove concentrerete gli sforzi.", hint: "Nessuna è quella giusta. Ogni strada migliora una cosa e ne trascura un'altra." },
+    informazioni: { titolo: "Avete 5 gettoni. Cosa verificate prima di decidere?", prompt: "Ogni verifica costa un gettone e non torna indietro. Aprila per leggerla: quello che non verifichi, non lo potrai scrivere — e la proprietaria non vuole cose non dimostrabili.", hint: "Puoi restare sul tessuto o guardarti intorno: a volte il guadagno più grande è dove nessuno guarda." },
+    nonApprofondire: { titolo: "Una cosa che avete deciso di non verificare: perché?", prompt: "Due o tre righe. Non c'è una risposta giusta: conta che tu sappia perché hai rinunciato a saperlo.", hint: "Puoi anche lasciarlo vuoto — ma provarci dice qualcosa di come decidi." },
+    budget: { titolo: "Avete 1,10 € a zaino di margine. Cosa comprate?", prompt: "Ogni centesimo speso qui è un centesimo che non spendete altrove. Scegliete gli interventi: il piano deve stare dentro 110 centesimi. Attenzione: una voce fa RISPARMIARE, invece di costare.", hint: "Quanto impatto compri per centesimo speso conta più di quanto spendi." },
+    scarto: { titolo: "Tre strade non reggono. Tagliatene due.", prompt: "Rinuncia a due delle strade sul tavolo. Attenzione: migliorare senza dichiararlo è lecito; dichiarare senza poterlo dimostrare no.", hint: "Ciò che tieni conta più di ciò che togli." },
+    ruoli: { titolo: "Chi segue cosa da qui alla produzione?", prompt: "Per ogni compito: te ne occupi tu o lo lasci a un altro del gruppo? Quello che ti prendi è quello che ti senti di saper fare." },
+    previsione: { titolo: "Prima di scriverla: quanto è dimostrabile ogni parola che userete?", prompt: "Quanto siete sicuri che ogni parola che state per scrivere in etichetta sia dimostrabile?", domanda: "La tua sensazione, prima di scrivere" },
+    proposta: { titolo: "Scrivete cosa comunicate al cliente", prompt: "Cosa avete cambiato, di quanto, e cosa NON avete potuto fare. Ogni affermazione dev'essere sostenuta da qualcosa che avete verificato.", hint: "Numeri veri, niente parole generiche. Una comunicazione modesta e dimostrabile vale più di una entusiasta.", minCaratteri: 150 },
+    riflessione: { titolo: "Ripensando a queste due settimane…", prompt: "C'è stato un momento in cui la cosa più conveniente e la cosa più giusta non coincidevano? E cosa avete fatto?", hint: "Questa è la parte che resta tua: la salviamo nel tuo diario.", minCaratteri: 120 },
+    passi: { titolo: "Per la stagione prossima, i primi tre passi?", prompt: "Scegli tre passi e mettili in ordine: quale per primo, quale per secondo, quale per terzo.", hint: "L'ordine conta: da dove è più saggio cominciare?" },
+  },
+};
+
 // ─────────────────────────────────────────── registro delle missioni
 
-const DEFS: MissioneDef[] = [MD01, MD02, MD03, MD04];
+const DEFS: MissioneDef[] = [MD01, MD02, MD03, MD04, MD05, MD06];
 const DEF_BY_SLUG = new Map(DEFS.map((d) => [d.meta.slug, d]));
 
 // Tutti i mandati di tutte le missioni. Gli id dei mandati sono unici a livello
@@ -892,7 +1235,7 @@ function costruisciMissioneDef(def: MissioneDef, get: LeggiRisposta): EscapeMiss
   const stepNonApprofondire: Step = { id: "s2_non_approfondire", stanza: 2, tipo: "decisione_scritta", titolo: t.nonApprofondire.titolo, prompt: t.nonApprofondire.prompt, hint: t.nonApprofondire.hint, minCaratteri: 0, facoltativo: true };
 
   const stepBudget: Step = def.piano
-    ? { id: "s3_budget", stanza: 3, tipo: "pianifica_lavori", titolo: t.budget.titolo, prompt: t.budget.prompt, hint: t.budget.hint, budgetSoldi: def.piano.budgetSoldi, budgetGiorni: def.piano.budgetGiorni, lavori: def.piano.lavori(letti) }
+    ? { id: "s3_budget", stanza: 3, tipo: "pianifica_lavori", titolo: t.budget.titolo, prompt: t.budget.prompt, hint: t.budget.hint, budgetSoldi: def.piano.budgetSoldi, unitaSoldi: def.piano.unitaSoldi, budgetGiorni: def.piano.budgetGiorni, lavori: def.piano.lavori(letti) }
     : { id: "s3_budget", stanza: 3, tipo: "alloca_budget", titolo: t.budget.titolo, prompt: t.budget.prompt, hint: t.budget.hint, totale: def.budget.totale(mandato), unita: def.budget.unita, passo: def.budget.passo, voci: def.budget.voci(mandato, letti) };
   const stepScarto: Step = { id: "s3_scarto", stanza: 3, tipo: "scarta_opzione", titolo: t.scarto.titolo, prompt: t.scarto.prompt, hint: t.scarto.hint, daScartare: def.daScartare, opzioni: def.scarto(letti) };
 
