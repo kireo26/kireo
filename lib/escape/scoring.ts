@@ -24,6 +24,7 @@ import type {
   PayloadAlloca,
   PayloadAssegna,
   PayloadEsplora,
+  PayloadLavori,
   PayloadOrdina,
   PayloadPianifica,
   PayloadPrevisione,
@@ -31,9 +32,10 @@ import type {
   PayloadSceltaSingola,
   PayloadSeleziona,
   PayloadTesto,
+  StepPianificaLavori,
   VoceBudget,
 } from "./tipi";
-import { mandatoScelto, materialiLetti, stepDellaMissione, SLUG_MEDIATECA, SLUG_QUARTIERE, SLUG_SERRA } from "./config";
+import { mandatoScelto, materialiLetti, stepDellaMissione, valutaPiano, SLUG_CANTIERE, SLUG_MEDIATECA, SLUG_QUARTIERE, SLUG_SERRA } from "./config";
 
 const MODELLO_ESCAPE = "claude-haiku-4-5"; // stesso modello provato in prod (workshop/assistente)
 
@@ -72,12 +74,15 @@ type Pesi = {
 
 type BudgetCtx = { alloc: Record<string, number>; voci: VoceBudget[]; letti: Set<string>; totale: number };
 
+type PianoCtx = { step: StepPianificaLavori; sel: string[]; letti: Set<string> };
+
 type ScoringSpec = {
   pesi: Pesi;
   esploraTesti: { conBonus: string; base: string };
   pianificaIdeali: string[];
   ordinaPerformance?: { area: string; peso: number };
-  budgetPerformance: (c: BudgetCtx) => { valore: number; buona: string; migliora: string };
+  budgetPerformance?: (c: BudgetCtx) => { valore: number; buona: string; migliora: string };
+  pianoPerformance?: (c: PianoCtx) => { valore: number; buona: string; migliora: string };
   promptProposta: (aree: string[]) => string;
 };
 
@@ -195,6 +200,34 @@ const SPEC: Record<string, ScoringSpec> = {
     },
     promptProposta: (aree) =>
       `Sei un analista di orientamento per studenti italiani di 16-19 anni. Uno studente ha scritto la spiegazione di un guasto tecnico: in una serra automatica una sezione secca mentre il sistema dice che è stata irrigata. Individua da 1 a 3 aree — SCEGLIENDO SOLO tra questi slug: ${aree.join(", ")} — che la spiegazione tocca di più. Per ognuna valuta: performance = qualità del RAGIONAMENTO CAUSALE e ONESTÀ sul livello di certezza (0-1). REGOLA IMPORTANTE: premia esplicitamente chi scrive che «non ne è ancora certo» quando non ha raccolto le prove; NON premiare una spiegazione sicura ma non verificata, nemmeno se azzecca la causa. La sicurezza senza prove vale MENO dell'onestà epistemica. interest = quanto emerge quell'area (0-1). Motivazione breve, calda, IPOTETICA, in italiano semplice. Rispondi SOLO con JSON valido: {"aree":[{"area_slug":"...","performance":0.0,"interest":0.0,"motivazione":"..."}]}`,
+  },
+
+  // ── Missione 04 — "Il cantiere della scuola"
+  [SLUG_CANTIERE]: {
+    pesi: { ...PESI_BASE, mandato: 1.4, budgetPerf: 1.5, scartoPerf: 1.5, previsione: 1.0, passi: 1.0 },
+    esploraTesti: {
+      conBonus: "Hai voluto sentire chi la palestra la vive ogni giorno, non solo leggere i tecnici: in un cantiere le persone contano.",
+      base: "Hai letto i documenti prima di decidere: parti dai fatti, non dalle impressioni.",
+    },
+    pianificaIdeali: ["registro", "controlli", "accessibilita"],
+    pianoPerformance: ({ step, sel, letti }) => {
+      const { soldi, giorni, dipendenzeMancanti } = valutaPiano(step, sel);
+      let punti = 0, max = 0;
+      max += 2; punti += soldi <= step.budgetSoldi ? 2 : clamp01(1 - (soldi - step.budgetSoldi) / step.budgetSoldi) * 2;
+      max += 2; punti += giorni <= step.budgetGiorni ? 2 : clamp01(1 - (giorni - step.budgetGiorni) / step.budgetGiorni) * 2;
+      max += 1.5; punti += dipendenzeMancanti.length === 0 ? 1.5 : 0;
+      const essenziali = step.lavori.filter((l) => l.essenziale).map((l) => l.id);
+      const incl = essenziali.filter((id) => sel.includes(id)).length;
+      max += 2; punti += essenziali.length ? (incl / essenziali.length) * 2 : 0;
+      if (letti.has("M11")) { max += 1; punti += sel.includes("fondo_imprevisti") ? 1 : 0; }
+      return {
+        valore: clamp01(max > 0 ? punti / max : 0.5),
+        buona: "Il tuo piano sta dentro i soldi e i giorni, rispetta le dipendenze e non lascia fuori i lavori senza cui non si riapre: è aritmetica che torna.",
+        migliora: "Il piano non chiude: sfora i soldi o i giorni, salta una dipendenza d'ordine, o lascia fuori un lavoro senza cui il collaudo non passa.",
+      };
+    },
+    promptProposta: (aree) =>
+      `Sei un analista di orientamento per studenti italiani di 16-19 anni. Uno studente ha scritto il resoconto di un cantiere: la ristrutturazione della palestra della sua scuola, con budget e scadenza rigidi. Individua da 1 a 3 aree — SCEGLIENDO SOLO tra questi slug: ${aree.join(", ")} — che il testo tocca di più. Per ognuna valuta: performance = coerenza tra il piano, i vincoli e la realtà di tempi e dipendenze, e soprattutto ONESTÀ (0-1). REGOLE: premia chi NOMINA esplicitamente ciò che ha lasciato indietro e chi ne paga il prezzo; NON premiare i toni trionfali; se il testo riconosce che il problema viene da anni di rinvii senza usarlo come scusa, premialo. interest = quanto emerge quell'area (0-1). Motivazione breve, calda, IPOTETICA, in italiano semplice. Rispondi SOLO con JSON valido: {"aree":[{"area_slug":"...","performance":0.0,"interest":0.0,"motivazione":"..."}]}`,
   },
 };
 
@@ -327,10 +360,31 @@ export async function calcolaEvidenze(
             evidenze.push({ area_slug: area, dimensione: "interest", valore: clamp01(a / maxAlloc), peso: P.budgetInt, motivazione: `Hai investito risorse su «${voce.label.toLowerCase()}».`, step_id: s.id });
           }
         }
-        const r = spec.budgetPerformance({ alloc, voci: s.voci, letti, totale: s.totale });
+        const r = spec.budgetPerformance?.({ alloc, voci: s.voci, letti, totale: s.totale });
         const areaPerf = areaMandato ?? s.voci.find((v) => (Number(alloc[v.id]) || 0) === maxAlloc)?.aree[0] ?? null;
-        if (areaPerf) {
+        if (r && areaPerf) {
           evidenze.push({ area_slug: areaPerf, dimensione: "performance", valore: r.valore, peso: P.budgetPerf, motivazione: r.valore >= 0.6 ? r.buona : r.migliora, step_id: s.id });
+        }
+        break;
+      }
+
+      case "pianifica_lavori": {
+        // Piano di lavori (Missione 04): interesse su ciò che entra nel piano +
+        // performance sull'aritmetica dura (soldi, giorni, dipendenze, lavori
+        // essenziali per il collaudo).
+        const p = payload as PayloadLavori | undefined;
+        const sel = p?.selezionati ?? [];
+        if (sel.length === 0) break;
+        for (const l of s.lavori) {
+          if (!sel.includes(l.id)) continue;
+          for (const area of l.aree) {
+            evidenze.push({ area_slug: area, dimensione: "interest", valore: 0.7, peso: P.budgetInt, motivazione: `Hai messo nel piano «${l.label.toLowerCase()}».`, step_id: s.id });
+          }
+        }
+        const rp = spec.pianoPerformance?.({ step: s, sel, letti });
+        if (rp) {
+          const areaPerf = areaMandato ?? "edilizia-architettura";
+          evidenze.push({ area_slug: areaPerf, dimensione: "performance", valore: rp.valore, peso: P.budgetPerf, motivazione: rp.valore >= 0.6 ? rp.buona : rp.migliora, step_id: s.id });
         }
         break;
       }
@@ -350,14 +404,21 @@ export async function calcolaEvidenze(
         const scartatiGiusti = [...scartati].filter((id) => idealiDaScartare.has(id)).length;
         const correttezza = s.daScartare > 0 ? clamp01(scartatiGiusti / s.daScartare) : 0.5;
         const trappola = s.opzioni.find((o) => o.trappola);
-        const facciataTenuta = tenuti.some((o) => o.trappola);
+        // La trappola scatta quando viene TENUTA (default) o, se
+        // `trappolaSeScartata`, quando viene SCARTATA (es. lasciar fuori
+        // l'accessibilità nel cantiere).
+        const trapScattata = trappola ? (trappola.trappolaSeScartata ? scartati.has(trappola.id) : tenuti.some((o) => o.trappola)) : false;
         const areaPerf = trappola?.aree[0] ?? "studi-umanistici-beni-culturali";
         evidenze.push({
           area_slug: areaPerf,
           dimensione: "performance",
-          valore: facciataTenuta ? Math.min(correttezza, 0.2) : correttezza,
+          valore: trapScattata ? Math.min(correttezza, 0.2) : correttezza,
           peso: P.scartoPerf,
-          motivazione: facciataTenuta ? "Hai tenuto la scelta che, verificabile alla mano, avrebbe fatto saltare tutto: valeva la pena controllarla prima." : "Hai riconosciuto cosa lasciare andare e cosa proteggere: scelta lucida sotto vincolo.",
+          motivazione: trapScattata
+            ? (trappola?.trappolaSeScartata
+                ? "Hai lasciato fuori qualcosa che sembrava rimandabile e non lo era: verificabile alla mano, poteva far saltare tutto."
+                : "Hai tenuto la scelta che, verificabile alla mano, avrebbe fatto saltare tutto: valeva la pena controllarla prima.")
+            : "Hai riconosciuto cosa lasciare andare e cosa proteggere: scelta lucida sotto vincolo.",
           step_id: s.id,
         });
         break;

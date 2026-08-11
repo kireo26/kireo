@@ -3,7 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/lib/supabase/server";
 import { accessoreDaMappa, getMissione, mandatoScelto } from "@/lib/escape/config";
 import { calcolaEvidenze } from "@/lib/escape/scoring";
-import type { Payload, PayloadAlloca } from "@/lib/escape/tipi";
+import type { Payload, PayloadAlloca, PayloadLavori } from "@/lib/escape/tipi";
 
 export const runtime = "nodejs";
 
@@ -87,17 +87,18 @@ export async function POST(request: NextRequest) {
     await supabase.from("journal_entry").insert({ student_id: user.id, attempt_id: attempt.id, testo: riflessione });
   }
 
-  // Portfolio: l'artefatto "La mia proposta per l'ex mercato di Via Sanzio"
-  // (mandato + allocazione + testo), come da design 5.3.
+  // Portfolio: l'artefatto della missione (mandato + piano + testo), design 5.3.
+  // La Stanza 3.1 è un'allocazione (Missioni 01-03) o un piano di lavori
+  // (Missione 04): si salva ciò che c'è.
   await supabase.from("portfolio_item").delete().eq("attempt_id", attempt.id);
   if (proposta) {
     const mandato = mandatoScelto(get);
-    const allocazione = (risposte.get("s3_budget") as PayloadAlloca | undefined)?.allocazioni ?? {};
+    const s3 = risposte.get("s3_budget") as (PayloadAlloca & PayloadLavori) | undefined;
     await supabase.from("portfolio_item").insert({
       student_id: user.id,
       attempt_id: attempt.id,
       titolo: `La mia proposta — ${mission.titolo}`,
-      contenuto: { mandato: mandato?.label ?? null, allocazione, testo: proposta },
+      contenuto: { mandato: mandato?.label ?? null, allocazione: s3?.allocazioni ?? {}, piano: s3?.selezionati ?? undefined, testo: proposta },
     });
   }
 
