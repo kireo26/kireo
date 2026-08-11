@@ -106,7 +106,7 @@ export default async function MissionePage({ params }: { params: Promise<{ slug:
     const mappa = new Map<string, Payload>();
     for (const r of righeResp ?? []) mappa.set(r.step_id, r.payload as Payload);
     const areeTop: AreaTop[] = aree.slice(0, 3).map((a) => ({ slug: a.slug, nome: a.nome, status: a.status }));
-    const restituzione = costruisciRestituzione(accessoreDaMappa(mappa), areeTop);
+    const restituzione = costruisciRestituzione(slug, accessoreDaMappa(mappa), areeTop);
 
     return (
       <div className="space-y-6">
