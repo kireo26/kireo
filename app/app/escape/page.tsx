@@ -42,7 +42,7 @@ export default async function EscapeHome() {
       <div className="grid gap-4 sm:grid-cols-2">
         {MISSIONI.map((m) => {
           const stato = stati[m.slug];
-          const etichetta = stato === "completata" ? "Rivedi l'esito" : stato === "in_corso" ? "Riprendi" : "Inizia";
+          const etichetta = stato === "completata" ? "Rivedi o rigioca" : stato === "in_corso" ? "Riprendi" : "Inizia";
           return (
             <Link key={m.slug} href={`/app/escape/${m.slug}`} className="group rounded-2xl border border-white/5 bg-kireo-card p-6 transition hover:border-kireo-green/50">
               <div className="flex items-center justify-between gap-2">

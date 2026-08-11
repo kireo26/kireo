@@ -89,6 +89,14 @@ export default async function MissionePage({ params }: { params: Promise<{ slug:
     return (
       <div className="space-y-6">
         {Intestazione}
+        <div className="flex flex-col gap-3 rounded-2xl border border-white/5 bg-kireo-card p-5 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-kireo-muted">
+            Hai già completato questa missione. Puoi rigiocarla: le scelte possono cambiare e le tue ipotesi si affinano.
+          </p>
+          <div className="flex-none">
+            <IniziaMissione missionSlug={slug} etichetta="Rigioca la missione" />
+          </div>
+        </div>
         <EsitoMissione titolo={mission.titolo} restituzione={restituzione} aree={aree} motivazioni={motivazioni} />
       </div>
     );
