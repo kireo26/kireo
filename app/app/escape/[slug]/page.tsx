@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { getAppContext } from "@/lib/app/studentContext";
 import { createClient } from "@/lib/supabase/server";
 import { getAreaBySlug } from "@/data/aree";
-import { getMissione } from "@/lib/escape/config";
+import { accessoreDaMappa, getMissione } from "@/lib/escape/config";
+import { costruisciRestituzione, type AreaTop } from "@/lib/escape/restituzione";
 import type { Payload } from "@/lib/escape/tipi";
 import EscapePlayer from "@/components/escape/EscapePlayer";
 import IniziaMissione from "@/components/escape/IniziaMissione";
@@ -51,7 +52,7 @@ export default async function MissionePage({ params }: { params: Promise<{ slug:
     );
   }
 
-  // Completata: esito trasparente (profilo aggregato + motivazioni).
+  // Completata: restituzione narrativa (v2) + profilo aggregato + motivazioni.
   if (attempt.stato === "completata") {
     const { data: prove } = await supabase.from("evidence").select("area_slug, motivazione").eq("attempt_id", attempt.id);
     const areeToccate = Array.from(new Set((prove ?? []).map((p) => p.area_slug).filter((a): a is string => Boolean(a))));
@@ -77,10 +78,26 @@ export default async function MissionePage({ params }: { params: Promise<{ slug:
         .sort((a, b) => b.interest + b.curiosity - (a.interest + a.curiosity));
     }
 
+    // restituzione: costruita dalle risposte autorevoli (step_response) + le
+    // aree principali. Retro-compatibile con un tentativo v1 (blocchi vuoti).
+    const { data: righeResp } = await supabase.from("step_response").select("step_id, payload").eq("attempt_id", attempt.id);
+    const mappa = new Map<string, Payload>();
+    for (const r of righeResp ?? []) mappa.set(r.step_id, r.payload as Payload);
+    const areeTop: AreaTop[] = aree.slice(0, 3).map((a) => ({ slug: a.slug, nome: a.nome, status: a.status }));
+    const restituzione = costruisciRestituzione(accessoreDaMappa(mappa), areeTop);
+
     return (
       <div className="space-y-6">
         {Intestazione}
-        <EsitoMissione titolo={mission.titolo} aree={aree} motivazioni={motivazioni} />
+        <div className="flex flex-col gap-3 rounded-2xl border border-white/5 bg-kireo-card p-5 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-kireo-muted">
+            Hai già completato questa missione. Puoi rigiocarla: le scelte possono cambiare e le tue ipotesi si affinano.
+          </p>
+          <div className="flex-none">
+            <IniziaMissione missionSlug={slug} etichetta="Rigioca la missione" />
+          </div>
+        </div>
+        <EsitoMissione titolo={mission.titolo} restituzione={restituzione} aree={aree} motivazioni={motivazioni} />
       </div>
     );
   }
@@ -92,7 +109,7 @@ export default async function MissionePage({ params }: { params: Promise<{ slug:
   return (
     <div className="space-y-6">
       {Intestazione}
-      <EscapePlayer mission={mission} attemptId={attempt.id} risposteIniziali={risposteIniziali} />
+      <EscapePlayer missionSlug={slug} attemptId={attempt.id} risposteIniziali={risposteIniziali} />
     </div>
   );
 }
