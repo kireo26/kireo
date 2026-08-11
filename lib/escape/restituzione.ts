@@ -1,111 +1,132 @@
-// KIREO Escape — costruzione della RESTITUZIONE dell'esito (v2). Non un
-// riassunto: quattro momenti in linguaggio ipotetico, senza mai numeri grezzi
-// di valore/peso. Logica pura (nessuna AI), calcolata dalle risposte autorevoli
-// lette dal DB (step_response) + i segnali d'area aggregati. Usata lato server
-// dalla pagina di esito. Retro-compatibile: su un tentativo vecchio (senza i
-// nuovi step) i blocchi che non si possono ricostruire restano null/vuoti.
+// KIREO Escape — costruzione della RESTITUZIONE dell'esito. Non un riassunto:
+// quattro momenti in linguaggio ipotetico, senza mai numeri grezzi di
+// valore/peso. Logica pura (nessuna AI), calcolata dalle risposte autorevoli
+// (step_response) + i segnali d'area aggregati. Usata lato server dalla pagina
+// di esito. Mission-aware: il blocco "Cosa hai costruito" e le "occasioni"
+// (conseguenze di ciò che non hai letto/scelto) sono per-missione; i blocchi
+// "Come hai deciso", "Le ipotesi" e la nota da_verificare sono generici.
+// Retro-compatibile: su un tentativo senza i nuovi step i blocchi restano
+// null/vuoti.
 
-import type { LeggiRisposta, PayloadAlloca, PayloadScarta, PayloadSeleziona } from "./tipi";
-import { dossierStanza2, mandatoScelto, materialiLetti, opzioniScarto, vociBudget } from "./config";
+import type { LeggiRisposta, Mandato, PayloadAlloca, PayloadScarta, PayloadSeleziona, StepAllocaBudget, StepSelezionaInformazioni } from "./tipi";
+import { getMissione, mandatoScelto, materialiLetti } from "./config";
 
 export type AreaTop = { slug: string; nome: string; status: "emergente" | "confermata" | "da_verificare" };
 
 export type Restituzione = {
-  costruito: string | null; // 1. Cosa avete costruito
-  metodo: string | null; // 2. Come avete deciso
-  occasioni: string[]; // 3. Le occasioni (conseguenze)
-  ipotesi: string | null; // 4. Le ipotesi (intro + invito a verificare)
-  notaVerifica: string | null; // nota se autoefficacia≠performance (status da_verificare)
+  costruito: string | null;
+  metodo: string | null;
+  occasioni: string[];
+  ipotesi: string | null;
+  notaVerifica: string | null;
 };
 
-const elenco = (nomi: string[]) =>
-  nomi.length <= 1 ? nomi[0] ?? "" : `${nomi.slice(0, -1).join(", ")} e ${nomi[nomi.length - 1]}`;
+type OccasioneCtx = { letti: Set<string>; alloc?: Record<string, number>; scartati?: string[]; mandato: Mandato | null };
+type OccasioneRule = { quando: (c: OccasioneCtx) => boolean; testo: string };
+type Narrativa = { costruito: (mandato: Mandato, topVoce: string | null) => string; occasioni: OccasioneRule[] };
 
-export function costruisciRestituzione(get: LeggiRisposta, areeTop: AreaTop[]): Restituzione {
+const elenco = (nomi: string[]) => (nomi.length <= 1 ? nomi[0] ?? "" : `${nomi.slice(0, -1).join(", ")} e ${nomi[nomi.length - 1]}`);
+const facciataTenuta = (c: OccasioneCtx, trapId: string) => c.scartati !== undefined && !c.scartati.includes(trapId);
+const speso = (c: OccasioneCtx, id: string) => Number(c.alloc?.[id]) || 0;
+
+const NARRATIVA: Record<string, Narrativa> = {
+  "progetto-quartiere": {
+    costruito: (mandato, topVoce) =>
+      `Hai immaginato l'ex mercato come ${mandato.frase.charAt(0).toLowerCase()}${mandato.frase.slice(1)}` +
+      (topVoce ? ` Quando hai dovuto distribuire il budget, la fetta più grande è andata a «${topVoce}».` : ""),
+    occasioni: [
+      { quando: (c) => c.alloc !== undefined && !c.letti.has("M4"), testo: "Non hai aperto la perizia strutturale, e il tetto è arrivato quando il budget era già distribuito. Succede: nessuno può sapere tutto. Ma è un'informazione su di te — in questa missione hai preferito muoverti piuttosto che sapere prima." },
+      { quando: (c) => facciataTenuta(c, "facciata_pannelli") && c.letti.has("M6"), testo: "Hai proposto di rivestire la facciata anche se la perizia della Soprintendenza, che avevi letto, la dava per tutelata: la domanda sarebbe stata respinta. A volte si sa una cosa e si sceglie lo stesso di correre il rischio." },
+      { quando: (c) => facciataTenuta(c, "facciata_pannelli") && !c.letti.has("M6"), testo: "Avresti proposto di coprire la facciata: la Soprintendenza l'avrebbe respinta. Era scritto in un documento che non hai aperto." },
+      { quando: (c) => c.alloc !== undefined && c.letti.has("M7") && speso(c, "fondo_gestione") === 0, testo: "Sapevi dei costi di gestione dal terzo anno — l'avevi letto — ma non hai lasciato nulla da parte per coprirli. È il tipo di dettaglio che decide se un progetto regge nel tempo." },
+    ],
+  },
+
+  "crisi-mediateca": {
+    costruito: (mandato, topVoce) =>
+      `Hai scelto di trattarla come ${mandato.label} ${mandato.frase.charAt(0).toLowerCase()}${mandato.frase.slice(1)}` +
+      (topVoce ? ` Delle cinque giornate, la parte più grande è andata a «${topVoce}».` : ""),
+    occasioni: [
+      { quando: (c) => facciataTenuta(c, "confermare_spiegare") && !c.letti.has("M4"), testo: "Avresti confermato la decisione così com'era. Il regolamento comunale non lo permette: l'area libera sarebbe scesa al 48%, sotto il minimo del 60%. Era scritto in un documento che non hai aperto." },
+      { quando: (c) => facciataTenuta(c, "confermare_spiegare") && c.letti.has("M4"), testo: "Avresti tenuto la decisione così com'era anche sapendo, dal regolamento che avevi letto, che l'area libera scende sotto il minimo di legge. A volte si sa una cosa e si sceglie lo stesso di correre il rischio." },
+      { quando: (c) => !c.letti.has("M12"), testo: "Il Comune si è dissociato pubblicamente mentre stavi ancora decidendo. C'era una nota interna che lo annunciava: non l'hai chiesta." },
+      { quando: (c) => !c.letti.has("M7"), testo: "C'era una strada che quasi nessuno aveva visto: la mattina la sala è occupata al 18%, il pomeriggio al 94%. Si poteva dividere il tempo invece dello spazio. Il dato c'era, in un documento che non hai aperto." },
+      { quando: (c) => c.alloc !== undefined && c.letti.has("M8") && speso(c, "informare_personale") === 0, testo: "Non hai dedicato tempo a informare chi ci lavora, e loro avevano saputo della decisione dal giornale come tutti gli altri." },
+    ],
+  },
+
+  "guasto-serra": {
+    costruito: (mandato, topVoce) =>
+      `Sei partito dall'ipotesi ${mandato.label} ${mandato.frase.charAt(0).toLowerCase()}${mandato.frase.slice(1)}` +
+      (topVoce ? ` Delle sei ore, ne hai messe di più su «${topVoce}».` : ""),
+    occasioni: [
+      { quando: (c) => facciataTenuta(c, "raddoppiare") && !c.letti.has("M6"), testo: "Avresti raddoppiato la durata dell'irrigazione. La valvola B, sotto 0,8 bar, non si apre affatto: raddoppiare zero fa zero. Era nel manuale della pompa, che non hai aperto." },
+      { quando: (c) => facciataTenuta(c, "raddoppiare") && c.letti.has("M6"), testo: "Avresti raddoppiato la durata dell'irrigazione anche sapendo, dal manuale che avevi letto, che sotto 0,8 bar la valvola non apre: raddoppiare zero fa zero. A volte si legge una cosa e non la si collega al momento giusto." },
+      { quando: (c) => !c.letti.has("M12"), testo: "Il contatore segnava un terzo dell'acqua che il sistema dichiarava di aver usato. La prova che i dati non corrispondevano alla realtà era lì, e non l'hai chiesta." },
+      { quando: (c) => !(c.letti.has("M4") && c.letti.has("M13")), testo: "C'era una riga di codice che scriveva «irrigato» nell'istante in cui mandava il comando, senza controllare se l'acqua uscisse davvero. Tutto il problema era lì — nel log e nel codice, che non hai letto insieme." },
+    ],
+  },
+};
+
+export function costruisciRestituzione(slug: string, get: LeggiRisposta, areeTop: AreaTop[]): Restituzione {
   const mandato = mandatoScelto(get);
   const letti = materialiLetti(get);
+  const alloc = (get("s3_budget") as PayloadAlloca | undefined)?.allocazioni;
+  const scartati = (get("s3_scarto") as PayloadScarta | undefined)?.scartati;
+  const narr = NARRATIVA[slug];
 
-  // ── 1. Cosa avete costruito
+  // Missione risolta: per leggere le voci del budget (etichetta della fetta più
+  // grande) e i dossier della Stanza 2 (mappatura id → aree per il metodo).
+  const mission = getMissione(slug, get);
+  const stepBudget = mission?.stanze.flatMap((s) => s.step).find((s) => s.id === "s3_budget") as StepAllocaBudget | undefined;
+  const stepDossier = mission?.stanze.flatMap((s) => s.step).find((s) => s.id === "s2_informazioni") as StepSelezionaInformazioni | undefined;
+
+  // ── 1. Cosa hai costruito
   let costruito: string | null = null;
-  if (mandato) {
-    const alloc = (get("s3_budget") as PayloadAlloca | undefined)?.allocazioni ?? {};
-    const voci = vociBudget(mandato, letti);
+  if (mandato && narr) {
     let topLabel: string | null = null;
     let topVal = 0;
-    for (const v of voci) {
-      const a = Number(alloc[v.id]) || 0;
-      if (a > topVal) {
-        topVal = a;
-        topLabel = v.label.toLowerCase();
-      }
+    for (const v of stepBudget?.voci ?? []) {
+      const a = Number(alloc?.[v.id]) || 0;
+      if (a > topVal) { topVal = a; topLabel = v.label.toLowerCase(); }
     }
-    costruito =
-      `Hai immaginato l'ex mercato come ${mandato.frase.charAt(0).toLowerCase()}${mandato.frase.slice(1)}` +
-      (topLabel ? ` Quando hai dovuto distribuire il budget, la fetta più grande è andata a «${topLabel}».` : "");
+    costruito = narr.costruito(mandato, topLabel);
   }
 
-  // ── 2. Come avete deciso (metodo: focalizzazione vs curiosità ampia)
+  // ── 2. Come hai deciso (focalizzazione vs esplorazione)
   let metodo: string | null = null;
   const selezionati = (get("s2_informazioni") as PayloadSeleziona | undefined)?.selezionati ?? [];
-  if (mandato && selezionati.length > 0) {
-    const dossier = dossierStanza2(mandato);
+  if (mandato && selezionati.length > 0 && stepDossier) {
     const areeMandato = new Set(mandato.aree);
     const areeToccate = new Set<string>();
     let dentroMandato = 0;
     for (const id of selezionati) {
-      const m = dossier.find((d) => d.id === id);
+      const m = stepDossier.dossier.find((d) => d.id === id);
       if (!m) continue;
       m.aree.forEach((a) => areeToccate.add(a));
       if (m.aree.some((a) => areeMandato.has(a))) dentroMandato++;
     }
-    const tutti = dentroMandato === selezionati.length;
-    if (tutti) {
+    if (dentroMandato === selezionati.length) {
       metodo = `Sei andato dritto: i ${selezionati.length} approfondimenti che hai speso erano tutti dentro il tuo campo. Hai preferito approfondire una direzione piuttosto che guardarti intorno — è uno stile, non un difetto.`;
     } else if (areeToccate.size >= 4) {
       metodo = `Hai voluto guardarti intorno: hai distribuito gli approfondimenti su ${areeToccate.size} aree diverse prima di impegnarti. Raccogli molti punti di vista — è uno stile, non una dispersione.`;
     } else {
-      metodo = `Hai tenuto insieme il tuo mandato e uno sguardo più largo: qualche approfondimento nel tuo campo, qualcuno fuori. Un equilibrio tra concentrarsi e curiosare.`;
+      metodo = "Hai tenuto insieme la tua direzione e uno sguardo più largo: qualche approfondimento nel tuo campo, qualcuno fuori. Un equilibrio tra concentrarsi e curiosare.";
     }
   }
 
-  // ── 3. Le occasioni (conseguenze di ciò che NON hai letto/scelto)
+  // ── 3. Le occasioni (conseguenze)
   const occasioni: string[] = [];
-  const alloc = (get("s3_budget") as PayloadAlloca | undefined)?.allocazioni;
-  const scartati = (get("s3_scarto") as PayloadScarta | undefined)?.scartati;
-
-  if (alloc !== undefined && !letti.has("M4")) {
-    occasioni.push(
-      "Non hai aperto la perizia strutturale, e il tetto è arrivato quando il budget era già distribuito. Succede: nessuno può sapere tutto. Ma è un'informazione su di te — in questa missione hai preferito muoverti piuttosto che sapere prima.",
-    );
-  }
-
-  if (scartati !== undefined) {
-    const facciata = opzioniScarto(letti).find((o) => o.trappola);
-    const facciataTenuta = facciata ? !scartati.includes(facciata.id) : false;
-    if (facciataTenuta) {
-      occasioni.push(
-        letti.has("M6")
-          ? "Hai proposto di rivestire la facciata anche se la perizia della Soprintendenza, che avevi letto, la dava per tutelata: la domanda sarebbe stata respinta. A volte si sa una cosa e si sceglie lo stesso di correre il rischio."
-          : "Avresti proposto di coprire la facciata: la Soprintendenza l'avrebbe respinta. Era scritto in un documento che non hai aperto.",
-      );
-    }
-  }
-
-  if (mandato && alloc !== undefined && letti.has("M7")) {
-    const voceGestione = vociBudget(mandato, letti).some((v) => v.id === "fondo_gestione");
-    const fondo = Number(alloc["fondo_gestione"]) || 0;
-    if (voceGestione && fondo === 0) {
-      occasioni.push(
-        "Sapevi dei costi di gestione dal terzo anno — l'avevi letto — ma non hai lasciato nulla da parte per coprirli. È il tipo di dettaglio che decide se un progetto regge nel tempo.",
-      );
-    }
+  if (narr) {
+    const ctx: OccasioneCtx = { letti, alloc, scartati, mandato };
+    for (const r of narr.occasioni) if (r.quando(ctx)) occasioni.push(r.testo);
   }
 
   // ── 4. Le ipotesi
   let ipotesi: string | null = null;
   if (areeTop.length > 0) {
     const nomi = areeTop.slice(0, 3).map((a) => a.nome);
-    ipotesi = `Da come hai messo in ordine le priorità e da dove hai messo i soldi quando eri stretto, le aree che si sono attivate di più sono ${elenco(nomi)}. È un'ipotesi, non un verdetto: serve un'altra missione per capire se regge.`;
+    ipotesi = `Da come hai messo in ordine le priorità e da dove hai messo le risorse quando eri stretto, le aree che si sono attivate di più sono ${elenco(nomi)}. È un'ipotesi, non un verdetto: serve un'altra missione per capire se regge.`;
   }
 
   // ── nota da_verificare (autoefficacia≠performance)

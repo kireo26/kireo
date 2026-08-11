@@ -29,7 +29,10 @@ export type StepTipo =
 // Un'opzione/elemento etichettato con le aree che rappresenta. Molte voci
 // toccano più di un'area (es. il mandato "Un posto per crescere" tocca sia
 // scienze-educazione sia salute): il motore emette una prova per area.
-export type OpzioneArea = { id: string; label: string; aree: string[]; qualita?: number };
+// `affidabilita` (0..1, facoltativa) è usata solo dalle missioni in cui
+// l'ordinamento è una gerarchia di affidabilità verificabile (es. Missione 03,
+// "fatti misurati" vs "affermazioni da verificare"): definisce l'ordine ideale.
+export type OpzioneArea = { id: string; label: string; aree: string[]; qualita?: number; affidabilita?: number };
 
 // Materiale consultabile (M1-M14 + le consulenze di mandato). `contenuto` è il
 // testo con i numeri, mostrato quando lo studente lo apre/acquista. `costo` = 0
@@ -67,8 +70,10 @@ export type Ruolo = { id: string; label: string; area: string };
 export type Passo = { id: string; label: string };
 
 // Vincolo che arriva nella Stanza 3, determinato dal mandato scelto in 1.3.
+// `id` è libero: alcune missioni lo ispezionano (es. Missione 01 usa "budget"
+// per il taglio del totale), altre lo usano solo come chiave.
 export type Vincolo = {
-  id: "minori" | "sostenibilita" | "budget" | "acustica" | "barriere";
+  id: string;
   testo: string;
 };
 
@@ -89,7 +94,9 @@ export type StepEsploraLibero = StepBase & { tipo: "esplora_libero"; materiali: 
 export type StepSceltaSingola = StepBase & { tipo: "scelta_singola"; opzioni: OpzioneArea[] };
 export type StepOrdinaPriorita = StepBase & { tipo: "ordina_priorita"; elementi: OpzioneArea[] };
 export type StepSelezionaInformazioni = StepBase & { tipo: "seleziona_informazioni"; budget: number; dossier: Materiale[] };
-export type StepAllocaBudget = StepBase & { tipo: "alloca_budget"; totale: number; voci: VoceBudget[] };
+// `unita` è l'unità di misura del budget (es. "€", "giornate", "ore") e `passo`
+// l'incremento dell'input numerico (1000 per gli euro, 1 per giornate/ore).
+export type StepAllocaBudget = StepBase & { tipo: "alloca_budget"; totale: number; unita: string; passo: number; voci: VoceBudget[] };
 export type StepScartaOpzione = StepBase & { tipo: "scarta_opzione"; opzioni: OpzioneScarto[]; daScartare: number };
 export type StepPrevisionePoiEsito = StepBase & { tipo: "previsione_poi_esito"; domanda: string };
 export type StepDecisioneScritta = StepBase & { tipo: "decisione_scritta"; minCaratteri: number; facoltativo?: boolean };

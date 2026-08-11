@@ -28,7 +28,7 @@ import type {
 } from "@/lib/escape/tipi";
 
 const CARD = "rounded-xl border border-white/10 bg-kireo-dark px-4 py-3 text-sm text-kireo-light";
-const fmtEuro = (n: number) => `${n.toLocaleString("it-IT")} €`;
+const fmtBudget = (n: number, unita: string) => `${n.toLocaleString("it-IT")} ${unita}`;
 
 type OnChange = (v: Payload, valido: boolean) => void;
 
@@ -175,20 +175,21 @@ function AllocaInput({ step, valore, onChange }: { step: StepAllocaBudget; valor
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between rounded-xl border border-white/10 bg-kireo-card px-4 py-2 text-sm">
-        <span className="text-kireo-muted">Budget disponibile: {fmtEuro(step.totale)}</span>
-        <span className={residuo >= 0 ? "text-kireo-light" : "text-red-400"}>Resta {fmtEuro(residuo)}</span>
+        <span className="text-kireo-muted">Budget disponibile: {fmtBudget(step.totale, step.unita)}</span>
+        <span className={residuo >= 0 ? "text-kireo-light" : "text-red-400"}>Resta {fmtBudget(residuo, step.unita)}</span>
       </div>
       {step.voci.map((voce) => (
         <div key={voce.id} className={`${CARD}`}>
           <div className="flex items-center justify-between gap-3">
             <span>
               {voce.label}
-              {voce.costoIndicativo ? <span className="ml-1 text-[11px] text-kireo-muted">(indicativo ≈ {fmtEuro(voce.costoIndicativo)})</span> : null}
+              {voce.costoIndicativo ? <span className="ml-1 text-[11px] text-kireo-muted">(indicativo ≈ {fmtBudget(voce.costoIndicativo, step.unita)})</span> : null}
             </span>
             <input
               type="number"
               min={0}
-              step={1000}
+              max={step.totale}
+              step={step.passo}
               value={alloc[voce.id] ?? 0}
               onChange={(e) => set(voce.id, Number(e.target.value))}
               className="w-28 flex-none rounded-lg border border-white/10 bg-kireo-card px-2 py-1 text-right text-sm text-kireo-light focus:border-kireo-green focus:outline-none"
