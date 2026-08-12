@@ -54,7 +54,9 @@ export default async function MissionePage({ params }: { params: Promise<{ slug:
 
   // Completata: restituzione narrativa (v2) + profilo aggregato + motivazioni.
   if (attempt.stato === "completata") {
-    const { data: prove } = await supabase.from("evidence").select("area_slug, motivazione, peso").eq("attempt_id", attempt.id);
+    // Solo le prove d'AREA (asse null): le prove di STILE (T2/missioni) vivono
+    // in style_signal e hanno la loro pagina, non devono affollare l'esito missione.
+    const { data: prove } = await supabase.from("evidence").select("area_slug, motivazione, peso").eq("attempt_id", attempt.id).is("asse", null);
     const areeToccate = Array.from(new Set((prove ?? []).map((p) => p.area_slug).filter((a): a is string => Boolean(a))));
 
     // "Perché lo diciamo": una riga per AZIONE, non una per coppia azione-area.

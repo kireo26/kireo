@@ -19,6 +19,7 @@ import type {
   CompitoAssegnabile,
   EscapeMission,
   Lavoro,
+  TagAsse,
   LeggiRisposta,
   Mandato,
   Materiale,
@@ -36,6 +37,7 @@ import type {
   StepPianificaLavori,
   VoceBudget,
 } from "./tipi";
+import { ASSI_MISSIONI } from "./assi";
 
 export const SLUG_QUARTIERE = "progetto-quartiere";
 export const SLUG_MEDIATECA = "crisi-mediateca";
@@ -114,8 +116,13 @@ type MissioneDef = {
   testi: DefTesti;
 };
 
-function consulenza(id: string, titolo: string, area: string, contenuto: string): Materiale {
-  return { id, titolo, aree: [area], costo: 1, contenuto };
+// Le consulenze sono materiali a gettone che sono PERSONE da sentire: scegliere
+// di consultare qualcuno invece di leggere un documento è, di per sé,
+// relazionale — segnale uniforme e genuino in tutte le missioni (valore
+// moderato, non travolge). Il contenuto tecnico di ciò che dicono resta
+// area-specifico. `assi` è sovrascrivibile se una consulenza esprime altro.
+function consulenza(id: string, titolo: string, area: string, contenuto: string, assi: TagAsse[] = [{ asse: "relazionale", valore: 0.4 }]): Materiale {
+  return { id, titolo, aree: [area], costo: 1, contenuto, assi };
 }
 
 // =====================================================================
@@ -2105,34 +2112,43 @@ export function valutaPiano(step: StepPianificaLavori, selezionati: string[]): {
 
 // ─────────────────────────────────────────── costruzione della missione
 
+// Applica i tag di STILE (assi.ts) a un array di opzioni, per id. Non tocca gli
+// `assi` già presenti (es. quelli uniformi delle consulenze) se l'id non è nella
+// mappa. Restituisce copie superficiali solo per le opzioni taggate.
+function taggaAssi<T extends { id: string; assi?: TagAsse[] }>(arr: T[], mappa: Record<string, TagAsse[]> | undefined): T[] {
+  if (!mappa) return arr;
+  return arr.map((o) => (mappa[o.id] ? { ...o, assi: mappa[o.id] } : o));
+}
+
 function costruisciMissioneDef(def: MissioneDef, get: LeggiRisposta): EscapeMission {
   const mandato = mandatoScelto(get);
   const letti = materialiLetti(get);
   const t = def.testi;
   const idRuoli = `s${def.ruoliStanza}_ruoli`;
+  const am = ASSI_MISSIONI[def.meta.slug]; // tag di stile della missione
 
-  const stepMateriali: Step = { id: "s1_materiali", stanza: 1, tipo: "esplora_libero", titolo: t.materiali.titolo, prompt: t.materiali.prompt, hint: t.materiali.hint, materiali: def.materialiLiberi };
+  const stepMateriali: Step = { id: "s1_materiali", stanza: 1, tipo: "esplora_libero", titolo: t.materiali.titolo, prompt: t.materiali.prompt, hint: t.materiali.hint, materiali: taggaAssi(def.materialiLiberi, am?.materiali) };
   const stepPriorita: Step = { id: "s1_priorita", stanza: 1, tipo: "ordina_priorita", titolo: t.priorita.titolo, prompt: t.priorita.prompt, hint: t.priorita.hint, elementi: def.prioritaVoci };
-  const stepMandato: Step = { id: "s1_mandato", stanza: 1, tipo: "scelta_singola", titolo: t.mandato.titolo, prompt: t.mandato.prompt, hint: t.mandato.hint, opzioni: def.mandati.map((m) => ({ id: m.id, label: `${m.label} — ${m.frase}`, aree: m.aree, qualita: 0.7 })) };
+  const stepMandato: Step = { id: "s1_mandato", stanza: 1, tipo: "scelta_singola", titolo: t.mandato.titolo, prompt: t.mandato.prompt, hint: t.mandato.hint, opzioni: def.mandati.map((m) => ({ id: m.id, label: `${m.label} — ${m.frase}`, aree: m.aree, qualita: 0.7, assi: am?.mandati?.[m.id] ?? m.assi })) };
 
-  const stepInformazioni: Step = { id: "s2_informazioni", stanza: 2, tipo: "seleziona_informazioni", titolo: t.informazioni.titolo, prompt: t.informazioni.prompt, hint: t.informazioni.hint, budget: 5, dossier: dossierStanza2(def, mandato) };
+  const stepInformazioni: Step = { id: "s2_informazioni", stanza: 2, tipo: "seleziona_informazioni", titolo: t.informazioni.titolo, prompt: t.informazioni.prompt, hint: t.informazioni.hint, budget: 5, dossier: taggaAssi(dossierStanza2(def, mandato), am?.materiali) };
   const stepNonApprofondire: Step = { id: "s2_non_approfondire", stanza: 2, tipo: "decisione_scritta", titolo: t.nonApprofondire.titolo, prompt: t.nonApprofondire.prompt, hint: t.nonApprofondire.hint, minCaratteri: 0, facoltativo: true };
 
   const budgetSoldiRisolto = def.piano ? (typeof def.piano.budgetSoldi === "function" ? def.piano.budgetSoldi(letti) : def.piano.budgetSoldi) : undefined;
   const stepBudget: Step = def.piano
-    ? { id: "s3_budget", stanza: 3, tipo: "pianifica_lavori", titolo: t.budget.titolo, prompt: t.budget.prompt, hint: t.budget.hint, unitaSoldi: def.piano.unitaSoldi, budgetSoldi: budgetSoldiRisolto, budgetGiorni: def.piano.budgetGiorni, obiettivo: def.piano.obiettivo, unitaObiettivo: def.piano.unitaObiettivo, lavori: def.piano.lavori(letti) }
-    : { id: "s3_budget", stanza: 3, tipo: "alloca_budget", titolo: t.budget.titolo, prompt: t.budget.prompt, hint: t.budget.hint, totale: def.budget.totale(mandato, letti), unita: def.budget.unita, passo: def.budget.passo, voci: def.budget.voci(mandato, letti) };
-  const stepScarto: Step = { id: "s3_scarto", stanza: 3, tipo: "scarta_opzione", titolo: t.scarto.titolo, prompt: t.scarto.prompt, hint: t.scarto.hint, daScartare: def.daScartare, opzioni: def.scarto(letti) };
+    ? { id: "s3_budget", stanza: 3, tipo: "pianifica_lavori", titolo: t.budget.titolo, prompt: t.budget.prompt, hint: t.budget.hint, unitaSoldi: def.piano.unitaSoldi, budgetSoldi: budgetSoldiRisolto, budgetGiorni: def.piano.budgetGiorni, obiettivo: def.piano.obiettivo, unitaObiettivo: def.piano.unitaObiettivo, lavori: taggaAssi(def.piano.lavori(letti), am?.lavori) }
+    : { id: "s3_budget", stanza: 3, tipo: "alloca_budget", titolo: t.budget.titolo, prompt: t.budget.prompt, hint: t.budget.hint, totale: def.budget.totale(mandato, letti), unita: def.budget.unita, passo: def.budget.passo, voci: taggaAssi(def.budget.voci(mandato, letti), am?.voci) };
+  const stepScarto: Step = { id: "s3_scarto", stanza: 3, tipo: "scarta_opzione", titolo: t.scarto.titolo, prompt: t.scarto.prompt, hint: t.scarto.hint, daScartare: def.daScartare, opzioni: taggaAssi(def.scarto(letti), am?.scarto) };
 
   const stepPrevisione: Step = { id: "s4_previsione", stanza: 4, tipo: "previsione_poi_esito", titolo: t.previsione.titolo, prompt: t.previsione.prompt, domanda: t.previsione.domanda };
   const stepProposta: Step = { id: "s4_proposta", stanza: 4, tipo: "decisione_scritta", titolo: t.proposta.titolo, prompt: t.proposta.prompt, hint: t.proposta.hint, minCaratteri: t.proposta.minCaratteri };
 
   const stepRuoli: Step = def.assegnaPersone
-    ? { id: idRuoli, stanza: def.ruoliStanza, tipo: "assegna_persone", titolo: t.ruoli.titolo, prompt: t.ruoli.prompt, hint: t.ruoli.hint, compiti: def.assegnaPersone.compiti, persone: def.assegnaPersone.persone }
-    : { id: idRuoli, stanza: def.ruoliStanza, tipo: "assegna_ruoli", titolo: t.ruoli.titolo, prompt: t.ruoli.prompt, hint: t.ruoli.hint, ruoli: def.ruoli };
+    ? { id: idRuoli, stanza: def.ruoliStanza, tipo: "assegna_persone", titolo: t.ruoli.titolo, prompt: t.ruoli.prompt, hint: t.ruoli.hint, compiti: taggaAssi(def.assegnaPersone.compiti, am?.compiti), persone: def.assegnaPersone.persone }
+    : { id: idRuoli, stanza: def.ruoliStanza, tipo: "assegna_ruoli", titolo: t.ruoli.titolo, prompt: t.ruoli.prompt, hint: t.ruoli.hint, ruoli: taggaAssi(def.ruoli, am?.ruoli) };
 
   const stepRiflessione: Step = { id: "s5_riflessione", stanza: 5, tipo: "riflessione", titolo: t.riflessione.titolo, prompt: t.riflessione.prompt, hint: t.riflessione.hint, minCaratteri: t.riflessione.minCaratteri };
-  const stepPassi: Step = { id: "s5_passi", stanza: 5, tipo: "pianifica_passi", titolo: t.passi.titolo, prompt: t.passi.prompt, hint: t.passi.hint, passi: def.passi, quanti: def.quantiPassi };
+  const stepPassi: Step = { id: "s5_passi", stanza: 5, tipo: "pianifica_passi", titolo: t.passi.titolo, prompt: t.passi.prompt, hint: t.passi.hint, passi: taggaAssi(def.passi, am?.passi), quanti: def.quantiPassi };
 
   const stanza3Step = def.ruoliStanza === 3 ? [stepBudget, stepScarto, stepRuoli] : [stepBudget, stepScarto];
   const stanza4Step = def.ruoliStanza === 4 ? [stepPrevisione, stepProposta, stepRuoli] : [stepPrevisione, stepProposta];

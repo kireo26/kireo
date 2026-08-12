@@ -3,30 +3,27 @@
 // nelle prove per il profilo unico. Le magnitudini di punteggio vivono qui, non
 // nel config client (anti-gaming leggero: il peso è comunque basso).
 //
-// Regole di T1:
-//  - scelta positiva → +3 all'area scelta;
-//  - scelta negativa (item «cosa ti annoierebbe») → −2 all'area scelta;
-//  - scelta forzata a coppia → +3 all'area scelta, −1 all'altra opzione;
-//  - un'area può finire SOTTO ZERO: in quel caso NON si genera alcuna prova
-//    (non esistono prove a peso/valore negativo nello schema).
+// T1 (aree): scelta +3 · negativo −2 · forzata +3/−1. Un'area sotto zero → nessuna prova.
+// T2 (assi): situazionali +3 (± secondari) · forzate +3/−1 · ordina posizione
+//   3/2/1/0 · alloca ore/totale×4 · Likert 1-5. La NORMALIZZAZIONE è per-asse,
+//   sul massimo teorico di CIASCUN asse (analitico/operativo hanno un tetto più
+//   alto per via delle Likert e delle forzate): normalizzare su un massimo comune
+//   li gonfierebbe entrambi. Un asse sotto zero → nessuna prova.
 //
-// Le prove entrano in `evidence` con dimensione='interest', fonte='test' e
-// PESO BASSO fisso: un'azione strutturata in missione pesa 1,2-1,5, quindi una
-// missione vale tre o quattro test. NON alzare questo peso: serve a far sì che
-// un test compilato strategicamente venga corretto dalle missioni successive.
+// Le prove entrano in `evidence` con dimensione='interest', fonte='test' e PESO
+// BASSO fisso (0,35): una missione (peso 1,2-1,5) vale tre-quattro test, così un
+// test compilato strategicamente viene corretto dalle missioni. NON alzare il peso.
 
+import type { AsseStile } from "@/lib/escape/tipi";
 import { getTest } from "./config";
+import type { ItemT2 } from "./config";
 
-// Peso deliberatamente basso delle prove di test (vedi sopra). Non modificare.
 export const PESO_TEST = 0.35;
-// Punteggio di riferimento per normalizzare il `valore` in 0..1: tre scelte
-// positive sulla stessa area (3 × +3). Un'area scelta una volta → ~0,33; scelta
-// tre volte → 1,0. Stabile fra studenti (non dipende dal massimo individuale),
-// così il valore è confrontabile in aggregazione col contributo delle missioni.
-const SCORE_RIFERIMENTO = 9;
+const SCORE_RIFERIMENTO = 9; // T1: 3 scelte positive sulla stessa area → valore 1
 
 export type EvidenzaTest = {
-  area_slug: string;
+  area_slug?: string | null;
+  asse?: AsseStile | null;
   dimensione: "interest";
   valore: number; // 0..1
   peso: number; // > 0
@@ -35,21 +32,19 @@ export type EvidenzaTest = {
 };
 
 const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
+const ASSI: AsseStile[] = ["analitico", "relazionale", "creativo", "operativo"];
 
-// risposte: mappa itemId → opzioneId scelta (dal DB).
+// ─────────────────────────────────────────── T1 (aree)
 export function calcolaEvidenzeTest(testSlug: string, risposte: Map<string, string>): EvidenzaTest[] {
   const test = getTest(testSlug);
-  if (!test) return [];
+  if (!test || test.misura !== "aree") return [];
 
   const punteggi = new Map<string, number>();
   const motivazioni = new Map<string, string[]>();
-  const itemDiArea = new Map<string, string>(); // area → item rappresentativo (prima scelta positiva)
+  const itemDiArea = new Map<string, string>();
   const add = (area: string, delta: number) => punteggi.set(area, (punteggi.get(area) ?? 0) + delta);
-  // Racchiude l'etichetta tra caporali SOLO se non li ha già (alcune opzioni
-  // sono citazioni — titoli di giornale, frasi — e portano le «» dentro il
-  // testo): evita le virgolette doppie annidate («« … »») nella motivazione.
   const racchiudi = (s: string) => (s.startsWith("«") && s.endsWith("»") ? s : `«${s}»`);
-  const positiva = (area: string, item: TestItemLite, opzLabel: string) => {
+  const positiva = (area: string, item: { id: string; frammento: string }, opzLabel: string) => {
     const arr = motivazioni.get(area) ?? [];
     arr.push(`${item.frammento} hai scelto ${racchiudi(opzLabel)}.`);
     motivazioni.set(area, arr);
@@ -61,14 +56,13 @@ export function calcolaEvidenzeTest(testSlug: string, risposte: Map<string, stri
     if (!opzId) continue;
     const opz = item.opzioni.find((o) => o.id === opzId);
     if (!opz) continue;
-
     if (item.tipo === "negativo") {
-      add(opz.area, -2); // rifiuto: penalizza, nessuna motivazione positiva
+      add(opz.area, -2);
     } else if (item.tipo === "forzata") {
       add(opz.area, 3);
       positiva(opz.area, item, opz.label);
       const altra = item.opzioni.find((o) => o.id !== opz.id);
-      if (altra) add(altra.area, -1); // l'opzione non scelta: −1, nessuna motivazione
+      if (altra) add(altra.area, -1);
     } else {
       add(opz.area, 3);
       positiva(opz.area, item, opz.label);
@@ -77,21 +71,96 @@ export function calcolaEvidenzeTest(testSlug: string, risposte: Map<string, stri
 
   const evidenze: EvidenzaTest[] = [];
   for (const [area, score] of punteggi) {
-    if (score <= 0) continue; // aree sotto zero (o a zero): nessuna prova
+    if (score <= 0) continue;
     const valore = clamp01(score / SCORE_RIFERIMENTO);
     const mots = motivazioni.get(area) ?? [];
-    const motivazione = mots.slice(0, 2).join(" · ") || "È emersa dalle tue risposte.";
-    evidenze.push({
-      area_slug: area,
-      dimensione: "interest",
-      valore: Number(valore.toFixed(3)),
-      peso: PESO_TEST,
-      motivazione,
-      item_id: itemDiArea.get(area) ?? test.items[0].id,
-    });
+    evidenze.push({ area_slug: area, dimensione: "interest", valore: Number(valore.toFixed(3)), peso: PESO_TEST, motivazione: mots.slice(0, 2).join(" · ") || "È emersa dalle tue risposte.", item_id: itemDiArea.get(area) ?? test.items[0].id });
   }
   return evidenze;
 }
 
-// tipo minimale usato solo internamente (evita di reimportare TestItem intero)
-type TestItemLite = { id: string; frammento: string };
+// ─────────────────────────────────────────── T2 (assi)
+
+// Punti positivi che un item può dare a un asse (per il massimo teorico).
+function maxItemPerAsse(item: ItemT2, asse: AsseStile): number {
+  if (item.tipo === "scelta") return Math.max(0, ...item.opzioni.map((o) => o.pesi.filter((p) => p.asse === asse).reduce((a, p) => a + p.punti, 0)));
+  if (item.tipo === "ordina") return item.elementi.some((e) => e.asse === asse) ? 3 : 0; // 1° posto
+  if (item.tipo === "alloca") return item.voci.some((v) => v.asse === asse) ? 4 : 0; // tutte le ore su quell'asse
+  return item.asse === asse ? 5 : 0; // Likert max
+}
+
+// Massimo teorico per asse, CALCOLATO dagli item (non hard-coded): è la base
+// della normalizzazione per-asse. Analitico/operativo escono più alti — è
+// proprio per questo che NON si normalizza su un massimo comune.
+export function massimiTeorici(testSlug: string): Record<AsseStile, number> {
+  const test = getTest(testSlug);
+  const m: Record<AsseStile, number> = { analitico: 0, relazionale: 0, creativo: 0, operativo: 0 };
+  if (!test || test.misura !== "assi") return m;
+  for (const item of test.items) for (const asse of ASSI) m[asse] += maxItemPerAsse(item, asse);
+  return m;
+}
+
+type PayloadT2 = { opzioneId?: string; ordine?: string[]; allocazioni?: Record<string, number>; valore?: number };
+
+// risposte: mappa itemId → payload (dal DB). Un asse sotto zero → nessuna prova.
+export function calcolaEvidenzeT2(testSlug: string, risposte: Map<string, PayloadT2>): EvidenzaTest[] {
+  const test = getTest(testSlug);
+  if (!test || test.misura !== "assi") return [];
+
+  const grezzi: Record<AsseStile, number> = { analitico: 0, relazionale: 0, creativo: 0, operativo: 0 };
+  const motivazioni: Record<AsseStile, string[]> = { analitico: [], relazionale: [], creativo: [], operativo: [] };
+  const itemDiAsse: Partial<Record<AsseStile, string>> = {};
+  const add = (asse: AsseStile, delta: number) => (grezzi[asse] += delta);
+  const nota = (asse: AsseStile, item: ItemT2, testo: string) => { motivazioni[asse].push(`${item.frammento}: ${testo}.`); if (!itemDiAsse[asse]) itemDiAsse[asse] = item.id; };
+
+  for (const item of test.items) {
+    const p = risposte.get(item.id);
+    if (!p) continue;
+    if (item.tipo === "scelta") {
+      const opz = item.opzioni.find((o) => o.id === p.opzioneId);
+      if (!opz) continue;
+      for (const peso of opz.pesi) {
+        add(peso.asse, peso.punti);
+        if (peso.punti > 0) nota(peso.asse, item, opz.label.toLowerCase());
+      }
+    } else if (item.tipo === "ordina") {
+      const ordine = p.ordine ?? item.elementi.map((e) => e.id);
+      ordine.forEach((id, i) => {
+        const el = item.elementi.find((e) => e.id === id);
+        if (!el) return;
+        const punti = [3, 2, 1, 0][i] ?? 0;
+        add(el.asse, punti);
+        if (i === 0) nota(el.asse, item, `hai messo per prima «${el.label.toLowerCase()}»`);
+      });
+    } else if (item.tipo === "alloca") {
+      const alloc = p.allocazioni ?? {};
+      let maxOre = 0, maxVoce: string | null = null;
+      for (const v of item.voci) {
+        const ore = Number(alloc[v.id]) || 0;
+        if (ore <= 0) continue;
+        add(v.asse, Math.round((ore / item.totale) * 4));
+        if (ore > maxOre) { maxOre = ore; maxVoce = v.label.toLowerCase(); }
+        if (maxVoce) itemDiAsse[v.asse] = itemDiAsse[v.asse] ?? item.id;
+      }
+      if (maxVoce) {
+        const v = item.voci.find((x) => x.label.toLowerCase() === maxVoce);
+        if (v) nota(v.asse, item, `«${maxVoce}»`);
+      }
+    } else {
+      // likert 1-5
+      const val = Math.max(1, Math.min(5, Number(p.valore) || 0));
+      if (val > 0) { add(item.asse, val); if (val >= 4) nota(item.asse, item, "ti ci sei riconosciuto"); }
+    }
+  }
+
+  const massimi = massimiTeorici(testSlug);
+  const evidenze: EvidenzaTest[] = [];
+  for (const asse of ASSI) {
+    const score = grezzi[asse];
+    if (score <= 0) continue; // asse sotto zero (o a zero): nessuna prova
+    const valore = clamp01(score / (massimi[asse] || 1)); // normalizzazione PER-ASSE
+    const mots = motivazioni[asse];
+    evidenze.push({ asse, dimensione: "interest", valore: Number(valore.toFixed(3)), peso: PESO_TEST, motivazione: mots.slice(0, 2).join(" · ") || "È emerso dal tuo modo di rispondere.", item_id: itemDiAsse[asse] ?? test.items[0].id });
+  }
+  return evidenze;
+}

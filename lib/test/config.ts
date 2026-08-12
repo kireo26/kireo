@@ -8,11 +8,12 @@
 // opzioni randomizzato per-attempt (lib/test/ordine.ts), due item negativi
 // (4 e 11) e due a scelta forzata a coppie (6 e 12).
 
+import type { AsseStile } from "@/lib/escape/tipi";
+
 export type ItemTipo = "positivo" | "negativo" | "forzata";
 
-// Un'opzione dell'item, etichettata con l'area che rappresenta.
+// ── T1 «Da dove parti» — item a scelta, mappati sulle 18 AREE ──
 export type OpzioneItem = { id: string; label: string; area: string };
-
 export type TestItem = {
   id: string;
   numero: number;
@@ -24,6 +25,22 @@ export type TestItem = {
   opzioni: OpzioneItem[];
 };
 
+// ── T2 «Come ti muovi» — item su 4 ASSI di stile (analitico/relazionale/
+// creativo/operativo). `punti` può essere NEGATIVO (scelte forzate: +3 a un
+// asse, −1 all'altro). ──
+export type PesoAsse = { asse: AsseStile; punti: number };
+export type OpzioneAsse = { id: string; label: string; pesi: PesoAsse[] };
+export type ElementoAsse = { id: string; label: string; asse: AsseStile };
+export type ItemT2 =
+  // situazionali (1-9) + scelte forzate a coppie (10-12): due o quattro opzioni
+  | { id: string; numero: number; tipo: "scelta"; domanda: string; frammento: string; opzioni: OpzioneAsse[] }
+  // comportamentale 13 (ordina_priorita): 1° = +3 · 2° = +2 · 3° = +1 · 4° = 0
+  | { id: string; numero: number; tipo: "ordina"; domanda: string; frammento: string; elementi: ElementoAsse[] }
+  // comportamentale 14 (alloca_budget): ore/totale × 4, arrotondato
+  | { id: string; numero: number; tipo: "alloca"; domanda: string; frammento: string; totale: number; unita: string; voci: ElementoAsse[] }
+  // Likert 15-16: scala 1-5 → +1..+5 su un asse
+  | { id: string; numero: number; tipo: "likert"; domanda: string; frammento: string; asse: AsseStile };
+
 export type TestMeta = {
   slug: string;
   titolo: string;
@@ -32,17 +49,24 @@ export type TestMeta = {
   durata: string;
 };
 
-export type TestDef = TestMeta & {
-  items: TestItem[];
+type TestComune = TestMeta & {
   // Dopo quale numero d'item mostrare la micro-schermata motivazionale.
   motivazionaleDopo: number;
   motivazionaleTitolo: string;
   motivazionaleTesto: string;
 };
 
+// TestDef è discriminato su `misura`: T1 misura le aree, T2 gli assi. Il player
+// e lo scoring si ramificano su questo campo.
+export type TestDef =
+  | (TestComune & { misura: "aree"; items: TestItem[] })
+  | (TestComune & { misura: "assi"; items: ItemT2[] });
+
 export const SLUG_T1 = "da-dove-parti";
+export const SLUG_T2 = "come-ti-muovi";
 
 const T1: TestDef = {
+  misura: "aree",
   slug: SLUG_T1,
   titolo: "Da dove parti",
   sottotitolo: "14 domande, 5-6 minuti · verso quali mondi ti orienti",
@@ -235,7 +259,103 @@ const T1: TestDef = {
   ],
 };
 
-const TESTS: TestDef[] = [T1];
+const T2: TestDef = {
+  misura: "assi",
+  slug: SLUG_T2,
+  titolo: "Come ti muovi",
+  sottotitolo: "16 domande, 6-7 minuti · come lavori, dentro qualunque area",
+  descrizione:
+    "T1 dice verso quali mondi ti orienti; questo test dice COME ti muovi dentro qualunque cosa: se osservi e scomponi, se ascolti e tieni insieme le persone, se cerchi la strada che non c'era, o se decidi e porti a termine. Non c'è un modo migliore di un altro. Da qui nasce un'ipotesi sul tuo stile — mai un'etichetta — che le missioni serviranno a mettere alla prova. Nessun cronometro: puoi fermarti e riprendere.",
+  durata: "6-7 minuti",
+  motivazionaleDopo: 8,
+  motivazionaleTitolo: "Sei a metà.",
+  motivazionaleTesto:
+    "Nessuna di queste risposte «fa più bella figura» delle altre: i quattro modi di lavorare valgono uguale, e servono tutti. Rispondi come faresti davvero, non come pensi si debba fare.",
+  items: [
+    { id: "t2_1", numero: 1, tipo: "scelta", frammento: "Davanti a un progetto nuovo", domanda: "Ti affidano un progetto nuovo e hai poco tempo per orientarti. Da dove parti?", opzioni: [
+      { id: "t2_1a", label: "Raccolgo dati e vincoli prima di decidere", pesi: [{ asse: "analitico", punti: 3 }] },
+      { id: "t2_1b", label: "Sento le persone coinvolte per capire cosa si aspettano", pesi: [{ asse: "relazionale", punti: 3 }] },
+      { id: "t2_1c", label: "Cerco un'idea diversa da come si è sempre fatto", pesi: [{ asse: "creativo", punti: 3 }] },
+      { id: "t2_1d", label: "Definisco i primi tre passi e comincio", pesi: [{ asse: "operativo", punti: 3 }] },
+    ] },
+    { id: "t2_2", numero: 2, tipo: "scelta", frammento: "Davanti a un imprevisto vicino alla consegna", domanda: "Salta fuori un problema imprevisto poco prima della consegna.", opzioni: [
+      { id: "t2_2a", label: "Cerco la causa vera e scompongo il problema", pesi: [{ asse: "analitico", punti: 3 }, { asse: "operativo", punti: 1 }] },
+      { id: "t2_2b", label: "Tengo insieme il gruppo perché non vada nel panico", pesi: [{ asse: "relazionale", punti: 3 }, { asse: "operativo", punti: 1 }] },
+      { id: "t2_2c", label: "Propongo una via che nessuno aveva considerato", pesi: [{ asse: "creativo", punti: 3 }, { asse: "analitico", punti: 1 }] },
+      { id: "t2_2d", label: "Scelgo una direzione e faccio muovere tutti", pesi: [{ asse: "operativo", punti: 3 }, { asse: "relazionale", punti: 1 }] },
+    ] },
+    { id: "t2_3", numero: 3, tipo: "scelta", frammento: "Con tante informazioni in disordine", domanda: "Hai davanti tante informazioni in disordine.", opzioni: [
+      { id: "t2_3a", label: "Le classifico e ne ricavo uno schema", pesi: [{ asse: "analitico", punti: 3 }] },
+      { id: "t2_3b", label: "Chiedo a chi c'è dentro cosa conta davvero", pesi: [{ asse: "relazionale", punti: 3 }] },
+      { id: "t2_3c", label: "Cerco collegamenti tra cose lontane tra loro", pesi: [{ asse: "creativo", punti: 3 }] },
+      { id: "t2_3d", label: "Tengo solo quello che serve per decidere", pesi: [{ asse: "operativo", punti: 3 }] },
+    ] },
+    { id: "t2_4", numero: 4, tipo: "scelta", frammento: "In una riunione confusa", domanda: "Sei in una riunione che sta andando in confusione.", opzioni: [
+      { id: "t2_4a", label: "Rimetto in ordine i punti emersi", pesi: [{ asse: "analitico", punti: 3 }] },
+      { id: "t2_4b", label: "Traduco le posizioni degli uni agli altri", pesi: [{ asse: "relazionale", punti: 3 }] },
+      { id: "t2_4c", label: "Sposto il discorso su un altro piano", pesi: [{ asse: "creativo", punti: 3 }] },
+      { id: "t2_4d", label: "Chiudo con decisioni e responsabilità", pesi: [{ asse: "operativo", punti: 3 }] },
+    ] },
+    { id: "t2_5", numero: 5, tipo: "scelta", frammento: "Quando il gruppo si blocca", domanda: "Il gruppo si è bloccato. Il tuo contributo più naturale è…", opzioni: [
+      { id: "t2_5a", label: "portare lucidità e struttura", pesi: [{ asse: "analitico", punti: 3 }] },
+      { id: "t2_5b", label: "rimettere in circolo il confronto", pesi: [{ asse: "relazionale", punti: 3 }] },
+      { id: "t2_5c", label: "aprire una strada diversa", pesi: [{ asse: "creativo", punti: 3 }] },
+      { id: "t2_5d", label: "sbloccare con un passo concreto", pesi: [{ asse: "operativo", punti: 3 }] },
+    ] },
+    { id: "t2_6", numero: 6, tipo: "scelta", frammento: "Davanti a una critica", domanda: "Ricevi una critica sul tuo lavoro.", opzioni: [
+      { id: "t2_6a", label: "La analizzo per capire cosa esattamente migliorare", pesi: [{ asse: "analitico", punti: 3 }] },
+      { id: "t2_6b", label: "Ne parlo per capire come sono stato percepito", pesi: [{ asse: "relazionale", punti: 3 }] },
+      { id: "t2_6c", label: "La uso per ripensare l'approccio da capo", pesi: [{ asse: "creativo", punti: 3 }] },
+      { id: "t2_6d", label: "La trasformo subito in correzioni concrete", pesi: [{ asse: "operativo", punti: 3 }] },
+    ] },
+    { id: "t2_7", numero: 7, tipo: "scelta", frammento: "Con carta bianca su un progetto", domanda: "Hai carta bianca su un piccolo progetto. Prima cosa che fai?", opzioni: [
+      { id: "t2_7a", label: "Definisco cosa vuol dire farlo bene", pesi: [{ asse: "analitico", punti: 3 }] },
+      { id: "t2_7b", label: "Capisco per chi lo sto facendo", pesi: [{ asse: "relazionale", punti: 3 }] },
+      { id: "t2_7c", label: "Butto giù possibilità, anche strane", pesi: [{ asse: "creativo", punti: 3 }] },
+      { id: "t2_7d", label: "Faccio un calendario con delle scadenze", pesi: [{ asse: "operativo", punti: 3 }] },
+    ] },
+    { id: "t2_8", numero: 8, tipo: "scelta", frammento: "Un'attività ti prende di più quando", domanda: "Un'attività ti prende di più quando…", opzioni: [
+      { id: "t2_8a", label: "richiede precisione e ragionamento", pesi: [{ asse: "analitico", punti: 3 }] },
+      { id: "t2_8b", label: "lascia qualcosa alle persone", pesi: [{ asse: "relazionale", punti: 3 }] },
+      { id: "t2_8c", label: "ti fa immaginare o inventare", pesi: [{ asse: "creativo", punti: 3 }] },
+      { id: "t2_8d", label: "porta un risultato che si vede", pesi: [{ asse: "operativo", punti: 3 }] },
+    ] },
+    { id: "t2_9", numero: 9, tipo: "scelta", frammento: "Quando impari qualcosa di nuovo", domanda: "Quando devi imparare qualcosa di nuovo, preferisci…", opzioni: [
+      { id: "t2_9a", label: "capire la logica e il funzionamento", pesi: [{ asse: "analitico", punti: 3 }] },
+      { id: "t2_9b", label: "confrontarti con chi ne sa più di te", pesi: [{ asse: "relazionale", punti: 3 }] },
+      { id: "t2_9c", label: "esplorare per conto tuo e collegare", pesi: [{ asse: "creativo", punti: 3 }] },
+      { id: "t2_9d", label: "provare subito nella pratica", pesi: [{ asse: "operativo", punti: 3 }] },
+    ] },
+    { id: "t2_10", numero: 10, tipo: "scelta", frammento: "Dovendo scegliere", domanda: "Devi scegliere. Cosa ti somiglia di più?", opzioni: [
+      { id: "t2_10a", label: "«Capire bene prima di decidere»", pesi: [{ asse: "analitico", punti: 3 }, { asse: "operativo", punti: -1 }] },
+      { id: "t2_10b", label: "«Far avanzare le cose senza restare fermo»", pesi: [{ asse: "operativo", punti: 3 }, { asse: "analitico", punti: -1 }] },
+    ] },
+    { id: "t2_11", numero: 11, tipo: "scelta", frammento: "Dovendo scegliere", domanda: "Devi scegliere. Cosa ti somiglia di più?", opzioni: [
+      { id: "t2_11a", label: "«Far funzionare bene le persone insieme»", pesi: [{ asse: "relazionale", punti: 3 }, { asse: "creativo", punti: -1 }] },
+      { id: "t2_11b", label: "«Trovare possibilità dove altri vedono solo vincoli»", pesi: [{ asse: "creativo", punti: 3 }, { asse: "relazionale", punti: -1 }] },
+    ] },
+    { id: "t2_12", numero: 12, tipo: "scelta", frammento: "La soddisfazione che riconosci più tua", domanda: "Quale soddisfazione riconosci più come tua?", opzioni: [
+      { id: "t2_12a", label: "«Ho capito una cosa a fondo»", pesi: [{ asse: "analitico", punti: 3 }, { asse: "relazionale", punti: -1 }] },
+      { id: "t2_12b", label: "«Ho aiutato il gruppo a funzionare meglio»", pesi: [{ asse: "relazionale", punti: 3 }, { asse: "analitico", punti: -1 }] },
+    ] },
+    { id: "t2_13", numero: 13, tipo: "ordina", frammento: "Per sistemare una cosa che non funziona, hai messo per prime", domanda: "Vi hanno dato due settimane per sistemare una cosa che non funziona. Metti in ordine cosa fai per prime.", elementi: [
+      { id: "t2_13a", label: "Capire perché non funziona", asse: "analitico" },
+      { id: "t2_13b", label: "Sentire chi la usa tutti i giorni", asse: "relazionale" },
+      { id: "t2_13c", label: "Immaginare come potrebbe essere invece", asse: "creativo" },
+      { id: "t2_13d", label: "Cominciare a sistemare la parte più semplice", asse: "operativo" },
+    ] },
+    { id: "t2_14", numero: 14, tipo: "alloca", frammento: "Delle dieci ore, la fetta più grande l'hai messa su", domanda: "Hai dieci ore per affrontare un problema. Come le distribuisci?", totale: 10, unita: "ore", voci: [
+      { id: "t2_14a", label: "Studiare il problema", asse: "analitico" },
+      { id: "t2_14b", label: "Parlare con le persone coinvolte", asse: "relazionale" },
+      { id: "t2_14c", label: "Provare soluzioni diverse", asse: "creativo" },
+      { id: "t2_14d", label: "Realizzare la prima versione", asse: "operativo" },
+    ] },
+    { id: "t2_15", numero: 15, tipo: "likert", frammento: "Sul decidere in base a dati e segnali oggettivi", domanda: "«Mi trovo bene quando devo decidere sulla base di dati e segnali oggettivi.»", asse: "analitico" },
+    { id: "t2_16", numero: 16, tipo: "likert", frammento: "Sul passare in fretta dall'idea alla pratica", domanda: "«Preferisco passare in fretta dall'idea alla pratica.»", asse: "operativo" },
+  ],
+};
+
+const TESTS: TestDef[] = [T1, T2];
 const TEST_BY_SLUG = new Map(TESTS.map((t) => [t.slug, t]));
 
 // Metadati del catalogo (client), senza gli item.
