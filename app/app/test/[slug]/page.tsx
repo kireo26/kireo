@@ -7,6 +7,12 @@ import { getTest } from "@/lib/test/config";
 import TestPlayer from "@/components/test/TestPlayer";
 import IniziaTest from "@/components/test/IniziaTest";
 import EsitoTest, { type AreaEsitoTest } from "@/components/test/EsitoTest";
+import EsitoT2, { type AsseEsito, type SpiegazioneAsse } from "@/components/test/EsitoT2";
+import { assegnaProfilo } from "@/lib/test/profili";
+import { calcolaDivergenza } from "@/lib/test/divergenza";
+import type { AsseStile } from "@/lib/escape/tipi";
+
+const ASSI: AsseStile[] = ["analitico", "relazionale", "creativo", "operativo"];
 
 export const metadata = { title: "Test — KIREO" };
 
@@ -50,9 +56,67 @@ export default async function TestPage({ params }: { params: Promise<{ slug: str
     );
   }
 
-  // Completato: le aree emerse, con status e motivazioni. Mai i punteggi grezzi.
-  if (attempt.stato === "completata") {
-    const { data: prove } = await supabase.from("evidence").select("area_slug, motivazione").eq("test_attempt_id", attempt.id);
+  // Completato — T2 (assi): profilo di stile, quattro dimensioni, punto cieco,
+  // motivazioni a scomparsa, ed eventuale divergenza test↔missioni.
+  if (attempt.stato === "completata" && test.misura === "assi") {
+    // Profilo e barre: dallo style_signal aggregato (test + missioni).
+    const { data: segnali } = await supabase
+      .from("style_signal")
+      .select("asse, punteggio")
+      .eq("student_id", contesto.userId);
+    const punteggi: Record<AsseStile, number> = { analitico: 0, relazionale: 0, creativo: 0, operativo: 0 };
+    for (const s of segnali ?? []) punteggi[s.asse as AsseStile] = Number(s.punteggio) || 0;
+    const profilo = assegnaProfilo(punteggi);
+    const assi: AsseEsito[] = ASSI.map((a) => ({ asse: a, valore: punteggi[a] }));
+
+    // "Perché lo diciamo": motivazioni di STILE di questo tentativo, per asse.
+    const { data: proveTest } = await supabase
+      .from("evidence")
+      .select("asse, motivazione")
+      .eq("test_attempt_id", attempt.id)
+      .not("asse", "is", null);
+    const motPerAsse = new Map<AsseStile, string[]>();
+    for (const p of proveTest ?? []) {
+      if (!p.asse || !p.motivazione) continue;
+      const arr = motPerAsse.get(p.asse as AsseStile) ?? [];
+      arr.push(p.motivazione);
+      motPerAsse.set(p.asse as AsseStile, arr);
+    }
+    const spiegazioni: SpiegazioneAsse[] = ASSI.map((a) => ({ asse: a, motivazioni: (motPerAsse.get(a) ?? []).slice(0, 3) }));
+
+    // Divergenza: confronto asse dominante test vs missioni, con ≥ 2 missioni.
+    const { data: proveAsse } = await supabase
+      .from("evidence")
+      .select("asse, valore, peso, fonte")
+      .eq("student_id", contesto.userId)
+      .not("asse", "is", null);
+    const { count: missioniCompletate } = await supabase
+      .from("mission_attempt")
+      .select("id", { count: "exact", head: true })
+      .eq("student_id", contesto.userId)
+      .eq("stato", "completata");
+    const divergenza = calcolaDivergenza(
+      (proveAsse ?? []).map((p) => ({ asse: p.asse as AsseStile, valore: Number(p.valore) || 0, peso: Number(p.peso) || 0, fonte: String(p.fonte) })),
+      missioniCompletate ?? 0,
+    );
+
+    return (
+      <div className="space-y-6">
+        {Intestazione}
+        <div className="flex flex-col gap-3 rounded-2xl border border-white/5 bg-kireo-card p-5 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-kireo-muted">Hai già fatto questo test. Puoi rifarlo quando vuoi: le tue risposte possono cambiare, e con loro le ipotesi.</p>
+          <div className="flex-none">
+            <IniziaTest testSlug={slug} etichetta="Rifai il test" />
+          </div>
+        </div>
+        <EsitoT2 profilo={profilo} assi={assi} spiegazioni={spiegazioni} divergenza={divergenza} />
+      </div>
+    );
+  }
+
+  // Completato — T1 (aree): le aree emerse, con status e motivazioni. Mai i punteggi grezzi.
+  if (attempt.stato === "completata" && test.misura === "aree") {
+    const { data: prove } = await supabase.from("evidence").select("area_slug, motivazione").eq("test_attempt_id", attempt.id).is("asse", null);
     const motivazioniPerArea = new Map<string, string[]>();
     for (const p of prove ?? []) {
       if (!p.area_slug) continue;
@@ -98,7 +162,7 @@ export default async function TestPage({ params }: { params: Promise<{ slug: str
 
   // In corso: player, riprendibile dalle risposte già salvate.
   const { data: righe } = await supabase.from("test_response").select("item_id, payload").eq("attempt_id", attempt.id);
-  const risposteIniziali = (righe ?? []).map((r) => ({ item_id: r.item_id, payload: r.payload as { opzioneId: string } }));
+  const risposteIniziali = (righe ?? []).map((r) => ({ item_id: r.item_id, payload: r.payload as { opzioneId?: string; ordine?: string[]; allocazioni?: Record<string, number>; valore?: number } }));
 
   return (
     <div className="space-y-6">

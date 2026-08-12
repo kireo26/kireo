@@ -13,6 +13,20 @@
 
 export type Dimensione = "interest" | "performance" | "self_efficacy" | "curiosity";
 
+// I quattro assi di STILE di lavoro (Fase 2, T2 «Come ti muovi»). Sono
+// trasversali alle 18 aree: uno può muoversi da analitico o da relazionale in
+// QUALUNQUE area. Vivono in una struttura gemella di area_signal (style_signal),
+// non entrano in area_signal.
+export type AsseStile = "analitico" | "relazionale" | "creativo" | "operativo";
+
+// Tag di stile su un'opzione, ACCANTO ad `aree` (mai al posto). `valore` 0..1 =
+// quanto quella scelta esprime quell'asse. Principio non negoziabile: si tagga
+// SOLO dove il segnale è genuino (scegliere quella cosa è davvero muoversi da
+// analitico/relazionale/creativo/operativo), mai per far tornare un numero di
+// bilanciamento. Le aree possono essere sbilanciate per missione; gli assi no —
+// un test di roster verifica l'equità sull'insieme delle 11 missioni.
+export type TagAsse = { asse: AsseStile; valore: number };
+
 export type StepTipo =
   | "esplora_libero"
   | "scelta_singola"
@@ -33,7 +47,7 @@ export type StepTipo =
 // `affidabilita` (0..1, facoltativa) è usata solo dalle missioni in cui
 // l'ordinamento è una gerarchia di affidabilità verificabile (es. Missione 03,
 // "fatti misurati" vs "affermazioni da verificare"): definisce l'ordine ideale.
-export type OpzioneArea = { id: string; label: string; aree: string[]; qualita?: number; affidabilita?: number };
+export type OpzioneArea = { id: string; label: string; aree: string[]; qualita?: number; affidabilita?: number; assi?: TagAsse[] };
 
 // Materiale consultabile (M1-M14 + le consulenze di mandato). `contenuto` è il
 // testo con i numeri, mostrato quando lo studente lo apre/acquista. `costo` = 0
@@ -46,6 +60,7 @@ export type Materiale = {
   aree: string[];
   costo: number;
   estratti?: { chi: string; testo: string }[]; // solo per il verbale (M2)
+  assi?: TagAsse[];
 };
 
 // Voce del budget (Stanza 3). `soloSe` la rende disponibile solo se lo studente
@@ -56,6 +71,7 @@ export type VoceBudget = {
   aree: string[];
   costoIndicativo?: number; // mostrato come guida ("≈ 55.000 €"), non vincolante
   soloSe?: string;
+  assi?: TagAsse[];
 };
 
 // Opzione da scartare (Stanza 3.2). `trappola` = scelta che farebbe respingere
@@ -83,22 +99,26 @@ export type Lavoro = {
   parallelizzabile?: boolean;
   gate?: string;
   risparmio?: number; // Missione 08: quanto questa misura fa AVVICINARE all'obiettivo (es. punti % di risparmio idrico)
+  assi?: TagAsse[];
 };
 
 // Compito da assegnare a sé o ad altri (Stanza 4.3): quello che ci si prende è
 // quello che ci si sente di saper fare.
-export type Ruolo = { id: string; label: string; area: string };
+export type Ruolo = { id: string; label: string; area: string; assi?: TagAsse[] };
 
 // Assegnazione compito→PERSONA (Missione 10): a differenza di `assegna_ruoli`
 // (io/altri binario), qui ogni compito va dato a una persona specifica del
 // gruppo (o a sé, persona con id "io"). Alcuni abbinamenti compito↔persona
 // valgono come segnale forte di performance (vedi scoring), quindi serve sapere
 // CHI ha ricevuto COSA, non solo se lo si è tenuto per sé.
-export type CompitoAssegnabile = { id: string; label: string; area: string };
+export type CompitoAssegnabile = { id: string; label: string; area: string; assi?: TagAsse[] };
 export type PersonaAssegnabile = { id: string; nome: string };
 
 // Passo di attuazione (Stanza 5.2): se ne scelgono 3 in ordine da una lista.
-export type Passo = { id: string; label: string };
+// `assi` sul singolo passo: in pianifica_passi l'asse dipende da QUALI passi
+// scegli (uno eseguibile → operativo, uno che coinvolge le persone → relazionale),
+// non dal fatto di aver compilato lo step.
+export type Passo = { id: string; label: string; assi?: TagAsse[] };
 
 // Vincolo che arriva nella Stanza 3, determinato dal mandato scelto in 1.3.
 // `id` è libero: alcune missioni lo ispezionano (es. Missione 01 usa "budget"
@@ -117,6 +137,7 @@ export type Mandato = {
   aree: string[];
   consulenze: Materiale[];
   vincolo: Vincolo;
+  assi?: TagAsse[]; // lo stile che la scelta di questa lente esprime (se genuino)
 };
 
 type StepBase = { id: string; stanza: number; titolo: string; prompt: string; hint?: string };
@@ -224,6 +245,7 @@ export type LeggiRisposta = (id: string) => Payload | undefined;
 // Prova prodotta dal motore, passata a registra_evidence come array JSON.
 export type EvidenceInput = {
   area_slug: string | null;
+  asse?: AsseStile | null; // valorizzato per le prove di STILE (area_slug null); null per le prove d'area
   dimensione: Dimensione;
   valore: number; // 0..1
   peso: number; // > 0

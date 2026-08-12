@@ -15,11 +15,13 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { AREE, getAreaBySlug } from "@/data/aree";
 import type {
+  AsseStile,
   Dimensione,
   EscapeMission,
   EvidenceInput,
   LeggiRisposta,
   Mandato,
+  TagAsse,
   Payload,
   PayloadAlloca,
   PayloadAssegna,
@@ -42,7 +44,11 @@ const MODELLO_ESCAPE = "claude-haiku-4-5"; // stesso modello provato in prod (wo
 
 const DIMENSIONI_VALIDE = new Set<Dimensione>(["interest", "performance", "self_efficacy", "curiosity"]);
 const AREE_VALIDE = new Set(AREE.map((a) => a.slug));
+const ASSI_VALIDI = new Set<AsseStile>(["analitico", "relazionale", "creativo", "operativo"]);
 const PESO_MINIMO = 0.01;
+// Peso delle prove di STILE dalle missioni: 3-4 volte quelle del test (0,35). È
+// il cuore del sistema — le azioni pesano più delle dichiarazioni.
+const PESO_STILE_MISSIONE = 1.35;
 
 const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
 const nomeArea = (slug: string) => getAreaBySlug(slug)?.nome ?? slug;
@@ -57,10 +63,11 @@ function sanitizzaEvidenze(evidenze: EvidenceInput[]): EvidenceInput[] {
   for (const e of evidenze) {
     if (!DIMENSIONI_VALIDE.has(e.dimensione)) continue;
     if (e.area_slug !== null && !AREE_VALIDE.has(e.area_slug)) continue;
+    if (e.asse != null && !ASSI_VALIDI.has(e.asse)) continue;
     const valore = Number.isFinite(e.valore) ? Math.max(0, Math.min(1, e.valore)) : 0;
     const peso = Number.isFinite(e.peso) && e.peso > 0 ? e.peso : PESO_MINIMO;
     const motivazione = (typeof e.motivazione === "string" ? e.motivazione.trim() : "") || "Segnale rilevato durante la missione.";
-    pulite.push({ ...e, valore, peso, motivazione: motivazione.slice(0, 2000) });
+    pulite.push({ ...e, asse: e.asse ?? null, valore, peso, motivazione: motivazione.slice(0, 2000) });
   }
   return pulite;
 }
@@ -549,6 +556,18 @@ export async function calcolaEvidenze(
   const letti = materialiLetti(get);
   const areaMandato = mandato?.aree[0] ?? null;
 
+  // Emette prove di STILE (asse) accanto a quelle d'area. `factor` scala il
+  // valore del tag (es. la frazione di ore allocate a una voce). area_slug null:
+  // le prove di stile alimentano style_signal, non area_signal.
+  const pushAssi = (assi: TagAsse[] | undefined, factor: number, motivazione: string, step_id: string) => {
+    if (!assi) return;
+    for (const t of assi) {
+      const valore = clamp01(t.valore * factor);
+      if (valore <= 0) continue;
+      evidenze.push({ area_slug: null, asse: t.asse, dimensione: "interest", valore, peso: PESO_STILE_MISSIONE, motivazione, step_id });
+    }
+  };
+
   let fiduciaDichiarata = 50;
 
   for (const s of step) {
@@ -565,6 +584,10 @@ export async function calcolaEvidenze(
           const valore = clamp01(0.3 + 0.18 * aperti.length + (haM2 ? 0.15 : 0));
           evidenze.push({ area_slug: null, dimensione: "curiosity", valore, peso: P.esplora, motivazione: haM2 ? spec.esploraTesti.conBonus : spec.esploraTesti.base, step_id: s.id });
         }
+        for (const id of aperti) {
+          const m = s.materiali.find((x) => x.id === id);
+          if (m?.assi) pushAssi(m.assi, 1, `Hai aperto «${m.titolo.toLowerCase()}».`, s.id);
+        }
         break;
       }
 
@@ -575,6 +598,7 @@ export async function calcolaEvidenze(
           for (const area of opz.aree) {
             evidenze.push({ area_slug: area, dimensione: "interest", valore: 0.9, peso: P.mandato, motivazione: `Hai scelto il mandato ${opz.label.split(" — ")[0]}: una dichiarazione di campo.`, step_id: s.id });
           }
+          pushAssi(opz.assi, 1, `Hai impostato l'indagine come ${opz.label.split(" — ")[0]}.`, s.id);
         }
         break;
       }
@@ -609,6 +633,10 @@ export async function calcolaEvidenze(
             motivazione: corr >= 0.6 ? "Hai messo i fatti misurati sopra le impressioni e le affermazioni del sistema: è il cuore del metodo." : "L'ordine di affidabilità è ancora da mettere a fuoco: un dato misurato pesa più di ciò che «l'app dice».",
             step_id: s.id,
           });
+          // Stile: aver ordinato BENE per affidabilità (misura > stima >
+          // interpretazione) è analitico — il segnale dipende dalla correttezza
+          // dell'ordine, non dall'aver compilato lo step.
+          pushAssi([{ asse: "analitico", valore: corr }], 1, corr >= 0.6 ? "Hai ordinato distinguendo la misura diretta dalla stima vecchia e dall'interpretazione." : "Hai provato a ordinare i fatti per affidabilità.", s.id);
         }
         break;
       }
@@ -622,6 +650,7 @@ export async function calcolaEvidenze(
             evidenze.push({ area_slug: area, dimensione: "curiosity", valore: 0.8, peso: P.selCur, motivazione: `Hai speso un gettone per «${d.titolo.toLowerCase()}».`, step_id: s.id });
             evidenze.push({ area_slug: area, dimensione: "interest", valore: 0.4, peso: P.selInt, motivazione: `Un interesse emerso da «${d.titolo.toLowerCase()}», che hai voluto approfondire.`, step_id: s.id });
           }
+          pushAssi(d.assi, 1, `Hai voluto approfondire «${d.titolo.toLowerCase()}».`, s.id);
         }
         break;
       }
@@ -638,11 +667,15 @@ export async function calcolaEvidenze(
           for (const area of voce.aree) {
             evidenze.push({ area_slug: area, dimensione: "interest", valore: clamp01(a / maxAlloc), peso: P.budgetInt, motivazione: `Hai investito risorse su «${voce.label.toLowerCase()}».`, step_id: s.id });
           }
+          pushAssi(voce.assi, clamp01(a / maxAlloc), `Hai messo le risorse su «${voce.label.toLowerCase()}».`, s.id);
         }
         const r = spec.budgetPerformance?.({ alloc, voci: s.voci, letti, totale: s.totale });
         const areaPerf = areaMandato ?? s.voci.find((v) => (Number(alloc[v.id]) || 0) === maxAlloc)?.aree[0] ?? null;
         if (r && areaPerf) {
           evidenze.push({ area_slug: areaPerf, dimensione: "performance", valore: r.valore, peso: P.budgetPerf, motivazione: r.valore >= 0.6 ? r.buona : r.migliora, step_id: s.id });
+          // Stile: comporre un piano che sta nei vincoli è operativo (dipende
+          // dalla qualità del piano, non dall'aver compilato lo step).
+          pushAssi([{ asse: "operativo", valore: r.valore }], 1, "Hai composto un piano che sta nei vincoli.", s.id);
         }
         break;
       }
@@ -659,11 +692,14 @@ export async function calcolaEvidenze(
           for (const area of l.aree) {
             evidenze.push({ area_slug: area, dimensione: "interest", valore: 0.7, peso: P.budgetInt, motivazione: `Hai messo nel piano «${l.label.toLowerCase()}».`, step_id: s.id });
           }
+          pushAssi(l.assi, 1, `Hai messo nel piano «${l.label.toLowerCase()}».`, s.id);
         }
         const rp = spec.pianoPerformance?.({ step: s, sel, letti });
         if (rp) {
           const areaPerf = areaMandato ?? "edilizia-architettura";
           evidenze.push({ area_slug: areaPerf, dimensione: "performance", valore: rp.valore, peso: P.budgetPerf, motivazione: rp.valore >= 0.6 ? rp.buona : rp.migliora, step_id: s.id });
+          // Stile: un piano che sta nei vincoli e rispetta le dipendenze è operativo.
+          pushAssi([{ asse: "operativo", valore: rp.valore }], 1, "Hai composto un piano che sta nei vincoli.", s.id);
         }
         break;
       }
@@ -677,6 +713,7 @@ export async function calcolaEvidenze(
           for (const area of o.aree) {
             evidenze.push({ area_slug: area, dimensione: "interest", valore: 0.6, peso: P.scartoInt, motivazione: `Hai scelto di tenere «${o.label.toLowerCase()}»: lo consideri essenziale.`, step_id: s.id });
           }
+          pushAssi(o.assi, 1, `Hai scelto di tenere «${o.label.toLowerCase()}».`, s.id);
         }
         const perQualita = [...s.opzioni].sort((a, b) => (a.qualita ?? 0.5) - (b.qualita ?? 0.5));
         const idealiDaScartare = new Set(perQualita.slice(0, s.daScartare).map((o) => o.id));
@@ -748,6 +785,7 @@ export async function calcolaEvidenze(
           if (ass[r.id] !== "io") continue;
           evidenze.push({ area_slug: r.area, dimensione: "interest", valore: 0.8, peso: P.ruoli, motivazione: `Ti sei preso «${r.label.toLowerCase()}»: un compito che senti tuo.`, step_id: s.id });
           evidenze.push({ area_slug: r.area, dimensione: "self_efficacy", valore: 0.8, peso: P.ruoli, motivazione: `Prendendoti «${r.label.toLowerCase()}» hai mostrato di sentirti capace.`, step_id: s.id });
+          pushAssi(r.assi, 1, `Ti sei preso «${r.label.toLowerCase()}».`, s.id);
         }
         break;
       }
@@ -764,11 +802,14 @@ export async function calcolaEvidenze(
           if (ass[c.id] === "io") {
             ioCount++;
             evidenze.push({ area_slug: c.area, dimensione: "self_efficacy", valore: 0.6, peso: P.ruoli, motivazione: `Ti sei preso «${c.label.toLowerCase()}».`, step_id: s.id });
+            pushAssi(c.assi, 1, `Ti sei preso «${c.label.toLowerCase()}».`, s.id);
           }
         }
         for (const seg of spec.assegnaSegnali ?? []) {
           if (ass[seg.compito] === seg.persona && letti.has(seg.richiede)) {
             evidenze.push({ area_slug: seg.area, dimensione: "performance", valore: 0.9, peso: seg.peso, motivazione: seg.motivazione, step_id: s.id });
+            // Mettere la persona giusta al posto giusto è relazionale.
+            pushAssi([{ asse: "relazionale", valore: 0.9 }], 1, "Hai messo la persona giusta al posto giusto, con criterio.", s.id);
           }
         }
         // Tenere (quasi) tutto per sé: segnale debole con nota. La valutazione è
@@ -799,6 +840,12 @@ export async function calcolaEvidenze(
         const p = payload as PayloadPianifica | undefined;
         const scelti = p?.passi ?? [];
         if (scelti.length === 0) break;
+        // Stile: l'asse dipende da QUALI passi scegli (uno eseguibile → operativo,
+        // uno che coinvolge le persone → relazionale), non dall'aver pianificato.
+        for (const id of scelti) {
+          const passo = s.passi.find((x) => x.id === id);
+          if (passo?.assi) pushAssi(passo.assi, 1, `Hai messo tra i primi passi «${passo.label.toLowerCase()}».`, s.id);
+        }
         const ideali = new Set(spec.pianificaIdeali);
         const overlap = scelti.filter((id) => ideali.has(id)).length / s.quanti;
         const bonusOrdine = spec.pianificaIdeali.length > 0 && scelti[0] === spec.pianificaIdeali[0] ? 0.1 : 0;
