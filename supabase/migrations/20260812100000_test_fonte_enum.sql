@@ -1,0 +1,12 @@
+-- KIREO — Test attitudinali, Fase 1. Migrazione A: SOLO l'enum.
+--
+-- Aggiunge il valore 'test' a escape_fonte, così le prove generate dai test
+-- (T1 «Da dove parti» e successivi) confluiscono nel profilo unico `evidence`
+-- accanto a mission/workshop/activity, senza un silo parallelo.
+--
+-- ⚠️ In Postgres `ALTER TYPE ... ADD VALUE` NON può stare nella stessa
+-- transazione in cui il nuovo valore viene poi usato: dev'essere una migrazione
+-- a sé, applicata PRIMA delle tabelle e della funzione che lo usano (migrazioni
+-- B e C). Stesso vincolo già gestito per gli enum dei workshop v2
+-- (20260809090000_notifica_tipo_workshop.sql) — non lo ripetiamo qui dentro.
+alter type public.escape_fonte add value if not exists 'test';
