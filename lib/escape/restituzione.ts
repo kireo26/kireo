@@ -8,7 +8,7 @@
 // Retro-compatibile: su un tentativo senza i nuovi step i blocchi restano
 // null/vuoti.
 
-import type { LeggiRisposta, Mandato, PayloadAlloca, PayloadLavori, PayloadScarta, PayloadSeleziona, StepAllocaBudget, StepPianificaLavori, StepSelezionaInformazioni } from "./tipi";
+import type { LeggiRisposta, Mandato, PayloadAlloca, PayloadAssegnaPersone, PayloadLavori, PayloadScarta, PayloadSeleziona, StepAllocaBudget, StepPianificaLavori, StepSelezionaInformazioni } from "./tipi";
 import { getMissione, mandatoScelto, materialiLetti } from "./config";
 
 export type AreaTop = { slug: string; nome: string; status: "emergente" | "confermata" | "da_verificare" };
@@ -21,7 +21,7 @@ export type Restituzione = {
   notaVerifica: string | null;
 };
 
-type OccasioneCtx = { letti: Set<string>; alloc?: Record<string, number>; pianoSel?: string[]; scartati?: string[]; mandato: Mandato | null };
+type OccasioneCtx = { letti: Set<string>; alloc?: Record<string, number>; pianoSel?: string[]; scartati?: string[]; assegnazioni?: Record<string, string>; mandato: Mandato | null };
 type OccasioneRule = { quando: (c: OccasioneCtx) => boolean; testo: string };
 type Narrativa = { costruito: (mandato: Mandato, topVoce: string | null) => string; occasioni: OccasioneRule[] };
 
@@ -30,6 +30,17 @@ const facciataTenuta = (c: OccasioneCtx, trapId: string) => c.scartati !== undef
 const scartato = (c: OccasioneCtx, id: string) => c.scartati !== undefined && c.scartati.includes(id);
 const nelPiano = (c: OccasioneCtx, id: string) => c.pianoSel?.includes(id) ?? false;
 const speso = (c: OccasioneCtx, id: string) => Number(c.alloc?.[id]) || 0;
+const assegnatoA = (c: OccasioneCtx, compito: string, persona: string) => c.assegnazioni?.[compito] === persona;
+// Missione 10: quanti dei 5 abbinamenti compito↔persona "forti" sono azzeccati
+// (con il relativo materiale letto).
+const ABBINAMENTI_CLASSE: { compito: string; persona: string; richiede: string }[] = [
+  { compito: "traduzioni", persona: "amine", richiede: "M4" },
+  { compito: "impaginazione", persona: "giada", richiede: "M10" },
+  { compito: "testi", persona: "elisa", richiede: "M5" },
+  { compito: "mappa", persona: "yuri", richiede: "M11" },
+  { compito: "indirizzi", persona: "tommaso", richiede: "M7" },
+];
+const abbinamentiBuoni = (c: OccasioneCtx) => ABBINAMENTI_CLASSE.filter((a) => assegnatoA(c, a.compito, a.persona) && c.letti.has(a.richiede)).length;
 
 const NARRATIVA: Record<string, Narrativa> = {
   "progetto-quartiere": {
@@ -107,6 +118,51 @@ const NARRATIVA: Record<string, Narrativa> = {
     ],
   },
 
+  "palco-programma": {
+    costruito: (mandato, topVoce) =>
+      `Hai deciso: ${mandato.label} — ${mandato.frase.charAt(0).toLowerCase()}${mandato.frase.slice(1)}` +
+      (topVoce ? ` Della serata, il blocco più lungo l'hai dato a «${topVoce}».` : ""),
+    occasioni: [
+      { quando: (c) => facciataTenuta(c, "spostare_orari") && !c.letti.has("M4"), testo: "Avresti spostato tutto un'ora avanti. È la reazione più naturale davanti a un buco, e i soldi per l'ora di service c'erano pure. Ma il permesso della piazza scadeva all'una e per cambiare gli orari servivano quarantotto ore di preavviso. Ne mancavano ventiquattro." },
+      { quando: (c) => facciataTenuta(c, "spostare_orari") && c.letti.has("M4"), testo: "Avresti spostato tutto un'ora avanti anche sapendo, dal regolamento che avevi letto, che il permesso scadeva all'una e per cambiare gli orari servivano quarantotto ore. A volte si legge una cosa e si sceglie lo stesso di correre il rischio." },
+      { quando: (c) => !c.letti.has("M6"), testo: "In paese c'erano duecento ragazzi con diciotto minuti di coro in cinque lingue già pronti. Erano lì da due settimane, non costavano niente, e avrebbero riempito esattamente il buco che stavi cercando di tappare." },
+      { quando: (c) => !c.letti.has("M5"), testo: "Hai lasciato la Filarmonica fuori dalla serata. Con ventitré elementi poteva fare quattro pezzi già eseguiti l'anno scorso. Il direttore non l'aveva proposto perché si vergognava: bastava chiederglielo." },
+      { quando: (c) => !c.letti.has("M12"), testo: "Nel 2019 la gente non si arrabbiò per il cambio di programma: si arrabbiò per averlo scoperto in piazza. Era un precedente che non hai chiesto." },
+      { quando: (c) => c.alloc !== undefined && c.letti.has("M12") && speso(c, "ringraziamento") === 0, testo: "Sapevi del 2019, ma non hai lasciato un minuto per spiegare al pubblico cosa stava succedendo: è esattamente quello che due anni fa fece arrabbiare la gente." },
+      { quando: (c) => assegnatoA(c, "direttore", "io"), testo: "Ti sei preso il compito più scomodo della serata: convincere un uomo che si vergognava a salire lo stesso." },
+    ],
+  },
+
+  "classe-partecipa": {
+    costruito: (mandato, topVoce) =>
+      `Hai deciso di muoverti così: ${mandato.label} — ${mandato.frase.charAt(0).toLowerCase()}${mandato.frase.slice(1)}` +
+      (topVoce ? ` Delle nove giornate, la fetta più grande l'hai messa su «${topVoce}».` : ""),
+    occasioni: [
+      { quando: (c) => facciataTenuta(c, "faccio_da_solo") && !c.letti.has("M8"), testo: "Hai deciso di finire la guida da solo. È la scelta più generosa della missione e avrebbe funzionato: la guida sarebbe uscita. Ma la valutazione era sul contributo di ciascuno, e chi fa tutto lascia gli altri senza contributo — compreso sé stesso. L'anno scorso era già andata così." },
+      { quando: (c) => facciataTenuta(c, "faccio_da_solo") && c.letti.has("M8"), testo: "Hai scelto di fare tutto da solo anche sapendo, dalla nota della prof che avevi letto, che così lasci gli altri senza un contributo da valutare — e abbassi anche il tuo voto." },
+      { quando: (c) => !c.letti.has("M4"), testo: "In quel gruppo c'era una persona che parla tre lingue e non ha mai scritto un messaggio in chat. Non per disinteresse: per paura di sbagliare a scrivere in italiano davanti agli altri. Le traduzioni sono uscite da un traduttore automatico mentre lui era seduto lì." },
+      { quando: (c) => !c.letti.has("M5"), testo: "Elisa non si era tirata indietro: assisteva sua nonna tutti i pomeriggi. Poteva lavorare la mattina da casa, e nessuno gliel'ha chiesto." },
+      { quando: (c) => !c.letti.has("M6"), testo: "La frase di Tommaso non veniva dal nulla: l'anno prima aveva fatto quasi tutto il lavoro e il voto era stato uguale per tutti. Era memoria, non altro." },
+      { quando: (c) => !c.letti.has("M11"), testo: "Undici idee in tre settimane, tutte accolte con «bella idea» e nessuna scelta. Due erano ottime. Non serviva frenare nessuno: serviva che qualcuno decidesse." },
+      { quando: (c) => abbinamentiBuoni(c) >= 2, testo: "Hai dato le traduzioni a chi le sapeva fare, un compito con confini a chi si blocca sulle cose vaghe, un lavoro da fare la mattina a chi poteva solo così. Sono cose che nessuno aveva pensato di fare in tre settimane." },
+    ],
+  },
+
+  "viaggio-impossibile": {
+    costruito: (mandato, topVoce) =>
+      `Hai scelto il criterio ${mandato.label} — ${mandato.frase.charAt(0).toLowerCase()}${mandato.frase.slice(1)}` +
+      (topVoce ? ` Nel piano, la voce su cui hai speso di più è «${topVoce}».` : ""),
+    occasioni: [
+      { quando: (c) => facciataTenuta(c, "chiedi_nadir") && !(c.letti.has("M10") || c.letti.has("M12")), testo: "Hai chiesto a Nadir se preferiva non venire. Lo aveva detto due volte lui per primo, quindi sembrava la cosa più rispettosa. Due anni fa un altro studente in sedia a rotelle «scelse di non partecipare», e nella relazione c'è scritto che l'ostello non era accessibile e nessuno gliel'aveva detto. Chiedere a qualcuno se vuole restare fuori non è chiederglielo: è dirglielo." },
+      { quando: (c) => facciataTenuta(c, "chiedi_nadir") && (c.letti.has("M10") || c.letti.has("M12")), testo: "Hai chiesto a Nadir se preferiva restare a casa anche sapendo — dalla normativa o dal precedente che avevi letto — che una barriera nota e non affrontata rende il viaggio non conforme, e che «per scelta sua» è la formula con cui due anni fa un altro studente restò escluso." },
+      { quando: (c) => !c.letti.has("M8"), testo: "C'era un fondo d'istituto che copriva il 40% della quota, riservato, che nessuno in classe avrebbe saputo. Risolveva la situazione di Marco senza che lui dovesse dire niente a nessuno. Quest'anno non l'ha chiesto nessuno perché nessuno sapeva che esistesse." },
+      { quando: (c) => !c.letti.has("M13"), testo: "Con un accompagnatore in più l'agenzia faceva quattro euro di sconto a testa: ottantotto euro, quasi metà dell'ostello accessibile. Bastava chiederlo." },
+      { quando: (c) => !c.letti.has("M6"), testo: "Il viaggio non costava centosettantotto euro: ne costava più di duecento, contando i pasti. Marco arrivava a centocinquanta." },
+      { quando: (c) => c.pianoSel !== undefined && c.letti.has("M4") && !nelPiano(c, "ostello_accessibile"), testo: "Hai speso il margine per rendere il viaggio più bello, e l'ostello accessibile è rimasto fuori: sarebbero partiti in venti su ventidue." },
+      { quando: (c) => nelPiano(c, "ostello_accessibile") && (nelPiano(c, "treno_gruppo") || nelPiano(c, "treno_singolo")), testo: "Sono partiti in ventidue. Non era scontato: bisognava sapere dello sconto, del fondo e dell'ostello, e nessuna di queste tre cose era scritta nel preventivo." },
+    ],
+  },
+
   "museo-seta": {
     costruito: (mandato, topVoce) =>
       `Hai deciso di reinventare il museo ${mandato.label} — ${mandato.frase.charAt(0).toLowerCase()}${mandato.frase.slice(1)}` +
@@ -144,6 +200,8 @@ export function costruisciRestituzione(slug: string, get: LeggiRisposta, areeTop
   const alloc = s3?.allocazioni; // Stanza 3.1 alloca_budget (Missioni 01-03)
   const pianoSel = s3?.selezionati; // Stanza 3.1 pianifica_lavori (Missione 04)
   const scartati = (get("s3_scarto") as PayloadScarta | undefined)?.scartati;
+  // Assegnazioni compito→persona (Missione 10: s3_ruoli è un assegna_persone).
+  const assegnazioni = (get("s3_ruoli") as PayloadAssegnaPersone | undefined)?.assegnazioni;
   const narr = NARRATIVA[slug];
 
   // Missione risolta: per leggere le voci del budget / i lavori del piano
@@ -201,7 +259,7 @@ export function costruisciRestituzione(slug: string, get: LeggiRisposta, areeTop
   // ── 3. Le occasioni (conseguenze)
   const occasioni: string[] = [];
   if (narr) {
-    const ctx: OccasioneCtx = { letti, alloc, pianoSel, scartati, mandato };
+    const ctx: OccasioneCtx = { letti, alloc, pianoSel, scartati, assegnazioni, mandato };
     for (const r of narr.occasioni) if (r.quando(ctx)) occasioni.push(r.testo);
   }
 

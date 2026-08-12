@@ -16,6 +16,7 @@
 // tipo, non per id.
 
 import type {
+  CompitoAssegnabile,
   EscapeMission,
   Lavoro,
   LeggiRisposta,
@@ -29,6 +30,7 @@ import type {
   PayloadSceltaSingola,
   PayloadEsplora,
   PayloadSeleziona,
+  PersonaAssegnabile,
   Ruolo,
   Step,
   StepPianificaLavori,
@@ -43,6 +45,9 @@ export const SLUG_SPORTELLO = "sportello-insieme";
 export const SLUG_FILIERA = "filiera-borea";
 export const SLUG_MUSEO = "museo-seta";
 export const SLUG_ACQUA = "citta-acqua";
+export const SLUG_PALCO = "palco-programma";
+export const SLUG_CLASSE = "classe-partecipa";
+export const SLUG_VIAGGIO = "viaggio-impossibile";
 
 // ─────────────────────────────────────────── tipi interni di definizione
 
@@ -79,22 +84,31 @@ type MissioneDef = {
   ruoli: Ruolo[];
   passi: Passo[];
   budget: {
-    totale: (m: Mandato | null) => number;
+    // `totale` riceve anche i materiali letti: la Missione 11 è la prima in cui
+    // la CAPIENZA del budget dipende da un materiale (M13 → +88 €), non solo le
+    // voci disponibili. Le altre missioni lo ignorano.
+    totale: (m: Mandato | null, letti: Set<string>) => number;
     unita: string;
     passo: number;
     voci: (m: Mandato | null, letti: Set<string>) => VoceBudget[];
   };
-  // Se presente, la Stanza 3.1 è un "pianifica_lavori" (doppio budget soldi+
-  // giorni + dipendenze) invece di un "alloca_budget". L'id dello step resta
-  // comunque "s3_budget" (canonico). Missione 04.
+  // Se presente, la Stanza 3.1 è un "pianifica_lavori" (tetto soldi ± giorni +
+  // dipendenze, o obiettivo da raggiungere) invece di un "alloca_budget". L'id
+  // dello step resta comunque "s3_budget" (canonico). Missioni 04/06/07/08/11.
+  // `budgetSoldi` può essere una funzione dei materiali letti: nella Missione 11
+  // il tetto cresce da 264 a 352 € se è stato letto M13.
   piano?: {
     unitaSoldi: string;
-    budgetSoldi?: number;
+    budgetSoldi?: number | ((letti: Set<string>) => number);
     budgetGiorni?: number;
     obiettivo?: number;
     unitaObiettivo?: string;
     lavori: (letti: Set<string>) => Lavoro[];
   };
+  // Se presente, lo step dei ruoli (s3_ruoli / s4_ruoli) è un "assegna_persone"
+  // (compito→persona specifica) invece di un "assegna_ruoli" (io/altri).
+  // Missione 10: cinque abbinamenti compito↔persona sono segnali forti.
+  assegnaPersone?: { compiti: CompitoAssegnabile[]; persone: PersonaAssegnabile[] };
   scarto: (letti: Set<string>) => OpzioneScarto[];
   introStanza3: (m: Mandato | null, letti: Set<string>) => string;
   testi: DefTesti;
@@ -1501,9 +1515,530 @@ const MD08: MissioneDef = {
   },
 };
 
+// =====================================================================
+// MISSIONE 09 — "Il palco cambia programma" (Sant'Elia)
+// =====================================================================
+
+const N_M1: Materiale = { id: "M1", titolo: "Il programma e le risorse", aree: [], costo: 0, contenuto: "21:00 banda locale (30', confermata). 21:40 gruppo teatrale «I Rimasti» (40', confermato). 22:30 Filarmonica di Sant'Elia (60', ma 23 elementi su 34). 23:40 fuochi d'artificio (15', pagati). Risorse: piazza col palco montato, service audio-luci pagato fino all'una, 6 volontari, 2 addetti alla sicurezza, un bar della Pro Loco." };
+const N_M2: Materiale = {
+  id: "M2", titolo: "Le telefonate del pomeriggio", aree: [], costo: 0,
+  contenuto: "Attorno al tavolo della Pro Loco, letture diverse dello stesso guaio. Testuali:",
+  estratti: [
+    { chi: "Il direttore della Filarmonica", testo: "Con ventitré non facciamo il programma. Tre pezzi, quattro al massimo. Ma preferirei non salire proprio, piuttosto che fare brutta figura." },
+    { chi: "La presidente della Pro Loco", testo: "I fuochi sono pagati. Se salta tutto il resto, almeno quelli li facciamo." },
+    { chi: "Nadia, del gruppo teatrale", testo: "Noi possiamo allungare, abbiamo altri venti minuti pronti. Ma è roba in dialetto stretto." },
+    { chi: "Il maresciallo", testo: "L'autorizzazione della piazza scade all'una. All'una spegnete, qualunque cosa stiate facendo." },
+    { chi: "L'animatrice del centro estivo", testo: "I nostri duecento ragazzi vengono di sicuro. Metà non parla italiano." },
+  ],
+};
+const N_M3: Materiale = { id: "M3", titolo: "Il budget, chiuso", aree: [], costo: 0, contenuto: "14.200 € già impegnati e in gran parte spesi. Residuo disponibile: 380 €. Nessuna integrazione possibile: il contributo comunale è vincolato al preventivo approvato." };
+const N_M4: Materiale = { id: "M4", titolo: "Il regolamento dell'autorizzazione di pubblico spettacolo", aree: ["sicurezza-difesa", "giurisprudenza-pa"], costo: 1, contenuto: "L'autorizzazione copre il programma depositato in Comune il 30 giugno. Le variazioni di contenuto sono ammesse; quelle che modificano capienza, orari o disposizione del pubblico richiedono una nuova comunicazione con 48 ore di preavviso. Ne mancano ventiquattro. Tradotto: qualunque idea che sposti la gente o cambi l'orario è irrealizzabile." };
+const N_M5: Materiale = { id: "M5", titolo: "Cosa sa fare la Filarmonica con 23 elementi", aree: ["musica-spettacolo"], costo: 1, contenuto: "L'organico ridotto esclude i pezzi sinfonici ma consente il repertorio bandistico e quattro arrangiamenti già eseguiti l'anno scorso, di cui uno molto noto. Il direttore lo sa ma non l'ha proposto: si vergogna di «fare il minore». Chi lo legge può proporre un compromesso che salva la Filarmonica invece di eliminarla." };
+const N_M6: Materiale = { id: "M6", titolo: "Il centro estivo internazionale", aree: ["lingue-relazioni-internazionali", "scienze-educazione"], costo: 1, contenuto: "200 ragazzi tra 14 e 19 anni, 11 nazionalità, il 54% non parla italiano. Sono in paese da due settimane e hanno già preparato, per conto loro, quattro brani corali in cinque lingue: 18 minuti. Costa zero, riempie un buco, e trasforma il problema del pubblico in un contenuto." };
+const N_M7: Materiale = { id: "M7", titolo: "Il gruppo teatrale, in dettaglio", aree: ["musica-spettacolo", "lingue-relazioni-internazionali"], costo: 1, contenuto: "I venti minuti in più sono un pezzo comico in dialetto stretto. Funziona benissimo con il pubblico locale e non funziona affatto con chi non è del posto. Nadia: «Se ci sono i ragazzi stranieri, quei venti minuti sono venti minuti di silenzio»." };
+const N_M8: Materiale = { id: "M8", titolo: "Il contratto del service audio-luci", aree: ["meccanica-meccatronica"], costo: 1, contenuto: "Pagato fino all'01:00. Ogni ora aggiuntiva: 340 €. Il residuo di cassa è 380 €: si può comprare esattamente un'ora, e resterebbero 40 €. Ma l'autorizzazione della piazza scade all'una comunque. I soldi ci sono, il permesso no." };
+const N_M9: Materiale = { id: "M9", titolo: "L'edizione dell'anno scorso", aree: ["comunicazione-media"], costo: 1, contenuto: "870 presenti. Il momento più applaudito non fu il concerto: fu quando la banda accompagnò a sorpresa il coro dei bambini della parrocchia. Cinque minuti, non erano in programma." };
+const N_M10: Materiale = { id: "M10", titolo: "La comunicazione già uscita", aree: ["comunicazione-media"], costo: 1, contenuto: "400 locandine affisse, un post condiviso 210 volte, un annuncio sul giornale locale. Tutte riportano «Concerto della Filarmonica, ore 22:30». Chi arriva alle 22:30 si aspetta quello." };
+const N_M11: Materiale = { id: "M11", titolo: "La disponibilità dei volontari", aree: ["sicurezza-difesa"], costo: 1, contenuto: "6 volontari, tutti già assegnati (bar, transenne, accoglienza). Nessuno è libero per gestire un cambio di programma sul posto. Due sono disponibili solo fino alle 23:00." };
+const N_M12: Materiale = { id: "M12", titolo: "Il precedente dell'edizione 2019", aree: ["comunicazione-media", "musica-spettacolo"], costo: 1, contenuto: "Quell'anno saltò il gruppo principale e si decise di non dire niente fino all'ultimo, sperando in una sostituzione. Il pubblico lo scoprì alle 22:30, in piazza. Le lamentele non furono per il cambio di programma: furono per non essere stati avvisati." };
+const N_M13: Materiale = { id: "M13", titolo: "Il meteo", aree: ["sicurezza-difesa"], costo: 1, contenuto: "Probabilità di rovesci tra le 22:00 e le 23:30: 35%. Il piano pioggia previsto a giugno era «spostare tutto sotto il porticato del municipio»: capienza 250 persone su 900 attese." };
+
+const N_MANDATI: Mandato[] = [
+  {
+    id: "serata_comunque", label: "«La serata va avanti comunque»", frase: "il pubblico non deve accorgersi del buco.",
+    aree: ["comunicazione-media", "ristorazione-turismo"],
+    vincolo: { id: "teatro_ritardo", testo: "Il gruppo teatrale arriva in ritardo: uno degli attori è fuori paese fino alle 21:30." },
+    consulenze: [
+      consulenza("N_presidente", "Consulenza: la presidente della Pro Loco", "ristorazione-turismo", "La gente viene per stare in piazza, non per il programma perfetto. Se il bar gira e i fuochi partono, la serata è salva anche senza il concerto grande."),
+      consulenza("N_bar", "Consulenza: il gestore del bar", "ristorazione-turismo", "Un intervallo lungo tra un pezzo e l'altro non è un problema: è quando la gente compra e chiacchiera. Il buco musicale si può riempire anche così."),
+    ],
+  },
+  {
+    id: "filarmonica_sale", label: "«La Filarmonica sale lo stesso»", frase: "il paese ha una banda e stasera suona.",
+    aree: ["musica-spettacolo"],
+    vincolo: { id: "prove", testo: "Il direttore chiede due ore di prova nel pomeriggio, ma la piazza è occupata dal montaggio." },
+    consulenze: [
+      consulenza("N_direttore", "Consulenza: il direttore della Filarmonica", "musica-spettacolo", "Con ventitré possiamo fare quattro pezzi già rodati l'anno scorso, uno molto noto. Non è il programma, ma è dignitoso. Il problema non è la musica, è che mi vergogno a salire in minoranza."),
+      consulenza("N_maestro", "Consulenza: un maestro di musica", "musica-spettacolo", "Un organico ridotto che fa bene quattro pezzi vale più di uno completo che ne sbaglia dieci. E far sparire la banda del paese dalla sua festa è un messaggio pessimo."),
+    ],
+  },
+  {
+    id: "entrano_ragazzi", label: "«Facciamo entrare i ragazzi del centro»", frase: "duecento persone che sono qui e nessuno le ha considerate.",
+    aree: ["lingue-relazioni-internazionali", "musica-spettacolo"],
+    vincolo: { id: "consenso_tutori", testo: "Serve il consenso dei tutori per far salire dei minori sul palco: 4 ore per raccoglierlo." },
+    consulenze: [
+      consulenza("N_animatrice", "Consulenza: l'animatrice del centro estivo", "lingue-relazioni-internazionali", "Hanno già pronti diciotto minuti di coro in cinque lingue per la festa di fine soggiorno. Sono qui da due settimane, non costano niente, e riempirebbero esattamente il buco delle 22:30."),
+      consulenza("N_interprete", "Consulenza: un'interprete", "lingue-relazioni-internazionali", "Metà della piazza stasera non parla italiano. Un coro in cinque lingue non è un riempitivo: è l'unico momento in cui quei duecento ragazzi si sentono parte della festa."),
+    ],
+  },
+  {
+    id: "finisca_bene", label: "«Prima di tutto che finisca bene»", frase: "novecento persone in piazza, un temporale possibile.",
+    aree: ["sicurezza-difesa"],
+    vincolo: { id: "piano_pioggia", testo: "Il piano pioggia previsto regge 250 persone su 900 attese." },
+    consulenze: [
+      consulenza("N_maresciallo", "Consulenza: il maresciallo", "sicurezza-difesa", "Il programma è quello depositato, e all'una si spegne. Se dà pioggia e novecento persone corrono sotto un porticato da duecentocinquanta, quello è il vero problema della serata."),
+      consulenza("N_sicurezza", "Consulenza: il responsabile sicurezza", "sicurezza-difesa", "Con un 35% di rovesci serve decidere prima cosa si fa se piove, non mentre piove. Un annuncio calmo alle 21 vale più di duecento persone che scappano alle 22:40."),
+    ],
+  },
+  {
+    id: "diciamo_subito", label: "«Diciamo subito come stanno le cose»", frase: "il pubblico si arrabbia se lo scopre in piazza.",
+    aree: ["comunicazione-media"],
+    vincolo: { id: "dichiarazione", testo: "Il giornale locale chiede una dichiarazione entro le 18:00 per l'edizione di domani." },
+    consulenze: [
+      consulenza("N_giornalista", "Consulenza: un giornalista locale", "comunicazione-media", "Se lo dite voi entro le sei, domani esce «la festa si adatta». Se lo scopre la gente in piazza, esce «pasticcio alla festa». La differenza la fate voi adesso."),
+      consulenza("N_social", "Consulenza: l'addetto ai social", "comunicazione-media", "Duemilaquattrocento persone seguono la pagina. Un post chiaro adesso raggiunge chi non è ancora uscito di casa: è meglio saperlo dal divano che davanti al palco."),
+    ],
+  },
+];
+
+const MD09: MissioneDef = {
+  meta: {
+    slug: SLUG_PALCO,
+    titolo: "Il palco cambia programma",
+    sottotitolo: "La Notte di Mezzagosto, ventiquattr'ore per salvarla",
+    descrizione:
+      "Festa di paese a Sant'Elia, il 16 agosto, in piazza. Il programma è chiuso da maggio e ruota attorno al concerto della Filarmonica. Sono le 15:40 del 15 agosto quando arriva la telefonata: undici elementi bloccati in trasferta, non rientrano prima del 17. Con ventitré elementi il programma non si può eseguire. E in paese ci sono duecento ragazzi di un centro estivo internazionale che nessuno ha considerato. Il budget è chiuso. Non c'è niente da analizzare e tutto da decidere: cosa scegli di proteggere quando devi rinunciare a qualcosa. Niente cronometro, niente sconfitta: puoi riprendere quando vuoi.",
+    tipo: "cross-area",
+  },
+  areeCandidate: ["musica-spettacolo", "arte-design-moda", "ristorazione-turismo", "sicurezza-difesa", "comunicazione-media", "lingue-relazioni-internazionali"],
+  ruoliStanza: 3,
+  daScartare: 2,
+  quantiPassi: 3,
+  materialiLiberi: [N_M1, N_M2, N_M3],
+  materialiGettone: [N_M4, N_M5, N_M6, N_M7, N_M8, N_M9, N_M10, N_M11, N_M12, N_M13],
+  mandati: N_MANDATI,
+  prioritaVoci: [
+    { id: "piazza_piena", label: "Che la piazza sia piena e la gente stia bene", aree: ["ristorazione-turismo", "comunicazione-media"] },
+    { id: "filarmonica_figura", label: "Che la Filarmonica non ci faccia una figuraccia", aree: ["musica-spettacolo"] },
+    { id: "ragazzi_parte", label: "Che i ragazzi del centro estivo si sentano parte del paese", aree: ["lingue-relazioni-internazionali", "scienze-educazione"] },
+    { id: "tutto_sicuro", label: "Che sia tutto sicuro e finisca senza problemi", aree: ["sicurezza-difesa"] },
+    { id: "serata_ricordo", label: "Che sia una serata che qualcuno si ricorderà", aree: ["arte-design-moda", "musica-spettacolo"] },
+  ],
+  ruoli: [
+    { id: "avvisare", label: "Avvisare il pubblico del cambio", area: "comunicazione-media" },
+    { id: "direttore", label: "Stare con il direttore della Filarmonica", area: "musica-spettacolo" },
+    { id: "ragazzi", label: "Organizzare i ragazzi del centro estivo", area: "lingue-relazioni-internazionali" },
+    { id: "tempi", label: "Tenere i tempi durante la serata", area: "ristorazione-turismo" },
+    { id: "pioggia", label: "Gestire il piano pioggia", area: "sicurezza-difesa" },
+  ],
+  passi: [
+    { id: "piano_b", label: "Prevedere sempre un piano B per il gruppo principale" },
+    { id: "coinvolgere_centro", label: "Coinvolgere il centro estivo fin da maggio" },
+    { id: "programma_flessibile", label: "Depositare un programma più flessibile" },
+    { id: "piano_pioggia_veri", label: "Rifare il piano pioggia su numeri veri" },
+    { id: "piu_volontari", label: "Trovare più volontari" },
+    { id: "fondo_imprevisti", label: "Chiedere un fondo per gli imprevisti" },
+    { id: "procedura_annunci", label: "Scrivere una procedura per gli annunci al pubblico" },
+    { id: "ringraziare", label: "Ringraziare chi ha salvato la serata" },
+  ],
+  budget: {
+    totale: () => 160,
+    unita: "minuti",
+    passo: 5,
+    voci: (m, letti) => {
+      const voci: VoceBudget[] = [
+        { id: "banda", label: "Banda locale", aree: ["musica-spettacolo"], costoIndicativo: 30 },
+        { id: "teatro", label: "Gruppo teatrale", aree: ["musica-spettacolo"], costoIndicativo: 40 },
+        { id: "teatro_esteso", label: "Teatro esteso (+20', in dialetto stretto)", aree: ["musica-spettacolo", "lingue-relazioni-internazionali"], costoIndicativo: 20 },
+      ];
+      if (letti.has("M5")) voci.push({ id: "filarmonica_ridotta", label: "Filarmonica ridotta, quattro pezzi", aree: ["musica-spettacolo"], costoIndicativo: 25, soloSe: "M5" });
+      voci.push({ id: "filarmonica_completa", label: "Filarmonica, programma completo (non eseguibile con 23 elementi)", aree: ["musica-spettacolo"], costoIndicativo: 60 });
+      if (letti.has("M6")) voci.push({ id: "coro_centro", label: "Coro del centro estivo (5 lingue)", aree: ["lingue-relazioni-internazionali", "musica-spettacolo"], costoIndicativo: 18, soloSe: "M6" });
+      voci.push({ id: "intervallo", label: "Intervallo con il bar", aree: ["ristorazione-turismo"], costoIndicativo: 15 });
+      voci.push({ id: "ringraziamento", label: "Momento di ringraziamento e spiegazione", aree: ["comunicazione-media"], costoIndicativo: 5 });
+      voci.push({ id: "fuochi", label: "Fuochi d'artificio", aree: ["arte-design-moda"], costoIndicativo: 15 });
+      return voci;
+    },
+  },
+  scarto: (letti) => [
+    { id: "spostare_orari", label: "Spostare tutto un'ora avanti e allungare fino alle due", aree: ["comunicazione-media"], qualita: 0.05, trappola: true, avviso: letti.has("M4") ? "Il regolamento dell'autorizzazione (che hai letto): cambiare gli orari richiede 48 ore di preavviso e ne mancano ventiquattro, e la piazza scade all'una comunque. I 380 € per l'ora di service non servono a niente." : undefined },
+    { id: "cancellare_niente", label: "Cancellare la Filarmonica e non dire niente fino a stasera", aree: ["musica-spettacolo"], qualita: 0.1, avviso: letti.has("M12") ? "Il precedente del 2019 (che hai letto): la gente non si arrabbiò per il cambio, si arrabbiò per averlo scoperto in piazza." : undefined },
+    { id: "musica_registrata", label: "Sostituire la Filarmonica con musica registrata", aree: ["musica-spettacolo"], qualita: 0.2 },
+    { id: "filarmonica_ridotta_idea", label: "Far salire la Filarmonica ridotta con quattro pezzi", aree: ["musica-spettacolo"], qualita: 0.85 },
+    { id: "coro_idea", label: "Chiedere ai ragazzi del centro estivo di fare i loro brani", aree: ["lingue-relazioni-internazionali"], qualita: 0.8 },
+    { id: "teatro_idea", label: "Allungare il teatro di venti minuti", aree: ["musica-spettacolo"], qualita: 0.4, avviso: letti.has("M7") ? "Il dettaglio sul teatro (che hai letto): quei venti minuti sono in dialetto stretto, e con metà piazza che non parla italiano sono venti minuti di silenzio." : undefined },
+  ],
+  introStanza3: (m, letti) => {
+    const parti = ["Sono le 18:20. Il sole è ancora alto e in piazza stanno provando le luci."];
+    if (m) parti.push(m.vincolo.testo);
+    if (!letti.has("M4") || !letti.has("M13")) parti.push("Il maresciallo passa dalla Pro Loco: «Mi raccomando, il programma è quello depositato. E avete visto che danno pioggia?»");
+    return parti.join("\n\n");
+  },
+  testi: {
+    introS1: "Sono le 15:40 del 15 agosto. Siete in cinque nella saletta della Pro Loco, con il ventilatore che gira e il programma della serata stampato sul tavolo.\n\nIl telefono della presidente squilla. Risponde, ascolta, dice «va bene, capisco», riattacca e vi guarda: «Il pullman della Filarmonica si è fermato a Foligno. Ne mancano undici. Non tornano prima del diciassette.»\n\nFuori qualcuno sta già montando le transenne.",
+    introS2: "Sono le 16:00. Prima di decidere qualsiasi cosa potete fare cinque telefonate: chiamare qualcuno, leggere un contratto, controllare un permesso, verificare una disponibilità.\n\nCinque, perché alle 18:00 bisogna aver deciso: dopo, chi doveva sapere non lo saprà in tempo.",
+    introS4: "Sono le 19:10. Sul telefono c'è la pagina della festa: duemilaquattrocento persone la seguono, e sulle locandine c'è scritto «Concerto della Filarmonica, ore 22:30».\n\nQuello che scrivete adesso lo leggeranno prima di uscire di casa.",
+    introS5: "La serata è decisa. Domani si saprà com'è andata. Ma una cosa la sapete già: cosa avete scelto di proteggere, quando avete capito che qualcosa dovevate lasciarlo andare.",
+    materiali: { titolo: "Prima di tutto: cosa avete tra le mani?", prompt: "Apri i documenti: il programma con le risorse, le telefonate del pomeriggio e il budget.", hint: "Fermati sulle telefonate: il direttore della Filarmonica sta dicendo due cose diverse nella stessa frase." },
+    priorita: { titolo: "Cinque cose che questa serata dovrebbe essere. Cosa proteggete per primo?", prompt: "Mettile in ordine. Non c'è un ordine giusto: conta cosa scegli di proteggere sapendo già che dovrai rinunciare a qualcosa.", hint: "La prima scelta pesa più delle altre." },
+    mandato: { titolo: "La presidente vi chiede una frase per capire dove andiamo. Quale?", prompt: "È la scelta di campo che deciderà cosa andate a verificare e cosa vi troverete davanti.", hint: "Salvare la serata e salvare la Filarmonica non sono la stessa cosa." },
+    informazioni: { titolo: "Avete 5 gettoni. Cosa andate a verificare?", prompt: "Ogni telefonata costa un gettone e non torna indietro. Aprila per leggerla: quello che non chiedi adesso, lo decidi a intuito.", hint: "La risorsa che salva la serata potrebbe essere già in paese, e a costo zero." },
+    nonApprofondire: { titolo: "Una cosa che avete deciso di non verificare: perché?", prompt: "Due o tre righe. Non c'è una risposta giusta: conta che tu sappia perché hai rinunciato a saperlo.", hint: "Puoi anche lasciarlo vuoto — ma provarci dice qualcosa di come decidi." },
+    budget: { titolo: "Restano 160 minuti di programma tra le 21:00 e le 23:40. Compositelo.", prompt: "Distribuisci i minuti tra gli spazi della serata: il programma deve reggere fino ai fuochi e finire entro l'una. C'è un margine di ±10.", hint: "Un buon programma parla al pubblico che c'è davvero stasera, non a quello di sempre." },
+    scarto: { titolo: "Tre idee non stanno in piedi. Tagliatene due.", prompt: "Rinuncia a due delle idee sul tavolo, e di' perché. Attenzione: la più ovvia davanti a un buco può essere la più impossibile.", hint: "Ciò che tieni conta più di ciò che togli." },
+    ruoli: { titolo: "Da adesso alle nove di stasera, chi fa cosa?", prompt: "Per ogni compito: te ne occupi tu o lo lasci a un altro del gruppo? Quello che ti prendi è quello che ti senti di saper fare." },
+    previsione: { titolo: "Prima di scriverlo: come la prenderà la gente?", prompt: "Quanto pensate che il pubblico prenderà bene questo cambio di programma?", domanda: "La tua sensazione, prima di scrivere" },
+    proposta: { titolo: "Scrivete il messaggio al pubblico (max 100 parole)", prompt: "Cosa è successo, cosa vedranno stasera, e perché vale la pena venire lo stesso.", hint: "Di' la verità nella prima frase e nomina una cosa concreta e nuova. Niente «cause di forza maggiore» né entusiasmo posticcio.", minCaratteri: 120 },
+    riflessione: { titolo: "Cosa avete deciso di proteggere, alla fine?", prompt: "E c'è qualcosa che avete lasciato andare e che vi dispiace?", hint: "Questa è la parte che resta tua: la salviamo nel tuo diario.", minCaratteri: 120 },
+    passi: { titolo: "Per l'edizione dell'anno prossimo, i primi tre passi?", prompt: "Scegli tre passi e mettili in ordine: quale per primo, quale per secondo, quale per terzo.", hint: "Il guaio di stasera è nato a maggio, non alle 15:40." },
+  },
+};
+
+// =====================================================================
+// MISSIONE 10 — "La classe che non partecipa" (la guida del quartiere)
+// =====================================================================
+
+const C_M1: Materiale = { id: "M1", titolo: "Le schede dei sette e lo stato del lavoro", aree: [], costo: 0, contenuto: "Yuri: parla in continuazione, propone idee ogni giorno, non ne finisce nessuna (61 messaggi su 140). Sofia: ha fatto la copertina, l'unica cosa finita, ma da due settimane non scrive più. Amine: parla tre lingue, servirebbe per le traduzioni, non ha mai scritto in chat, presente e in silenzio. Giada: chiede cosa fare, e quando glielo dici lo fa bene, poi si ferma. Tommaso: ha detto due volte «tanto poi la fa qualcun altro», ma è l'unico che ha trovato gli indirizzi (compresi tre sbagliati). Elisa: ha saltato gli ultimi tre incontri, nessuno sa perché. Stato: copertina fatta, 11 indirizzi (3 sbagliati), mappa e testi e traduzioni non iniziati. Mancano due settimane." };
+const C_M2: Materiale = {
+  id: "M2", titolo: "Estratti dalla chat di gruppo", aree: [], costo: 0,
+  contenuto: "Centoquaranta messaggi. Alcuni, testuali:",
+  estratti: [
+    { chi: "Yuri (lunedì, 23:41)", testo: "raga ho un'idea pazzesca, e se facessimo anche un video??" },
+    { chi: "Giada (martedì)", testo: "ok ma io cosa devo fare esattamente? scrivete voi i testi o li scrivo io?" },
+    { chi: "Tommaso (martedì)", testo: "tanto alla fine la prof ci passa comunque" },
+    { chi: "Sofia (due settimane fa, ultimo messaggio)", testo: "ho caricato la copertina nella cartella. fatemi sapere." },
+    { chi: "Elisa (tre settimane fa)", testo: "scusate se non ci sono, ho un casino a casa" },
+  ],
+};
+const C_M3: Materiale = { id: "M3", titolo: "Cosa chiede il progetto", aree: [], costo: 0, contenuto: "Consegna tra 14 giorni: mappa del quartiere, 25 indirizzi verificati con orari e contatti, quattro testi introduttivi, traduzioni in due lingue, impaginazione. Valutazione: individuale sul contributo di ciascuno, collettiva sul risultato." };
+const C_M4: Materiale = { id: "M4", titolo: "La conversazione con Amine, se qualcuno gliela chiede", aree: ["lingue-relazioni-internazionali", "scienze-educazione"], costo: 1, contenuto: "Amine è arrivato in Italia due anni fa. Parla arabo, francese e italiano. Non scrive in chat perché ha paura di sbagliare a scrivere in italiano davanti agli altri. Parlando non ha nessun problema. Nessuno gliel'ha mai chiesto. La risorsa più importante del progetto era già dentro il gruppo, muta per imbarazzo." };
+const C_M5: Materiale = { id: "M5", titolo: "Il messaggio privato di Elisa", aree: ["salute-professioni-sanitarie", "scienze-educazione"], costo: 1, contenuto: "«Sto seguendo mia nonna, è caduta il mese scorso. Sono a casa da sola con lei tutti i pomeriggi. Non l'ho detto perché non voglio che pensiate che mi tiro indietro.» Può lavorare, ma solo la mattina e da casa. Non è disimpegno: è un vincolo che nessuno conosceva." };
+const C_M6: Materiale = { id: "M6", titolo: "Cosa ha detto davvero Tommaso", aree: ["scienze-educazione", "comunicazione-media"], costo: 1, contenuto: "La frase intera, riportata da chi c'era: «Tanto poi la fa qualcun altro, come l'anno scorso, che ho fatto tutto io e alla fine il voto era uguale per tutti.» Non è cinismo: è un precedente." };
+const C_M7: Materiale = { id: "M7", titolo: "La verifica degli indirizzi", aree: ["comunicazione-media", "ristorazione-turismo"], costo: 1, contenuto: "Dei tre sbagliati: uno è chiuso da un anno, uno ha cambiato via, uno esiste ma con orari diversi. Tommaso li ha presi da un elenco online del 2021. Il metodo era sbagliato, non la persona." };
+const C_M8: Materiale = { id: "M8", titolo: "La nota della professoressa, per iscritto", aree: ["scienze-educazione"], costo: 1, contenuto: "«Valuto il contributo di ciascuno, non chi ha lavorato di più. Se qualcuno fa tutto da solo, gli altri non hanno un contributo da valutare — e il voto individuale ne risente. Anche il suo.» Fare tutto da soli non è generoso: è la scelta che danneggia tutti, incluso chi la fa." };
+const C_M9: Materiale = { id: "M9", titolo: "Il centro di accoglienza", aree: ["lingue-relazioni-internazionali", "salute-professioni-sanitarie"], costo: 1, contenuto: "A chi serve davvero la guida: 40 persone arrivate negli ultimi sei mesi, la maggioranza parla arabo o francese. La responsabile: «La cosa più utile sarebbe sapere dove si mangia con pochi soldi e dove si va se ci si sente male». Le due lingue giuste sono proprio quelle di Amine, e il contenuto va ripensato." };
+const C_M10: Materiale = { id: "M10", titolo: "Come lavora Giada", aree: ["scienze-educazione"], costo: 1, contenuto: "Giada non è passiva: esegue benissimo compiti definiti e si blocca su compiti vaghi. Nelle tre occasioni in cui ha ricevuto un'istruzione precisa, ha consegnato in tempo e bene. Non serve motivarla, serve darle un compito con dei confini." };
+const C_M11: Materiale = { id: "M11", titolo: "Le idee di Yuri, elencate", aree: ["arte-design-moda", "comunicazione-media"], costo: 1, contenuto: "Undici proposte in tre settimane. Due sono ottime (una mappa disegnata a mano invece che stampata; una pagina di frasi utili con la pronuncia). Nove sono irrealizzabili in due settimane. Nessuno le ha mai selezionate: accolte con «bella idea» e poi dimenticate. Yuri non ha bisogno di essere frenato: ha bisogno che qualcuno scelga." };
+const C_M12: Materiale = { id: "M12", titolo: "Il calendario reale delle disponibilità", aree: ["scienze-educazione"], costo: 1, contenuto: "Quando i sette possono davvero lavorare: solo due fasce coincidono per tutti in due settimane. Tutto il resto va fatto in sottogruppi o da soli. Un piano che presuppone incontri di gruppo continui non può esistere." };
+const C_M13: Materiale = { id: "M13", titolo: "Il precedente dell'anno scorso", aree: ["scienze-educazione", "comunicazione-media"], costo: 1, contenuto: "Il progetto della 3ªA: una persona fece l'80% del lavoro, il gruppo consegnò in tempo, il voto collettivo fu alto. Tre studenti su sei, quell'anno, non impararono niente — e uno di loro era Tommaso." };
+
+const C_MANDATI: Mandato[] = [
+  {
+    id: "capire_perche", label: "«Prima capisco perché»", frase: "nessuno è pigro senza motivo.",
+    aree: ["salute-professioni-sanitarie", "scienze-educazione"],
+    vincolo: { id: "tre_giorni", testo: "Parlare con tutti richiede tre giorni dei quattordici." },
+    consulenze: [
+      consulenza("C_sostegno", "Consulenza: la prof di sostegno", "scienze-educazione", "Prima di dividere i compiti, guarda chi non partecipa e chiediti perché. Quasi sempre dietro un silenzio c'è un ostacolo concreto, non pigrizia."),
+      consulenza("C_educatrice", "Consulenza: un'educatrice", "salute-professioni-sanitarie", "Chi salta gli incontri e chi tace non sono lo stesso problema. Prima capisci la causa, poi decidi: motivare qualcuno che ha un vincolo reale non serve a niente."),
+    ],
+  },
+  {
+    id: "compito_preciso", label: "«Prima do a ciascuno un compito preciso»", frase: "il problema è che nessuno sa cosa fare.",
+    aree: ["scienze-educazione", "comunicazione-media"],
+    vincolo: { id: "riassegnano", testo: "Due assegnano il proprio compito a qualcun altro: il piano va rifatto." },
+    consulenze: [
+      consulenza("C_tutor", "Consulenza: un tutor", "scienze-educazione", "Metà del gruppo non è svogliata: è persa. Un compito scritto, con confini e una scadenza, sblocca chi si ferma perché non sa da dove iniziare."),
+      consulenza("C_referente", "Consulenza: la referente del progetto", "comunicazione-media", "«Fate voi» non è un compito. «Tu i tre indirizzi della via centrale entro venerdì» lo è. La differenza tra un gruppo fermo e uno che si muove sta tutta lì."),
+    ],
+  },
+  {
+    id: "sistemo_lavoro", label: "«Prima sistemo il lavoro»", frase: "tra quattordici giorni si consegna.",
+    aree: ["ristorazione-turismo", "comunicazione-media"],
+    vincolo: { id: "venticinque", testo: "Gli indirizzi da verificare sono 25, non 11: il lavoro è il triplo del previsto." },
+    consulenze: [
+      consulenza("C_centro", "Consulenza: la responsabile del centro", "ristorazione-turismo", "La guida serve a chi è appena arrivato: dove si mangia con pochi soldi, dove si va se ci si sente male. Undici indirizzi a caso non bastano, ne servono venticinque veri."),
+      consulenza("C_grafico", "Consulenza: un grafico", "comunicazione-media", "Una copertina bella su contenuti sbagliati è tempo perso. Prima si verificano gli indirizzi e si scrivono i testi, poi si impagina: l'ordine conta."),
+    ],
+  },
+  {
+    id: "far_parlare", label: "«Prima faccio parlare chi non parla»", frase: "metà del gruppo non ha mai detto la sua.",
+    aree: ["lingue-relazioni-internazionali", "scienze-educazione"],
+    vincolo: { id: "amine_non_davanti", testo: "Amine accetta di parlare solo se non è davanti a tutti." },
+    consulenze: [
+      consulenza("C_mediatrice", "Consulenza: una mediatrice", "lingue-relazioni-internazionali", "Chi tace in un gruppo spesso ha di più da dare, non di meno. Ma glielo devi chiedere a quattr'occhi: davanti a tutti il silenzio si difende."),
+      consulenza("C_amine", "Consulenza: Amine, se glielo chiedi tu", "lingue-relazioni-internazionali", "Parlo arabo, francese e italiano. Non scrivo in chat perché ho paura di sbagliare a scrivere davanti agli altri. Ma tradurre lo so fare: nessuno me l'ha mai chiesto."),
+    ],
+  },
+  {
+    id: "mettere_regole", label: "«Prima mettiamo delle regole»", frase: "senza regole ognuno fa come gli pare.",
+    aree: ["sicurezza-difesa", "scienze-educazione"],
+    vincolo: { id: "rifiutano_regole", testo: "Il gruppo rifiuta le prime regole proposte: «non sei mica il prof»." },
+    consulenze: [
+      consulenza("C_rappresentante", "Consulenza: il rappresentante di classe", "sicurezza-difesa", "Le regole calate dall'alto in un gruppo di pari non reggono un giorno. Se le decidete insieme, anche solo due o tre, allora si rispettano."),
+      consulenza("C_prof", "Consulenza: la prof", "scienze-educazione", "Io non entro: se entro io, il progetto diventa mio. Ma una cosa te la dico: le scadenze intermedie scritte valgono più di qualsiasi regola di comportamento."),
+    ],
+  },
+];
+
+const MD10: MissioneDef = {
+  meta: {
+    slug: SLUG_CLASSE,
+    titolo: "La classe che non partecipa",
+    sottotitolo: "Sette studenti, una guida da consegnare, due settimane",
+    descrizione:
+      "Il progetto di alternanza della 4ªA: sette studenti devono realizzare in cinque settimane una guida del quartiere per chi ci arriva da fuori, che verrà stampata in 300 copie e distribuita davvero. Siamo alla terza settimana e il gruppo ha prodotto una copertina, undici indirizzi (tre sbagliati) e centoquaranta messaggi in chat. La professoressa non entra: «se ci entro io, il progetto diventa mio». Gli altri sei ti hanno chiesto di tenere le fila. È l'unica missione in cui il problema sono le persone e la risorsa scarsa è l'attenzione — e in cui si scopre, solo informandosi, che il gruppo non è pigro: tre persone hanno un motivo concreto per non partecipare, e nessuno gliel'ha chiesto. Niente cronometro, niente sconfitta: puoi riprendere quando vuoi.",
+    tipo: "cross-area",
+  },
+  areeCandidate: ["scienze-educazione", "salute-professioni-sanitarie", "lingue-relazioni-internazionali", "comunicazione-media", "sicurezza-difesa", "ristorazione-turismo"],
+  ruoliStanza: 3,
+  daScartare: 2,
+  quantiPassi: 3,
+  materialiLiberi: [C_M1, C_M2, C_M3],
+  materialiGettone: [C_M4, C_M5, C_M6, C_M7, C_M8, C_M9, C_M10, C_M11, C_M12, C_M13],
+  mandati: C_MANDATI,
+  prioritaVoci: [
+    { id: "chi_fa_cosa", label: "Non è chiaro chi deve fare cosa", aree: ["scienze-educazione"] },
+    { id: "chi_parla_chi_no", label: "C'è chi parla molto e chi non parla affatto", aree: ["comunicazione-media", "lingue-relazioni-internazionali"] },
+    { id: "chi_manca", label: "Qualcuno non c'è e non sappiamo perché", aree: ["salute-professioni-sanitarie", "scienze-educazione"] },
+    { id: "gia_deciso", label: "Qualcuno ha già deciso che tanto non serve impegnarsi", aree: ["scienze-educazione"] },
+    { id: "lavoro_poco", label: "Il lavoro fatto finora è poco e in parte sbagliato", aree: ["comunicazione-media", "ristorazione-turismo"] },
+    { id: "mai_insieme", label: "Non ci vediamo mai tutti insieme", aree: ["scienze-educazione", "sicurezza-difesa"] },
+  ],
+  ruoli: [], // non usato: questa missione usa assegnaPersone
+  assegnaPersone: {
+    compiti: [
+      { id: "indirizzi", label: "Verificare e completare i 25 indirizzi", area: "comunicazione-media" },
+      { id: "testi", label: "Scrivere i quattro testi", area: "scienze-educazione" },
+      { id: "mappa", label: "Fare la mappa", area: "arte-design-moda" },
+      { id: "traduzioni", label: "Curare le traduzioni", area: "lingue-relazioni-internazionali" },
+      { id: "impaginazione", label: "Impaginare la guida", area: "arte-design-moda" },
+    ],
+    persone: [
+      { id: "io", nome: "Me ne occupo io" },
+      { id: "yuri", nome: "Yuri" },
+      { id: "sofia", nome: "Sofia" },
+      { id: "amine", nome: "Amine" },
+      { id: "giada", nome: "Giada" },
+      { id: "tommaso", nome: "Tommaso" },
+      { id: "elisa", nome: "Elisa" },
+    ],
+  },
+  passi: [
+    { id: "chiedere_cosa_sa", label: "Chiedere a ciascuno cosa sa fare prima di dividere" },
+    { id: "scadenze_intermedie", label: "Fissare scadenze intermedie" },
+    { id: "scrivere_compiti", label: "Scrivere i compiti invece che dirli" },
+    { id: "modo_partecipare", label: "Trovare un modo di partecipare per chi non c'è" },
+    { id: "poche_idee", label: "Scegliere poche idee e portarle a termine" },
+    { id: "verificare_fonti", label: "Verificare le fonti prima di usarle" },
+    { id: "quattrocchi", label: "Parlare a quattr'occhi con chi tace" },
+    { id: "chiedere_prof", label: "Chiedere aiuto alla prof quando serve" },
+  ],
+  budget: {
+    totale: () => 9,
+    unita: "giornate",
+    passo: 1,
+    voci: (m, letti) => {
+      const voci: VoceBudget[] = [
+        { id: "verificare_indirizzi", label: "Verificare e completare i 25 indirizzi", aree: ["comunicazione-media", "ristorazione-turismo"], costoIndicativo: 2 },
+        { id: "scrivere_testi", label: "Scrivere i quattro testi", aree: ["scienze-educazione"], costoIndicativo: 2 },
+        { id: "fare_mappa", label: "Fare la mappa", aree: ["arte-design-moda"], costoIndicativo: 1 },
+        { id: "curare_traduzioni", label: "Curare le traduzioni", aree: ["lingue-relazioni-internazionali"], costoIndicativo: 1 },
+        { id: "impaginare", label: "Impaginare", aree: ["arte-design-moda"], costoIndicativo: 1 },
+        { id: "parlare_uno_a_uno", label: "Parlare uno a uno con chi non partecipa", aree: ["scienze-educazione", "salute-professioni-sanitarie"], costoIndicativo: 2 },
+      ];
+      if (letti.has("M10")) voci.push({ id: "rifare_piano", label: "Rifare il piano con compiti definiti", aree: ["scienze-educazione"], costoIndicativo: 1, soloSe: "M10" });
+      if (letti.has("M11")) voci.push({ id: "scegliere_idee", label: "Scegliere quali idee di Yuri realizzare", aree: ["comunicazione-media", "arte-design-moda"], costoIndicativo: 1, soloSe: "M11" });
+      if (letti.has("M5")) voci.push({ id: "compito_elisa", label: "Trovare un compito compatibile per Elisa", aree: ["salute-professioni-sanitarie", "scienze-educazione"], costoIndicativo: 1, soloSe: "M5" });
+      return voci;
+    },
+  },
+  scarto: (letti) => [
+    { id: "faccio_da_solo", label: "Mi metto sotto io e finisco la guida: mancano nove giorni, non c'è tempo per altro", aree: ["scienze-educazione"], qualita: 0.05, trappola: true, avviso: letti.has("M8") ? "La nota della prof (che hai letto): la valutazione è sul contributo di ciascuno. Chi fa tutto lascia gli altri senza contributo da valutare — e abbassa anche il proprio voto." : undefined },
+    { id: "dire_prof", label: "Dire alla prof che il gruppo non collabora", aree: ["scienze-educazione"], qualita: 0.15, avviso: undefined },
+    { id: "escludere", label: "Escludere chi non partecipa e dividersi il lavoro tra i volenterosi", aree: ["sicurezza-difesa"], qualita: 0.1 },
+    { id: "parlare_spariti", label: "Parlare uno a uno con chi è sparito", aree: ["salute-professioni-sanitarie", "scienze-educazione"], qualita: 0.85 },
+    { id: "compiti_scritti", label: "Assegnare a ciascuno un compito scritto con scadenza", aree: ["scienze-educazione"], qualita: 0.8 },
+    { id: "ridurre_progetto", label: "Ridurre il progetto a quello che si riesce davvero a fare", aree: ["comunicazione-media"], qualita: 0.6 },
+  ],
+  introStanza3: (m, letti) => {
+    const parti = ["Giovedì, nove giorni alla consegna. Ricevi un messaggio dalla prof: due righe."];
+    if (m) parti.push(m.vincolo.testo);
+    if (!letti.has("M4")) parti.push("E in chat qualcuno propone di usare un traduttore automatico per le due lingue. Amine, come sempre, non dice niente.");
+    return parti.join("\n\n");
+  },
+  testi: {
+    introS1: "Aula 12, quinta ora, la prof è uscita. Siete in sette intorno a due banchi accostati e nessuno parla.\n\nSul portatile di Sofia c'è la cartella del progetto: dentro, una copertina bella e un file di testo con undici indirizzi. Yuri rompe il silenzio: «Raga, e se facessimo anche un video?»\n\nRestano quattordici giorni. E gli altri sei hanno chiesto a te di tenere le fila — non perché tu sia il capo, ma perché qualcuno doveva farlo.",
+    introS2: "Hai quattordici giorni e sei persone. Prima di muovere qualsiasi cosa puoi fare cinque cose: una conversazione a quattr'occhi, un messaggio privato, una domanda alla prof, una verifica del lavoro fatto.\n\nCinque. Non puoi parlare con tutti di tutto: dovrai scegliere a chi dedicare attenzione, che qui è la cosa che scarseggia.",
+    introS4: "Domenica sera. Nove giorni sono diventati sette. Apri la chat: centoquaranta messaggi sopra il tuo, e il cursore che lampeggia.\n\nQuello che scrivi adesso lo leggeranno tutti e sei, compreso chi non risponde mai.",
+    introS5: "Il messaggio è partito. Nei prossimi giorni si vedrà se il gruppo si muove. Ma una cosa l'hai già capita: quando ti sei sentito più utile, e cosa hai capito di qualcuno che prima ti sembrava solo svogliato.",
+    materiali: { titolo: "Prima di tutto: chi sono i sette e a che punto è il lavoro?", prompt: "Apri le schede del gruppo, gli estratti della chat e cosa chiede il progetto.", hint: "Guarda chi non ha mai scritto un messaggio: è l'unica assenza totale in centoquaranta messaggi, ed è l'informazione più forte della chat." },
+    priorita: { titolo: "Guardando il gruppo, quali sono i problemi? Mettili in ordine.", prompt: "Da quello che pesa di più. La prima scelta conta più delle altre.", hint: "Non tutti i silenzi sono uguali: qualcuno tace, qualcuno manca, qualcuno si è arreso." },
+    mandato: { titolo: "Come pensi di muoverti? Dillo in una frase.", prompt: "È l'approccio che deciderà cosa vai a scoprire e cosa ti troverai davanti.", hint: "Far funzionare il lavoro e far funzionare il gruppo non sempre coincidono." },
+    informazioni: { titolo: "Hai 5 gettoni. Cosa vale la pena chiedere?", prompt: "Ogni conversazione o verifica costa un gettone e non torna indietro. Aprila per leggerla: l'attenzione è la cosa che scarseggia.", hint: "Tre delle sette persone hanno un motivo concreto per non partecipare. Nessuno gliel'ha chiesto." },
+    nonApprofondire: { titolo: "Una persona a cui hai deciso di non dedicare tempo: perché?", prompt: "Due o tre righe. È una domanda scomoda: conta che tu sappia perché hai scelto di lasciare qualcuno fuori dalla tua attenzione.", hint: "Puoi anche lasciarlo vuoto — ma provarci dice qualcosa di come decidi." },
+    budget: { titolo: "Restano nove giorni e sei persone oltre a te. Distribuisci il lavoro.", prompt: "Nove giornate sono le TUE: quanto dedichi a ciascuna cosa, sapendo che gli altri fanno il resto. Il lavoro deve completarsi, ma il gruppo deve anche partecipare.", hint: "Prendersi tutto il lavoro esecutivo funziona per la guida e fallisce per tutto il resto." },
+    scarto: { titolo: "Tre modi di procedere non funzionano. Tagliane due.", prompt: "Rinuncia a due, e di' perché. Attenzione: la scelta più generosa e più efficace nel breve può essere quella che danneggia di più.", hint: "Ciò che tieni conta più di ciò che togli." },
+    ruoli: { titolo: "Sei persone, cinque cose da fare. Chi fa cosa?", prompt: "Assegna ogni compito a una persona del gruppo o a te stesso. La persona giusta al posto giusto vale più di chi lavora di più.", hint: "Quello che hai scoperto informandoti serve proprio qui: dai a ciascuno ciò che sa fare o può fare davvero." },
+    previsione: { titolo: "Prima di scriverlo: quanto muoverà il gruppo?", prompt: "Quanto pensi che questo messaggio farà muovere il gruppo?", domanda: "La tua sensazione, prima di scrivere" },
+    proposta: { titolo: "Scrivi il messaggio al gruppo (max 120 parole)", prompt: "Cosa serve, da chi, entro quando. E qualcosa che riguardi il fatto che siete in sette.", hint: "Assegna cose precise a persone precise con una scadenza. Niente rimproveri al gruppo in blocco, niente richieste vaghe. Lascia una porta aperta a chi è sparito.", minCaratteri: 150 },
+    riflessione: { titolo: "Quando ti sei sentito più utile in queste settimane?", prompt: "E c'è stato un momento in cui hai capito qualcosa di qualcuno che prima ti sembrava solo svogliato?", hint: "Questa è la parte che resta tua: la salviamo nel tuo diario.", minCaratteri: 120 },
+    passi: { titolo: "Se doveste rifarlo, i primi tre passi?", prompt: "Scegli tre passi e mettili in ordine: quale per primo, quale per secondo, quale per terzo.", hint: "Quasi tutto quello che è andato storto è cominciato prima di iniziare il lavoro." },
+  },
+};
+
+// =====================================================================
+// MISSIONE 11 — "Il viaggio impossibile" (la 5ªD)
+// =====================================================================
+
+const V_M1: Materiale = { id: "M1", titolo: "Il preventivo dell'agenzia", aree: [], costo: 0, contenuto: "3 giorni / 2 notti, 178 € a testa: treno andata e ritorno (orario standard), ostello in camere da 6, colazione inclusa, un ingresso museale, trasporto locale con abbonamento giornaliero. Non incluso: pranzi, cene, ingressi extra." };
+const V_M2: Materiale = {
+  id: "M2", titolo: "Le voci del gruppo", aree: [], costo: 0,
+  contenuto: "Attorno alla cartellina, letture diverse. Testuali:",
+  estratti: [
+    { chi: "La vicepreside", testo: "Il viaggio si fa se partecipa almeno l'80% della classe. Diciotto su ventidue. Sotto quella soglia si annulla." },
+    { chi: "Elena, del gruppo organizzatore", testo: "A 178 siamo già sotto il tetto. Con i 12 euro che avanzano ci prendiamo un secondo ingresso." },
+    { chi: "Un genitore rappresentante", testo: "Vi chiedo solo di non fare cose per cui poi qualcuno debba chiedere dei soldi in più all'ultimo." },
+    { chi: "Nadir, in corridoio", testo: "Ma tanto l'ostello quasi sicuramente non è accessibile, no? Non vi mettete nei guai per me." },
+    { chi: "La segreteria", testo: "La conferma all'agenzia va data entro undici giorni, con l'elenco definitivo." },
+  ],
+};
+const V_M3: Materiale = { id: "M3", titolo: "Il tetto e i conti", aree: [], costo: 0, contenuto: "190 € massimi a testa, preventivo a 178 €. Margine reale: 12 € a testa, cioè 264 € sul gruppo. Quattro compagni hanno segnalato un'esigenza: Nadir (sedia a rotelle, serve accessibilità), Chiara (celiaca certificata), Marco (la famiglia arriva a 150 €, chiede riservatezza), Sara (deve rientrare per le 17 dell'ultimo giorno)." };
+const V_M4: Materiale = { id: "M4", titolo: "La verifica di accessibilità dell'ostello", aree: ["mobilita-sostenibile", "salute-professioni-sanitarie"], costo: 1, contenuto: "L'ostello indicato non è accessibile: due rampe di scale, nessun ascensore, bagni non attrezzati. Esiste un'alternativa accessibile a 400 metri: +9 € a testa (198 sul gruppo), stesse camere da 6, colazione inclusa. Costa 9 dei 12 euro di margine, e riguarda una persona sola." };
+const V_M5: Materiale = { id: "M5", titolo: "Le condizioni del treno", aree: ["mobilita-sostenibile"], costo: 1, contenuto: "Il treno del preventivo arriva l'ultimo giorno alle 18:40; Sara deve essere a casa per le 17:00. Esiste un treno precedente: stesso prezzo, ma parte 2 ore prima e taglia l'ultima mattinata a tutti. Oppure Sara torna da sola con un treno anticipato: +31 € di biglietto singolo." };
+const V_M6: Materiale = { id: "M6", titolo: "La questione dei pasti", aree: ["agrifood-ambiente", "salute-professioni-sanitarie", "ristorazione-turismo"], costo: 1, contenuto: "Pranzi e cene non inclusi: stima 12-15 € al giorno, cioè 36-45 € fuori dal preventivo, a carico delle famiglie. Per Chiara, mangiare senza glutine fuori casa costa in media il 30% in più e richiede locali attrezzati: senza organizzazione, o spende molto di più o non mangia. Il viaggio non costa 178 €, ne costa 215-225. E nessuno l'ha detto a Marco." };
+const V_M7: Materiale = { id: "M7", titolo: "La lettera della famiglia di Marco", aree: ["scienze-educazione", "giurisprudenza-pa"], costo: 1, contenuto: "«Oltre i 150 non riusciamo, e non vogliamo che nostro figlio si senta a disagio. Se è un problema, resterà a casa dicendo che non gli andava.» La frase che spiega perché certe persone non chiedono niente." };
+const V_M8: Materiale = { id: "M8", titolo: "Il fondo di solidarietà d'istituto", aree: ["giurisprudenza-pa", "economia-management"], costo: 1, contenuto: "Esiste, copre fino al 40% della quota per famiglie che ne fanno richiesta, la domanda si presenta in segreteria ed è riservata: nessuno in classe lo viene a sapere. Va presentata entro dieci giorni. Quest'anno non l'ha chiesta nessuno. Risolve interamente il caso di Marco, a costo zero per il gruppo — ma bisogna sapere che esiste, e dirglielo senza farlo sentire un caso da assistere." };
+const V_M9: Materiale = { id: "M9", titolo: "Cosa si può fare in quella città", aree: ["ristorazione-turismo", "arte-design-moda"], costo: 1, contenuto: "Sei possibilità con costi: museo principale 8 € (già incluso), quartiere storico a piedi gratis, mercato coperto gratis, museo scientifico 6 €, giro in battello 11 €, laboratorio artigiano 9 € su prenotazione (max 25 persone). Serve per capire dove finiscono i 12 € di margine." };
+const V_M10: Materiale = { id: "M10", titolo: "La normativa sui viaggi d'istruzione", aree: ["giurisprudenza-pa", "salute-professioni-sanitarie"], costo: 1, contenuto: "Le uscite didattiche devono garantire la partecipazione di tutti gli studenti: le barriere architettoniche o economiche note e non affrontate possono costituire discriminazione. Se un solo studente è escluso per una barriera evitabile, il viaggio non è conforme. Non è sensibilità: è una condizione di legittimità." };
+const V_M11: Materiale = { id: "M11", titolo: "La regola dell'80%", aree: ["economia-management"], costo: 1, contenuto: "Servono almeno 18 partecipanti. Se Nadir, Marco, Chiara e Sara restassero a casa, i partecipanti sarebbero 18: esattamente la soglia. Il viaggio si farebbe comunque. Il dato più freddo della missione, e il più utile per vedere cosa si sta scegliendo davvero." };
+const V_M12: Materiale = { id: "M12", titolo: "Il precedente della 5ªB, due anni fa", aree: ["salute-professioni-sanitarie", "scienze-educazione"], costo: 1, contenuto: "Uno studente in sedia a rotelle non partecipò «per scelta sua». Nella relazione di fine anno si legge che l'ostello non era accessibile e che nessuno glielo comunicò: gli fu chiesto se voleva venire, e lui disse di no. Chiarisce cosa significa davvero la frase di Nadir in corridoio." };
+const V_M13: Materiale = { id: "M13", titolo: "La disponibilità dell'agenzia", aree: ["economia-management", "mobilita-sostenibile"], costo: 1, contenuto: "L'agenzia può cambiare ostello senza penale entro undici giorni, e con 25 partecipanti (compresi due accompagnatori) applica una riduzione di 4 € a testa. Sono 22 studenti + 2 accompagnatori = 24: con un accompagnatore in più si scende a 174 €. Guadagno nascosto: libera 4 € a testa, cioè 88 € sul gruppo — quasi metà del costo dell'ostello accessibile." };
+
+const V_MANDATI: Mandato[] = [
+  {
+    id: "nessuno_resta", label: "«Nessuno resta a casa»", frase: "prima si garantisce che tutti possano venire.",
+    aree: ["mobilita-sostenibile", "salute-professioni-sanitarie"],
+    vincolo: { id: "camere_quattro", testo: "L'ostello accessibile ha solo camere da 4: la distribuzione dei ventidue va rifatta." },
+    consulenze: [
+      consulenza("V_accessibilita", "Consulenza: un referente accessibilità", "mobilita-sostenibile", "L'accessibilità non è un extra da concedere: è la condizione perché il viaggio sia legittimo. Se l'ostello non è accessibile, non è «peccato per Nadir», è un viaggio non conforme."),
+      consulenza("V_segreteria_a", "Consulenza: la segreteria", "giurisprudenza-pa", "Cambiare ostello si può, senza penale, entro undici giorni. Ma l'elenco definitivo va dato con la conferma: decidete chi viene prima, non dopo."),
+    ],
+  },
+  {
+    id: "viaggio_bello", label: "«Il viaggio dev'essere bello»", frase: "è l'ultimo anno, deve valerne la pena.",
+    aree: ["ristorazione-turismo", "arte-design-moda"],
+    vincolo: { id: "laboratorio_venticinque", testo: "Il laboratorio artigiano accetta max 25 persone e va prenotato subito." },
+    consulenze: [
+      consulenza("V_operatrice", "Consulenza: un'operatrice turistica", "ristorazione-turismo", "Il museo è già incluso, il quartiere storico e il mercato sono gratis. Con dodici euro a testa non si compra un viaggio migliore: si sceglie una cosa in più, non tre."),
+      consulenza("V_exstudente", "Consulenza: un ex studente", "arte-design-moda", "Di quel viaggio non ci si ricorda l'ingresso al museo: ci si ricorda una cosa fatta insieme. Ma se qualcuno resta a casa, non è «bello per la classe», è bello per una parte."),
+    ],
+  },
+  {
+    id: "nessuno_spende", label: "«Nessuno deve spendere più del previsto»", frase: "i costi nascosti sono la cosa più ingiusta.",
+    aree: ["economia-management", "agrifood-ambiente"],
+    vincolo: { id: "altri_tre", testo: "Emerge che altri tre studenti sono in difficoltà economica e non l'hanno detto." },
+    consulenze: [
+      consulenza("V_genitore", "Consulenza: un genitore rappresentante", "economia-management", "Il preventivo dice 178, ma coi pasti sono più di 200. Chi arriva a 150 non ce la fa, e non lo dirà mai in classe. Il costo vero va detto prima, non alla partenza."),
+      consulenza("V_segreteria_c", "Consulenza: la segreteria", "giurisprudenza-pa", "C'è un fondo d'istituto che copre fino al 40% della quota, riservato. Nessuno in classe lo saprebbe. Ma va chiesto entro dieci giorni, e quest'anno non l'ha fatto nessuno."),
+    ],
+  },
+  {
+    id: "prima_chiediamo", label: "«Prima chiediamo, poi decidiamo»", frase: "nessuno di loro dirà cosa gli serve davvero.",
+    aree: ["scienze-educazione", "salute-professioni-sanitarie"],
+    vincolo: { id: "quattro_giorni", testo: "Parlare con tutti richiede quattro giorni degli undici disponibili." },
+    consulenze: [
+      consulenza("V_sostegno", "Consulenza: la prof di sostegno", "scienze-educazione", "«Se è complicato resto» non vuol dire «non voglio venire»: vuol dire «non voglio essere un problema». Sono due cose opposte, e le distingui solo se glielo chiedi bene."),
+      consulenza("V_nadir", "Consulenza: Nadir, se glielo chiedi tu", "salute-professioni-sanitarie", "Lo so che l'ostello di solito non è accessibile, per questo l'ho detto io per primo. Ma se lo fosse, io ci verrei eccome. Non voglio che vi mettiate nei guai, tutto qui."),
+    ],
+  },
+  {
+    id: "tornare_conti", label: "«Facciamo tornare i conti e poi si vede»", frase: "senza numeri chiari ogni discussione è aria.",
+    aree: ["economia-management", "mobilita-sostenibile"],
+    vincolo: { id: "conferma_anticipo", testo: "L'agenzia chiede la conferma definitiva con tre giorni di anticipo in più." },
+    consulenze: [
+      consulenza("V_agenzia", "Consulenza: l'agenzia", "economia-management", "Con 25 partecipanti scendo di 4 € a testa: siete in 24, ne basta uno in più. Sono 88 € liberati, quasi l'ostello accessibile. E l'ostello lo cambio senza penale entro undici giorni."),
+      consulenza("V_amministrativa", "Consulenza: la segreteria amministrativa", "mobilita-sostenibile", "Il margine vero è 12 € a testa, non i dodici che avanzano da spendere: sono la stessa cifra, ma uno la vedi come «gita più bella» e l'altro come «chi resta fuori». Dipende cosa ci metti dentro."),
+    ],
+  },
+];
+
+const MD11: MissioneDef = {
+  meta: {
+    slug: SLUG_VIAGGIO,
+    titolo: "Il viaggio impossibile",
+    sottotitolo: "La 5ªD, tre giorni, e chi rischia di restare a casa",
+    descrizione:
+      "Il viaggio d'istituto della 5ªD: ventidue studenti, tre giorni, 190 € a testa tutto compreso. Diciotto giorni alla partenza, e la professoressa che doveva organizzare è in maternità. Il gruppo del viaggio — tre studenti, di cui tu — ha in mano un preventivo, una lista di nomi e quattro fogli con le esigenze particolari che nessuno ha letto fino in fondo. Un viaggio scolastico sembra un problema di incastri: non lo è. È un problema di chi ci sta dentro e chi no, e con 190 € a testa non ci sta tutto — ogni cosa che aggiungi per qualcuno la togli a qualcun altro, e le due persone che rischiano di restare fuori non lo diranno mai da sole. Niente cronometro, niente sconfitta: puoi riprendere quando vuoi.",
+    tipo: "cross-area",
+  },
+  areeCandidate: ["ristorazione-turismo", "mobilita-sostenibile", "lingue-relazioni-internazionali", "salute-professioni-sanitarie", "agrifood-ambiente", "economia-management"],
+  ruoliStanza: 3,
+  daScartare: 2,
+  quantiPassi: 3,
+  materialiLiberi: [V_M1, V_M2, V_M3],
+  materialiGettone: [V_M4, V_M5, V_M6, V_M7, V_M8, V_M9, V_M10, V_M11, V_M12, V_M13],
+  mandati: V_MANDATI,
+  prioritaVoci: [
+    { id: "nadir_accessibile", label: "Nadir: l'ostello dev'essere accessibile", aree: ["mobilita-sostenibile", "salute-professioni-sanitarie"] },
+    { id: "chiara_glutine", label: "Chiara: deve poter mangiare senza glutine", aree: ["salute-professioni-sanitarie", "agrifood-ambiente"] },
+    { id: "marco_150", label: "Marco: la famiglia arriva a 150 e non oltre", aree: ["economia-management"] },
+    { id: "sara_17", label: "Sara: deve rientrare per le 17", aree: ["mobilita-sostenibile"] },
+    { id: "altri_diciotto", label: "Gli altri diciotto: che il viaggio sia bello", aree: ["ristorazione-turismo"] },
+    { id: "viaggio_si_fa", label: "Che il viaggio si faccia: servono almeno diciotto", aree: ["economia-management"] },
+  ],
+  ruoli: [
+    { id: "agenzia", label: "Parlare con l'agenzia", area: "economia-management" },
+    { id: "fondo", label: "Andare in segreteria per il fondo", area: "giurisprudenza-pa" },
+    { id: "pasti", label: "Organizzare i pasti", area: "agrifood-ambiente" },
+    { id: "nadir", label: "Dirlo a Nadir", area: "salute-professioni-sanitarie" },
+    { id: "conti", label: "Tenere i conti", area: "economia-management" },
+  ],
+  passi: [
+    { id: "esigenze_prima", label: "Chiedere le esigenze prima di scegliere la struttura" },
+    { id: "fondo_a_tutti", label: "Far conoscere il fondo di solidarietà a tutti" },
+    { id: "verificare_accessibilita", label: "Verificare sempre l'accessibilità prima del preventivo" },
+    { id: "pasti_preventivo", label: "Mettere i costi dei pasti nel preventivo" },
+    { id: "margine_imprevisti", label: "Prevedere un margine per gli imprevisti" },
+    { id: "strutture_accessibili", label: "Scegliere strutture accessibili per principio" },
+    { id: "esigenze_riservato", label: "Chiedere le esigenze in modo riservato" },
+    { id: "raccontare", label: "Raccontare com'è andata a chi organizzerà il prossimo" },
+  ],
+  budget: { totale: () => 0, unita: "€", passo: 1, voci: () => [] },
+  piano: {
+    unitaSoldi: "€",
+    // Requisito: la CAPIENZA del budget dipende da M13 (sconto agenzia, +88 €).
+    budgetSoldi: (letti) => (letti.has("M13") ? 352 : 264),
+    lavori: (letti) => {
+      const lavori: Lavoro[] = [];
+      if (letti.has("M4")) lavori.push({ id: "ostello_accessibile", label: "Ostello accessibile (+9 € a testa)", aree: ["mobilita-sostenibile", "salute-professioni-sanitarie"], costo: 198, giorni: 0, gate: "M4" });
+      if (letti.has("M5")) lavori.push({ id: "treno_gruppo", label: "Treno di gruppo anticipato per Sara (costa una mattinata, non soldi)", aree: ["mobilita-sostenibile"], costo: 0, giorni: 0, gate: "M5" });
+      lavori.push({ id: "treno_singolo", label: "Biglietto singolo anticipato per Sara (+31 €)", aree: ["mobilita-sostenibile"], costo: 31, giorni: 0 });
+      if (letti.has("M6")) lavori.push({ id: "pasti_glutine", label: "Organizzazione dei pasti senza glutine (+45 €)", aree: ["agrifood-ambiente", "salute-professioni-sanitarie"], costo: 45, giorni: 0, gate: "M6" });
+      if (letti.has("M8")) lavori.push({ id: "fondo_marco", label: "Domanda al fondo di solidarietà per Marco (0 €, riservata)", aree: ["giurisprudenza-pa", "economia-management"], costo: 0, giorni: 0, gate: "M8" });
+      lavori.push({ id: "secondo_ingresso", label: "Secondo ingresso museale (+132 €)", aree: ["ristorazione-turismo"], costo: 132, giorni: 0 });
+      lavori.push({ id: "laboratorio", label: "Laboratorio artigiano (+198 €)", aree: ["arte-design-moda", "ristorazione-turismo"], costo: 198, giorni: 0 });
+      lavori.push({ id: "battello", label: "Giro in battello (+242 €)", aree: ["ristorazione-turismo"], costo: 242, giorni: 0 });
+      lavori.push({ id: "fondo_imprevisti", label: "Fondo per gli imprevisti (40 €)", aree: ["economia-management"], costo: 40, giorni: 0 });
+      return lavori;
+    },
+  },
+  scarto: (letti) => [
+    { id: "chiedi_nadir", label: "Chiedere a Nadir se preferisce non venire, visto che l'ha già detto lui", aree: ["salute-professioni-sanitarie"], qualita: 0.05, trappola: true, avviso: (letti.has("M10") || letti.has("M12")) ? "Quello che hai letto (la normativa / il precedente della 5ªB): due anni fa un altro studente in sedia a rotelle «scelse di non partecipare», e l'ostello non era accessibile. Chiedere a qualcuno se vuole restare fuori non è chiederglielo: è dirglielo." : undefined },
+    { id: "nove_tranne_marco", label: "Far pagare 9 € in più a tutti tranne a Marco", aree: ["economia-management"], qualita: 0.1 },
+    { id: "colletta", label: "Fare una colletta in classe per chi non arriva", aree: ["economia-management"], qualita: 0.1 },
+    { id: "rinviare_anno", label: "Spostare il viaggio all'anno prossimo", aree: ["scienze-educazione"], qualita: 0.15 },
+    { id: "accompagnatore", label: "Chiedere un accompagnatore in più per avere lo sconto", aree: ["economia-management"], qualita: 0.85 },
+    { id: "rinuncia_ingresso", label: "Rinunciare al secondo ingresso e mettere quei soldi sull'ostello", aree: ["mobilita-sostenibile"], qualita: 0.8 },
+  ],
+  introStanza3: (m, letti) => {
+    const parti = ["Martedì, sette giorni alla conferma. La segreteria vi chiama per l'elenco definitivo."];
+    if (m) parti.push(m.vincolo.testo);
+    if (!letti.has("M4")) parti.push("Nadir vi ferma all'uscita: «Ho guardato il sito dell'ostello. Ci sono due rampe di scale. Ve l'ho detto che era complicato.»");
+    return parti.join("\n\n");
+  },
+  testi: {
+    introS1: "La cartellina è sul banco, con l'elastico ancora chiuso. Dentro: un preventivo, una lista di ventidue nomi, e quattro fogli con le esigenze particolari.\n\nElena apre il preventivo per prima: «Centosettantotto. Siamo dentro, ottima notizia». Tu apri gli altri quattro fogli. Il primo è di Nadir, e in fondo c'è una riga scritta a penna, più piccola del resto: «se è complicato non fa niente, resto».",
+    introS2: "Undici giorni alla conferma. Prima di decidere potete verificare cinque cose: telefonare all'agenzia, controllare un ostello, leggere un regolamento, parlare con la segreteria, chiedere a qualcuno.\n\nCinque. Quello che non chiedete adesso, deciderete a occhio — e a occhio, di solito, resta fuori sempre lo stesso tipo di persona.",
+    introS4: "Giovedì sera. La conferma parte domani. Resta una cosa da fare: scrivere alla classe cosa avete deciso.\n\nLo leggeranno in ventidue. Quattro di loro cercheranno il proprio nome.",
+    introS5: "La conferma è partita. Tra diciotto giorni si parte. Ma una cosa la sapete già: chi c'è dentro, e cosa avete lasciato andare per far stare tutti.",
+    materiali: { titolo: "Prima di tutto: chi sono, e quanto costa?", prompt: "Apri il preventivo, le voci del gruppo e i conti con i quattro fogli delle esigenze.", hint: "Fermati sulla riga a penna di Nadir e su quella in corridoio: sta dicendo due volte la stessa cosa, e nessuna delle due è quello che pensa davvero." },
+    priorita: { titolo: "Quattro persone hanno un'esigenza, e i soldi non bastano per tutto. Da chi partite?", prompt: "Mettile in ordine. La prima scelta pesa più delle altre.", hint: "Alcune esigenze si possono rimandare, altre decidono se una persona viene o no." },
+    mandato: { titolo: "Elena vi chiede con che criterio decidere. Quale?", prompt: "È il criterio che deciderà cosa andate a verificare e cosa vi troverete davanti.", hint: "Con 190 € a testa non ci sta tutto: ogni cosa che aggiungi la togli a qualcun altro." },
+    informazioni: { titolo: "Avete 5 gettoni. Cosa verificate?", prompt: "Ogni verifica costa un gettone e non torna indietro. Aprila per leggerla: quello che non chiedi adesso, lo decidi a occhio.", hint: "Il piano che fa venire tutti e ventidue esiste, ma è nascosto in cinque documenti diversi." },
+    nonApprofondire: { titolo: "Una cosa che avete deciso di non verificare: perché?", prompt: "Due o tre righe. Non c'è una risposta giusta: conta che tu sappia perché hai rinunciato a saperlo.", hint: "Puoi anche lasciarlo vuoto — ma provarci dice qualcosa di come decidi." },
+    budget: { titolo: "Il margine è 12 € a testa, cioè 264 € sul gruppo. Componete il piano.", prompt: "Scegliete cosa aggiungere entro il margine. Se avete trovato lo sconto dell'agenzia, il margine sale a 352 €. Ogni scelta per qualcuno la togliete a qualcun altro.", hint: "Le cose che fanno venire tutti valgono più di quelle che rendono il viaggio più bello per venti." },
+    scarto: { titolo: "Tre soluzioni non stanno in piedi. Tagliatene due.", prompt: "Rinuncia a due, e di' perché. Attenzione: la più rispettosa in apparenza può essere la più ingiusta nei fatti.", hint: "Ciò che tieni conta più di ciò che togli." },
+    ruoli: { titolo: "Chi si occupa di cosa nei prossimi sette giorni?", prompt: "Per ogni compito: te ne occupi tu o lo lasci a un altro del gruppo? Quello che ti prendi è quello che ti senti di saper fare." },
+    previsione: { titolo: "Prima di scriverlo: nessuno si sentirà un problema?", prompt: "Quanto siete sicuri che nessuno, leggendo questo messaggio, si sentirà un problema da risolvere?", domanda: "La tua sensazione, prima di scrivere" },
+    proposta: { titolo: "Scrivete il messaggio alla classe (max 120 parole)", prompt: "Cosa avete deciso, quanto costa, e cosa succede adesso.", hint: "Presenta le scelte come normali, non come favori. Nessun nome accanto a una difficoltà. L'accessibilità è una caratteristica della struttura, non una concessione.", minCaratteri: 150 },
+    riflessione: { titolo: "C'è stato un momento in cui avete capito che qualcuno diceva il contrario di quello che voleva?", prompt: "E c'è qualcosa a cui avete rinunciato che vi dispiace?", hint: "Questa è la parte che resta tua: la salviamo nel tuo diario.", minCaratteri: 120 },
+    passi: { titolo: "Per il prossimo viaggio della scuola, i primi tre passi?", prompt: "Scegli tre passi e mettili in ordine: quale per primo, quale per secondo, quale per terzo.", hint: "Il problema non era questo viaggio: era il modo in cui si organizzano i viaggi." },
+  },
+};
+
 // ─────────────────────────────────────────── registro delle missioni
 
-const DEFS: MissioneDef[] = [MD01, MD02, MD03, MD04, MD05, MD06, MD07, MD08];
+const DEFS: MissioneDef[] = [MD01, MD02, MD03, MD04, MD05, MD06, MD07, MD08, MD09, MD10, MD11];
 const DEF_BY_SLUG = new Map(DEFS.map((d) => [d.meta.slug, d]));
 
 // Tutti i mandati di tutte le missioni. Gli id dei mandati sono unici a livello
@@ -1583,15 +2118,18 @@ function costruisciMissioneDef(def: MissioneDef, get: LeggiRisposta): EscapeMiss
   const stepInformazioni: Step = { id: "s2_informazioni", stanza: 2, tipo: "seleziona_informazioni", titolo: t.informazioni.titolo, prompt: t.informazioni.prompt, hint: t.informazioni.hint, budget: 5, dossier: dossierStanza2(def, mandato) };
   const stepNonApprofondire: Step = { id: "s2_non_approfondire", stanza: 2, tipo: "decisione_scritta", titolo: t.nonApprofondire.titolo, prompt: t.nonApprofondire.prompt, hint: t.nonApprofondire.hint, minCaratteri: 0, facoltativo: true };
 
+  const budgetSoldiRisolto = def.piano ? (typeof def.piano.budgetSoldi === "function" ? def.piano.budgetSoldi(letti) : def.piano.budgetSoldi) : undefined;
   const stepBudget: Step = def.piano
-    ? { id: "s3_budget", stanza: 3, tipo: "pianifica_lavori", titolo: t.budget.titolo, prompt: t.budget.prompt, hint: t.budget.hint, unitaSoldi: def.piano.unitaSoldi, budgetSoldi: def.piano.budgetSoldi, budgetGiorni: def.piano.budgetGiorni, obiettivo: def.piano.obiettivo, unitaObiettivo: def.piano.unitaObiettivo, lavori: def.piano.lavori(letti) }
-    : { id: "s3_budget", stanza: 3, tipo: "alloca_budget", titolo: t.budget.titolo, prompt: t.budget.prompt, hint: t.budget.hint, totale: def.budget.totale(mandato), unita: def.budget.unita, passo: def.budget.passo, voci: def.budget.voci(mandato, letti) };
+    ? { id: "s3_budget", stanza: 3, tipo: "pianifica_lavori", titolo: t.budget.titolo, prompt: t.budget.prompt, hint: t.budget.hint, unitaSoldi: def.piano.unitaSoldi, budgetSoldi: budgetSoldiRisolto, budgetGiorni: def.piano.budgetGiorni, obiettivo: def.piano.obiettivo, unitaObiettivo: def.piano.unitaObiettivo, lavori: def.piano.lavori(letti) }
+    : { id: "s3_budget", stanza: 3, tipo: "alloca_budget", titolo: t.budget.titolo, prompt: t.budget.prompt, hint: t.budget.hint, totale: def.budget.totale(mandato, letti), unita: def.budget.unita, passo: def.budget.passo, voci: def.budget.voci(mandato, letti) };
   const stepScarto: Step = { id: "s3_scarto", stanza: 3, tipo: "scarta_opzione", titolo: t.scarto.titolo, prompt: t.scarto.prompt, hint: t.scarto.hint, daScartare: def.daScartare, opzioni: def.scarto(letti) };
 
   const stepPrevisione: Step = { id: "s4_previsione", stanza: 4, tipo: "previsione_poi_esito", titolo: t.previsione.titolo, prompt: t.previsione.prompt, domanda: t.previsione.domanda };
   const stepProposta: Step = { id: "s4_proposta", stanza: 4, tipo: "decisione_scritta", titolo: t.proposta.titolo, prompt: t.proposta.prompt, hint: t.proposta.hint, minCaratteri: t.proposta.minCaratteri };
 
-  const stepRuoli: Step = { id: idRuoli, stanza: def.ruoliStanza, tipo: "assegna_ruoli", titolo: t.ruoli.titolo, prompt: t.ruoli.prompt, hint: t.ruoli.hint, ruoli: def.ruoli };
+  const stepRuoli: Step = def.assegnaPersone
+    ? { id: idRuoli, stanza: def.ruoliStanza, tipo: "assegna_persone", titolo: t.ruoli.titolo, prompt: t.ruoli.prompt, hint: t.ruoli.hint, compiti: def.assegnaPersone.compiti, persone: def.assegnaPersone.persone }
+    : { id: idRuoli, stanza: def.ruoliStanza, tipo: "assegna_ruoli", titolo: t.ruoli.titolo, prompt: t.ruoli.prompt, hint: t.ruoli.hint, ruoli: def.ruoli };
 
   const stepRiflessione: Step = { id: "s5_riflessione", stanza: 5, tipo: "riflessione", titolo: t.riflessione.titolo, prompt: t.riflessione.prompt, hint: t.riflessione.hint, minCaratteri: t.riflessione.minCaratteri };
   const stepPassi: Step = { id: "s5_passi", stanza: 5, tipo: "pianifica_passi", titolo: t.passi.titolo, prompt: t.passi.prompt, hint: t.passi.hint, passi: def.passi, quanti: def.quantiPassi };
