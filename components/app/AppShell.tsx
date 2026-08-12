@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { href: "/app/aree", label: "Aree", shortLabel: "Aree", icon: IconAree },
   { href: "/app/esplora", label: "Esplora", shortLabel: "Esplora", icon: IconEsplora },
   { href: "/app/agenda", label: "Agenda", shortLabel: "Agenda", icon: IconAgenda },
+  { href: "/app/test", label: "Test", shortLabel: "Test", icon: IconTest },
   { href: "/app/workshop", label: "Workshop", shortLabel: "Workshop", icon: IconWorkshop },
   { href: "/app/escape", label: "Missioni", shortLabel: "Missioni", icon: IconEscape },
   { href: "/app/bacheca", label: "Bacheca", shortLabel: "Bacheca", icon: IconBacheca },
@@ -72,6 +73,15 @@ function IconWorkshop({ className }: { className?: string }) {
       <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
       <rect x="3" y="7" width="18" height="12" rx="2" strokeWidth="2" />
       <path strokeWidth="2" strokeLinecap="round" d="M3 12h6v2h6v-2h6" />
+    </svg>
+  );
+}
+
+function IconTest({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" aria-hidden="true">
+      <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M9 11l2 2 4-4" />
+      <rect x="4" y="4" width="16" height="16" rx="2" strokeWidth="2" />
     </svg>
   );
 }
