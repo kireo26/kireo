@@ -23,6 +23,7 @@ export type StepTipo =
   | "previsione_poi_esito"
   | "decisione_scritta"
   | "assegna_ruoli"
+  | "assegna_persone"
   | "riflessione"
   | "pianifica_passi";
 
@@ -88,6 +89,14 @@ export type Lavoro = {
 // quello che ci si sente di saper fare.
 export type Ruolo = { id: string; label: string; area: string };
 
+// Assegnazione compito→PERSONA (Missione 10): a differenza di `assegna_ruoli`
+// (io/altri binario), qui ogni compito va dato a una persona specifica del
+// gruppo (o a sé, persona con id "io"). Alcuni abbinamenti compito↔persona
+// valgono come segnale forte di performance (vedi scoring), quindi serve sapere
+// CHI ha ricevuto COSA, non solo se lo si è tenuto per sé.
+export type CompitoAssegnabile = { id: string; label: string; area: string };
+export type PersonaAssegnabile = { id: string; nome: string };
+
 // Passo di attuazione (Stanza 5.2): se ne scelgono 3 in ordine da una lista.
 export type Passo = { id: string; label: string };
 
@@ -143,6 +152,7 @@ export type StepScartaOpzione = StepBase & { tipo: "scarta_opzione"; opzioni: Op
 export type StepPrevisionePoiEsito = StepBase & { tipo: "previsione_poi_esito"; domanda: string };
 export type StepDecisioneScritta = StepBase & { tipo: "decisione_scritta"; minCaratteri: number; facoltativo?: boolean };
 export type StepAssegnaRuoli = StepBase & { tipo: "assegna_ruoli"; ruoli: Ruolo[] };
+export type StepAssegnaPersone = StepBase & { tipo: "assegna_persone"; compiti: CompitoAssegnabile[]; persone: PersonaAssegnabile[] };
 export type StepRiflessione = StepBase & { tipo: "riflessione"; minCaratteri: number };
 export type StepPianificaPassi = StepBase & { tipo: "pianifica_passi"; passi: Passo[]; quanti: number };
 
@@ -157,6 +167,7 @@ export type Step =
   | StepPrevisionePoiEsito
   | StepDecisioneScritta
   | StepAssegnaRuoli
+  | StepAssegnaPersone
   | StepRiflessione
   | StepPianificaPassi;
 
@@ -188,6 +199,7 @@ export type PayloadScarta = { scartati: string[]; motivazione?: string };
 export type PayloadPrevisione = { fiducia: number }; // 0..100
 export type PayloadTesto = { testo: string };
 export type PayloadAssegna = { assegnazioni: Record<string, "io" | "altri"> };
+export type PayloadAssegnaPersone = { assegnazioni: Record<string, string> }; // compitoId -> personaId ("io" per sé)
 export type PayloadPianifica = { passi: string[] }; // ids scelti, in ordine
 
 export type Payload =
@@ -201,6 +213,7 @@ export type Payload =
   | PayloadPrevisione
   | PayloadTesto
   | PayloadAssegna
+  | PayloadAssegnaPersone
   | PayloadPianifica;
 
 // Accessore puro alle risposte salvate: sia il player (Record in stato React)

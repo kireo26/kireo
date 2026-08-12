@@ -23,6 +23,7 @@ import type {
   Payload,
   PayloadAlloca,
   PayloadAssegna,
+  PayloadAssegnaPersone,
   PayloadEsplora,
   PayloadLavori,
   PayloadOrdina,
@@ -35,7 +36,7 @@ import type {
   StepPianificaLavori,
   VoceBudget,
 } from "./tipi";
-import { mandatoScelto, materialiLetti, stepDellaMissione, valutaPiano, SLUG_ACQUA, SLUG_CANTIERE, SLUG_FILIERA, SLUG_MEDIATECA, SLUG_MUSEO, SLUG_QUARTIERE, SLUG_SERRA, SLUG_SPORTELLO } from "./config";
+import { mandatoScelto, materialiLetti, stepDellaMissione, valutaPiano, SLUG_ACQUA, SLUG_CANTIERE, SLUG_CLASSE, SLUG_FILIERA, SLUG_MEDIATECA, SLUG_MUSEO, SLUG_PALCO, SLUG_QUARTIERE, SLUG_SERRA, SLUG_SPORTELLO, SLUG_VIAGGIO } from "./config";
 
 const MODELLO_ESCAPE = "claude-haiku-4-5"; // stesso modello provato in prod (workshop/assistente)
 
@@ -76,6 +77,11 @@ type BudgetCtx = { alloc: Record<string, number>; voci: VoceBudget[]; letti: Set
 
 type PianoCtx = { step: StepPianificaLavori; sel: string[]; letti: Set<string> };
 
+// Segnale forte di delega (Missione 10): un abbinamento compito↔persona che,
+// SE il materiale è stato letto, vale come performance. Riconosciuto SINGOLARMENTE
+// (una prova per ogni abbinamento azzeccato), mai come blocco.
+type AssegnaSegnale = { compito: string; persona: string; richiede: string; area: string; peso: number; motivazione: string };
+
 type ScoringSpec = {
   pesi: Pesi;
   esploraTesti: { conBonus: string; base: string };
@@ -83,6 +89,7 @@ type ScoringSpec = {
   ordinaPerformance?: { area: string; peso: number };
   budgetPerformance?: (c: BudgetCtx) => { valore: number; buona: string; migliora: string };
   pianoPerformance?: (c: PianoCtx) => { valore: number; buona: string; migliora: string };
+  assegnaSegnali?: AssegnaSegnale[];
   promptProposta: (aree: string[], ctx: { letti: Set<string> }) => string;
 };
 
@@ -382,6 +389,118 @@ const SPEC: Record<string, ScoringSpec> = {
     promptProposta: (aree) =>
       `Sei un analista di orientamento per studenti italiani di 16-19 anni. Uno studente ha scritto il TESTO di un'ordinanza sindacale per ridurre del 20% i consumi d'acqua durante una siccità, «senza colpire sempre gli stessi». Individua da 1 a 3 aree — SCEGLIENDO SOLO tra questi slug: ${aree.join(", ")}. Per ognuna valuta: performance = l'ordinanza indica una scadenza e un riesame, cita solo numeri verificati, colpisce un USO (irrigazione, piscine, sprechi pubblici) e non un quartiere, senza allarmismi (0-1). REGOLE: PREMIA chi mette una data e un riesame e chi distingue l'uso dal quartiere; NON premiare gli appelli generici, gli allarmismi né chi colpisce «Colline» come se fosse un colpevole. interest = quanto emerge quell'area (0-1). Motivazione breve, calda, IPOTETICA, in italiano. Rispondi SOLO JSON: {"aree":[{"area_slug":"...","performance":0.0,"interest":0.0,"motivazione":"..."}]}`,
   },
+
+  // ── Missione 09 — "Il palco cambia programma"
+  // Missione veloce, poca analisi: il programma (alloca_budget in minuti) premia
+  // chi copre la serata usando le risorse reali (coro del centro se M6, banda
+  // ridotta se M5) e lascia spazio all'annuncio (se M12).
+  [SLUG_PALCO]: {
+    pesi: { ...PESI_BASE, mandato: 1.4, budgetPerf: 1.4, scartoPerf: 1.5, previsione: 1.0, passi: 1.0 },
+    esploraTesti: {
+      conBonus: "Hai voluto sentire le telefonate del pomeriggio, non solo il programma: già lì il direttore diceva due cose opposte nella stessa frase.",
+      base: "Hai guardato programma, risorse e budget prima di decidere: parti dai fatti, non dal panico.",
+    },
+    pianificaIdeali: ["piano_b", "procedura_annunci", "coinvolgere_centro"],
+    budgetPerformance: ({ alloc, letti, totale }) => {
+      let punti = 0, max = 0;
+      // copertura della serata (il programma deve reggere fino ai fuochi)
+      const { pienezza } = pienezzaEquilibrio(alloc, totale);
+      max += 1.5; punti += pienezza * 1.5;
+      // il coro del centro estivo, se scoperto, riempie il buco a costo zero
+      if (letti.has("M6")) { max += 1.5; punti += (Number(alloc["coro_centro"]) || 0) > 0 ? 1.5 : 0; }
+      // la Filarmonica ridotta, se scoperta: salva il gruppo invece di eliminarlo
+      if (letti.has("M5")) { max += 1.5; punti += (Number(alloc["filarmonica_ridotta"]) || 0) > 0 ? 1.5 : 0; }
+      // il momento di spiegazione, se ha letto del 2019
+      if (letti.has("M12")) { max += 1; punti += (Number(alloc["ringraziamento"]) || 0) > 0 ? 1 : 0; }
+      // la Filarmonica completa non è eseguibile con 23 elementi
+      max += 1; punti += (Number(alloc["filarmonica_completa"]) || 0) > 0 ? 0 : 1;
+      return {
+        valore: clamp01(max > 0 ? punti / max : 0.5),
+        buona: "Hai riempito la serata con quello che avevi davvero sottomano — il coro dei ragazzi, la banda che sale lo stesso — e hai lasciato un minuto per spiegare: un programma che sta in piedi con le risorse vere.",
+        migliora: "Il programma lascia un buco o si appoggia a qualcosa che non c'è (i 34 elementi, un'ora che il permesso non concede): con le risorse reali si poteva coprire la serata meglio.",
+      };
+    },
+    promptProposta: (aree, { letti }) => {
+      const avviso = letti.has("M12") ? " Lo studente sa cosa successe nel 2019 (la gente si arrabbiò per non essere stata avvisata): PREMIA chi avvisa PRIMA, con chiarezza, invece di far scoprire il cambio in piazza." : "";
+      return `Sei un analista di orientamento per studenti italiani di 16-19 anni. Uno studente ha scritto il MESSAGGIO al pubblico di una festa di paese il cui concerto principale è saltato all'ultimo. Individua da 1 a 3 aree — SCEGLIENDO SOLO tra questi slug: ${aree.join(", ")}. Per ognuna valuta: performance = il messaggio dice COSA È SUCCESSO senza nasconderlo nella prima frase, dice COSA CI SARÀ in concreto, e non promette ciò che non c'è (0-1). REGOLE DURE: PENALIZZA i giri di parole («per cause di forza maggiore», «un programma ancora più ricco»), l'entusiasmo posticcio e ogni formulazione che nasconda il cambio; PREMIA chi dice la verità subito e nomina una cosa concreta e nuova.${avviso} interest = quanto emerge quell'area (0-1). Motivazione breve, calda, IPOTETICA, in italiano. Rispondi SOLO JSON: {"aree":[{"area_slug":"...","performance":0.0,"interest":0.0,"motivazione":"..."}]}`;
+    },
+  },
+
+  // ── Missione 10 — "La classe che non partecipa"
+  // DIVIETO LESSICALE (requisito di progetto): nel prompt del revisore e in ogni
+  // testo NON compaiono mai «leader», «capo», «trascinatore» né etichette sulle
+  // persone. Cinque abbinamenti compito↔persona (assegnaSegnali) sono segnali
+  // forti, riconosciuti uno a uno nello step assegna_persone.
+  [SLUG_CLASSE]: {
+    pesi: { ...PESI_BASE, mandato: 1.4, budgetPerf: 1.4, scartoPerf: 1.5, previsione: 1.0, passi: 1.0 },
+    esploraTesti: {
+      conBonus: "Ti sei fermato su un dettaglio che nessuno aveva notato: in centoquaranta messaggi, una persona non ne ha mai scritto uno. È l'assenza che parla più forte.",
+      base: "Hai guardato le schede, la chat e cosa chiede il progetto prima di muoverti: parti dai fatti, non dalle impressioni.",
+    },
+    pianificaIdeali: ["chiedere_cosa_sa", "scrivere_compiti", "quattrocchi"],
+    budgetPerformance: ({ alloc, voci, totale }) => {
+      let punti = 0, max = 0;
+      // parlare uno a uno con chi non partecipa: è il cuore, non un lusso
+      max += 2; punti += (Number(alloc["parlare_uno_a_uno"]) || 0) > 0 ? 2 : 0;
+      // definire i compiti (se sbloccato): sblocca chi si ferma sul vago
+      if (voci.some((v) => v.id === "rifare_piano")) { max += 1; punti += (Number(alloc["rifare_piano"]) || 0) > 0 ? 1 : 0; }
+      // dare a Elisa un compito compatibile, se scoperto
+      if (voci.some((v) => v.id === "compito_elisa")) { max += 1; punti += (Number(alloc["compito_elisa"]) || 0) > 0 ? 1 : 0; }
+      // fare tutto da sé: la somma dell'esecuzione non deve mangiare tutte le giornate
+      const esec = ["verificare_indirizzi", "scrivere_testi", "fare_mappa", "curare_traduzioni", "impaginare"].reduce((a, id) => a + (Number(alloc[id]) || 0), 0);
+      max += 2; punti += esec <= totale * 0.6 ? 2 : clamp01(1 - (esec - totale * 0.6) / (totale * 0.4)) * 2;
+      return {
+        valore: clamp01(max > 0 ? punti / max : 0.5),
+        buona: "Hai messo il tuo tempo dove serviva davvero — parlare con chi non c'è, definire i compiti — invece di prenderti tutta l'esecuzione: così il gruppo ha modo di partecipare.",
+        migliora: "Hai concentrato le tue giornate sull'eseguire il lavoro e poco sul far muovere il gruppo: la guida forse esce, ma gli altri restano fermi.",
+      };
+    },
+    assegnaSegnali: [
+      { compito: "traduzioni", persona: "amine", richiede: "M4", area: "lingue-relazioni-internazionali", peso: 1.2, motivazione: "Hai dato le traduzioni a chi le sapeva fare in tre lingue: bastava chiederglielo a voce, non in chat." },
+      { compito: "impaginazione", persona: "giada", richiede: "M10", area: "scienze-educazione", peso: 1.2, motivazione: "Hai dato a chi si blocca sul vago un compito con confini netti: è così che si sblocca, non motivandola." },
+      { compito: "testi", persona: "elisa", richiede: "M5", area: "salute-professioni-sanitarie", peso: 1.2, motivazione: "Hai affidato un lavoro che si fa la mattina e da casa a chi poteva lavorare solo così: un compito costruito sul suo vincolo reale, non contro di esso." },
+      { compito: "mappa", persona: "yuri", richiede: "M11", area: "arte-design-moda", peso: 1.2, motivazione: "Hai dato a chi ha troppe idee una cosa sola e concreta da portare a termine: non serviva frenarlo, serviva scegliere per lui." },
+      { compito: "indirizzi", persona: "tommaso", richiede: "M7", area: "comunicazione-media", peso: 1.2, motivazione: "Hai rimesso gli indirizzi a chi li aveva già trovati, ma con un metodo diverso: hai corretto il metodo, non la persona." },
+    ],
+    // NB: nessuna delle parole «leader»/«capo»/«trascinatore» nel prompt, e
+    // istruzione esplicita al revisore di non usarle né di etichettare le persone.
+    promptProposta: (aree) =>
+      `Sei un analista di orientamento per studenti italiani di 16-19 anni. Uno studente ha scritto un MESSAGGIO al proprio gruppo di lavoro (sette compagni su un progetto scolastico) per farlo ripartire. Individua da 1 a 3 aree — SCEGLIENDO SOLO tra questi slug: ${aree.join(", ")}. Per ognuna valuta: performance = il messaggio assegna cose PRECISE a persone precise con una scadenza, non generalizza, non rimprovera il gruppo in blocco (0-1). REGOLE DURE: PREMIA i messaggi che nominano le persone e i compiti in modo concreto e che lasciano una porta aperta a chi è sparito; PENALIZZA i rimproveri collettivi («ragazzi così non va», «ci impegniamo tutti tranne alcuni»), i toni da comando e le richieste vaghe; NON premiare chi si assume tutto il lavoro. VINCOLO ASSOLUTO: nel campo "motivazione" NON usare MAI le parole «leader», «capo» o «trascinatore», e NON dare etichette alle persone del gruppo (non è un'analisi psicologica): descrivi solo cosa ha fatto lo studente. interest = quanto emerge quell'area (0-1). Motivazione breve, calda, IPOTETICA, in italiano. Rispondi SOLO JSON: {"aree":[{"area_slug":"...","performance":0.0,"interest":0.0,"motivazione":"..."}]}`,
+  },
+
+  // ── Missione 11 — "Il viaggio impossibile"
+  // pianifica_lavori a TETTO in euro, ma il tetto CRESCE se M13 è letto (264→352):
+  // la performance usa step.budgetSoldi RISOLTO (il budget effettivo), non un
+  // valore nominale. Il revisore ha la penalizzazione più severa delle undici.
+  [SLUG_VIAGGIO]: {
+    pesi: { ...PESI_BASE, mandato: 1.4, budgetPerf: 1.5, scartoPerf: 1.5, previsione: 1.0, passi: 1.0 },
+    esploraTesti: {
+      conBonus: "Ti sei fermato sulla frase di Nadir, scritta a penna e ripetuta in corridoio: sta dicendo due volte una cosa che non pensa davvero. È il segnale più importante della missione.",
+      base: "Hai guardato preventivo, voci del gruppo e conti prima di decidere: parti dai fatti, non dalle apparenze.",
+    },
+    pianificaIdeali: ["strutture_accessibili", "fondo_a_tutti", "verificare_accessibilita"],
+    pianoPerformance: ({ step, sel, letti }) => {
+      const { soldi } = valutaPiano(step, sel);
+      const budgetSoldi = step.budgetSoldi ?? Number.POSITIVE_INFINITY; // budget EFFETTIVO (352 se M13, altrimenti 264)
+      let punti = 0, max = 0;
+      max += 2; punti += soldi <= budgetSoldi ? 2 : clamp01(1 - (soldi - budgetSoldi) / budgetSoldi) * 2;
+      // Nadir: l'ostello accessibile va incluso (se l'accessibilità è nota)
+      if (letti.has("M4")) { max += 2; punti += sel.includes("ostello_accessibile") ? 2 : 0; }
+      // Marco: il fondo riservato lo risolve a costo zero (se scoperto)
+      if (letti.has("M8")) { max += 1.5; punti += sel.includes("fondo_marco") ? 1.5 : 0; }
+      // Sara: rientra, con il treno di gruppo o col biglietto singolo
+      max += 1; punti += (sel.includes("treno_gruppo") || sel.includes("treno_singolo")) ? 1 : 0;
+      // Chiara: mangia senza glutine, se il costo nascosto è stato scoperto
+      if (letti.has("M6")) { max += 1; punti += sel.includes("pasti_glutine") ? 1 : 0; }
+      return {
+        valore: clamp01(max > 0 ? punti / max : 0.5),
+        buona: "Il tuo piano fa venire tutti e ventidue e sta dentro il margine — anche perché hai trovato lo sconto che l'ha allargato: l'accessibilità c'è, Marco è coperto in modo riservato, Sara rientra, Chiara mangia.",
+        migliora: "Il piano lascia qualcuno fuori o sfora il margine: manca l'ostello accessibile, o il fondo per Marco, o il rientro di Sara — le cose che decidono chi parte, non quanto è bello il viaggio.",
+      };
+    },
+    promptProposta: (aree) =>
+      `Sei un analista di orientamento per studenti italiani di 16-19 anni. Uno studente ha scritto il MESSAGGIO alla classe con le decisioni prese per un viaggio d'istruzione, in cui alcuni compagni hanno esigenze particolari (accessibilità, dieta, budget familiare, orari). Individua da 1 a 3 aree — SCEGLIENDO SOLO tra questi slug: ${aree.join(", ")}. Per ognuna valuta: performance = il messaggio comunica le decisioni in modo chiaro SENZA esporre le situazioni personali di nessuno, e presenta le scelte come normali, non come favori (0-1). REGOLE — LA PENALIZZAZIONE PIÙ SEVERA DI TUTTE: PENALIZZA PESANTEMENTE (performance vicino a 0) ogni frase che nomini la difficoltà di una persona in modo identificabile («abbiamo cambiato ostello per Nadir», «Marco ha delle difficoltà», «per la dieta di Chiara») e ogni tono da buona azione («siamo riusciti a includere tutti», «nessuno verrà lasciato indietro»). PREMIA chi comunica le scelte come ovvie e chi tratta l'accessibilità come una caratteristica della struttura, non come una concessione a qualcuno. interest = quanto emerge quell'area (0-1). Motivazione breve, calda, IPOTETICA, in italiano. Rispondi SOLO JSON: {"aree":[{"area_slug":"...","performance":0.0,"interest":0.0,"motivazione":"..."}]}`,
+  },
 };
 
 // Seam di test (server-only): espone il prompt 4.2 costruito per una missione,
@@ -629,6 +748,33 @@ export async function calcolaEvidenze(
           if (ass[r.id] !== "io") continue;
           evidenze.push({ area_slug: r.area, dimensione: "interest", valore: 0.8, peso: P.ruoli, motivazione: `Ti sei preso «${r.label.toLowerCase()}»: un compito che senti tuo.`, step_id: s.id });
           evidenze.push({ area_slug: r.area, dimensione: "self_efficacy", valore: 0.8, peso: P.ruoli, motivazione: `Prendendoti «${r.label.toLowerCase()}» hai mostrato di sentirti capace.`, step_id: s.id });
+        }
+        break;
+      }
+
+      case "assegna_persone": {
+        // Compito→persona (Missione 10). I compiti presi in prima persona ("io")
+        // danno un segnale mite di autoefficacia; i cinque abbinamenti
+        // compito↔persona giusti (ciascuno condizionato a un materiale letto)
+        // valgono come performance e sono riconosciuti UNO A UNO, non in blocco.
+        const p = payload as PayloadAssegnaPersone | undefined;
+        const ass = p?.assegnazioni ?? {};
+        let ioCount = 0;
+        for (const c of s.compiti) {
+          if (ass[c.id] === "io") {
+            ioCount++;
+            evidenze.push({ area_slug: c.area, dimensione: "self_efficacy", valore: 0.6, peso: P.ruoli, motivazione: `Ti sei preso «${c.label.toLowerCase()}».`, step_id: s.id });
+          }
+        }
+        for (const seg of spec.assegnaSegnali ?? []) {
+          if (ass[seg.compito] === seg.persona && letti.has(seg.richiede)) {
+            evidenze.push({ area_slug: seg.area, dimensione: "performance", valore: 0.9, peso: seg.peso, motivazione: seg.motivazione, step_id: s.id });
+          }
+        }
+        // Tenere (quasi) tutto per sé: segnale debole con nota. La valutazione è
+        // sul contributo di ciascuno — chi fa tutto lascia gli altri senza.
+        if (s.compiti.length > 0 && ioCount >= s.compiti.length - 1) {
+          evidenze.push({ area_slug: "scienze-educazione", dimensione: "performance", valore: 0.2, peso: P.scartoPerf, motivazione: "Hai tenuto quasi tutti i compiti per te: così il gruppo non ha un contributo da mostrare, e nemmeno tu.", step_id: s.id });
         }
         break;
       }

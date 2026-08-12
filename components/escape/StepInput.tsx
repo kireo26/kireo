@@ -7,6 +7,7 @@ import type {
   Payload,
   PayloadAlloca,
   PayloadAssegna,
+  PayloadAssegnaPersone,
   PayloadEsplora,
   PayloadLavori,
   PayloadOrdina,
@@ -19,6 +20,7 @@ import type {
   Step,
   StepAllocaBudget,
   StepAssegnaRuoli,
+  StepAssegnaPersone,
   StepDecisioneScritta,
   StepEsploraLibero,
   StepOrdinaPriorita,
@@ -382,6 +384,34 @@ function AssegnaInput({ step, valore, onChange }: { step: StepAssegnaRuoli; valo
   );
 }
 
+// ─────────────────────────────────────────── assegna_persone (3.3, Missione 10)
+function AssegnaPersoneInput({ step, valore, onChange }: { step: StepAssegnaPersone; valore: PayloadAssegnaPersone | null; onChange: OnChange }) {
+  const ass = valore?.assegnazioni ?? {};
+  const set = (compitoId: string, personaId: string) => {
+    const nuovo = { ...ass, [compitoId]: personaId };
+    onChange({ assegnazioni: nuovo }, step.compiti.every((c) => nuovo[c.id]));
+  };
+  return (
+    <div className="space-y-2">
+      {step.compiti.map((c) => (
+        <div key={c.id} className={`flex flex-col gap-2 ${CARD} sm:flex-row sm:items-center sm:justify-between`}>
+          <span className="flex-1">{c.label}</span>
+          <select
+            value={ass[c.id] ?? ""}
+            onChange={(e) => set(c.id, e.target.value)}
+            className="flex-none rounded-lg border border-white/10 bg-kireo-dark px-3 py-1.5 text-sm text-kireo-light focus:border-kireo-green focus:outline-none"
+          >
+            <option value="" disabled>Chi lo fa?</option>
+            {step.persone.map((p) => (
+              <option key={p.id} value={p.id}>{p.nome}</option>
+            ))}
+          </select>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ─────────────────────────────────────────── pianifica_passi (5.2)
 function PianificaInput({ step, valore, onChange }: { step: StepPianificaPassi; valore: PayloadPianifica | null; onChange: OnChange }) {
   const scelti = valore?.passi ?? [];
@@ -462,6 +492,8 @@ export default function StepInput({ step, valore, onChange }: { step: Step; valo
       return <PrevisioneInput valore={valore as PayloadPrevisione | null} onChange={onChange} domanda={step.domanda} />;
     case "assegna_ruoli":
       return <AssegnaInput step={step} valore={valore as PayloadAssegna | null} onChange={onChange} />;
+    case "assegna_persone":
+      return <AssegnaPersoneInput step={step} valore={valore as PayloadAssegnaPersone | null} onChange={onChange} />;
     case "pianifica_passi":
       return <PianificaInput step={step} valore={valore as PayloadPianifica | null} onChange={onChange} />;
     case "decisione_scritta":
