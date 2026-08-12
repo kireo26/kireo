@@ -3,23 +3,26 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { getTest } from "@/lib/test/config";
-import type { ItemT2, TestItem } from "@/lib/test/config";
+import { getTest, T3_META } from "@/lib/test/config";
+import type { ItemT2, ItemT3, TestItem } from "@/lib/test/config";
 import { ordineOpzioni } from "@/lib/test/ordine";
 import { Button } from "@/components/Button";
 
 type Payload = { opzioneId?: string; ordine?: string[]; allocazioni?: Record<string, number>; valore?: number };
 type RispostaSalvata = { item_id: string; payload: Payload };
+type ItemQualsiasi = TestItem | ItemT2 | ItemT3;
+type Giocabile = { slug: string; durata: string; motivazionaleDopo: number; motivazionaleTitolo: string; motivazionaleTesto: string; items: ItemQualsiasi[] };
 
-// Player unificato T1/T2: una domanda per schermata, barra sempre visibile,
+// Player unificato T1/T2/T3: una domanda per schermata, barra sempre visibile,
 // «Domanda X di N», opzioni grandi con ordine randomizzato ma stabile per
 // tentativo, micro-schermata motivazionale a metà, nessun timer, riprendibile.
 // Rende quattro forme d'item: scelta (radio), ordina (su/giù), alloca (ore),
-// Likert (1-5). T1 usa solo la scelta.
-export default function TestPlayer({ testSlug, attemptId, risposteIniziali }: { testSlug: string; attemptId: string; risposteIniziali: RispostaSalvata[] }) {
+// Likert (1-5). T1 e T3 usano solo la scelta; T3 riceve gli item già assemblati
+// (a runtime dalle aree emerse), gli altri li legge dal config.
+export default function TestPlayer({ testSlug, attemptId, risposteIniziali, itemsAssemblati }: { testSlug: string; attemptId: string; risposteIniziali: RispostaSalvata[]; itemsAssemblati?: ItemT3[] }) {
   const router = useRouter();
-  const test = useMemo(() => getTest(testSlug)!, [testSlug]);
-  const items = test.items as (TestItem | ItemT2)[];
+  const test = useMemo<Giocabile>(() => (itemsAssemblati ? { ...T3_META, items: itemsAssemblati } : (getTest(testSlug)! as unknown as Giocabile)), [testSlug, itemsAssemblati]);
+  const items = test.items;
 
   const [risposte, setRisposte] = useState<Record<string, Payload>>(() => {
     const r: Record<string, Payload> = {};
@@ -27,8 +30,8 @@ export default function TestPlayer({ testSlug, attemptId, risposteIniziali }: { 
     return r;
   });
 
-  const numero = (it: TestItem | ItemT2) => it.numero;
-  const forma = (it: TestItem | ItemT2): "scelta" | "ordina" | "alloca" | "likert" => {
+  const numero = (it: ItemQualsiasi) => it.numero;
+  const forma = (it: ItemQualsiasi): "scelta" | "ordina" | "alloca" | "likert" => {
     if ("opzioni" in it) return "scelta";
     return (it as ItemT2).tipo as "ordina" | "alloca" | "likert";
   };
@@ -134,7 +137,7 @@ export default function TestPlayer({ testSlug, attemptId, risposteIniziali }: { 
   );
 }
 
-function ItemInput({ attemptId, item, forma, valore, onChange }: { attemptId: string; item: TestItem | ItemT2; forma: "scelta" | "ordina" | "alloca" | "likert"; valore: Payload; onChange: (p: Payload) => void }) {
+function ItemInput({ attemptId, item, forma, valore, onChange }: { attemptId: string; item: ItemQualsiasi; forma: "scelta" | "ordina" | "alloca" | "likert"; valore: Payload; onChange: (p: Payload) => void }) {
   if (forma === "scelta") {
     const opzioni = ("opzioni" in item ? item.opzioni : []) as { id: string; label: string }[];
     const ordinate = ordineOpzioni(attemptId, item.id, opzioni);

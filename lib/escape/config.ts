@@ -2169,6 +2169,14 @@ function costruisciMissioneDef(def: MissioneDef, get: LeggiRisposta): EscapeMiss
 // Metadati del catalogo.
 export const MISSIONI: MissioneMeta[] = DEFS.map((d) => d.meta);
 
+// Registro area→missione, derivato dalle `areeCandidate` già dichiarate su ogni
+// missione (NON un mapping nuovo: è la stessa fonte, esposta in forma leggera).
+// `tipo` distingue la missione cross-area (Missione 01, che elenca tutte e 18 le
+// aree) dalle mono-tematiche: chi vuole «la missione che somiglia a un'area»
+// preferisce una mono-tematica dove quell'area è centrale. Usato dai test (T3).
+export const REGISTRO_MISSIONI_AREE: { slug: string; titolo: string; tipo: EscapeMission["tipo"]; areeCandidate: string[] }[] =
+  DEFS.map((d) => ({ slug: d.meta.slug, titolo: d.meta.titolo, tipo: d.meta.tipo, areeCandidate: d.areeCandidate }));
+
 // Risolve la missione per slug. Con `get` costruisce il contenuto dinamico dalle
 // risposte; senza, la risoluzione di base (catalogo / intro d'avvio).
 export function getMissione(slug: string, get?: LeggiRisposta): EscapeMission | undefined {
