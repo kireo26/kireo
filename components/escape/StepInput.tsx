@@ -205,25 +205,69 @@ function AllocaInput({ step, valore, onChange }: { step: StepAllocaBudget; valor
   );
 }
 
-// ─────────────────────────────────────────── pianifica_lavori (3.1, Missione 04)
+// ─────────────────────────────────────────── pianifica_lavori (3.1, Missioni 04/06/08)
 function LavoriInput({ step, valore, onChange }: { step: StepPianificaLavori; valore: PayloadLavori | null; onChange: OnChange }) {
   const sel = valore?.selezionati ?? [];
   const toggle = (id: string) => {
     const nuovo = sel.includes(id) ? sel.filter((x) => x !== id) : [...sel, id];
     onChange({ selezionati: nuovo }, nuovo.length > 0);
   };
-  const { soldi, giorni, dipendenzeMancanti, secondaSquadra } = valutaPiano(step, sel);
-  const overSoldi = soldi > step.budgetSoldi;
-  const doppio = step.budgetGiorni !== undefined; // Missione 04 = soldi + giorni; Missione 06 = solo soldi
-  const overGiorni = doppio && giorni > (step.budgetGiorni ?? 0);
+  const { soldi, giorni, risparmio, dipendenzeMancanti, secondaSquadra } = valutaPiano(step, sel);
   const u = step.unitaSoldi;
   const labelDi = (id: string) => step.lavori.find((l) => l.id === id)?.label ?? id;
+
+  // Missione 08: OBIETTIVO da raggiungere (barra che si riempie), non un tetto da
+  // non superare. La grandezza guida è `risparmio`; tempo e costo sono secondari.
+  if (step.obiettivo !== undefined) {
+    const obiettivo = step.obiettivo;
+    const uo = step.unitaObiettivo ?? "punti";
+    const raggiunto = risparmio >= obiettivo;
+    const pct = obiettivo > 0 ? Math.min(100, Math.round((risparmio / obiettivo) * 100)) : 0;
+    return (
+      <div className="space-y-3">
+        <div className="rounded-xl border border-white/10 bg-kireo-card px-4 py-3">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-kireo-muted">Risparmio raggiunto</span>
+            <span className={raggiunto ? "text-kireo-green-light" : "text-kireo-light"}>{risparmio} / {obiettivo} {uo}{raggiunto ? " ✓" : ""}</span>
+          </div>
+          <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-white/10">
+            <div className={`h-full rounded-full transition-all ${raggiunto ? "bg-kireo-green" : "bg-kireo-orange"}`} style={{ width: `${pct}%` }} />
+          </div>
+          <p className="mt-2 text-[11px] text-kireo-muted">
+            {raggiunto ? "Traguardo raggiunto — puoi ancora rivedere il pacchetto." : `Mancano ${obiettivo - risparmio} ${uo} al traguardo.`}{" "}
+            Il pacchetto costa {soldi.toLocaleString("it-IT")} {u} e impiega {giorni} gg.
+          </p>
+        </div>
+        {step.lavori.map((l) => {
+          const on = sel.includes(l.id);
+          return (
+            <label key={l.id} className={`flex cursor-pointer items-center gap-3 ${CARD} ${on ? "border-kireo-green" : ""}`}>
+              <input type="checkbox" checked={on} onChange={() => toggle(l.id)} className="accent-kireo-green" />
+              <span className="flex-1">{l.label}</span>
+              <span className="flex-none text-right text-[11px] text-kireo-muted">
+                <span className="text-kireo-green-light">+{l.risparmio ?? 0} {uo}</span>
+                {l.giorni > 0 ? ` · ${l.giorni} gg` : ""}
+                {l.costo > 0 ? ` · ${l.costo.toLocaleString("it-IT")} ${u}` : ""}
+              </span>
+            </label>
+          );
+        })}
+      </div>
+    );
+  }
+
+  // Tetto: Missione 04 = soldi + giorni; Missione 06 = solo soldi (una voce può
+  // avere costo negativo, che libera margine).
+  const budgetSoldi = step.budgetSoldi ?? 0;
+  const overSoldi = soldi > budgetSoldi;
+  const doppio = step.budgetGiorni !== undefined;
+  const overGiorni = doppio && giorni > (step.budgetGiorni ?? 0);
   return (
     <div className="space-y-2">
       <div className={`grid ${doppio ? "grid-cols-2" : "grid-cols-1"} gap-2`}>
         <div className="rounded-xl border border-white/10 bg-kireo-card px-3 py-2 text-sm">
           <p className="text-[11px] text-kireo-muted">Speso</p>
-          <p className={overSoldi ? "text-red-400" : "text-kireo-light"}>{soldi.toLocaleString("it-IT")} / {step.budgetSoldi.toLocaleString("it-IT")} {u}</p>
+          <p className={overSoldi ? "text-red-400" : "text-kireo-light"}>{soldi.toLocaleString("it-IT")} / {budgetSoldi.toLocaleString("it-IT")} {u}</p>
         </div>
         {doppio && (
           <div className="rounded-xl border border-white/10 bg-kireo-card px-3 py-2 text-sm">
@@ -240,13 +284,13 @@ function LavoriInput({ step, valore, onChange }: { step: StepPianificaLavori; va
       ))}
       {step.lavori.map((l) => {
         const on = sel.includes(l.id);
-        const risparmio = l.costo < 0;
+        const risparmioVoce = l.costo < 0;
         return (
           <label key={l.id} className={`flex cursor-pointer items-center gap-3 ${CARD} ${on ? "border-kireo-green" : ""}`}>
             <input type="checkbox" checked={on} onChange={() => toggle(l.id)} className="accent-kireo-green" />
             <span className="flex-1">{l.label}</span>
-            <span className={`flex-none text-[11px] ${risparmio ? "text-kireo-green-light" : "text-kireo-muted"}`}>
-              {risparmio ? `−${Math.abs(l.costo).toLocaleString("it-IT")} ${u} (risparmio)` : `${l.costo.toLocaleString("it-IT")} ${u}`}{l.giorni > 0 ? ` · ${l.giorni} gg` : ""}
+            <span className={`flex-none text-[11px] ${risparmioVoce ? "text-kireo-green-light" : "text-kireo-muted"}`}>
+              {risparmioVoce ? `−${Math.abs(l.costo).toLocaleString("it-IT")} ${u} (risparmio)` : `${l.costo.toLocaleString("it-IT")} ${u}`}{l.giorni > 0 ? ` · ${l.giorni} gg` : ""}
             </span>
           </label>
         );

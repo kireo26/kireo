@@ -81,6 +81,7 @@ export type Lavoro = {
   essenziale?: boolean;
   parallelizzabile?: boolean;
   gate?: string;
+  risparmio?: number; // Missione 08: quanto questa misura fa AVVICINARE all'obiettivo (es. punti % di risparmio idrico)
 };
 
 // Compito da assegnare a sé o ad altri (Stanza 4.3): quello che ci si prende è
@@ -119,14 +120,25 @@ export type StepSelezionaInformazioni = StepBase & { tipo: "seleziona_informazio
 // l'incremento dell'input numerico (1000 per gli euro, 1 per giornate/ore).
 export type StepAllocaBudget = StepBase & { tipo: "alloca_budget"; totale: number; unita: string; passo: number; voci: VoceBudget[] };
 
-// Pianificazione a selezione (Stanza 3.1): lo studente SELEZIONA voci con costo
-// FISSO; il totale sta o non sta dentro il budget. `unitaSoldi` è l'unità del
-// costo (es. "€", "cent"). Due varianti:
-//  - Missione 04: doppia grandezza (soldi + giorni, `budgetGiorni` presente) +
+// Pianificazione a selezione (Stanza 3.1): lo studente SELEZIONA voci con valori
+// FISSI. Tre varianti:
+//  - Missione 04: TETTO doppio (soldi + giorni, `budgetGiorni` presente) +
 //    dipendenze d'ordine tra i lavori;
-//  - Missione 06: singola grandezza (`budgetGiorni` assente), e una voce può
-//    avere COSTO NEGATIVO (libera margine invece di consumarlo).
-export type StepPianificaLavori = StepBase & { tipo: "pianifica_lavori"; lavori: Lavoro[]; budgetSoldi: number; unitaSoldi: string; budgetGiorni?: number };
+//  - Missione 06: TETTO singolo (`budgetGiorni` assente); una voce può avere
+//    COSTO NEGATIVO (libera margine invece di consumarlo);
+//  - Missione 08: OBIETTIVO da RAGGIUNGERE (`obiettivo` presente): la somma dei
+//    `risparmio` selezionati deve arrivare al traguardo — è l'inverso di un
+//    tetto (una barra che si riempie). `budgetSoldi`/`budgetGiorni` diventano
+//    grandezze secondarie (tempo e costo), non il vincolo principale.
+export type StepPianificaLavori = StepBase & {
+  tipo: "pianifica_lavori";
+  lavori: Lavoro[];
+  unitaSoldi: string;
+  budgetSoldi?: number;
+  budgetGiorni?: number;
+  obiettivo?: number;
+  unitaObiettivo?: string;
+};
 export type StepScartaOpzione = StepBase & { tipo: "scarta_opzione"; opzioni: OpzioneScarto[]; daScartare: number };
 export type StepPrevisionePoiEsito = StepBase & { tipo: "previsione_poi_esito"; domanda: string };
 export type StepDecisioneScritta = StepBase & { tipo: "decisione_scritta"; minCaratteri: number; facoltativo?: boolean };

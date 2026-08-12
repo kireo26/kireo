@@ -106,6 +106,35 @@ const NARRATIVA: Record<string, Narrativa> = {
       { quando: (c) => scartato(c, "beta_dichiara") && !scartato(c, "beta_muto"), testo: "Hai scartato la scorciatoia di dichiarare un riciclato che non potevi certificare, e hai tenuto la strada di migliorare senza vantartene. È la risposta più sottile di questa missione: si può migliorare un prodotto senza scriverci sopra cose che non si dimostrano." },
     ],
   },
+
+  "museo-seta": {
+    costruito: (mandato, topVoce) =>
+      `Hai deciso di reinventare il museo ${mandato.label} — ${mandato.frase.charAt(0).toLowerCase()}${mandato.frase.slice(1)}` +
+      (topVoce ? ` Nel tuo piano, la voce più impegnativa è stata «${topVoce}».` : ""),
+    occasioni: [
+      { quando: (c) => facciataTenuta(c, "mostra_itinerante") && !c.letti.has("M4"), testo: "Avresti portato i tessuti più belli in una mostra itinerante nelle scuole. Ma quei tessuti tollerano 50 lux e tre mesi di luce l'anno: spostarli e illuminarli li rovina, e il restauro costerebbe più dell'intero budget. Era scritto in una nota di conservazione che non hai aperto." },
+      { quando: (c) => facciataTenuta(c, "mostra_itinerante") && c.letti.has("M4"), testo: "Avresti portato i tessuti in giro anche sapendo, dalla nota di conservazione che avevi letto, che alla luce e in movimento si rovinano. A volte si legge una cosa e si sceglie lo stesso di correre il rischio." },
+      { quando: (c) => c.pianoSel !== undefined && nelPiano(c, "fmt_evento") && !["fmt_podcast", "fmt_video", "fmt_pannelli", "fmt_schermi", "fmt_laboratorio"].some((id) => nelPiano(c, id)), testo: "Hai puntato su un evento di una sola sera. Il bando chiede un'iniziativa ripetibile senza nuovi fondi: un colpo a effetto non è rendicontabile, e l'anno dopo non resta niente da mostrare." },
+      { quando: (c) => c.pianoSel !== undefined && nelPiano(c, "fmt_schermi") && !c.letti.has("M12"), testo: "Hai puntato sugli schermi senza conoscere il precedente del museo vicino: +180% il primo anno, poi sotto i numeri di partenza quando si guastarono e nessuno aveva i fondi per ripararli. Era un precedente che non hai chiesto." },
+      { quando: (c) => c.letti.has("M13") && c.pianoSel !== undefined && !nelPiano(c, "accessibilita_sala3"), testo: "La Sala 3, quella che contiene il registro del 1911, è al primo piano senza ascensore. Il bando premiava l'accessibilità e tu l'hai lasciata fuori dal piano: chi non fa le scale non arriva al pezzo che vale più di tutti." },
+      { quando: (c) => c.letti.has("M8"), testo: "Hai scoperto che solo il 27% non torna per come comunicate: il 44% non torna perché l'ha già visto da bambino. Il problema non era la pubblicità, era dare un motivo nuovo per rientrare — e questo cambia tutto." },
+    ],
+  },
+
+  "citta-acqua": {
+    costruito: (mandato, topVoce) =>
+      `Hai letto l'emergenza così: ${mandato.label} — ${mandato.frase.charAt(0).toLowerCase()}${mandato.frase.slice(1)}` +
+      (topVoce ? ` Nel pacchetto di misure, quella che pesa di più è «${topVoce}».` : ""),
+    occasioni: [
+      { quando: (c) => facciataTenuta(c, "chiusura_notturna") && !c.letti.has("M6"), testo: "Avresti chiuso la rete di notte «uguale per tutti». Ma a San Rocco l'82% degli alloggi non ha un serbatoio: la chiusura la pagano solo loro, mentre a Colline chi ha l'accumulo non se ne accorge. Era in uno studio che non hai aperto." },
+      { quando: (c) => facciataTenuta(c, "chiusura_notturna") && c.letti.has("M6"), testo: "Hai tenuto la chiusura notturna «uguale per tutti» anche sapendo, dallo studio sui serbatoi che avevi letto, che a San Rocco l'82% resta a secco mentre Colline non se ne accorge. «Uguale per tutti» non vuol dire equo." },
+      { quando: (c) => c.pianoSel !== undefined && nelPiano(c, "tariffa"), testo: "Hai contato sulla tariffa progressiva, ma entra in vigore fra tre mesi: a emergenza finita. Serviva qualcosa che valesse da subito, non a ottobre." },
+      { quando: (c) => !c.letti.has("M4"), testo: "La perdita reale della rete era al 22%, non al 6% della stima del 2019: più di un quinto dell'acqua non arrivava a nessuno. Il rilievo era di giugno, mai pubblicato, e non l'hai chiesto." },
+      { quando: (c) => c.pianoSel !== undefined && c.letti.has("M8") && !nelPiano(c, "consumi_pubblici"), testo: "Sapevi, dal dettaglio sugli edifici pubblici, che scuole vuote, piscina chiusa e fontane accese sprecavano un 5% a costo zero e senza colpire nessuno — e non l'hai messo nel pacchetto." },
+      { quando: (c) => !c.letti.has("M8"), testo: "C'era un 5% che usciva per nessuno — scuole vuote con l'irrigazione accesa, piscina chiusa col ricircolo attivo, fontane. Risparmio immediato, a costo zero, senza toccare un cittadino. Era in un dettaglio che non hai chiesto." },
+      { quando: (c) => c.letti.has("M7"), testo: "Hai capito che tagliare l'acqua all'agricoltura a metà agosto non serviva quasi a niente: il fabbisogno è concentrato a luglio e dopo il 20 agosto crolla da solo dell'80%. Un sacrificio grosso per un risparmio quasi nullo — e l'hai visto in tempo." },
+    ],
+  },
 };
 
 export function costruisciRestituzione(slug: string, get: LeggiRisposta, areeTop: AreaTop[]): Restituzione {
@@ -134,8 +163,14 @@ export function costruisciRestituzione(slug: string, get: LeggiRisposta, areeTop
         if (a > topVal) { topVal = a; topLabel = v.label.toLowerCase(); }
       }
     } else if (stepBudget?.tipo === "pianifica_lavori") {
+      // A tetto (Missioni 04/06/07): la voce "più grande" è la più costosa. A
+      // obiettivo (Missione 08: barra che si riempie), i costi sono quasi tutti
+      // zero — la voce che pesa è quella che fa risparmiare di più.
+      const fill = stepBudget.obiettivo !== undefined;
       for (const l of stepBudget.lavori) {
-        if ((pianoSel?.includes(l.id) ?? false) && l.costo > topVal) { topVal = l.costo; topLabel = l.label.toLowerCase(); }
+        if (!(pianoSel?.includes(l.id) ?? false)) continue;
+        const grandezza = fill ? (l.risparmio ?? 0) : l.costo;
+        if (grandezza > topVal) { topVal = grandezza; topLabel = l.label.toLowerCase(); }
       }
     }
     costruito = narr.costruito(mandato, topLabel);
