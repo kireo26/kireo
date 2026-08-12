@@ -35,7 +35,7 @@ import type {
   StepPianificaLavori,
   VoceBudget,
 } from "./tipi";
-import { mandatoScelto, materialiLetti, stepDellaMissione, valutaPiano, SLUG_CANTIERE, SLUG_FILIERA, SLUG_MEDIATECA, SLUG_QUARTIERE, SLUG_SERRA, SLUG_SPORTELLO } from "./config";
+import { mandatoScelto, materialiLetti, stepDellaMissione, valutaPiano, SLUG_ACQUA, SLUG_CANTIERE, SLUG_FILIERA, SLUG_MEDIATECA, SLUG_MUSEO, SLUG_QUARTIERE, SLUG_SERRA, SLUG_SPORTELLO } from "./config";
 
 const MODELLO_ESCAPE = "claude-haiku-4-5"; // stesso modello provato in prod (workshop/assistente)
 
@@ -212,9 +212,10 @@ const SPEC: Record<string, ScoringSpec> = {
     pianificaIdeali: ["registro", "controlli", "accessibilita"],
     pianoPerformance: ({ step, sel, letti }) => {
       const { soldi, giorni, dipendenzeMancanti } = valutaPiano(step, sel);
+      const budgetSoldi = step.budgetSoldi ?? Number.POSITIVE_INFINITY;
       const budgetGiorni = step.budgetGiorni ?? Number.POSITIVE_INFINITY;
       let punti = 0, max = 0;
-      max += 2; punti += soldi <= step.budgetSoldi ? 2 : clamp01(1 - (soldi - step.budgetSoldi) / step.budgetSoldi) * 2;
+      max += 2; punti += soldi <= budgetSoldi ? 2 : clamp01(1 - (soldi - budgetSoldi) / budgetSoldi) * 2;
       max += 2; punti += giorni <= budgetGiorni ? 2 : clamp01(1 - (giorni - budgetGiorni) / budgetGiorni) * 2;
       max += 1.5; punti += dipendenzeMancanti.length === 0 ? 1.5 : 0;
       const essenziali = step.lavori.filter((l) => l.essenziale).map((l) => l.id);
@@ -274,8 +275,9 @@ const SPEC: Record<string, ScoringSpec> = {
     pianificaIdeali: ["misura_impatto", "pubblica_dati", "forma_commerciale"],
     pianoPerformance: ({ step, sel, letti }) => {
       const { soldi } = valutaPiano(step, sel); // la voce negativa riduce il totale: gestito nativamente
+      const budgetSoldi = step.budgetSoldi ?? Number.POSITIVE_INFINITY;
       let punti = 0, max = 0;
-      max += 2; punti += soldi <= step.budgetSoldi ? 2 : clamp01(1 - (soldi - step.budgetSoldi) / step.budgetSoldi) * 2;
+      max += 2; punti += soldi <= budgetSoldi ? 2 : clamp01(1 - (soldi - budgetSoldi) / budgetSoldi) * 2;
       max += 1.5; punti += sel.includes("documentazione") ? 1.5 : 0; // per poter dichiarare senza mentire
       if (letti.has("M11")) { max += 1; punti += sel.includes("sacchetto") ? 1 : 0; } // il guadagno gratuito
       if (letti.has("M7") && letti.has("M8")) { max += 1; punti += sel.includes("accessori_europei") ? 1 : 0; } // miglior rapporto impatto/costo
@@ -300,6 +302,85 @@ const SPEC: Record<string, ScoringSpec> = {
         : "Lo studente non ha verificato alcun numero specifico: qualsiasi percentuale nel testo è inventata.";
       return `Sei un analista di orientamento per studenti italiani di 16-19 anni. Uno studente ha scritto l'ETICHETTA di uno zaino scolastico: cosa è stato cambiato, di quanto, e cosa non è stato fatto. Ogni affermazione dovrebbe essere sostenuta da un dato che ha davvero verificato. ${verificati} Individua da 1 a 3 aree — SCEGLIENDO SOLO tra questi slug: ${aree.join(", ")}. Per ognuna valuta: performance = ogni affermazione è sostenuta da un dato verificato e non ci sono termini generici né numeri inventati (0-1). REGOLE DURE: PENALIZZA ESPLICITAMENTE le parole «eco», «green», «100% sostenibile», «amico dell'ambiente» e QUALSIASI percentuale o numero NON presente nell'elenco dei numeri verificati (è inventato). PREMIA chi cita solo numeri verificati e chi dichiara cosa è rimasto fuori. Una comunicazione modesta e dimostrabile vale più di una entusiasta. interest = quanto emerge quell'area (0-1). Motivazione breve, calda, IPOTETICA, in italiano. Rispondi SOLO JSON: {"aree":[{"area_slug":"...","performance":0.0,"interest":0.0,"motivazione":"..."}]}`;
     },
+  },
+
+  // ── Missione 07 — "Il museo da reinventare"
+  // Stanza 3.1 è un pianifica_lavori a TETTO in euro (18.000 €): il piano deve
+  // stare dentro il budget e rispettare il bando (un'iniziativa RIPETIBILE, non
+  // un evento una-tantum). Il prompt 4.2 ha una LISTA NERA di formule da depliant
+  // e riceve i materiali letti per premiare chi cita un nome vero del registro
+  // del 1911 (M6).
+  [SLUG_MUSEO]: {
+    pesi: { ...PESI_BASE, mandato: 1.4, budgetPerf: 1.5, scartoPerf: 1.5, previsione: 1.0, passi: 1.0 },
+    esploraTesti: {
+      conBonus: "Hai voluto sentire cosa si sono detti i volontari, non solo leggere la collezione: qualcuno in riunione aveva già visto il punto.",
+      base: "Hai aperto i documenti prima di decidere: parti dai fatti, non dalle impressioni.",
+    },
+    pianificaIdeali: ["misurare_ritorni", "digitalizzare_registro", "formare_volontari"],
+    pianoPerformance: ({ step, sel }) => {
+      const { soldi } = valutaPiano(step, sel);
+      const budgetSoldi = step.budgetSoldi ?? Number.POSITIVE_INFINITY;
+      let punti = 0, max = 0;
+      max += 2; punti += soldi <= budgetSoldi ? 2 : clamp01(1 - (soldi - budgetSoldi) / budgetSoldi) * 2;
+      const formatiRipetibili = ["fmt_podcast", "fmt_video", "fmt_pannelli", "fmt_schermi", "fmt_laboratorio"];
+      const haRipetibile = formatiRipetibili.some((id) => sel.includes(id));
+      max += 2; punti += haRipetibile ? 2 : 0; // il bando chiede un'iniziativa ripetibile senza nuovi fondi
+      max += 1; punti += sel.includes("accessibilita_sala3") ? 1 : 0; // premiata dal bando
+      let valore = clamp01(max > 0 ? punti / max : 0.5);
+      // Un evento una-tantum (fmt_evento) senza alcun formato ripetibile viola il
+      // bando: qualunque cosa d'altro tu abbia messo nel piano, il progetto non è
+      // rendicontabile come «ripetibile».
+      if (sel.includes("fmt_evento") && !haRipetibile) valore = Math.min(valore, 0.3);
+      return {
+        valore,
+        buona: "Hai scelto un formato che si ripete senza nuovi fondi, sei rimasto dentro i 18.000 € e non hai dimenticato l'accessibilità che il bando premia: un progetto che regge la rendicontazione.",
+        migliora: "Il piano sfora il budget, o punta su un formato che funziona una volta sola: il bando chiede un'iniziativa ripetibile, non un colpo a effetto.",
+      };
+    },
+    promptProposta: (aree, { letti }) => {
+      const registro = letti.has("M6")
+        ? "Lo studente HA letto il registro di fabbrica del 1911 e conosce nomi veri delle operaie (es. Teresa B., anni nove, sguattera): PREMIA chi ne cita uno reale nel testo."
+        : "Lo studente NON ha letto il registro del 1911: non conosce nomi veri. Non penalizzarlo per non citarne uno, ma non c'è un nome reale da valorizzare.";
+      return `Sei un analista di orientamento per studenti italiani di 16-19 anni. Uno studente ha scritto il TESTO DI LANCIO di un museo della seta (max 80 parole) che deve far venire chi non c'è mai stato e tornare chi c'è già stato. ${registro} Individua da 1 a 3 aree — SCEGLIENDO SOLO tra questi slug: ${aree.join(", ")}. Per ognuna valuta: performance = il testo NOMINA una cosa concreta che il visitatore farà o vedrà, è coerente col pubblico scelto e NON usa formule da brochure (0-1). REGOLE DURE: PENALIZZA ESPLICITAMENTE le frasi «un viaggio nel tempo», «un'esperienza unica», «alla scoperta di», «riscoprire le nostre radici» e QUALSIASI linguaggio generico da depliant. PREMIA chi nomina qualcosa di concreto e, se ha letto il registro, chi usa un nome vero delle operaie. Un testo modesto e concreto vale più di uno entusiasta e vuoto. interest = quanto emerge quell'area (0-1). Motivazione breve, calda, IPOTETICA, in italiano. Rispondi SOLO JSON: {"aree":[{"area_slug":"...","performance":0.0,"interest":0.0,"motivazione":"..."}]}`;
+    },
+  },
+
+  // ── Missione 08 — "La città senz'acqua"
+  // Stanza 1.2 riusa la gerarchia di AFFIDABILITÀ (come Missione 03): l'ordine
+  // corretto — un dato misurato sopra una stima vecchia, una stima sopra
+  // un'interpretazione — emette performance su scienze-ricerca. Stanza 3.1 è un
+  // pianifica_lavori a OBIETTIVO da RAGGIUNGERE (barra che si riempie): la somma
+  // dei risparmi deve arrivare a 20 punti; tempo e costo sono secondari.
+  [SLUG_ACQUA]: {
+    pesi: { ...PESI_BASE, mandato: 1.4, budgetPerf: 1.5, scartoPerf: 1.5, previsione: 1.0, passi: 1.0 },
+    esploraTesti: {
+      conBonus: "Hai voluto sentire le voci del gruppo tecnico, non solo la tabella: attorno a quel tavolo c'era già chi leggeva i numeri in modo opposto.",
+      base: "Hai letto i dati prima di decidere: parti dai fatti, non dall'istinto.",
+    },
+    pianificaIdeali: ["misuratori_permanenti", "pubblica_dati", "mappatura_perdite"],
+    ordinaPerformance: { area: "scienze-ricerca", peso: 1.2 },
+    pianoPerformance: ({ step, sel, letti }) => {
+      const { risparmio } = valutaPiano(step, sel);
+      const obiettivo = step.obiettivo ?? 20;
+      let punti = 0, max = 0;
+      // 1) raggiungere davvero il traguardo di risparmio (la barra che si riempie)
+      max += 2.5; punti += risparmio >= obiettivo ? 2.5 : clamp01(risparmio / obiettivo) * 2.5;
+      // 2) tempestività: la tariffa progressiva entra in vigore in 3 mesi, non
+      //    serve a un'emergenza che è ora. Contarci sopra è un errore.
+      max += 1; punti += sel.includes("tariffa") ? 0 : 1;
+      // 3) l'acqua «che esce per nessuno» (consumi pubblici) è risparmio a costo
+      //    zero e senza colpire un cittadino, ma solo se l'ha scoperto (M8)
+      if (letti.has("M8")) { max += 1.5; punti += sel.includes("consumi_pubblici") ? 1.5 : 0; }
+      // 4) la perdita reale del 22% è la leva più grande, ma solo se l'ha misurata (M4)
+      if (letti.has("M4")) { max += 1.5; punti += sel.includes("riparazione") ? 1.5 : 0; }
+      return {
+        valore: clamp01(max > 0 ? punti / max : 0.5),
+        buona: "Il tuo pacchetto arriva al 20% con misure che colpiscono l'acqua sprecata, non sempre gli stessi cittadini, e senza appoggiarsi a una tariffa che arriverebbe a emergenza finita.",
+        migliora: "Il pacchetto non arriva al traguardo, o ci arriva contando su misure fuori tempo (la tariffa fra tre mesi) o lasciando sul tavolo l'acqua che esce per nessuno e le perdite di rete.",
+      };
+    },
+    promptProposta: (aree) =>
+      `Sei un analista di orientamento per studenti italiani di 16-19 anni. Uno studente ha scritto il TESTO di un'ordinanza sindacale per ridurre del 20% i consumi d'acqua durante una siccità, «senza colpire sempre gli stessi». Individua da 1 a 3 aree — SCEGLIENDO SOLO tra questi slug: ${aree.join(", ")}. Per ognuna valuta: performance = l'ordinanza indica una scadenza e un riesame, cita solo numeri verificati, colpisce un USO (irrigazione, piscine, sprechi pubblici) e non un quartiere, senza allarmismi (0-1). REGOLE: PREMIA chi mette una data e un riesame e chi distingue l'uso dal quartiere; NON premiare gli appelli generici, gli allarmismi né chi colpisce «Colline» come se fosse un colpevole. interest = quanto emerge quell'area (0-1). Motivazione breve, calda, IPOTETICA, in italiano. Rispondi SOLO JSON: {"aree":[{"area_slug":"...","performance":0.0,"interest":0.0,"motivazione":"..."}]}`,
   },
 };
 

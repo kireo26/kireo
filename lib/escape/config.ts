@@ -41,6 +41,8 @@ export const SLUG_SERRA = "guasto-serra";
 export const SLUG_CANTIERE = "cantiere-scuola";
 export const SLUG_SPORTELLO = "sportello-insieme";
 export const SLUG_FILIERA = "filiera-borea";
+export const SLUG_MUSEO = "museo-seta";
+export const SLUG_ACQUA = "citta-acqua";
 
 // ─────────────────────────────────────────── tipi interni di definizione
 
@@ -86,9 +88,11 @@ type MissioneDef = {
   // giorni + dipendenze) invece di un "alloca_budget". L'id dello step resta
   // comunque "s3_budget" (canonico). Missione 04.
   piano?: {
-    budgetSoldi: number;
     unitaSoldi: string;
+    budgetSoldi?: number;
     budgetGiorni?: number;
+    obiettivo?: number;
+    unitaObiettivo?: string;
     lavori: (letti: Set<string>) => Lavoro[];
   };
   scarto: (letti: Set<string>) => OpzioneScarto[];
@@ -1154,9 +1158,352 @@ const MD06: MissioneDef = {
   },
 };
 
+// =====================================================================
+// MISSIONE 07 — "Il museo da reinventare" (Museo della Seta di Vallecorta)
+// =====================================================================
+
+const U_M1: Materiale = { id: "M1", titolo: "La collezione in tre sale", aree: [], costo: 0, contenuto: "Sala 1: telai a mano dell'Ottocento, 4 pezzi funzionanti. Sala 2: campionario di tessuti, 700 pezzi, di cui 60 esposti. Sala 3: la storia delle filandaie — fotografie, buste paga, un registro di fabbrica del 1911 con nomi ed età delle operaie (la più giovane aveva nove anni)." };
+const U_M2: Materiale = {
+  id: "M2", titolo: "La riunione con i volontari", aree: [], costo: 0,
+  contenuto: "Attorno al tavolo, posizioni inconciliabili. E uno di loro dice la cosa più importante, che nessuno ascolta. Testuali:",
+  estratti: [
+    { chi: "Sig.ra Bertone, volontaria da 22 anni", testo: "Le scolaresche arrivano, corrono, toccano tutto e se ne vanno. Non è quello il pubblico che ci serve." },
+    { chi: "Il sindaco", testo: "A me servono i numeri. Non mi interessa come li fate, mi interessa che il prossimo anno siano il doppio." },
+    { chi: "Alessia, 24 anni, unica dipendente giovane", testo: "Il pezzo più forte che abbiamo è il registro del 1911. Ci sono i nomi. Uno di quei cognomi ce l'hanno ancora metà delle famiglie del paese." },
+    { chi: "Un insegnante", testo: "Io ci porto i ragazzi perché è vicino e costa poco. Se ci fosse qualcosa da fare, non solo da guardare, ci tornerei due volte l'anno." },
+    { chi: "Il conservatore, in pensione", testo: "Ricordo a tutti che quei tessuti stanno al buio per un motivo." },
+  ],
+};
+const U_M3: Materiale = { id: "M3", titolo: "Il bando comunale", aree: [], costo: 0, contenuto: "18.000 €, una sola iniziativa, rendicontazione entro 12 mesi. Vincolo: l'iniziativa deve essere ripetibile senza nuovi fondi. Punteggio premiante per: coinvolgimento delle scuole, accessibilità, collaborazione con soggetti del territorio." };
+const U_M4: Materiale = { id: "M4", titolo: "Nota di conservazione", aree: ["studi-umanistici-beni-culturali", "scienze-ricerca"], costo: 1, contenuto: "I tessuti storici tollerano max 50 lux e non più di tre mesi l'anno di esposizione. Ogni progetto che li porti in giro, li illumini o li faccia toccare è irrealizzabile senza un intervento di conservazione che costa da solo più dell'intero budget." };
+const U_M5: Materiale = { id: "M5", titolo: "I numeri dei visitatori, disaggregati", aree: ["economia-management", "comunicazione-media"], costo: 1, contenuto: "2.840 totali: 1.900 scolaresche (67%), 610 turisti di passaggio, 330 residenti. I residenti sono in calo del 40% in cinque anni. Il paese ha 4.100 abitanti: meno di uno su dieci entra nel proprio museo." };
+const U_M6: Materiale = { id: "M6", titolo: "Il registro di fabbrica del 1911", aree: ["studi-umanistici-beni-culturali", "lingue-relazioni-internazionali"], costo: 1, contenuto: "214 nomi con età, paese di provenienza e mansione. Trentuno operaie sotto i quindici anni. Diciotto provenivano da fuori regione. I cognomi sono ancora quelli del paese. Il pezzo che vale più di tutti gli altri messi insieme, e non è un oggetto: è un elenco." };
+const U_M7: Materiale = { id: "M7", titolo: "Preventivi dei sei formati", aree: ["economia-management"], costo: 1, contenuto: "Percorso interattivo con schermi 16.500 € (permanente, sì ma manutenzione). Podcast in 6 puntate 7.000 € (permanente, sì). Video breve 5.500 € (permanente, sì). Laboratorio con i telai 9.000 € (ricorrente, sì ed è l'unico che genera un piccolo ricavo). Evento dal vivo 12.000 € (una sera, NO non ripetibile). Pannelli narrativi nuovi 8.500 € (permanente, sì)." };
+const U_M8: Materiale = { id: "M8", titolo: "L'indagine sui non-visitatori", aree: ["comunicazione-media", "scienze-educazione"], costo: 1, contenuto: "180 residenti intervistati. Perché non ci vanno: 44% «l'ho già visto da bambino», 27% «non so cosa ci sia», 19% «non è un posto per me», 10% orari. Solo il 27% è un problema di comunicazione. Il 44% è un problema di contenuto: chi c'è già stato non ha motivo di tornare." };
+const U_M9: Materiale = { id: "M9", titolo: "La disponibilità delle scuole", aree: ["scienze-educazione", "economia-management"], costo: 1, contenuto: "Le tre scuole del comprensorio confermano che tornerebbero due volte l'anno invece di una se ci fosse un'attività pratica. Sono 1.900 visite che diventerebbero 3.400. Da solo, questo raddoppia i numeri che chiede il sindaco." };
+const U_M10: Materiale = { id: "M10", titolo: "I quattro telai funzionanti", aree: ["arte-design-moda", "meccanica-meccatronica"], costo: 1, contenuto: "Due sono utilizzabili con supervisione. Un ex operaio del cotonificio, 79 anni, si è offerto di insegnare a usarli. Gratis. Ha chiesto solo «che non li lascino arrugginire»." };
+const U_M11: Materiale = { id: "M11", titolo: "Chi c'è sul territorio", aree: ["lingue-relazioni-internazionali", "musica-spettacolo"], costo: 1, contenuto: "Una scuola di musica, un gruppo teatrale amatoriale, un'associazione di famiglie di origine straniera (molte lavorano nel tessile), una biblioteca con una sala." };
+const U_M12: Materiale = { id: "M12", titolo: "Il precedente del museo vicino", aree: ["comunicazione-media", "economia-management"], costo: 1, contenuto: "Un museo simile investì tutto in un percorso con schermi. Primo anno: +180% di visitatori. Terzo anno: sotto i numeri di partenza, perché gli schermi si guastarono e nessuno aveva i fondi per ripararli. La novità richiama una volta sola." };
+const U_M13: Materiale = { id: "M13", titolo: "Accessibilità e lingue", aree: ["lingue-relazioni-internazionali", "mobilita-sostenibile"], costo: 1, contenuto: "Nessun materiale in altre lingue; nessun sottotitolo; la Sala 3 è al primo piano senza ascensore. Il bando premia l'accessibilità, e la Sala 3 è quella che contiene il registro del 1911." };
+
+const U_MANDATI: Mandato[] = [
+  {
+    id: "residenti", label: "«Per chi ci è già stato da bambino»", frase: "I residenti che non tornano.",
+    aree: ["comunicazione-media", "studi-umanistici-beni-culturali"],
+    vincolo: { id: "volontari", testo: "I volontari si oppongono: «cambiare tutto per chi non viene, e chi viene?»" },
+    consulenze: [
+      consulenza("U_comunicazione", "Consulenza: un'esperta di comunicazione culturale", "comunicazione-media", "Il 44% non torna perché l'ha già visto: non è un problema di comunicazione, è di contenuto. Comunicare di più non serve, serve dare un motivo nuovo per tornare."),
+      consulenza("U_bertone", "Consulenza: la sig.ra Bertone", "studi-umanistici-beni-culturali", "Non buttate via chi il museo lo tiene aperto adesso per inseguire chi non c'è mai venuto. Si può fare qualcosa di nuovo senza tradire quello che siamo."),
+    ],
+  },
+  {
+    id: "scuole", label: "«Per le scuole»", frase: "1.900 visite che possono diventare 3.400.",
+    aree: ["scienze-educazione", "arte-design-moda"],
+    vincolo: { id: "guida", testo: "Le scuole chiedono una guida didattica e nessuno l'ha mai scritta: 30 ore di lavoro non preventivate." },
+    consulenze: [
+      consulenza("U_insegnante", "Consulenza: un'insegnante", "scienze-educazione", "Se ci fosse un'attività pratica torneremmo due volte l'anno invece di una. Ma serve una guida didattica vera, non un volantino."),
+      consulenza("U_operaio", "Consulenza: l'ex operaio", "arte-design-moda", "Due dei quattro telai funzionano ancora. Vengo io a insegnare ai ragazzi a usarli, gratis. Basta che non li lascino arrugginire."),
+    ],
+  },
+  {
+    id: "turisti", label: "«Per chi passa di qui»", frase: "I turisti di passaggio.",
+    aree: ["lingue-relazioni-internazionali", "economia-management"],
+    vincolo: { id: "lingue", testo: "Il consorzio turistico chiede materiale in tre lingue entro l'apertura della stagione." },
+    consulenze: [
+      consulenza("U_turismo", "Consulenza: un operatore turistico", "economia-management", "Il turista di passaggio si ferma dieci minuti: gli serve una cosa da vedere subito e da raccontare dopo. Ma senza materiale nella sua lingua non entra nemmeno."),
+      consulenza("U_traduttore", "Consulenza: un traduttore", "lingue-relazioni-internazionali", "Tre lingue, non una: il grosso dei passaggi qui è straniero. E le storie delle operaie venute da fuori regione parlano proprio a chi arriva da lontano."),
+    ],
+  },
+  {
+    id: "esclusi", label: "«Per chi il museo non lo considera un posto suo»", frase: "Il 19% che dice «non è per me».",
+    aree: ["lingue-relazioni-internazionali", "musica-spettacolo"],
+    vincolo: { id: "famiglie", testo: "Serve coinvolgere le famiglie prima di progettare: due mesi in più." },
+    consulenze: [
+      consulenza("U_mediatrice", "Consulenza: la mediatrice dell'associazione", "lingue-relazioni-internazionali", "Molte famiglie straniere del paese lavorano nel tessile, come le operaie del 1911. Se le coinvolgete prima di decidere, il museo diventa anche loro."),
+      consulenza("U_teatro", "Consulenza: il gruppo teatrale", "musica-spettacolo", "Le storie del registro sono teatro già pronto. Un lavoro dal vivo con le voci delle operaie porta dentro chi non entrerebbe mai a guardare tessuti in una teca."),
+    ],
+  },
+  {
+    id: "conservazione", label: "«Per chi verrà dopo di noi»", frase: "Conservare prima di mostrare.",
+    aree: ["studi-umanistici-beni-culturali", "scienze-ricerca"],
+    vincolo: { id: "telai_sicurezza", testo: "La perizia rivela che due telai vanno messi in sicurezza subito: 4.000 € dal budget." },
+    consulenze: [
+      consulenza("U_conservatore", "Consulenza: il conservatore", "studi-umanistici-beni-culturali", "I tessuti stanno al buio per un motivo: 50 lux, tre mesi l'anno. Qualunque progetto che li esponga o li faccia toccare li rovina. Non è un dettaglio, è il vincolo."),
+      consulenza("U_restauratrice", "Consulenza: una restauratrice", "scienze-ricerca", "Prima di mostrare bisogna conservare. Due telai vanno messi in sicurezza subito, o tra dieci anni non ci sarà più niente da mostrare."),
+    ],
+  },
+];
+
+const MD07: MissioneDef = {
+  meta: {
+    slug: SLUG_MUSEO,
+    titolo: "Il museo da reinventare",
+    sottotitolo: "Il Museo della Seta di Vallecorta, un solo progetto per rialzarsi",
+    descrizione:
+      "Il Museo della Seta ha 1.100 pezzi, due dipendenti, quattro volontari e 2.840 visitatori l'anno (di cui 1.900 scolaresche obbligate). Il Comune concede 18.000 € per «un progetto di rinnovamento del pubblico», una sola iniziativa, rendicontata entro dodici mesi: se i numeri non salgono, il prossimo bilancio taglia l'orario. Tu entri nel gruppo che sceglie cosa fare. Non svecchiare il museo: scegliere UNA cosa e farla bene — sapendo che un museo non ha un pubblico ma cinque, e che le cose antiche si rovinano. Niente cronometro, niente sconfitta: puoi riprendere quando vuoi.",
+    tipo: "cross-area",
+  },
+  areeCandidate: ["studi-umanistici-beni-culturali", "arte-design-moda", "musica-spettacolo", "lingue-relazioni-internazionali", "comunicazione-media", "economia-management"],
+  ruoliStanza: 3,
+  daScartare: 2,
+  quantiPassi: 3,
+  materialiLiberi: [U_M1, U_M2, U_M3],
+  materialiGettone: [U_M4, U_M5, U_M6, U_M7, U_M8, U_M9, U_M10, U_M11, U_M12, U_M13],
+  mandati: U_MANDATI,
+  prioritaVoci: [
+    { id: "persone", label: "Delle persone che ci lavoravano, e di quanto erano giovani", aree: ["studi-umanistici-beni-culturali", "scienze-educazione"] },
+    { id: "tecnica", label: "Di come si fa un tessuto: la tecnica, le macchine", aree: ["arte-design-moda", "meccanica-meccatronica"] },
+    { id: "paese", label: "Di questo paese e di cosa è stato", aree: ["studi-umanistici-beni-culturali", "lingue-relazioni-internazionali"] },
+    { id: "bellezza", label: "Della bellezza dei tessuti in sé", aree: ["arte-design-moda"] },
+    { id: "lavoro_mondo", label: "Di un lavoro che oggi si fa altrove nel mondo", aree: ["lingue-relazioni-internazionali", "economia-management"] },
+    { id: "fabbrica", label: "Di una fabbrica che ha chiuso e di cosa è rimasto", aree: ["economia-management", "studi-umanistici-beni-culturali"] },
+  ],
+  ruoli: [
+    { id: "scuole", label: "Tenere i rapporti con le scuole", area: "scienze-educazione" },
+    { id: "contenuti", label: "Curare i contenuti storici", area: "studi-umanistici-beni-culturali" },
+    { id: "budget", label: "Gestire il budget e la rendicontazione", area: "economia-management" },
+    { id: "comunicazione", label: "Far conoscere l'iniziativa", area: "comunicazione-media" },
+    { id: "laboratori", label: "Stare accanto all'ex operaio nei laboratori", area: "arte-design-moda" },
+  ],
+  passi: [
+    { id: "formare_volontari", label: "Formare i volontari all'attività" },
+    { id: "digitalizzare_registro", label: "Digitalizzare tutto il registro" },
+    { id: "cercare_discendenti", label: "Cercare i discendenti delle operaie" },
+    { id: "aprire_sera", label: "Aprire il museo di sera una volta al mese" },
+    { id: "misurare_ritorni", label: "Misurare quanti tornano" },
+    { id: "ascensore", label: "Mettere l'ascensore" },
+    { id: "associazione", label: "Coinvolgere l'associazione delle famiglie" },
+    { id: "bando_grande", label: "Candidarsi a un bando più grande" },
+  ],
+  // budget alloca non usato (Stanza 3.1 è un pianifica_lavori a tetto in euro).
+  budget: { totale: () => 0, unita: "€", passo: 1000, voci: () => [] },
+  piano: {
+    budgetSoldi: 18000,
+    unitaSoldi: "€",
+    lavori: (letti) => {
+      const lavori: Lavoro[] = [
+        { id: "fmt_podcast", label: "Formato: podcast in 6 puntate (permanente)", aree: ["comunicazione-media", "studi-umanistici-beni-culturali"], costo: 7000, giorni: 0 },
+        { id: "fmt_video", label: "Formato: video breve (permanente)", aree: ["comunicazione-media"], costo: 5500, giorni: 0 },
+        { id: "fmt_pannelli", label: "Formato: pannelli narrativi nuovi (permanente)", aree: ["studi-umanistici-beni-culturali"], costo: 8500, giorni: 0 },
+        { id: "fmt_schermi", label: "Formato: percorso interattivo con schermi", aree: ["comunicazione-media"], costo: 16500, giorni: 0 },
+        { id: "fmt_evento", label: "Formato: evento dal vivo (una sera, NON ripetibile)", aree: ["musica-spettacolo"], costo: 12000, giorni: 0 },
+      ];
+      if (letti.has("M9") && letti.has("M10")) lavori.push({ id: "fmt_laboratorio", label: "Formato: laboratorio con i telai e l'ex operaio (ripetibile, genera un ricavo)", aree: ["arte-design-moda", "scienze-educazione"], costo: 9000, giorni: 0, gate: "M9+M10" });
+      lavori.push({ id: "guida_didattica", label: "Guida didattica per le scuole", aree: ["scienze-educazione"], costo: 1800, giorni: 0 });
+      lavori.push({ id: "traduzioni", label: "Traduzioni in tre lingue", aree: ["lingue-relazioni-internazionali"], costo: 2200, giorni: 0 });
+      lavori.push({ id: "sicurezza_telai", label: "Messa in sicurezza dei telai", aree: ["arte-design-moda"], costo: 4000, giorni: 0 });
+      if (letti.has("M6")) lavori.push({ id: "digitalizza_registro", label: "Digitalizzazione del registro del 1911", aree: ["studi-umanistici-beni-culturali", "informatica-digitale"], costo: 1500, giorni: 0, gate: "M6" });
+      lavori.push({ id: "accessibilita_sala3", label: "Accessibilità della Sala 3 (premiata dal bando)", aree: ["mobilita-sostenibile"], costo: 3400, giorni: 0 });
+      lavori.push({ id: "compenso_operaio", label: "Rimborso all'ex operaio (si è offerto gratis)", aree: ["arte-design-moda"], costo: 600, giorni: 0 });
+      lavori.push({ id: "comunicazione_lancio", label: "Comunicazione e lancio", aree: ["comunicazione-media"], costo: 1400, giorni: 0 });
+      return lavori;
+    },
+  },
+  scarto: (letti) => [
+    { id: "mostra_itinerante", label: "Portare i tessuti più belli in una mostra itinerante nelle scuole", aree: ["studi-umanistici-beni-culturali", "arte-design-moda"], qualita: 0.05, trappola: true, avviso: letti.has("M4") ? "La nota di conservazione (che hai letto): i tessuti tollerano 50 lux e tre mesi l'anno. Spostarli e illuminarli li rovina, e il restauro costerebbe più dell'intero budget." : undefined },
+    { id: "grande_evento", label: "Un grande evento inaugurale con la banda del paese", aree: ["musica-spettacolo"], qualita: 0.15 },
+    { id: "schermi_tutte_sale", label: "Un percorso con schermi in tutte e tre le sale", aree: ["comunicazione-media"], qualita: 0.25, avviso: letti.has("M12") ? "Il precedente del museo vicino (che hai letto): gli schermi richiamarono una volta sola, poi si guastarono e non c'erano fondi per ripararli." : undefined },
+    { id: "laboratorio_telai", label: "Un laboratorio con i telai condotto dall'ex operaio", aree: ["arte-design-moda", "scienze-educazione"], qualita: 0.85 },
+    { id: "podcast_operaie", label: "Un podcast sulle storie delle operaie del registro", aree: ["studi-umanistici-beni-culturali", "comunicazione-media"], qualita: 0.75 },
+    { id: "solo_conservazione", label: "Non fare niente e mettere i soldi in conservazione", aree: ["studi-umanistici-beni-culturali"], qualita: 0.4 },
+  ],
+  introStanza3: (m, letti) => {
+    const parti = ["Martedì mattina, undici giorni alla consegna. Alessia vi chiama: «Dobbiamo parlare.»"];
+    if (m) parti.push(m.vincolo.testo);
+    if (!letti.has("M4")) parti.push("E il conservatore vi ferma sulle scale: «Sapete che quei tessuti non possono stare accesi più di tre mesi l'anno, vero? E che non si possono toccare?»");
+    return parti.join("\n\n");
+  },
+  testi: {
+    introS1: "Il museo apre alle dieci ma alle nove e mezza siete già dentro, e fa freddo. Le luci della Sala 2 sono spente: si accendono solo quando entra qualcuno.\n\nAlessia posa sul tavolo il registro del 1911, aperto a metà. «Guardate qui», dice, e indica una riga: Teresa B., anni nove, sguattera. Poi arriva il foglio del Comune: diciottomila euro, un progetto solo, dodici mesi.",
+    introS2: "Il progetto va consegnato in tre settimane. Prima di scriverlo potete approfondire cinque cose: chiedere un preventivo, leggere una perizia, sentire una scuola, guardare i numeri veri.\n\nCinque. Quello che non chiedete adesso, lo scriverete a intuito.",
+    introS4: "Il progetto è consegnato. Ora serve la frase con cui lo racconterete: andrà sul sito del Comune, sulla locandina in piazza e nella circolare alle scuole. Ottanta parole, non di più.",
+    introS5: "Il progetto è partito. Il primo anno dirà se ha funzionato. Ma una cosa la sapete già: per chi l'avete pensato, e cosa avete scelto di non toccare.",
+    materiali: { titolo: "Prima di tutto: di cosa parla questo museo?", prompt: "Apri i documenti che vuoi leggere. C'è la collezione, quello che si sono detti i volontari e il bando del Comune.", hint: "Leggi anche le voci: qualcuno in riunione ha detto la cosa più importante, e nessuno gli ha dato retta." },
+    priorita: { titolo: "Di cosa parla davvero questo museo? Mettete in ordine.", prompt: "Mettile in ordine, da ciò che conta di più. Le prime scelte pesano di più." },
+    mandato: { titolo: "Per chi lo state facendo? Una risposta sola.", prompt: "Con 18.000 € e un progetto solo, non potete parlare a tutti: scegliete un pubblico.", hint: "Nessuna è quella giusta. Più il progetto attira i giovani, più rischia di allontanare chi il museo lo tiene in vita adesso." },
+    informazioni: { titolo: "Avete 5 gettoni. Cosa approfondite?", prompt: "Ogni approfondimento costa un gettone e non torna indietro. Aprilo per leggerlo: quello che non chiedi adesso, lo scriverai a intuito.", hint: "Puoi restare nel tuo campo o guardarti intorno: sono due stili diversi, nessuno è migliore." },
+    nonApprofondire: { titolo: "Una cosa che avete deciso di non approfondire: perché?", prompt: "Due o tre righe. Non c'è una risposta giusta: conta che tu sappia perché hai rinunciato a saperlo.", hint: "Puoi anche lasciarlo vuoto — ma provarci dice qualcosa di come decidi." },
+    budget: { titolo: "18.000 €, un progetto solo. Componete il piano.", prompt: "Scegliete il formato e le voci: il piano deve stare dentro 18.000 € e rispettare il bando, che chiede un'iniziativa ripetibile senza nuovi fondi.", hint: "Un formato che funziona una sera sola viola il bando: la ripetibilità conta." },
+    scarto: { titolo: "Tre idee non stanno in piedi. Tagliatene due.", prompt: "Rinuncia a due delle idee sul tavolo. Attenzione: la più generosa non è detto sia la più saggia.", hint: "Ciò che tieni conta più di ciò che togli." },
+    ruoli: { titolo: "Chi segue cosa nei prossimi dodici mesi?", prompt: "Per ogni compito: te ne occupi tu o lo lasci a un altro del gruppo? Quello che ti prendi è quello che ti senti di saper fare." },
+    previsione: { titolo: "Quanto pensate che farà tornare qualcuno una seconda volta?", prompt: "Quanto pensate che questa iniziativa farà tornare qualcuno una seconda volta?", domanda: "La tua sensazione, prima di scrivere" },
+    proposta: { titolo: "Scrivete il testo di lancio (max 80 parole)", prompt: "Deve far capire a chi non c'è mai stato perché dovrebbe venire, e a chi c'è già stato perché dovrebbe tornare.", hint: "Nomina una cosa concreta che il visitatore farà o vedrà. Se hai letto il registro, usa un nome vero: niente formule da depliant.", minCaratteri: 120 },
+    riflessione: { titolo: "Ripensando a questo museo…", prompt: "C'è qualcosa che secondo voi non andava toccato? E qualcosa che andava cambiato da anni e nessuno aveva cambiato?", hint: "Questa è la parte che resta tua: la salviamo nel tuo diario.", minCaratteri: 120 },
+    passi: { titolo: "Dopo il primo anno, i primi tre passi?", prompt: "Scegli tre passi e mettili in ordine: quale per primo, quale per secondo, quale per terzo.", hint: "L'ordine conta: da dove è più saggio cominciare?" },
+  },
+};
+
+// =====================================================================
+// MISSIONE 08 — "La città senz'acqua" (Montebrico)
+// =====================================================================
+
+const W_M1: Materiale = { id: "M1", titolo: "Consumi per quartiere (litri/abitante/giorno)", aree: [], costo: 0, contenuto: "Colline: 6.200 ab., 310 l pro capite (villette con giardino e piscine). Centro: 14.800 ab., 128 l (palazzi storici). San Rocco: 19.400 ab., 142 l (edilizia popolare anni '70). Fiera: 11.300 ab., 119 l (palazzine anni 2000). Borgate: 9.300 ab., 155 l (case sparse, orti). Media nazionale di riferimento: 215 l/ab/giorno — la città consuma sotto la media, tranne Colline." };
+const W_M2: Materiale = { id: "M2", titolo: "Consumi per tipo di utenza (% del totale)", aree: [], costo: 0, contenuto: "Domestico 58%, agricolo 17%, industriale 11%, edifici pubblici 8%, perdite di rete 6% dichiarato." };
+const W_M3: Materiale = {
+  id: "M3", titolo: "Le voci del gruppo tecnico", aree: [], costo: 0,
+  contenuto: "Attorno al tavolo, letture diverse degli stessi numeri. Testuali:",
+  estratti: [
+    { chi: "L'assessora all'ambiente", testo: "I numeri parlano chiaro: Colline consuma il doppio degli altri. Si parte da lì." },
+    { chi: "Il dirigente dei lavori pubblici", testo: "Attenzione, quel 6% di perdite è una stima del 2019. Non lo misura nessuno da allora." },
+    { chi: "La responsabile dei servizi sociali", testo: "A San Rocco ci sono 19.400 persone. Se chiudete l'acqua di notte, chi ha un serbatoio se ne accorge e chi non ce l'ha resta a secco." },
+    { chi: "Un agricoltore, invitato", testo: "Il mio 17% lo uso in tre settimane. Se me lo tagliate adesso il raccolto è perso, se me lo tagliate a settembre non me ne accorgo nemmeno." },
+    { chi: "Il sindaco", testo: "Io venerdì firmo. Ditemi cosa firmo." },
+  ],
+};
+const W_M4: Materiale = { id: "M4", titolo: "Rilievo delle perdite di rete (giugno, mai pubblicato)", aree: ["edilizia-architettura", "informatica-digitale"], costo: 1, contenuto: "Misurazione notturna su 8 settori: la perdita reale è il 22%, non il 6% stimato nel 2019. Concentrata su due condotte del 1961 nel settore ovest. Riparazione: 4 settimane, 340.000 €. Il 22% significa che più di un quinto dell'acqua non arriva a nessuno: recuperarne anche metà vale più di qualunque restrizione ai cittadini." };
+const W_M5: Materiale = { id: "M5", titolo: "Composizione del consumo di Colline", aree: ["agrifood-ambiente", "energia-sostenibilita"], costo: 1, contenuto: "Dei 310 l pro capite: 96 l uso domestico interno (in linea con gli altri quartieri), 214 l per irrigazione di giardini e riempimento piscine. A Colline non si consuma di più in casa: si consuma fuori." };
+const W_M6: Materiale = { id: "M6", titolo: "Studio sui serbatoi domestici", aree: ["edilizia-architettura", "giurisprudenza-pa"], costo: 1, contenuto: "A San Rocco l'82% degli alloggi non ha serbatoio di accumulo; a Colline ce l'ha il 91%. Una chiusura notturna della rete non colpisce tutti allo stesso modo: chi ha il serbatoio non se ne accorge." };
+const W_M7: Materiale = { id: "M7", titolo: "Il ciclo dell'agricoltura locale", aree: ["agrifood-ambiente"], costo: 1, contenuto: "Le colture della zona hanno il fabbisogno concentrato tra il 10 luglio e il 5 agosto. Dopo il 20 agosto il consumo agricolo crolla naturalmente dell'80%. Siamo al 14 agosto: tagliare l'agricolo adesso ha effetto quasi nullo sul risparmio e grosso sul raccolto." };
+const W_M8: Materiale = { id: "M8", titolo: "Consumi degli edifici pubblici, dettaglio", aree: ["giurisprudenza-pa", "energia-sostenibilita"], costo: 1, contenuto: "L'8% si divide in: 3,1% impianti sportivi (di cui la piscina comunale, chiusa da giugno ma con ricircolo attivo), 2,4% scuole (vuote ad agosto, ma con irrigazione dei giardini programmata), 1,6% uffici, 0,9% fontane ornamentali. Quasi tutto l'8% è acqua che esce per nessuno: risparmio a costo zero, senza colpire un cittadino." };
+const W_M9: Materiale = { id: "M9", titolo: "Le previsioni meteo, per esteso", aree: ["scienze-ricerca"], costo: 1, contenuto: "Modello a 6 settimane: probabilità di precipitazioni significative 15-20%. Nota metodologica: l'affidabilità dei modelli oltre le 3 settimane è bassa; il documento stesso raccomanda di rivedere le stime ogni 10 giorni. Il «niente piogge per sei settimane» è più incerto di come viene raccontato." };
+const W_M10: Materiale = { id: "M10", titolo: "Precedenti ordinanze in altri comuni", aree: ["giurisprudenza-pa", "comunicazione-media"], costo: 1, contenuto: "Tre casi: divieto di irrigazione (efficacia alta, contenzioso alto); riduzione di pressione notturna (efficacia media, poche proteste ma danni ai vecchi impianti); tariffa progressiva sui consumi eccedenti (efficacia alta ma richiede 3 mesi per entrare in vigore)." };
+const W_M11: Materiale = { id: "M11", titolo: "Il quadro normativo dell'ordinanza sindacale", aree: ["giurisprudenza-pa"], costo: 1, contenuto: "L'ordinanza contingibile e urgente deve essere proporzionata e temporanea, e non può discriminare per quartiere se non su base tecnica documentata. Tradotto: si può colpire un tipo di uso (irrigazione, piscine), non un quartiere." };
+const W_M12: Materiale = { id: "M12", titolo: "Costi e tempi degli interventi", aree: ["economia-management", "edilizia-architettura"], costo: 1, contenuto: "Riparazione condotte settore ovest: −11% del totale, 4 settimane, 340.000 €. Divieto irrigazione e piscine: −8%, immediato, 0 €. Chiusura notturna della rete: −6%, immediato, 0 €. Stop irrigazione scuole + ricircolo piscina + fontane: −5%, immediato, 0 €. Campagna informativa: −2% (stimato, incerto), 2 settimane, 18.000 €. Tariffa progressiva: −9%, 3 mesi, 25.000 €." };
+const W_M13: Materiale = { id: "M13", titolo: "La lettera di un cittadino di San Rocco", aree: ["giurisprudenza-pa", "scienze-educazione"], costo: 1, contenuto: "«Tre anni fa avete chiuso l'acqua di notte per due settimane. Al quarto piano non arrivava nemmeno di giorno. Ho una figlia con una malattia renale che deve bere e lavarsi. Nessuno ci ha avvisati con più di ventiquattro ore.»" };
+
+const W_MANDATI: Mandato[] = [
+  {
+    id: "perdite", label: "«Il problema è quanto se ne perde»", frase: "Prima di chiedere sacrifici, tappiamo i buchi.",
+    aree: ["edilizia-architettura", "informatica-digitale"],
+    vincolo: { id: "chiusura_settore", testo: "La riparazione richiede di chiudere un settore per 3 giorni: 9.000 persone senz'acqua per lavori." },
+    consulenze: [
+      consulenza("W_dirigente", "Consulenza: il dirigente dei lavori pubblici", "edilizia-architettura", "C'è un rilievo di giugno mai pubblicato: le perdite reali sono il 22%, non il 6%. Prima di chiudere l'acqua ai cittadini, guardate quanta se ne perde sottoterra."),
+      consulenza("W_idraulico", "Consulenza: un ingegnere idraulico", "informatica-digitale", "Le perdite sono su due condotte del 1961 nel settore ovest. Ripararle vale l'11% del totale: più di qualunque restrizione ai cittadini, ma servono 4 settimane."),
+    ],
+  },
+  {
+    id: "usofuori", label: "«Il problema è quanto se ne usa fuori casa»", frase: "Giardini e piscine non sono un bisogno.",
+    aree: ["agrifood-ambiente", "giurisprudenza-pa"],
+    vincolo: { id: "ricorso", testo: "Arriva un ricorso di un consorzio di proprietari: l'ordinanza va motivata meglio." },
+    consulenze: [
+      consulenza("W_legale", "Consulenza: un legale del Comune", "giurisprudenza-pa", "L'ordinanza può colpire un uso — irrigazione, piscine — non un quartiere. Se scrivete «Colline» invece di «giardini», cade al primo ricorso."),
+      consulenza("W_agronomo", "Consulenza: un agronomo", "agrifood-ambiente", "A Colline i 310 litri non sono consumo domestico: 214 sono giardini e piscine. Colpire quell'uso è chirurgico; colpire il quartiere è ingiusto e illegittimo."),
+    ],
+  },
+  {
+    id: "chipaga", label: "«Il problema è chi paga il conto»", frase: "Ogni misura colpisce qualcuno più di altri.",
+    aree: ["giurisprudenza-pa", "scienze-educazione"],
+    vincolo: { id: "sanitarie", testo: "Emergono 31 utenze con necessità sanitarie che non possono subire interruzioni." },
+    consulenze: [
+      consulenza("W_sociali", "Consulenza: la responsabile dei servizi sociali", "scienze-educazione", "A San Rocco l'82% non ha un serbatoio. Una chiusura notturna «uguale per tutti» la pagano solo loro: chi ha l'accumulo non se ne accorge nemmeno."),
+      consulenza("W_medico", "Consulenza: un medico", "scienze-educazione", "Ci sono utenze che non possono restare senz'acqua: dialisi, malattie renali. Vanno censite e protette prima di firmare qualunque cosa."),
+    ],
+  },
+  {
+    id: "misurare", label: "«Il problema è che non stiamo misurando»", frase: "Decidiamo su dati vecchi di sei anni.",
+    aree: ["scienze-ricerca", "informatica-digitale"],
+    vincolo: { id: "misuratori", testo: "Installare i misuratori richiede 10 giorni: il sindaco firma venerdì comunque." },
+    consulenze: [
+      consulenza("W_ricercatrice", "Consulenza: una ricercatrice", "scienze-ricerca", "Il «6% di perdite» è del 2019 e la previsione meteo a sei settimane è debole: il documento stesso dice di rivederla ogni dieci giorni. Non firmate una sentenza, firmate una cosa rivedibile."),
+      consulenza("W_contatori", "Consulenza: un tecnico dei contatori", "informatica-digitale", "Metà di questi numeri sono stime. Con dieci giorni installo i misuratori e sapete davvero dove va l'acqua — ma il sindaco firma venerdì lo stesso."),
+    ],
+  },
+  {
+    id: "pernessuno", label: "«Il problema è l'acqua che esce per nessuno»", frase: "Scuole vuote, piscina chiusa, fontane accese.",
+    aree: ["energia-sostenibilita", "giurisprudenza-pa"],
+    vincolo: { id: "concessionari", testo: "Tre impianti sono gestiti da concessionari privati: servono accordi, non ordinanze." },
+    consulenze: [
+      consulenza("W_impianti", "Consulenza: il responsabile degli impianti", "energia-sostenibilita", "Le scuole vuote hanno l'irrigazione programmata, la piscina chiusa ha il ricircolo acceso, le fontane vanno. È il 5% che esce per nessuno: si ferma subito, a costo zero."),
+      consulenza("W_custode", "Consulenza: il custode delle scuole", "energia-sostenibilita", "I giardini delle scuole si innaffiano da soli anche ad agosto, con dentro nessuno. Basta staccare i timer: nessun cittadino se ne accorge."),
+    ],
+  },
+];
+
+const MD08: MissioneDef = {
+  meta: {
+    slug: SLUG_ACQUA,
+    titolo: "La città senz'acqua",
+    sottotitolo: "Montebrico, un'ordinanza da firmare entro venerdì",
+    descrizione:
+      "Montebrico, 61.000 abitanti. L'invaso che rifornisce la città è al 38% della capacità (media di agosto: 71%), e non pioverà per settimane. Il sindaco deve firmare un'ordinanza entro venerdì: ridurre i consumi del 20% «senza colpire sempre gli stessi». Tu sei nel gruppo tecnico, con davanti i dati di consumo di tutta la città. Ma i dati sembrano dire una cosa e ne dicono un'altra: il quartiere che consuma di più non è quello che spreca di più, e la perdita più grande non è in casa di nessuno. Niente cronometro, niente sconfitta: puoi riprendere quando vuoi.",
+    tipo: "cross-area",
+  },
+  areeCandidate: ["scienze-ricerca", "energia-sostenibilita", "informatica-digitale", "giurisprudenza-pa", "edilizia-architettura", "agrifood-ambiente"],
+  ruoliStanza: 3,
+  daScartare: 2,
+  quantiPassi: 3,
+  materialiLiberi: [W_M1, W_M2, W_M3],
+  materialiGettone: [W_M4, W_M5, W_M6, W_M7, W_M8, W_M9, W_M10, W_M11, W_M12, W_M13],
+  mandati: W_MANDATI,
+  prioritaVoci: [
+    { id: "invaso", label: "L'invaso è al 38% della capacità", aree: ["scienze-ricerca"], affidabilita: 0.95 },
+    { id: "colline_310", label: "Colline consuma 310 litri pro capite", aree: ["agrifood-ambiente"], affidabilita: 0.9 },
+    { id: "colline_spreca", label: "Colline spreca più degli altri", aree: ["agrifood-ambiente"], affidabilita: 0.25 },
+    { id: "perdite_6", label: "Le perdite di rete sono il 6%", aree: ["edilizia-architettura"], affidabilita: 0.2 },
+    { id: "non_piove", label: "Non pioverà per sei settimane", aree: ["scienze-ricerca"], affidabilita: 0.3 },
+    { id: "agricolo_17", label: "Il consumo agricolo è il 17% del totale", aree: ["agrifood-ambiente"], affidabilita: 0.6 },
+  ],
+  ruoli: [
+    { id: "cantieri", label: "Seguire i cantieri sulle condotte", area: "edilizia-architettura" },
+    { id: "cittadini", label: "Tenere i rapporti con i cittadini", area: "giurisprudenza-pa" },
+    { id: "controlli", label: "Controllare che le misure vengano rispettate", area: "informatica-digitale" },
+    { id: "dati", label: "Aggiornare i dati ogni dieci giorni", area: "scienze-ricerca" },
+    { id: "sanitarie", label: "Gestire le utenze con necessità sanitarie", area: "scienze-educazione" },
+  ],
+  passi: [
+    { id: "mappatura_perdite", label: "Completare la mappatura delle perdite" },
+    { id: "sostituire_condotte", label: "Sostituire le condotte più vecchie" },
+    { id: "misuratori_permanenti", label: "Installare misuratori permanenti" },
+    { id: "incentivare_serbatoi", label: "Incentivare i serbatoi dove mancano" },
+    { id: "rivedere_tariffa", label: "Rivedere la tariffa" },
+    { id: "alberi", label: "Piantare alberi per l'isola di calore" },
+    { id: "censire_sanitarie", label: "Censire le utenze sanitarie" },
+    { id: "pubblica_dati", label: "Pubblicare i dati di consumo aperti" },
+  ],
+  budget: { totale: () => 0, unita: "€", passo: 1000, voci: () => [] },
+  piano: {
+    unitaSoldi: "€",
+    obiettivo: 20,
+    unitaObiettivo: "punti",
+    lavori: (letti) => {
+      const lavori: Lavoro[] = [];
+      if (letti.has("M4")) lavori.push({ id: "riparazione", label: "Avviare la riparazione delle condotte (settore ovest)", aree: ["edilizia-architettura", "informatica-digitale"], costo: 340000, giorni: 28, risparmio: 11, gate: "M4" });
+      lavori.push({ id: "divieto_irrigazione", label: "Divieto di irrigazione dei giardini e riempimento piscine", aree: ["agrifood-ambiente", "giurisprudenza-pa"], costo: 0, giorni: 0, risparmio: 8 });
+      lavori.push({ id: "chiusura_notturna", label: "Chiusura notturna della rete, uguale per tutti", aree: ["giurisprudenza-pa"], costo: 0, giorni: 0, risparmio: 6 });
+      if (letti.has("M8")) lavori.push({ id: "consumi_pubblici", label: "Stop ai consumi pubblici inutili (scuole, piscina, fontane)", aree: ["energia-sostenibilita", "giurisprudenza-pa"], costo: 0, giorni: 0, risparmio: 5, gate: "M8" });
+      lavori.push({ id: "taglio_agricolo", label: "Taglio dell'acqua agricola", aree: ["agrifood-ambiente"], costo: 0, giorni: 0, risparmio: 3 });
+      lavori.push({ id: "campagna", label: "Campagna informativa (effetto incerto)", aree: ["comunicazione-media"], costo: 18000, giorni: 14, risparmio: 2 });
+      lavori.push({ id: "tariffa", label: "Tariffa progressiva (entra in vigore in 3 mesi)", aree: ["giurisprudenza-pa"], costo: 25000, giorni: 90, risparmio: 9 });
+      return lavori;
+    },
+  },
+  scarto: (letti) => [
+    { id: "chiusura_notturna", label: "Chiusura notturna della rete, uguale per tutta la città", aree: ["giurisprudenza-pa"], qualita: 0.05, trappola: true, avviso: letti.has("M6") ? "Lo studio sui serbatoi (che hai letto): a Colline il 91% ha un serbatoio, a San Rocco l'82% no. «Uguale per tutti» significa che la paga solo chi non ha l'accumulo." : undefined },
+    { id: "ordinanza_colline", label: "Ordinanza che limita i consumi nel quartiere Colline", aree: ["giurisprudenza-pa"], qualita: 0.1, avviso: letti.has("M11") ? "Il quadro normativo (che hai letto): un'ordinanza può colpire un uso, non un quartiere. Cadrebbe al primo ricorso." : undefined },
+    { id: "rinviare", label: "Rinviare tutto in attesa di dati migliori", aree: ["scienze-ricerca"], qualita: 0.15 },
+    { id: "taglio_agricolo", label: "Taglio dell'acqua agricola", aree: ["agrifood-ambiente"], qualita: 0.2, avviso: letti.has("M7") ? "Il ciclo agricolo (che hai letto): a metà agosto il fabbisogno è quasi finito. Un sacrificio grosso per un risparmio quasi nullo." : undefined },
+    { id: "tariffa", label: "Tariffa progressiva sui consumi", aree: ["giurisprudenza-pa"], qualita: 0.3 },
+    { id: "divieto_irrigazione", label: "Divieto di irrigazione dei giardini e riempimento piscine", aree: ["agrifood-ambiente"], qualita: 0.85 },
+  ],
+  introStanza3: (m, letti) => {
+    const parti = ["Giovedì, 17:40. Il sindaco entra senza bussare: «Domattina alle nove firmo. Cosa firmo?»"];
+    if (m) parti.push(m.vincolo.testo);
+    if (!letti.has("M4")) parti.push("E il dirigente dei lavori pubblici deposita agli atti un rilievo di giugno mai pubblicato: le perdite di rete sono al 22%, non al 6%. Ma il piano è già impostato su altro.");
+    return parti.join("\n\n");
+  },
+  testi: {
+    introS1: "Sala riunioni del Comune, 14 agosto, trentasei gradi. Sul proiettore c'è una tabella con cinque righe: i quartieri di Montebrico e quanta acqua consuma ciascuno.\n\nL'assessora la indica: «Colline, trecentodieci litri a testa. Gli altri stanno sotto centosessanta. Direi che il problema è evidente.» Il dirigente dei lavori pubblici non dice niente, ma non sembra d'accordo.",
+    introS2: "Il sindaco firma venerdì: avete quattro giorni. Quattro giorni sono cinque verifiche: un rilievo da tirare fuori dal cassetto, un tecnico da sentire, una tabella da disaggregare, una norma da leggere.\n\nCinque. Quello che non verificate, lo deciderete su una stima del 2019.",
+    introS4: "Venerdì, 8:20. Il sindaco ha la penna in mano e davanti a sé un foglio bianco con l'intestazione del Comune. Quello che scrivete lo leggeranno sessantunmila persone, e una di loro ha una figlia che deve bere e lavarsi.",
+    introS5: "L'ordinanza è firmata. Nelle prossime settimane si vedrà se il 20% arriva davvero. Ma una cosa la sapete già: quali numeri avete davvero verificato, e quali avete solo creduto.",
+    materiali: { titolo: "Prima di tutto: cosa dicono i dati?", prompt: "Apri i documenti che vuoi leggere. C'è il consumo per quartiere, quello per tipo di utenza e le voci del gruppo tecnico.", hint: "Fermati su come sono scritti i numeri: un «dichiarato» accanto a una percentuale è la parola più importante della tabella." },
+    priorita: { titolo: "Alcune di queste i dati le DIMOSTRANO, altre sono interpretazioni. Ordinatele.", prompt: "Da «più solida» a «più fragile». Attenzione: consumare non è sprecare, e una stima del 2019 non è una misura di oggi.", hint: "Una misura diretta vale più di una stima vecchia, e una stima più di un'interpretazione." },
+    mandato: { titolo: "Il sindaco chiede su cosa state lavorando. Una frase.", prompt: "È la lettura del problema che deciderà cosa andrete a verificare.", hint: "Nessuna è quella giusta. Ma i dati sembrano dire una cosa e ne dicono un'altra." },
+    informazioni: { titolo: "Avete 5 gettoni. Cosa andate a verificare?", prompt: "Ogni verifica costa un gettone e non torna indietro. Aprila per leggerla: quello che non verifichi, lo decidi su una stima del 2019.", hint: "Puoi restare sulla tua ipotesi o guardarti intorno: a volte il dato che conta è quello che nessuno ha più misurato." },
+    nonApprofondire: { titolo: "Una cosa che avete deciso di non verificare: perché?", prompt: "Due o tre righe. Non c'è una risposta giusta: conta che tu sappia perché hai rinunciato a saperlo.", hint: "Puoi anche lasciarlo vuoto — ma provarci dice qualcosa di come decidi." },
+    budget: { titolo: "Serve il 20% in meno. Componete il pacchetto di misure.", prompt: "Non c'è un tetto da non superare: c'è un traguardo da raggiungere. La somma dei risparmi delle misure che scegli deve arrivare a 20 punti — rispettando i tempi dell'emergenza e senza far pagare sempre gli stessi.", hint: "Guarda anche tempo e costo di ogni misura: una che entra in vigore fra tre mesi non serve a questa emergenza." },
+    scarto: { titolo: "Tre misure non reggono. Tagliatene due.", prompt: "Rinuncia a due delle misure sul tavolo. Attenzione: la più «equa» sulla carta può essere la più ingiusta nei fatti.", hint: "Ciò che tieni conta più di ciò che togli." },
+    ruoli: { titolo: "Chi segue cosa da domani?", prompt: "Per ogni compito: te ne occupi tu o lo lasci a un altro del gruppo? Quello che ti prendi è quello che ti senti di saper fare." },
+    previsione: { titolo: "Prima di scriverla: quanto arriverà davvero al 20%?", prompt: "Quanto pensate che questo pacchetto di misure arriverà davvero al 20% di risparmio?", domanda: "La tua sensazione, prima di scrivere" },
+    proposta: { titolo: "Scrivete il testo dell'ordinanza (max 120 parole)", prompt: "Cosa cambia per i cittadini, per quanto tempo, e perché proprio queste misure. La leggeranno in sessantunmila.", hint: "Indica una scadenza e un riesame, cita solo numeri che hai verificato, niente allarmismi né appelli generici.", minCaratteri: 150 },
+    riflessione: { titolo: "Ripensando a questi quattro giorni…", prompt: "C'è stato un numero che all'inizio sembrava dire una cosa e poi ne diceva un'altra? E vi è capitato di essere sicuri di qualcosa prima di averlo verificato?", hint: "Questa è la parte che resta tua: la salviamo nel tuo diario.", minCaratteri: 120 },
+    passi: { titolo: "Passata l'emergenza, i primi tre passi?", prompt: "Scegli tre passi e mettili in ordine: quale per primo, quale per secondo, quale per terzo.", hint: "Il problema vero era che nessuno stava misurando." },
+  },
+};
+
 // ─────────────────────────────────────────── registro delle missioni
 
-const DEFS: MissioneDef[] = [MD01, MD02, MD03, MD04, MD05, MD06];
+const DEFS: MissioneDef[] = [MD01, MD02, MD03, MD04, MD05, MD06, MD07, MD08];
 const DEF_BY_SLUG = new Map(DEFS.map((d) => [d.meta.slug, d]));
 
 // Tutti i mandati di tutte le missioni. Gli id dei mandati sono unici a livello
@@ -1198,6 +1545,7 @@ export function dossierStanza2(def: MissioneDef, mandato: Mandato | null): Mater
 export function valutaPiano(step: StepPianificaLavori, selezionati: string[]): {
   soldi: number;
   giorni: number;
+  risparmio: number;
   dipendenzeMancanti: { lavoro: string; mancanti: string[] }[];
   secondaSquadra: boolean;
 } {
@@ -1205,6 +1553,7 @@ export function valutaPiano(step: StepPianificaLavori, selezionati: string[]): {
   const scelti = step.lavori.filter((l) => sel.has(l.id));
   const secondaSquadra = sel.has("seconda_squadra");
   const soldi = scelti.reduce((s, l) => s + l.costo, 0);
+  const risparmio = scelti.reduce((s, l) => s + (l.risparmio ?? 0), 0);
 
   const parall = scelti.filter((l) => l.parallelizzabile);
   const seriali = scelti.filter((l) => !l.parallelizzabile && l.id !== "seconda_squadra");
@@ -1216,7 +1565,7 @@ export function valutaPiano(step: StepPianificaLavori, selezionati: string[]): {
     const mancanti = (l.richiede ?? []).filter((id) => !sel.has(id));
     if (mancanti.length > 0) dipendenzeMancanti.push({ lavoro: l.id, mancanti });
   }
-  return { soldi, giorni, dipendenzeMancanti, secondaSquadra };
+  return { soldi, giorni, risparmio, dipendenzeMancanti, secondaSquadra };
 }
 
 // ─────────────────────────────────────────── costruzione della missione
@@ -1235,7 +1584,7 @@ function costruisciMissioneDef(def: MissioneDef, get: LeggiRisposta): EscapeMiss
   const stepNonApprofondire: Step = { id: "s2_non_approfondire", stanza: 2, tipo: "decisione_scritta", titolo: t.nonApprofondire.titolo, prompt: t.nonApprofondire.prompt, hint: t.nonApprofondire.hint, minCaratteri: 0, facoltativo: true };
 
   const stepBudget: Step = def.piano
-    ? { id: "s3_budget", stanza: 3, tipo: "pianifica_lavori", titolo: t.budget.titolo, prompt: t.budget.prompt, hint: t.budget.hint, budgetSoldi: def.piano.budgetSoldi, unitaSoldi: def.piano.unitaSoldi, budgetGiorni: def.piano.budgetGiorni, lavori: def.piano.lavori(letti) }
+    ? { id: "s3_budget", stanza: 3, tipo: "pianifica_lavori", titolo: t.budget.titolo, prompt: t.budget.prompt, hint: t.budget.hint, unitaSoldi: def.piano.unitaSoldi, budgetSoldi: def.piano.budgetSoldi, budgetGiorni: def.piano.budgetGiorni, obiettivo: def.piano.obiettivo, unitaObiettivo: def.piano.unitaObiettivo, lavori: def.piano.lavori(letti) }
     : { id: "s3_budget", stanza: 3, tipo: "alloca_budget", titolo: t.budget.titolo, prompt: t.budget.prompt, hint: t.budget.hint, totale: def.budget.totale(mandato), unita: def.budget.unita, passo: def.budget.passo, voci: def.budget.voci(mandato, letti) };
   const stepScarto: Step = { id: "s3_scarto", stanza: 3, tipo: "scarta_opzione", titolo: t.scarto.titolo, prompt: t.scarto.prompt, hint: t.scarto.hint, daScartare: def.daScartare, opzioni: def.scarto(letti) };
 
