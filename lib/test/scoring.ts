@@ -45,9 +45,13 @@ export function calcolaEvidenzeTest(testSlug: string, risposte: Map<string, stri
   const motivazioni = new Map<string, string[]>();
   const itemDiArea = new Map<string, string>(); // area → item rappresentativo (prima scelta positiva)
   const add = (area: string, delta: number) => punteggi.set(area, (punteggi.get(area) ?? 0) + delta);
+  // Racchiude l'etichetta tra caporali SOLO se non li ha già (alcune opzioni
+  // sono citazioni — titoli di giornale, frasi — e portano le «» dentro il
+  // testo): evita le virgolette doppie annidate («« … »») nella motivazione.
+  const racchiudi = (s: string) => (s.startsWith("«") && s.endsWith("»") ? s : `«${s}»`);
   const positiva = (area: string, item: TestItemLite, opzLabel: string) => {
     const arr = motivazioni.get(area) ?? [];
-    arr.push(`${item.frammento} hai scelto «${opzLabel}».`);
+    arr.push(`${item.frammento} hai scelto ${racchiudi(opzLabel)}.`);
     motivazioni.set(area, arr);
     if (!itemDiArea.has(area)) itemDiArea.set(area, item.id);
   };
