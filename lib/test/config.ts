@@ -100,10 +100,10 @@ const T1: TestDef = {
       frammento: "Tra le cose che ti annoierebbero",
       tipo: "negativo",
       opzioni: [
-        { id: "i4a", label: "Passare un pomeriggio a sistemare un archivio storico", area: "studi-umanistici-beni-culturali" },
-        { id: "i4b", label: "Passare un pomeriggio a controllare che tutto sia in regola", area: "giurisprudenza-pa" },
-        { id: "i4c", label: "Passare un pomeriggio a cucinare per quaranta persone", area: "ristorazione-turismo" },
-        { id: "i4d", label: "Passare un pomeriggio a montare un impianto", area: "energia-sostenibilita" },
+        { id: "i4a", label: "Controllare per ore che dei conti tornino", area: "economia-management" },
+        { id: "i4b", label: "Rifare la stessa cucitura cinquanta volte", area: "arte-design-moda" },
+        { id: "i4c", label: "Stare in un cantiere sotto il sole a prendere misure", area: "edilizia-architettura" },
+        { id: "i4d", label: "Ripetere lo stesso esperimento finché non viene", area: "scienze-ricerca" },
       ],
     },
     {
@@ -115,7 +115,7 @@ const T1: TestDef = {
       opzioni: [
         { id: "i5a", label: "Chi progetta il suono di uno spettacolo", area: "musica-spettacolo" },
         { id: "i5b", label: "Chi assiste una persona in riabilitazione", area: "salute-professioni-sanitarie" },
-        { id: "i5c", label: "Chi tiene i conti di un'azienda in difficoltà", area: "economia-management" },
+        { id: "i5c", label: "Chi organizza il servizio di un ristorante in una sera piena", area: "ristorazione-turismo" },
         { id: "i5d", label: "Chi traduce in tempo reale in una riunione", area: "lingue-relazioni-internazionali" },
       ],
     },
@@ -176,7 +176,7 @@ const T1: TestDef = {
       frammento: "All'evento prenderesti",
       tipo: "positivo",
       opzioni: [
-        { id: "i10a", label: "Coordinare chi fa cosa", area: "economia-management" },
+        { id: "i10a", label: "Occuparti del cibo e di come si mangia", area: "ristorazione-turismo" },
         { id: "i10b", label: "Occuparti di chi arriva e non parla italiano", area: "lingue-relazioni-internazionali" },
         { id: "i10c", label: "Curare luci e audio", area: "musica-spettacolo" },
         { id: "i10d", label: "Controllare che sia tutto sicuro", area: "sicurezza-difesa" },
@@ -189,10 +189,10 @@ const T1: TestDef = {
       frammento: "Tra le cose che non vorresti fare",
       tipo: "negativo",
       opzioni: [
-        { id: "i11a", label: "Stare al banco di un ristorante in un'ora di punta", area: "ristorazione-turismo" },
+        { id: "i11a", label: "Assistere una persona che non collabora", area: "salute-professioni-sanitarie" },
         { id: "i11b", label: "Scrivere il testo di una campagna", area: "comunicazione-media" },
         { id: "i11c", label: "Riparare qualcosa che non sai come è fatto", area: "meccanica-meccatronica" },
-        { id: "i11d", label: "Spiegare la stessa cosa dieci volte a persone diverse", area: "scienze-educazione" },
+        { id: "i11d", label: "Potare e curare piante tutto il giorno", area: "agrifood-ambiente" },
       ],
     },
     {
@@ -214,7 +214,7 @@ const T1: TestDef = {
       tipo: "positivo",
       opzioni: [
         { id: "i13a", label: "Chi progetta il percorso di un autobus per una città", area: "mobilita-sostenibile" },
-        { id: "i13b", label: "Chi decide se un cibo può essere venduto", area: "agrifood-ambiente" },
+        { id: "i13b", label: "Chi controlla i consumi di un edificio e li fa scendere", area: "energia-sostenibilita" },
         { id: "i13c", label: "Chi programma il sistema che gestisce un ospedale", area: "informatica-digitale" },
         { id: "i13d", label: "Chi restaura un quadro", area: "studi-umanistici-beni-culturali" },
       ],
