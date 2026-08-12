@@ -3,13 +3,17 @@ import { notFound } from "next/navigation";
 import { getAppContext } from "@/lib/app/studentContext";
 import { createClient } from "@/lib/supabase/server";
 import { getAreaBySlug } from "@/data/aree";
-import { getTest } from "@/lib/test/config";
+import { getTest, SLUG_T3, T3_META, missionePerArea } from "@/lib/test/config";
 import TestPlayer from "@/components/test/TestPlayer";
 import IniziaTest from "@/components/test/IniziaTest";
+import IniziaTestT3 from "@/components/test/IniziaTestT3";
 import EsitoTest, { type AreaEsitoTest } from "@/components/test/EsitoTest";
 import EsitoT2, { type AsseEsito, type SpiegazioneAsse } from "@/components/test/EsitoT2";
+import EsitoT3, { type RigaEsitoT3 } from "@/components/test/EsitoT3";
 import { assegnaProfilo } from "@/lib/test/profili";
 import { calcolaDivergenza } from "@/lib/test/divergenza";
+import { calcolaEvidenzeT3 } from "@/lib/test/scoring";
+import { assemblaT3, selezionaCandidate, T3_FROZEN_ITEM_ID, type CandidateCongelate } from "@/lib/test/assembla-t3";
 import type { AsseStile } from "@/lib/escape/tipi";
 
 const ASSI: AsseStile[] = ["analitico", "relazionale", "creativo", "operativo"];
@@ -18,11 +22,16 @@ export const metadata = { title: "Test — KIREO" };
 
 export default async function TestPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const test = getTest(slug);
-  if (!test) notFound();
 
   const contesto = await getAppContext();
   const supabase = await createClient();
+
+  // T3 «Più a fondo»: nessun TestDef statico (item assemblati a runtime), quindi
+  // va gestito prima del getTest/notFound.
+  if (slug === SLUG_T3) return renderT3(contesto.userId, supabase);
+
+  const test = getTest(slug);
+  if (!test) notFound();
 
   const { data: attempt } = await supabase
     .from("test_attempt")
@@ -168,6 +177,127 @@ export default async function TestPage({ params }: { params: Promise<{ slug: str
     <div className="space-y-6">
       {Intestazione}
       <TestPlayer testSlug={slug} attemptId={attempt.id} risposteIniziali={risposteIniziali} />
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────── T3 «Più a fondo»
+type SB = Awaited<ReturnType<typeof createClient>>;
+
+async function renderT3(userId: string, supabase: SB) {
+  const Intestazione = (
+    <div>
+      <Link href="/app/test" className="text-xs text-kireo-muted hover:text-kireo-light">← Test</Link>
+      <h1 className="py-1 font-heading text-2xl font-bold leading-[1.25] text-kireo-light sm:text-3xl">{T3_META.titolo}</h1>
+      <p className="mt-1 text-sm text-kireo-muted">{T3_META.sottotitolo}</p>
+    </div>
+  );
+
+  const { data: attempt } = await supabase
+    .from("test_attempt")
+    .select("id, stato")
+    .eq("student_id", userId)
+    .eq("test_slug", SLUG_T3)
+    .order("started_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  // Nessun tentativo: intro + avvio, oppure fallback sotto le 3 aree candidate.
+  if (!attempt) {
+    const { data: segnali } = await supabase.from("area_signal").select("area_slug, interest_score").eq("student_id", userId);
+    const candidate = selezionaCandidate((segnali ?? []).map((s) => ({ area_slug: s.area_slug, interest_score: Number(s.interest_score) || 0 })));
+    if (candidate.length < 3) {
+      return (
+        <div className="space-y-6">
+          {Intestazione}
+          <div className="rounded-2xl border border-kireo-orange/30 bg-kireo-orange/5 p-6 sm:p-8">
+            <h2 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">Prima, da dove parti</h2>
+            <p className="mt-2 text-sm leading-relaxed text-kireo-light/90">
+              «Più a fondo» mette le tue aree una contro l&apos;altra — ma per farlo gliene servono almeno tre già emerse. Comincia da «Da dove parti»: bastano pochi minuti, e poi questo test avrà con cosa lavorare.
+            </p>
+            <div className="mt-4">
+              <Link href="/app/test/da-dove-parti" className="inline-block rounded-full bg-kireo-green px-5 py-2 text-sm font-semibold text-white hover:bg-kireo-green-light">Fai «Da dove parti» →</Link>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    return (
+      <div className="space-y-6">
+        {Intestazione}
+        <div className="rounded-2xl border border-white/5 bg-kireo-card p-6 sm:p-8">
+          <p className="text-sm text-kireo-light/90">{T3_META.descrizione}</p>
+          <div className="mt-5">
+            <IniziaTestT3 />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const { data: righeResp } = await supabase.from("test_response").select("item_id, payload").eq("attempt_id", attempt.id);
+  const frozen = (righeResp ?? []).find((r) => r.item_id === T3_FROZEN_ITEM_ID);
+  const congelate = (frozen?.payload as CandidateCongelate | undefined) ?? null;
+
+  // In corso: player con item assemblati dalle candidate congelate.
+  if (attempt.stato === "in_corso") {
+    if (!congelate || congelate.candidate.length < 3) {
+      // Riga di congelamento assente (caso anomalo): la si ricrea riavviando.
+      return (
+        <div className="space-y-6">
+          {Intestazione}
+          <div className="rounded-2xl border border-white/5 bg-kireo-card p-6 sm:p-8">
+            <p className="text-sm text-kireo-light/90">Riprendiamo da capo la preparazione del test.</p>
+            <div className="mt-5"><IniziaTestT3 etichetta="Riprendi" /></div>
+          </div>
+        </div>
+      );
+    }
+    const items = assemblaT3(congelate, attempt.id);
+    const risposteIniziali = (righeResp ?? [])
+      .filter((r) => r.item_id !== T3_FROZEN_ITEM_ID)
+      .map((r) => ({ item_id: r.item_id, payload: r.payload as { opzioneId?: string } }));
+    return (
+      <div className="space-y-6">
+        {Intestazione}
+        <TestPlayer testSlug={SLUG_T3} attemptId={attempt.id} risposteIniziali={risposteIniziali} itemsAssemblati={items} />
+      </div>
+    );
+  }
+
+  // Completato: ricalcola la classifica del torneo (dagli item congelati e dalle
+  // risposte), gli stati da area_signal, e il ponte alla missione dell'area #1.
+  const congelateSicure: CandidateCongelate = congelate ?? { candidate: [], asseDominante: null };
+  const risposte = new Map<string, { opzioneId?: string }>();
+  for (const r of righeResp ?? []) {
+    if (r.item_id === T3_FROZEN_ITEM_ID) continue;
+    risposte.set(r.item_id, (r.payload as { opzioneId?: string }) ?? {});
+  }
+  const { classifica } = calcolaEvidenzeT3(congelateSicure, attempt.id, risposte);
+
+  const { data: segnali } = await supabase
+    .from("area_signal")
+    .select("area_slug, status")
+    .eq("student_id", userId)
+    .in("area_slug", congelateSicure.candidate.length ? congelateSicure.candidate : ["__nessuna__"]);
+  const statusPerArea = new Map((segnali ?? []).map((s) => [s.area_slug, s.status as RigaEsitoT3["status"]]));
+
+  const righe: RigaEsitoT3[] = classifica.map((c) => ({
+    slug: c.area_slug,
+    nome: getAreaBySlug(c.area_slug)?.nome ?? c.area_slug,
+    status: statusPerArea.get(c.area_slug) ?? "emergente",
+  }));
+  const vincitrice = classifica[0]?.area_slug;
+  const missione = vincitrice ? missionePerArea(vincitrice) : null;
+
+  return (
+    <div className="space-y-6">
+      {Intestazione}
+      <div className="flex flex-col gap-3 rounded-2xl border border-white/5 bg-kireo-card p-5 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm text-kireo-muted">Hai già fatto questo test. Puoi rifarlo quando vuoi: parte dalle aree che sono emerse adesso, quindi le domande possono cambiare.</p>
+        <div className="flex-none"><IniziaTestT3 etichetta="Rifai il test" /></div>
+      </div>
+      <EsitoT3 righe={righe} missione={missione} />
     </div>
   );
 }

@@ -17,6 +17,7 @@
 import type { AsseStile } from "@/lib/escape/tipi";
 import { getTest } from "./config";
 import type { ItemT2 } from "./config";
+import { assemblaT3, type CandidateCongelate } from "./assembla-t3";
 
 export const PESO_TEST = 0.35;
 const SCORE_RIFERIMENTO = 9; // T1: 3 scelte positive sulla stessa area → valore 1
@@ -163,4 +164,80 @@ export function calcolaEvidenzeT2(testSlug: string, risposte: Map<string, Payloa
     evidenze.push({ asse, dimensione: "interest", valore: Number(valore.toFixed(3)), peso: PESO_TEST, motivazione: mots.slice(0, 2).join(" · ") || "È emerso dal tuo modo di rispondere.", item_id: itemDiAsse[asse] ?? test.items[0].id });
   }
   return evidenze;
+}
+
+// ─────────────────────────────────────────── T3 (torneo + tensione)
+// Riassembla gli item dalle candidate CONGELATE (mai rilette da area_signal) e
+// dall'attemptId, poi trasforma le risposte in prove. Due nature ben distinte:
+//  - COPPIA → prova d'AREA (area_slug valorizzato, asse null). L'area scelta
+//    vince l'incontro; il valore finale è il tasso di vittorie (vittorie/incontri
+//    giocati), così le coppie ripetute non falsano la classifica.
+//  - TENSIONE → prova di STILE (asse valorizzato, area_slug null). MAI una prova
+//    d'area: le due opzioni sono la stessa area, ciò che discrimina è l'asse.
+export type RisultatoT3 = { evidenze: EvidenzaTest[]; classifica: { area_slug: string; vittorie: number; incontri: number }[] };
+
+export function calcolaEvidenzeT3(congelate: CandidateCongelate, attemptId: string, risposte: Map<string, { opzioneId?: string }>): RisultatoT3 {
+  const items = assemblaT3(congelate, attemptId);
+
+  const vittorie = new Map<string, number>();
+  const incontri = new Map<string, number>();
+  const motArea = new Map<string, string>();
+  const itemArea = new Map<string, string>();
+  const bump = (m: Map<string, number>, k: string) => m.set(k, (m.get(k) ?? 0) + 1);
+
+  const pickAsse = new Map<AsseStile, number>();
+  const motAsse = new Map<AsseStile, string>();
+  const itemAsse = new Map<AsseStile, string>();
+  let tensioneRisposte = 0;
+  const bumpA = (k: AsseStile) => pickAsse.set(k, (pickAsse.get(k) ?? 0) + 1);
+
+  for (const item of items) {
+    const opzId = risposte.get(item.id)?.opzioneId;
+    if (!opzId) continue;
+    if (item.kind === "coppia") {
+      const scelta = item.opzioni.find((o) => o.id === opzId);
+      if (!scelta) continue;
+      for (const o of item.opzioni) bump(incontri, o.area); // entrambe hanno giocato
+      bump(vittorie, scelta.area);
+      if (!motArea.has(scelta.area)) {
+        motArea.set(scelta.area, `${item.frammento}, hai scelto «${scelta.label.toLowerCase()}».`);
+        itemArea.set(scelta.area, item.id);
+      }
+    } else {
+      const scelta = item.opzioni.find((o) => o.id === opzId);
+      if (!scelta) continue;
+      tensioneRisposte++;
+      bumpA(scelta.asse);
+      if (!motAsse.has(scelta.asse)) {
+        motAsse.set(scelta.asse, `${item.frammento}, hai scelto «${scelta.label.toLowerCase()}».`);
+        itemAsse.set(scelta.asse, item.id);
+      }
+    }
+  }
+
+  const evidenze: EvidenzaTest[] = [];
+
+  // Prove d'area: solo per le aree che hanno vinto almeno un incontro (l'area
+  // vinta, mai i perdenti — T3 alza, non abbassa). Valore = tasso di vittorie.
+  for (const [area, v] of vittorie) {
+    const g = incontri.get(area) ?? 0;
+    if (v <= 0 || g <= 0) continue;
+    const valore = clamp01(v / g);
+    evidenze.push({ area_slug: area, dimensione: "interest", valore: Number(valore.toFixed(3)), peso: PESO_TEST, motivazione: motArea.get(area) ?? "È emersa dai confronti.", item_id: itemArea.get(area) ?? items[0]?.id ?? "t3" });
+  }
+
+  // Prove di stile: una per asse scelto, valore = quota di scelte su quell'asse.
+  for (const [asse, n] of pickAsse) {
+    if (n <= 0 || tensioneRisposte <= 0) continue;
+    const valore = clamp01(n / tensioneRisposte);
+    evidenze.push({ asse, dimensione: "interest", valore: Number(valore.toFixed(3)), peso: PESO_TEST, motivazione: motAsse.get(asse) ?? "È emerso dai confronti dentro l'area.", item_id: itemAsse.get(asse) ?? items[0]?.id ?? "t3" });
+  }
+
+  // Classifica: per l'esito (ordine delle candidate). Vittorie desc, a parità
+  // l'ordine congelato (che riflette il punteggio T1 pregresso).
+  const classifica = congelate.candidate
+    .map((area_slug) => ({ area_slug, vittorie: vittorie.get(area_slug) ?? 0, incontri: incontri.get(area_slug) ?? 0 }))
+    .sort((a, b) => b.vittorie - a.vittorie || congelate.candidate.indexOf(a.area_slug) - congelate.candidate.indexOf(b.area_slug));
+
+  return { evidenze, classifica };
 }

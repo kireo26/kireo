@@ -41,6 +41,21 @@ export type ItemT2 =
   // Likert 15-16: scala 1-5 → +1..+5 su un asse
   | { id: string; numero: number; tipo: "likert"; domanda: string; frammento: string; asse: AsseStile };
 
+// ── T3 «Più a fondo» — assemblato a runtime. Non ha item statici: il MOTORE è
+// lo stesso (test_attempt/test_response/registra_evidenze_test), ma gli item
+// nascono da lib/test/assembla-t3.ts a partire dalle aree già emerse. Qui vive
+// solo il BANCO delle vignette (statico) e i tipi degli item. Due forme:
+//  - coppia: area X contro area Y (due vignette di aree DIVERSE) → prova d'AREA
+//    per l'area scelta (torneo). asse null.
+//  - tensione: la stessa area contro sé stessa (due sue vignette, asse diverso)
+//    → prova di STILE per l'asse scelto. area_slug null. NON gonfia l'area.
+export type VignettaT3 = { id: string; area: string; asse: AsseStile; testo: string };
+export type OpzioneT3Coppia = { id: string; label: string; area: string };
+export type OpzioneT3Tensione = { id: string; label: string; asse: AsseStile };
+export type ItemT3 =
+  | { id: string; numero: number; kind: "coppia"; domanda: string; frammento: string; opzioni: OpzioneT3Coppia[] }
+  | { id: string; numero: number; kind: "tensione"; area: string; domanda: string; frammento: string; opzioni: OpzioneT3Tensione[] };
+
 export type TestMeta = {
   slug: string;
   titolo: string;
@@ -64,6 +79,22 @@ export type TestDef =
 
 export const SLUG_T1 = "da-dove-parti";
 export const SLUG_T2 = "come-ti-muovi";
+export const SLUG_T3 = "piu-a-fondo";
+
+// T3 non è un TestDef statico (item assemblati a runtime): ha solo i metadati
+// del catalogo + i testi della micro-schermata motivazionale, usati dal player.
+export const T3_META: TestMeta & { motivazionaleDopo: number; motivazionaleTitolo: string; motivazionaleTesto: string } = {
+  slug: SLUG_T3,
+  titolo: "Più a fondo",
+  sottotitolo: "Le tue aree, una contro l'altra",
+  descrizione:
+    "Costruito su misura sulle aree che ti sono già emerse. Non ti chiede se qualcosa ti interessa — quello lo sappiamo già —: ti chiede di scegliere tra due cose che ti attirano entrambe. La rinuncia è il dato.",
+  durata: "4-5 minuti",
+  motivazionaleDopo: 5,
+  motivazionaleTitolo: "Scegliere costa",
+  motivazionaleTesto:
+    "Fin qui hai scelto tra cose che ti attirano entrambe: è lì che si vede cosa tira di più. Continua senza pensarci troppo — la prima reazione è quella giusta.",
+};
 
 const T1: TestDef = {
   misura: "aree",
@@ -358,9 +389,116 @@ const T2: TestDef = {
 const TESTS: TestDef[] = [T1, T2];
 const TEST_BY_SLUG = new Map(TESTS.map((t) => [t.slug, t]));
 
-// Metadati del catalogo (client), senza gli item.
-export const TEST_META: TestMeta[] = TESTS.map(({ slug, titolo, sottotitolo, descrizione, durata }) => ({ slug, titolo, sottotitolo, descrizione, durata }));
+// Metadati del catalogo (client). T1/T2 sono statici; T3 è aggiunto a mano
+// (item a runtime, quindi non in TESTS) così da comparire comunque nel catalogo.
+export const TEST_META: TestMeta[] = [
+  ...TESTS.map(({ slug, titolo, sottotitolo, descrizione, durata }) => ({ slug, titolo, sottotitolo, descrizione, durata })),
+  { slug: T3_META.slug, titolo: T3_META.titolo, sottotitolo: T3_META.sottotitolo, descrizione: T3_META.descrizione, durata: T3_META.durata },
+];
 
 export function getTest(slug: string): TestDef | undefined {
   return TEST_BY_SLUG.get(slug);
 }
+
+// ─────────────────────────────────────────── T3: banco delle vignette
+// 54 vignette = 3 per ognuna delle 18 aree, ciascuna taggata con l'AREA e con
+// l'ASSE che quella particolare attività esprime (serve agli item di tensione).
+// Formato: «Hai passato un pomeriggio a…». Tre vignette per area, con asse
+// distinto, così che ogni area possa mettere in tensione tre stili diversi.
+export const VIGNETTE_T3: Record<string, [VignettaT3, VignettaT3, VignettaT3]> = {
+  "informatica-digitale": [
+    { id: "informatica-digitale-a", area: "informatica-digitale", asse: "analitico", testo: "capire perché un programma restituiva sempre lo stesso errore, riga per riga" },
+    { id: "informatica-digitale-b", area: "informatica-digitale", asse: "creativo", testo: "immaginare come far dialogare due sistemi che non si parlavano" },
+    { id: "informatica-digitale-c", area: "informatica-digitale", asse: "operativo", testo: "montare da zero la rete di un ufficio e vederla accendersi" },
+  ],
+  "salute-professioni-sanitarie": [
+    { id: "salute-professioni-sanitarie-a", area: "salute-professioni-sanitarie", asse: "relazionale", testo: "stare accanto a una persona spaventata prima di un esame e farla sentire meglio" },
+    { id: "salute-professioni-sanitarie-b", area: "salute-professioni-sanitarie", asse: "analitico", testo: "confrontare i segni di due pazienti per capire cosa avevano in comune" },
+    { id: "salute-professioni-sanitarie-c", area: "salute-professioni-sanitarie", asse: "operativo", testo: "preparare e controllare tutto il necessario in una sala prima di un intervento" },
+  ],
+  "ristorazione-turismo": [
+    { id: "ristorazione-turismo-a", area: "ristorazione-turismo", asse: "operativo", testo: "tenere il ritmo di una cucina in un'ora di punta senza far aspettare nessuno" },
+    { id: "ristorazione-turismo-b", area: "ristorazione-turismo", asse: "relazionale", testo: "far sentire a casa un gruppo di ospiti arrivati da lontano" },
+    { id: "ristorazione-turismo-c", area: "ristorazione-turismo", asse: "creativo", testo: "inventare un piatto con quello che era rimasto in dispensa" },
+  ],
+  "meccanica-meccatronica": [
+    { id: "meccanica-meccatronica-a", area: "meccanica-meccatronica", asse: "operativo", testo: "smontare un motore inceppato e rimetterlo in moto" },
+    { id: "meccanica-meccatronica-b", area: "meccanica-meccatronica", asse: "analitico", testo: "capire perché una macchina si fermava sempre allo stesso punto" },
+    { id: "meccanica-meccatronica-c", area: "meccanica-meccatronica", asse: "creativo", testo: "adattare un pezzo che non esisteva usando quello che c'era" },
+  ],
+  "agrifood-ambiente": [
+    { id: "agrifood-ambiente-a", area: "agrifood-ambiente", asse: "analitico", testo: "misurare la qualità di un terreno e capire cosa gli mancava" },
+    { id: "agrifood-ambiente-b", area: "agrifood-ambiente", asse: "operativo", testo: "mettere in piedi un orto e curarlo giorno per giorno" },
+    { id: "agrifood-ambiente-c", area: "agrifood-ambiente", asse: "relazionale", testo: "convincere un mercato a vendere prodotti del posto" },
+  ],
+  "arte-design-moda": [
+    { id: "arte-design-moda-a", area: "arte-design-moda", asse: "creativo", testo: "disegnare qualcosa che prima non esisteva e vederlo prendere forma" },
+    { id: "arte-design-moda-b", area: "arte-design-moda", asse: "operativo", testo: "cucire e rifinire un capo finché non era perfetto" },
+    { id: "arte-design-moda-c", area: "arte-design-moda", asse: "analitico", testo: "studiare come è fatto un oggetto bello per capire perché funziona" },
+  ],
+  "musica-spettacolo": [
+    { id: "musica-spettacolo-a", area: "musica-spettacolo", asse: "creativo", testo: "comporre un pezzo mettendo insieme suoni che non c'entravano" },
+    { id: "musica-spettacolo-b", area: "musica-spettacolo", asse: "operativo", testo: "gestire luci e audio di uno spettacolo dal vivo senza un errore" },
+    { id: "musica-spettacolo-c", area: "musica-spettacolo", asse: "relazionale", testo: "tenere insieme un gruppo di persone durante le prove" },
+  ],
+  "energia-sostenibilita": [
+    { id: "energia-sostenibilita-a", area: "energia-sostenibilita", asse: "analitico", testo: "leggere i consumi di un edificio e trovare dove si sprecava" },
+    { id: "energia-sostenibilita-b", area: "energia-sostenibilita", asse: "operativo", testo: "installare dei pannelli e vedere il contatore girare al contrario" },
+    { id: "energia-sostenibilita-c", area: "energia-sostenibilita", asse: "creativo", testo: "progettare un modo nuovo di scaldare una casa spendendo meno" },
+  ],
+  "edilizia-architettura": [
+    { id: "edilizia-architettura-a", area: "edilizia-architettura", asse: "creativo", testo: "immaginare come trasformare uno spazio abbandonato" },
+    { id: "edilizia-architettura-b", area: "edilizia-architettura", asse: "analitico", testo: "verificare se una struttura reggeva o andava messa in sicurezza" },
+    { id: "edilizia-architettura-c", area: "edilizia-architettura", asse: "operativo", testo: "seguire un cantiere e vederlo salire pezzo per pezzo" },
+  ],
+  "economia-management": [
+    { id: "economia-management-a", area: "economia-management", asse: "analitico", testo: "capire perché un'attività perdeva soldi guardando i suoi conti" },
+    { id: "economia-management-b", area: "economia-management", asse: "operativo", testo: "organizzare chi fa cosa perché un progetto rispettasse i tempi" },
+    { id: "economia-management-c", area: "economia-management", asse: "relazionale", testo: "mettere d'accordo persone che volevano cose diverse" },
+  ],
+  "giurisprudenza-pa": [
+    { id: "giurisprudenza-pa-a", area: "giurisprudenza-pa", asse: "analitico", testo: "leggere un regolamento e trovare il punto che cambiava tutto" },
+    { id: "giurisprudenza-pa-b", area: "giurisprudenza-pa", asse: "relazionale", testo: "aiutare qualcuno a capire un diritto che non sapeva di avere" },
+    { id: "giurisprudenza-pa-c", area: "giurisprudenza-pa", asse: "operativo", testo: "mettere in ordine una pratica ferma da mesi e chiuderla" },
+  ],
+  "mobilita-sostenibile": [
+    { id: "mobilita-sostenibile-a", area: "mobilita-sostenibile", asse: "analitico", testo: "studiare i flussi di traffico di un quartiere per capire dove intervenire" },
+    { id: "mobilita-sostenibile-b", area: "mobilita-sostenibile", asse: "creativo", testo: "ripensare come una città si muove senza le auto" },
+    { id: "mobilita-sostenibile-c", area: "mobilita-sostenibile", asse: "relazionale", testo: "far incontrare le esigenze di chi cammina, chi pedala e chi guida" },
+  ],
+  "scienze-educazione": [
+    { id: "scienze-educazione-a", area: "scienze-educazione", asse: "relazionale", testo: "far capire una cosa difficile a qualcuno che si era arreso" },
+    { id: "scienze-educazione-b", area: "scienze-educazione", asse: "creativo", testo: "inventare un modo diverso di spiegare che tenesse tutti svegli" },
+    { id: "scienze-educazione-c", area: "scienze-educazione", asse: "operativo", testo: "organizzare un'attività per un gruppo e farla filare liscia" },
+  ],
+  "comunicazione-media": [
+    { id: "comunicazione-media-a", area: "comunicazione-media", asse: "creativo", testo: "raccontare una storia complicata in modo che la capisse chiunque" },
+    { id: "comunicazione-media-b", area: "comunicazione-media", asse: "analitico", testo: "capire perché un messaggio non arrivava alle persone giuste" },
+    { id: "comunicazione-media-c", area: "comunicazione-media", asse: "relazionale", testo: "tenere insieme le voci diverse di un gruppo in un unico racconto" },
+  ],
+  "scienze-ricerca": [
+    { id: "scienze-ricerca-a", area: "scienze-ricerca", asse: "analitico", testo: "rifare un esperimento finché il dato non ha smesso di mentire" },
+    { id: "scienze-ricerca-b", area: "scienze-ricerca", asse: "creativo", testo: "trovare una spiegazione che nessuno aveva ancora considerato" },
+    { id: "scienze-ricerca-c", area: "scienze-ricerca", asse: "operativo", testo: "costruire lo strumento che serviva per misurare una cosa" },
+  ],
+  "sicurezza-difesa": [
+    { id: "sicurezza-difesa-a", area: "sicurezza-difesa", asse: "analitico", testo: "accorgerti di cosa non tornava in una situazione prima degli altri" },
+    { id: "sicurezza-difesa-b", area: "sicurezza-difesa", asse: "operativo", testo: "tenere sotto controllo che tutto filasse in un evento affollato" },
+    { id: "sicurezza-difesa-c", area: "sicurezza-difesa", asse: "relazionale", testo: "calmare una situazione tesa senza alzare la voce" },
+  ],
+  "lingue-relazioni-internazionali": [
+    { id: "lingue-relazioni-internazionali-a", area: "lingue-relazioni-internazionali", asse: "relazionale", testo: "fare da ponte tra due persone che non si capivano" },
+    { id: "lingue-relazioni-internazionali-b", area: "lingue-relazioni-internazionali", asse: "creativo", testo: "trovare le parole giuste per dire una cosa in un'altra lingua" },
+    { id: "lingue-relazioni-internazionali-c", area: "lingue-relazioni-internazionali", asse: "analitico", testo: "capire le regole nascoste di una cultura diversa dalla tua" },
+  ],
+  "studi-umanistici-beni-culturali": [
+    { id: "studi-umanistici-beni-culturali-a", area: "studi-umanistici-beni-culturali", asse: "analitico", testo: "ricostruire una storia mettendo in fila documenti di due secoli fa" },
+    { id: "studi-umanistici-beni-culturali-b", area: "studi-umanistici-beni-culturali", asse: "relazionale", testo: "far appassionare qualcuno a qualcosa che credeva noioso" },
+    { id: "studi-umanistici-beni-culturali-c", area: "studi-umanistici-beni-culturali", asse: "creativo", testo: "dare nuova vita a un oggetto antico raccontandolo in modo diverso" },
+  ],
+};
+
+// Re-export del ponte area→missione (definito in lib/test/missioni.ts, che riusa
+// le areeCandidate delle missioni Escape) per comodità di import dai consumatori T3.
+export { missionePerArea } from "./missioni";
+export type { MissioneSuggerita } from "./missioni";

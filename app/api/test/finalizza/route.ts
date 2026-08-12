@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getTest } from "@/lib/test/config";
-import { calcolaEvidenzeTest, calcolaEvidenzeT2 } from "@/lib/test/scoring";
+import { getTest, SLUG_T3 } from "@/lib/test/config";
+import { calcolaEvidenzeTest, calcolaEvidenzeT2, calcolaEvidenzeT3 } from "@/lib/test/scoring";
+import { T3_FROZEN_ITEM_ID, type CandidateCongelate } from "@/lib/test/assembla-t3";
 
 export const runtime = "nodejs";
 
@@ -46,7 +47,17 @@ export async function POST(request: NextRequest) {
   // scoring deterministico → prove (gestisce negativi, scelte forzate e assi/aree
   // sotto zero, che semplicemente non generano prove). T1 misura le aree, T2 gli assi.
   let evidenze;
-  if (test?.misura === "assi") {
+  if (attempt.test_slug === SLUG_T3) {
+    // T3: riassembla dagli item congelati (mai rilette da area_signal) + risposte.
+    const frozen = (righe ?? []).find((r) => r.item_id === T3_FROZEN_ITEM_ID);
+    const congelate = (frozen?.payload as CandidateCongelate | undefined) ?? { candidate: [], asseDominante: null };
+    const risposte = new Map<string, { opzioneId?: string }>();
+    for (const r of righe ?? []) {
+      if (r.item_id === T3_FROZEN_ITEM_ID) continue;
+      risposte.set(r.item_id, (r.payload as { opzioneId?: string }) ?? {});
+    }
+    evidenze = calcolaEvidenzeT3(congelate, attempt.id, risposte).evidenze;
+  } else if (test?.misura === "assi") {
     const risposte = new Map<string, { opzioneId?: string; ordine?: string[]; allocazioni?: Record<string, number>; valore?: number }>();
     for (const r of righe ?? []) risposte.set(r.item_id, (r.payload as { opzioneId?: string; ordine?: string[]; allocazioni?: Record<string, number>; valore?: number }) ?? {});
     evidenze = calcolaEvidenzeT2(attempt.test_slug, risposte);
