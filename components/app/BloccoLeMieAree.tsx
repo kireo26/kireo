@@ -14,7 +14,7 @@ export type AreaInteresse = { slug: string; nome: string; icona: string };
 // segnaposto di /api/guida/<area> (fallback).
 export default function BloccoLeMieAree({ aree, areeConGuida1 = [] }: { aree: AreaInteresse[]; areeConGuida1?: string[] }) {
   function handleScaricaGuida(slug: string) {
-    registraAttivita(slug, "download_guida");
+    registraAttivita(slug, "download_guida", 1);
     const url = areeConGuida1.includes(slug) ? `/guide/${slug}/1.pdf` : `/api/guida/${slug}`;
     window.location.assign(url);
   }

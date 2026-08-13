@@ -75,7 +75,7 @@ export default function GuidaAreaForm({ areaNome, areaSlug, pdfRealeUrl }: { are
       body: JSON.stringify({ nome, cognome, email: email.trim(), areaSlug }),
     }).catch(() => {});
 
-    registraAttivita(areaSlug, "download_guida");
+    registraAttivita(areaSlug, "download_guida", 1);
   }
 
   if (inviato) {

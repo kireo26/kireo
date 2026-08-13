@@ -31,7 +31,7 @@ export default function CardGuida({
 
   function apri() {
     if (!apribile) return;
-    registraAttivita(guida.areaSlug, "download_guida");
+    registraAttivita(guida.areaSlug, "download_guida", guida.livello);
     window.open(guida.pdf, "_blank", "noopener,noreferrer");
   }
 
