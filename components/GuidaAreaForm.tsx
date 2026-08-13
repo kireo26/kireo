@@ -13,7 +13,11 @@ const CLASSI = [
   { value: "5", label: "5° anno" },
 ];
 
-export default function GuidaAreaForm({ areaNome, areaSlug }: { areaNome: string; areaSlug: string }) {
+// `pdfRealeUrl` (opzionale): URL del PDF reale della Guida 1 (Panoramica) se già
+// caricato in public/guide/<area>/1.pdf. Dove c'è, il download punta a quello;
+// dove manca, resta il segnaposto generato da /api/guida/<area> (fallback,
+// nessuna rimozione del meccanismo esistente).
+export default function GuidaAreaForm({ areaNome, areaSlug, pdfRealeUrl }: { areaNome: string; areaSlug: string; pdfRealeUrl?: string }) {
   const [nome, setNome] = useState("");
   const [cognome, setCognome] = useState("");
   const [email, setEmail] = useState("");
@@ -58,10 +62,9 @@ export default function GuidaAreaForm({ areaNome, areaSlug }: { areaNome: string
 
     setInviato(true);
 
-    // Download immediato: un segnaposto chiaramente marcato come tale, non
-    // ancora la guida reale (vedi report della sessione). Content-Disposition
-    // attachment fa scaricare senza lasciare la pagina.
-    window.location.href = `/api/guida/${areaSlug}`;
+    // Download immediato: il PDF reale della Guida 1 dove esiste, altrimenti il
+    // segnaposto generato da /api/guida/<area> (chiaramente marcato come tale).
+    window.location.href = pdfRealeUrl ?? `/api/guida/${areaSlug}`;
 
     // Follow-up via email: predisposto ma non ancora collegato a un invio
     // reale (nessun provider email configurato, vedi report). Non blocca

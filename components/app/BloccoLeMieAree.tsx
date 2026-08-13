@@ -9,10 +9,14 @@ export type AreaInteresse = { slug: string; nome: string; icona: string };
 // Estratto dal blocco già presente nella vecchia Home minima: stesso
 // markup, ora riusabile (Home e pagina Aree), con azioni rapide per chip
 // (Scarica la guida / Parla con l'assistente).
-export default function BloccoLeMieAree({ aree }: { aree: AreaInteresse[] }) {
+// `areeConGuida1`: slug delle aree con il PDF reale della Guida 1 già caricato
+// (calcolato server-side). Dove c'è, il chip apre quello; dove manca, resta il
+// segnaposto di /api/guida/<area> (fallback).
+export default function BloccoLeMieAree({ aree, areeConGuida1 = [] }: { aree: AreaInteresse[]; areeConGuida1?: string[] }) {
   function handleScaricaGuida(slug: string) {
     registraAttivita(slug, "download_guida");
-    window.location.href = `/api/guida/${slug}`;
+    const url = areeConGuida1.includes(slug) ? `/guide/${slug}/1.pdf` : `/api/guida/${slug}`;
+    window.location.assign(url);
   }
 
   return (

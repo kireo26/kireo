@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ButtonLink } from "@/components/Button";
 import SectionHeading from "@/components/SectionHeading";
 import GuidaAreaForm from "@/components/GuidaAreaForm";
+import { guidaPdfEsiste } from "@/lib/guide/disponibilita";
 import ArticoloCard from "@/components/news/ArticoloCard";
 import CardEvento from "@/components/app/CardEvento";
 import CardEnte from "@/components/app/CardEnte";
@@ -167,7 +168,7 @@ export default async function AreaPage({ params }: { params: Promise<{ slug: str
           </p>
         </div>
         <div className="mt-10">
-          <GuidaAreaForm areaNome={area.nome} areaSlug={area.slug} />
+          <GuidaAreaForm areaNome={area.nome} areaSlug={area.slug} pdfRealeUrl={guidaPdfEsiste(area.slug, 1) ? `/guide/${area.slug}/1.pdf` : undefined} />
         </div>
       </section>
 
