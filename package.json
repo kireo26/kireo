@@ -10,7 +10,8 @@
     "test:copertura": "node scripts/verifica-copertura-test.js",
     "test:assi": "node scripts/verifica-bilanciamento-assi.js",
     "test:t2": "node scripts/verifica-test-t2.js",
-    "test:t3": "node scripts/verifica-t3.js"
+    "test:t3": "node scripts/verifica-t3.js",
+    "test:guide": "node scripts/verifica-guide.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.112.5",

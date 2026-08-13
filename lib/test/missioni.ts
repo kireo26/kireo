@@ -16,6 +16,13 @@ import { REGISTRO_MISSIONI_AREE } from "@/lib/escape/config";
 
 export type MissioneSuggerita = { slug: string; titolo: string };
 
+// Slug delle missioni del «blocco» di un'area: tutte quelle che elencano l'area
+// tra le `areeCandidate`. Usato dalle Guide per «≥1 missione del blocco
+// completata» (si interseca con i mission_attempt completati dello studente).
+export function missioniDelBlocco(areaSlug: string): string[] {
+  return REGISTRO_MISSIONI_AREE.filter((m) => m.areeCandidate.includes(areaSlug)).map((m) => m.slug);
+}
+
 export function missionePerArea(areaSlug: string): MissioneSuggerita | null {
   let migliore: { slug: string; titolo: string; indice: number; ampiezza: number } | null = null;
   for (const m of REGISTRO_MISSIONI_AREE) {
