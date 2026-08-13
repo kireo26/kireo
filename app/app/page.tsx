@@ -9,7 +9,7 @@ import HeaderSaluto from "@/components/app/HeaderSaluto";
 import CardProssimaTappa from "@/components/app/CardProssimaTappa";
 import RadarAttitudinale from "@/components/app/RadarAttitudinale";
 import BloccoLeMieAree, { type AreaInteresse } from "@/components/app/BloccoLeMieAree";
-import { areeConGuida1Reale } from "@/lib/guide/disponibilita";
+import { areeConGuida1Pronte } from "@/lib/guide/config";
 import ContatorePCTO from "@/components/app/ContatorePCTO";
 import StrisciaProssimoEvento from "@/components/app/StrisciaProssimoEvento";
 import CardEventiPerTe from "@/components/app/CardEventiPerTe";
@@ -92,7 +92,7 @@ export default async function AreaPersonaleHome() {
         </div>
 
         <div className="flex flex-col gap-6">
-          <BloccoLeMieAree aree={areeInteresse} areeConGuida1={areeConGuida1Reale()} />
+          <BloccoLeMieAree aree={areeInteresse} areeConGuida1={areeConGuida1Pronte()} />
           <CardEventiPerTe eventi={eventiPerTe} />
           <ContatorePCTO oreCertificate={oreCertificate} />
         </div>

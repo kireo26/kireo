@@ -3,8 +3,7 @@ import { notFound } from "next/navigation";
 import { getAppContext } from "@/lib/app/studentContext";
 import { createClient } from "@/lib/supabase/server";
 import { getAreaBySlug } from "@/data/aree";
-import { guideDiArea, statoSblocco, GATE_GUIDE_ATTIVO } from "@/lib/guide/config";
-import { guidaPdfEsiste } from "@/lib/guide/disponibilita";
+import { guideDiArea, statoSblocco, GATE_GUIDE_ATTIVO, guidaPronta } from "@/lib/guide/config";
 import { caricaContestoGuide } from "@/lib/guide/statoStudente";
 import CardGuida from "@/components/app/CardGuida";
 
@@ -24,7 +23,7 @@ export default async function GuideAreaPage({ params }: { params: Promise<{ area
 
   const guide = guideDiArea(areaSlug).map((g) => {
     const sb = statoSblocco(g.livello, segnale);
-    return { guida: g, disponibile: guidaPdfEsiste(areaSlug, g.livello), sbloccata: sb.sbloccata, motivo: sb.motivo };
+    return { guida: g, disponibile: guidaPronta(areaSlug, g.livello), sbloccata: sb.sbloccata, motivo: sb.motivo };
   });
 
   return (

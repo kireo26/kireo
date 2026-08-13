@@ -7,9 +7,10 @@
 //
 // I PDF sono prodotti a parte (stile KIREO) e vivono in public/guide/<area>/
 // <livello>.pdf — serviti staticamente da Vercel, stesso pattern dei kit
-// workshop (public/materiali/...). La disponibilità del FILE si verifica a
-// parte, server-side (lib/guide/disponibilita.ts): questo config descrive le
-// guide che CONCETTUALMENTE esistono, i loro titoli e la regola di sblocco.
+// workshop (public/materiali/...). La disponibilità del FILE è dichiarata in
+// GUIDE_PRONTE (sotto), non letta con fs: deterministica e indipendente
+// dall'ambiente. Questo config descrive le guide che CONCETTUALMENTE esistono,
+// i loro titoli, la disponibilità del PDF e la regola di sblocco.
 //
 // I titoli dei tre livelli sono fissi; i sottotitoli sono generati dal nome
 // dell'area, con override opzionali per-area in GUIDE_OVERRIDE (personalizzare
@@ -57,6 +58,30 @@ export function guideDiArea(areaSlug: string): Guida[] {
 }
 
 export const TUTTE_LE_GUIDE: Guida[] = AREE.flatMap((a) => guideDiArea(a.slug));
+
+// ─────────────────────────────────────────── Disponibilità del PDF (config, non fs)
+//
+// Quali guide hanno il PDF reale già caricato in public/guide/<area>/<livello>.pdf.
+// DELIBERATAMENTE dichiarato qui, non letto con fs.existsSync: su Vercel i file di
+// public/ sono serviti dalla CDN ma NON sono garantiti nel filesystem della
+// funzione serverless a runtime, quindi una lettura fs sarebbe non deterministica
+// in produzione. Rendere una guida disponibile = caricare il PDF nel repo E
+// aggiungere/estendere la sua riga qui (una riga, coerente col resto del config).
+//
+// Esempio, quando i PDF dell'informatica sono nel repo:
+//   "informatica-digitale": [1, 2, 3],
+export const GUIDE_PRONTE: Record<string, LivelloGuida[]> = {};
+
+export function guidaPronta(areaSlug: string, livello: LivelloGuida): boolean {
+  return (GUIDE_PRONTE[areaSlug] ?? []).includes(livello);
+}
+
+// Slug delle aree con il PDF reale della Guida 1 (Panoramica) già pronto: il
+// lead-magnet pubblico e il chip «Scarica la guida» ci puntano dove esiste,
+// tenendo il segnaposto /api/guida/<area> come fallback altrove.
+export function areeConGuida1Pronte(): string[] {
+  return AREE.map((a) => a.slug).filter((s) => guidaPronta(s, 1));
+}
 
 // ─────────────────────────────────────────── Regola di sblocco (gate)
 //

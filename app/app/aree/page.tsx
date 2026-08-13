@@ -3,7 +3,7 @@ import { getAppContext } from "@/lib/app/studentContext";
 import { createClient } from "@/lib/supabase/server";
 import { AREE } from "@/data/aree";
 import BloccoLeMieAree, { type AreaInteresse } from "@/components/app/BloccoLeMieAree";
-import { areeConGuida1Reale } from "@/lib/guide/disponibilita";
+import { areeConGuida1Pronte } from "@/lib/guide/config";
 
 export default async function AreeAppPage() {
   const contesto = await getAppContext();
@@ -31,7 +31,7 @@ export default async function AreeAppPage() {
         <p className="mt-2 text-kireo-muted">Esplora tutte le aree, o rivedi quelle che ti incuriosiscono.</p>
       </div>
 
-      <BloccoLeMieAree aree={areeInteresse} areeConGuida1={areeConGuida1Reale()} />
+      <BloccoLeMieAree aree={areeInteresse} areeConGuida1={areeConGuida1Pronte()} />
 
       <div>
         <h2 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">Tutte le aree</h2>

@@ -31,7 +31,7 @@ require.extensions[".ts"] = require.extensions[".tsx"] = function (mod, filename
   return mod._compile(out.outputText, filename);
 };
 
-const { statoSblocco, guideDiArea, TUTTE_LE_GUIDE, SOGLIA_L2_INTEREST, SOGLIA_L3_INTEREST } = require("@/lib/guide/config");
+const { statoSblocco, guideDiArea, TUTTE_LE_GUIDE, SOGLIA_L2_INTEREST, SOGLIA_L3_INTEREST, GUIDE_PRONTE, guidaPronta, areeConGuida1Pronte } = require("@/lib/guide/config");
 const { AREE } = require("@/data/aree");
 
 let falliti = 0;
@@ -78,6 +78,18 @@ for (const a of AREE) {
   if (g.some((x) => !x.titolo || !x.sottotitolo)) strutturaOk = false;
 }
 ok(strutturaOk, "ogni area: 3 guide (livelli 1/2/3), percorso PDF /guide/<area>/<livello>.pdf, titoli non vuoti");
+
+// ── Disponibilità config-driven (non fs) ──────────────────────────────────────
+console.log("\n5) Disponibilità dichiarata da config (GUIDE_PRONTE)");
+// guidaPronta riflette esattamente la mappa, per ogni area/livello.
+let coerente = true;
+for (const a of AREE) for (const liv of [1, 2, 3]) {
+  const atteso = (GUIDE_PRONTE[a.slug] ?? []).includes(liv);
+  if (guidaPronta(a.slug, liv) !== atteso) coerente = false;
+}
+ok(coerente, "guidaPronta() coincide con GUIDE_PRONTE per ogni area/livello");
+ok(areeConGuida1Pronte().every((s) => guidaPronta(s, 1)), "areeConGuida1Pronte(): solo aree con la Guida 1 dichiarata pronta");
+ok(areeConGuida1Pronte().length === AREE.filter((a) => (GUIDE_PRONTE[a.slug] ?? []).includes(1)).length, "areeConGuida1Pronte(): conteggio coerente con la mappa");
 
 console.log("");
 if (falliti > 0) { console.error(`✗ ${falliti} verifiche fallite`); process.exit(1); }

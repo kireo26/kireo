@@ -2,8 +2,7 @@ import Link from "next/link";
 import { getAppContext } from "@/lib/app/studentContext";
 import { createClient } from "@/lib/supabase/server";
 import { AREE } from "@/data/aree";
-import { guideDiArea, statoSblocco, GATE_GUIDE_ATTIVO } from "@/lib/guide/config";
-import { guidaPdfEsiste } from "@/lib/guide/disponibilita";
+import { guideDiArea, statoSblocco, GATE_GUIDE_ATTIVO, guidaPronta } from "@/lib/guide/config";
 import { caricaContestoGuide } from "@/lib/guide/statoStudente";
 
 export const metadata = { title: "Guide di orientamento — KIREO" };
@@ -20,7 +19,7 @@ export default async function GuideHome() {
   const righe = AREE.map((a) => {
     const guide = guideDiArea(a.slug);
     const s = ctx.segnale(a.slug);
-    const disponibili = guide.filter((g) => guidaPdfEsiste(a.slug, g.livello)).length;
+    const disponibili = guide.filter((g) => guidaPronta(a.slug, g.livello)).length;
     const sbloccate = guide.filter((g) => statoSblocco(g.livello, s).sbloccata).length;
     return { slug: a.slug, nome: a.nome, icona: a.icona, disponibili, sbloccate };
   });
