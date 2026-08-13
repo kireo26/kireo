@@ -68,9 +68,9 @@ export const TUTTE_LE_GUIDE: Guida[] = AREE.flatMap((a) => guideDiArea(a.slug));
 // in produzione. Rendere una guida disponibile = caricare il PDF nel repo E
 // aggiungere/estendere la sua riga qui (una riga, coerente col resto del config).
 //
-// Esempio, quando i PDF dell'informatica sono nel repo:
-//   "informatica-digitale": [1, 2, 3],
-export const GUIDE_PRONTE: Record<string, LivelloGuida[]> = {};
+export const GUIDE_PRONTE: Record<string, LivelloGuida[]> = {
+  "informatica-digitale": [1, 2, 3], // PDF in public/guide/informatica-digitale/{1,2,3}.pdf
+};
 
 export function guidaPronta(areaSlug: string, livello: LivelloGuida): boolean {
   return (GUIDE_PRONTE[areaSlug] ?? []).includes(livello);
