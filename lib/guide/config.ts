@@ -70,6 +70,23 @@ export const TUTTE_LE_GUIDE: Guida[] = AREE.flatMap((a) => guideDiArea(a.slug));
 //
 export const GUIDE_PRONTE: Record<string, LivelloGuida[]> = {
   "informatica-digitale": [1, 2, 3], // PDF in public/guide/informatica-digitale/{1,2,3}.pdf
+  "salute-professioni-sanitarie": [1],
+  "ristorazione-turismo": [1],
+  "meccanica-meccatronica": [1],
+  "agrifood-ambiente": [1],
+  "arte-design-moda": [1],
+  "musica-spettacolo": [1],
+  "energia-sostenibilita": [1],
+  "edilizia-architettura": [1],
+  "economia-management": [1],
+  "giurisprudenza-pa": [1],
+  "mobilita-sostenibile": [1],
+  "scienze-educazione": [1],
+  "comunicazione-media": [1],
+  "scienze-ricerca": [1],
+  "sicurezza-difesa": [1],
+  "lingue-relazioni-internazionali": [1],
+  "studi-umanistici-beni-culturali": [1],
 };
 
 export function guidaPronta(areaSlug: string, livello: LivelloGuida): boolean {
