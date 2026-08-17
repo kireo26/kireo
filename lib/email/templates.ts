@@ -2,6 +2,8 @@
 // compatibilità coi client di posta — niente CSS esterno, niente dark
 // theme del sito: uno sfondo chiaro resta il più leggibile ovunque).
 
+import { SITE_URL } from "@/lib/site";
+
 function involucroEmail(contenuto: string): string {
   return `<!doctype html>
 <html lang="it">
@@ -21,8 +23,10 @@ function involucroEmail(contenuto: string): string {
               </td>
             </tr>
             <tr>
-              <td style="padding:0 32px 24px;font-size:12px;color:#9A9890;">
+              <td style="padding:0 32px 24px;font-size:12px;color:#9A9890;line-height:1.6;">
                 KIREO — Orientamento. Direzione. Futuro. — kireo.it
+                <br />
+                <a href="${SITE_URL}/disiscrizione" style="color:#9A9890;text-decoration:underline;">Disiscriviti dalle comunicazioni facoltative</a>
               </td>
             </tr>
           </table>

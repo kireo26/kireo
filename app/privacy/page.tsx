@@ -14,17 +14,17 @@ const SEZIONI = [
   {
     titolo: "2. Tipologie di dati raccolti",
     testo:
-      "Raccogliamo dati anagrafici e di contatto (nome, cognome, email), dati relativi al profilo (interessi, percorso di studio, ruolo) e dati di navigazione raccolti automaticamente durante l'utilizzo del sito.",
+      "Raccogliamo dati anagrafici e di contatto (nome, cognome, data di nascita, email), dati relativi al profilo (interessi, percorso di studio, ruolo) e dati di navigazione raccolti automaticamente durante l'utilizzo del sito. La data di nascita è richiesta in fase di registrazione ed è necessaria sia per verificare l'età minima di iscrizione, sia per verificare la maggiore età prima dell'invio di eventuali comunicazioni facoltative.",
   },
   {
     titolo: "3. Finalità del trattamento",
     testo:
-      "I dati sono trattati per gestire l'iscrizione e l'utilizzo della piattaforma, rispondere alle richieste di contatto, generare i giustificativi PCTO e inviare comunicazioni relative al servizio, previo consenso.",
+      "I dati sono trattati per gestire l'iscrizione e l'utilizzo della piattaforma, rispondere alle richieste di contatto, generare i giustificativi PCTO e inviare comunicazioni relative al servizio. La data di nascita è inoltre trattata per verificare la maggiore età dell'interessato prima dell'invio di comunicazioni facoltative (promemoria, aggiornamenti sul percorso, newsletter), che vengono inviate solo previo consenso e solo agli utenti maggiorenni.",
   },
   {
     titolo: "4. Base giuridica",
     testo:
-      "Il trattamento si basa sull'esecuzione di un contratto o di misure precontrattuali richieste dall'interessato, sul consenso esplicito per finalità di comunicazione facoltative e sul legittimo interesse del Titolare. Per gli studenti minorenni (a partire dai 14 anni, età minima per l'iscrizione), la base di legittimazione è rafforzata dalla convenzione tra KIREO e la scuola secondaria superiore di appartenenza: il referente scolastico verifica l'identità e l'iscrizione effettiva dello studente alla propria scuola prima che i dati del profilo siano utilizzabili nell'ambito delle attività PCTO, a garanzia che il trattamento avvenga in un contesto istituzionale controllato.",
+      "Il trattamento si basa sull'esecuzione di un contratto o di misure precontrattuali richieste dall'interessato, sul consenso esplicito per finalità di comunicazione facoltative e sul legittimo interesse del Titolare. Il trattamento della data di nascita per la verifica della maggiore età prima dell'invio di comunicazioni facoltative risponde in particolare al legittimo interesse del Titolare a tutelare i minori, non destinatari di tali comunicazioni. Per gli studenti minorenni (a partire dai 14 anni, età minima per l'iscrizione), la base di legittimazione è rafforzata dalla convenzione tra KIREO e la scuola secondaria superiore di appartenenza: il referente scolastico verifica l'identità e l'iscrizione effettiva dello studente alla propria scuola prima che i dati del profilo siano utilizzabili nell'ambito delle attività PCTO, a garanzia che il trattamento avvenga in un contesto istituzionale controllato.",
   },
   {
     titolo: "5. Modalità di trattamento e conservazione dei dati",
