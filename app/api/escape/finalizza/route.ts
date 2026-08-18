@@ -61,6 +61,15 @@ export async function POST(request: NextRequest) {
   // prove strutturate, la missione si completa comunque)
   const apiKey = process.env.ANTHROPIC_API_KEY;
   const anthropic = apiKey ? new Anthropic({ apiKey }) : null;
+  // Fix E: senza chiave, gli step aperti (proposta, riflessione, «non
+  // approfondire») vengono SALTATI in silenzio — nessuna prova di Bravura dalla
+  // proposta, per esempio. Prima non lo sapeva nessuno; ora resta traccia con
+  // studente/missione/causa. (Il caso in cui la chiave c'è ma la chiamata FALLISCE
+  // è già loggato in chiamaHaikuJson.) È un guasto di configurazione, non dello
+  // studente: la missione si completa comunque, con le sole prove strutturate.
+  if (!anthropic) {
+    console.error(`Escape Fix E — ANTHROPIC_API_KEY assente: prove aperte NON calcolate. studente=${user.id} missione=${attempt.mission_slug} attempt=${attempt.id}`);
+  }
   const evidenze = await calcolaEvidenze(mission, risposte, anthropic);
 
   // persiste prove + aggrega profilo (idempotente)
