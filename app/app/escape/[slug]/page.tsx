@@ -54,9 +54,12 @@ export default async function MissionePage({ params }: { params: Promise<{ slug:
 
   // Completata: restituzione narrativa (v2) + profilo aggregato + motivazioni.
   if (attempt.stato === "completata") {
-    // Solo le prove d'AREA (asse null): le prove di STILE (T2/missioni) vivono
-    // in style_signal e hanno la loro pagina, non devono affollare l'esito missione.
-    const { data: prove } = await supabase.from("evidence").select("area_slug, motivazione, peso").eq("attempt_id", attempt.id).is("asse", null);
+    // Solo le prove d'AREA (categoria='area'): lo STILE vive in style_signal e ha
+    // la sua pagina; la QUALITÀ DI MISSIONE va nel blocco «come hai ragionato»
+    // (sotto); l'ESPLORAZIONE non ha consumatore. Fix B: inclusione DICHIARATA
+    // (categoria) al posto del proxy `.is("asse", null)`, che pescava anche
+    // esplorazione e qualita_missione (area+asse entrambi null).
+    const { data: prove } = await supabase.from("evidence").select("area_slug, motivazione, peso").eq("attempt_id", attempt.id).eq("categoria", "area");
     const areeToccate = Array.from(new Set((prove ?? []).map((p) => p.area_slug).filter((a): a is string => Boolean(a))));
 
     // "Perché lo diciamo": una riga per AZIONE, non una per coppia azione-area.
@@ -110,6 +113,27 @@ export default async function MissionePage({ params }: { params: Promise<{ slug:
     const areeTop: AreaTop[] = aree.slice(0, 3).map((a) => ({ slug: a.slug, nome: a.nome, status: a.status }));
     const restituzione = costruisciRestituzione(slug, accessoreDaMappa(mappa), areeTop);
 
+    // «Come hai ragionato»: SOLO le performance di qualità di missione
+    // (categoria 'qualita_missione', dimensione 'performance') — osservazioni sul
+    // METODO senza area. Le self_efficacy della stessa categoria («ti sei sentito
+    // a tuo agio…», «ti eri dato una fiducia prudente») sono «come si è sentito
+    // lui», NON come ha ragionato: sotto l'intestazione «osservazioni sul tuo
+    // metodo» sarebbero un'affermazione falsa → escluse.
+    //   self_efficacy in qualita_missione: NESSUN CONSUMATORE ATTUALE, in attesa
+    //   del Fix C (motivazione per-area, poi tornano evidenza d'area). Restano
+    //   scritte in DB ma non mostrate.
+    // Motivazioni deduplicate, le 6 di peso maggiore.
+    const { data: proveQualita } = await supabase.from("evidence").select("motivazione, peso").eq("attempt_id", attempt.id).eq("categoria", "qualita_missione").eq("dimensione", "performance");
+    const ragionamento = Array.from(
+      (proveQualita ?? []).reduce((m, p) => {
+        if (p.motivazione) m.set(p.motivazione, Math.max(m.get(p.motivazione) ?? 0, Number(p.peso) || 0));
+        return m;
+      }, new Map<string, number>()),
+    )
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([testo]) => testo);
+
     return (
       <div className="space-y-6">
         {Intestazione}
@@ -121,7 +145,7 @@ export default async function MissionePage({ params }: { params: Promise<{ slug:
             <IniziaMissione missionSlug={slug} etichetta="Rigioca la missione" />
           </div>
         </div>
-        <EsitoMissione titolo={mission.titolo} restituzione={restituzione} aree={aree} spiegazioni={spiegazioni} />
+        <EsitoMissione titolo={mission.titolo} restituzione={restituzione} aree={aree} spiegazioni={spiegazioni} ragionamento={ragionamento} />
       </div>
     );
   }

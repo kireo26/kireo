@@ -54,11 +54,15 @@ export default function EsitoMissione({
   restituzione,
   aree,
   spiegazioni,
+  ragionamento,
 }: {
   titolo: string;
   restituzione: Restituzione;
   aree: AreaEsito[];
   spiegazioni: { testo: string; aree: string[] }[];
+  // Qualità di missione (categoria 'qualita_missione'): osservazioni sul METODO,
+  // senza area. È il consumatore dichiarato di quella categoria.
+  ragionamento: string[];
 }) {
   return (
     <div className="space-y-5">
@@ -116,6 +120,18 @@ export default function EsitoMissione({
                 {s.testo}
                 {s.aree.length > 0 && <span className="text-kireo-muted"> → {s.aree.join(", ")}</span>}
               </li>
+            ))}
+          </ul>
+        </details>
+      )}
+
+      {ragionamento.length > 0 && (
+        <details className="rounded-2xl border border-white/5 bg-kireo-card p-6">
+          <summary className="cursor-pointer font-heading text-base font-semibold text-kireo-light">Come hai ragionato</summary>
+          <p className="mt-2 text-xs text-kireo-muted">Osservazioni sul tuo metodo, non su un&apos;area: come hai deciso, cosa hai scelto di non sapere, come hai ordinato le priorità.</p>
+          <ul className="mt-3 space-y-2 text-sm text-kireo-light/90">
+            {ragionamento.map((r, i) => (
+              <li key={i} className="rounded-lg bg-white/5 px-3 py-2">{r}</li>
             ))}
           </ul>
         </details>
