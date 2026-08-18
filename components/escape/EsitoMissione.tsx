@@ -54,18 +54,23 @@ function descrizioneNonMisurata(chiave: ChiaveDim, propostaValutata: boolean): N
         corpo: "La leggiamo dai compiti che scegli di prenderti in prima persona: in quest'area non te ne è ancora capitato uno.",
       };
     case "interest":
-      // PROVVISORIA (non ancora approvata da Mario): microcopy per interest NULL
-      // non era nelle tre stringhe approvate. L'interesse è raramente NULL su
-      // un'area mostrata (l'area è mostrata perché toccata), ma può esserlo.
+      // TRANSITORIA (approvata, ma in via di estinzione): con l'item 3 (classifica
+      // per eleggibilità) un'area senza segnale d'interesse NON è «affine» e non
+      // riceve più una card piena — finisce nell'elenco delle aree sfiorate. Dopo
+      // l'item 3 questa stringa sarà quasi irraggiungibile: serve ancora per i casi
+      // limite, ma NON costruirci sopra nulla. La rinuncia («metti qualcosa davanti
+      // a qualcos'altro») è ciò che rende informativo il segnale d'interesse
+      // (priorità/budget/scarti/ruoli): la si nomina apposta.
       return {
         heading: "Interesse — non ancora misurato.",
-        corpo: "Lo leggiamo da cosa scegli di mettere al centro delle tue decisioni: in quest'area non è ancora emerso.",
+        corpo: "Lo leggiamo dalle scelte in cui metti qualcosa davanti a qualcos'altro: in quest'area non ne è ancora arrivata una.",
       };
     case "curiosity":
-      // PROVVISORIA (non ancora approvata da Mario): idem interest.
+      // Il vincolo (i gettoni sono pochi) è la ragione per cui quella scelta dice
+      // qualcosa: esplicitato apposta.
       return {
         heading: "Curiosità — non ancora misurata.",
-        corpo: "La leggiamo da cosa vai ad approfondire quando puoi scegliere: in quest'area non hai ancora aperto una pista.",
+        corpo: "La leggiamo da cosa scegli di approfondire quando non puoi approfondire tutto: in quest'area non hai ancora aperto una pista.",
       };
   }
 }

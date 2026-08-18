@@ -70,6 +70,15 @@ export default async function MissionePage({ params }: { params: Promise<{ slug:
     // s4_proposta viene emessa → qui risulterebbe «non letta». Caso degenere raro
     // (il revisore restituisce quasi sempre aree in whitelist); documentato per il
     // Fix C/E, non gestito con stato aggiuntivo.
+    //   Se un giorno servirà la distinzione ESATTA (a costo zero, senza nuovo
+    //   stato): la step_response di 's4_proposta' dice se lo studente ha scritto.
+    //   Combinata con l'esistenza delle evidenze dà i tre casi puliti:
+    //     step_response s4_proposta | evidenze s4_proposta | significato
+    //     sì | sì → letta e attribuita
+    //     sì | no → letta ma non attribuita (o AI fallita)
+    //     no | no → non scritta
+    //   Non serve ora: «non l'abbiamo letta» resta vero abbastanza in tutti i casi
+    //   e non accusa nessuno. Il segnale c'è già, non va inventato.
     const { count: propostaCount } = await supabase
       .from("evidence")
       .select("*", { count: "exact", head: true })
