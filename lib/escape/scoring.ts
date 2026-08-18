@@ -20,7 +20,6 @@ import type {
   EscapeMission,
   EvidenceInput,
   LeggiRisposta,
-  Mandato,
   TagAsse,
   Payload,
   PayloadAlloca,
@@ -38,7 +37,7 @@ import type {
   StepPianificaLavori,
   VoceBudget,
 } from "./tipi";
-import { mandatoScelto, materialiLetti, stepDellaMissione, valutaPiano, SLUG_ACQUA, SLUG_CANTIERE, SLUG_CLASSE, SLUG_FILIERA, SLUG_MEDIATECA, SLUG_MUSEO, SLUG_PALCO, SLUG_QUARTIERE, SLUG_SERRA, SLUG_SPORTELLO, SLUG_VIAGGIO } from "./config";
+import { materialiLetti, stepDellaMissione, valutaPiano, SLUG_ACQUA, SLUG_CANTIERE, SLUG_CLASSE, SLUG_FILIERA, SLUG_MEDIATECA, SLUG_MUSEO, SLUG_PALCO, SLUG_QUARTIERE, SLUG_SERRA, SLUG_SPORTELLO, SLUG_VIAGGIO } from "./config";
 
 const MODELLO_ESCAPE = "claude-haiku-4-5"; // stesso modello provato in prod (workshop/assistente)
 
@@ -67,7 +66,17 @@ function sanitizzaEvidenze(evidenze: EvidenceInput[]): EvidenceInput[] {
     const valore = Number.isFinite(e.valore) ? Math.max(0, Math.min(1, e.valore)) : 0;
     const peso = Number.isFinite(e.peso) && e.peso > 0 ? e.peso : PESO_MINIMO;
     const motivazione = (typeof e.motivazione === "string" ? e.motivazione.trim() : "") || "Segnale rilevato durante la missione.";
-    pulite.push({ ...e, asse: e.asse ?? null, valore, peso, motivazione: motivazione.slice(0, 2000) });
+    // Categoria dichiarata: 'area'/'stile' si derivano dalle colonne (È la loro
+    // definizione); 'qualita_missione'/'esplorazione' (area+asse entrambi null)
+    // DEVONO essere esplicite al punto di emissione — una riga area+asse null
+    // senza categoria è un limbo, si scarta invece di indovinarla.
+    let categoria = e.categoria;
+    if (!categoria) {
+      if (e.area_slug !== null) categoria = "area";
+      else if (e.asse != null) categoria = "stile";
+      else continue; // limbo: area+asse null senza categoria esplicita
+    }
+    pulite.push({ ...e, asse: e.asse ?? null, valore, peso, motivazione: motivazione.slice(0, 2000), categoria });
   }
   return pulite;
 }
@@ -552,9 +561,7 @@ export async function calcolaEvidenze(
   const spec = SPEC[mission.slug] ?? SPEC[SLUG_QUARTIERE];
   const P = spec.pesi;
 
-  const mandato: Mandato | null = mandatoScelto(get);
   const letti = materialiLetti(get);
-  const areaMandato = mandato?.aree[0] ?? null;
 
   // Emette prove di STILE (asse) accanto a quelle d'area. `factor` scala il
   // valore del tag (es. la frazione di ore allocate a una voce). area_slug null:
@@ -582,7 +589,7 @@ export async function calcolaEvidenze(
         if (aperti.length > 0) {
           const haM2 = aperti.includes("M2");
           const valore = clamp01(0.3 + 0.18 * aperti.length + (haM2 ? 0.15 : 0));
-          evidenze.push({ area_slug: null, dimensione: "curiosity", valore, peso: P.esplora, motivazione: haM2 ? spec.esploraTesti.conBonus : spec.esploraTesti.base, step_id: s.id });
+          evidenze.push({ area_slug: null, categoria: "esplorazione", dimensione: "curiosity", valore, peso: P.esplora, motivazione: haM2 ? spec.esploraTesti.conBonus : spec.esploraTesti.base, step_id: s.id });
         }
         for (const id of aperti) {
           const m = s.materiali.find((x) => x.id === id);
@@ -625,8 +632,11 @@ export async function calcolaEvidenze(
           const nn = ideale.length;
           const maxSomma = Math.max(1, Math.floor((nn * nn) / 2));
           const corr = clamp01(1 - somma / maxSomma);
+          // Fix B: la qualità dell'ordinamento è qualità di missione, non
+          // competenza in un'area decisa dalla SPEC (era ordinaPerformance.area).
           evidenze.push({
-            area_slug: spec.ordinaPerformance.area,
+            area_slug: null,
+            categoria: "qualita_missione",
             dimensione: "performance",
             valore: corr,
             peso: spec.ordinaPerformance.peso,
@@ -670,9 +680,11 @@ export async function calcolaEvidenze(
           pushAssi(voce.assi, clamp01(a / maxAlloc), `Hai messo le risorse su «${voce.label.toLowerCase()}».`, s.id);
         }
         const r = spec.budgetPerformance?.({ alloc, voci: s.voci, letti, totale: s.totale });
-        const areaPerf = areaMandato ?? s.voci.find((v) => (Number(alloc[v.id]) || 0) === maxAlloc)?.aree[0] ?? null;
-        if (r && areaPerf) {
-          evidenze.push({ area_slug: areaPerf, dimensione: "performance", valore: r.valore, peso: P.budgetPerf, motivazione: r.valore >= 0.6 ? r.buona : r.migliora, step_id: s.id });
+        if (r) {
+          // Fix B: il giudizio è sull'equilibrio dell'INTERO piano, non su una
+          // voce (né sull'area del mandato, com'era con areaMandato) → qualità
+          // di missione, senza area. La budget-INTEREST resta per voce (sopra).
+          evidenze.push({ area_slug: null, categoria: "qualita_missione", dimensione: "performance", valore: r.valore, peso: P.budgetPerf, motivazione: r.valore >= 0.6 ? r.buona : r.migliora, step_id: s.id });
           // Stile: comporre un piano che sta nei vincoli è operativo (dipende
           // dalla qualità del piano, non dall'aver compilato lo step).
           pushAssi([{ asse: "operativo", valore: r.valore }], 1, "Hai composto un piano che sta nei vincoli.", s.id);
@@ -696,8 +708,9 @@ export async function calcolaEvidenze(
         }
         const rp = spec.pianoPerformance?.({ step: s, sel, letti });
         if (rp) {
-          const areaPerf = areaMandato ?? "edilizia-architettura";
-          evidenze.push({ area_slug: areaPerf, dimensione: "performance", valore: rp.valore, peso: P.budgetPerf, motivazione: rp.valore >= 0.6 ? rp.buona : rp.migliora, step_id: s.id });
+          // Fix B: qualità del piano nel suo insieme → qualità di missione, senza
+          // area (era areaMandato, o il fallback hardcoded edilizia-architettura).
+          evidenze.push({ area_slug: null, categoria: "qualita_missione", dimensione: "performance", valore: rp.valore, peso: P.budgetPerf, motivazione: rp.valore >= 0.6 ? rp.buona : rp.migliora, step_id: s.id });
           // Stile: un piano che sta nei vincoli e rispetta le dipendenze è operativo.
           pushAssi([{ asse: "operativo", valore: rp.valore }], 1, "Hai composto un piano che sta nei vincoli.", s.id);
         }
@@ -724,9 +737,12 @@ export async function calcolaEvidenze(
         // `trappolaSeScartata`, quando viene SCARTATA (es. lasciar fuori
         // l'accessibilità nel cantiere).
         const trapScattata = trappola ? (trappola.trappolaSeScartata ? scartati.has(trappola.id) : tenuti.some((o) => o.trappola)) : false;
-        const areaPerf = trappola?.aree[0] ?? "studi-umanistici-beni-culturali";
+        // Fix B: «hai visto la trappola?» è qualità di missione, non competenza
+        // in meccanica/edilizia (era trappola.aree[0], o il fallback hardcoded
+        // studi-umanistici-beni-culturali). La scarto-INTEREST resta per opzione tenuta.
         evidenze.push({
-          area_slug: areaPerf,
+          area_slug: null,
+          categoria: "qualita_missione",
           dimensione: "performance",
           valore: trapScattata ? Math.min(correttezza, 0.2) : correttezza,
           peso: P.scartoPerf,
@@ -752,19 +768,23 @@ export async function calcolaEvidenze(
         if (!testo || !anthropic) break;
 
         if (s.id === "s2_non_approfondire") {
-          if (!areaMandato) break;
+          // Fix B: nessuna dipendenza dal mandato — questo step ora emette qualità
+          // di missione (area null), non ha più bisogno di sapere qual è il mandato.
           const parsed = (await chiamaHaikuJson(anthropic, PROMPT_NON_APPROFONDIRE, testo)) as { consapevolezza?: number; motivazione?: string } | null;
           if (parsed && typeof parsed.consapevolezza === "number") {
             const v = clamp01(Number(parsed.consapevolezza));
             const mot = parsed.motivazione || "Hai saputo dire perché hai rinunciato a un'informazione: è consapevolezza del tuo metodo.";
-            evidenze.push({ area_slug: areaMandato, dimensione: "self_efficacy", valore: v, peso: P.ai, motivazione: mot, step_id: s.id });
-            evidenze.push({ area_slug: areaMandato, dimensione: "performance", valore: v, peso: P.ai, motivazione: "Sapere cosa hai deciso di non sapere è parte del mestiere.", step_id: s.id });
+            // Fix B: consapevolezza del proprio metodo = qualità di missione, non
+            // competenza/autoefficacia nell'area del mandato (era areaMandato).
+            evidenze.push({ area_slug: null, categoria: "qualita_missione", dimensione: "self_efficacy", valore: v, peso: P.ai, motivazione: mot, step_id: s.id });
+            evidenze.push({ area_slug: null, categoria: "qualita_missione", dimensione: "performance", valore: v, peso: P.ai, motivazione: "Sapere cosa hai deciso di non sapere è parte del mestiere.", step_id: s.id });
           }
           break;
         }
 
         const parsed = (await chiamaHaikuJson(anthropic, spec.promptProposta(mission.areeCandidate, { letti }), testo)) as { aree?: unknown[] } | null;
         const aree = Array.isArray(parsed?.aree) ? parsed!.aree : [];
+        let propEmesse = 0;
         for (const raw of aree) {
           const a = raw as { area_slug?: string; performance?: number; interest?: number; motivazione?: string };
           if (!a.area_slug || !mission.areeCandidate.includes(a.area_slug)) continue;
@@ -773,7 +793,13 @@ export async function calcolaEvidenze(
           const mot = typeof a.motivazione === "string" && a.motivazione ? a.motivazione : `La tua proposta valorizza ${nomeArea(a.area_slug)}.`;
           evidenze.push({ area_slug: a.area_slug, dimensione: "performance", valore: perf, peso: P.ai, motivazione: mot, step_id: s.id });
           evidenze.push({ area_slug: a.area_slug, dimensione: "interest", valore: inter, peso: P.ai, motivazione: "Un interesse al centro della tua proposta.", step_id: s.id });
-          evidenze.push({ area_slug: a.area_slug, dimensione: "self_efficacy", valore: clamp01(fiduciaDichiarata / 100), peso: P.previsione, motivazione: `Prima di scrivere ti eri dato una fiducia ${fiduciaDichiarata >= 60 ? "alta" : fiduciaDichiarata >= 40 ? "media" : "prudente"} su questo lavoro.`, step_id: s.id });
+          propEmesse++;
+        }
+        // Fix B: l'autovalutazione dichiarata prima di scrivere è UNA sola (stessa
+        // motivazione su tutte le aree candidate = moltiplicazione) → una riga di
+        // qualità di missione, senza area, invece di una per area candidata.
+        if (propEmesse > 0) {
+          evidenze.push({ area_slug: null, categoria: "qualita_missione", dimensione: "self_efficacy", valore: clamp01(fiduciaDichiarata / 100), peso: P.previsione, motivazione: `Prima di scrivere ti eri dato una fiducia ${fiduciaDichiarata >= 60 ? "alta" : fiduciaDichiarata >= 40 ? "media" : "prudente"} su questo lavoro.`, step_id: s.id });
         }
         break;
       }
@@ -815,7 +841,9 @@ export async function calcolaEvidenze(
         // Tenere (quasi) tutto per sé: segnale debole con nota. La valutazione è
         // sul contributo di ciascuno — chi fa tutto lascia gli altri senza.
         if (s.compiti.length > 0 && ioCount >= s.compiti.length - 1) {
-          evidenze.push({ area_slug: "scienze-educazione", dimensione: "performance", valore: 0.2, peso: P.scartoPerf, motivazione: "Hai tenuto quasi tutti i compiti per te: così il gruppo non ha un contributo da mostrare, e nemmeno tu.", step_id: s.id });
+          // Fix B: «tenere tutto per sé» è un'osservazione sul metodo, non
+          // competenza in scienze-educazione (area cablata) → qualità di missione.
+          evidenze.push({ area_slug: null, categoria: "qualita_missione", dimensione: "performance", valore: 0.2, peso: P.scartoPerf, motivazione: "Hai tenuto quasi tutti i compiti per te: così il gruppo non ha un contributo da mostrare, e nemmeno tu.", step_id: s.id });
         }
         break;
       }
@@ -826,12 +854,23 @@ export async function calcolaEvidenze(
         if (!testo || !anthropic) break;
         const parsed = (await chiamaHaikuJson(anthropic, PROMPT_RIFLESSIONE(mission.areeCandidate), testo)) as { aree?: unknown[] } | null;
         const aree = Array.isArray(parsed?.aree) ? parsed!.aree : [];
+        let emesse = 0;
+        let maxSelfEff = 0;
         for (const raw of aree) {
           const a = raw as { area_slug?: string; curiosity?: number; self_efficacy?: number; motivazione?: string };
           if (!a.area_slug || !mission.areeCandidate.includes(a.area_slug)) continue;
           const mot = typeof a.motivazione === "string" && a.motivazione ? a.motivazione : `Dalla tua riflessione traspare un legame con ${nomeArea(a.area_slug)}.`;
+          // La curiosity ha motivazione DISTINTA per area (generata dall'Aì leggendo
+          // la riflessione) → resta ad area.
           evidenze.push({ area_slug: a.area_slug, dimensione: "curiosity", valore: clamp01(Number(a.curiosity ?? 0)), peso: P.ai, motivazione: mot, step_id: s.id });
-          evidenze.push({ area_slug: a.area_slug, dimensione: "self_efficacy", valore: clamp01(Number(a.self_efficacy ?? 0)), peso: P.ai, motivazione: "Ti sei sentito a tuo agio mentre ripensavi al percorso.", step_id: s.id });
+          maxSelfEff = Math.max(maxSelfEff, clamp01(Number(a.self_efficacy ?? 0)));
+          emesse++;
+        }
+        // Fix B: la self_efficacy ha motivazione IDENTICA e cablata su tutte le
+        // aree («ti sei sentito a tuo agio») — non dice competenza in nessuna →
+        // una riga di qualità di missione, senza area (era una per area).
+        if (emesse > 0) {
+          evidenze.push({ area_slug: null, categoria: "qualita_missione", dimensione: "self_efficacy", valore: maxSelfEff, peso: P.ai, motivazione: "Ti sei sentito a tuo agio mentre ripensavi al percorso.", step_id: s.id });
         }
         break;
       }
@@ -850,9 +889,11 @@ export async function calcolaEvidenze(
         const overlap = scelti.filter((id) => ideali.has(id)).length / s.quanti;
         const bonusOrdine = spec.pianificaIdeali.length > 0 && scelti[0] === spec.pianificaIdeali[0] ? 0.1 : 0;
         const correttezza = clamp01(overlap + bonusOrdine);
-        const areaPerf = areaMandato ?? "edilizia-architettura";
+        // Fix B: l'ordine dei primi passi è qualità di missione, non competenza
+        // nell'area del mandato (era areaMandato / fallback edilizia-architettura).
         evidenze.push({
-          area_slug: areaPerf,
+          area_slug: null,
+          categoria: "qualita_missione",
           dimensione: "performance",
           valore: correttezza,
           peso: P.passi,

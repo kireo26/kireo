@@ -242,6 +242,20 @@ export type Payload =
 // così costruisciMissione e le derivazioni non dipendono dal contenitore.
 export type LeggiRisposta = (id: string) => Payload | undefined;
 
+// Categoria dichiarata di ogni prova. Nessuna riga di evidence può esistere
+// senza: una riga che non sappiamo nominare finisce prima o poi consumata per
+// sbaglio (è successo con esplora_libero, pescato da `.is("asse", null)`).
+//   - 'area'            → prova d'area, alimenta area_signal. area_slug valorizzato.
+//   - 'stile'           → prova di stile, alimenta style_signal. asse valorizzato.
+//   - 'qualita_missione'→ qualità del ragionamento SENZA area (performance/self_efficacy
+//                         la cui area non deriva da una scelta, o con motivazione
+//                         identica su più aree). Consumata dal blocco «come hai
+//                         ragionato» dell'esito. NON alimenta area_signal né style_signal.
+//   - 'esplorazione'    → «come hai esplorato» (esplora_libero). Area e asse null.
+//                         Nessun consumatore attuale: esclusa da area_signal,
+//                         style_signal e da «Perché lo diciamo» — decisione 18/08.
+export type EvidenceCategoria = "area" | "stile" | "qualita_missione" | "esplorazione";
+
 // Prova prodotta dal motore, passata a registra_evidence come array JSON.
 export type EvidenceInput = {
   area_slug: string | null;
@@ -251,4 +265,8 @@ export type EvidenceInput = {
   peso: number; // > 0
   motivazione: string;
   step_id: string;
+  // Esplicita solo dove non deducibile dalle colonne: 'qualita_missione' e
+  // 'esplorazione' (entrambe area+asse null). Per 'area'/'stile' è derivata in
+  // sanitizzaEvidenze da area_slug/asse — che È la definizione di quelle due.
+  categoria?: EvidenceCategoria;
 };
