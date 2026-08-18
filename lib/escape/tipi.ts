@@ -268,8 +268,8 @@ export type EvidenceInput = {
   peso: number; // > 0
   motivazione: string;
   step_id: string;
-  // Esplicita solo dove non deducibile dalle colonne: 'qualita_missione' e
-  // 'esplorazione' (entrambe area+asse null). Per 'area'/'stile' è derivata in
-  // sanitizzaEvidenze da area_slug/asse — che È la definizione di quelle due.
-  categoria?: EvidenceCategoria;
+  // OBBLIGATORIA: ogni emissione dichiara la propria natura al punto di push.
+  // Il compilatore garantisce che nessuna riga esca senza — la garanzia sta a
+  // compile-time, non nella rete a runtime del vincolo not null in DB.
+  categoria: EvidenceCategoria;
 };

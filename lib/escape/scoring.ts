@@ -66,17 +66,10 @@ function sanitizzaEvidenze(evidenze: EvidenceInput[]): EvidenceInput[] {
     const valore = Number.isFinite(e.valore) ? Math.max(0, Math.min(1, e.valore)) : 0;
     const peso = Number.isFinite(e.peso) && e.peso > 0 ? e.peso : PESO_MINIMO;
     const motivazione = (typeof e.motivazione === "string" ? e.motivazione.trim() : "") || "Segnale rilevato durante la missione.";
-    // Categoria dichiarata: 'area'/'stile' si derivano dalle colonne (È la loro
-    // definizione); 'qualita_missione'/'esplorazione' (area+asse entrambi null)
-    // DEVONO essere esplicite al punto di emissione — una riga area+asse null
-    // senza categoria è un limbo, si scarta invece di indovinarla.
-    let categoria = e.categoria;
-    if (!categoria) {
-      if (e.area_slug !== null) categoria = "area";
-      else if (e.asse != null) categoria = "stile";
-      else continue; // limbo: area+asse null senza categoria esplicita
-    }
-    pulite.push({ ...e, asse: e.asse ?? null, valore, peso, motivazione: motivazione.slice(0, 2000), categoria });
+    // `categoria` è obbligatoria sul tipo: ogni emissione la dichiara al punto di
+    // push (garanzia a compile-time), quindi qui non c'è nulla da derivare né da
+    // scartare — arriva già valorizzata con `...e`.
+    pulite.push({ ...e, asse: e.asse ?? null, valore, peso, motivazione: motivazione.slice(0, 2000) });
   }
   return pulite;
 }
@@ -86,7 +79,12 @@ function sanitizzaEvidenze(evidenze: EvidenceInput[]): EvidenceInput[] {
 type Pesi = {
   mandato: number; ordinaInt: number; selCur: number; selInt: number;
   budgetInt: number; budgetPerf: number; scartoInt: number; scartoPerf: number;
-  ruoli: number; ai: number; previsione: number; passi: number; esplora: number;
+  // ai: step aperti generici (non-approfondire, interest della proposta).
+  // revisore: SOLO il giudizio di competenza del revisore sul testo scritto
+  // (performance della proposta) — scorporato da `ai` perché è l'unica misura
+  // onesta di competenza per area rimasta dopo il Fix B, deve pesare quanto una
+  // casella di budget (Fix A).
+  ruoli: number; ai: number; revisore: number; previsione: number; passi: number; esplora: number;
 };
 
 type BudgetCtx = { alloc: Record<string, number>; voci: VoceBudget[]; letti: Set<string>; totale: number };
@@ -120,7 +118,7 @@ function pienezzaEquilibrio(alloc: Record<string, number>, totale: number) {
 
 const PESI_BASE: Pesi = {
   mandato: 1.3, ordinaInt: 0.8, selCur: 0.6, selInt: 0.4, budgetInt: 0.6, budgetPerf: 1.3,
-  scartoInt: 0.5, scartoPerf: 1.3, ruoli: 0.8, ai: 0.5, previsione: 0.5, passi: 0.6, esplora: 0.4,
+  scartoInt: 0.5, scartoPerf: 1.3, ruoli: 0.8, ai: 0.5, revisore: 1.4, previsione: 0.5, passi: 0.6, esplora: 0.4,
 };
 
 const SPEC: Record<string, ScoringSpec> = {
@@ -571,7 +569,7 @@ export async function calcolaEvidenze(
     for (const t of assi) {
       const valore = clamp01(t.valore * factor);
       if (valore <= 0) continue;
-      evidenze.push({ area_slug: null, asse: t.asse, dimensione: "interest", valore, peso: PESO_STILE_MISSIONE, motivazione, step_id });
+      evidenze.push({ area_slug: null, categoria: "stile", asse: t.asse, dimensione: "interest", valore, peso: PESO_STILE_MISSIONE, motivazione, step_id });
     }
   };
 
@@ -603,7 +601,7 @@ export async function calcolaEvidenze(
         const opz = s.opzioni.find((o) => o.id === p?.opzioneId);
         if (opz) {
           for (const area of opz.aree) {
-            evidenze.push({ area_slug: area, dimensione: "interest", valore: 0.9, peso: P.mandato, motivazione: `Hai scelto il mandato ${opz.label.split(" — ")[0]}: una dichiarazione di campo.`, step_id: s.id });
+            evidenze.push({ categoria: "area", area_slug: area, dimensione: "interest", valore: 0.9, peso: P.mandato, motivazione: `Hai scelto il mandato ${opz.label.split(" — ")[0]}: una dichiarazione di campo.`, step_id: s.id });
           }
           pushAssi(opz.assi, 1, `Hai impostato l'indagine come ${opz.label.split(" — ")[0]}.`, s.id);
         }
@@ -619,7 +617,7 @@ export async function calcolaEvidenze(
           if (!el) return;
           const valore = clamp01(0.95 - (i / n) * 0.8);
           for (const area of el.aree) {
-            evidenze.push({ area_slug: area, dimensione: "interest", valore, peso: P.ordinaInt, motivazione: `Hai messo «${el.label.toLowerCase()}» al ${i + 1}° posto.`, step_id: s.id });
+            evidenze.push({ categoria: "area", area_slug: area, dimensione: "interest", valore, peso: P.ordinaInt, motivazione: `Hai messo «${el.label.toLowerCase()}» al ${i + 1}° posto.`, step_id: s.id });
           }
         });
         // performance sull'affidabilità (solo missioni con gerarchia verificabile)
@@ -657,8 +655,8 @@ export async function calcolaEvidenze(
           const d = s.dossier.find((x) => x.id === id);
           if (!d) continue;
           for (const area of d.aree) {
-            evidenze.push({ area_slug: area, dimensione: "curiosity", valore: 0.8, peso: P.selCur, motivazione: `Hai speso un gettone per «${d.titolo.toLowerCase()}».`, step_id: s.id });
-            evidenze.push({ area_slug: area, dimensione: "interest", valore: 0.4, peso: P.selInt, motivazione: `Un interesse emerso da «${d.titolo.toLowerCase()}», che hai voluto approfondire.`, step_id: s.id });
+            evidenze.push({ categoria: "area", area_slug: area, dimensione: "curiosity", valore: 0.8, peso: P.selCur, motivazione: `Hai speso un gettone per «${d.titolo.toLowerCase()}».`, step_id: s.id });
+            evidenze.push({ categoria: "area", area_slug: area, dimensione: "interest", valore: 0.4, peso: P.selInt, motivazione: `Un interesse emerso da «${d.titolo.toLowerCase()}», che hai voluto approfondire.`, step_id: s.id });
           }
           pushAssi(d.assi, 1, `Hai voluto approfondire «${d.titolo.toLowerCase()}».`, s.id);
         }
@@ -675,7 +673,7 @@ export async function calcolaEvidenze(
           const a = Number(alloc[voce.id]) || 0;
           if (a <= 0) continue;
           for (const area of voce.aree) {
-            evidenze.push({ area_slug: area, dimensione: "interest", valore: clamp01(a / maxAlloc), peso: P.budgetInt, motivazione: `Hai investito risorse su «${voce.label.toLowerCase()}».`, step_id: s.id });
+            evidenze.push({ categoria: "area", area_slug: area, dimensione: "interest", valore: clamp01(a / maxAlloc), peso: P.budgetInt, motivazione: `Hai investito risorse su «${voce.label.toLowerCase()}».`, step_id: s.id });
           }
           pushAssi(voce.assi, clamp01(a / maxAlloc), `Hai messo le risorse su «${voce.label.toLowerCase()}».`, s.id);
         }
@@ -702,7 +700,7 @@ export async function calcolaEvidenze(
         for (const l of s.lavori) {
           if (!sel.includes(l.id)) continue;
           for (const area of l.aree) {
-            evidenze.push({ area_slug: area, dimensione: "interest", valore: 0.7, peso: P.budgetInt, motivazione: `Hai messo nel piano «${l.label.toLowerCase()}».`, step_id: s.id });
+            evidenze.push({ categoria: "area", area_slug: area, dimensione: "interest", valore: 0.7, peso: P.budgetInt, motivazione: `Hai messo nel piano «${l.label.toLowerCase()}».`, step_id: s.id });
           }
           pushAssi(l.assi, 1, `Hai messo nel piano «${l.label.toLowerCase()}».`, s.id);
         }
@@ -724,7 +722,7 @@ export async function calcolaEvidenze(
         for (const o of tenuti) {
           if (o.trappola) continue;
           for (const area of o.aree) {
-            evidenze.push({ area_slug: area, dimensione: "interest", valore: 0.6, peso: P.scartoInt, motivazione: `Hai scelto di tenere «${o.label.toLowerCase()}»: lo consideri essenziale.`, step_id: s.id });
+            evidenze.push({ categoria: "area", area_slug: area, dimensione: "interest", valore: 0.6, peso: P.scartoInt, motivazione: `Hai scelto di tenere «${o.label.toLowerCase()}»: lo consideri essenziale.`, step_id: s.id });
           }
           pushAssi(o.assi, 1, `Hai scelto di tenere «${o.label.toLowerCase()}».`, s.id);
         }
@@ -791,8 +789,11 @@ export async function calcolaEvidenze(
           const perf = clamp01(Number(a.performance ?? 0));
           const inter = clamp01(Number(a.interest ?? 0));
           const mot = typeof a.motivazione === "string" && a.motivazione ? a.motivazione : `La tua proposta valorizza ${nomeArea(a.area_slug)}.`;
-          evidenze.push({ area_slug: a.area_slug, dimensione: "performance", valore: perf, peso: P.ai, motivazione: mot, step_id: s.id });
-          evidenze.push({ area_slug: a.area_slug, dimensione: "interest", valore: inter, peso: P.ai, motivazione: "Un interesse al centro della tua proposta.", step_id: s.id });
+          // Fix A: la performance della proposta è il giudizio del revisore sul
+          // testo scritto → peso P.revisore (1.4), non P.ai (0.5). L'interest resta
+          // generico → P.ai.
+          evidenze.push({ categoria: "area", area_slug: a.area_slug, dimensione: "performance", valore: perf, peso: P.revisore, motivazione: mot, step_id: s.id });
+          evidenze.push({ categoria: "area", area_slug: a.area_slug, dimensione: "interest", valore: inter, peso: P.ai, motivazione: "Un interesse al centro della tua proposta.", step_id: s.id });
           propEmesse++;
         }
         // Fix B: l'autovalutazione dichiarata prima di scrivere è UNA sola (stessa
@@ -809,8 +810,8 @@ export async function calcolaEvidenze(
         const ass = p?.assegnazioni ?? {};
         for (const r of s.ruoli) {
           if (ass[r.id] !== "io") continue;
-          evidenze.push({ area_slug: r.area, dimensione: "interest", valore: 0.8, peso: P.ruoli, motivazione: `Ti sei preso «${r.label.toLowerCase()}»: un compito che senti tuo.`, step_id: s.id });
-          evidenze.push({ area_slug: r.area, dimensione: "self_efficacy", valore: 0.8, peso: P.ruoli, motivazione: `Prendendoti «${r.label.toLowerCase()}» hai mostrato di sentirti capace.`, step_id: s.id });
+          evidenze.push({ categoria: "area", area_slug: r.area, dimensione: "interest", valore: 0.8, peso: P.ruoli, motivazione: `Ti sei preso «${r.label.toLowerCase()}»: un compito che senti tuo.`, step_id: s.id });
+          evidenze.push({ categoria: "area", area_slug: r.area, dimensione: "self_efficacy", valore: 0.8, peso: P.ruoli, motivazione: `Prendendoti «${r.label.toLowerCase()}» hai mostrato di sentirti capace.`, step_id: s.id });
           pushAssi(r.assi, 1, `Ti sei preso «${r.label.toLowerCase()}».`, s.id);
         }
         break;
@@ -827,13 +828,13 @@ export async function calcolaEvidenze(
         for (const c of s.compiti) {
           if (ass[c.id] === "io") {
             ioCount++;
-            evidenze.push({ area_slug: c.area, dimensione: "self_efficacy", valore: 0.6, peso: P.ruoli, motivazione: `Ti sei preso «${c.label.toLowerCase()}».`, step_id: s.id });
+            evidenze.push({ categoria: "area", area_slug: c.area, dimensione: "self_efficacy", valore: 0.6, peso: P.ruoli, motivazione: `Ti sei preso «${c.label.toLowerCase()}».`, step_id: s.id });
             pushAssi(c.assi, 1, `Ti sei preso «${c.label.toLowerCase()}».`, s.id);
           }
         }
         for (const seg of spec.assegnaSegnali ?? []) {
           if (ass[seg.compito] === seg.persona && letti.has(seg.richiede)) {
-            evidenze.push({ area_slug: seg.area, dimensione: "performance", valore: 0.9, peso: seg.peso, motivazione: seg.motivazione, step_id: s.id });
+            evidenze.push({ categoria: "area", area_slug: seg.area, dimensione: "performance", valore: 0.9, peso: seg.peso, motivazione: seg.motivazione, step_id: s.id });
             // Mettere la persona giusta al posto giusto è relazionale.
             pushAssi([{ asse: "relazionale", valore: 0.9 }], 1, "Hai messo la persona giusta al posto giusto, con criterio.", s.id);
           }
@@ -862,7 +863,7 @@ export async function calcolaEvidenze(
           const mot = typeof a.motivazione === "string" && a.motivazione ? a.motivazione : `Dalla tua riflessione traspare un legame con ${nomeArea(a.area_slug)}.`;
           // La curiosity ha motivazione DISTINTA per area (generata dall'Aì leggendo
           // la riflessione) → resta ad area.
-          evidenze.push({ area_slug: a.area_slug, dimensione: "curiosity", valore: clamp01(Number(a.curiosity ?? 0)), peso: P.ai, motivazione: mot, step_id: s.id });
+          evidenze.push({ categoria: "area", area_slug: a.area_slug, dimensione: "curiosity", valore: clamp01(Number(a.curiosity ?? 0)), peso: P.ai, motivazione: mot, step_id: s.id });
           maxSelfEff = Math.max(maxSelfEff, clamp01(Number(a.self_efficacy ?? 0)));
           emesse++;
         }
