@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { SLUG_T1 } from "@/lib/test/config";
+import { getAreaBySlug } from "@/data/aree";
 
 // ─────────────────────────────────────────────────────────────────────────
 // KIREO — Stato di avanzamento del percorso: FONTE DI VERITÀ UNICA.
@@ -78,34 +79,120 @@ export type StatoAvanzamento = {
 //   - score_aree.punteggio — somma grezza dei pesi di esplorazione
 //     (activity_log). Rappresenta "quanto ha esplorato", non affinità.
 //
-// Scelta PROVVISORIA implementata qui: area_signal.interest_score (vedi la
-// raccomandazione nel report). Per passare a score_aree basta riscrivere il
-// corpo di questa funzione perché ritorni la stessa forma (slug ordinati per
-// affinità decrescente) leggendo da score_aree — nient'altro cambia.
+// Sorgente: area_signal.interest_score (profilo attitudinale dedotto dalle
+// azioni), NON score_aree (somma di clic: «quanto ha esplorato», non affinità).
 //
-// Ritorna gli area_slug ORDINATI per affinità decrescente (solo le aree con
-// un segnale: un'area assente dalla lista = affinità non ancora determinata).
+// CLASSIFICA PER ELEGGIBILITÀ (item 3): l'affinità è un'affermazione SULLO
+// STUDENTE, quindi ha una barra di sufficienza — non basta un segnale qualunque.
+// Un'area entra nella classifica solo se:
+//   - ha ≥2 attività distinte (attivita_distinte, la stessa barra del Fix D:
+//     conferma = il segnale ritorna in un'attività diversa), E
+//   - ha un interesse dichiarato (interest_score non NULL): l'affinità È
+//     l'interesse; senza, l'area non è affine — è ESCLUSA, non ordinata a 0.
+// Le aree escluse ma con un segnale non spariscono: vanno nell'elenco «aree
+// sfiorate» (vedi caricaAffinitaHome), non in fondo alla classifica.
+//
+// Ritorna gli area_slug ELEGGIBILI ordinati per interest_score decrescente.
 export async function leggiAffinita(supabase: SupabaseClient, studentId: string): Promise<string[]> {
   try {
     const { data, error } = await supabase
       .from("area_signal")
-      .select("area_slug, interest_score, confidence")
+      .select("area_slug, interest_score, confidence, attivita_distinte")
       .eq("student_id", studentId);
     if (error || !data) return [];
     return [...data]
+      .filter((r) => (r.attivita_distinte ?? 0) >= 2 && r.interest_score !== null) // eleggibili
       .sort(
         (a, b) =>
-          // provvisorio: sostituito dalla classifica per eleggibilità (item 3).
-          // interest_score ora può essere NULL («non misurato»): qui pesa 0, ma
-          // l'item 3 ESCLUDERÀ le aree senza interesse dichiarato (un'area senza
-          // segnale d'interesse non è «affine»), non le ordinerà come se fosse 0.
-          (b.interest_score ?? 0) - (a.interest_score ?? 0) || // affinità decrescente
+          (b.interest_score ?? 0) - (a.interest_score ?? 0) || // interesse decrescente
           Number(b.confidence) - Number(a.confidence) || // a parità, più confidenza prima
           a.area_slug.localeCompare(b.area_slug), // determinismo finale
       )
       .map((r) => r.area_slug);
   } catch {
     return [];
+  }
+}
+
+// ─────────────────────────── Affinità per la home (sezione dedicata) ────────
+// Ritorna il necessario alla sezione «Le tue affinità» in home: le aree
+// eleggibili ordinate + le aree «sfiorate» (segnale c'è ma non eleggibile) con
+// la loro prova più forte + se lo studente ha ALMENO un'attività (per scegliere
+// fra i due stati vuoti). Stessa definizione di eleggibilità di leggiAffinita.
+export type StatoArea = "emergente" | "confermata" | "da_verificare";
+export type AreaEleggibile = { slug: string; nome: string; interest: number; status: StatoArea };
+export type AreaSfiorataAffinita = { slug: string; nome: string; motivazione: string | null };
+export type AffinitaHome = {
+  eleggibili: AreaEleggibile[];
+  sfiorate: AreaSfiorataAffinita[];
+  haAttivita: boolean; // area_signal ha ≥1 riga → ≥1 attività completata
+};
+
+function eleggibile(r: { attivita_distinte: number | null; interest_score: number | null }): boolean {
+  return (r.attivita_distinte ?? 0) >= 2 && r.interest_score !== null;
+}
+
+export async function caricaAffinitaHome(supabase: SupabaseClient, studentId: string): Promise<AffinitaHome> {
+  const vuoto: AffinitaHome = { eleggibili: [], sfiorate: [], haAttivita: false };
+  try {
+    const { data, error } = await supabase
+      .from("area_signal")
+      .select("area_slug, interest_score, confidence, status, attivita_distinte")
+      .eq("student_id", studentId);
+    if (error || !data || data.length === 0) return vuoto;
+
+    const eleggibili: AreaEleggibile[] = data
+      .filter((r) => eleggibile(r))
+      .sort(
+        (a, b) =>
+          (b.interest_score ?? 0) - (a.interest_score ?? 0) ||
+          Number(b.confidence) - Number(a.confidence) ||
+          a.area_slug.localeCompare(b.area_slug),
+      )
+      .map((r) => ({ slug: r.area_slug, nome: getAreaBySlug(r.area_slug)?.nome ?? r.area_slug, interest: r.interest_score ?? 0, status: r.status as StatoArea }));
+
+    const righeSfiorate = data.filter((r) => !eleggibile(r));
+    const motivazioni = await motivazioniPiuPesanti(supabase, studentId, righeSfiorate.map((r) => r.area_slug));
+    const sfiorate: AreaSfiorataAffinita[] = [...righeSfiorate]
+      .sort(
+        (a, b) =>
+          Number(b.confidence) - Number(a.confidence) || // più segnale prima
+          (b.interest_score ?? 0) - (a.interest_score ?? 0) ||
+          a.area_slug.localeCompare(b.area_slug),
+      )
+      .map((r) => ({ slug: r.area_slug, nome: getAreaBySlug(r.area_slug)?.nome ?? r.area_slug, motivazione: motivazioni.get(r.area_slug) ?? null }));
+
+    return { eleggibili, sfiorate, haAttivita: true };
+  } catch {
+    return vuoto;
+  }
+}
+
+// Motivazione della prova d'area col peso maggiore, per ogni area richiesta:
+// dice, nella riga sfiorata, COSA si è comunque acceso.
+async function motivazioniPiuPesanti(supabase: SupabaseClient, studentId: string, slugs: string[]): Promise<Map<string, string>> {
+  const m = new Map<string, string>();
+  if (slugs.length === 0) return m;
+  try {
+    const { data, error } = await supabase
+      .from("evidence")
+      .select("area_slug, motivazione, peso")
+      .eq("student_id", studentId)
+      .eq("categoria", "area")
+      .in("area_slug", slugs);
+    if (error || !data) return m;
+    const pesoMax = new Map<string, number>();
+    for (const r of data) {
+      if (!r.area_slug || !r.motivazione) continue;
+      const p = Number(r.peso) || 0;
+      if (p > (pesoMax.get(r.area_slug) ?? -1)) {
+        pesoMax.set(r.area_slug, p);
+        m.set(r.area_slug, r.motivazione);
+      }
+    }
+    return m;
+  } catch {
+    return m;
   }
 }
 

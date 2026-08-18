@@ -4,6 +4,7 @@ import { getAppContext } from "@/lib/app/studentContext";
 import { createClient } from "@/lib/supabase/server";
 import { getAreaBySlug } from "@/data/aree";
 import { accessoreDaMappa, getMissione } from "@/lib/escape/config";
+import { MIN_AZIONI_PER_CARD } from "@/lib/escape/soglie";
 import { costruisciRestituzione, type AreaTop } from "@/lib/escape/restituzione";
 import type { Payload } from "@/lib/escape/tipi";
 import EscapePlayer from "@/components/escape/EscapePlayer";
@@ -110,12 +111,14 @@ export default async function MissionePage({ params }: { params: Promise<{ slug:
       .map((g) => ({ testo: g.testo, aree: g.aree }));
 
     let aree: AreaEsito[] = [];
+    const azioniPerArea = new Map<string, number>(); // area_slug -> azioni_distinte
     if (areeToccate.length > 0) {
       const { data: segnali } = await supabase
         .from("area_signal")
-        .select("area_slug, interest_score, performance_score, self_efficacy_score, curiosity_score, status")
+        .select("area_slug, interest_score, performance_score, self_efficacy_score, curiosity_score, status, azioni_distinte")
         .eq("student_id", contesto.userId)
         .in("area_slug", areeToccate);
+      for (const s of segnali ?? []) azioniPerArea.set(s.area_slug, s.azioni_distinte ?? 0);
       aree = (segnali ?? [])
         .map((s) => ({
           slug: s.area_slug,
@@ -133,15 +136,16 @@ export default async function MissionePage({ params }: { params: Promise<{ slug:
         .sort((a, b) => (b.interest ?? 0) + (b.curiosity ?? 0) - ((a.interest ?? 0) + (a.curiosity ?? 0)));
     }
 
-    // Card piena vs «area sfiorata»: un'area con ≥3 dimensioni su 4 non misurate
-    // è troppo vuota per una card (era il caso di energia-sostenibilita, 3/4 NULL:
-    // tre quarti di scusa lunga e un quarto di dati). Va nell'elenco delle sfiorate
-    // col suo segnale più forte, non fra le card piene. Il finale NON è gated
-    // dall'eleggibilità (è un resoconto della partita, non un verdetto sullo
-    // studente): questo split è solo estetico, per dimensioni misurate, non la
-    // barra a due attività dell'item 3.
-    const contaNulli = (a: AreaEsito) =>
-      [a.interest, a.performance, a.self_efficacy, a.curiosity].filter((v) => v === null).length;
+    // Card piena vs «area sfiorata»: sul NUMERO DI AZIONI distinte che hanno
+    // prodotto l'area (area_signal.azioni_distinte), non sulle celle vuote. Un'area
+    // nata da UNA sola azione (un gettone: 2 righe ma 1 step) è sfiorata; serve
+    // almeno MIN_AZIONI_PER_CARD azioni per una card. Contare le celle NULL era
+    // sbagliato: metteva edilizia (1 azione, conf 0.100) fra le piene ed energia
+    // (1 azione, 0.080) fra le sfiorate, benché nate dalla stessa azione.
+    // Il finale NON è gated dall'eleggibilità (attività distinte): è un resoconto
+    // della partita, non un verdetto sullo studente. Sono cose diverse — attività
+    // (item 3, classifica) vs azioni (qui, display) — la stessa nozione a livelli
+    // diversi.
     // Motivazione più pesante per area (la prova col peso maggiore): dice, nella
     // riga sfiorata, COSA si è comunque acceso.
     const motPerArea = new Map<string, string>();
@@ -154,9 +158,9 @@ export default async function MissionePage({ params }: { params: Promise<{ slug:
         motPerArea.set(p.area_slug, p.motivazione);
       }
     }
-    const areeCard = aree.filter((a) => contaNulli(a) < 3);
+    const areeCard = aree.filter((a) => (azioniPerArea.get(a.slug) ?? 0) >= MIN_AZIONI_PER_CARD);
     const areeSfiorate = aree
-      .filter((a) => contaNulli(a) >= 3)
+      .filter((a) => (azioniPerArea.get(a.slug) ?? 0) < MIN_AZIONI_PER_CARD)
       .map((a) => ({ nome: a.nome, testo: motPerArea.get(a.slug) ?? "l'hai solo sfiorata in questa missione." }));
 
     // restituzione: costruita dalle risposte autorevoli (step_response) + le

@@ -1,5 +1,19 @@
 import { AREE } from "@/data/aree";
 
+// ⚠️ NON PIÙ MONTATO SULLA HOME (2026-08). Questo radar disegna un asse per
+// ognuna delle 18 aree da un CONTEGGIO di attività (score_aree): una sagoma che
+// si legge «questo sei tu» sopra un tally di clic, e per giunta una sagoma che
+// cambia se cambia l'ordine arbitrario degli assi. Sostituito da
+// BarreEsplorazione («Dove hai esplorato finora»): un magnitudo, non un ritratto.
+//
+// Il radar NON va buttato dal linguaggio visivo — è sbagliato per un TALLY, non
+// in sé. Su quattro dimensioni in RELAZIONE che descrivono davvero un'area
+// (interesse, bravura, fiducia in te, curiosità) la forma significa qualcosa,
+// perché gli assi sono legati fra loro. Quando un'area avrà prove sufficienti su
+// tutte e quattro, un radar A 4 ASSI PER AREA (non 18 assi da un conteggio) sarà
+// il posto onesto per riprenderlo. È una nota per il futuro: non costruito qui.
+// Il file resta come base di partenza per quel componente, non per riusarlo così.
+
 const SIZE = 240;
 const CENTER = SIZE / 2;
 const MAX_RADIUS = SIZE / 2 - 28; // spazio per le etichette attorno all'anello esterno
