@@ -121,7 +121,9 @@ export async function leggiAffinita(supabase: SupabaseClient, studentId: string)
 // fra i due stati vuoti). Stessa definizione di eleggibilità di leggiAffinita.
 export type StatoArea = "emergente" | "confermata" | "da_verificare";
 export type AreaEleggibile = { slug: string; nome: string; interest: number; status: StatoArea };
-export type AreaSfiorataAffinita = { slug: string; nome: string; motivazione: string | null };
+// `nome` può elencare PIÙ aree ("A, B") quando la loro prova più forte è la
+// stessa riga di evidenza: condividono una riga, nomi elencati (vedi sotto).
+export type AreaSfiorataAffinita = { nome: string; motivazione: string | null };
 export type AffinitaHome = {
   eleggibili: AreaEleggibile[];
   sfiorate: AreaSfiorataAffinita[];
@@ -130,6 +132,28 @@ export type AffinitaHome = {
 
 function eleggibile(r: { attivita_distinte: number | null; interest_score: number | null }): boolean {
   return (r.attivita_distinte ?? 0) >= 2 && r.interest_score !== null;
+}
+
+// Regola #2 (2026-08): se la motivazione PIÙ PESANTE di due o più aree è la
+// STESSA riga di evidenza (es. il mandato, che tocca più aree), quelle aree
+// condividono UNA riga, nomi elencati — invece di ripetere la stessa frase, che
+// letta sembra un refuso. NON si sostituisce con la seconda motivazione: il
+// mandato è la prova più pesante e più personale (è lo studente a scegliere come
+// impostare l'indagine); nasconderla per una delle due aree mostrerebbe un
+// segnale più debole per un motivo tecnico, e farebbe dipendere il testo
+// dall'ordine di visualizzazione (arbitrario). Le aree senza motivazione, o con
+// motivazione unica, restano una riga a testa. `voci` in ingresso è già ordinata;
+// l'ordine di prima occorrenza è preservato. PURA (testabile senza DB).
+export function raggruppaSfiorate(voci: { nome: string; motivazione: string | null }[]): AreaSfiorataAffinita[] {
+  const gruppi = new Map<string, { nomi: string[]; motivazione: string | null }>();
+  let nulle = 0;
+  for (const v of voci) {
+    const chiave = v.motivazione ?? `__nulla_${nulle++}`; // le motivazioni assenti non si fondono mai
+    const g = gruppi.get(chiave);
+    if (g) g.nomi.push(v.nome);
+    else gruppi.set(chiave, { nomi: [v.nome], motivazione: v.motivazione });
+  }
+  return [...gruppi.values()].map((g) => ({ nome: g.nomi.join(", "), motivazione: g.motivazione }));
 }
 
 export async function caricaAffinitaHome(supabase: SupabaseClient, studentId: string): Promise<AffinitaHome> {
@@ -151,16 +175,16 @@ export async function caricaAffinitaHome(supabase: SupabaseClient, studentId: st
       )
       .map((r) => ({ slug: r.area_slug, nome: getAreaBySlug(r.area_slug)?.nome ?? r.area_slug, interest: r.interest_score ?? 0, status: r.status as StatoArea }));
 
-    const righeSfiorate = data.filter((r) => !eleggibile(r));
+    const righeSfiorate = [...data.filter((r) => !eleggibile(r))].sort(
+      (a, b) =>
+        Number(b.confidence) - Number(a.confidence) || // più segnale prima
+        (b.interest_score ?? 0) - (a.interest_score ?? 0) ||
+        a.area_slug.localeCompare(b.area_slug),
+    );
     const motivazioni = await motivazioniPiuPesanti(supabase, studentId, righeSfiorate.map((r) => r.area_slug));
-    const sfiorate: AreaSfiorataAffinita[] = [...righeSfiorate]
-      .sort(
-        (a, b) =>
-          Number(b.confidence) - Number(a.confidence) || // più segnale prima
-          (b.interest_score ?? 0) - (a.interest_score ?? 0) ||
-          a.area_slug.localeCompare(b.area_slug),
-      )
-      .map((r) => ({ slug: r.area_slug, nome: getAreaBySlug(r.area_slug)?.nome ?? r.area_slug, motivazione: motivazioni.get(r.area_slug) ?? null }));
+    const sfiorate = raggruppaSfiorate(
+      righeSfiorate.map((r) => ({ nome: getAreaBySlug(r.area_slug)?.nome ?? r.area_slug, motivazione: motivazioni.get(r.area_slug) ?? null })),
+    );
 
     return { eleggibili, sfiorate, haAttivita: true };
   } catch {

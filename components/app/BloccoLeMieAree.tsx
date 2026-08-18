@@ -22,6 +22,10 @@ export default function BloccoLeMieAree({ aree, areeConGuida1 = [] }: { aree: Ar
   return (
     <div className="rounded-2xl border border-white/5 bg-kireo-card p-6">
       <h2 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">Le mie aree</h2>
+      {/* La terza delle tre lenti, dichiarata: dette (qui) / dedotte (affinità) /
+          dove sei passato (esplorazione). Serve a capire perché i tre elenchi
+          non coincidono. */}
+      <p className="mt-1 text-xs text-kireo-muted">Le aree che hai scelto quando ti sei iscritto.</p>
       {aree.length > 0 ? (
         <ul className="mt-4 space-y-3">
           {aree.map((area) => (
