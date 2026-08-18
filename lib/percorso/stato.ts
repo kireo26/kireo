@@ -95,7 +95,11 @@ export async function leggiAffinita(supabase: SupabaseClient, studentId: string)
     return [...data]
       .sort(
         (a, b) =>
-          b.interest_score - a.interest_score || // affinità decrescente
+          // provvisorio: sostituito dalla classifica per eleggibilità (item 3).
+          // interest_score ora può essere NULL («non misurato»): qui pesa 0, ma
+          // l'item 3 ESCLUDERÀ le aree senza interesse dichiarato (un'area senza
+          // segnale d'interesse non è «affine»), non le ordinerà come se fosse 0.
+          (b.interest_score ?? 0) - (a.interest_score ?? 0) || // affinità decrescente
           Number(b.confidence) - Number(a.confidence) || // a parità, più confidenza prima
           a.area_slug.localeCompare(b.area_slug), // determinismo finale
       )

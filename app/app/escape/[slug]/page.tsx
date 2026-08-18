@@ -62,6 +62,21 @@ export default async function MissionePage({ params }: { params: Promise<{ slug:
     const { data: prove } = await supabase.from("evidence").select("area_slug, motivazione, peso").eq("attempt_id", attempt.id).eq("categoria", "area");
     const areeToccate = Array.from(new Set((prove ?? []).map((p) => p.area_slug).filter((a): a is string => Boolean(a))));
 
+    // Bravura NULL: la card distingue «proposta valutata, altre aree» da «proposta
+    // non letta» dall'esistenza di una riga evidence step_id 's4_proposta' (id
+    // canonico su tutte le missioni). Zero stato nuovo: il segnale è già in DB.
+    // Nota limite: se la proposta è stata scritta e l'AI ha girato ma il revisore
+    // non ha restituito nessuna area della whitelist (propEmesse=0), nessuna riga
+    // s4_proposta viene emessa → qui risulterebbe «non letta». Caso degenere raro
+    // (il revisore restituisce quasi sempre aree in whitelist); documentato per il
+    // Fix C/E, non gestito con stato aggiuntivo.
+    const { count: propostaCount } = await supabase
+      .from("evidence")
+      .select("*", { count: "exact", head: true })
+      .eq("attempt_id", attempt.id)
+      .eq("step_id", "s4_proposta");
+    const propostaValutata = (propostaCount ?? 0) > 0;
+
     // "Perché lo diciamo": una riga per AZIONE, non una per coppia azione-area.
     // Le motivazioni degli step strutturati sono indipendenti dall'area (l'area
     // sta in area_slug), quindi righe della stessa azione condividono lo stesso
@@ -102,7 +117,11 @@ export default async function MissionePage({ params }: { params: Promise<{ slug:
           self_efficacy: s.self_efficacy_score,
           curiosity: s.curiosity_score,
         }))
-        .sort((a, b) => b.interest + b.curiosity - (a.interest + a.curiosity));
+        // provvisorio: sostituito dalla classifica per eleggibilità (item 3). Un
+        // punteggio NULL («non misurato») qui pesa 0 nell'ordinamento — è un
+        // ripiego, non la regola: l'item 3 escluderà le aree senza interesse
+        // dichiarato invece di ordinarle come se valessero 0.
+        .sort((a, b) => (b.interest ?? 0) + (b.curiosity ?? 0) - ((a.interest ?? 0) + (a.curiosity ?? 0)));
     }
 
     // restituzione: costruita dalle risposte autorevoli (step_response) + le
@@ -145,7 +164,7 @@ export default async function MissionePage({ params }: { params: Promise<{ slug:
             <IniziaMissione missionSlug={slug} etichetta="Rigioca la missione" />
           </div>
         </div>
-        <EsitoMissione titolo={mission.titolo} restituzione={restituzione} aree={aree} spiegazioni={spiegazioni} ragionamento={ragionamento} />
+        <EsitoMissione titolo={mission.titolo} restituzione={restituzione} aree={aree} spiegazioni={spiegazioni} ragionamento={ragionamento} propostaValutata={propostaValutata} />
       </div>
     );
   }

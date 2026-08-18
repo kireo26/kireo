@@ -10,11 +10,65 @@ export type AreaEsito = {
   slug: string;
   nome: string;
   status: "emergente" | "confermata" | "da_verificare";
-  interest: number;
-  performance: number;
-  self_efficacy: number;
-  curiosity: number;
+  // NULL = «non ancora misurata» (nessuna prova per quella dimensione), NON 0.
+  // Uno 0 renderizzato come barra vuota si legge «sei scarso»; il NULL dice la
+  // verità: non l'abbiamo misurata. Le stringhe le fornisce descrizioneNonMisurata.
+  interest: number | null;
+  performance: number | null;
+  self_efficacy: number | null;
+  curiosity: number | null;
 };
+
+type ChiaveDim = "interest" | "performance" | "self_efficacy" | "curiosity";
+type NonMisurata = { heading: string; corpo: string };
+
+// Testo di una barra NULL: dice allo studente COME si riempirebbe quella
+// dimensione — è tutto il valore di queste stringhe (una barra muta non orienta).
+// Bravura ha due varianti: la fonte è la proposta finale, e cambia se l'abbiamo
+// valutata (revisore ha pesato altre aree) o non l'abbiamo letta affatto.
+function descrizioneNonMisurata(chiave: ChiaveDim, propostaValutata: boolean): NonMisurata {
+  switch (chiave) {
+    case "performance":
+      return propostaValutata
+        ? {
+            heading: "Bravura — non ancora misurata.",
+            corpo: "La misuriamo da quello che scrivi nella proposta finale, e questa volta la tua proposta parlava soprattutto di altre aree.",
+          }
+        : {
+            // «non l'abbiamo letta», non «non l'hai completata»: se la causa è un
+            // guasto nostro (chiave AI assente), la colpa allo studente sarebbe
+            // falsa; da fuori non sappiamo quale dei due, e questa frase è vera in
+            // entrambi. (È anche l'effetto visibile del guasto che il Fix E loggerà.)
+            heading: "Bravura — non ancora misurata.",
+            corpo: "La misuriamo da quello che scrivi nella proposta finale del progetto: questa volta non l'abbiamo letta.",
+          };
+    case "self_efficacy":
+      // Fonte unica (i compiti presi in prima persona), nessuna variante.
+      // Nota missione 10: la bravura lì può venire anche dagli abbinamenti
+      // compito-persona (assegna_persone → seg.performance), quindi «dalla
+      // proposta» non sarebbe l'unica fonte — ma quel meccanismo è il candidato
+      // n.1 del censimento del Fix C e potrebbe non sopravvivergli: nessuna terza
+      // variante finché non sappiamo cosa resta.
+      return {
+        heading: "Fiducia in te — non ancora misurata.",
+        corpo: "La leggiamo dai compiti che scegli di prenderti in prima persona: in quest'area non te ne è ancora capitato uno.",
+      };
+    case "interest":
+      // PROVVISORIA (non ancora approvata da Mario): microcopy per interest NULL
+      // non era nelle tre stringhe approvate. L'interesse è raramente NULL su
+      // un'area mostrata (l'area è mostrata perché toccata), ma può esserlo.
+      return {
+        heading: "Interesse — non ancora misurato.",
+        corpo: "Lo leggiamo da cosa scegli di mettere al centro delle tue decisioni: in quest'area non è ancora emerso.",
+      };
+    case "curiosity":
+      // PROVVISORIA (non ancora approvata da Mario): idem interest.
+      return {
+        heading: "Curiosità — non ancora misurata.",
+        corpo: "La leggiamo da cosa vai ad approfondire quando puoi scegliere: in quest'area non hai ancora aperto una pista.",
+      };
+  }
+}
 
 const STATUS_LABEL: Record<AreaEsito["status"], { testo: string; classe: string }> = {
   emergente: { testo: "Ipotesi che sta emergendo", classe: "border-white/15 text-kireo-muted" },
@@ -22,14 +76,24 @@ const STATUS_LABEL: Record<AreaEsito["status"], { testo: string; classe: string 
   da_verificare: { testo: "Da verificare — segnali contrastanti", classe: "border-kireo-orange/40 text-kireo-orange" },
 };
 
-const DIMENSIONI: { chiave: keyof Pick<AreaEsito, "interest" | "performance" | "self_efficacy" | "curiosity">; label: string }[] = [
+const DIMENSIONI: { chiave: ChiaveDim; label: string }[] = [
   { chiave: "interest", label: "Interesse" },
   { chiave: "performance", label: "Bravura" },
   { chiave: "self_efficacy", label: "Fiducia in te" },
   { chiave: "curiosity", label: "Curiosità" },
 ];
 
-function Barra({ label, valore }: { label: string; valore: number }) {
+function Barra({ label, valore, nonMisurata }: { label: string; valore: number | null; nonMisurata: NonMisurata }) {
+  // valore NULL → «non ancora misurata» (mai una barra a 0, che si leggerebbe
+  // come un giudizio negativo su un'azione mai compiuta).
+  if (valore === null) {
+    return (
+      <div>
+        <p className="mb-1 text-[11px] font-medium text-kireo-muted">{nonMisurata.heading}</p>
+        <p className="text-[11px] leading-snug text-kireo-muted/70">{nonMisurata.corpo}</p>
+      </div>
+    );
+  }
   return (
     <div>
       <p className="mb-1 text-[11px] text-kireo-muted">{label}</p>
@@ -55,6 +119,7 @@ export default function EsitoMissione({
   aree,
   spiegazioni,
   ragionamento,
+  propostaValutata,
 }: {
   titolo: string;
   restituzione: Restituzione;
@@ -63,6 +128,10 @@ export default function EsitoMissione({
   // Qualità di missione (categoria 'qualita_missione'): osservazioni sul METODO,
   // senza area. È il consumatore dichiarato di quella categoria.
   ragionamento: string[];
+  // Distingue le due cause di una Bravura NULL: proposta valutata (revisore ha
+  // pesato altre aree) vs proposta non letta. Il segnale è l'esistenza di una
+  // riga evidence con step_id 's4_proposta' per il tentativo (zero stato nuovo).
+  propostaValutata: boolean;
 }) {
   return (
     <div className="space-y-5">
@@ -99,7 +168,7 @@ export default function EsitoMissione({
                 <span className={`mt-1 inline-block rounded-full border px-2 py-0.5 text-[11px] ${STATUS_LABEL[a.status].classe}`}>{STATUS_LABEL[a.status].testo}</span>
                 <div className="mt-4 grid grid-cols-2 gap-3">
                   {DIMENSIONI.map((d) => (
-                    <Barra key={d.chiave} label={d.label} valore={a[d.chiave]} />
+                    <Barra key={d.chiave} label={d.label} valore={a[d.chiave]} nonMisurata={descrizioneNonMisurata(d.chiave, propostaValutata)} />
                   ))}
                 </div>
               </div>
