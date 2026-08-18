@@ -133,12 +133,38 @@ export default async function MissionePage({ params }: { params: Promise<{ slug:
         .sort((a, b) => (b.interest ?? 0) + (b.curiosity ?? 0) - ((a.interest ?? 0) + (a.curiosity ?? 0)));
     }
 
+    // Card piena vs «area sfiorata»: un'area con ≥3 dimensioni su 4 non misurate
+    // è troppo vuota per una card (era il caso di energia-sostenibilita, 3/4 NULL:
+    // tre quarti di scusa lunga e un quarto di dati). Va nell'elenco delle sfiorate
+    // col suo segnale più forte, non fra le card piene. Il finale NON è gated
+    // dall'eleggibilità (è un resoconto della partita, non un verdetto sullo
+    // studente): questo split è solo estetico, per dimensioni misurate, non la
+    // barra a due attività dell'item 3.
+    const contaNulli = (a: AreaEsito) =>
+      [a.interest, a.performance, a.self_efficacy, a.curiosity].filter((v) => v === null).length;
+    // Motivazione più pesante per area (la prova col peso maggiore): dice, nella
+    // riga sfiorata, COSA si è comunque acceso.
+    const motPerArea = new Map<string, string>();
+    const pesoPerArea = new Map<string, number>();
+    for (const p of prove ?? []) {
+      if (!p.area_slug || !p.motivazione) continue;
+      const peso = Number(p.peso) || 0;
+      if (peso > (pesoPerArea.get(p.area_slug) ?? -1)) {
+        pesoPerArea.set(p.area_slug, peso);
+        motPerArea.set(p.area_slug, p.motivazione);
+      }
+    }
+    const areeCard = aree.filter((a) => contaNulli(a) < 3);
+    const areeSfiorate = aree
+      .filter((a) => contaNulli(a) >= 3)
+      .map((a) => ({ nome: a.nome, testo: motPerArea.get(a.slug) ?? "l'hai solo sfiorata in questa missione." }));
+
     // restituzione: costruita dalle risposte autorevoli (step_response) + le
     // aree principali. Retro-compatibile con un tentativo v1 (blocchi vuoti).
     const { data: righeResp } = await supabase.from("step_response").select("step_id, payload").eq("attempt_id", attempt.id);
     const mappa = new Map<string, Payload>();
     for (const r of righeResp ?? []) mappa.set(r.step_id, r.payload as Payload);
-    const areeTop: AreaTop[] = aree.slice(0, 3).map((a) => ({ slug: a.slug, nome: a.nome, status: a.status }));
+    const areeTop: AreaTop[] = areeCard.slice(0, 3).map((a) => ({ slug: a.slug, nome: a.nome, status: a.status }));
     const restituzione = costruisciRestituzione(slug, accessoreDaMappa(mappa), areeTop);
 
     // «Come hai ragionato»: SOLO le performance di qualità di missione
@@ -173,7 +199,7 @@ export default async function MissionePage({ params }: { params: Promise<{ slug:
             <IniziaMissione missionSlug={slug} etichetta="Rigioca la missione" />
           </div>
         </div>
-        <EsitoMissione titolo={mission.titolo} restituzione={restituzione} aree={aree} spiegazioni={spiegazioni} ragionamento={ragionamento} propostaValutata={propostaValutata} />
+        <EsitoMissione titolo={mission.titolo} restituzione={restituzione} aree={areeCard} areeSfiorate={areeSfiorate} spiegazioni={spiegazioni} ragionamento={ragionamento} propostaValutata={propostaValutata} />
       </div>
     );
   }

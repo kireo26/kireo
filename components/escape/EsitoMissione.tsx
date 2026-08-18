@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Restituzione } from "@/lib/escape/restituzione";
+import AreeSfiorate, { type VoceSfiorata } from "@/components/escape/AreeSfiorate";
 
 // Esito trasparente della missione (v2): non un riassunto, ma una restituzione
 // in quattro momenti (cosa hai costruito / come hai deciso / le occasioni / le
@@ -88,16 +89,13 @@ const DIMENSIONI: { chiave: ChiaveDim; label: string }[] = [
   { chiave: "curiosity", label: "Curiosità" },
 ];
 
-function Barra({ label, valore, nonMisurata }: { label: string; valore: number | null; nonMisurata: NonMisurata }) {
-  // valore NULL → «non ancora misurata» (mai una barra a 0, che si leggerebbe
-  // come un giudizio negativo su un'azione mai compiuta).
+function Barra({ label, valore, etichettaNonMisurata }: { label: string; valore: number | null; etichettaNonMisurata: string }) {
+  // valore NULL → SOLO l'etichetta «— non ancora misurata» (mai una barra a 0,
+  // che si leggerebbe come un giudizio negativo su un'azione mai compiuta). Il
+  // COME si misura vive una volta sola nel blocco «Come leggiamo queste quattro
+  // cose» sotto le card, non ripetuto in ogni casella (era otto volte a pagina).
   if (valore === null) {
-    return (
-      <div>
-        <p className="mb-1 text-[11px] font-medium text-kireo-muted">{nonMisurata.heading}</p>
-        <p className="text-[11px] leading-snug text-kireo-muted/70">{nonMisurata.corpo}</p>
-      </div>
-    );
+    return <p className="text-[11px] leading-snug text-kireo-muted/70">{etichettaNonMisurata}</p>;
   }
   return (
     <div>
@@ -122,13 +120,20 @@ export default function EsitoMissione({
   titolo,
   restituzione,
   aree,
+  areeSfiorate,
   spiegazioni,
   ragionamento,
   propostaValutata,
 }: {
   titolo: string;
   restituzione: Restituzione;
+  // SOLO le aree con abbastanza dimensioni misurate per una card piena (<3 NULL
+  // su 4). Le aree troppo vuote arrivano già separate in areeSfiorate.
   aree: AreaEsito[];
+  // Aree con ≥3 dimensioni su 4 non misurate: troppo poco per una card, vanno
+  // nell'elenco «hai solo sfiorato» col loro segnale più forte. Testo deciso a
+  // monte (page.tsx), che ha le motivazioni delle prove.
+  areeSfiorate: VoceSfiorata[];
   spiegazioni: { testo: string; aree: string[] }[];
   // Qualità di missione (categoria 'qualita_missione'): osservazioni sul METODO,
   // senza area. È il consumatore dichiarato di quella categoria.
@@ -138,6 +143,10 @@ export default function EsitoMissione({
   // riga evidence con step_id 's4_proposta' per il tentativo (zero stato nuovo).
   propostaValutata: boolean;
 }) {
+  // Dimensioni non misurate in ALMENO una card: sono le uniche da spiegare nel
+  // blocco «Come leggiamo queste quattro cose». Se una dimensione è misurata
+  // ovunque, spiegarne l'assenza sarebbe falso (non è assente) → esclusa.
+  const dimensioniDaSpiegare = DIMENSIONI.filter((d) => aree.some((a) => a[d.chiave] === null));
   return (
     <div className="space-y-5">
       <div className="rounded-2xl border border-kireo-green/30 bg-kireo-green/5 p-6 sm:p-8">
@@ -163,27 +172,64 @@ export default function EsitoMissione({
       <div className="rounded-2xl border border-white/5 bg-kireo-card p-6">
         <h3 className="font-heading text-base font-semibold text-kireo-light">Le ipotesi</h3>
         {restituzione.ipotesi && <p className="mt-2 text-sm leading-relaxed text-kireo-light/90">{restituzione.ipotesi}</p>}
-        {aree.length === 0 ? (
+        {aree.length === 0 && areeSfiorate.length === 0 ? (
           <p className="mt-3 text-sm text-kireo-muted">Nessun segnale d&apos;area registrato per questa missione.</p>
         ) : (
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            {aree.map((a) => (
-              <div key={a.slug} className="rounded-2xl border border-white/5 bg-kireo-dark p-5">
-                <h4 className="font-heading text-base font-semibold text-kireo-light">{a.nome}</h4>
-                <span className={`mt-1 inline-block rounded-full border px-2 py-0.5 text-[11px] ${STATUS_LABEL[a.status].classe}`}>{STATUS_LABEL[a.status].testo}</span>
-                <div className="mt-4 grid grid-cols-2 gap-3">
-                  {DIMENSIONI.map((d) => (
-                    <Barra key={d.chiave} label={d.label} valore={a[d.chiave]} nonMisurata={descrizioneNonMisurata(d.chiave, propostaValutata)} />
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
+          aree.length > 0 && (
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              {aree.map((a) => {
+                // Item 4 (regola di VISUALIZZAZIONE, non un valore dell'enum):
+                // ti senti a tuo agio (self_efficacy misurata) ma non l'hai messo
+                // alla prova (performance non misurata) — un'asimmetria da dire.
+                const asimmetria = a.self_efficacy !== null && a.performance === null;
+                return (
+                  <div key={a.slug} className="rounded-2xl border border-white/5 bg-kireo-dark p-5">
+                    <h4 className="font-heading text-base font-semibold text-kireo-light">{a.nome}</h4>
+                    <span className={`mt-1 inline-block rounded-full border px-2 py-0.5 text-[11px] ${STATUS_LABEL[a.status].classe}`}>{STATUS_LABEL[a.status].testo}</span>
+                    <div className="mt-4 grid grid-cols-2 gap-3">
+                      {DIMENSIONI.map((d) => (
+                        <Barra key={d.chiave} label={d.label} valore={a[d.chiave]} etichettaNonMisurata={descrizioneNonMisurata(d.chiave, propostaValutata).heading} />
+                      ))}
+                    </div>
+                    {asimmetria && (
+                      <p className="mt-3 rounded-lg border border-kireo-orange/20 bg-kireo-orange/5 px-3 py-2 text-[12px] leading-snug text-kireo-light/90">
+                        Ti senti a tuo agio qui, ma non l&apos;hai ancora messo alla prova.
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )
         )}
+
+        {/* Le spiegazioni del «non ancora misurata» UNA volta sola, non per casella. */}
+        {dimensioniDaSpiegare.length > 0 && (
+          <details className="mt-4 rounded-xl border border-white/5 bg-kireo-dark/60 p-4">
+            <summary className="cursor-pointer text-sm font-medium text-kireo-light">Come leggiamo queste quattro cose</summary>
+            <ul className="mt-3 space-y-2 text-sm text-kireo-light/90">
+              {dimensioniDaSpiegare.map((d) => {
+                const nm = descrizioneNonMisurata(d.chiave, propostaValutata);
+                return (
+                  <li key={d.chiave} className="rounded-lg bg-white/5 px-3 py-2">
+                    <span className="font-medium text-kireo-light">{d.label}.</span> {nm.corpo}
+                  </li>
+                );
+              })}
+            </ul>
+          </details>
+        )}
+
         {restituzione.notaVerifica && (
           <p className="mt-4 rounded-lg border border-kireo-orange/30 bg-kireo-orange/5 px-3 py-2 text-sm text-kireo-light/90">{restituzione.notaVerifica}</p>
         )}
       </div>
+
+      <AreeSfiorate
+        titolo="Aree che hai solo sfiorato"
+        sottotitolo="Un segnale c'è, ma è ancora troppo poco per un ritratto: un'altra missione in quest'area e diventa un'ipotesi."
+        voci={areeSfiorate}
+      />
 
       {spiegazioni.length > 0 && (
         <details className="rounded-2xl border border-white/5 bg-kireo-card p-6">
