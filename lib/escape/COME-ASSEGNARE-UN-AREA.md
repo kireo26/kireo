@@ -133,6 +133,21 @@ riempirla**: si registra come una lacuna di contenuto (quel contenuto non è
 mai stato scritto) e si annota per un prossimo giro. I tag sbagliati che la
 tenevano su erano il sintomo, non la cura.
 
+## Togliere la strada sbagliata, non l'area
+
+Correggere un tag non vuol dire quasi mai rendere un'area irraggiungibile. Il
+più delle volte l'area resta — ma la si raggiunge solo attraverso le scelte
+che la riguardano davvero. Esempio reale: in `guasto-serra`, arte-design-moda
+era alimentata da cinque elementi. Tre erano «spiegare una cosa al pubblico»
+(spiegare al pubblico, preparare la spiegazione, dire che è tutto a posto):
+comunicazione travestita da design. Due erano genuinamente progettazione (il
+mandato «abbiamo progettato male» e la consulenza a un progettista). Dopo la
+correzione, i tre passano a comunicazione-media e i due restano: l'area
+arte-design-moda **resta raggiungibile** in quella missione, ma solo per chi
+compie scelte che parlano davvero di progetto — non perché a qualcuno tocca
+spiegare qualcosa. Non abbiamo tolto l'area: abbiamo tolto la strada sbagliata
+per arrivarci.
+
 ## L'euristica dei tag isolati
 
 Un'area che compare in una missione su **uno o due elementi soltanto**,

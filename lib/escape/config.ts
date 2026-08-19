@@ -295,7 +295,7 @@ const MD01: MissioneDef = {
     },
   },
   scarto: (letti) => [
-    { id: "facciata_pannelli", label: "Rivestire la facciata con pannelli moderni, per dare un'immagine nuova", aree: ["studi-umanistici-beni-culturali"], qualita: 0.05, trappola: true, avviso: letti.has("M6") ? "Dalla perizia della Soprintendenza: facciata e capriate sono tutelate. Un rivestimento farebbe respingere la domanda." : undefined },
+    { id: "facciata_pannelli", label: "Rivestire la facciata con pannelli moderni, per dare un'immagine nuova", aree: ["arte-design-moda"], qualita: 0.05, trappola: true, avviso: letti.has("M6") ? "Dalla perizia della Soprintendenza: facciata e capriate sono tutelate. Un rivestimento farebbe respingere la domanda." : undefined },
     { id: "insegna_effetto", label: "Grande insegna luminosa e arredo urbano d'effetto", aree: ["arte-design-moda"], qualita: 0.4 },
     { id: "spazio_flessibile", label: "Uno spazio interno flessibile, riconfigurabile per usi diversi", aree: ["edilizia-architettura"], qualita: 0.85 },
   ],
@@ -352,7 +352,7 @@ const D_M9: Materiale = { id: "M9", titolo: "Il precedente di un'altra città", 
 const D_M10: Materiale = { id: "M10", titolo: "Analisi delle reazioni online", aree: ["comunicazione-media"], costo: 1, contenuto: "340 commenti: 61% negativi, 12% positivi, 27% richieste di chiarimento. Il 44% dei commenti negativi contiene un'informazione sbagliata (molti credono che la mediateca chiuda del tutto). Il picco è stato il giorno 2, ora sta calando." };
 const D_M11: Materiale = { id: "M11", titolo: "Verbale del Consiglio di quartiere", aree: ["giurisprudenza-pa", "lingue-relazioni-internazionali"], costo: 1, contenuto: "La decisione fu presentata come «ipotesi di lavoro» in una riunione di aprile con 9 presenti. Nessuno votò. Nessuno la comunicò." };
 const D_M12: Materiale = { id: "M12", titolo: "Nota interna dell'assessorato", aree: ["giurisprudenza-pa"], costo: 1, contenuto: "«Si rappresenta che, in assenza di un riscontro pubblico entro cinque giorni, questa amministrazione riterrà opportuno chiarire pubblicamente che la riorganizzazione è iniziativa autonoma della direzione della Mediateca.» Tradotto: il Comune è pronto a scaricarvi." };
-const D_M13: Materiale = { id: "M13", titolo: "Linee guida sulla comunicazione dei servizi pubblici", aree: ["comunicazione-media", "lingue-relazioni-internazionali"], costo: 1, contenuto: "Quattro principi con esempi: dire prima cosa cambia per chi legge; non usare parole che nessuno userebbe parlando; ammettere ciò che non si sa ancora; indicare sempre un canale per chiedere." };
+const D_M13: Materiale = { id: "M13", titolo: "Linee guida sulla comunicazione dei servizi pubblici", aree: ["comunicazione-media"], costo: 1, contenuto: "Quattro principi con esempi: dire prima cosa cambia per chi legge; non usare parole che nessuno userebbe parlando; ammettere ciò che non si sa ancora; indicare sempre un canale per chiedere." };
 
 const D_MANDATI: Mandato[] = [
   {
@@ -597,7 +597,7 @@ const MD03: MissioneDef = {
     { id: "smontare", label: "Smontare e rimontare", area: "meccanica-meccatronica" },
     { id: "codice", label: "Leggere il codice", area: "informatica-digitale" },
     { id: "registro", label: "Tenere il registro di quello che provate", area: "scienze-ricerca" },
-    { id: "spiegare", label: "Spiegare al pubblico dell'open day", area: "arte-design-moda" },
+    { id: "spiegare", label: "Spiegare al pubblico dell'open day", area: "comunicazione-media" },
   ],
   passi: [
     { id: "tarare", label: "Tarare tutti i sensori" },
@@ -623,13 +623,13 @@ const MD03: MissioneDef = {
       ];
       if (letti.has("M5")) voci.push({ id: "spostare_orario", label: "Spostare l'orario dell'irrigazione al mattino", aree: ["energia-sostenibilita"], soloSe: "M5" });
       if (letti.has("M4") && letti.has("M13")) voci.push({ id: "correggere_registrazione", label: "Correggere la registrazione a flusso confermato", aree: ["informatica-digitale"], soloSe: "M4+M13" });
-      voci.push({ id: "preparare_spiegazione", label: "Preparare la spiegazione per l'open day", aree: ["arte-design-moda"] });
+      voci.push({ id: "preparare_spiegazione", label: "Preparare la spiegazione per l'open day", aree: ["comunicazione-media"] });
       return voci;
     },
   },
   scarto: (letti) => [
     { id: "raddoppiare", label: "Raddoppiare la durata dell'irrigazione della sezione B", aree: ["meccanica-meccatronica"], qualita: 0.05, trappola: true, avviso: letti.has("M6") ? "Il manuale della pompa (che hai letto): sotto 0,8 bar la valvola non si apre affatto. Raddoppiare zero fa zero." : undefined },
-    { id: "dire_apposto", label: "Dire all'open day che è tutto a posto", aree: ["arte-design-moda"], qualita: 0.1 },
+    { id: "dire_apposto", label: "Dire all'open day che è tutto a posto", aree: ["comunicazione-media"], qualita: 0.1 },
     { id: "spostare_piante", label: "Spostare le piante della B in un'altra sezione", aree: ["agrifood-ambiente"], qualita: 0.2 },
     { id: "rifare_codice", label: "Rifare il codice da capo", aree: ["informatica-digitale"], qualita: 0.3 },
     { id: "sostituire_sensore", label: "Sostituire il sensore B", aree: ["scienze-ricerca"], qualita: 0.4 },
@@ -1028,7 +1028,7 @@ const B_M2: Materiale = {
 const B_M3: Materiale = { id: "M3", titolo: "Il vincolo commerciale", aree: [], costo: 0, contenuto: "Costo industriale attuale 14,20 € a zaino; prezzo a scaffale 39 €. Tetto invalicabile: 42 € a scaffale, che corrisponde a circa 15,30 € di costo industriale. Margine di manovra reale: 1,10 € a zaino." };
 const B_M4: Materiale = { id: "M4", titolo: "Le tre offerte per il tessuto", aree: ["agrifood-ambiente", "economia-management"], costo: 1, contenuto: "Attuale (poliestere vergine, Turchia): 4,10 €/zaino, 2.100 km, riferimento, 98% puntualità, 20 gg. Alfa (poliestere riciclato CERTIFICATO, Portogallo): 5,40 €, 1.900 km, −34% impatto, 91%, 35 gg. Beta (riciclato NON certificato, Italia): 4,60 €, 320 km, −28% dichiarato non verificato, 88%, 12 gg." };
 const B_M5: Materiale = { id: "M5", titolo: "Cosa significa davvero «certificato»", aree: ["scienze-ricerca", "economia-management"], costo: 1, contenuto: "La certificazione di Alfa traccia il materiale con documenti verificabili lungo tutta la catena. Beta dichiara il riciclato ma non ha tracciabilità: non è detto che menta, è che non lo si può dimostrare. Se lo si scrive in etichetta e un'autorità controlla, la contestazione è a carico di Borea, non del fornitore." };
-const B_M6: Materiale = { id: "M6", titolo: "La normativa sulle dichiarazioni ambientali", aree: ["economia-management", "scienze-ricerca"], costo: 1, contenuto: "Le affermazioni ambientali generiche («eco», «green», «amico dell'ambiente») senza prova documentale sono pratica commerciale scorretta. Sanzione fino al 10% del fatturato, e obbligo di ritirare le confezioni già stampate." };
+const B_M6: Materiale = { id: "M6", titolo: "La normativa sulle dichiarazioni ambientali", aree: ["scienze-ricerca", "giurisprudenza-pa"], costo: 1, contenuto: "Le affermazioni ambientali generiche («eco», «green», «amico dell'ambiente») senza prova documentale sono pratica commerciale scorretta. Sanzione fino al 10% del fatturato, e obbligo di ritirare le confezioni già stampate." };
 const B_M7: Materiale = { id: "M7", titolo: "Analisi dei trasporti", aree: ["mobilita-sostenibile", "energia-sostenibilita"], costo: 1, contenuto: "Il 21% d'impatto dei trasporti si divide così: 14% gli accessori dalla Cina (zip, fibbie, regolatori: pezzi piccoli, spediti in aereo per non fermare la produzione), 7% il filato dalla Turchia via nave. Il grosso non è il tessuto: sono le fibbie che viaggiano in aereo." };
 const B_M8: Materiale = { id: "M8", titolo: "Offerta accessori europei", aree: ["meccanica-meccatronica", "mobilita-sostenibile"], costo: 1, contenuto: "Un fornitore slovacco: zip e fibbie a +0,35 € a zaino, consegna via camion in 6 giorni, −12% d'impatto sul totale del prodotto. Le fibbie sono leggermente diverse: serve ritarare le macchine, 3 giorni di fermo produzione. È il miglior rapporto impatto/costo della missione." };
 const B_M9: Materiale = { id: "M9", titolo: "Studio sulla riciclabilità a fine vita", aree: ["agrifood-ambiente", "scienze-ricerca"], costo: 1, contenuto: "Lo zaino oggi non è riciclabile perché tessuto, imbottitura e zip sono incollati e cuciti insieme. Rendere il prodotto smontabile costa +0,45 € a zaino e non cambia nulla nell'impatto misurato oggi — cambia tutto tra otto anni, quando lo zaino verrà buttato." };
@@ -1150,7 +1150,7 @@ const MD06: MissioneDef = {
     { id: "eco_friendly", label: "Scrivere «eco-friendly» senza specificare", aree: ["economia-management"], qualita: 0.08, avviso: letti.has("M6") ? "La normativa (che hai letto): le affermazioni generiche senza prova sono pratica scorretta, sanzione fino al 10% del fatturato." : undefined },
     { id: "alza_prezzo", label: "Tenere tutto com'è e alzare il prezzo a 44 €", aree: ["economia-management"], qualita: 0.2 },
     { id: "rimanda", label: "Rimandare tutto alla prossima stagione", aree: ["economia-management"], qualita: 0.3 },
-    { id: "smontabile_comunica", label: "Fare il prodotto smontabile e comunicare solo quello", aree: ["scienze-ricerca", "agrifood-ambiente"], qualita: 0.7 },
+    { id: "smontabile_comunica", label: "Fare il prodotto smontabile e comunicare solo quello", aree: ["agrifood-ambiente", "comunicazione-media"], qualita: 0.7 },
     { id: "beta_muto", label: "Scegliere Beta e NON scrivere niente in etichetta", aree: ["agrifood-ambiente"], qualita: 0.85 },
   ],
   introStanza3: (m, letti) => {
@@ -1543,7 +1543,7 @@ const N_M4: Materiale = { id: "M4", titolo: "Il regolamento dell'autorizzazione 
 const N_M5: Materiale = { id: "M5", titolo: "Cosa sa fare la Filarmonica con 23 elementi", aree: ["musica-spettacolo"], costo: 1, contenuto: "L'organico ridotto esclude i pezzi sinfonici ma consente il repertorio bandistico e quattro arrangiamenti già eseguiti l'anno scorso, di cui uno molto noto. Il direttore lo sa ma non l'ha proposto: si vergogna di «fare il minore». Chi lo legge può proporre un compromesso che salva la Filarmonica invece di eliminarla." };
 const N_M6: Materiale = { id: "M6", titolo: "Il centro estivo internazionale", aree: ["scienze-educazione"], costo: 1, contenuto: "200 ragazzi tra 14 e 19 anni, 11 nazionalità, il 54% non parla italiano. Sono in paese da due settimane e hanno già preparato, per conto loro, quattro brani corali in cinque lingue: 18 minuti. Costa zero, riempie un buco, e trasforma il problema del pubblico in un contenuto." };
 const N_M7: Materiale = { id: "M7", titolo: "Il gruppo teatrale, in dettaglio", aree: ["musica-spettacolo", "lingue-relazioni-internazionali"], costo: 1, contenuto: "I venti minuti in più sono un pezzo comico in dialetto stretto. Funziona benissimo con il pubblico locale e non funziona affatto con chi non è del posto. Nadia: «Se ci sono i ragazzi stranieri, quei venti minuti sono venti minuti di silenzio»." };
-const N_M8: Materiale = { id: "M8", titolo: "Il contratto del service audio-luci", aree: ["meccanica-meccatronica"], costo: 1, contenuto: "Pagato fino all'01:00. Ogni ora aggiuntiva: 340 €. Il residuo di cassa è 380 €: si può comprare esattamente un'ora, e resterebbero 40 €. Ma l'autorizzazione della piazza scade all'una comunque. I soldi ci sono, il permesso no." };
+const N_M8: Materiale = { id: "M8", titolo: "Il contratto del service audio-luci", aree: ["giurisprudenza-pa"], costo: 1, contenuto: "Pagato fino all'01:00. Ogni ora aggiuntiva: 340 €. Il residuo di cassa è 380 €: si può comprare esattamente un'ora, e resterebbero 40 €. Ma l'autorizzazione della piazza scade all'una comunque. I soldi ci sono, il permesso no." };
 const N_M9: Materiale = { id: "M9", titolo: "L'edizione dell'anno scorso", aree: ["musica-spettacolo"], costo: 1, contenuto: "870 presenti. Il momento più applaudito non fu il concerto: fu quando la banda accompagnò a sorpresa il coro dei bambini della parrocchia. Cinque minuti, non erano in programma." };
 const N_M10: Materiale = { id: "M10", titolo: "La comunicazione già uscita", aree: ["comunicazione-media"], costo: 1, contenuto: "400 locandine affisse, un post condiviso 210 volte, un annuncio sul giornale locale. Tutte riportano «Concerto della Filarmonica, ore 22:30». Chi arriva alle 22:30 si aspetta quello." };
 const N_M11: Materiale = { id: "M11", titolo: "La disponibilità dei volontari", aree: ["musica-spettacolo"], costo: 1, contenuto: "6 volontari, tutti già assegnati (bar, transenne, accoglienza). Nessuno è libero per gestire un cambio di programma sul posto. Due sono disponibili solo fino alle 23:00." };
@@ -1896,7 +1896,7 @@ const V_M6: Materiale = { id: "M6", titolo: "La questione dei pasti", aree: ["ag
 const V_M7: Materiale = { id: "M7", titolo: "La lettera della famiglia di Marco", aree: ["scienze-educazione", "giurisprudenza-pa"], costo: 1, contenuto: "«Oltre i 150 non riusciamo, e non vogliamo che nostro figlio si senta a disagio. Se è un problema, resterà a casa dicendo che non gli andava.» La frase che spiega perché certe persone non chiedono niente." };
 const V_M8: Materiale = { id: "M8", titolo: "Il fondo di solidarietà d'istituto", aree: ["giurisprudenza-pa", "economia-management"], costo: 1, contenuto: "Esiste, copre fino al 40% della quota per famiglie che ne fanno richiesta, la domanda si presenta in segreteria ed è riservata: nessuno in classe lo viene a sapere. Va presentata entro dieci giorni. Quest'anno non l'ha chiesta nessuno. Risolve interamente il caso di Marco, a costo zero per il gruppo — ma bisogna sapere che esiste, e dirglielo senza farlo sentire un caso da assistere." };
 const V_M9: Materiale = { id: "M9", titolo: "Cosa si può fare in quella città", aree: ["ristorazione-turismo", "arte-design-moda"], costo: 1, contenuto: "Sei possibilità con costi: museo principale 8 € (già incluso), quartiere storico a piedi gratis, mercato coperto gratis, museo scientifico 6 €, giro in battello 11 €, laboratorio artigiano 9 € su prenotazione (max 25 persone). Serve per capire dove finiscono i 12 € di margine." };
-const V_M10: Materiale = { id: "M10", titolo: "La normativa sui viaggi d'istruzione", aree: ["giurisprudenza-pa", "salute-professioni-sanitarie"], costo: 1, contenuto: "Le uscite didattiche devono garantire la partecipazione di tutti gli studenti: le barriere architettoniche o economiche note e non affrontate possono costituire discriminazione. Se un solo studente è escluso per una barriera evitabile, il viaggio non è conforme. Non è sensibilità: è una condizione di legittimità." };
+const V_M10: Materiale = { id: "M10", titolo: "La normativa sui viaggi d'istruzione", aree: ["giurisprudenza-pa"], costo: 1, contenuto: "Le uscite didattiche devono garantire la partecipazione di tutti gli studenti: le barriere architettoniche o economiche note e non affrontate possono costituire discriminazione. Se un solo studente è escluso per una barriera evitabile, il viaggio non è conforme. Non è sensibilità: è una condizione di legittimità." };
 const V_M11: Materiale = { id: "M11", titolo: "La regola dell'80%", aree: ["economia-management"], costo: 1, contenuto: "Servono almeno 18 partecipanti. Se Nadir, Marco, Chiara e Sara restassero a casa, i partecipanti sarebbero 18: esattamente la soglia. Il viaggio si farebbe comunque. Il dato più freddo della missione, e il più utile per vedere cosa si sta scegliendo davvero." };
 const V_M12: Materiale = { id: "M12", titolo: "Il precedente della 5ªB, due anni fa", aree: ["salute-professioni-sanitarie"], costo: 1, contenuto: "Uno studente in sedia a rotelle non partecipò «per scelta sua». Nella relazione di fine anno si legge che l'ostello non era accessibile e che nessuno glielo comunicò: gli fu chiesto se voleva venire, e lui disse di no. Chiarisce cosa significa davvero la frase di Nadir in corridoio." };
 const V_M13: Materiale = { id: "M13", titolo: "La disponibilità dell'agenzia", aree: ["economia-management", "mobilita-sostenibile"], costo: 1, contenuto: "L'agenzia può cambiare ostello senza penale entro undici giorni, e con 25 partecipanti (compresi due accompagnatori) applica una riduzione di 4 € a testa. Sono 22 studenti + 2 accompagnatori = 24: con un accompagnatore in più si scende a 174 €. Guadagno nascosto: libera 4 € a testa, cioè 88 € sul gruppo — quasi metà del costo dell'ostello accessibile." };
@@ -1922,7 +1922,7 @@ const V_MANDATI: Mandato[] = [
   },
   {
     id: "nessuno_spende", label: "«Nessuno deve spendere più del previsto»", frase: "i costi nascosti sono la cosa più ingiusta.",
-    aree: ["economia-management", "agrifood-ambiente"],
+    aree: ["economia-management"],
     vincolo: { id: "altri_tre", testo: "Emerge che altri tre studenti sono in difficoltà economica e non l'hanno detto." },
     consulenze: [
       consulenza("V_genitore", "Consulenza: un genitore rappresentante", "economia-management", "Il preventivo dice 178, ma coi pasti sono più di 200. Chi arriva a 150 non ce la fa, e non lo dirà mai in classe. Il costo vero va detto prima, non alla partenza."),
