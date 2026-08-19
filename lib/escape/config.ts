@@ -122,7 +122,7 @@ type MissioneDef = {
 // moderato, non travolge). Il contenuto tecnico di ciò che dicono resta
 // area-specifico. `assi` è sovrascrivibile se una consulenza esprime altro.
 function consulenza(id: string, titolo: string, area: string, contenuto: string, assi: TagAsse[] = [{ asse: "relazionale", valore: 0.4 }]): Materiale {
-  return { id, titolo, aree: [area], costo: 1, contenuto, assi };
+  return { id, titolo, aree: area ? [area] : [], costo: 1, contenuto, assi };
 }
 
 // =====================================================================
@@ -165,13 +165,13 @@ const Q_M4: Materiale = { id: "M4", titolo: "Perizia strutturale", aree: ["edili
 const Q_M5: Materiale = { id: "M5", titolo: "Diagnosi energetica", aree: ["energia-sostenibilita"], costo: 1, contenuto: "Consumo stimato a regime 38.000 kWh/anno ≈ 11.000 €/anno. Con cappotto + fotovoltaico da 20 kW: investimento 46.000 €, rientro in 6 anni, bolletta a 3.400 €/anno." };
 const Q_M6: Materiale = { id: "M6", titolo: "Vincolo della Soprintendenza", aree: ["studi-umanistici-beni-culturali", "giurisprudenza-pa"], costo: 1, contenuto: "La facciata e le capriate originali sono tutelate: non si possono coprire né sostituire, solo consolidare. Ogni progetto che le nasconde viene respinto." };
 const Q_M7: Materiale = { id: "M7", titolo: "Piano economico di gestione", aree: ["economia-management"], costo: 1, contenuto: "Costi fissi annui a regime: utenze 11.000, assicurazione 2.400, pulizie 7.200, coordinatore part-time 14.000. Totale ≈ 34.600 €/anno da coprire dal terzo anno." };
-const Q_M8: Materiale = { id: "M8", titolo: "Indagine sui bisogni giovanili", aree: ["scienze-educazione", "salute-professioni-sanitarie"], costo: 1, contenuto: "214 questionari agli under 25: 68% «non c'è niente da fare la sera»; 41% cerca un posto per studiare; 29% si sente solo spesso o sempre; 12% ha lasciato la scuola." };
+const Q_M8: Materiale = { id: "M8", titolo: "Indagine sui bisogni giovanili", aree: ["salute-professioni-sanitarie", "scienze-ricerca"], costo: 1, contenuto: "214 questionari agli under 25: 68% «non c'è niente da fare la sera»; 41% cerca un posto per studiare; 29% si sente solo spesso o sempre; 12% ha lasciato la scuola." };
 const Q_M9: Materiale = { id: "M9", titolo: "Analisi del commercio locale", aree: ["economia-management", "ristorazione-turismo"], costo: 1, contenuto: "14 attività chiuse in 5 anni entro 400 m, 3 aperte. Nessun bar aperto dopo le 20. Due panifici storici ancora attivi." };
 const Q_M10: Materiale = { id: "M10", titolo: "Report ambientale", aree: ["agrifood-ambiente", "scienze-ricerca"], costo: 1, contenuto: "0,9 m² di verde per abitante contro i 9 raccomandati. Il suolo del cortile retrostante (300 m²) è idoneo alla coltivazione. Isola di calore rilevata a +3,8 °C rispetto alla media cittadina." };
 const Q_M11: Materiale = { id: "M11", titolo: "Dossier accessibilità e mobilità", aree: ["mobilita-sostenibile", "salute-professioni-sanitarie"], costo: 1, contenuto: "Nessuno scivolo per carrozzine sui tre ingressi; marciapiede antistante largo 90 cm. Il 22% del quartiere è over 65 e ci sono due strutture per disabili entro 600 m." };
-const Q_M12: Materiale = { id: "M12", titolo: "Rilevazione sulla sicurezza percepita", aree: ["sicurezza-difesa"], costo: 1, contenuto: "4 segnalazioni di vandalismo sull'edificio negli ultimi 12 mesi; illuminazione pubblica assente sul lato nord; il 54% dei residenti evita la via dopo le 21." };
+const Q_M12: Materiale = { id: "M12", titolo: "Rilevazione sulla sicurezza percepita", aree: ["scienze-ricerca"], costo: 1, contenuto: "4 segnalazioni di vandalismo sull'edificio negli ultimi 12 mesi; illuminazione pubblica assente sul lato nord; il 54% dei residenti evita la via dopo le 21." };
 const Q_M13: Materiale = { id: "M13", titolo: "Mappa delle competenze del quartiere", aree: ["lingue-relazioni-internazionali", "arte-design-moda", "musica-spettacolo", "meccanica-meccatronica", "informatica-digitale"], costo: 1, contenuto: "Censimento informale: 3 insegnanti in pensione; una sarta con laboratorio; un ex tecnico del suono; 2 meccanici; una comunità bangladese di ~300 persone con due mediatori linguistici; un gruppo musicale che prova in garage." };
-const Q_M14: Materiale = { id: "M14", titolo: "Precedenti: cosa è successo altrove", aree: ["scienze-ricerca", "comunicazione-media"], costo: 1, contenuto: "Tre casi reali: un progetto fallito dopo 18 mesi per costi di gestione sottostimati; uno riuscito grazie a un patto con le scuole; uno che ha funzionato solo dopo aver cambiato completamente destinazione al secondo anno." };
+const Q_M14: Materiale = { id: "M14", titolo: "Precedenti: cosa è successo altrove", aree: ["scienze-ricerca"], costo: 1, contenuto: "Tre casi reali: un progetto fallito dopo 18 mesi per costi di gestione sottostimati; uno riuscito grazie a un patto con le scuole; uno che ha funzionato solo dopo aver cambiato completamente destinazione al secondo anno." };
 
 const Q_MANDATI: Mandato[] = [
   {
@@ -212,7 +212,7 @@ const Q_MANDATI: Mandato[] = [
   },
   {
     id: "comunita", label: "«Un posto di tutti»", frase: "Un posto accessibile e sicuro, che tenga insieme le tante anime del quartiere.",
-    aree: ["mobilita-sostenibile", "sicurezza-difesa", "lingue-relazioni-internazionali"],
+    aree: ["mobilita-sostenibile", "lingue-relazioni-internazionali"],
     vincolo: { id: "barriere", testo: "Adeguamento accessibilità obbligatorio su tutti e tre gli ingressi + servizi: 34.000 €, non finanziabili altrove." },
     consulenze: [
       consulenza("C_mediatrice", "Consulenza: mediatrice culturale", "lingue-relazioni-internazionali", "La comunità bangladese (~300 persone) partecipa se coinvolta fin dall'inizio, con i suoi due mediatori. Spazi neutri e multilingue, non «per stranieri»."),
@@ -247,7 +247,7 @@ const MD01: MissioneDef = {
     { id: "lavoro", label: "Serve lavoro, servono attività che portino gente", aree: ["economia-management", "ristorazione-turismo"] },
     { id: "verde", label: "Serve verde: qui non si respira", aree: ["agrifood-ambiente", "energia-sostenibilita"] },
     { id: "fare", label: "Serve un posto per fare cose: musica, mani, creatività", aree: ["musica-spettacolo", "arte-design-moda", "meccanica-meccatronica"] },
-    { id: "aperto", label: "Serve che questo posto sia sicuro e aperto a tutti", aree: ["sicurezza-difesa", "mobilita-sostenibile"] },
+    { id: "aperto", label: "Serve che questo posto sia sicuro e aperto a tutti", aree: ["mobilita-sostenibile"] },
     { id: "edificio", label: "Serve che l'edificio non cada a pezzi e sia riconoscibile", aree: ["edilizia-architettura", "studi-umanistici-beni-culturali"] },
   ],
   ruoli: [
@@ -279,7 +279,7 @@ const MD01: MissioneDef = {
       ];
       if (m) {
         const spesaVincolo: Record<string, { label: string; area: string; costo: number } | undefined> = {
-          minori: { label: "Spazi certificati per i minori (vincolo del Comune)", area: "scienze-educazione", costo: 38000 },
+          minori: { label: "Spazi certificati per i minori (vincolo del Comune)", area: "edilizia-architettura", costo: 38000 },
           acustica: { label: "Insonorizzazione della sala musica (vincolo del Comune)", area: "musica-spettacolo", costo: 29000 },
           barriere: { label: "Adeguamento accessibilità dei tre ingressi (vincolo del Comune)", area: "mobilita-sostenibile", costo: 34000 },
         };
@@ -296,7 +296,7 @@ const MD01: MissioneDef = {
   },
   scarto: (letti) => [
     { id: "facciata_pannelli", label: "Rivestire la facciata con pannelli moderni, per dare un'immagine nuova", aree: ["studi-umanistici-beni-culturali"], qualita: 0.05, trappola: true, avviso: letti.has("M6") ? "Dalla perizia della Soprintendenza: facciata e capriate sono tutelate. Un rivestimento farebbe respingere la domanda." : undefined },
-    { id: "insegna_effetto", label: "Grande insegna luminosa e arredo urbano d'effetto", aree: ["comunicazione-media"], qualita: 0.4 },
+    { id: "insegna_effetto", label: "Grande insegna luminosa e arredo urbano d'effetto", aree: ["arte-design-moda"], qualita: 0.4 },
     { id: "spazio_flessibile", label: "Uno spazio interno flessibile, riconfigurabile per usi diversi", aree: ["edilizia-architettura"], qualita: 0.85 },
   ],
   introStanza3: (m, letti) => {
@@ -344,14 +344,14 @@ const D_M2: Materiale = {
 };
 const D_M3: Materiale = { id: "M3", titolo: "Dati di utilizzo (ultimi 12 mesi)", aree: [], costo: 0, contenuto: "71.400 ingressi; 58% under 25; picco 14:00-19:00; 22% degli utenti dichiara di non avere un altro posto dove studiare; 9% è over 70." };
 const D_M4: Materiale = { id: "M4", titolo: "Regolamento comunale del servizio bibliotecario", aree: ["giurisprudenza-pa"], costo: 1, contenuto: "Art. 7: «Nelle strutture bibliotecarie comunali almeno il 60% della superficie destinata al pubblico deve rimanere ad accesso libero e gratuito.» Nel progetto attuale l'area libera scende al 48%. Confermare la decisione così com'è non è solo impopolare: è illegittimo." };
-const D_M5: Materiale = { id: "M5", titolo: "Bilancio della Mediateca", aree: ["giurisprudenza-pa"], costo: 1, contenuto: "Costi annui 412.000 €; trasferimento comunale 340.000 € (era 395.000 tre anni fa); disavanzo 72.000 €. La decisione ha una ragione vera: non è arroganza, è un buco." };
-const D_M6: Materiale = { id: "M6", titolo: "Lettera formale dell'Associazione Passo Nuovo", aree: ["giurisprudenza-pa", "sicurezza-difesa"], costo: 1, contenuto: "Protocollata. Richiede risposta scritta entro 15 giorni, oltre i quali «si valuteranno le opportune sedi». Cita la normativa sull'accessibilità dei servizi pubblici." };
-const D_M7: Materiale = { id: "M7", titolo: "Affluenza per fascia oraria e tipo di utente", aree: ["comunicazione-media", "scienze-educazione"], costo: 1, contenuto: "La mattina è semivuota (18% di occupazione), il pomeriggio è satura (94%). Il conflitto è tutto in quattro ore al giorno. Forse non serve dividere lo spazio: forse serve distribuire il tempo." };
-const D_M8: Materiale = { id: "M8", titolo: "Relazione del personale", aree: ["sicurezza-difesa", "scienze-educazione"], costo: 1, contenuto: "23 segnalazioni in un anno di attrito tra gruppi di utenti (rumore, occupazione dei posti, uso dei tavoli). I bibliotecari chiedono da due anni «regole d'uso chiare», mai arrivate. La tensione esisteva prima della decisione." };
-const D_M9: Materiale = { id: "M9", titolo: "Il precedente di un'altra città", aree: ["comunicazione-media", "studi-umanistici-beni-culturali"], costo: 1, contenuto: "Una biblioteca fece la stessa scelta: dopo 8 mesi tornò indietro, non per le proteste ma perché le postazioni a pagamento restarono vuote al 70%. Il ricavo previsto non arrivò." };
+const D_M5: Materiale = { id: "M5", titolo: "Bilancio della Mediateca", aree: ["economia-management"], costo: 1, contenuto: "Costi annui 412.000 €; trasferimento comunale 340.000 € (era 395.000 tre anni fa); disavanzo 72.000 €. La decisione ha una ragione vera: non è arroganza, è un buco." };
+const D_M6: Materiale = { id: "M6", titolo: "Lettera formale dell'Associazione Passo Nuovo", aree: ["giurisprudenza-pa"], costo: 1, contenuto: "Protocollata. Richiede risposta scritta entro 15 giorni, oltre i quali «si valuteranno le opportune sedi». Cita la normativa sull'accessibilità dei servizi pubblici." };
+const D_M7: Materiale = { id: "M7", titolo: "Affluenza per fascia oraria e tipo di utente", aree: ["scienze-ricerca"], costo: 1, contenuto: "La mattina è semivuota (18% di occupazione), il pomeriggio è satura (94%). Il conflitto è tutto in quattro ore al giorno. Forse non serve dividere lo spazio: forse serve distribuire il tempo." };
+const D_M8: Materiale = { id: "M8", titolo: "Relazione del personale", aree: ["scienze-educazione"], costo: 1, contenuto: "23 segnalazioni in un anno di attrito tra gruppi di utenti (rumore, occupazione dei posti, uso dei tavoli). I bibliotecari chiedono da due anni «regole d'uso chiare», mai arrivate. La tensione esisteva prima della decisione." };
+const D_M9: Materiale = { id: "M9", titolo: "Il precedente di un'altra città", aree: ["studi-umanistici-beni-culturali"], costo: 1, contenuto: "Una biblioteca fece la stessa scelta: dopo 8 mesi tornò indietro, non per le proteste ma perché le postazioni a pagamento restarono vuote al 70%. Il ricavo previsto non arrivò." };
 const D_M10: Materiale = { id: "M10", titolo: "Analisi delle reazioni online", aree: ["comunicazione-media"], costo: 1, contenuto: "340 commenti: 61% negativi, 12% positivi, 27% richieste di chiarimento. Il 44% dei commenti negativi contiene un'informazione sbagliata (molti credono che la mediateca chiuda del tutto). Il picco è stato il giorno 2, ora sta calando." };
 const D_M11: Materiale = { id: "M11", titolo: "Verbale del Consiglio di quartiere", aree: ["giurisprudenza-pa", "lingue-relazioni-internazionali"], costo: 1, contenuto: "La decisione fu presentata come «ipotesi di lavoro» in una riunione di aprile con 9 presenti. Nessuno votò. Nessuno la comunicò." };
-const D_M12: Materiale = { id: "M12", titolo: "Nota interna dell'assessorato", aree: ["comunicazione-media", "giurisprudenza-pa"], costo: 1, contenuto: "«Si rappresenta che, in assenza di un riscontro pubblico entro cinque giorni, questa amministrazione riterrà opportuno chiarire pubblicamente che la riorganizzazione è iniziativa autonoma della direzione della Mediateca.» Tradotto: il Comune è pronto a scaricarvi." };
+const D_M12: Materiale = { id: "M12", titolo: "Nota interna dell'assessorato", aree: ["giurisprudenza-pa"], costo: 1, contenuto: "«Si rappresenta che, in assenza di un riscontro pubblico entro cinque giorni, questa amministrazione riterrà opportuno chiarire pubblicamente che la riorganizzazione è iniziativa autonoma della direzione della Mediateca.» Tradotto: il Comune è pronto a scaricarvi." };
 const D_M13: Materiale = { id: "M13", titolo: "Linee guida sulla comunicazione dei servizi pubblici", aree: ["comunicazione-media", "lingue-relazioni-internazionali"], costo: 1, contenuto: "Quattro principi con esempi: dire prima cosa cambia per chi legge; non usare parole che nessuno userebbe parlando; ammettere ciò che non si sa ancora; indicare sempre un canale per chiedere." };
 
 const D_MANDATI: Mandato[] = [
@@ -366,7 +366,7 @@ const D_MANDATI: Mandato[] = [
   },
   {
     id: "diritti", label: "«È un problema di diritti»", frase: "Un servizio pubblico sta escludendo qualcuno che non ha alternative.",
-    aree: ["giurisprudenza-pa", "scienze-educazione"],
+    aree: [],
     vincolo: { id: "diffida", testo: "La diffida dell'associazione è protocollata: avete quindici giorni per una risposta formale, non un post." },
     consulenze: [
       consulenza("D_legale", "Consulenza: un legale del Comune", "giurisprudenza-pa", "Il regolamento impone il 60% di superficie libera. Sotto quella soglia la decisione è impugnabile: non è una questione di opinioni, è una norma."),
@@ -375,7 +375,7 @@ const D_MANDATI: Mandato[] = [
   },
   {
     id: "ascolto", label: "«È un problema di ascolto»", frase: "Non è stato chiesto niente a nessuno, prima di decidere.",
-    aree: ["scienze-educazione", "lingue-relazioni-internazionali"],
+    aree: [],
     vincolo: { id: "tempo", testo: "Il sondaggio che vorreste fare richiede tre settimane. La risposta, però, serve giovedì." },
     consulenze: [
       consulenza("D_mediatrice", "Consulenza: una mediatrice", "lingue-relazioni-internazionali", "Le persone accettano quasi tutto se sentono di essere state ascoltate prima. Anche solo un incontro pubblico, fatto sul serio, cambia il clima."),
@@ -384,7 +384,7 @@ const D_MANDATI: Mandato[] = [
   },
   {
     id: "identita", label: "«È un problema di identità»", frase: "La Mediateca sta smettendo di essere ciò che è: un luogo di tutti.",
-    aree: ["studi-umanistici-beni-culturali", "comunicazione-media"],
+    aree: [],
     vincolo: { id: "articolo", testo: "Esce il pezzo sul quotidiano: «La biblioteca che vende i suoi tavoli»." },
     consulenze: [
       consulenza("D_direttrice", "Consulenza: la direttrice storica", "studi-umanistici-beni-culturali", "Una biblioteca pubblica non è un coworking. Nel momento in cui un posto a sedere ha un prezzo, cambia cosa quel posto significa per la città."),
@@ -393,11 +393,11 @@ const D_MANDATI: Mandato[] = [
   },
   {
     id: "convivenza", label: "«È un problema di convivenza»", frase: "Il vero attrito è tra utenti diversi che usano lo stesso spazio.",
-    aree: ["sicurezza-difesa", "scienze-educazione"],
+    aree: [],
     vincolo: { id: "regole", testo: "Terza lite in sala in una settimana. Il personale chiede regole scritte, subito." },
     consulenze: [
-      consulenza("D_capo_personale", "Consulenza: il capo del personale", "sicurezza-difesa", "Chiediamo regole d'uso chiare da due anni: chi può fare cosa, dove si parla e dove no. Senza, ogni giorno è una trattativa tra sconosciuti."),
-      consulenza("D_spazi", "Consulenza: un esperto di gestione degli spazi", "scienze-educazione", "Non serve un muro: serve dividere gli usi. Zone silenziose e zone di lavoro, fasce orarie diverse. Lo spazio c'è, manca la regola."),
+      consulenza("D_capo_personale", "Consulenza: il capo del personale", "economia-management", "Chiediamo regole d'uso chiare da due anni: chi può fare cosa, dove si parla e dove no. Senza, ogni giorno è una trattativa tra sconosciuti."),
+      consulenza("D_spazi", "Consulenza: un esperto di gestione degli spazi", "edilizia-architettura", "Non serve un muro: serve dividere gli usi. Zone silenziose e zone di lavoro, fasce orarie diverse. Lo spazio c'è, manca la regola."),
     ],
   },
 ];
@@ -422,16 +422,16 @@ const MD02: MissioneDef = {
     { id: "regolamento", label: "Il regolamento potrebbe non permettere questa decisione", aree: ["giurisprudenza-pa"] },
     { id: "studenti", label: "Metà di chi studia lì non ha un altro posto dove andare", aree: ["scienze-educazione"] },
     { id: "linguaggio", label: "Il comunicato è scritto in una lingua che nessuno capisce", aree: ["comunicazione-media", "lingue-relazioni-internazionali"] },
-    { id: "lettera", label: "C'è una lettera formale che aspetta risposta", aree: ["giurisprudenza-pa", "sicurezza-difesa"] },
-    { id: "attrito", label: "Due gruppi di utenti non riescono a stare nello stesso spazio", aree: ["sicurezza-difesa", "scienze-educazione"] },
-    { id: "identita", label: "Una mediateca pubblica che fa pagare tradisce quello che è", aree: ["studi-umanistici-beni-culturali", "comunicazione-media"] },
+    { id: "lettera", label: "C'è una lettera formale che aspetta risposta", aree: ["giurisprudenza-pa"] },
+    { id: "attrito", label: "Due gruppi di utenti non riescono a stare nello stesso spazio", aree: ["scienze-educazione"] },
+    { id: "identita", label: "Una mediateca pubblica che fa pagare tradisce quello che è", aree: [] },
   ],
   ruoli: [
     { id: "stampa", label: "Parlare con la stampa", area: "comunicazione-media" },
     { id: "comune", label: "Tenere i rapporti con il Comune", area: "giurisprudenza-pa" },
     { id: "studenti", label: "Incontrare gli studenti", area: "scienze-educazione" },
     { id: "testo", label: "Scrivere il testo della risposta", area: "lingue-relazioni-internazionali" },
-    { id: "regolamento", label: "Sistemare il regolamento interno", area: "sicurezza-difesa" },
+    { id: "regolamento", label: "Sistemare il regolamento interno", area: "giurisprudenza-pa" },
   ],
   passi: [
     { id: "assoc", label: "Incontrare l'associazione" },
@@ -454,15 +454,15 @@ const MD02: MissioneDef = {
         { id: "incontrare_gruppi", label: "Incontrare i gruppi che protestano", aree: ["scienze-educazione"] },
       ];
       if (letti.has("M6")) voci.push({ id: "rispondere_associazione", label: "Rispondere formalmente all'associazione", aree: ["giurisprudenza-pa"], soloSe: "M6" });
-      voci.push({ id: "rivedere_spazi", label: "Rivedere il progetto degli spazi", aree: ["sicurezza-difesa"] });
+      voci.push({ id: "rivedere_spazi", label: "Rivedere il progetto degli spazi", aree: ["edilizia-architettura"] });
       if (letti.has("M12")) voci.push({ id: "concordare_comune", label: "Concordare la posizione con il Comune", aree: ["giurisprudenza-pa"], soloSe: "M12" });
-      voci.push({ id: "scrivere_regole", label: "Scrivere le regole d'uso mancanti", aree: ["sicurezza-difesa"] });
+      voci.push({ id: "scrivere_regole", label: "Scrivere le regole d'uso mancanti", aree: ["giurisprudenza-pa"] });
       voci.push({ id: "informare_personale", label: "Informare il personale prima di tutti gli altri", aree: ["comunicazione-media"] });
       return voci;
     },
   },
   scarto: (letti) => [
-    { id: "confermare_spiegare", label: "Confermare la decisione e limitarsi a spiegarla meglio", aree: ["giurisprudenza-pa"], qualita: 0.05, trappola: true, avviso: letti.has("M4") ? "Il regolamento (art. 7, che hai letto) impone almeno il 60% di superficie libera: qui scende al 48%. Confermare così com'è è illegittimo, non solo impopolare." : undefined },
+    { id: "confermare_spiegare", label: "Confermare la decisione e limitarsi a spiegarla meglio", aree: ["comunicazione-media"], qualita: 0.05, trappola: true, avviso: letti.has("M4") ? "Il regolamento (art. 7, che hai letto) impone almeno il 60% di superficie libera: qui scende al 48%. Confermare così com'è è illegittimo, non solo impopolare." : undefined },
     { id: "non_rispondere", label: "Non rispondere finché non si calma", aree: ["comunicazione-media"], qualita: 0.15 },
     { id: "rimandare", label: "Rimandare tutto a dopo l'estate", aree: ["giurisprudenza-pa"], qualita: 0.2 },
     { id: "rispondere_ognuno", label: "Rispondere a ogni commento uno per uno", aree: ["comunicazione-media"], qualita: 0.35 },
@@ -681,24 +681,24 @@ const K_M2: Materiale = {
   ],
 };
 const K_M3: Materiale = { id: "M3", titolo: "Il quadro economico", aree: [], costo: 0, contenuto: "240.000 € totali. Vincoli del finanziamento: lavori conclusi e collaudati entro il 5 settembre; nessuna proroga; le economie non spese non restano alla scuola." };
-const K_M4: Materiale = { id: "M4", titolo: "Relazione sull'impianto elettrico", aree: ["informatica-digitale", "sicurezza-difesa", "meccanica-meccatronica"], costo: 1, contenuto: "Quadro del 1988, nessun differenziale sulle linee della palestra, cavi in canaline non ignifughe. NON certificabile: senza rifacimento il collaudo finale non passa e la palestra non riapre, comunque siano andati gli altri lavori. Costo 62.000 €, 25 giorni. Va fatto PRIMA del controsoffitto, perché i cavi passano lì sopra." };
+const K_M4: Materiale = { id: "M4", titolo: "Relazione sull'impianto elettrico", aree: ["informatica-digitale", "meccanica-meccatronica", "edilizia-architettura"], costo: 1, contenuto: "Quadro del 1988, nessun differenziale sulle linee della palestra, cavi in canaline non ignifughe. NON certificabile: senza rifacimento il collaudo finale non passa e la palestra non riapre, comunque siano andati gli altri lavori. Costo 62.000 €, 25 giorni. Va fatto PRIMA del controsoffitto, perché i cavi passano lì sopra." };
 const K_M5: Materiale = { id: "M5", titolo: "Perizia sulla copertura", aree: ["edilizia-architettura"], costo: 1, contenuto: "Le infiltrazioni vengono da 40 m² di guaina degenerata sull'angolo nord (conferma il custode). Rifacimento 34.000 €, 15 giorni. Se non si fa PRIMA del controsoffitto nuovo, l'acqua rovinerà il controsoffitto nuovo entro il primo inverno." };
-const K_M6: Materiale = { id: "M6", titolo: "Preventivo del controsoffitto", aree: ["edilizia-architettura", "sicurezza-difesa"], costo: 1, contenuto: "Smontaggio del vecchio e nuovo in fibra minerale antisfondamento: 71.000 €, 20 giorni. È il lavoro che ha causato la chiusura. Senza, la palestra resta chiusa." };
+const K_M6: Materiale = { id: "M6", titolo: "Preventivo del controsoffitto", aree: ["edilizia-architettura"], costo: 1, contenuto: "Smontaggio del vecchio e nuovo in fibra minerale antisfondamento: 71.000 €, 20 giorni. È il lavoro che ha causato la chiusura. Senza, la palestra resta chiusa." };
 const K_M7: Materiale = { id: "M7", titolo: "Diagnosi energetica", aree: ["energia-sostenibilita"], costo: 1, contenuto: "Caldaia a gasolio del 2003: 19.000 €/anno di riscaldamento. Sostituzione con pompa di calore: 48.000 €, 18 giorni, spesa a regime 7.400 €/anno. NON è obbligatoria per il collaudo. Rientro in circa 6 anni." };
 const K_M8: Materiale = { id: "M8", titolo: "Preventivo della pavimentazione sportiva", aree: ["edilizia-architettura", "meccanica-meccatronica"], costo: 1, contenuto: "Parquet sportivo omologato 39.000 €, 12 giorni; alternativa in PVC sportivo 21.000 €, 6 giorni, durata inferiore. Va posato per ULTIMO, dopo tutti i lavori in quota, altrimenti si rovina." };
-const K_M9: Materiale = { id: "M9", titolo: "Dossier accessibilità degli spogliatoi", aree: ["mobilita-sostenibile", "sicurezza-difesa"], costo: 1, contenuto: "Gradino di 18 cm all'ingresso spogliatoi, porte da 70 cm, nessun servizio attrezzato. Adeguamento 27.000 €, 14 giorni. Nell'istituto ci sono quattro studenti con disabilità motoria. Obbligo normativo in caso di ristrutturazione significativa: il collaudo può rilevarlo." };
+const K_M9: Materiale = { id: "M9", titolo: "Dossier accessibilità degli spogliatoi", aree: ["mobilita-sostenibile", "edilizia-architettura"], costo: 1, contenuto: "Gradino di 18 cm all'ingresso spogliatoi, porte da 70 cm, nessun servizio attrezzato. Adeguamento 27.000 €, 14 giorni. Nell'istituto ci sono quattro studenti con disabilità motoria. Obbligo normativo in caso di ristrutturazione significativa: il collaudo può rilevarlo." };
 const K_M10: Materiale = { id: "M10", titolo: "Cronoprogramma della ditta", aree: ["meccanica-meccatronica", "edilizia-architettura"], costo: 1, contenuto: "Cinque operai, una sola squadra: i lavori vanno in fila, non in parallelo, salvo che spogliatoi e palestra si possono fare in contemporanea con due squadre (la seconda costa +18.000 €). Giorni disponibili: 83." };
-const K_M11: Materiale = { id: "M11", titolo: "Regolamento del finanziamento comunale", aree: ["sicurezza-difesa", "edilizia-architettura"], costo: 1, contenuto: "Art. 4: collaudo entro il 5 settembre, pena revoca. Art. 9: le varianti in corso d'opera superiori al 10% richiedono una nuova approvazione, con 20 giorni di istruttoria. Tradotto: cambiare idea a metà cantiere costa venti giorni che non hai." };
+const K_M11: Materiale = { id: "M11", titolo: "Regolamento del finanziamento comunale", aree: ["edilizia-architettura", "giurisprudenza-pa"], costo: 1, contenuto: "Art. 4: collaudo entro il 5 settembre, pena revoca. Art. 9: le varianti in corso d'opera superiori al 10% richiedono una nuova approvazione, con 20 giorni di istruttoria. Tradotto: cambiare idea a metà cantiere costa venti giorni che non hai." };
 const K_M12: Materiale = { id: "M12", titolo: "Storico delle manutenzioni", aree: ["edilizia-architettura"], costo: 1, contenuto: "2009: rifacimento parziale della guaina, «da completare l'anno successivo». Mai completato. 2015: preventivo per l'elettrico, mai approvato. 2019: segnalazione infiltrazioni dal custode, archiviata. Il crollo non è stato un incidente, è stato un calendario." };
 const K_M13: Materiale = { id: "M13", titolo: "Nota della ditta sui tempi di consegna", aree: ["meccanica-meccatronica"], costo: 1, contenuto: "I pannelli antisfondamento del controsoffitto hanno 35 giorni di consegna dall'ordine. Se l'ordine non parte entro la prima settimana, il lavoro slitta a fine agosto e trascina tutto il resto." };
 
 const K_MANDATI: Mandato[] = [
   {
     id: "sicurezza", label: "«Prima che nessuno si faccia male»", frase: "La sicurezza viene prima di tutto il resto.",
-    aree: ["sicurezza-difesa", "edilizia-architettura"],
+    aree: ["edilizia-architettura"],
     vincolo: { id: "ispezione", testo: "Verifica ispettiva a sorpresa a metà cantiere: se trovano difformità, sospensione di 10 giorni." },
     consulenze: [
-      consulenza("K_rspp", "Consulenza: l'RSPP", "sicurezza-difesa", "Il controsoffitto è un problema di teste, non di comodità. Finché non è a norma, per me la palestra non riapre — e lo metto per iscritto."),
+      consulenza("K_rspp", "Consulenza: l'RSPP", "edilizia-architettura", "Il controsoffitto è un problema di teste, non di comodità. Finché non è a norma, per me la palestra non riapre — e lo metto per iscritto."),
       consulenza("K_ispettore", "Consulenza: un ispettore", "edilizia-architettura", "Un cantiere in ordine si vede da come sono documentati i lavori. Se la sequenza non è tracciata, alla verifica saltano fuori le difformità."),
     ],
   },
@@ -731,11 +731,11 @@ const K_MANDATI: Mandato[] = [
   },
   {
     id: "accessibilita", label: "«Prima che ci possano entrare tutti»", frase: "Una palestra da cui qualcuno è escluso non è finita.",
-    aree: ["mobilita-sostenibile", "sicurezza-difesa"],
+    aree: ["mobilita-sostenibile"],
     vincolo: { id: "idrico", testo: "L'adeguamento rivela che serve rifare anche l'impianto idrico degli spogliatoi: +19.000 €." },
     consulenze: [
       consulenza("K_accessibilita", "Consulenza: un tecnico dell'accessibilità", "mobilita-sostenibile", "Gradino di 18 cm, porte da 70: oggi quattro studenti non entrano. In una ristrutturazione significativa l'adeguamento è un obbligo, e il collaudo può rilevarlo."),
-      consulenza("K_genitore", "Consulenza: un genitore", "sicurezza-difesa", "Mio figlio in tre anni di medie non è mai entrato in uno spogliatoio con i suoi compagni. Non chiedo un favore, chiedo che sia finita per tutti."),
+      consulenza("K_genitore", "Consulenza: un genitore", "", "Mio figlio in tre anni di medie non è mai entrato in uno spogliatoio con i suoi compagni. Non chiedo un favore, chiedo che sia finita per tutti."),
     ],
   },
 ];
@@ -757,17 +757,17 @@ const MD04: MissioneDef = {
   materialiGettone: [K_M4, K_M5, K_M6, K_M7, K_M8, K_M9, K_M10, K_M11, K_M12, K_M13],
   mandati: K_MANDATI,
   prioritaVoci: [
-    { id: "controsoffitto", label: "Il controsoffitto è caduto una volta e può cadere ancora", aree: ["sicurezza-difesa", "edilizia-architettura"] },
-    { id: "elettrico", label: "L'impianto elettrico è del 1988 e non è a norma", aree: ["informatica-digitale", "sicurezza-difesa"] },
+    { id: "controsoffitto", label: "Il controsoffitto è caduto una volta e può cadere ancora", aree: ["edilizia-architettura"] },
+    { id: "elettrico", label: "L'impianto elettrico è del 1988 e non è a norma", aree: ["edilizia-architettura"] },
     { id: "tetto", label: "Dal tetto entra acqua da anni", aree: ["edilizia-architettura"] },
     { id: "pavimento", label: "Il pavimento è finito: non ci si può giocare", aree: ["meccanica-meccatronica", "edilizia-architettura"] },
     { id: "caldaia", label: "La caldaia consuma il doppio del necessario", aree: ["energia-sostenibilita"] },
-    { id: "spogliatoi", label: "Quattro studenti non possono entrare negli spogliatoi", aree: ["mobilita-sostenibile", "sicurezza-difesa"] },
+    { id: "spogliatoi", label: "Quattro studenti non possono entrare negli spogliatoi", aree: ["mobilita-sostenibile", "edilizia-architettura"] },
   ],
   ruoli: [
     { id: "ditta", label: "Stare dietro alla ditta ogni giorno", area: "edilizia-architettura" },
     { id: "conti", label: "Tenere i conti e le varianti", area: "informatica-digitale" },
-    { id: "sicurezza", label: "Controllare la sicurezza in cantiere", area: "sicurezza-difesa" },
+    { id: "sicurezza", label: "Controllare la sicurezza in cantiere", area: "edilizia-architettura" },
     { id: "materiali", label: "Verificare che i materiali arrivino in tempo", area: "meccanica-meccatronica" },
     { id: "famiglie", label: "Parlare con la scuola e le famiglie", area: "mobilita-sostenibile" },
   ],
@@ -793,13 +793,13 @@ const MD04: MissioneDef = {
       if (letti.has("M5")) richiedeControsoffitto.push("copertura");
       if (letti.has("M4")) richiedeControsoffitto.push("elettrico");
       const lavori: Lavoro[] = [
-        { id: "elettrico", label: "Rifacimento impianto elettrico", aree: ["informatica-digitale", "sicurezza-difesa", "meccanica-meccatronica"], costo: 62000, giorni: 25, essenziale: true },
+        { id: "elettrico", label: "Rifacimento impianto elettrico", aree: ["informatica-digitale", "meccanica-meccatronica", "edilizia-architettura"], costo: 62000, giorni: 25, essenziale: true },
         { id: "copertura", label: "Rifacimento della copertura (angolo nord)", aree: ["edilizia-architettura"], costo: 34000, giorni: 15 },
-        { id: "controsoffitto", label: "Controsoffitto nuovo antisfondamento", aree: ["edilizia-architettura", "sicurezza-difesa"], costo: 71000, giorni: 20, essenziale: true, richiede: richiedeControsoffitto },
+        { id: "controsoffitto", label: "Controsoffitto nuovo antisfondamento", aree: ["edilizia-architettura"], costo: 71000, giorni: 20, essenziale: true, richiede: richiedeControsoffitto },
         { id: "parquet", label: "Pavimento in parquet sportivo omologato", aree: ["edilizia-architettura", "meccanica-meccatronica"], costo: 39000, giorni: 12, parallelizzabile: true, richiede: ["controsoffitto"] },
         { id: "pvc", label: "Pavimento in PVC sportivo (più rapido)", aree: ["edilizia-architettura", "meccanica-meccatronica"], costo: 21000, giorni: 6, parallelizzabile: true, richiede: ["controsoffitto"] },
         { id: "pompa_calore", label: "Pompa di calore al posto della caldaia", aree: ["energia-sostenibilita"], costo: 48000, giorni: 18 },
-        { id: "accessibilita", label: "Adeguamento accessibilità degli spogliatoi", aree: ["mobilita-sostenibile", "sicurezza-difesa"], costo: 27000, giorni: 14, parallelizzabile: true },
+        { id: "accessibilita", label: "Adeguamento accessibilità degli spogliatoi", aree: ["mobilita-sostenibile", "edilizia-architettura"], costo: 27000, giorni: 14, parallelizzabile: true },
         { id: "fondo_imprevisti", label: "Fondo imprevisti (per le varianti)", aree: [], costo: 15000, giorni: 0 },
       ];
       if (letti.has("M10")) lavori.push({ id: "seconda_squadra", label: "Seconda squadra (lavori in parallelo)", aree: [], costo: 18000, giorni: 0, gate: "M10" });
@@ -811,8 +811,8 @@ const MD04: MissioneDef = {
     { id: "pompa_calore", label: "La pompa di calore (si tiene la vecchia caldaia)", aree: ["energia-sostenibilita"], qualita: 0.1 },
     { id: "parquet", label: "Il parquet omologato (si ripiega sul PVC)", aree: ["edilizia-architettura"], qualita: 0.2 },
     { id: "copertura", label: "La copertura del tetto (rimandata al prossimo anno)", aree: ["edilizia-architettura"], qualita: 0.6, avviso: letti.has("M5") ? "La perizia (che hai letto): senza rifare la guaina, l'acqua rovinerà il controsoffitto nuovo entro il primo inverno." : undefined },
-    { id: "elettrico", label: "Il rifacimento dell'impianto elettrico (si tiene com'è)", aree: ["sicurezza-difesa"], qualita: 0.75, avviso: letti.has("M4") ? "La relazione (che hai letto): senza rifacimento il collaudo non passa e la palestra non riapre, comunque siano andati gli altri lavori." : undefined },
-    { id: "controsoffitto", label: "Il controsoffitto nuovo (si rinvia)", aree: ["edilizia-architettura", "sicurezza-difesa"], qualita: 0.9 },
+    { id: "elettrico", label: "Il rifacimento dell'impianto elettrico (si tiene com'è)", aree: ["edilizia-architettura"], qualita: 0.75, avviso: letti.has("M4") ? "La relazione (che hai letto): senza rifacimento il collaudo non passa e la palestra non riapre, comunque siano andati gli altri lavori." : undefined },
+    { id: "controsoffitto", label: "Il controsoffitto nuovo (si rinvia)", aree: ["edilizia-architettura"], qualita: 0.9 },
   ],
   introStanza3: (m, letti) => {
     const parti = ["14 luglio, ventinovesimo giorno. Il capocantiere vi chiama nel container."];
@@ -858,33 +858,33 @@ const P_M2: Materiale = {
 };
 const P_M3: Materiale = { id: "M3", titolo: "Come funziona lo sportello", aree: [], costo: 0, contenuto: "Non prende decisioni sulle pratiche, indirizza; può accompagnare alla compilazione; deve registrare ogni contatto; non può contattare terzi senza consenso della persona interessata, salvo i casi previsti per i minori." };
 const P_M4: Materiale = { id: "M4", titolo: "Regolamento del bando affitti", aree: ["giurisprudenza-pa"], costo: 1, contenuto: "Art. 6: la domanda si considera presentata con la ricevuta di protocollo; la documentazione mancante può essere integrata entro 10 giorni. Cioè: basta protocollare entro le 12, il resto si sistema dopo. Non serve avere i documenti perfetti, serve protocollare." };
-const P_M5: Materiale = { id: "M5", titolo: "Protocollo per le segnalazioni sui minori", aree: ["salute-professioni-sanitarie", "giurisprudenza-pa", "sicurezza-difesa"], costo: 1, contenuto: "Le segnalazioni provenienti da istituzioni scolastiche relative a minori vanno trasmesse al servizio sociale competente entro 48 ore e non possono essere gestite dallo sportello in autonomia. La segnalazione della scuola è arrivata lunedì: il termine scade oggi." };
-const P_M6: Materiale = { id: "M6", titolo: "Nota sulla riservatezza dei contatti anonimi", aree: ["salute-professioni-sanitarie", "sicurezza-difesa"], costo: 1, contenuto: "A una richiesta anonima non si risponde con domande identificative; si risponde tenendo aperto il canale, indicando un contatto raggiungibile e senza chiedere nome, età o famiglia. Chiedere «chi sei?» è il modo più rapido per non ricevere più risposta." };
-const P_M7: Materiale = { id: "M7", titolo: "Registro degli accessi degli ultimi 3 mesi", aree: ["comunicazione-media", "giurisprudenza-pa"], costo: 1, contenuto: "Il sig. Muratori risulta venuto due volte di persona e aver chiamato quattro volte. La pratica di marzo risulta «in attesa di integrazione» da 74 giorni: nessuno gliel'ha mai comunicato. Non è un impaziente: è uno a cui non è stato detto." };
+const P_M5: Materiale = { id: "M5", titolo: "Protocollo per le segnalazioni sui minori", aree: ["salute-professioni-sanitarie", "giurisprudenza-pa"], costo: 1, contenuto: "Le segnalazioni provenienti da istituzioni scolastiche relative a minori vanno trasmesse al servizio sociale competente entro 48 ore e non possono essere gestite dallo sportello in autonomia. La segnalazione della scuola è arrivata lunedì: il termine scade oggi." };
+const P_M6: Materiale = { id: "M6", titolo: "Nota sulla riservatezza dei contatti anonimi", aree: ["salute-professioni-sanitarie", "giurisprudenza-pa"], costo: 1, contenuto: "A una richiesta anonima non si risponde con domande identificative; si risponde tenendo aperto il canale, indicando un contatto raggiungibile e senza chiedere nome, età o famiglia. Chiedere «chi sei?» è il modo più rapido per non ricevere più risposta." };
+const P_M7: Materiale = { id: "M7", titolo: "Registro degli accessi degli ultimi 3 mesi", aree: ["giurisprudenza-pa"], costo: 1, contenuto: "Il sig. Muratori risulta venuto due volte di persona e aver chiamato quattro volte. La pratica di marzo risulta «in attesa di integrazione» da 74 giorni: nessuno gliel'ha mai comunicato. Non è un impaziente: è uno a cui non è stato detto." };
 const P_M8: Materiale = { id: "M8", titolo: "Nota sulla mediazione linguistica", aree: ["lingue-relazioni-internazionali", "salute-professioni-sanitarie"], costo: 1, contenuto: "È sconsigliato far tradurre a un minore in situazioni che riguardano la famiglia: mette il ragazzino in una posizione che non gli spetta e rende inaffidabile la comunicazione. Paolo parla arabo ed è disponibile." };
 const P_M9: Materiale = { id: "M9", titolo: "Cosa dice davvero la lettera della sig.ra Colella", aree: ["giurisprudenza-pa"], costo: 1, contenuto: "Non è una richiesta di restituzione: è una comunicazione di avvio di verifica, con 30 giorni per presentare osservazioni. Nessuno le sta chiedendo indietro 2.400 € adesso. Si può calmarla in tre minuti con un'informazione vera, invece che con un'ora di ascolto." };
 const P_M10: Materiale = { id: "M10", titolo: "La scheda dell'alunno segnalato", aree: ["scienze-educazione", "salute-professioni-sanitarie"], costo: 1, contenuto: "12 anni, arrivato a gennaio da un'altra città, due fratelli più piccoli, madre sola con turni notturni. Nessun contatto precedente con i servizi." };
-const P_M11: Materiale = { id: "M11", titolo: "Le disponibilità reali degli operatori oggi", aree: ["comunicazione-media"], costo: 1, contenuto: "Nadia esce alle 11:00 (commissione). Paolo è l'unico che parla arabo. Sofia è in formazione: non può gestire un colloquio da sola, può affiancare. Cioè dalle 11 in poi restano due persone, di cui una non autonoma." };
-const P_M12: Materiale = { id: "M12", titolo: "Le indicazioni della coordinatrice, per iscritto", aree: ["scienze-educazione", "comunicazione-media"], costo: 1, contenuto: "«Non lasciate nessuno senza sapere quando avrà una risposta. Anche un “non lo so ancora” è una risposta, se ha una data.»" };
-const P_M13: Materiale = { id: "M13", titolo: "Precedente: la mail di aprile", aree: ["salute-professioni-sanitarie", "sicurezza-difesa"], costo: 1, contenuto: "Sei mesi fa arrivò una mail simile. Fu risposto chiedendo nome e recapito per «poter aiutare meglio». Non arrivò mai una seconda mail. Nessuno ha mai saputo chi fosse." };
+const P_M11: Materiale = { id: "M11", titolo: "Le disponibilità reali degli operatori oggi", aree: ["salute-professioni-sanitarie"], costo: 1, contenuto: "Nadia esce alle 11:00 (commissione). Paolo è l'unico che parla arabo. Sofia è in formazione: non può gestire un colloquio da sola, può affiancare. Cioè dalle 11 in poi restano due persone, di cui una non autonoma." };
+const P_M12: Materiale = { id: "M12", titolo: "Le indicazioni della coordinatrice, per iscritto", aree: ["salute-professioni-sanitarie"], costo: 1, contenuto: "«Non lasciate nessuno senza sapere quando avrà una risposta. Anche un “non lo so ancora” è una risposta, se ha una data.»" };
+const P_M13: Materiale = { id: "M13", titolo: "Precedente: la mail di aprile", aree: ["salute-professioni-sanitarie"], costo: 1, contenuto: "Sei mesi fa arrivò una mail simile. Fu risposto chiedendo nome e recapito per «poter aiutare meglio». Non arrivò mai una seconda mail. Nessuno ha mai saputo chi fosse." };
 
 const P_MANDATI: Mandato[] = [
   {
     id: "scadenza", label: "«Prima chi ha una scadenza»", frase: "Ciò che scade non torna.",
-    aree: ["giurisprudenza-pa", "comunicazione-media"],
+    aree: [],
     vincolo: { id: "protocollo", testo: "Il protocollo va in tilt per un'ora: le domande cartacee vanno portate a mano in Comune." },
     consulenze: [
       consulenza("P_protocollo", "Consulenza: l'ufficio protocollo", "giurisprudenza-pa", "Per il bando affitti conta la ricevuta di protocollo, non i documenti perfetti. Se protocollate entro le 12, la domanda è salva: il resto si integra dopo."),
-      consulenza("P_amministrativa", "Consulenza: un'assistente amministrativa", "comunicazione-media", "Le scadenze rigide sono poche, ma quando ci sono vengono prima di tutto. Il resto si può spiegare, una scadenza persa no."),
+      consulenza("P_amministrativa", "Consulenza: un'assistente amministrativa", "giurisprudenza-pa", "Le scadenze rigide sono poche, ma quando ci sono vengono prima di tutto. Il resto si può spiegare, una scadenza persa no."),
     ],
   },
   {
     id: "sofferenza", label: "«Prima chi sta peggio adesso»", frase: "La sofferenza visibile non si mette in coda.",
-    aree: ["salute-professioni-sanitarie", "comunicazione-media"],
+    aree: ["salute-professioni-sanitarie"],
     vincolo: { id: "colella", testo: "La sig.ra Colella si sente male e va accompagnata: due persone impegnate per 40 minuti." },
     consulenze: [
       consulenza("P_psicologa", "Consulenza: una psicologa dei servizi", "salute-professioni-sanitarie", "Chi sta male e alza la voce non va zittito, va accolto. Ma spesso basta un'informazione vera per far scendere l'ansia: prima di ascoltare per un'ora, verificate cosa dice davvero quella lettera."),
-      consulenza("P_ascolto", "Consulenza: un'operatrice di ascolto", "comunicazione-media", "La sofferenza che vedi rischia di prendersi tutto il tempo, e intanto quella che non vedi resta indietro. Tienile presenti entrambe."),
+      consulenza("P_ascolto", "Consulenza: un'operatrice di ascolto", "salute-professioni-sanitarie", "La sofferenza che vedi rischia di prendersi tutto il tempo, e intanto quella che non vedi resta indietro. Tienile presenti entrambe."),
     ],
   },
   {
@@ -892,26 +892,26 @@ const P_MANDATI: Mandato[] = [
     aree: ["scienze-educazione", "salute-professioni-sanitarie"],
     vincolo: { id: "sociale_chiuso", testo: "Il servizio sociale competente è chiuso il giovedì pomeriggio: o entro le 13 o domani." },
     consulenze: [
-      consulenza("P_sociale", "Consulenza: un'assistente sociale", "scienze-educazione", "Le segnalazioni sui minori dalle scuole hanno un termine di 48 ore e non le gestisce lo sportello: vanno trasmesse al servizio sociale. Controllate da quando è arrivata."),
+      consulenza("P_sociale", "Consulenza: un'assistente sociale", "salute-professioni-sanitarie", "Le segnalazioni sui minori dalle scuole hanno un termine di 48 ore e non le gestisce lo sportello: vanno trasmesse al servizio sociale. Controllate da quando è arrivata."),
       consulenza("P_referente_scuola", "Consulenza: la referente della scuola", "salute-professioni-sanitarie", "Un bambino che arriva senza colazione e si addormenta da tre settimane non è un capriccio: è un segnale che va preso sul serio, e in fretta."),
     ],
   },
   {
     id: "rischio", label: "«Prima chi non può aspettare senza rischio»", frase: "Conta la conseguenza, non la voce.",
-    aree: ["salute-professioni-sanitarie", "sicurezza-difesa"],
+    aree: ["salute-professioni-sanitarie"],
     vincolo: { id: "seconda_mail", testo: "Arriva una seconda mail dallo stesso indirizzo: due righe, più brevi." },
     consulenze: [
-      consulenza("P_antiviolenza", "Consulenza: un referente del numero antiviolenza", "sicurezza-difesa", "A chi scrive in forma anonima non si chiede chi è: si tiene aperto il canale e si dà un appiglio raggiungibile. La domanda «chi sei?» è il modo più veloce per non ricevere più risposta."),
+      consulenza("P_antiviolenza", "Consulenza: un referente del numero antiviolenza", "salute-professioni-sanitarie", "A chi scrive in forma anonima non si chiede chi è: si tiene aperto il canale e si dà un appiglio raggiungibile. La domanda «chi sei?» è il modo più veloce per non ricevere più risposta."),
       consulenza("P_medico", "Consulenza: un medico di comunità", "salute-professioni-sanitarie", "La richiesta più silenziosa può essere la più urgente. Chi urla di solito può aspettare; chi scrive una riga e sparisce, a volte no."),
     ],
   },
   {
     id: "trascurato", label: "«Prima chi è già stato lasciato indietro»", frase: "Chi è stato trascurato ha una precedenza.",
-    aree: ["comunicazione-media", "giurisprudenza-pa"],
+    aree: [],
     vincolo: { id: "muratori", testo: "Il sig. Muratori si presenta di persona alle 10:30, e non è contento." },
     consulenze: [
       consulenza("P_pratiche", "Consulenza: il responsabile delle pratiche", "giurisprudenza-pa", "La pratica di Muratori è ferma «in attesa di integrazione» da 74 giorni, e nessuno gliel'ha mai detto. Non è un impaziente: è uno a cui non abbiamo comunicato niente."),
-      consulenza("P_custode", "Consulenza: il custode", "comunicazione-media", "Chi ha chiamato quattro volte prima o poi arriva di persona. Meglio richiamarlo prima, che ricevere una lite allo sportello dopo."),
+      consulenza("P_custode", "Consulenza: il custode", "", "Chi ha chiamato quattro volte prima o poi arriva di persona. Meglio richiamarlo prima, che ricevere una lite allo sportello dopo."),
     ],
   },
 ];
@@ -934,17 +934,17 @@ const MD05: MissioneDef = {
   mandati: P_MANDATI,
   prioritaVoci: [
     { id: "kaur", label: "R2 · la famiglia con la scadenza alle 12", aree: ["giurisprudenza-pa", "lingue-relazioni-internazionali"] },
-    { id: "colella", label: "R1 · la signora che sta male qui e adesso", aree: ["salute-professioni-sanitarie", "comunicazione-media"] },
+    { id: "colella", label: "R1 · la signora che sta male qui e adesso", aree: ["salute-professioni-sanitarie"] },
     { id: "alunno", label: "R5 · il ragazzino segnalato dalla scuola", aree: ["scienze-educazione", "salute-professioni-sanitarie"] },
-    { id: "mail", label: "R4 · la mail anonima di cui non si sa niente", aree: ["salute-professioni-sanitarie", "sicurezza-difesa"] },
-    { id: "muratori", label: "R3 · l'uomo che ha chiamato quattro volte", aree: ["comunicazione-media", "giurisprudenza-pa"] },
+    { id: "mail", label: "R4 · la mail anonima di cui non si sa niente", aree: ["salute-professioni-sanitarie"] },
+    { id: "muratori", label: "R3 · l'uomo che ha chiamato quattro volte", aree: ["salute-professioni-sanitarie"] },
   ],
   ruoli: [
     { id: "colella", label: "Stare con la signora Colella", area: "salute-professioni-sanitarie" },
     { id: "kaur", label: "Seguire la famiglia Kaur", area: "lingue-relazioni-internazionali" },
-    { id: "muratori", label: "Richiamare il sig. Muratori", area: "comunicazione-media" },
+    { id: "muratori", label: "Richiamare il sig. Muratori", area: "salute-professioni-sanitarie" },
     { id: "segnalazione", label: "Occuparsi della segnalazione della scuola", area: "scienze-educazione" },
-    { id: "mail", label: "Rispondere alla mail", area: "sicurezza-difesa" },
+    { id: "mail", label: "Rispondere alla mail", area: "salute-professioni-sanitarie" },
   ],
   passi: [
     { id: "colella_esito", label: "Richiamare la sig.ra Colella per l'esito" },
@@ -964,24 +964,24 @@ const MD05: MissioneDef = {
       const voci: VoceBudget[] = [
         { id: "ascolto_colella", label: "Accogliere e ascoltare la sig.ra Colella", aree: ["salute-professioni-sanitarie"] },
       ];
-      if (letti.has("M9")) voci.push({ id: "spiega_colella", label: "Spiegarle cosa dice davvero la lettera", aree: ["giurisprudenza-pa"], soloSe: "M9" });
+      if (letti.has("M9")) voci.push({ id: "spiega_colella", label: "Spiegarle cosa dice davvero la lettera", aree: ["salute-professioni-sanitarie"], soloSe: "M9" });
       voci.push({ id: "compila_kaur", label: "Compilare la domanda Kaur per intero", aree: ["giurisprudenza-pa"] });
       if (letti.has("M4")) voci.push({ id: "protocolla_kaur", label: "Protocollare la domanda Kaur e integrare dopo", aree: ["giurisprudenza-pa"], soloSe: "M4" });
-      voci.push({ id: "richiama_muratori", label: "Richiamare il sig. Muratori", aree: ["comunicazione-media"] });
-      voci.push({ id: "trasmetti_segnalazione", label: letti.has("M5") ? "Trasmettere la segnalazione al servizio sociale (scade oggi!)" : "Trasmettere la segnalazione al servizio sociale", aree: ["salute-professioni-sanitarie", "sicurezza-difesa"] });
-      voci.push({ id: "rispondi_mail", label: "Rispondere alla mail anonima", aree: ["salute-professioni-sanitarie", "sicurezza-difesa"] });
-      voci.push({ id: "registra_contatti", label: "Registrare i contatti", aree: ["comunicazione-media"] });
-      if (letti.has("M12")) voci.push({ id: "data_per_ciascuno", label: "Lasciare a ciascuno una data per la risposta", aree: ["comunicazione-media", "scienze-educazione"], soloSe: "M12" });
+      voci.push({ id: "richiama_muratori", label: "Richiamare il sig. Muratori", aree: ["salute-professioni-sanitarie"] });
+      voci.push({ id: "trasmetti_segnalazione", label: letti.has("M5") ? "Trasmettere la segnalazione al servizio sociale (scade oggi!)" : "Trasmettere la segnalazione al servizio sociale", aree: ["salute-professioni-sanitarie", "scienze-educazione"] });
+      voci.push({ id: "rispondi_mail", label: "Rispondere alla mail anonima", aree: ["salute-professioni-sanitarie"] });
+      voci.push({ id: "registra_contatti", label: "Registrare i contatti", aree: ["giurisprudenza-pa"] });
+      if (letti.has("M12")) voci.push({ id: "data_per_ciascuno", label: "Lasciare a ciascuno una data per la risposta", aree: ["salute-professioni-sanitarie"], soloSe: "M12" });
       return voci;
     },
   },
   scarto: (letti) => [
-    { id: "chiedi_identita", label: "Rispondere alla mail anonima chiedendo nome ed età, per poter aiutare meglio", aree: ["salute-professioni-sanitarie", "sicurezza-difesa"], qualita: 0.05, trappola: true, avviso: letti.has("M6") ? "La nota sulla riservatezza (che hai letto): a una richiesta anonima non si chiede chi è. E sei mesi fa, chiedendo il nome, quella persona non ha più scritto." : undefined },
+    { id: "chiedi_identita", label: "Rispondere alla mail anonima chiedendo nome ed età, per poter aiutare meglio", aree: ["salute-professioni-sanitarie"], qualita: 0.05, trappola: true, avviso: letti.has("M6") ? "La nota sulla riservatezza (che hai letto): a una richiesta anonima non si chiede chi è. E sei mesi fa, chiedendo il nome, quella persona non ha più scritto." : undefined },
     { id: "traduce_figlio", label: "Far tradurre al figlio di 14 anni per fare prima", aree: ["lingue-relazioni-internazionali"], qualita: 0.1, avviso: letti.has("M8") ? "La nota sulla mediazione (che hai letto): non si fa tradurre a un minore ciò che riguarda la sua famiglia. Paolo parla arabo." : undefined },
     { id: "segnalazione_qui", label: "Trattare la segnalazione della scuola qui, senza trasmetterla", aree: ["giurisprudenza-pa"], qualita: 0.12, avviso: letti.has("M5") ? "Il protocollo minori (che hai letto): la segnalazione va trasmessa al servizio sociale entro 48 ore, non gestita qui." : undefined },
-    { id: "colella_domani", label: "Dire alla sig.ra Colella di tornare domani perché oggi c'è troppa gente", aree: ["comunicazione-media"], qualita: 0.25 },
-    { id: "muratori_dopo", label: "Richiamare il sig. Muratori solo quando la pratica sarà definita", aree: ["comunicazione-media"], qualita: 0.3 },
-    { id: "registra_dopo", label: "Rimandare la registrazione dei contatti a fine giornata", aree: ["comunicazione-media"], qualita: 0.6 },
+    { id: "colella_domani", label: "Dire alla sig.ra Colella di tornare domani perché oggi c'è troppa gente", aree: ["salute-professioni-sanitarie"], qualita: 0.25 },
+    { id: "muratori_dopo", label: "Richiamare il sig. Muratori solo quando la pratica sarà definita", aree: ["salute-professioni-sanitarie"], qualita: 0.3 },
+    { id: "registra_dopo", label: "Rimandare la registrazione dei contatti a fine giornata", aree: ["giurisprudenza-pa"], qualita: 0.6 },
   ],
   introStanza3: (m, letti) => {
     const parti = ["Sono le 10:20. Nadia si affaccia dalla stanza accanto con la faccia di chi sta per dire una cosa che complica tutto."];
@@ -1035,7 +1035,7 @@ const B_M9: Materiale = { id: "M9", titolo: "Studio sulla riciclabilità a fine 
 const B_M10: Materiale = { id: "M10", titolo: "Il test di resistenza", aree: ["meccanica-meccatronica", "scienze-ricerca"], costo: 1, contenuto: "Il tessuto riciclato di Alfa, testato a 12.000 cicli di abrasione, tiene il 92% della resistenza del vergine. Quello di Beta non è stato testato. La durata media di uno zaino è due anni e mezzo: sotto il 90% di resistenza si scende a poco più di uno." };
 const B_M11: Materiale = { id: "M11", titolo: "L'imballaggio", aree: ["agrifood-ambiente", "economia-management"], costo: 1, contenuto: "Eliminare il sacchetto in plastica monouso e usare solo il cartone: −0,08 € a zaino (si risparmia), −4% d'impatto, nessun problema tecnico. Non è stato fatto finora solo perché nessuno ci ha pensato. Il guadagno gratuito." };
 const B_M12: Materiale = { id: "M12", titolo: "Le condizioni di consegna e il calendario scolastico", aree: ["economia-management", "mobilita-sostenibile"], costo: 1, contenuto: "L'80% delle vendite si concentra tra il 20 agosto e il 20 settembre. La produzione deve finire entro il 31 luglio. Alfa consegna in 35 giorni: l'ordine va fatto entro il 15 maggio, o si salta la stagione." };
-const B_M13: Materiale = { id: "M13", titolo: "Il precedente di un concorrente", aree: ["economia-management", "comunicazione-media"], costo: 1, contenuto: "Un'azienda del settore lanciò due anni fa una linea «100% sostenibile» senza documentazione. Un'associazione di consumatori fece un esposto; l'azienda ritirò la linea, distrusse 60.000 confezioni e pagò una sanzione. Il danno peggiore non fu la multa: fu che le catene smisero di rispondere al telefono." };
+const B_M13: Materiale = { id: "M13", titolo: "Il precedente di un concorrente", aree: ["economia-management"], costo: 1, contenuto: "Un'azienda del settore lanciò due anni fa una linea «100% sostenibile» senza documentazione. Un'associazione di consumatori fece un esposto; l'azienda ritirò la linea, distrusse 60.000 confezioni e pagò una sanzione. Il danno peggiore non fu la multa: fu che le catene smisero di rispondere al telefono." };
 
 const B_MANDATI: Mandato[] = [
   {
@@ -1197,20 +1197,20 @@ const U_M2: Materiale = {
 };
 const U_M3: Materiale = { id: "M3", titolo: "Il bando comunale", aree: [], costo: 0, contenuto: "18.000 €, una sola iniziativa, rendicontazione entro 12 mesi. Vincolo: l'iniziativa deve essere ripetibile senza nuovi fondi. Punteggio premiante per: coinvolgimento delle scuole, accessibilità, collaborazione con soggetti del territorio." };
 const U_M4: Materiale = { id: "M4", titolo: "Nota di conservazione", aree: ["studi-umanistici-beni-culturali", "scienze-ricerca"], costo: 1, contenuto: "I tessuti storici tollerano max 50 lux e non più di tre mesi l'anno di esposizione. Ogni progetto che li porti in giro, li illumini o li faccia toccare è irrealizzabile senza un intervento di conservazione che costa da solo più dell'intero budget." };
-const U_M5: Materiale = { id: "M5", titolo: "I numeri dei visitatori, disaggregati", aree: ["economia-management", "comunicazione-media"], costo: 1, contenuto: "2.840 totali: 1.900 scolaresche (67%), 610 turisti di passaggio, 330 residenti. I residenti sono in calo del 40% in cinque anni. Il paese ha 4.100 abitanti: meno di uno su dieci entra nel proprio museo." };
+const U_M5: Materiale = { id: "M5", titolo: "I numeri dei visitatori, disaggregati", aree: ["economia-management", "scienze-ricerca"], costo: 1, contenuto: "2.840 totali: 1.900 scolaresche (67%), 610 turisti di passaggio, 330 residenti. I residenti sono in calo del 40% in cinque anni. Il paese ha 4.100 abitanti: meno di uno su dieci entra nel proprio museo." };
 const U_M6: Materiale = { id: "M6", titolo: "Il registro di fabbrica del 1911", aree: ["studi-umanistici-beni-culturali", "lingue-relazioni-internazionali"], costo: 1, contenuto: "214 nomi con età, paese di provenienza e mansione. Trentuno operaie sotto i quindici anni. Diciotto provenivano da fuori regione. I cognomi sono ancora quelli del paese. Il pezzo che vale più di tutti gli altri messi insieme, e non è un oggetto: è un elenco." };
 const U_M7: Materiale = { id: "M7", titolo: "Preventivi dei sei formati", aree: ["economia-management"], costo: 1, contenuto: "Percorso interattivo con schermi 16.500 € (permanente, sì ma manutenzione). Podcast in 6 puntate 7.000 € (permanente, sì). Video breve 5.500 € (permanente, sì). Laboratorio con i telai 9.000 € (ricorrente, sì ed è l'unico che genera un piccolo ricavo). Evento dal vivo 12.000 € (una sera, NO non ripetibile). Pannelli narrativi nuovi 8.500 € (permanente, sì)." };
-const U_M8: Materiale = { id: "M8", titolo: "L'indagine sui non-visitatori", aree: ["comunicazione-media", "scienze-educazione"], costo: 1, contenuto: "180 residenti intervistati. Perché non ci vanno: 44% «l'ho già visto da bambino», 27% «non so cosa ci sia», 19% «non è un posto per me», 10% orari. Solo il 27% è un problema di comunicazione. Il 44% è un problema di contenuto: chi c'è già stato non ha motivo di tornare." };
+const U_M8: Materiale = { id: "M8", titolo: "L'indagine sui non-visitatori", aree: ["scienze-ricerca"], costo: 1, contenuto: "180 residenti intervistati. Perché non ci vanno: 44% «l'ho già visto da bambino», 27% «non so cosa ci sia», 19% «non è un posto per me», 10% orari. Solo il 27% è un problema di comunicazione. Il 44% è un problema di contenuto: chi c'è già stato non ha motivo di tornare." };
 const U_M9: Materiale = { id: "M9", titolo: "La disponibilità delle scuole", aree: ["scienze-educazione", "economia-management"], costo: 1, contenuto: "Le tre scuole del comprensorio confermano che tornerebbero due volte l'anno invece di una se ci fosse un'attività pratica. Sono 1.900 visite che diventerebbero 3.400. Da solo, questo raddoppia i numeri che chiede il sindaco." };
 const U_M10: Materiale = { id: "M10", titolo: "I quattro telai funzionanti", aree: ["arte-design-moda", "meccanica-meccatronica"], costo: 1, contenuto: "Due sono utilizzabili con supervisione. Un ex operaio del cotonificio, 79 anni, si è offerto di insegnare a usarli. Gratis. Ha chiesto solo «che non li lascino arrugginire»." };
 const U_M11: Materiale = { id: "M11", titolo: "Chi c'è sul territorio", aree: ["lingue-relazioni-internazionali", "musica-spettacolo"], costo: 1, contenuto: "Una scuola di musica, un gruppo teatrale amatoriale, un'associazione di famiglie di origine straniera (molte lavorano nel tessile), una biblioteca con una sala." };
-const U_M12: Materiale = { id: "M12", titolo: "Il precedente del museo vicino", aree: ["comunicazione-media", "economia-management"], costo: 1, contenuto: "Un museo simile investì tutto in un percorso con schermi. Primo anno: +180% di visitatori. Terzo anno: sotto i numeri di partenza, perché gli schermi si guastarono e nessuno aveva i fondi per ripararli. La novità richiama una volta sola." };
+const U_M12: Materiale = { id: "M12", titolo: "Il precedente del museo vicino", aree: ["economia-management"], costo: 1, contenuto: "Un museo simile investì tutto in un percorso con schermi. Primo anno: +180% di visitatori. Terzo anno: sotto i numeri di partenza, perché gli schermi si guastarono e nessuno aveva i fondi per ripararli. La novità richiama una volta sola." };
 const U_M13: Materiale = { id: "M13", titolo: "Accessibilità e lingue", aree: ["lingue-relazioni-internazionali", "mobilita-sostenibile"], costo: 1, contenuto: "Nessun materiale in altre lingue; nessun sottotitolo; la Sala 3 è al primo piano senza ascensore. Il bando premia l'accessibilità, e la Sala 3 è quella che contiene il registro del 1911." };
 
 const U_MANDATI: Mandato[] = [
   {
     id: "residenti", label: "«Per chi ci è già stato da bambino»", frase: "I residenti che non tornano.",
-    aree: ["comunicazione-media", "studi-umanistici-beni-culturali"],
+    aree: [],
     vincolo: { id: "volontari", testo: "I volontari si oppongono: «cambiare tutto per chi non viene, e chi viene?»" },
     consulenze: [
       consulenza("U_comunicazione", "Consulenza: un'esperta di comunicazione culturale", "comunicazione-media", "Il 44% non torna perché l'ha già visto: non è un problema di comunicazione, è di contenuto. Comunicare di più non serve, serve dare un motivo nuovo per tornare."),
@@ -1272,7 +1272,7 @@ const MD07: MissioneDef = {
   materialiGettone: [U_M4, U_M5, U_M6, U_M7, U_M8, U_M9, U_M10, U_M11, U_M12, U_M13],
   mandati: U_MANDATI,
   prioritaVoci: [
-    { id: "persone", label: "Delle persone che ci lavoravano, e di quanto erano giovani", aree: ["studi-umanistici-beni-culturali", "scienze-educazione"] },
+    { id: "persone", label: "Delle persone che ci lavoravano, e di quanto erano giovani", aree: ["studi-umanistici-beni-culturali"] },
     { id: "tecnica", label: "Di come si fa un tessuto: la tecnica, le macchine", aree: ["arte-design-moda", "meccanica-meccatronica"] },
     { id: "paese", label: "Di questo paese e di cosa è stato", aree: ["studi-umanistici-beni-culturali", "lingue-relazioni-internazionali"] },
     { id: "bellezza", label: "Della bellezza dei tessuti in sé", aree: ["arte-design-moda"] },
@@ -1377,10 +1377,10 @@ const W_M6: Materiale = { id: "M6", titolo: "Studio sui serbatoi domestici", are
 const W_M7: Materiale = { id: "M7", titolo: "Il ciclo dell'agricoltura locale", aree: ["agrifood-ambiente"], costo: 1, contenuto: "Le colture della zona hanno il fabbisogno concentrato tra il 10 luglio e il 5 agosto. Dopo il 20 agosto il consumo agricolo crolla naturalmente dell'80%. Siamo al 14 agosto: tagliare l'agricolo adesso ha effetto quasi nullo sul risparmio e grosso sul raccolto." };
 const W_M8: Materiale = { id: "M8", titolo: "Consumi degli edifici pubblici, dettaglio", aree: ["giurisprudenza-pa", "energia-sostenibilita"], costo: 1, contenuto: "L'8% si divide in: 3,1% impianti sportivi (di cui la piscina comunale, chiusa da giugno ma con ricircolo attivo), 2,4% scuole (vuote ad agosto, ma con irrigazione dei giardini programmata), 1,6% uffici, 0,9% fontane ornamentali. Quasi tutto l'8% è acqua che esce per nessuno: risparmio a costo zero, senza colpire un cittadino." };
 const W_M9: Materiale = { id: "M9", titolo: "Le previsioni meteo, per esteso", aree: ["scienze-ricerca"], costo: 1, contenuto: "Modello a 6 settimane: probabilità di precipitazioni significative 15-20%. Nota metodologica: l'affidabilità dei modelli oltre le 3 settimane è bassa; il documento stesso raccomanda di rivedere le stime ogni 10 giorni. Il «niente piogge per sei settimane» è più incerto di come viene raccontato." };
-const W_M10: Materiale = { id: "M10", titolo: "Precedenti ordinanze in altri comuni", aree: ["giurisprudenza-pa", "comunicazione-media"], costo: 1, contenuto: "Tre casi: divieto di irrigazione (efficacia alta, contenzioso alto); riduzione di pressione notturna (efficacia media, poche proteste ma danni ai vecchi impianti); tariffa progressiva sui consumi eccedenti (efficacia alta ma richiede 3 mesi per entrare in vigore)." };
+const W_M10: Materiale = { id: "M10", titolo: "Precedenti ordinanze in altri comuni", aree: ["giurisprudenza-pa"], costo: 1, contenuto: "Tre casi: divieto di irrigazione (efficacia alta, contenzioso alto); riduzione di pressione notturna (efficacia media, poche proteste ma danni ai vecchi impianti); tariffa progressiva sui consumi eccedenti (efficacia alta ma richiede 3 mesi per entrare in vigore)." };
 const W_M11: Materiale = { id: "M11", titolo: "Il quadro normativo dell'ordinanza sindacale", aree: ["giurisprudenza-pa"], costo: 1, contenuto: "L'ordinanza contingibile e urgente deve essere proporzionata e temporanea, e non può discriminare per quartiere se non su base tecnica documentata. Tradotto: si può colpire un tipo di uso (irrigazione, piscine), non un quartiere." };
 const W_M12: Materiale = { id: "M12", titolo: "Costi e tempi degli interventi", aree: ["economia-management", "edilizia-architettura"], costo: 1, contenuto: "Riparazione condotte settore ovest: −11% del totale, 4 settimane, 340.000 €. Divieto irrigazione e piscine: −8%, immediato, 0 €. Chiusura notturna della rete: −6%, immediato, 0 €. Stop irrigazione scuole + ricircolo piscina + fontane: −5%, immediato, 0 €. Campagna informativa: −2% (stimato, incerto), 2 settimane, 18.000 €. Tariffa progressiva: −9%, 3 mesi, 25.000 €." };
-const W_M13: Materiale = { id: "M13", titolo: "La lettera di un cittadino di San Rocco", aree: ["giurisprudenza-pa", "scienze-educazione"], costo: 1, contenuto: "«Tre anni fa avete chiuso l'acqua di notte per due settimane. Al quarto piano non arrivava nemmeno di giorno. Ho una figlia con una malattia renale che deve bere e lavarsi. Nessuno ci ha avvisati con più di ventiquattro ore.»" };
+const W_M13: Materiale = { id: "M13", titolo: "La lettera di un cittadino di San Rocco", aree: ["giurisprudenza-pa"], costo: 1, contenuto: "«Tre anni fa avete chiuso l'acqua di notte per due settimane. Al quarto piano non arrivava nemmeno di giorno. Ho una figlia con una malattia renale che deve bere e lavarsi. Nessuno ci ha avvisati con più di ventiquattro ore.»" };
 
 const W_MANDATI: Mandato[] = [
   {
@@ -1403,11 +1403,11 @@ const W_MANDATI: Mandato[] = [
   },
   {
     id: "chipaga", label: "«Il problema è chi paga il conto»", frase: "Ogni misura colpisce qualcuno più di altri.",
-    aree: ["giurisprudenza-pa", "scienze-educazione"],
+    aree: [],
     vincolo: { id: "sanitarie", testo: "Emergono 31 utenze con necessità sanitarie che non possono subire interruzioni." },
     consulenze: [
-      consulenza("W_sociali", "Consulenza: la responsabile dei servizi sociali", "scienze-educazione", "A San Rocco l'82% non ha un serbatoio. Una chiusura notturna «uguale per tutti» la pagano solo loro: chi ha l'accumulo non se ne accorge nemmeno."),
-      consulenza("W_medico", "Consulenza: un medico", "scienze-educazione", "Ci sono utenze che non possono restare senz'acqua: dialisi, malattie renali. Vanno censite e protette prima di firmare qualunque cosa."),
+      consulenza("W_sociali", "Consulenza: la responsabile dei servizi sociali", "salute-professioni-sanitarie", "A San Rocco l'82% non ha un serbatoio. Una chiusura notturna «uguale per tutti» la pagano solo loro: chi ha l'accumulo non se ne accorge nemmeno."),
+      consulenza("W_medico", "Consulenza: un medico", "salute-professioni-sanitarie", "Ci sono utenze che non possono restare senz'acqua: dialisi, malattie renali. Vanno censite e protette prima di firmare qualunque cosa."),
     ],
   },
   {
@@ -1459,7 +1459,7 @@ const MD08: MissioneDef = {
     { id: "cittadini", label: "Tenere i rapporti con i cittadini", area: "giurisprudenza-pa" },
     { id: "controlli", label: "Controllare che le misure vengano rispettate", area: "informatica-digitale" },
     { id: "dati", label: "Aggiornare i dati ogni dieci giorni", area: "scienze-ricerca" },
-    { id: "sanitarie", label: "Gestire le utenze con necessità sanitarie", area: "scienze-educazione" },
+    { id: "sanitarie", label: "Gestire le utenze con necessità sanitarie", area: "salute-professioni-sanitarie" },
   ],
   passi: [
     { id: "mappatura_perdite", label: "Completare la mappatura delle perdite" },
@@ -1539,21 +1539,21 @@ const N_M2: Materiale = {
   ],
 };
 const N_M3: Materiale = { id: "M3", titolo: "Il budget, chiuso", aree: [], costo: 0, contenuto: "14.200 € già impegnati e in gran parte spesi. Residuo disponibile: 380 €. Nessuna integrazione possibile: il contributo comunale è vincolato al preventivo approvato." };
-const N_M4: Materiale = { id: "M4", titolo: "Il regolamento dell'autorizzazione di pubblico spettacolo", aree: ["sicurezza-difesa", "giurisprudenza-pa"], costo: 1, contenuto: "L'autorizzazione copre il programma depositato in Comune il 30 giugno. Le variazioni di contenuto sono ammesse; quelle che modificano capienza, orari o disposizione del pubblico richiedono una nuova comunicazione con 48 ore di preavviso. Ne mancano ventiquattro. Tradotto: qualunque idea che sposti la gente o cambi l'orario è irrealizzabile." };
+const N_M4: Materiale = { id: "M4", titolo: "Il regolamento dell'autorizzazione di pubblico spettacolo", aree: ["giurisprudenza-pa"], costo: 1, contenuto: "L'autorizzazione copre il programma depositato in Comune il 30 giugno. Le variazioni di contenuto sono ammesse; quelle che modificano capienza, orari o disposizione del pubblico richiedono una nuova comunicazione con 48 ore di preavviso. Ne mancano ventiquattro. Tradotto: qualunque idea che sposti la gente o cambi l'orario è irrealizzabile." };
 const N_M5: Materiale = { id: "M5", titolo: "Cosa sa fare la Filarmonica con 23 elementi", aree: ["musica-spettacolo"], costo: 1, contenuto: "L'organico ridotto esclude i pezzi sinfonici ma consente il repertorio bandistico e quattro arrangiamenti già eseguiti l'anno scorso, di cui uno molto noto. Il direttore lo sa ma non l'ha proposto: si vergogna di «fare il minore». Chi lo legge può proporre un compromesso che salva la Filarmonica invece di eliminarla." };
-const N_M6: Materiale = { id: "M6", titolo: "Il centro estivo internazionale", aree: ["lingue-relazioni-internazionali", "scienze-educazione"], costo: 1, contenuto: "200 ragazzi tra 14 e 19 anni, 11 nazionalità, il 54% non parla italiano. Sono in paese da due settimane e hanno già preparato, per conto loro, quattro brani corali in cinque lingue: 18 minuti. Costa zero, riempie un buco, e trasforma il problema del pubblico in un contenuto." };
+const N_M6: Materiale = { id: "M6", titolo: "Il centro estivo internazionale", aree: ["scienze-educazione"], costo: 1, contenuto: "200 ragazzi tra 14 e 19 anni, 11 nazionalità, il 54% non parla italiano. Sono in paese da due settimane e hanno già preparato, per conto loro, quattro brani corali in cinque lingue: 18 minuti. Costa zero, riempie un buco, e trasforma il problema del pubblico in un contenuto." };
 const N_M7: Materiale = { id: "M7", titolo: "Il gruppo teatrale, in dettaglio", aree: ["musica-spettacolo", "lingue-relazioni-internazionali"], costo: 1, contenuto: "I venti minuti in più sono un pezzo comico in dialetto stretto. Funziona benissimo con il pubblico locale e non funziona affatto con chi non è del posto. Nadia: «Se ci sono i ragazzi stranieri, quei venti minuti sono venti minuti di silenzio»." };
 const N_M8: Materiale = { id: "M8", titolo: "Il contratto del service audio-luci", aree: ["meccanica-meccatronica"], costo: 1, contenuto: "Pagato fino all'01:00. Ogni ora aggiuntiva: 340 €. Il residuo di cassa è 380 €: si può comprare esattamente un'ora, e resterebbero 40 €. Ma l'autorizzazione della piazza scade all'una comunque. I soldi ci sono, il permesso no." };
-const N_M9: Materiale = { id: "M9", titolo: "L'edizione dell'anno scorso", aree: ["comunicazione-media"], costo: 1, contenuto: "870 presenti. Il momento più applaudito non fu il concerto: fu quando la banda accompagnò a sorpresa il coro dei bambini della parrocchia. Cinque minuti, non erano in programma." };
+const N_M9: Materiale = { id: "M9", titolo: "L'edizione dell'anno scorso", aree: ["musica-spettacolo"], costo: 1, contenuto: "870 presenti. Il momento più applaudito non fu il concerto: fu quando la banda accompagnò a sorpresa il coro dei bambini della parrocchia. Cinque minuti, non erano in programma." };
 const N_M10: Materiale = { id: "M10", titolo: "La comunicazione già uscita", aree: ["comunicazione-media"], costo: 1, contenuto: "400 locandine affisse, un post condiviso 210 volte, un annuncio sul giornale locale. Tutte riportano «Concerto della Filarmonica, ore 22:30». Chi arriva alle 22:30 si aspetta quello." };
-const N_M11: Materiale = { id: "M11", titolo: "La disponibilità dei volontari", aree: ["sicurezza-difesa"], costo: 1, contenuto: "6 volontari, tutti già assegnati (bar, transenne, accoglienza). Nessuno è libero per gestire un cambio di programma sul posto. Due sono disponibili solo fino alle 23:00." };
-const N_M12: Materiale = { id: "M12", titolo: "Il precedente dell'edizione 2019", aree: ["comunicazione-media", "musica-spettacolo"], costo: 1, contenuto: "Quell'anno saltò il gruppo principale e si decise di non dire niente fino all'ultimo, sperando in una sostituzione. Il pubblico lo scoprì alle 22:30, in piazza. Le lamentele non furono per il cambio di programma: furono per non essere stati avvisati." };
-const N_M13: Materiale = { id: "M13", titolo: "Il meteo", aree: ["sicurezza-difesa"], costo: 1, contenuto: "Probabilità di rovesci tra le 22:00 e le 23:30: 35%. Il piano pioggia previsto a giugno era «spostare tutto sotto il porticato del municipio»: capienza 250 persone su 900 attese." };
+const N_M11: Materiale = { id: "M11", titolo: "La disponibilità dei volontari", aree: ["musica-spettacolo"], costo: 1, contenuto: "6 volontari, tutti già assegnati (bar, transenne, accoglienza). Nessuno è libero per gestire un cambio di programma sul posto. Due sono disponibili solo fino alle 23:00." };
+const N_M12: Materiale = { id: "M12", titolo: "Il precedente dell'edizione 2019", aree: ["musica-spettacolo"], costo: 1, contenuto: "Quell'anno saltò il gruppo principale e si decise di non dire niente fino all'ultimo, sperando in una sostituzione. Il pubblico lo scoprì alle 22:30, in piazza. Le lamentele non furono per il cambio di programma: furono per non essere stati avvisati." };
+const N_M13: Materiale = { id: "M13", titolo: "Il meteo", aree: [], costo: 1, contenuto: "Probabilità di rovesci tra le 22:00 e le 23:30: 35%. Il piano pioggia previsto a giugno era «spostare tutto sotto il porticato del municipio»: capienza 250 persone su 900 attese." };
 
 const N_MANDATI: Mandato[] = [
   {
     id: "serata_comunque", label: "«La serata va avanti comunque»", frase: "il pubblico non deve accorgersi del buco.",
-    aree: ["comunicazione-media", "ristorazione-turismo"],
+    aree: ["ristorazione-turismo"],
     vincolo: { id: "teatro_ritardo", testo: "Il gruppo teatrale arriva in ritardo: uno degli attori è fuori paese fino alle 21:30." },
     consulenze: [
       consulenza("N_presidente", "Consulenza: la presidente della Pro Loco", "ristorazione-turismo", "La gente viene per stare in piazza, non per il programma perfetto. Se il bar gira e i fuochi partono, la serata è salva anche senza il concerto grande."),
@@ -1580,11 +1580,11 @@ const N_MANDATI: Mandato[] = [
   },
   {
     id: "finisca_bene", label: "«Prima di tutto che finisca bene»", frase: "novecento persone in piazza, un temporale possibile.",
-    aree: ["sicurezza-difesa"],
+    aree: [],
     vincolo: { id: "piano_pioggia", testo: "Il piano pioggia previsto regge 250 persone su 900 attese." },
     consulenze: [
       consulenza("N_maresciallo", "Consulenza: il maresciallo", "sicurezza-difesa", "Il programma è quello depositato, e all'una si spegne. Se dà pioggia e novecento persone corrono sotto un porticato da duecentocinquanta, quello è il vero problema della serata."),
-      consulenza("N_sicurezza", "Consulenza: il responsabile sicurezza", "sicurezza-difesa", "Con un 35% di rovesci serve decidere prima cosa si fa se piove, non mentre piove. Un annuncio calmo alle 21 vale più di duecento persone che scappano alle 22:40."),
+      consulenza("N_sicurezza", "Consulenza: il responsabile sicurezza", "musica-spettacolo", "Con un 35% di rovesci serve decidere prima cosa si fa se piove, non mentre piove. Un annuncio calmo alle 21 vale più di duecento persone che scappano alle 22:40."),
     ],
   },
   {
@@ -1615,10 +1615,10 @@ const MD09: MissioneDef = {
   materialiGettone: [N_M4, N_M5, N_M6, N_M7, N_M8, N_M9, N_M10, N_M11, N_M12, N_M13],
   mandati: N_MANDATI,
   prioritaVoci: [
-    { id: "piazza_piena", label: "Che la piazza sia piena e la gente stia bene", aree: ["ristorazione-turismo", "comunicazione-media"] },
+    { id: "piazza_piena", label: "Che la piazza sia piena e la gente stia bene", aree: ["ristorazione-turismo"] },
     { id: "filarmonica_figura", label: "Che la Filarmonica non ci faccia una figuraccia", aree: ["musica-spettacolo"] },
-    { id: "ragazzi_parte", label: "Che i ragazzi del centro estivo si sentano parte del paese", aree: ["lingue-relazioni-internazionali", "scienze-educazione"] },
-    { id: "tutto_sicuro", label: "Che sia tutto sicuro e finisca senza problemi", aree: ["sicurezza-difesa"] },
+    { id: "ragazzi_parte", label: "Che i ragazzi del centro estivo si sentano parte del paese", aree: ["scienze-educazione"] },
+    { id: "tutto_sicuro", label: "Che sia tutto sicuro e finisca senza problemi", aree: [] },
     { id: "serata_ricordo", label: "Che sia una serata che qualcuno si ricorderà", aree: ["arte-design-moda", "musica-spettacolo"] },
   ],
   ruoli: [
@@ -1626,7 +1626,7 @@ const MD09: MissioneDef = {
     { id: "direttore", label: "Stare con il direttore della Filarmonica", area: "musica-spettacolo" },
     { id: "ragazzi", label: "Organizzare i ragazzi del centro estivo", area: "lingue-relazioni-internazionali" },
     { id: "tempi", label: "Tenere i tempi durante la serata", area: "ristorazione-turismo" },
-    { id: "pioggia", label: "Gestire il piano pioggia", area: "sicurezza-difesa" },
+    { id: "pioggia", label: "Gestire il piano pioggia", area: "musica-spettacolo" },
   ],
   passi: [
     { id: "piano_b", label: "Prevedere sempre un piano B per il gruppo principale" },
@@ -1658,7 +1658,7 @@ const MD09: MissioneDef = {
     },
   },
   scarto: (letti) => [
-    { id: "spostare_orari", label: "Spostare tutto un'ora avanti e allungare fino alle due", aree: ["comunicazione-media"], qualita: 0.05, trappola: true, avviso: letti.has("M4") ? "Il regolamento dell'autorizzazione (che hai letto): cambiare gli orari richiede 48 ore di preavviso e ne mancano ventiquattro, e la piazza scade all'una comunque. I 380 € per l'ora di service non servono a niente." : undefined },
+    { id: "spostare_orari", label: "Spostare tutto un'ora avanti e allungare fino alle due", aree: ["musica-spettacolo"], qualita: 0.05, trappola: true, avviso: letti.has("M4") ? "Il regolamento dell'autorizzazione (che hai letto): cambiare gli orari richiede 48 ore di preavviso e ne mancano ventiquattro, e la piazza scade all'una comunque. I 380 € per l'ora di service non servono a niente." : undefined },
     { id: "cancellare_niente", label: "Cancellare la Filarmonica e non dire niente fino a stasera", aree: ["musica-spettacolo"], qualita: 0.1, avviso: letti.has("M12") ? "Il precedente del 2019 (che hai letto): la gente non si arrabbiò per il cambio, si arrabbiò per averlo scoperto in piazza." : undefined },
     { id: "musica_registrata", label: "Sostituire la Filarmonica con musica registrata", aree: ["musica-spettacolo"], qualita: 0.2 },
     { id: "filarmonica_ridotta_idea", label: "Far salire la Filarmonica ridotta con quattro pezzi", aree: ["musica-spettacolo"], qualita: 0.85 },
@@ -1710,19 +1710,19 @@ const C_M2: Materiale = {
 const C_M3: Materiale = { id: "M3", titolo: "Cosa chiede il progetto", aree: [], costo: 0, contenuto: "Consegna tra 14 giorni: mappa del quartiere, 25 indirizzi verificati con orari e contatti, quattro testi introduttivi, traduzioni in due lingue, impaginazione. Valutazione: individuale sul contributo di ciascuno, collettiva sul risultato." };
 const C_M4: Materiale = { id: "M4", titolo: "La conversazione con Amine, se qualcuno gliela chiede", aree: ["lingue-relazioni-internazionali", "scienze-educazione"], costo: 1, contenuto: "Amine è arrivato in Italia due anni fa. Parla arabo, francese e italiano. Non scrive in chat perché ha paura di sbagliare a scrivere in italiano davanti agli altri. Parlando non ha nessun problema. Nessuno gliel'ha mai chiesto. La risorsa più importante del progetto era già dentro il gruppo, muta per imbarazzo." };
 const C_M5: Materiale = { id: "M5", titolo: "Il messaggio privato di Elisa", aree: ["salute-professioni-sanitarie", "scienze-educazione"], costo: 1, contenuto: "«Sto seguendo mia nonna, è caduta il mese scorso. Sono a casa da sola con lei tutti i pomeriggi. Non l'ho detto perché non voglio che pensiate che mi tiro indietro.» Può lavorare, ma solo la mattina e da casa. Non è disimpegno: è un vincolo che nessuno conosceva." };
-const C_M6: Materiale = { id: "M6", titolo: "Cosa ha detto davvero Tommaso", aree: ["scienze-educazione", "comunicazione-media"], costo: 1, contenuto: "La frase intera, riportata da chi c'era: «Tanto poi la fa qualcun altro, come l'anno scorso, che ho fatto tutto io e alla fine il voto era uguale per tutti.» Non è cinismo: è un precedente." };
-const C_M7: Materiale = { id: "M7", titolo: "La verifica degli indirizzi", aree: ["comunicazione-media", "ristorazione-turismo"], costo: 1, contenuto: "Dei tre sbagliati: uno è chiuso da un anno, uno ha cambiato via, uno esiste ma con orari diversi. Tommaso li ha presi da un elenco online del 2021. Il metodo era sbagliato, non la persona." };
+const C_M6: Materiale = { id: "M6", titolo: "Cosa ha detto davvero Tommaso", aree: ["scienze-educazione"], costo: 1, contenuto: "La frase intera, riportata da chi c'era: «Tanto poi la fa qualcun altro, come l'anno scorso, che ho fatto tutto io e alla fine il voto era uguale per tutti.» Non è cinismo: è un precedente." };
+const C_M7: Materiale = { id: "M7", titolo: "La verifica degli indirizzi", aree: [], costo: 1, contenuto: "Dei tre sbagliati: uno è chiuso da un anno, uno ha cambiato via, uno esiste ma con orari diversi. Tommaso li ha presi da un elenco online del 2021. Il metodo era sbagliato, non la persona." };
 const C_M8: Materiale = { id: "M8", titolo: "La nota della professoressa, per iscritto", aree: ["scienze-educazione"], costo: 1, contenuto: "«Valuto il contributo di ciascuno, non chi ha lavorato di più. Se qualcuno fa tutto da solo, gli altri non hanno un contributo da valutare — e il voto individuale ne risente. Anche il suo.» Fare tutto da soli non è generoso: è la scelta che danneggia tutti, incluso chi la fa." };
 const C_M9: Materiale = { id: "M9", titolo: "Il centro di accoglienza", aree: ["lingue-relazioni-internazionali", "salute-professioni-sanitarie"], costo: 1, contenuto: "A chi serve davvero la guida: 40 persone arrivate negli ultimi sei mesi, la maggioranza parla arabo o francese. La responsabile: «La cosa più utile sarebbe sapere dove si mangia con pochi soldi e dove si va se ci si sente male». Le due lingue giuste sono proprio quelle di Amine, e il contenuto va ripensato." };
 const C_M10: Materiale = { id: "M10", titolo: "Come lavora Giada", aree: ["scienze-educazione"], costo: 1, contenuto: "Giada non è passiva: esegue benissimo compiti definiti e si blocca su compiti vaghi. Nelle tre occasioni in cui ha ricevuto un'istruzione precisa, ha consegnato in tempo e bene. Non serve motivarla, serve darle un compito con dei confini." };
-const C_M11: Materiale = { id: "M11", titolo: "Le idee di Yuri, elencate", aree: ["arte-design-moda", "comunicazione-media"], costo: 1, contenuto: "Undici proposte in tre settimane. Due sono ottime (una mappa disegnata a mano invece che stampata; una pagina di frasi utili con la pronuncia). Nove sono irrealizzabili in due settimane. Nessuno le ha mai selezionate: accolte con «bella idea» e poi dimenticate. Yuri non ha bisogno di essere frenato: ha bisogno che qualcuno scelga." };
-const C_M12: Materiale = { id: "M12", titolo: "Il calendario reale delle disponibilità", aree: ["scienze-educazione"], costo: 1, contenuto: "Quando i sette possono davvero lavorare: solo due fasce coincidono per tutti in due settimane. Tutto il resto va fatto in sottogruppi o da soli. Un piano che presuppone incontri di gruppo continui non può esistere." };
-const C_M13: Materiale = { id: "M13", titolo: "Il precedente dell'anno scorso", aree: ["scienze-educazione", "comunicazione-media"], costo: 1, contenuto: "Il progetto della 3ªA: una persona fece l'80% del lavoro, il gruppo consegnò in tempo, il voto collettivo fu alto. Tre studenti su sei, quell'anno, non impararono niente — e uno di loro era Tommaso." };
+const C_M11: Materiale = { id: "M11", titolo: "Le idee di Yuri, elencate", aree: ["arte-design-moda"], costo: 1, contenuto: "Undici proposte in tre settimane. Due sono ottime (una mappa disegnata a mano invece che stampata; una pagina di frasi utili con la pronuncia). Nove sono irrealizzabili in due settimane. Nessuno le ha mai selezionate: accolte con «bella idea» e poi dimenticate. Yuri non ha bisogno di essere frenato: ha bisogno che qualcuno scelga." };
+const C_M12: Materiale = { id: "M12", titolo: "Il calendario reale delle disponibilità", aree: [], costo: 1, contenuto: "Quando i sette possono davvero lavorare: solo due fasce coincidono per tutti in due settimane. Tutto il resto va fatto in sottogruppi o da soli. Un piano che presuppone incontri di gruppo continui non può esistere." };
+const C_M13: Materiale = { id: "M13", titolo: "Il precedente dell'anno scorso", aree: [], costo: 1, contenuto: "Il progetto della 3ªA: una persona fece l'80% del lavoro, il gruppo consegnò in tempo, il voto collettivo fu alto. Tre studenti su sei, quell'anno, non impararono niente — e uno di loro era Tommaso." };
 
 const C_MANDATI: Mandato[] = [
   {
     id: "capire_perche", label: "«Prima capisco perché»", frase: "nessuno è pigro senza motivo.",
-    aree: ["salute-professioni-sanitarie", "scienze-educazione"],
+    aree: ["salute-professioni-sanitarie"],
     vincolo: { id: "tre_giorni", testo: "Parlare con tutti richiede tre giorni dei quattordici." },
     consulenze: [
       consulenza("C_sostegno", "Consulenza: la prof di sostegno", "scienze-educazione", "Prima di dividere i compiti, guarda chi non partecipa e chiediti perché. Quasi sempre dietro un silenzio c'è un ostacolo concreto, non pigrizia."),
@@ -1731,25 +1731,25 @@ const C_MANDATI: Mandato[] = [
   },
   {
     id: "compito_preciso", label: "«Prima do a ciascuno un compito preciso»", frase: "il problema è che nessuno sa cosa fare.",
-    aree: ["scienze-educazione", "comunicazione-media"],
+    aree: [],
     vincolo: { id: "riassegnano", testo: "Due assegnano il proprio compito a qualcun altro: il piano va rifatto." },
     consulenze: [
       consulenza("C_tutor", "Consulenza: un tutor", "scienze-educazione", "Metà del gruppo non è svogliata: è persa. Un compito scritto, con confini e una scadenza, sblocca chi si ferma perché non sa da dove iniziare."),
-      consulenza("C_referente", "Consulenza: la referente del progetto", "comunicazione-media", "«Fate voi» non è un compito. «Tu i tre indirizzi della via centrale entro venerdì» lo è. La differenza tra un gruppo fermo e uno che si muove sta tutta lì."),
+      consulenza("C_referente", "Consulenza: la referente del progetto", "scienze-educazione", "«Fate voi» non è un compito. «Tu i tre indirizzi della via centrale entro venerdì» lo è. La differenza tra un gruppo fermo e uno che si muove sta tutta lì."),
     ],
   },
   {
     id: "sistemo_lavoro", label: "«Prima sistemo il lavoro»", frase: "tra quattordici giorni si consegna.",
-    aree: ["ristorazione-turismo", "comunicazione-media"],
+    aree: [],
     vincolo: { id: "venticinque", testo: "Gli indirizzi da verificare sono 25, non 11: il lavoro è il triplo del previsto." },
     consulenze: [
       consulenza("C_centro", "Consulenza: la responsabile del centro", "ristorazione-turismo", "La guida serve a chi è appena arrivato: dove si mangia con pochi soldi, dove si va se ci si sente male. Undici indirizzi a caso non bastano, ne servono venticinque veri."),
-      consulenza("C_grafico", "Consulenza: un grafico", "comunicazione-media", "Una copertina bella su contenuti sbagliati è tempo perso. Prima si verificano gli indirizzi e si scrivono i testi, poi si impagina: l'ordine conta."),
+      consulenza("C_grafico", "Consulenza: un grafico", "arte-design-moda", "Una copertina bella su contenuti sbagliati è tempo perso. Prima si verificano gli indirizzi e si scrivono i testi, poi si impagina: l'ordine conta."),
     ],
   },
   {
     id: "far_parlare", label: "«Prima faccio parlare chi non parla»", frase: "metà del gruppo non ha mai detto la sua.",
-    aree: ["lingue-relazioni-internazionali", "scienze-educazione"],
+    aree: [],
     vincolo: { id: "amine_non_davanti", testo: "Amine accetta di parlare solo se non è davanti a tutti." },
     consulenze: [
       consulenza("C_mediatrice", "Consulenza: una mediatrice", "lingue-relazioni-internazionali", "Chi tace in un gruppo spesso ha di più da dare, non di meno. Ma glielo devi chiedere a quattr'occhi: davanti a tutti il silenzio si difende."),
@@ -1758,10 +1758,10 @@ const C_MANDATI: Mandato[] = [
   },
   {
     id: "mettere_regole", label: "«Prima mettiamo delle regole»", frase: "senza regole ognuno fa come gli pare.",
-    aree: ["sicurezza-difesa", "scienze-educazione"],
+    aree: [],
     vincolo: { id: "rifiutano_regole", testo: "Il gruppo rifiuta le prime regole proposte: «non sei mica il prof»." },
     consulenze: [
-      consulenza("C_rappresentante", "Consulenza: il rappresentante di classe", "sicurezza-difesa", "Le regole calate dall'alto in un gruppo di pari non reggono un giorno. Se le decidete insieme, anche solo due o tre, allora si rispettano."),
+      consulenza("C_rappresentante", "Consulenza: il rappresentante di classe", "scienze-educazione", "Le regole calate dall'alto in un gruppo di pari non reggono un giorno. Se le decidete insieme, anche solo due o tre, allora si rispettano."),
       consulenza("C_prof", "Consulenza: la prof", "scienze-educazione", "Io non entro: se entro io, il progetto diventa mio. Ma una cosa te la dico: le scadenze intermedie scritte valgono più di qualsiasi regola di comportamento."),
     ],
   },
@@ -1785,17 +1785,17 @@ const MD10: MissioneDef = {
   mandati: C_MANDATI,
   prioritaVoci: [
     { id: "chi_fa_cosa", label: "Non è chiaro chi deve fare cosa", aree: ["scienze-educazione"] },
-    { id: "chi_parla_chi_no", label: "C'è chi parla molto e chi non parla affatto", aree: ["comunicazione-media", "lingue-relazioni-internazionali"] },
+    { id: "chi_parla_chi_no", label: "C'è chi parla molto e chi non parla affatto", aree: ["scienze-educazione"] },
     { id: "chi_manca", label: "Qualcuno non c'è e non sappiamo perché", aree: ["salute-professioni-sanitarie", "scienze-educazione"] },
     { id: "gia_deciso", label: "Qualcuno ha già deciso che tanto non serve impegnarsi", aree: ["scienze-educazione"] },
-    { id: "lavoro_poco", label: "Il lavoro fatto finora è poco e in parte sbagliato", aree: ["comunicazione-media", "ristorazione-turismo"] },
-    { id: "mai_insieme", label: "Non ci vediamo mai tutti insieme", aree: ["scienze-educazione", "sicurezza-difesa"] },
+    { id: "lavoro_poco", label: "Il lavoro fatto finora è poco e in parte sbagliato", aree: [] },
+    { id: "mai_insieme", label: "Non ci vediamo mai tutti insieme", aree: ["scienze-educazione"] },
   ],
   ruoli: [], // non usato: questa missione usa assegnaPersone
   assegnaPersone: {
     compiti: [
-      { id: "indirizzi", label: "Verificare e completare i 25 indirizzi", area: "comunicazione-media" },
-      { id: "testi", label: "Scrivere i quattro testi", area: "scienze-educazione" },
+      { id: "indirizzi", label: "Verificare e completare i 25 indirizzi", area: "" },
+      { id: "testi", label: "Scrivere i quattro testi", area: "comunicazione-media" },
       { id: "mappa", label: "Fare la mappa", area: "arte-design-moda" },
       { id: "traduzioni", label: "Curare le traduzioni", area: "lingue-relazioni-internazionali" },
       { id: "impaginazione", label: "Impaginare la guida", area: "arte-design-moda" },
@@ -1826,26 +1826,26 @@ const MD10: MissioneDef = {
     passo: 1,
     voci: (m, letti) => {
       const voci: VoceBudget[] = [
-        { id: "verificare_indirizzi", label: "Verificare e completare i 25 indirizzi", aree: ["comunicazione-media", "ristorazione-turismo"], costoIndicativo: 2 },
-        { id: "scrivere_testi", label: "Scrivere i quattro testi", aree: ["scienze-educazione"], costoIndicativo: 2 },
+        { id: "verificare_indirizzi", label: "Verificare e completare i 25 indirizzi", aree: [], costoIndicativo: 2 },
+        { id: "scrivere_testi", label: "Scrivere i quattro testi", aree: ["comunicazione-media"], costoIndicativo: 2 },
         { id: "fare_mappa", label: "Fare la mappa", aree: ["arte-design-moda"], costoIndicativo: 1 },
         { id: "curare_traduzioni", label: "Curare le traduzioni", aree: ["lingue-relazioni-internazionali"], costoIndicativo: 1 },
         { id: "impaginare", label: "Impaginare", aree: ["arte-design-moda"], costoIndicativo: 1 },
         { id: "parlare_uno_a_uno", label: "Parlare uno a uno con chi non partecipa", aree: ["scienze-educazione", "salute-professioni-sanitarie"], costoIndicativo: 2 },
       ];
       if (letti.has("M10")) voci.push({ id: "rifare_piano", label: "Rifare il piano con compiti definiti", aree: ["scienze-educazione"], costoIndicativo: 1, soloSe: "M10" });
-      if (letti.has("M11")) voci.push({ id: "scegliere_idee", label: "Scegliere quali idee di Yuri realizzare", aree: ["comunicazione-media", "arte-design-moda"], costoIndicativo: 1, soloSe: "M11" });
+      if (letti.has("M11")) voci.push({ id: "scegliere_idee", label: "Scegliere quali idee di Yuri realizzare", aree: ["arte-design-moda"], costoIndicativo: 1, soloSe: "M11" });
       if (letti.has("M5")) voci.push({ id: "compito_elisa", label: "Trovare un compito compatibile per Elisa", aree: ["salute-professioni-sanitarie", "scienze-educazione"], costoIndicativo: 1, soloSe: "M5" });
       return voci;
     },
   },
   scarto: (letti) => [
-    { id: "faccio_da_solo", label: "Mi metto sotto io e finisco la guida: mancano nove giorni, non c'è tempo per altro", aree: ["scienze-educazione"], qualita: 0.05, trappola: true, avviso: letti.has("M8") ? "La nota della prof (che hai letto): la valutazione è sul contributo di ciascuno. Chi fa tutto lascia gli altri senza contributo da valutare — e abbassa anche il proprio voto." : undefined },
-    { id: "dire_prof", label: "Dire alla prof che il gruppo non collabora", aree: ["scienze-educazione"], qualita: 0.15, avviso: undefined },
-    { id: "escludere", label: "Escludere chi non partecipa e dividersi il lavoro tra i volenterosi", aree: ["sicurezza-difesa"], qualita: 0.1 },
+    { id: "faccio_da_solo", label: "Mi metto sotto io e finisco la guida: mancano nove giorni, non c'è tempo per altro", aree: [], qualita: 0.05, trappola: true, avviso: letti.has("M8") ? "La nota della prof (che hai letto): la valutazione è sul contributo di ciascuno. Chi fa tutto lascia gli altri senza contributo da valutare — e abbassa anche il proprio voto." : undefined },
+    { id: "dire_prof", label: "Dire alla prof che il gruppo non collabora", aree: [], qualita: 0.15, avviso: undefined },
+    { id: "escludere", label: "Escludere chi non partecipa e dividersi il lavoro tra i volenterosi", aree: [], qualita: 0.1 },
     { id: "parlare_spariti", label: "Parlare uno a uno con chi è sparito", aree: ["salute-professioni-sanitarie", "scienze-educazione"], qualita: 0.85 },
     { id: "compiti_scritti", label: "Assegnare a ciascuno un compito scritto con scadenza", aree: ["scienze-educazione"], qualita: 0.8 },
-    { id: "ridurre_progetto", label: "Ridurre il progetto a quello che si riesce davvero a fare", aree: ["comunicazione-media"], qualita: 0.6 },
+    { id: "ridurre_progetto", label: "Ridurre il progetto a quello che si riesce davvero a fare", aree: [], qualita: 0.6 },
   ],
   introStanza3: (m, letti) => {
     const parti = ["Giovedì, nove giorni alla consegna. Ricevi un messaggio dalla prof: due righe."];
@@ -1898,7 +1898,7 @@ const V_M8: Materiale = { id: "M8", titolo: "Il fondo di solidarietà d'istituto
 const V_M9: Materiale = { id: "M9", titolo: "Cosa si può fare in quella città", aree: ["ristorazione-turismo", "arte-design-moda"], costo: 1, contenuto: "Sei possibilità con costi: museo principale 8 € (già incluso), quartiere storico a piedi gratis, mercato coperto gratis, museo scientifico 6 €, giro in battello 11 €, laboratorio artigiano 9 € su prenotazione (max 25 persone). Serve per capire dove finiscono i 12 € di margine." };
 const V_M10: Materiale = { id: "M10", titolo: "La normativa sui viaggi d'istruzione", aree: ["giurisprudenza-pa", "salute-professioni-sanitarie"], costo: 1, contenuto: "Le uscite didattiche devono garantire la partecipazione di tutti gli studenti: le barriere architettoniche o economiche note e non affrontate possono costituire discriminazione. Se un solo studente è escluso per una barriera evitabile, il viaggio non è conforme. Non è sensibilità: è una condizione di legittimità." };
 const V_M11: Materiale = { id: "M11", titolo: "La regola dell'80%", aree: ["economia-management"], costo: 1, contenuto: "Servono almeno 18 partecipanti. Se Nadir, Marco, Chiara e Sara restassero a casa, i partecipanti sarebbero 18: esattamente la soglia. Il viaggio si farebbe comunque. Il dato più freddo della missione, e il più utile per vedere cosa si sta scegliendo davvero." };
-const V_M12: Materiale = { id: "M12", titolo: "Il precedente della 5ªB, due anni fa", aree: ["salute-professioni-sanitarie", "scienze-educazione"], costo: 1, contenuto: "Uno studente in sedia a rotelle non partecipò «per scelta sua». Nella relazione di fine anno si legge che l'ostello non era accessibile e che nessuno glielo comunicò: gli fu chiesto se voleva venire, e lui disse di no. Chiarisce cosa significa davvero la frase di Nadir in corridoio." };
+const V_M12: Materiale = { id: "M12", titolo: "Il precedente della 5ªB, due anni fa", aree: ["salute-professioni-sanitarie"], costo: 1, contenuto: "Uno studente in sedia a rotelle non partecipò «per scelta sua». Nella relazione di fine anno si legge che l'ostello non era accessibile e che nessuno glielo comunicò: gli fu chiesto se voleva venire, e lui disse di no. Chiarisce cosa significa davvero la frase di Nadir in corridoio." };
 const V_M13: Materiale = { id: "M13", titolo: "La disponibilità dell'agenzia", aree: ["economia-management", "mobilita-sostenibile"], costo: 1, contenuto: "L'agenzia può cambiare ostello senza penale entro undici giorni, e con 25 partecipanti (compresi due accompagnatori) applica una riduzione di 4 € a testa. Sono 22 studenti + 2 accompagnatori = 24: con un accompagnatore in più si scende a 174 €. Guadagno nascosto: libera 4 € a testa, cioè 88 € sul gruppo — quasi metà del costo dell'ostello accessibile." };
 
 const V_MANDATI: Mandato[] = [
@@ -1931,7 +1931,7 @@ const V_MANDATI: Mandato[] = [
   },
   {
     id: "prima_chiediamo", label: "«Prima chiediamo, poi decidiamo»", frase: "nessuno di loro dirà cosa gli serve davvero.",
-    aree: ["scienze-educazione", "salute-professioni-sanitarie"],
+    aree: ["salute-professioni-sanitarie"],
     vincolo: { id: "quattro_giorni", testo: "Parlare con tutti richiede quattro giorni degli undici disponibili." },
     consulenze: [
       consulenza("V_sostegno", "Consulenza: la prof di sostegno", "scienze-educazione", "«Se è complicato resto» non vuol dire «non voglio venire»: vuol dire «non voglio essere un problema». Sono due cose opposte, e le distingui solo se glielo chiedi bene."),
@@ -2013,7 +2013,7 @@ const MD11: MissioneDef = {
     { id: "chiedi_nadir", label: "Chiedere a Nadir se preferisce non venire, visto che l'ha già detto lui", aree: ["salute-professioni-sanitarie"], qualita: 0.05, trappola: true, avviso: (letti.has("M10") || letti.has("M12")) ? "Quello che hai letto (la normativa / il precedente della 5ªB): due anni fa un altro studente in sedia a rotelle «scelse di non partecipare», e l'ostello non era accessibile. Chiedere a qualcuno se vuole restare fuori non è chiederglielo: è dirglielo." : undefined },
     { id: "nove_tranne_marco", label: "Far pagare 9 € in più a tutti tranne a Marco", aree: ["economia-management"], qualita: 0.1 },
     { id: "colletta", label: "Fare una colletta in classe per chi non arriva", aree: ["economia-management"], qualita: 0.1 },
-    { id: "rinviare_anno", label: "Spostare il viaggio all'anno prossimo", aree: ["scienze-educazione"], qualita: 0.15 },
+    { id: "rinviare_anno", label: "Spostare il viaggio all'anno prossimo", aree: [], qualita: 0.15 },
     { id: "accompagnatore", label: "Chiedere un accompagnatore in più per avere lo sconto", aree: ["economia-management"], qualita: 0.85 },
     { id: "rinuncia_ingresso", label: "Rinunciare al secondo ingresso e mettere quei soldi sull'ostello", aree: ["mobilita-sostenibile"], qualita: 0.8 },
   ],

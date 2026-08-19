@@ -403,6 +403,39 @@ async function run() {
   const maiTaggate = AREE.map((a) => a.slug).filter((s) => !areeTaggate.has(s));
   const maiRaggiungibili = maiTaggate.filter((s) => !areeCandidateTotali.has(s));
 
+  // ── Euristica dei tag isolati ────────────────────────────────────────────
+  // Un'area che, in una missione, compare su UNO o DUE elementi soltanto è
+  // sospetta: di solito è un contesto scambiato per campo o un refuso di
+  // copia-incolla. Non è un errore certo — è un posto dove guardare a occhio.
+  const elementiPerMissioneArea = new Map();
+  for (const r of tuttiTag) {
+    const k = r.missione + "|" + r.area;
+    if (!elementiPerMissioneArea.has(k)) elementiPerMissioneArea.set(k, new Set());
+    elementiPerMissioneArea.get(k).add(r.mecc + "/" + r.elementoId + "|" + r.etichetta);
+  }
+  const tagIsolati = [];
+  for (const [k, set] of elementiPerMissioneArea) {
+    if (set.size <= 2) {
+      const [missione, area] = k.split("|");
+      tagIsolati.push({ missione, area, n: set.size, elementi: [...set].map((e) => e.split("|")[0]).sort() });
+    }
+  }
+  tagIsolati.sort((a, b) => a.n - b.n || a.missione.localeCompare(b.missione) || a.area.localeCompare(b.area));
+
+  // ── Copertura fra missioni ────────────────────────────────────────────────
+  // I totali non bastano: un'area con venti tag tutti in una missione è fragile
+  // quanto una con un tag solo — la incontra solo chi gioca quella. Conta in
+  // quante missioni distinte (su totale) l'area compare. 1-2 missioni = fragile.
+  const spanArea = new Map();
+  for (const r of tuttiTag) {
+    if (!spanArea.has(r.area)) spanArea.set(r.area, { tag: 0, miss: new Set() });
+    const v = spanArea.get(r.area); v.tag++; v.miss.add(r.missione);
+  }
+  const coperturaMissioni = AREE.map((a) => a.slug).map((s) => {
+    const v = spanArea.get(s) || { tag: 0, miss: new Set() };
+    return { area: s, tag: v.tag, missioni: v.miss.size, fragile: v.miss.size <= 2 };
+  }).sort((a, b) => a.missioni - b.missioni || a.tag - b.tag);
+
   // Pass B + asserzioni
   const STRATEGIE = ["nullo", "completista", "monomandato", "contrario", "essenziale", "diversificato"];
   const asserzioni = []; // { slug, nome, esito: 'PASS'|'FAIL', dettaglio }
@@ -497,7 +530,18 @@ async function run() {
   const dubbiUnici = dubbi.filter((d) => { const k = `${d.missione}|${d.mecc}|${d.elementoId}|${d.areaSuggerita}`; if (visto.has(k)) return false; visto.add(k); return true; });
 
   // ── output file ──
-  fs.writeFileSync(path.join(OUT, "censimento.json"), JSON.stringify({ tuttiTag, maiTaggate, maiRaggiungibili, asserzioni, buchiCopertura, dubbi: dubbiUnici, lessicoAutoSeed: autoSeed }, null, 2));
+  fs.writeFileSync(path.join(OUT, "censimento.json"), JSON.stringify({ tuttiTag, maiTaggate, maiRaggiungibili, asserzioni, buchiCopertura, tagIsolati, coperturaMissioni, dubbi: dubbiUnici, lessicoAutoSeed: autoSeed }, null, 2));
+
+  const mdIso = [
+    "# Tag isolati — censimento del motore Escape",
+    "",
+    "Ogni riga: un'area che in una missione compare su **uno o due elementi soltanto**. **Sospetta, non un verdetto** — di solito è un contesto scambiato per campo o un refuso. Guarda a occhio. Non cattura invece un'area *densa ma fuori tema* (es. un grappolo su 5 elementi): per quella serve la lettura di `coperturaMissioni`.",
+    "",
+    "| missione | area | n. elementi | elementi |",
+    "|---|---|---|---|",
+    ...tagIsolati.map((t) => `| ${t.missione} | ${nomeArea(t.area)} | ${t.n} | ${t.elementi.join(", ")} |`),
+  ].join("\n");
+  fs.writeFileSync(path.join(OUT, "tag-isolati.md"), mdIso);
 
   const csvEsc = (s) => `"${String(s).replace(/"/g, '""')}"`;
   const csv = ["missione,meccanismo,elemento_id,etichetta,area_attuale,area_suggerita,parola_spia"]
@@ -541,6 +585,13 @@ async function run() {
   if (buchiCopertura.length) for (const b of buchiCopertura) line(`  · [${b.slug}] ${nomeArea(b.area)} — verificata solo staticamente, non dal vivo`);
   line("");
   line(`CASI DUBBI (lessico): ${dubbiUnici.length} → censimento-output/casi-dubbi.{csv,md}`);
+  line("");
+  line(`TAG ISOLATI — un'area su 1-2 elementi in una missione (sospetta, da rivedere a occhio): ${tagIsolati.length}`);
+  for (const t of tagIsolati) line(`  · [${t.missione}] ${nomeArea(t.area)} — ${t.n} elemento/i: ${t.elementi.join(", ")}`);
+  line("  (→ tag-isolati.md. NB: non cattura un'area densa ma fuori tema — per quella leggi la copertura qui sotto.)");
+  line("");
+  line("COPERTURA FRA MISSIONI — in quante missioni distinte compare ogni area (fragile ≤ 2):");
+  for (const c of coperturaMissioni) line(`  ${c.fragile ? "⚠" : " "} ${nomeArea(c.area).padEnd(34)} ${String(c.tag).padStart(3)} tag  in ${c.missioni} missioni`);
   line("");
   line(`Mappa completa: censimento-output/censimento.json`);
   line("");
