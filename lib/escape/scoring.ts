@@ -170,7 +170,12 @@ const SPEC: Record<string, ScoringSpec> = {
     budgetPerformance: ({ alloc, voci, letti, totale }) => {
       let punti = 0, max = 0;
       const info = Number(alloc["informare_personale"]) || 0;
-      if (letti.has("M8")) { max += 1.5; punti += info > 0 ? 1.5 : 0; } else { max += 1; punti += info > 0 ? 1 : 0.4; }
+      // Fix pavimento: senza M8 il ramo dava +0.4 anche a chi NON informa —
+      // un punto per un'azione non avvenuta, che faceva scattare una `buona`
+      // vuota sul piano filler (2.0/4=0.5 invece di 2.4/4=0.6). Decidere cosa
+      // vale la pena guardare È ciò che la missione misura: non aver cercato M8
+      // è una scelta, non un'ingiustizia. Zero.
+      if (letti.has("M8")) { max += 1.5; punti += info > 0 ? 1.5 : 0; } else { max += 1; punti += info > 0 ? 1 : 0; }
       const verif = Number(alloc["verificare_fatti"]) || 0;
       max += 1; punti += verif > 0 ? 1 : 0;
       if (voci.some((v) => v.id === "rispondere_associazione")) {
