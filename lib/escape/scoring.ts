@@ -15,6 +15,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { AREE, getAreaBySlug } from "@/data/aree";
 import { chiamaJson, type EsitoAI } from "@/lib/ai/chiamaJson";
+import { componiPerformance, type DescrittoreVoce } from "./componiPerformance";
 import type {
   AsseStile,
   Dimensione,
@@ -103,8 +104,10 @@ type ScoringSpec = {
   esploraTesti: { conBonus: string; base: string };
   pianificaIdeali: string[];
   ordinaPerformance?: { area: string; peso: number };
-  budgetPerformance?: (c: BudgetCtx) => { valore: number; buona: string; migliora: string };
-  pianoPerformance?: (c: PianoCtx) => { valore: number; buona: string; migliora: string };
+  // Ritornano i DESCRITTORI delle voci di punteggio (Fix D): la frase del finale
+  // è composta da componiPerformance, ogni clausola vera per costruzione.
+  budgetPerformance?: (c: BudgetCtx) => { valore: number; voci: DescrittoreVoce[] };
+  pianoPerformance?: (c: PianoCtx) => { valore: number; voci: DescrittoreVoce[] };
   assegnaSegnali?: AssegnaSegnale[];
   promptProposta: (aree: string[], ctx: { letti: Set<string> }) => string;
 };
@@ -134,26 +137,29 @@ const SPEC: Record<string, ScoringSpec> = {
     pianificaIdeali: ["sicurezza", "convenzione", "lavori"],
     budgetPerformance: ({ alloc, voci, letti, totale }) => {
       let punti = 0, max = 0;
+      const desc: DescrittoreVoce[] = [];
+      const idx = (id: string) => voci.findIndex((v) => v.id === id);
+      const stato = (v: number, s: number): "pieno" | "nullo" | "parziale" => (v >= s ? "pieno" : v > 0 ? "parziale" : "nullo");
       const tetto = Number(alloc["tetto"]) || 0;
       const sogliaTetto = letti.has("M4") ? 27000 : 50000;
       max += 2; punti += tetto >= sogliaTetto ? 2 : clamp01(tetto / sogliaTetto) * 2;
+      desc.push({ tipo: "soglia", label: "la copertura del tetto", stato: stato(tetto, sogliaTetto) });
       const voceVincolo = voci.find((v) => v.id === "adeguamento_vincolo");
       if (voceVincolo) {
         const sp = Number(alloc["adeguamento_vincolo"]) || 0;
         const soglia = (voceVincolo.costoIndicativo ?? 30000) * 0.8;
         max += 2; punti += sp >= soglia ? 2 : clamp01(sp / soglia) * 2;
+        desc.push({ tipo: "soglia", label: "gli spazi certificati per i minori", stato: stato(sp, soglia) });
       }
       if (letti.has("M7") && voci.some((v) => v.id === "fondo_gestione")) {
         const f = Number(alloc["fondo_gestione"]) || 0;
         max += 1.5; punti += f > 0 ? 1.5 : 0;
+        desc.push({ tipo: "appartenenza", label: "il fondo di gestione", presente: f > 0, ordine: idx("fondo_gestione") });
       }
       const { pienezza, equilibrio } = pienezzaEquilibrio(alloc, totale);
       max += 2; punti += pienezza + equilibrio;
-      return {
-        valore: clamp01(max > 0 ? punti / max : 0.5),
-        buona: "Hai retto il colpo del tetto e coperto il vincolo senza dimenticare la sostenibilità: scelte lucide sotto pressione.",
-        migliora: "La distribuzione lascia scoperto qualcosa di importante (il tetto, il vincolo o la gestione): c'è margine per bilanciare meglio.",
-      };
+      desc.push({ tipo: "aggregato" });
+      return { valore: clamp01(max > 0 ? punti / max : 0.5), voci: desc };
     },
     promptProposta: (aree) =>
       `Sei un analista di orientamento per studenti italiani di 16-19 anni. Uno studente ha scritto la proposta per rigenerare un ex mercato coperto del suo quartiere. Individua da 1 a 3 aree — SCEGLIENDO SOLO tra questi slug: ${aree.join(", ")} — che la proposta enfatizza di più. Per ognuna valuta: performance = quanto la proposta è concreta, coerente col mandato e col vincolo, argomentata su quell'area (0-1); interest = quanto la proposta ci punta (0-1). Motivazione breve, calda, IPOTETICA, in italiano semplice, rivolta allo studente. Includi anche "giudizio_complessivo", una frase di sintesi sull'intera proposta. Rispondi SOLO con JSON valido: {"aree":[{"area_slug":"...","performance":0.0,"interest":0.0,"motivazione":"..."}],"giudizio_complessivo":"..."}`,
@@ -169,6 +175,8 @@ const SPEC: Record<string, ScoringSpec> = {
     pianificaIdeali: ["assoc", "accessibilita", "comunicazione_interna"],
     budgetPerformance: ({ alloc, voci, letti, totale }) => {
       let punti = 0, max = 0;
+      const desc: DescrittoreVoce[] = [];
+      const idx = (id: string) => voci.findIndex((v) => v.id === id);
       const info = Number(alloc["informare_personale"]) || 0;
       // Fix pavimento: senza M8 il ramo dava +0.4 anche a chi NON informa —
       // un punto per un'azione non avvenuta, che faceva scattare una `buona`
@@ -176,19 +184,19 @@ const SPEC: Record<string, ScoringSpec> = {
       // vale la pena guardare È ciò che la missione misura: non aver cercato M8
       // è una scelta, non un'ingiustizia. Zero.
       if (letti.has("M8")) { max += 1.5; punti += info > 0 ? 1.5 : 0; } else { max += 1; punti += info > 0 ? 1 : 0; }
+      desc.push({ tipo: "appartenenza", label: "l'informazione al personale", presente: info > 0, ordine: idx("informare_personale") });
       const verif = Number(alloc["verificare_fatti"]) || 0;
       max += 1; punti += verif > 0 ? 1 : 0;
+      desc.push({ tipo: "appartenenza", label: "la verifica dei fatti", presente: verif > 0, ordine: idx("verificare_fatti") });
       if (voci.some((v) => v.id === "rispondere_associazione")) {
         const a = Number(alloc["rispondere_associazione"]) || 0;
         max += 1; punti += a > 0 ? 1 : 0;
+        desc.push({ tipo: "appartenenza", label: "la risposta all'associazione", presente: a > 0, ordine: idx("rispondere_associazione") });
       }
       const { pienezza, equilibrio } = pienezzaEquilibrio(alloc, totale);
       max += 2; punti += pienezza + equilibrio;
-      return {
-        valore: clamp01(max > 0 ? punti / max : 0.5),
-        buona: "Hai verificato prima di parlare, rispettato la scadenza formale e non hai lasciato il personale all'oscuro: una risposta che regge.",
-        migliora: "Qualcosa di importante è rimasto scoperto — verificare i fatti, la scadenza della diffida o informare chi ci lavora: c'è margine per bilanciare meglio.",
-      };
+      desc.push({ tipo: "aggregato" });
+      return { valore: clamp01(max > 0 ? punti / max : 0.5), voci: desc };
     },
     promptProposta: (aree) =>
       `Sei un analista di orientamento per studenti italiani di 16-19 anni. Uno studente ha scritto la risposta pubblica alla crisi di comunicazione di una biblioteca comunale (una decisione impopolare presa e comunicata male). Individua da 1 a 3 aree — SCEGLIENDO SOLO tra questi slug: ${aree.join(", ")} — che la risposta enfatizza di più. Per ognuna valuta: performance = quanto la risposta è concreta, dice PRIMA cosa cambia per chi legge, ammette un errore concreto, è coerente col mandato e col vincolo (0-1). NON premiare la lunghezza né il linguaggio istituzionale o burocratico. interest = quanto la risposta punta su quell'area (0-1). Motivazione breve, calda, IPOTETICA, in italiano semplice. Includi anche "giudizio_complessivo", una frase di sintesi sull'intera proposta. Rispondi SOLO con JSON valido: {"aree":[{"area_slug":"...","performance":0.0,"interest":0.0,"motivazione":"..."}],"giudizio_complessivo":"..."}`,
@@ -205,26 +213,31 @@ const SPEC: Record<string, ScoringSpec> = {
     ordinaPerformance: { area: "scienze-ricerca", peso: 1.2 },
     budgetPerformance: ({ alloc, voci, totale }) => {
       let punti = 0, max = 0;
+      const desc: DescrittoreVoce[] = [];
+      const idx = (id: string) => voci.findIndex((v) => v.id === id);
       const prep = Number(alloc["preparare_spiegazione"]) || 0;
       max += 1.5;
       if (prep <= 0) punti += 0;
       else if (prep > totale / 2) punti += 0.5;
       else punti += 1.5;
+      desc.push({ tipo: "appartenenza", label: "la preparazione della spiegazione", presente: prep > 0, ordine: idx("preparare_spiegazione") });
       const mis = Number(alloc["misurare_acqua"]) || 0;
       max += 1; punti += mis > 0 ? 1 : 0;
+      desc.push({ tipo: "appartenenza", label: "la misura dell'acqua", presente: mis > 0, ordine: idx("misurare_acqua") });
       if (voci.some((v) => v.id === "correggere_registrazione")) {
-        max += 1; punti += (Number(alloc["correggere_registrazione"]) || 0) > 0 ? 1 : 0;
+        const c = Number(alloc["correggere_registrazione"]) || 0;
+        max += 1; punti += c > 0 ? 1 : 0;
+        desc.push({ tipo: "appartenenza", label: "la correzione della registrazione", presente: c > 0, ordine: idx("correggere_registrazione") });
       }
       if (voci.some((v) => v.id === "spostare_orario")) {
-        max += 1; punti += (Number(alloc["spostare_orario"]) || 0) > 0 ? 1 : 0;
+        const s = Number(alloc["spostare_orario"]) || 0;
+        max += 1; punti += s > 0 ? 1 : 0;
+        desc.push({ tipo: "appartenenza", label: "lo spostamento dell'orario", presente: s > 0, ordine: idx("spostare_orario") });
       }
       const { pienezza, equilibrio } = pienezzaEquilibrio(alloc, totale);
       max += 2; punti += pienezza + equilibrio;
-      return {
-        valore: clamp01(max > 0 ? punti / max : 0.5),
-        buona: "Hai speso il tempo a misurare la realtà e a preparare la spiegazione senza trascurare né l'una né l'altra: metodo lucido sotto scadenza.",
-        migliora: "Hai lasciato scoperto qualcosa — misurare davvero, o preparare come raccontarlo — oppure ci hai messo tutto senza aver capito la causa.",
-      };
+      desc.push({ tipo: "aggregato" });
+      return { valore: clamp01(max > 0 ? punti / max : 0.5), voci: desc };
     },
     promptProposta: (aree) =>
       `Sei un analista di orientamento per studenti italiani di 16-19 anni. Uno studente ha scritto la spiegazione di un guasto tecnico: in una serra automatica una sezione secca mentre il sistema dice che è stata irrigata. Individua da 1 a 3 aree — SCEGLIENDO SOLO tra questi slug: ${aree.join(", ")} — che la spiegazione tocca di più. Per ognuna valuta: performance = qualità del RAGIONAMENTO CAUSALE e ONESTÀ sul livello di certezza (0-1). REGOLA IMPORTANTE: premia esplicitamente chi scrive che «non ne è ancora certo» quando non ha raccolto le prove; NON premiare una spiegazione sicura ma non verificata, nemmeno se azzecca la causa. La sicurezza senza prove vale MENO dell'onestà epistemica. interest = quanto emerge quell'area (0-1). Motivazione breve, calda, IPOTETICA, in italiano semplice. Includi anche "giudizio_complessivo", una frase di sintesi sull'intera proposta. Rispondi SOLO con JSON valido: {"aree":[{"area_slug":"...","performance":0.0,"interest":0.0,"motivazione":"..."}],"giudizio_complessivo":"..."}`,
@@ -243,18 +256,24 @@ const SPEC: Record<string, ScoringSpec> = {
       const budgetSoldi = step.budgetSoldi ?? Number.POSITIVE_INFINITY;
       const budgetGiorni = step.budgetGiorni ?? Number.POSITIVE_INFINITY;
       let punti = 0, max = 0;
+      const desc: DescrittoreVoce[] = [];
+      const nome = (id: string) => step.lavori.find((l) => l.id === id)?.label ?? id;
       max += 2; punti += soldi <= budgetSoldi ? 2 : clamp01(1 - (soldi - budgetSoldi) / budgetSoldi) * 2;
+      desc.push({ tipo: "limite", label: "il budget", usato: soldi, disponibile: budgetSoldi });
       max += 2; punti += giorni <= budgetGiorni ? 2 : clamp01(1 - (giorni - budgetGiorni) / budgetGiorni) * 2;
+      desc.push({ tipo: "limite", label: "i giorni", usato: giorni, disponibile: budgetGiorni, unita: "giorni" });
       max += 1.5; punti += dipendenzeMancanti.length === 0 ? 1.5 : 0;
+      const primaViolata = dipendenzeMancanti[0];
+      desc.push({ tipo: "dipendenze", rispettato: dipendenzeMancanti.length === 0, coppiaViolata: primaViolata ? { prima: nome(primaViolata.lavoro), dopo: nome(primaViolata.mancanti[0]) } : undefined });
       const essenziali = step.lavori.filter((l) => l.essenziale).map((l) => l.id);
       const incl = essenziali.filter((id) => sel.includes(id)).length;
       max += 2; punti += essenziali.length ? (incl / essenziali.length) * 2 : 0;
-      if (letti.has("M11")) { max += 1; punti += sel.includes("fondo_imprevisti") ? 1 : 0; }
-      return {
-        valore: clamp01(max > 0 ? punti / max : 0.5),
-        buona: "Il tuo piano sta dentro i soldi e i giorni, rispetta le dipendenze e non lascia fuori i lavori senza cui non si riapre: è aritmetica che torna.",
-        migliora: "Il piano non chiude: sfora i soldi o i giorni, salta una dipendenza d'ordine, o lascia fuori un lavoro senza cui il collaudo non passa.",
-      };
+      desc.push({ tipo: "appartenenza", label: "i lavori essenziali al collaudo", presente: essenziali.length > 0 && incl === essenziali.length, ordine: step.lavori.findIndex((l) => l.essenziale) });
+      if (letti.has("M11")) {
+        max += 1; punti += sel.includes("fondo_imprevisti") ? 1 : 0;
+        desc.push({ tipo: "appartenenza", label: "il fondo imprevisti", presente: sel.includes("fondo_imprevisti"), ordine: step.lavori.findIndex((l) => l.id === "fondo_imprevisti") });
+      }
+      return { valore: clamp01(max > 0 ? punti / max : 0.5), voci: desc };
     },
     promptProposta: (aree) =>
       `Sei un analista di orientamento per studenti italiani di 16-19 anni. Uno studente ha scritto il resoconto di un cantiere: la ristrutturazione della palestra della sua scuola, con budget e scadenza rigidi. Individua da 1 a 3 aree — SCEGLIENDO SOLO tra questi slug: ${aree.join(", ")} — che il testo tocca di più. Per ognuna valuta: performance = coerenza tra il piano, i vincoli e la realtà di tempi e dipendenze, e soprattutto ONESTÀ (0-1). REGOLE: premia chi NOMINA esplicitamente ciò che ha lasciato indietro e chi ne paga il prezzo; NON premiare i toni trionfali; se il testo riconosce che il problema viene da anni di rinvii senza usarlo come scusa, premialo. interest = quanto emerge quell'area (0-1). Motivazione breve, calda, IPOTETICA, in italiano semplice. Includi anche "giudizio_complessivo", una frase di sintesi sull'intera proposta. Rispondi SOLO con JSON valido: {"aree":[{"area_slug":"...","performance":0.0,"interest":0.0,"motivazione":"..."}],"giudizio_complessivo":"..."}`,
@@ -272,18 +291,28 @@ const SPEC: Record<string, ScoringSpec> = {
       base: "Hai letto le richieste prima di decidere l'ordine: parti dai fatti, non dall'istinto.",
     },
     pianificaIdeali: ["procedura_anonime", "segnala_ferme", "sociale_alunno"],
-    budgetPerformance: ({ alloc, letti }) => {
+    budgetPerformance: ({ alloc, voci, letti }) => {
       // Solo presenza/assenza dei compiti giusti: mai il totale dei minuti.
       let punti = 0, max = 0;
-      if (letti.has("M5")) { max += 2; punti += (Number(alloc["trasmetti_segnalazione"]) || 0) > 0 ? 2 : 0; }
-      max += 1.5; punti += ((Number(alloc["protocolla_kaur"]) || 0) + (Number(alloc["compila_kaur"]) || 0)) > 0 ? 1.5 : 0;
-      if (letti.has("M12")) { max += 1.5; punti += (Number(alloc["data_per_ciascuno"]) || 0) > 0 ? 1.5 : 0; }
-      max += 1; punti += (Number(alloc["rispondi_mail"]) || 0) > 0 ? 1 : 0;
-      return {
-        valore: clamp01(max > 0 ? punti / max : 0.5),
-        buona: "Hai preso in carico ciò che oggi non poteva aspettare — il termine sul minore, la scadenza della domanda, chi non va lasciato senza una data: scelte lucide, senza correre.",
-        migliora: "Qualcosa che oggi aveva un termine o una conseguenza è rimasto scoperto. Non è questione di fare in fretta: è questione di cosa hai messo davanti.",
-      };
+      const desc: DescrittoreVoce[] = [];
+      const idx = (id: string) => voci.findIndex((v) => v.id === id);
+      if (letti.has("M5")) {
+        const t = Number(alloc["trasmetti_segnalazione"]) || 0;
+        max += 2; punti += t > 0 ? 2 : 0;
+        desc.push({ tipo: "appartenenza", label: "la segnalazione al servizio sociale", presente: t > 0, ordine: idx("trasmetti_segnalazione") });
+      }
+      const kaur = (Number(alloc["protocolla_kaur"]) || 0) + (Number(alloc["compila_kaur"]) || 0);
+      max += 1.5; punti += kaur > 0 ? 1.5 : 0;
+      desc.push({ tipo: "appartenenza", label: "la domanda di Kaur", presente: kaur > 0, ordine: Math.max(idx("protocolla_kaur"), idx("compila_kaur")) });
+      if (letti.has("M12")) {
+        const d = Number(alloc["data_per_ciascuno"]) || 0;
+        max += 1.5; punti += d > 0 ? 1.5 : 0;
+        desc.push({ tipo: "appartenenza", label: "una data per ciascuno", presente: d > 0, ordine: idx("data_per_ciascuno") });
+      }
+      const mail = Number(alloc["rispondi_mail"]) || 0;
+      max += 1; punti += mail > 0 ? 1 : 0;
+      desc.push({ tipo: "appartenenza", label: "la risposta alla mail", presente: mail > 0, ordine: idx("rispondi_mail") });
+      return { valore: clamp01(max > 0 ? punti / max : 0.5), voci: desc };
     },
     promptProposta: (aree) =>
       `Sei un analista di orientamento per studenti italiani di 16-19 anni. Uno studente, tirocinante in uno sportello di ascolto sociale, ha scritto la risposta a una MAIL ANONIMA: qualcuno che chiede aiuto senza farsi identificare, ha scritto una volta sola e potrebbe non riscrivere. Individua da 1 a 3 aree — SCEGLIENDO SOLO tra questi slug: ${aree.join(", ")}. Per ognuna valuta: performance = la risposta NON chiede informazioni identificative (nome, età, famiglia), tiene aperto il canale e offre un appiglio concreto e raggiungibile (0-1). REGOLA DURA: premia le risposte BREVI, non invadenti, con un contatto raggiungibile; NON premiare le risposte lunghe, protettive o piene di domande, per quanto ben intenzionate. Chi scrive «dimmi chi sei e ti aiutiamo» ha sbagliato pur volendo bene: valutalo basso. interest = quanto emerge quell'area (0-1). Motivazione breve, calda, IPOTETICA, in italiano. Includi anche "giudizio_complessivo", una frase di sintesi sull'intera proposta. Rispondi SOLO JSON: {"aree":[{"area_slug":"...","performance":0.0,"interest":0.0,"motivazione":"..."}],"giudizio_complessivo":"..."}`,
@@ -305,16 +334,24 @@ const SPEC: Record<string, ScoringSpec> = {
       const { soldi } = valutaPiano(step, sel); // la voce negativa riduce il totale: gestito nativamente
       const budgetSoldi = step.budgetSoldi ?? Number.POSITIVE_INFINITY;
       let punti = 0, max = 0;
+      const desc: DescrittoreVoce[] = [];
+      const ord = (id: string) => step.lavori.findIndex((l) => l.id === id);
       max += 2; punti += soldi <= budgetSoldi ? 2 : clamp01(1 - (soldi - budgetSoldi) / budgetSoldi) * 2;
+      desc.push({ tipo: "limite", label: "il margine", usato: soldi, disponibile: budgetSoldi });
       max += 1.5; punti += sel.includes("documentazione") ? 1.5 : 0; // per poter dichiarare senza mentire
-      if (letti.has("M11")) { max += 1; punti += sel.includes("sacchetto") ? 1 : 0; } // il guadagno gratuito
-      if (letti.has("M7") && letti.has("M8")) { max += 1; punti += sel.includes("accessori_europei") ? 1 : 0; } // miglior rapporto impatto/costo
-      max += 1; punti += sel.includes("tessuto_alfa") || sel.includes("tessuto_beta") ? 1 : 0; // hai comunque migliorato il materiale
-      return {
-        valore: clamp01(max > 0 ? punti / max : 0.5),
-        buona: "Hai comprato più impatto possibile con il margine che c'era — sfruttando anche il risparmio del sacchetto — e ti sei tenuto i soldi per documentare ciò che dichiari.",
-        migliora: "Il piano sfora il margine, oppure ha comprato il materiale giusto senza lasciare nulla per documentarlo: la cosa giusta che non puoi dimostrare, in questo mestiere, conta poco.",
-      };
+      desc.push({ tipo: "appartenenza", label: "la documentazione", presente: sel.includes("documentazione"), ordine: ord("documentazione") });
+      if (letti.has("M11")) {
+        max += 1; punti += sel.includes("sacchetto") ? 1 : 0; // il guadagno gratuito
+        desc.push({ tipo: "appartenenza", label: "l'eliminazione del sacchetto", presente: sel.includes("sacchetto"), ordine: ord("sacchetto") });
+      }
+      if (letti.has("M7") && letti.has("M8")) {
+        max += 1; punti += sel.includes("accessori_europei") ? 1 : 0; // miglior rapporto impatto/costo
+        desc.push({ tipo: "appartenenza", label: "gli accessori europei", presente: sel.includes("accessori_europei"), ordine: ord("accessori_europei") });
+      }
+      const haTessuto = sel.includes("tessuto_alfa") || sel.includes("tessuto_beta");
+      max += 1; punti += haTessuto ? 1 : 0; // hai comunque migliorato il materiale
+      desc.push({ tipo: "appartenenza", label: "il tessuto migliore", presente: haTessuto, ordine: ord("tessuto_alfa") });
+      return { valore: clamp01(max > 0 ? punti / max : 0.5), voci: desc };
     },
     promptProposta: (aree, { letti }) => {
       const numeri: string[] = [];
@@ -349,21 +386,29 @@ const SPEC: Record<string, ScoringSpec> = {
       const { soldi } = valutaPiano(step, sel);
       const budgetSoldi = step.budgetSoldi ?? Number.POSITIVE_INFINITY;
       let punti = 0, max = 0;
+      const desc: DescrittoreVoce[] = [];
+      const ord = (id: string) => step.lavori.findIndex((l) => l.id === id);
       max += 2; punti += soldi <= budgetSoldi ? 2 : clamp01(1 - (soldi - budgetSoldi) / budgetSoldi) * 2;
+      desc.push({ tipo: "limite", label: "il budget", usato: soldi, disponibile: budgetSoldi });
       const formatiRipetibili = ["fmt_podcast", "fmt_video", "fmt_pannelli", "fmt_schermi", "fmt_laboratorio"];
       const haRipetibile = formatiRipetibili.some((id) => sel.includes(id));
       max += 2; punti += haRipetibile ? 2 : 0; // il bando chiede un'iniziativa ripetibile senza nuovi fondi
+      desc.push({ tipo: "appartenenza", label: "un formato ripetibile", presente: haRipetibile, ordine: step.lavori.findIndex((l) => formatiRipetibili.includes(l.id)) });
       max += 1; punti += sel.includes("accessibilita_sala3") ? 1 : 0; // premiata dal bando
+      desc.push({ tipo: "appartenenza", label: "l'accessibilità della Sala 3", presente: sel.includes("accessibilita_sala3"), ordine: ord("accessibilita_sala3") });
       let valore = clamp01(max > 0 ? punti / max : 0.5);
       // Un evento una-tantum (fmt_evento) senza alcun formato ripetibile viola il
       // bando: qualunque cosa d'altro tu abbia messo nel piano, il progetto non è
       // rendicontabile come «ripetibile».
-      if (sel.includes("fmt_evento") && !haRipetibile) valore = Math.min(valore, 0.3);
-      return {
-        valore,
-        buona: "Hai scelto un formato che si ripete senza nuovi fondi, sei rimasto dentro i 18.000 € e non hai dimenticato l'accessibilità che il bando premia: un progetto che regge la rendicontazione.",
-        migliora: "Il piano sfora il budget, o punta su un formato che funziona una volta sola: il bando chiede un'iniziativa ripetibile, non un colpo a effetto.",
-      };
+      if (sel.includes("fmt_evento") && !haRipetibile) {
+        valore = Math.min(valore, 0.3);
+        // Misfit 07 (scelta b): il negativo dell'evento una-tantum si NOMINA solo
+        // nella migliora (dove il clamp lo porta sempre), tace nella buona dove il
+        // formato ripetibile copre già il positivo. Spinto SOLO quando preso —
+        // così non compare mai come «non ti sei appoggiato» in una buona.
+        desc.push({ tipo: "negativo", label: "un evento che funziona una volta sola", presente: true });
+      }
+      return { valore, voci: desc };
     },
     promptProposta: (aree, { letti }) => {
       const registro = letti.has("M6")
@@ -391,21 +436,27 @@ const SPEC: Record<string, ScoringSpec> = {
       const { risparmio } = valutaPiano(step, sel);
       const obiettivo = step.obiettivo ?? 20;
       let punti = 0, max = 0;
+      const desc: DescrittoreVoce[] = [];
+      const ord = (id: string) => step.lavori.findIndex((l) => l.id === id);
       // 1) raggiungere davvero il traguardo di risparmio (la barra che si riempie)
       max += 2.5; punti += risparmio >= obiettivo ? 2.5 : clamp01(risparmio / obiettivo) * 2.5;
+      desc.push({ tipo: "soglia", label: `il traguardo del ${obiettivo}%`, stato: risparmio >= obiettivo ? "pieno" : risparmio > 0 ? "parziale" : "nullo" });
       // 2) tempestività: la tariffa progressiva entra in vigore in 3 mesi, non
       //    serve a un'emergenza che è ora. Contarci sopra è un errore.
       max += 1; punti += sel.includes("tariffa") ? 0 : 1;
+      desc.push({ tipo: "negativo", label: "la tariffa che arriva a emergenza finita", presente: sel.includes("tariffa") });
       // 3) l'acqua «che esce per nessuno» (consumi pubblici) è risparmio a costo
       //    zero e senza colpire un cittadino, ma solo se l'ha scoperto (M8)
-      if (letti.has("M8")) { max += 1.5; punti += sel.includes("consumi_pubblici") ? 1.5 : 0; }
+      if (letti.has("M8")) {
+        max += 1.5; punti += sel.includes("consumi_pubblici") ? 1.5 : 0;
+        desc.push({ tipo: "appartenenza", label: "lo stop ai consumi pubblici sprecati", presente: sel.includes("consumi_pubblici"), ordine: ord("consumi_pubblici") });
+      }
       // 4) la perdita reale del 22% è la leva più grande, ma solo se l'ha misurata (M4)
-      if (letti.has("M4")) { max += 1.5; punti += sel.includes("riparazione") ? 1.5 : 0; }
-      return {
-        valore: clamp01(max > 0 ? punti / max : 0.5),
-        buona: "Il tuo pacchetto arriva al 20% con misure che colpiscono l'acqua sprecata, non sempre gli stessi cittadini, e senza appoggiarsi a una tariffa che arriverebbe a emergenza finita.",
-        migliora: "Il pacchetto non arriva al traguardo, o ci arriva contando su misure fuori tempo (la tariffa fra tre mesi) o lasciando sul tavolo l'acqua che esce per nessuno e le perdite di rete.",
-      };
+      if (letti.has("M4")) {
+        max += 1.5; punti += sel.includes("riparazione") ? 1.5 : 0;
+        desc.push({ tipo: "appartenenza", label: "la riparazione delle perdite", presente: sel.includes("riparazione"), ordine: ord("riparazione") });
+      }
+      return { valore: clamp01(max > 0 ? punti / max : 0.5), voci: desc };
     },
     promptProposta: (aree) =>
       `Sei un analista di orientamento per studenti italiani di 16-19 anni. Uno studente ha scritto il TESTO di un'ordinanza sindacale per ridurre del 20% i consumi d'acqua durante una siccità, «senza colpire sempre gli stessi». Individua da 1 a 3 aree — SCEGLIENDO SOLO tra questi slug: ${aree.join(", ")}. Per ognuna valuta: performance = l'ordinanza indica una scadenza e un riesame, cita solo numeri verificati, colpisce un USO (irrigazione, piscine, sprechi pubblici) e non un quartiere, senza allarmismi (0-1). REGOLE: PREMIA chi mette una data e un riesame e chi distingue l'uso dal quartiere; NON premiare gli appelli generici, gli allarmismi né chi colpisce «Colline» come se fosse un colpevole. interest = quanto emerge quell'area (0-1). Motivazione breve, calda, IPOTETICA, in italiano. Includi anche "giudizio_complessivo", una frase di sintesi sull'intera proposta. Rispondi SOLO JSON: {"aree":[{"area_slug":"...","performance":0.0,"interest":0.0,"motivazione":"..."}],"giudizio_complessivo":"..."}`,
@@ -422,24 +473,25 @@ const SPEC: Record<string, ScoringSpec> = {
       base: "Hai guardato programma, risorse e budget prima di decidere: parti dai fatti, non dal panico.",
     },
     pianificaIdeali: ["piano_b", "procedura_annunci", "coinvolgere_centro"],
-    budgetPerformance: ({ alloc, letti, totale }) => {
+    budgetPerformance: ({ alloc, voci, letti, totale }) => {
       let punti = 0, max = 0;
+      const desc: DescrittoreVoce[] = [];
+      const idx = (id: string) => voci.findIndex((v) => v.id === id);
       // copertura della serata (il programma deve reggere fino ai fuochi)
       const { pienezza } = pienezzaEquilibrio(alloc, totale);
       max += 1.5; punti += pienezza * 1.5;
+      desc.push({ tipo: "aggregato" });
       // il coro del centro estivo, se scoperto, riempie il buco a costo zero
-      if (letti.has("M6")) { max += 1.5; punti += (Number(alloc["coro_centro"]) || 0) > 0 ? 1.5 : 0; }
+      if (letti.has("M6")) { const c = Number(alloc["coro_centro"]) || 0; max += 1.5; punti += c > 0 ? 1.5 : 0; desc.push({ tipo: "appartenenza", label: "il coro del centro", presente: c > 0, ordine: idx("coro_centro") }); }
       // la Filarmonica ridotta, se scoperta: salva il gruppo invece di eliminarlo
-      if (letti.has("M5")) { max += 1.5; punti += (Number(alloc["filarmonica_ridotta"]) || 0) > 0 ? 1.5 : 0; }
+      if (letti.has("M5")) { const f = Number(alloc["filarmonica_ridotta"]) || 0; max += 1.5; punti += f > 0 ? 1.5 : 0; desc.push({ tipo: "appartenenza", label: "la banda ridotta", presente: f > 0, ordine: idx("filarmonica_ridotta") }); }
       // il momento di spiegazione, se ha letto del 2019
-      if (letti.has("M12")) { max += 1; punti += (Number(alloc["ringraziamento"]) || 0) > 0 ? 1 : 0; }
+      if (letti.has("M12")) { const r = Number(alloc["ringraziamento"]) || 0; max += 1; punti += r > 0 ? 1 : 0; desc.push({ tipo: "appartenenza", label: "il momento di spiegazione", presente: r > 0, ordine: idx("ringraziamento") }); }
       // la Filarmonica completa non è eseguibile con 23 elementi
-      max += 1; punti += (Number(alloc["filarmonica_completa"]) || 0) > 0 ? 0 : 1;
-      return {
-        valore: clamp01(max > 0 ? punti / max : 0.5),
-        buona: "Hai riempito la serata con quello che avevi davvero sottomano — il coro dei ragazzi, la banda che sale lo stesso — e hai lasciato un minuto per spiegare: un programma che sta in piedi con le risorse vere.",
-        migliora: "Il programma lascia un buco o si appoggia a qualcosa che non c'è (i 34 elementi, un'ora che il permesso non concede): con le risorse reali si poteva coprire la serata meglio.",
-      };
+      const completa = (Number(alloc["filarmonica_completa"]) || 0) > 0;
+      max += 1; punti += completa ? 0 : 1;
+      desc.push({ tipo: "negativo", label: "l'orchestra al completo", presente: completa });
+      return { valore: clamp01(max > 0 ? punti / max : 0.5), voci: desc };
     },
     promptProposta: (aree, { letti }) => {
       const avviso = letti.has("M12") ? " Lo studente sa cosa successe nel 2019 (la gente si arrabbiò per non essere stata avvisata): PREMIA chi avvisa PRIMA, con chiarezza, invece di far scoprire il cambio in piazza." : "";
@@ -461,20 +513,25 @@ const SPEC: Record<string, ScoringSpec> = {
     pianificaIdeali: ["chiedere_cosa_sa", "scrivere_compiti", "quattrocchi"],
     budgetPerformance: ({ alloc, voci, totale }) => {
       let punti = 0, max = 0;
+      const desc: DescrittoreVoce[] = [];
+      const idx = (id: string) => voci.findIndex((v) => v.id === id);
       // parlare uno a uno con chi non partecipa: è il cuore, non un lusso
-      max += 2; punti += (Number(alloc["parlare_uno_a_uno"]) || 0) > 0 ? 2 : 0;
+      const parla = Number(alloc["parlare_uno_a_uno"]) || 0;
+      max += 2; punti += parla > 0 ? 2 : 0;
+      desc.push({ tipo: "appartenenza", label: "il parlare uno a uno con chi non partecipa", presente: parla > 0, ordine: idx("parlare_uno_a_uno") });
       // definire i compiti (se sbloccato): sblocca chi si ferma sul vago
-      if (voci.some((v) => v.id === "rifare_piano")) { max += 1; punti += (Number(alloc["rifare_piano"]) || 0) > 0 ? 1 : 0; }
+      if (voci.some((v) => v.id === "rifare_piano")) { const r = Number(alloc["rifare_piano"]) || 0; max += 1; punti += r > 0 ? 1 : 0; desc.push({ tipo: "appartenenza", label: "la definizione dei compiti", presente: r > 0, ordine: idx("rifare_piano") }); }
       // dare a Elisa un compito compatibile, se scoperto
-      if (voci.some((v) => v.id === "compito_elisa")) { max += 1; punti += (Number(alloc["compito_elisa"]) || 0) > 0 ? 1 : 0; }
+      if (voci.some((v) => v.id === "compito_elisa")) { const e = Number(alloc["compito_elisa"]) || 0; max += 1; punti += e > 0 ? 1 : 0; desc.push({ tipo: "appartenenza", label: "un compito per Elisa", presente: e > 0, ordine: idx("compito_elisa") }); }
       // fare tutto da sé: la somma dell'esecuzione non deve mangiare tutte le giornate
       const esec = ["verificare_indirizzi", "scrivere_testi", "fare_mappa", "curare_traduzioni", "impaginare"].reduce((a, id) => a + (Number(alloc[id]) || 0), 0);
       max += 2; punti += esec <= totale * 0.6 ? 2 : clamp01(1 - (esec - totale * 0.6) / (totale * 0.4)) * 2;
-      return {
-        valore: clamp01(max > 0 ? punti / max : 0.5),
-        buona: "Hai messo il tuo tempo dove serviva davvero — parlare con chi non c'è, definire i compiti — invece di prenderti tutta l'esecuzione: così il gruppo ha modo di partecipare.",
-        migliora: "Hai concentrato le tue giornate sull'eseguire il lavoro e poco sul far muovere il gruppo: la guida forse esce, ma gli altri restano fermi.",
-      };
+      // Negativo con frase propria: «appoggiato a X» non regge su «tutta
+      // l'esecuzione» (non ci si appoggia, ci si carica). Override segnalato per
+      // la riscrittura testuale.
+      const troppa = esec > totale * 0.6;
+      desc.push({ tipo: "negativo", label: "tutta l'esecuzione", presente: troppa, testoBuona: "Non ti sei preso tutta l'esecuzione da solo.", testoMigliora: "Ti sei preso tutta l'esecuzione da solo, lasciando poco agli altri." });
+      return { valore: clamp01(max > 0 ? punti / max : 0.5), voci: desc };
     },
     assegnaSegnali: [
       { compito: "traduzioni", persona: "amine", richiede: "M4", area: "lingue-relazioni-internazionali", peso: 1.2, motivazione: "Hai dato le traduzioni a chi le sapeva fare in tre lingue: bastava chiederglielo a voce, non in chat." },
@@ -504,20 +561,21 @@ const SPEC: Record<string, ScoringSpec> = {
       const { soldi } = valutaPiano(step, sel);
       const budgetSoldi = step.budgetSoldi ?? Number.POSITIVE_INFINITY; // budget EFFETTIVO (352 se M13, altrimenti 264)
       let punti = 0, max = 0;
+      const desc: DescrittoreVoce[] = [];
+      const ord = (id: string) => step.lavori.findIndex((l) => l.id === id);
       max += 2; punti += soldi <= budgetSoldi ? 2 : clamp01(1 - (soldi - budgetSoldi) / budgetSoldi) * 2;
+      desc.push({ tipo: "limite", label: "il margine", usato: soldi, disponibile: budgetSoldi });
       // Nadir: l'ostello accessibile va incluso (se l'accessibilità è nota)
-      if (letti.has("M4")) { max += 2; punti += sel.includes("ostello_accessibile") ? 2 : 0; }
+      if (letti.has("M4")) { max += 2; punti += sel.includes("ostello_accessibile") ? 2 : 0; desc.push({ tipo: "appartenenza", label: "l'ostello accessibile", presente: sel.includes("ostello_accessibile"), ordine: ord("ostello_accessibile") }); }
       // Marco: il fondo riservato lo risolve a costo zero (se scoperto)
-      if (letti.has("M8")) { max += 1.5; punti += sel.includes("fondo_marco") ? 1.5 : 0; }
+      if (letti.has("M8")) { max += 1.5; punti += sel.includes("fondo_marco") ? 1.5 : 0; desc.push({ tipo: "appartenenza", label: "il fondo riservato per Marco", presente: sel.includes("fondo_marco"), ordine: ord("fondo_marco") }); }
       // Sara: rientra, con il treno di gruppo o col biglietto singolo
-      max += 1; punti += (sel.includes("treno_gruppo") || sel.includes("treno_singolo")) ? 1 : 0;
+      const treno = sel.includes("treno_gruppo") || sel.includes("treno_singolo");
+      max += 1; punti += treno ? 1 : 0;
+      desc.push({ tipo: "appartenenza", label: "il rientro in treno di Sara", presente: treno, ordine: Math.max(ord("treno_gruppo"), ord("treno_singolo")) });
       // Chiara: mangia senza glutine, se il costo nascosto è stato scoperto
-      if (letti.has("M6")) { max += 1; punti += sel.includes("pasti_glutine") ? 1 : 0; }
-      return {
-        valore: clamp01(max > 0 ? punti / max : 0.5),
-        buona: "Il tuo piano fa venire tutti e ventidue e sta dentro il margine — anche perché hai trovato lo sconto che l'ha allargato: l'accessibilità c'è, Marco è coperto in modo riservato, Sara rientra, Chiara mangia.",
-        migliora: "Il piano lascia qualcuno fuori o sfora il margine: manca l'ostello accessibile, o il fondo per Marco, o il rientro di Sara — le cose che decidono chi parte, non quanto è bello il viaggio.",
-      };
+      if (letti.has("M6")) { max += 1; punti += sel.includes("pasti_glutine") ? 1 : 0; desc.push({ tipo: "appartenenza", label: "i pasti senza glutine", presente: sel.includes("pasti_glutine"), ordine: ord("pasti_glutine") }); }
+      return { valore: clamp01(max > 0 ? punti / max : 0.5), voci: desc };
     },
     promptProposta: (aree) =>
       `Sei un analista di orientamento per studenti italiani di 16-19 anni. Uno studente ha scritto il MESSAGGIO alla classe con le decisioni prese per un viaggio d'istruzione, in cui alcuni compagni hanno esigenze particolari (accessibilità, dieta, budget familiare, orari). Individua da 1 a 3 aree — SCEGLIENDO SOLO tra questi slug: ${aree.join(", ")}. Per ognuna valuta: performance = il messaggio comunica le decisioni in modo chiaro SENZA esporre le situazioni personali di nessuno, e presenta le scelte come normali, non come favori (0-1). REGOLE — LA PENALIZZAZIONE PIÙ SEVERA DI TUTTE: PENALIZZA PESANTEMENTE (performance vicino a 0) ogni frase che nomini la difficoltà di una persona in modo identificabile («abbiamo cambiato ostello per Nadir», «Marco ha delle difficoltà», «per la dieta di Chiara») e ogni tono da buona azione («siamo riusciti a includere tutti», «nessuno verrà lasciato indietro»). PREMIA chi comunica le scelte come ovvie e chi tratta l'accessibilità come una caratteristica della struttura, non come una concessione a qualcuno. interest = quanto emerge quell'area (0-1). Motivazione breve, calda, IPOTETICA, in italiano. Includi anche "giudizio_complessivo", una frase di sintesi sull'intera proposta. Rispondi SOLO JSON: {"aree":[{"area_slug":"...","performance":0.0,"interest":0.0,"motivazione":"..."}],"giudizio_complessivo":"..."}`,
@@ -529,6 +587,31 @@ const SPEC: Record<string, ScoringSpec> = {
 // vera chiamata AI. Non usato in produzione.
 export function costruisciPromptPropostaPerTest(slug: string, aree: string[], letti: Set<string>): string | null {
   return SPEC[slug]?.promptProposta(aree, { letti }) ?? null;
+}
+
+// Seam di test (server-only): espone i descrittori di performance (valore + voci
+// + meccanismo) per una missione risolta dalle risposte, così il test di
+// proprietà può verificare che ogni clausola composta sia vera contro la
+// selezione, senza passare da calcolaEvidenze/AI. Non usato in produzione.
+export function descrittoriPerformancePerTest(
+  mission: EscapeMission,
+  get: LeggiRisposta,
+): { valore: number; voci: DescrittoreVoce[]; meccanismo: "piano" | "budget" } | null {
+  const spec = SPEC[mission.slug] ?? SPEC[SLUG_QUARTIERE];
+  const letti = materialiLetti(get);
+  for (const s of stepDellaMissione(mission)) {
+    if (s.tipo === "alloca_budget" && spec.budgetPerformance) {
+      const p = get(s.id) as PayloadAlloca | undefined;
+      const r = spec.budgetPerformance({ alloc: p?.allocazioni ?? {}, voci: s.voci, letti, totale: s.totale });
+      return { valore: r.valore, voci: r.voci, meccanismo: "budget" };
+    }
+    if (s.tipo === "pianifica_lavori" && spec.pianoPerformance) {
+      const p = get(s.id) as PayloadLavori | undefined;
+      const r = spec.pianoPerformance({ step: s, sel: p?.selezionati ?? [], letti });
+      return { valore: r.valore, voci: r.voci, meccanismo: "piano" };
+    }
+  }
+  return null;
 }
 
 const PROMPT_RIFLESSIONE = (aree: string[]) =>
@@ -681,10 +764,14 @@ export async function calcolaEvidenze(
         }
         const r = spec.budgetPerformance?.({ alloc, voci: s.voci, letti, totale: s.totale });
         if (r) {
-          // Fix B: il giudizio è sull'equilibrio dell'INTERO piano, non su una
-          // voce (né sull'area del mandato, com'era con areaMandato) → qualità
-          // di missione, senza area. La budget-INTEREST resta per voce (sopra).
-          evidenze.push({ area_slug: null, categoria: "qualita_missione", dimensione: "performance", valore: r.valore, peso: P.budgetPerf, motivazione: r.valore >= 0.6 ? r.buona : r.migliora, step_id: s.id });
+          // Fix D: la frase è COMPOSTA dai descrittori delle voci (ogni clausola
+          // vera per costruzione), non più una stringa cablata. Se non emerge
+          // nessuna clausola (solo aggregati), componiPerformance ritorna null e
+          // NON si emette la riga (silenzio, Opzione A). Il valore resta usato
+          // solo qui (scelta buona/migliora) e per lo stile — non entra in
+          // area_signal (area_slug null).
+          const testo = componiPerformance(r.valore, r.voci, "budget");
+          if (testo) evidenze.push({ area_slug: null, categoria: "qualita_missione", dimensione: "performance", valore: r.valore, peso: P.budgetPerf, motivazione: testo, step_id: s.id });
           // Stile: comporre un piano che sta nei vincoli è operativo (dipende
           // dalla qualità del piano, non dall'aver compilato lo step).
           pushAssi([{ asse: "operativo", valore: r.valore }], 1, "Hai composto un piano che sta nei vincoli.", s.id);
@@ -708,9 +795,10 @@ export async function calcolaEvidenze(
         }
         const rp = spec.pianoPerformance?.({ step: s, sel, letti });
         if (rp) {
-          // Fix B: qualità del piano nel suo insieme → qualità di missione, senza
-          // area (era areaMandato, o il fallback hardcoded edilizia-architettura).
-          evidenze.push({ area_slug: null, categoria: "qualita_missione", dimensione: "performance", valore: rp.valore, peso: P.budgetPerf, motivazione: rp.valore >= 0.6 ? rp.buona : rp.migliora, step_id: s.id });
+          // Fix D: frase composta dai descrittori (vedi il ramo budget sopra),
+          // null → silenzio (Opzione A).
+          const testo = componiPerformance(rp.valore, rp.voci, "piano");
+          if (testo) evidenze.push({ area_slug: null, categoria: "qualita_missione", dimensione: "performance", valore: rp.valore, peso: P.budgetPerf, motivazione: testo, step_id: s.id });
           // Stile: un piano che sta nei vincoli e rispetta le dipendenze è operativo.
           pushAssi([{ asse: "operativo", valore: rp.valore }], 1, "Hai composto un piano che sta nei vincoli.", s.id);
         }
