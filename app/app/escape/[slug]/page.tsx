@@ -9,7 +9,7 @@ import { costruisciRestituzione, type AreaTop } from "@/lib/escape/restituzione"
 import type { Payload } from "@/lib/escape/tipi";
 import EscapePlayer from "@/components/escape/EscapePlayer";
 import IniziaMissione from "@/components/escape/IniziaMissione";
-import EsitoMissione, { type AreaEsito } from "@/components/escape/EsitoMissione";
+import EsitoMissione, { type AreaEsito, type StatoRevisore } from "@/components/escape/EsitoMissione";
 
 export const metadata = { title: "Missione — KIREO" };
 
@@ -23,7 +23,7 @@ export default async function MissionePage({ params }: { params: Promise<{ slug:
 
   const { data: attempt } = await supabase
     .from("mission_attempt")
-    .select("id, stato")
+    .select("id, stato, revisore_esito")
     .eq("student_id", contesto.userId)
     .eq("mission_slug", slug)
     .order("started_at", { ascending: false })
@@ -63,23 +63,13 @@ export default async function MissionePage({ params }: { params: Promise<{ slug:
     const { data: prove } = await supabase.from("evidence").select("area_slug, motivazione, peso").eq("attempt_id", attempt.id).eq("categoria", "area");
     const areeToccate = Array.from(new Set((prove ?? []).map((p) => p.area_slug).filter((a): a is string => Boolean(a))));
 
-    // Bravura NULL: la card distingue «proposta valutata, altre aree» da «proposta
-    // non letta» dall'esistenza di una riga evidence step_id 's4_proposta' (id
-    // canonico su tutte le missioni). Zero stato nuovo: il segnale è già in DB.
-    // Nota limite: se la proposta è stata scritta e l'AI ha girato ma il revisore
-    // non ha restituito nessuna area della whitelist (propEmesse=0), nessuna riga
-    // s4_proposta viene emessa → qui risulterebbe «non letta». Caso degenere raro
-    // (il revisore restituisce quasi sempre aree in whitelist); documentato per il
-    // Fix C/E, non gestito con stato aggiuntivo.
-    //   Se un giorno servirà la distinzione ESATTA (a costo zero, senza nuovo
-    //   stato): la step_response di 's4_proposta' dice se lo studente ha scritto.
-    //   Combinata con l'esistenza delle evidenze dà i tre casi puliti:
-    //     step_response s4_proposta | evidenze s4_proposta | significato
-    //     sì | sì → letta e attribuita
-    //     sì | no → letta ma non attribuita (o AI fallita)
-    //     no | no → non scritta
-    //   Non serve ora: «non l'abbiamo letta» resta vero abbastanza in tutti i casi
-    //   e non accusa nessuno. Il segnale c'è già, non va inventato.
+    // Bravura NULL: i tre casi ora li distingue il campo autorevole
+    // mission_attempt.revisore_esito (letto / letto_senza_credito / non_riuscito),
+    // scritto dal route di finalizzazione a partire dall'esito reale del revisore.
+    // `propostaValutata` qui sotto resta SOLO come euristica di ripiego per i
+    // tentativi antecedenti al campo (revisore_esito null in DB): il conteggio
+    // delle prove s4_proposta dice se la proposta era stata valutata. Per i
+    // tentativi nuovi il campo ha la precedenza (vedi descrizioneNonMisurata).
     const { count: propostaCount } = await supabase
       .from("evidence")
       .select("*", { count: "exact", head: true })
@@ -203,7 +193,7 @@ export default async function MissionePage({ params }: { params: Promise<{ slug:
             <IniziaMissione missionSlug={slug} etichetta="Rigioca la missione" />
           </div>
         </div>
-        <EsitoMissione titolo={mission.titolo} restituzione={restituzione} aree={areeCard} areeSfiorate={areeSfiorate} spiegazioni={spiegazioni} ragionamento={ragionamento} propostaValutata={propostaValutata} />
+        <EsitoMissione titolo={mission.titolo} restituzione={restituzione} aree={areeCard} areeSfiorate={areeSfiorate} spiegazioni={spiegazioni} ragionamento={ragionamento} revisoreEsito={(attempt.revisore_esito as StatoRevisore) ?? null} propostaValutata={propostaValutata} />
       </div>
     );
   }

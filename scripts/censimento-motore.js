@@ -452,7 +452,10 @@ async function run() {
     const emesse = new Set();
     for (const strat of STRATEGIE) {
       const { mission, risposte, mandato, focus } = costruisciGiocatore(slug, strat);
-      const evidenze = await calcolaEvidenze(mission, risposte, null);
+      // calcolaEvidenze ora ritorna { evidenze, revisoreEsito }: al censimento
+      // serve solo l'array delle prove (gli step aperti sono comunque saltati,
+      // anthropic=null).
+      const { evidenze } = await calcolaEvidenze(mission, risposte, null);
       agg[strat] = aggrega(evidenze);
       info[strat] = { evidenze, mandato, focus, mission };
       for (const e of evidenze) if (e.categoria === "area" && e.area_slug) emesse.add(e.area_slug);

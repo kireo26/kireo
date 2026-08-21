@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/lib/supabase/server";
+import { chiamaJson } from "@/lib/ai/chiamaJson";
 import { MODELLO_CLIENTE_WORKSHOP, MAX_FILE_SIZE_CONSEGNA, TIPI_FILE_CONSEGNA_CONSENTITI } from "@/lib/workshop/config";
 
 export const runtime = "nodejs";
@@ -74,36 +75,31 @@ export async function POST(request: NextRequest) {
   const isPDF = file.type === "application/pdf";
 
   if (apiKey && (isImmagine || isPDF)) {
-    try {
-      const systemPromptFeedback = `Sei un mentor esperto in orientamento professionale per studenti delle scuole superiori italiane (16-19 anni). Stai analizzando un lavoro prodotto nell'ambito del workshop "${workshopTitolo || "KIREO"}", per il ruolo "${ruoloSlug}". Fornisci un feedback strutturato, incoraggiante ma onesto. Tono diretto, caldo, mai paternalistico, mai una promessa di risultato garantito. Rispondi SOLO con JSON valido in questo formato, senza altro testo:
+    const systemPromptFeedback = `Sei un mentor esperto in orientamento professionale per studenti delle scuole superiori italiane (16-19 anni). Stai analizzando un lavoro prodotto nell'ambito del workshop "${workshopTitolo || "KIREO"}", per il ruolo "${ruoloSlug}". Fornisci un feedback strutturato, incoraggiante ma onesto. Tono diretto, caldo, mai paternalistico, mai una promessa di risultato garantito. Rispondi SOLO con JSON valido in questo formato, senza altro testo:
 {"punti_forza": ["...", "...", "..."], "aree_miglioramento": ["...", "..."], "domanda_stimolante": "..."}`;
 
-      const base64 = fileBuffer.toString("base64");
-      const contenuto = isImmagine
-        ? [
-            { type: "image" as const, source: { type: "base64" as const, media_type: file.type as "image/png" | "image/jpeg", data: base64 } },
-            { type: "text" as const, text: `Analizza questo lavoro prodotto per il ruolo di ${ruoloSlug}.` },
-          ]
-        : [
-            { type: "document" as const, source: { type: "base64" as const, media_type: "application/pdf" as const, data: base64 } },
-            { type: "text" as const, text: `Analizza questo documento prodotto per il ruolo di ${ruoloSlug}.` },
-          ];
+    const base64 = fileBuffer.toString("base64");
+    const contenuto = isImmagine
+      ? [
+          { type: "image" as const, source: { type: "base64" as const, media_type: file.type as "image/png" | "image/jpeg", data: base64 } },
+          { type: "text" as const, text: `Analizza questo lavoro prodotto per il ruolo di ${ruoloSlug}.` },
+        ]
+      : [
+          { type: "document" as const, source: { type: "base64" as const, media_type: "application/pdf" as const, data: base64 } },
+          { type: "text" as const, text: `Analizza questo documento prodotto per il ruolo di ${ruoloSlug}.` },
+        ];
 
-      const client = new Anthropic({ apiKey });
-      const risposta = await client.messages.create({
-        model: MODELLO_CLIENTE_WORKSHOP,
-        max_tokens: 600,
-        system: systemPromptFeedback,
-        messages: [{ role: "user", content: contenuto }],
-      });
-
-      const testo = risposta.content[0]?.type === "text" ? risposta.content[0].text : "{}";
-      const parsed = JSON.parse(testo.replace(/```json|```/g, "").trim());
+    // chiamaJson: estrazione robusta al poscritto (vale anche per l'analisi
+    // multimodale). Un fallimento lascia feedbackAI a null — l'upload resta
+    // valido, il feedback semplicemente non compare (invariato).
+    const esito = await chiamaJson(new Anthropic({ apiKey }), { model: MODELLO_CLIENTE_WORKSHOP, maxTokens: 600, system: systemPromptFeedback, user: contenuto });
+    if (esito.ok) {
+      const parsed = esito.dati as { punti_forza?: unknown; aree_miglioramento?: unknown; domanda_stimolante?: unknown };
       if (Array.isArray(parsed.punti_forza) && Array.isArray(parsed.aree_miglioramento) && typeof parsed.domanda_stimolante === "string") {
-        feedbackAI = parsed;
+        feedbackAI = parsed as FeedbackAI;
       }
-    } catch (errore) {
-      console.error("Errore analisi AI consegna workshop:", errore);
+    } else {
+      console.error(`Errore analisi AI consegna workshop: motivo=${esito.motivo}`);
     }
   }
 

@@ -23,26 +23,51 @@ export type AreaEsito = {
 type ChiaveDim = "interest" | "performance" | "self_efficacy" | "curiosity";
 type NonMisurata = { heading: string; corpo: string };
 
+// Esito del revisore della proposta finale, nei tre stati (o null: proposta non
+// scritta, o tentativo antecedente al campo → euristica di ripiego).
+export type StatoRevisore = "letto" | "letto_senza_credito" | "non_riuscito" | null;
+
 // Testo di una barra NULL: dice allo studente COME si riempirebbe quella
 // dimensione — è tutto il valore di queste stringhe (una barra muta non orienta).
-// Bravura ha due varianti: la fonte è la proposta finale, e cambia se l'abbiamo
-// valutata (revisore ha pesato altre aree) o non l'abbiamo letta affatto.
-function descrizioneNonMisurata(chiave: ChiaveDim, propostaValutata: boolean): NonMisurata {
+// Bravura ha ora TRE varianti (i tre stati del revisore) + il ripiego: la fonte
+// è la proposta finale, e il messaggio cambia se l'abbiamo valutata su altre
+// aree, se l'abbiamo letta ma non ne è emersa un'area, o se non siamo riusciti
+// a leggerla per un guasto nostro.
+function descrizioneNonMisurata(chiave: ChiaveDim, revisoreEsito: StatoRevisore, propostaValutata: boolean): NonMisurata {
   switch (chiave) {
-    case "performance":
-      return propostaValutata
-        ? {
+    case "performance": {
+      // Per i tentativi col campo valorizzato l'esito è autorevole; per i
+      // vecchi (null) si ripiega sull'euristica del conteggio prove.
+      const esito: StatoRevisore = revisoreEsito ?? (propostaValutata ? "letto" : null);
+      switch (esito) {
+        case "letto":
+          return {
             heading: "Bravura — non ancora misurata.",
             corpo: "La misuriamo da quello che scrivi nella proposta finale, e questa volta la tua proposta parlava soprattutto di altre aree.",
-          }
-        : {
-            // «non l'abbiamo letta», non «non l'hai completata»: se la causa è un
-            // guasto nostro (chiave AI assente), la colpa allo studente sarebbe
-            // falsa; da fuori non sappiamo quale dei due, e questa frase è vera in
-            // entrambi. (È anche l'effetto visibile del guasto che il Fix E loggerà.)
+          };
+        case "letto_senza_credito":
+          // Asciutta e onesta: NON promette una spiegazione che non possiamo
+          // dare (perché nessun'area sia emersa non lo sappiamo dire a valle).
+          return {
+            heading: "Bravura — non ancora misurata.",
+            corpo: "Abbiamo letto la tua proposta finale, ma non ne è emersa un'area da valutare.",
+          };
+        case "non_riuscito":
+          // Guasto nostro (chiave assente, o chiamata/estrazione fallita): la
+          // colpa allo studente sarebbe falsa. Distinta da «non l'abbiamo letta».
+          return {
+            heading: "Bravura — non ancora misurata.",
+            corpo: "La misuriamo da quello che scrivi nella proposta finale del progetto: questa volta non siamo riusciti a leggerla.",
+          };
+        default:
+          // null: proposta non scritta (o tentativo vecchio senza prove). Vera
+          // in entrambi i casi, non accusa nessuno.
+          return {
             heading: "Bravura — non ancora misurata.",
             corpo: "La misuriamo da quello che scrivi nella proposta finale del progetto: questa volta non l'abbiamo letta.",
           };
+      }
+    }
     case "self_efficacy":
       // Fonte unica (i compiti presi in prima persona), nessuna variante.
       // Nota missione 10: la bravura lì può venire anche dagli abbinamenti
@@ -123,6 +148,7 @@ export default function EsitoMissione({
   areeSfiorate,
   spiegazioni,
   ragionamento,
+  revisoreEsito,
   propostaValutata,
 }: {
   titolo: string;
@@ -138,9 +164,11 @@ export default function EsitoMissione({
   // Qualità di missione (categoria 'qualita_missione'): osservazioni sul METODO,
   // senza area. È il consumatore dichiarato di quella categoria.
   ragionamento: string[];
-  // Distingue le due cause di una Bravura NULL: proposta valutata (revisore ha
-  // pesato altre aree) vs proposta non letta. Il segnale è l'esistenza di una
-  // riga evidence con step_id 's4_proposta' per il tentativo (zero stato nuovo).
+  // Esito del revisore nei tre stati (mission_attempt.revisore_esito). Distingue
+  // «letta ma su altre aree» / «letta, nessuna area» / «non siamo riusciti a
+  // leggerla». Null per i tentativi antecedenti al campo: allora si ripiega su
+  // propostaValutata (euristica del conteggio prove s4_proposta).
+  revisoreEsito: StatoRevisore;
   propostaValutata: boolean;
 }) {
   // Dimensioni non misurate in ALMENO una card: sono le uniche da spiegare nel
@@ -188,7 +216,7 @@ export default function EsitoMissione({
                     <span className={`mt-1 inline-block rounded-full border px-2 py-0.5 text-[11px] ${STATUS_LABEL[a.status].classe}`}>{STATUS_LABEL[a.status].testo}</span>
                     <div className="mt-4 grid grid-cols-2 gap-3">
                       {DIMENSIONI.map((d) => (
-                        <Barra key={d.chiave} label={d.label} valore={a[d.chiave]} etichettaNonMisurata={descrizioneNonMisurata(d.chiave, propostaValutata).heading} />
+                        <Barra key={d.chiave} label={d.label} valore={a[d.chiave]} etichettaNonMisurata={descrizioneNonMisurata(d.chiave, revisoreEsito, propostaValutata).heading} />
                       ))}
                     </div>
                     {asimmetria && (
@@ -209,7 +237,7 @@ export default function EsitoMissione({
             <summary className="cursor-pointer text-sm font-medium text-kireo-light">Come leggiamo queste quattro cose</summary>
             <ul className="mt-3 space-y-2 text-sm text-kireo-light/90">
               {dimensioniDaSpiegare.map((d) => {
-                const nm = descrizioneNonMisurata(d.chiave, propostaValutata);
+                const nm = descrizioneNonMisurata(d.chiave, revisoreEsito, propostaValutata);
                 return (
                   <li key={d.chiave} className="rounded-lg bg-white/5 px-3 py-2">
                     <span className="font-medium text-kireo-light">{d.label}.</span> {nm.corpo}

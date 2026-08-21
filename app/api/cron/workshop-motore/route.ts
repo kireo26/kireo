@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createServiceRoleClient } from "@/lib/supabase/serviceRole";
+import { chiamaJson } from "@/lib/ai/chiamaJson";
+import { inviaEmail } from "@/lib/email/brevo";
 import { MODELLO_CLIENTE_WORKSHOP, WORKSHOP_CLIENTE_NOME, WORKSHOP_CLIENTE_PROMPTS } from "@/lib/workshop/config";
 import { WORKSHOP_ELABORATO, WORKSHOP_TUTOR_CONTESTO } from "@/lib/workshop/elaborato-config";
 import { serializzaValoreSezione, type FeedbackFinale, type RevisioneTappa, type ValoreSezione } from "@/lib/workshop/elaboratoValore";
@@ -9,6 +11,10 @@ import { promptRevisore, promptReazioneClienteUser, promptFeedbackFinale, type C
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+// Destinatario dell'alert guasti-revisore. Usata solo per identificare Mario
+// (l'admin del progetto), mai passata a servizi non correlati.
+const EMAIL_ADMIN = "mario.izzo@hotmail.it";
+
 const REVISIONE_VUOTA: RevisioneTappa = {
   punti_forza: [],
   da_migliorare: [],
@@ -16,10 +22,6 @@ const REVISIONE_VUOTA: RevisioneTappa = {
   commento_breve: "",
   punteggio_fiducia: 0,
 };
-
-function estraiJson(testo: string): unknown {
-  return JSON.parse(testo.replace(/```json|```/g, "").trim());
-}
 
 // Motore del tempo di Workshop 2.0 v2: per ogni tappa 'consegnata' il cui
 // cooldown è passato, genera la revisione del tutor + la reazione in
@@ -67,6 +69,10 @@ export async function GET(request: NextRequest) {
   let processate = 0;
   let saltate = 0;
   let errori = 0;
+  // Revisori/feedback che hanno restituito un esito non_riuscito (chiamata o
+  // estrazione JSON fallita) in QUESTA esecuzione: alimenta l'alert email in
+  // fondo, insieme ai non_riuscito di Escape delle ultime 24h.
+  let revisoriFalliti = 0;
 
   for (const riga of righe ?? []) {
     try {
@@ -122,15 +128,14 @@ export async function GET(request: NextRequest) {
       };
 
       let revisione: RevisioneTappa = REVISIONE_VUOTA;
-      try {
-        const rispostaRevisione = await client.messages.create({
-          model: MODELLO_CLIENTE_WORKSHOP,
-          max_tokens: 700,
-          system: promptRevisore(ctx),
-          messages: [{ role: "user", content: JSON.stringify(contenutoTappa, null, 2) }],
-        });
-        const testo = rispostaRevisione.content[0]?.type === "text" ? rispostaRevisione.content[0].text : "{}";
-        const parsed = estraiJson(testo) as Record<string, unknown>;
+      const esitoRevisione = await chiamaJson(client, {
+        model: MODELLO_CLIENTE_WORKSHOP,
+        maxTokens: 700,
+        system: promptRevisore(ctx),
+        user: JSON.stringify(contenutoTappa, null, 2),
+      });
+      if (esitoRevisione.ok) {
+        const parsed = esitoRevisione.dati as Record<string, unknown>;
         if (
           Array.isArray(parsed.punti_forza) &&
           Array.isArray(parsed.da_migliorare) &&
@@ -146,8 +151,9 @@ export async function GET(request: NextRequest) {
             punteggio_fiducia: Math.max(0, Math.min(fase.fiduciaMax, Math.round(parsed.punteggio_fiducia as number))),
           };
         }
-      } catch (erroreRevisione) {
-        console.error(`Errore generazione revisione (iscrizione ${riga.iscrizione_id}, tappa ${riga.fase_id}):`, erroreRevisione);
+      } else {
+        revisoriFalliti++;
+        console.error(`Errore generazione revisione (iscrizione ${riga.iscrizione_id}, tappa ${riga.fase_id}): motivo=${esitoRevisione.motivo}`);
       }
 
       const fiduciaDopo = Math.max(0, Math.min(100, fiduciaPrima + revisione.punteggio_fiducia));
@@ -177,15 +183,14 @@ export async function GET(request: NextRequest) {
       // del progetto (tutte le tappe), non solo su questa.
       let feedbackFinale: FeedbackFinale | null = null;
       if (fase.ultima) {
-        try {
-          const rispostaFinale = await client.messages.create({
-            model: MODELLO_CLIENTE_WORKSHOP,
-            max_tokens: 700,
-            system: promptFeedbackFinale(ctx, fiduciaDopo),
-            messages: [{ role: "user", content: JSON.stringify(contenuto, null, 2) }],
-          });
-          const testo = rispostaFinale.content[0]?.type === "text" ? rispostaFinale.content[0].text : "{}";
-          const parsed = estraiJson(testo) as Record<string, unknown>;
+        const esitoFinale = await chiamaJson(client, {
+          model: MODELLO_CLIENTE_WORKSHOP,
+          maxTokens: 700,
+          system: promptFeedbackFinale(ctx, fiduciaDopo),
+          user: JSON.stringify(contenuto, null, 2),
+        });
+        if (esitoFinale.ok) {
+          const parsed = esitoFinale.dati as Record<string, unknown>;
           if (
             Array.isArray(parsed.punti_forza) &&
             Array.isArray(parsed.da_migliorare) &&
@@ -201,8 +206,9 @@ export async function GET(request: NextRequest) {
               punteggio_area: Math.max(0, Math.min(100, Math.round(parsed.punteggio_area as number))),
             };
           }
-        } catch (erroreFinale) {
-          console.error(`Errore generazione feedback finale (iscrizione ${riga.iscrizione_id}):`, erroreFinale);
+        } else {
+          revisoriFalliti++;
+          console.error(`Errore generazione feedback finale (iscrizione ${riga.iscrizione_id}): motivo=${esitoFinale.motivo}`);
         }
       }
 
@@ -249,5 +255,43 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  return NextResponse.json({ processate, saltate, errori });
+  // ── Alert guasti-revisore (osservabilità) ───────────────────────────────
+  // Un revisore AI che fallisce non deve più restare visibile solo per 30
+  // minuti nei log di Vercel. Il cron è l'unico job giornaliero del progetto:
+  // qui raccoglie i non_riuscito di Escape delle ultime 24h (dalla vista
+  // revisore_esiti) e quelli dei revisori workshop di QUESTA esecuzione, e —
+  // solo se ce n'è almeno uno — manda una mail all'admin. Nessun riepilogo
+  // "tutto ok": silenzio quando non c'è niente da correggere. Best-effort: un
+  // errore di invio non fa fallire il cron.
+  let escapeFalliti = 0;
+  try {
+    const dayFa = new Date(Date.now() - 86_400_000).toISOString();
+    const { data: righeEscape, error: erroreEscape } = await supabase
+      .from("revisore_esiti")
+      .select("attempt_id")
+      .eq("revisore_esito", "non_riuscito")
+      .gte("aggiornato_il", dayFa);
+    if (erroreEscape) console.error("Alert revisore — errore lettura revisore_esiti:", erroreEscape);
+    escapeFalliti = righeEscape?.length ?? 0;
+  } catch (erroreEscape) {
+    console.error("Alert revisore — eccezione lettura revisore_esiti:", erroreEscape);
+  }
+
+  const totaleFalliti = revisoriFalliti + escapeFalliti;
+  if (totaleFalliti > 0) {
+    const html = `<p>Nelle ultime 24 ore i revisori AI hanno prodotto <strong>${totaleFalliti}</strong> esiti non riusciti (chiamata o estrazione JSON fallita).</p>
+<ul>
+  <li>Escape — proposte finali non lette (ultime 24h): <strong>${escapeFalliti}</strong></li>
+  <li>Workshop — revisioni/feedback falliti (questa esecuzione del cron): <strong>${revisoriFalliti}</strong></li>
+</ul>
+<p>Per i dettagli Escape, interroga la vista <code>revisore_esiti</code>:</p>
+<pre>select * from public.revisore_esiti
+where revisore_esito = 'non_riuscito'
+  and aggiornato_il &gt; now() - interval '24 hours';</pre>
+<p>Per i workshop, cerca in questa esecuzione del cron le righe di log <code>Errore generazione revisione/feedback ... motivo=...</code>.</p>`;
+    const esitoMail = await inviaEmail(EMAIL_ADMIN, `KIREO — ${totaleFalliti} revisori AI non riusciti (24h)`, html, "Mario");
+    if (!esitoMail.ok) console.error(`Alert revisore — invio email fallito: ${esitoMail.motivo}`);
+  }
+
+  return NextResponse.json({ processate, saltate, errori, revisoriFalliti, escapeFalliti });
 }

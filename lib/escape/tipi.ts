@@ -13,6 +13,20 @@
 
 export type Dimensione = "interest" | "performance" | "self_efficacy" | "curiosity";
 
+// Esito del revisore della proposta finale (step s4_proposta). Tre stati
+// DISTINTI, così l'esito di quella singola azione — la più costosa della
+// missione — non resta ambiguo:
+//   letto             = il revisore ha girato e ha riconosciuto ≥1 area (prove emesse)
+//   letto_senza_credito = il revisore ha girato ma non ha riconosciuto nessuna area
+//                         della whitelist (proposta fuori tema, o troppo scarna)
+//   non_riuscito      = la chiamata o l'estrazione JSON è fallita, oppure la
+//                       chiave AI era assente: la proposta è rimasta non letta
+//                       per un guasto NOSTRO, non per una scelta dello studente
+// `null` (a valle) = lo studente non ha scritto la proposta, oppure è un
+// tentativo antecedente a questo campo (euristica di ripiego lato display).
+export const REVISORE_ESITI = ["letto", "letto_senza_credito", "non_riuscito"] as const;
+export type RevisoreEsito = (typeof REVISORE_ESITI)[number];
+
 // I quattro assi di STILE di lavoro (Fase 2, T2 «Come ti muovi»). Sono
 // trasversali alle 18 aree: uno può muoversi da analitico o da relazionale in
 // QUALUNQUE area. Vivono in una struttura gemella di area_signal (style_signal),

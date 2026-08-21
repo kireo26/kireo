@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
   if (!anthropic) {
     console.error(`Escape Fix E — ANTHROPIC_API_KEY assente: prove aperte NON calcolate. studente=${user.id} missione=${attempt.mission_slug} attempt=${attempt.id}`);
   }
-  const evidenze = await calcolaEvidenze(mission, risposte, anthropic);
+  const { evidenze, revisoreEsito } = await calcolaEvidenze(mission, risposte, anthropic);
 
   // persiste prove + aggrega profilo (idempotente)
   const { error: erroreRpc } = await supabase.rpc("registra_evidence", {
@@ -81,6 +81,16 @@ export async function POST(request: NextRequest) {
     console.error("Escape — errore registra_evidence:", erroreRpc);
     return erroreDiCortesia("Non è stato possibile salvare l'esito della missione. Riprova.", 500);
   }
+
+  // Esito del revisore della proposta finale, nei tre stati (o null se lo
+  // studente non ha scritto la proposta). Persistito sul tentativo: così il
+  // display distingue «letta ma parlava di altre aree» / «letta, nessuna area
+  // riconosciuta» / «non siamo riusciti a leggerla» invece di indovinare dal
+  // conteggio delle prove, e i 'non_riuscito' (guasti nostri) restano
+  // interrogabili (vista revisore_esiti) invece di sparire nei log. Scrittura
+  // best-effort: un errore qui non deve far fallire una missione già salvata.
+  const { error: erroreEsito } = await supabase.from("mission_attempt").update({ revisore_esito: revisoreEsito }).eq("id", attempt.id);
+  if (erroreEsito) console.error("Escape — errore scrittura revisore_esito:", erroreEsito);
 
   // diario (dalla riflessione) + portfolio (dalla proposta) — idempotenti:
   // cancella eventuali righe di un finalize precedente per questo attempt.

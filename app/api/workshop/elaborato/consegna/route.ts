@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/lib/supabase/server";
+import { chiamaJson } from "@/lib/ai/chiamaJson";
 import { MODELLO_CLIENTE_WORKSHOP } from "@/lib/workshop/config";
 import { WORKSHOP_ELABORATO, WORKSHOP_TUTOR_CONTESTO } from "@/lib/workshop/elaborato-config";
 
@@ -85,25 +86,22 @@ export async function POST(request: NextRequest) {
       const systemPrompt = `Sei un mentor esperto in orientamento professionale per studenti delle scuole superiori italiane (16-19 anni). Stai valutando l'elaborato finale del ruolo "${ruoloIscritto?.titolo ?? ruoloSlug}" nel workshop "${workshopIscritto?.titolo ?? workshopSlug}"${contesto ? `, per un cliente con questi vincoli: ${contesto.vincoli}` : ""}. Ti viene fornito il contenuto delle sezioni compilate dallo studente in formato JSON. Fornisci un feedback strutturato, incoraggiante ma onesto, sul lavoro nel suo insieme. Tono diretto, caldo, mai paternalistico, mai una promessa di risultato garantito. Rispondi SOLO con JSON valido in questo formato, senza altro testo:
 {"punti_forza": ["...", "...", "..."], "aree_miglioramento": ["...", "..."], "domanda_stimolante": "..."}`;
 
-      const client = new Anthropic({ apiKey });
-      const risposta = await client.messages.create({
+      const esito = await chiamaJson(new Anthropic({ apiKey }), {
         model: MODELLO_CLIENTE_WORKSHOP,
-        max_tokens: 600,
+        maxTokens: 600,
         system: systemPrompt,
-        messages: [{ role: "user", content: `Contenuto dell'elaborato:\n\n${JSON.stringify(contenuto, null, 2)}` }],
+        user: `Contenuto dell'elaborato:\n\n${JSON.stringify(contenuto, null, 2)}`,
       });
-
-      const testo = risposta.content[0]?.type === "text" ? risposta.content[0].text : "{}";
-      const parsed = JSON.parse(testo.replace(/```json|```/g, "").trim());
-      if (Array.isArray(parsed.punti_forza) && Array.isArray(parsed.aree_miglioramento) && typeof parsed.domanda_stimolante === "string") {
-        feedback = parsed;
+      if (esito.ok) {
+        const parsed = esito.dati as { punti_forza?: unknown; aree_miglioramento?: unknown; domanda_stimolante?: unknown };
+        if (Array.isArray(parsed.punti_forza) && Array.isArray(parsed.aree_miglioramento) && typeof parsed.domanda_stimolante === "string") {
+          feedback = parsed as FeedbackFinale;
+        }
+      } else {
+        console.error(`Errore analisi AI elaborato finale workshop: motivo=${esito.motivo}`);
       }
     } catch (errore) {
-      if (errore instanceof Anthropic.APIError) {
-        console.error(`Errore API Anthropic (feedback finale workshop): status=${errore.status} type=${errore.type ?? "sconosciuto"} messaggio=${errore.message}`);
-      } else {
-        console.error("Errore analisi AI elaborato finale workshop:", errore);
-      }
+      console.error("Errore inatteso nel feedback finale workshop:", errore);
     }
   }
 

@@ -14,12 +14,14 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { AREE, getAreaBySlug } from "@/data/aree";
+import { chiamaJson, type EsitoAI } from "@/lib/ai/chiamaJson";
 import type {
   AsseStile,
   Dimensione,
   EscapeMission,
   EvidenceInput,
   LeggiRisposta,
+  RevisoreEsito,
   TagAsse,
   Payload,
   PayloadAlloca,
@@ -531,20 +533,12 @@ const PROMPT_NON_APPROFONDIRE =
   "Sei un analista di orientamento per studenti italiani di 16-19 anni. Lo studente spiega una cosa che ha scelto di NON approfondire e perché. Valuta quanto è lucido e consapevole del compromesso (0 = non motivato / superficiale, 1 = pienamente consapevole). Rispondi SOLO con JSON: {\"consapevolezza\":0.0,\"motivazione\":\"...\"}. La motivazione: breve, calda, ipotetica, in italiano, rivolta allo studente.";
 
 // ─────────────────────────────────────────── AI helper
-async function chiamaHaikuJson(anthropic: Anthropic, system: string, user: string): Promise<unknown | null> {
-  try {
-    const risposta = await anthropic.messages.create({
-      model: MODELLO_ESCAPE,
-      max_tokens: 600,
-      system,
-      messages: [{ role: "user", content: user }],
-    });
-    const testo = risposta.content[0]?.type === "text" ? risposta.content[0].text : "{}";
-    return JSON.parse(testo.replace(/```json|```/g, "").trim());
-  } catch (errore) {
-    console.error("Escape — errore chiamata AI:", errore);
-    return null;
-  }
+// Sottile wrapper sul chiamaJson condiviso: fissa modello e max_tokens di
+// Escape, così i tre call-site (non-approfondire, proposta, riflessione)
+// ricevono un EsitoAI tipizzato — un fallimento (chiamata o estrazione) è un
+// esito, non più un null ambiguo che ingoiava la causa.
+function chiamaEscape(anthropic: Anthropic, system: string, user: string): Promise<EsitoAI> {
+  return chiamaJson(anthropic, { model: MODELLO_ESCAPE, maxTokens: 600, system, user });
 }
 
 // ─────────────────────────────────────────── motore
@@ -552,12 +546,17 @@ export async function calcolaEvidenze(
   mission: EscapeMission,
   risposte: Map<string, Payload>,
   anthropic: Anthropic | null,
-): Promise<EvidenceInput[]> {
+): Promise<{ evidenze: EvidenceInput[]; revisoreEsito: RevisoreEsito | null }> {
   const evidenze: EvidenceInput[] = [];
   const get: LeggiRisposta = (id) => risposte.get(id);
   const step = stepDellaMissione(mission);
   const spec = SPEC[mission.slug] ?? SPEC[SLUG_QUARTIERE];
   const P = spec.pesi;
+
+  // Esito del revisore della proposta finale (s4_proposta), nei tre stati.
+  // Resta null se lo studente non ha scritto la proposta. Persistito su
+  // mission_attempt.revisore_esito dal route di finalizzazione.
+  let revisoreEsito: RevisoreEsito | null = null;
 
   const letti = materialiLetti(get);
 
@@ -572,8 +571,6 @@ export async function calcolaEvidenze(
       evidenze.push({ area_slug: null, categoria: "stile", asse: t.asse, dimensione: "interest", valore, peso: PESO_STILE_MISSIONE, motivazione, step_id });
     }
   };
-
-  let fiduciaDichiarata = 50;
 
   for (const s of step) {
     const payload = risposte.get(s.id);
@@ -755,33 +752,70 @@ export async function calcolaEvidenze(
       }
 
       case "previsione_poi_esito": {
+        // Scollegata dal revisore: l'autovalutazione dichiarata è un'azione
+        // dello studente (ha mosso il cursore), e va registrata QUI, a questo
+        // step, indipendentemente da come andrà poi la proposta. Prima era
+        // emessa in coda al case della proposta, gated su propEmesse>0: un
+        // revisore fallito la faceva sparire in silenzio insieme a tutto il
+        // resto della Stanza 4. Una riga di qualità di missione (area null),
+        // non una per area candidata (stessa motivazione ripetuta = gonfiaggio).
         const p = payload as PayloadPrevisione | undefined;
-        if (typeof p?.fiducia === "number") fiduciaDichiarata = clamp01(p.fiducia / 100) * 100;
+        if (typeof p?.fiducia === "number") {
+          const fiducia = clamp01(p.fiducia / 100) * 100;
+          evidenze.push({
+            area_slug: null,
+            categoria: "qualita_missione",
+            dimensione: "self_efficacy",
+            valore: clamp01(fiducia / 100),
+            peso: P.previsione,
+            motivazione: `Prima di scrivere ti eri dato una fiducia ${fiducia >= 60 ? "alta" : fiducia >= 40 ? "media" : "prudente"} su questo lavoro.`,
+            step_id: s.id,
+          });
+        }
         break;
       }
 
       case "decisione_scritta": {
         const p = payload as PayloadTesto | undefined;
         const testo = p?.testo?.trim();
-        if (!testo || !anthropic) break;
 
         if (s.id === "s2_non_approfondire") {
+          if (!testo || !anthropic) break;
           // Fix B: nessuna dipendenza dal mandato — questo step ora emette qualità
           // di missione (area null), non ha più bisogno di sapere qual è il mandato.
-          const parsed = (await chiamaHaikuJson(anthropic, PROMPT_NON_APPROFONDIRE, testo)) as { consapevolezza?: number; motivazione?: string } | null;
-          if (parsed && typeof parsed.consapevolezza === "number") {
-            const v = clamp01(Number(parsed.consapevolezza));
-            const mot = parsed.motivazione || "Hai saputo dire perché hai rinunciato a un'informazione: è consapevolezza del tuo metodo.";
-            // Fix B: consapevolezza del proprio metodo = qualità di missione, non
-            // competenza/autoefficacia nell'area del mandato (era areaMandato).
-            evidenze.push({ area_slug: null, categoria: "qualita_missione", dimensione: "self_efficacy", valore: v, peso: P.ai, motivazione: mot, step_id: s.id });
-            evidenze.push({ area_slug: null, categoria: "qualita_missione", dimensione: "performance", valore: v, peso: P.ai, motivazione: "Sapere cosa hai deciso di non sapere è parte del mestiere.", step_id: s.id });
+          const esito = await chiamaEscape(anthropic, PROMPT_NON_APPROFONDIRE, testo);
+          if (esito.ok) {
+            const parsed = esito.dati as { consapevolezza?: number; motivazione?: string };
+            if (typeof parsed.consapevolezza === "number") {
+              const v = clamp01(Number(parsed.consapevolezza));
+              const mot = parsed.motivazione || "Hai saputo dire perché hai rinunciato a un'informazione: è consapevolezza del tuo metodo.";
+              // Fix B: consapevolezza del proprio metodo = qualità di missione, non
+              // competenza/autoefficacia nell'area del mandato (era areaMandato).
+              evidenze.push({ area_slug: null, categoria: "qualita_missione", dimensione: "self_efficacy", valore: v, peso: P.ai, motivazione: mot, step_id: s.id });
+              evidenze.push({ area_slug: null, categoria: "qualita_missione", dimensione: "performance", valore: v, peso: P.ai, motivazione: "Sapere cosa hai deciso di non sapere è parte del mestiere.", step_id: s.id });
+            }
           }
           break;
         }
 
-        const parsed = (await chiamaHaikuJson(anthropic, spec.promptProposta(mission.areeCandidate, { letti }), testo)) as { aree?: unknown[] } | null;
-        const aree = Array.isArray(parsed?.aree) ? parsed!.aree : [];
+        // Proposta finale (s4_proposta): il revisore. Traccia l'esito nei tre
+        // stati (solo per lo step canonico s4_proposta). I casi di guasto
+        // (testo scritto ma chiave assente, o chiamata/estrazione fallita) sono
+        // 'non_riuscito': la proposta è rimasta non letta per un guasto nostro,
+        // non per una scelta dello studente.
+        const eProposta = s.id === "s4_proposta";
+        if (!testo) break; // lo studente non ha scritto: nessun esito revisore.
+        if (!anthropic) {
+          if (eProposta) revisoreEsito = "non_riuscito";
+          break;
+        }
+        const esito = await chiamaEscape(anthropic, spec.promptProposta(mission.areeCandidate, { letti }), testo);
+        if (!esito.ok) {
+          if (eProposta) revisoreEsito = "non_riuscito";
+          break;
+        }
+        const parsed = esito.dati as { aree?: unknown[] };
+        const aree = Array.isArray(parsed.aree) ? parsed.aree : [];
         let propEmesse = 0;
         for (const raw of aree) {
           const a = raw as { area_slug?: string; performance?: number; interest?: number; motivazione?: string };
@@ -796,12 +830,11 @@ export async function calcolaEvidenze(
           evidenze.push({ categoria: "area", area_slug: a.area_slug, dimensione: "interest", valore: inter, peso: P.ai, motivazione: "Un interesse al centro della tua proposta.", step_id: s.id });
           propEmesse++;
         }
-        // Fix B: l'autovalutazione dichiarata prima di scrivere è UNA sola (stessa
-        // motivazione su tutte le aree candidate = moltiplicazione) → una riga di
-        // qualità di missione, senza area, invece di una per area candidata.
-        if (propEmesse > 0) {
-          evidenze.push({ area_slug: null, categoria: "qualita_missione", dimensione: "self_efficacy", valore: clamp01(fiduciaDichiarata / 100), peso: P.previsione, motivazione: `Prima di scrivere ti eri dato una fiducia ${fiduciaDichiarata >= 60 ? "alta" : fiduciaDichiarata >= 40 ? "media" : "prudente"} su questo lavoro.`, step_id: s.id });
-        }
+        // Il revisore ha girato: 'letto' se ha riconosciuto almeno un'area della
+        // whitelist, 'letto_senza_credito' se nessuna (proposta fuori tema o
+        // troppo scarna). La previsione self_efficacy NON è più qui: è emessa al
+        // suo step (previsione_poi_esito), scollegata da questo esito.
+        if (eProposta) revisoreEsito = propEmesse > 0 ? "letto" : "letto_senza_credito";
         break;
       }
 
@@ -853,7 +886,8 @@ export async function calcolaEvidenze(
         const p = payload as PayloadTesto | undefined;
         const testo = p?.testo?.trim();
         if (!testo || !anthropic) break;
-        const parsed = (await chiamaHaikuJson(anthropic, PROMPT_RIFLESSIONE(mission.areeCandidate), testo)) as { aree?: unknown[] } | null;
+        const esito = await chiamaEscape(anthropic, PROMPT_RIFLESSIONE(mission.areeCandidate), testo);
+        const parsed = esito.ok ? (esito.dati as { aree?: unknown[] }) : null;
         const aree = Array.isArray(parsed?.aree) ? parsed!.aree : [];
         let emesse = 0;
         let maxSelfEff = 0;
@@ -906,5 +940,5 @@ export async function calcolaEvidenze(
     }
   }
 
-  return sanitizzaEvidenze(evidenze);
+  return { evidenze: sanitizzaEvidenze(evidenze), revisoreEsito };
 }
