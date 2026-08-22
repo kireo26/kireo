@@ -101,7 +101,7 @@ const NARRATIVA: Record<string, Narrativa> = {
       { quando: (c) => !c.letti.has("M5"), testo: "La segnalazione della scuola andava trasmessa entro 48 ore, ed erano scadute stamattina. Sembrava la richiesta meno urgente delle cinque: era quella con il termine più stretto." },
       { quando: (c) => !c.letti.has("M4") && speso(c, "compila_kaur") > 0, testo: "Hai dedicato tempo a compilare per intero la domanda Kaur. Bastava protocollarla entro le 12: i documenti si potevano integrare in dieci giorni. Era scritto nel regolamento del bando." },
       { quando: (c) => !c.letti.has("M11"), testo: "Il tuo piano contava su tre operatori. Dalle 11 in poi ne restavano due, e una non poteva gestire un colloquio da sola." },
-      { quando: (c) => c.letti.has("M7"), testo: "Hai capito che il sig. Muratori non era un impaziente: era uno a cui nessuno aveva detto niente per settantaquattro giorni. Non è una sfumatura da poco." },
+      { quando: (c) => c.letti.has("M7"), testo: "Nel fascicolo del sig. Muratori c'era scritto che nessuno gli aveva detto niente per settantaquattro giorni. Non era un impaziente: era uno che aspettava una risposta." },
     ],
   },
 
@@ -114,7 +114,7 @@ const NARRATIVA: Record<string, Narrativa> = {
       { quando: (c) => !c.letti.has("M11"), testo: "Eliminare il sacchetto di plastica avrebbe tolto il quattro per cento d'impatto facendoti risparmiare otto centesimi. Era l'unica cosa gratis della missione." },
       { quando: (c) => !c.letti.has("M12"), testo: "L'ordine ad Alfa andava fatto entro il 15 maggio. Te ne sei accorto quando il commerciale è entrato con il calendario in mano." },
       { quando: (c) => c.pianoSel !== undefined && nelPiano(c, "tessuto_alfa") && !nelPiano(c, "documentazione"), testo: "Hai comprato il materiale migliore e non ti sono rimasti centesimi per documentarlo. Hai fatto la cosa giusta senza poterla provare — che in questo mestiere conta meno di quanto dovrebbe." },
-      { quando: (c) => scartato(c, "beta_dichiara") && !scartato(c, "beta_muto"), testo: "Hai scartato la scorciatoia di dichiarare un riciclato che non potevi certificare, e hai tenuto la strada di migliorare senza vantartene. È la risposta più sottile di questa missione: si può migliorare un prodotto senza scriverci sopra cose che non si dimostrano." },
+      { quando: (c) => scartato(c, "beta_dichiara") && !scartato(c, "beta_muto"), testo: "Nello scarto hai buttato l'opzione di dichiarare un riciclato che non potevi certificare, e hai tenuto quella di migliorare il prodotto senza scriverlo in etichetta." },
     ],
   },
 
@@ -173,7 +173,7 @@ const NARRATIVA: Record<string, Narrativa> = {
       { quando: (c) => c.pianoSel !== undefined && nelPiano(c, "fmt_evento") && !["fmt_podcast", "fmt_video", "fmt_pannelli", "fmt_schermi", "fmt_laboratorio"].some((id) => nelPiano(c, id)), testo: "Hai puntato su un evento di una sola sera. Il bando chiede un'iniziativa ripetibile senza nuovi fondi: un colpo a effetto non è rendicontabile, e l'anno dopo non resta niente da mostrare." },
       { quando: (c) => c.pianoSel !== undefined && nelPiano(c, "fmt_schermi") && !c.letti.has("M12"), testo: "Hai puntato sugli schermi senza conoscere il precedente del museo vicino: +180% il primo anno, poi sotto i numeri di partenza quando si guastarono e nessuno aveva i fondi per ripararli. Era un precedente che non hai chiesto." },
       { quando: (c) => c.letti.has("M13") && c.pianoSel !== undefined && !nelPiano(c, "accessibilita_sala3"), testo: "La Sala 3, quella che contiene il registro del 1911, è al primo piano senza ascensore. Il bando premiava l'accessibilità e tu l'hai lasciata fuori dal piano: chi non fa le scale non arriva al pezzo che vale più di tutti." },
-      { quando: (c) => c.letti.has("M8"), testo: "Hai scoperto che solo il 27% non torna per come comunicate: il 44% non torna perché l'ha già visto da bambino. Il problema non era la pubblicità, era dare un motivo nuovo per rientrare — e questo cambia tutto." },
+      { quando: (c) => c.letti.has("M8"), testo: "L'indagine diceva che solo il 27% non torna per come comunicate, mentre il 44% non torna perché l'ha già visto da bambino. Non è un problema di pubblicità: è un problema di dare un motivo nuovo per rientrare." },
     ],
   },
 
@@ -188,7 +188,7 @@ const NARRATIVA: Record<string, Narrativa> = {
       { quando: (c) => !c.letti.has("M4"), testo: "La perdita reale della rete era al 22%, non al 6% della stima del 2019: più di un quinto dell'acqua non arrivava a nessuno. Il rilievo era di giugno, mai pubblicato, e non l'hai chiesto." },
       { quando: (c) => c.pianoSel !== undefined && c.letti.has("M8") && !nelPiano(c, "consumi_pubblici"), testo: "Sapevi, dal dettaglio sugli edifici pubblici, che scuole vuote, piscina chiusa e fontane accese sprecavano un 5% a costo zero e senza colpire nessuno — e non l'hai messo nel pacchetto." },
       { quando: (c) => !c.letti.has("M8"), testo: "C'era un 5% che usciva per nessuno — scuole vuote con l'irrigazione accesa, piscina chiusa col ricircolo attivo, fontane. Risparmio immediato, a costo zero, senza toccare un cittadino. Era in un dettaglio che non hai chiesto." },
-      { quando: (c) => c.letti.has("M7"), testo: "Hai capito che tagliare l'acqua all'agricoltura a metà agosto non serviva quasi a niente: il fabbisogno è concentrato a luglio e dopo il 20 agosto crolla da solo dell'80%. Un sacrificio grosso per un risparmio quasi nullo — e l'hai visto in tempo." },
+      { quando: (c) => c.letti.has("M7"), testo: "I dati che hai aperto dicevano che il fabbisogno agricolo è concentrato a luglio e che dopo il 20 agosto crolla da solo dell'80%. Tagliare l'acqua all'agricoltura a metà agosto sarebbe stato un sacrificio grosso per un risparmio quasi nullo." },
     ],
   },
 };
@@ -247,12 +247,15 @@ export function costruisciRestituzione(slug: string, get: LeggiRisposta, areeTop
       m.aree.forEach((a) => areeToccate.add(a));
       if (m.aree.some((a) => areeMandato.has(a))) dentroMandato++;
     }
+    // Tre rami paralleli, stessa lunghezza e stesso registro: se uno suonasse
+    // più caldo, lo studente capirebbe di aver preso «quello buono» e sarebbe
+    // di nuovo un giudizio. Riportano solo dove ha speso gli approfondimenti.
     if (dentroMandato === selezionati.length) {
-      metodo = `Sei andato dritto: i ${selezionati.length} approfondimenti che hai speso erano tutti dentro il tuo campo. Hai preferito approfondire una direzione piuttosto che guardarti intorno — è uno stile, non un difetto.`;
+      metodo = `I ${selezionati.length} approfondimenti che hai speso erano tutti dentro il campo del tuo mandato.`;
     } else if (areeToccate.size >= 4) {
-      metodo = `Hai voluto guardarti intorno: hai distribuito gli approfondimenti su ${areeToccate.size} aree diverse prima di impegnarti. Raccogli molti punti di vista — è uno stile, non una dispersione.`;
+      metodo = `Hai distribuito gli approfondimenti su ${areeToccate.size} aree diverse prima di impegnarti.`;
     } else {
-      metodo = "Hai tenuto insieme la tua direzione e uno sguardo più largo: qualche approfondimento nel tuo campo, qualcuno fuori. Un equilibrio tra concentrarsi e curiosare.";
+      metodo = "Hai speso qualche approfondimento dentro il campo del tuo mandato e qualcuno fuori.";
     }
   }
 

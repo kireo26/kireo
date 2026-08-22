@@ -11,6 +11,12 @@
 // L'unico che può giudicare è il REVISORE AI, perché ha davvero letto la
 // proposta dello studente. I suoi prompt sono esentati da questo controllo.
 //
+// LIMITE DICHIARATO: questo test cattura la FIRMA della malattia, non la verità
+// di una frase. Prende il linguaggio che afferma. Una frase falsa scritta in
+// linguaggio fattuale passa — e per quelle non esiste un test, esiste solo
+// leggerle. Un test che promette più di quanto dà è peggio di uno che dichiara
+// i suoi limiti.
+//
 // Due forme:
 //   FORMA 1 — le frasi COMPOSTE (componiPerformance): lista CHIUSA. Ogni frase
 //     composta deve corrispondere a UNA cornice approvata, con le sole variabili
@@ -79,6 +85,10 @@ const CORNICI_APPROVATE = [
   { nome: "dipendenze/buona", re: /^Hai rispettato l'ordine dei lavori\.$/ },
   { nome: "dipendenze/migliora/coppia", re: /^Prima andava .+, poi .+\.$/ },
   { nome: "dipendenze/migliora/fallback", re: /^Hai saltato l'ordine dei lavori\.$/ },
+  { nome: "passi", re: /^I tuoi primi passi, in ordine: .+\.$/ },
+  { nome: "affidabilita", re: /^Al primo posto hai messo .+\.$/ },
+  // scarto: da aggiungere quando la cornice sarà decisa (la trappola invertita
+  // della Missione 04 rende ambigue le tre cornici proposte — vedi scoring.ts).
 ];
 
 // Override di testo del descrittore `negativo` (testoBuona/testoMigliora): frasi
@@ -188,17 +198,52 @@ console.log("═══ FORMA 1 — cornici composte (lista chiusa) ═══\n")
   for (const s of sconosciute) console.error(`     ⚠ [${s.slug}/${s.piano}] cornice SCONOSCIUTA: «${s.clausola}»`);
 }
 
+// 1c) Esercizio DIRETTO del compositore su ogni tipo di descrittore, comprese le
+//     clausole a fatto singolo (passi/affidabilita) che i piani reali non toccano.
+{
+  const casi = [
+    { v: 0.7, voci: [{ tipo: "appartenenza", label: "la copertura", presente: true, ordine: 0 }], mecc: "piano" },
+    { v: 0.7, voci: [{ tipo: "appartenenza", label: "la copertura", presente: true, ordine: 0 }], mecc: "budget" },
+    { v: 0.3, voci: [{ tipo: "appartenenza", label: "la copertura", presente: false, ordine: 0 }, { tipo: "appartenenza", label: "il fondo", presente: false, ordine: 1 }], mecc: "budget" },
+    { v: 0.3, voci: [{ tipo: "appartenenza", label: "la copertura", presente: true, ordine: 0 }, { tipo: "appartenenza", label: "il fondo", presente: false, ordine: 1 }], mecc: "budget" },
+    { v: 0.7, voci: [{ tipo: "limite", usato: 62, disponibile: 110 }], mecc: "budget" },
+    { v: 0.7, voci: [{ tipo: "limite", usato: 74, disponibile: 83, unita: "giorni" }], mecc: "piano" },
+    { v: 0.3, voci: [{ tipo: "limite", usato: 120, disponibile: 83 }], mecc: "piano" },
+    { v: 0.5, voci: [{ tipo: "soglia", label: "la copertura del tetto", stile: "finanziamento", usato: 27000, soglia: 50000 }], mecc: "budget" },
+    { v: 0.5, voci: [{ tipo: "soglia", label: "il traguardo del 20%", stile: "livello", usato: 15, soglia: 20 }], mecc: "piano" },
+    { v: 0.7, voci: [{ tipo: "negativo", label: "la tariffa d'emergenza", presente: false }], mecc: "budget" },
+    { v: 0.3, voci: [{ tipo: "negativo", label: "la tariffa d'emergenza", presente: true }], mecc: "budget" },
+    { v: 0.7, voci: [{ tipo: "negativo", label: "x", presente: false, testoBuona: "Non ti sei preso tutta l'esecuzione da solo." }], mecc: "budget" },
+    { v: 0.3, voci: [{ tipo: "negativo", label: "x", presente: true, testoMigliora: "Ti sei preso tutta l'esecuzione da solo." }], mecc: "budget" },
+    { v: 0.7, voci: [{ tipo: "dipendenze", rispettato: true }], mecc: "piano" },
+    { v: 0.3, voci: [{ tipo: "dipendenze", rispettato: false, coppiaViolata: { prima: "il controsoffitto", dopo: "la copertura" } }], mecc: "piano" },
+    { v: 0.3, voci: [{ tipo: "dipendenze", rispettato: false }], mecc: "piano" },
+    { v: 0.5, voci: [{ tipo: "passi", ordine: ["chiedere cosa sa", "scrivere i compiti"] }], mecc: "budget" },
+    { v: 0.5, voci: [{ tipo: "affidabilita", primo: "la misura diretta" }], mecc: "budget" },
+  ];
+  const sconosciute = [];
+  for (const c of casi) {
+    const testo = componiPerformance(c.v, c.voci, c.mecc);
+    if (!testo) continue;
+    for (const cl of clausole(testo)) if (!frasePassa(cl)) sconosciute.push(cl);
+  }
+  ok(sconosciute.length === 0, `il compositore, su ogni tipo di descrittore, produce solo cornici approvate`);
+  for (const s of sconosciute) console.error(`     ⚠ cornice SCONOSCIUTA: «${s}»`);
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // FORMA 2 — il lessico delle parole-verdetto sulle frasi CABLATE del finale.
 // ═══════════════════════════════════════════════════════════════════════════
 
 // Tre famiglie. La lista è EDITORIALE: si fa crescere con revisione. Le voci con
-// `*` matchano il prefisso (lucid*, ottim*, vantart*). "sei accorto" copre sia
-// "ti sei accorto" (lessico) sia "te ne sei accorto" (candidato aggiunto).
+// `*` matchano il prefisso (lucid*, ottim*, vantart*). "sei accorto" NON è nel
+// lessico di proposito: raccontare QUANDO un fatto è affiorato è legittimo e
+// succederà ancora — la linea vieta di affermare cosa lo studente ha capito o
+// quanto è stato bravo, non di dire quando un fatto gli è arrivato davanti.
 const LESSICO = {
   "stato-d'animo": [
     /\bhai capito\b/, /\bhai compreso\b/, /\bhai intuito\b/, /\bhai realizzato\b/,
-    /\bsei accorto\b/, /\bhai scoperto\b/, /\bsapevi\b/, /\bavevi capito\b/,
+    /\bhai scoperto\b/, /\bsapevi\b/, /\bavevi capito\b/,
     /\bhai imparato\b/, /\bhai riconosciuto\b/,
   ],
   "verdetto-di-qualità": [
@@ -212,17 +257,23 @@ const LESSICO = {
   ],
 };
 
-// Whitelist per STRINGA INTERA (mai per pattern). VUOTA per ora, di proposito:
-// prima l'elenco completo di cosa il tripwire becca, poi si decide riga per riga
-// quali sono fatti (whitelist con motivo) e quali vanno riscritti.
+// Whitelist per STRINGA INTERA (mai per pattern), ognuna con la RAGIONE (non la
+// firma di chi l'ha approvata: fra sei mesi serve la ragione, non la firma). La
+// linea: «l'avevi letto» è possesso d'informazione, non comprensione, e cita la
+// prova; «due erano ottime» giudica le OPZIONI della missione, che la missione
+// definisce, non lo studente.
 const WHITELIST = new Map([
-  // ["<stringa esatta>", "motivo per cui questo fatto è ammesso"],
+  ["Sapevi dei costi di gestione dal terzo anno — l'avevi letto — ma non hai lasciato nulla da parte per coprirli. È il tipo di dettaglio che decide se un progetto regge nel tempo.",
+    "«l'avevi letto» è possesso d'informazione (M7 letto), non comprensione, e cita la prova"],
+  ["Sapevi che una variante in corso d'opera costa venti giorni d'istruttoria, ma non hai lasciato un fondo imprevisti: se qualcosa fosse cambiato, non avevi margine.",
+    "«sapevi» sostenuto da M11 letto: informazione che aveva davanti, non stato mentale"],
+  ["Sapevi del 2019, ma non hai lasciato un minuto per spiegare al pubblico cosa stava succedendo: è esattamente quello che due anni fa fece arrabbiare la gente.",
+    "«sapevi» sostenuto da M12 letto: informazione che aveva davanti, non stato mentale"],
+  ["Sapevi, dal dettaglio sugli edifici pubblici, che scuole vuote, piscina chiusa e fontane accese sprecavano un 5% a costo zero e senza colpire nessuno — e non l'hai messo nel pacchetto.",
+    "«sapevi, dal dettaglio» sostenuto da M8 letto: cita la fonte, non la testa"],
+  ["Undici idee in tre settimane, tutte accolte con «bella idea» e nessuna scelta. Due erano ottime. Non serviva frenare nessuno: serviva che qualcuno decidesse.",
+    "«ottime» giudica le idee del gruppo (opzioni che la missione definisce), non lo studente"],
 ]);
-
-// Il revisore AI può giudicare perché ha letto: i suoi prompt sono esentati.
-// Riconosciuti dalla riga-persona presente in ogni prompt e in nessuna frase del
-// finale.
-const MARCATORE_REVISORE = "analista di orientamento";
 
 function scanFamiglie(testo) {
   const t = testo.toLowerCase();
@@ -236,40 +287,50 @@ function scanFamiglie(testo) {
   return colpi;
 }
 
-// Raccoglie le stringhe (letterali + parti dei template) di un file, con la riga.
-function stringheDelFile(rel, { esentaRevisore }) {
+// Raccoglie stringhe (letterali + parti dei template) con la riga. Due modalità:
+//   soloMotivazione=false → tutte le stringhe (restituzione.ts: è tutto finale
+//     narrativo, nessun prompt).
+//   soloMotivazione=true → SOLO le stringhe che sono (o sono annidate in) il
+//     valore di un `motivazione:` (scoring.ts). È ESATTAMENTE la superficie
+//     mostrata allo studente: page.tsx costruisce «Perché lo diciamo» dalle
+//     motivazioni categoria='area' (riga 63) e «il ragionamento» dalle
+//     qualita_missione (riga 174). Le motivazioni di STILE (pushAssi: arg
+//     posizionale, non una chiave `motivazione:`) alimentano style_signal e NON
+//     sono mai lette nel finale — restano fuori. I prompt del revisore restano
+//     fuori per costruzione (non sono mai il valore di un `motivazione:`). Se un
+//     giorno un consumatore mostrerà lo stile, questa scansione va allargata con
+//     lui — è la stessa regola: il tripwire guarda ciò che lo studente legge.
+function stringheDelFile(rel, { soloMotivazione }) {
   const src = fs.readFileSync(path.join(ROOT, rel), "utf8");
   const sf = ts.createSourceFile(path.basename(rel), src, ts.ScriptTarget.Latest, true);
   const out = [];
-  const push = (text, pos) => {
-    if (!text) return;
-    if (esentaRevisore && text.toLowerCase().includes(MARCATORE_REVISORE)) return; // prompt del revisore
-    const { line } = sf.getLineAndCharacterOfPosition(pos);
-    out.push({ file: rel, line: line + 1, testo: text });
-  };
-  const walk = (node) => {
+  const raccogli = (node) => {
     if (ts.isStringLiteralLike(node)) {
-      push(node.text, node.getStart(sf));
+      if (node.text) out.push({ file: rel, line: sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1, testo: node.text });
     } else if (ts.isTemplateExpression(node)) {
-      // Head + le parti letterali fra le sostituzioni: le variabili non sono
-      // parole-verdetto, solo il testo cablato attorno conta.
-      const parti = [node.head, ...node.templateSpans.map((s) => s.literal)];
-      // Esenta l'intero template se una sua parte è un prompt del revisore.
-      const testoIntero = parti.map((p) => p.text).join(" ");
-      if (esentaRevisore && testoIntero.toLowerCase().includes(MARCATORE_REVISORE)) { ts.forEachChild(node, walk); return; }
-      for (const p of parti) push(p.text, p.getStart(sf));
+      for (const p of [node.head, ...node.templateSpans.map((s) => s.literal)]) {
+        if (p.text) out.push({ file: rel, line: sf.getLineAndCharacterOfPosition(p.getStart(sf)).line + 1, testo: p.text });
+      }
     }
-    ts.forEachChild(node, walk);
+    ts.forEachChild(node, raccogli);
   };
-  walk(sf);
+  if (soloMotivazione) {
+    const walk = (node) => {
+      if (ts.isPropertyAssignment(node) && node.name.getText(sf) === "motivazione") raccogli(node.initializer);
+      ts.forEachChild(node, walk);
+    };
+    walk(sf);
+  } else {
+    raccogli(sf);
+  }
   return out;
 }
 
 console.log("\n═══ FORMA 2 — parole-verdetto nelle frasi cablate ═══\n");
 
 const bersagli = [
-  ...stringheDelFile("lib/escape/restituzione.ts", { esentaRevisore: false }),
-  ...stringheDelFile("lib/escape/scoring.ts", { esentaRevisore: true }),
+  ...stringheDelFile("lib/escape/restituzione.ts", { soloMotivazione: false }),
+  ...stringheDelFile("lib/escape/scoring.ts", { soloMotivazione: true }),
 ];
 
 const catturati = [];

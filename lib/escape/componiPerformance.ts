@@ -7,6 +7,8 @@
 //   soglia       — SEMPRE (fattuale): «hai messo a su b €» / «sei arrivato al n%»
 //   negativo     — «hai evitato X» sse evitato; «hai scelto X» sse preso
 //   dipendenze   — «ordine rispettato», oppure «Prima andava Y, poi X»
+//   passi        — «I tuoi primi passi, in ordine: {lista}» (fatto, sempre)
+//   affidabilita — «Al primo posto hai messo {X}» (fatto, sempre)
 //   aggregato    — silenzio (pienezza/equilibrio non sono azioni ricordabili)
 //
 // Se NON emerge nessuna clausola la funzione ritorna null e il chiamante NON
@@ -26,6 +28,11 @@ export type DescrittoreVoce =
   // verbo standard (es. «tutta l'esecuzione» — non la si «sceglie», la si prende).
   | { tipo: "negativo"; label: string; presente: boolean; testoBuona?: string; testoMigliora?: string }
   | { tipo: "dipendenze"; rispettato: boolean; coppiaViolata?: { prima: string; dopo: string } }
+  // passi/affidabilita: clausole a fatto singolo, sempre emesse (come soglia),
+  // indipendenti da buona/migliora — mettono in fila cosa lo studente ha scelto,
+  // senza dire se è giusto. `ordine`/`primo` vuoti → nessuna clausola.
+  | { tipo: "passi"; ordine: string[] }
+  | { tipo: "affidabilita"; primo: string | null }
   | { tipo: "aggregato" };
 
 function elenco(items: string[]): string {
@@ -70,6 +77,10 @@ export function componiPerformance(
     } else if (v.tipo === "dipendenze") {
       if (buona && v.rispettato) clausole.push("Hai rispettato l'ordine dei lavori.");
       else if (!buona && !v.rispettato) clausole.push(v.coppiaViolata ? `Prima andava ${v.coppiaViolata.dopo}, poi ${v.coppiaViolata.prima}.` : "Hai saltato l'ordine dei lavori.");
+    } else if (v.tipo === "passi") {
+      if (v.ordine.length) clausole.push(`I tuoi primi passi, in ordine: ${elenco(v.ordine)}.`);
+    } else if (v.tipo === "affidabilita") {
+      if (v.primo) clausole.push(`Al primo posto hai messo ${v.primo}.`);
     }
     // aggregato: silenzio
   }

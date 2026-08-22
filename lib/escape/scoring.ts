@@ -729,15 +729,11 @@ export async function calcolaEvidenze(
           const corr = clamp01(1 - somma / maxSomma);
           // Fix B: la qualità dell'ordinamento è qualità di missione, non
           // competenza in un'area decisa dalla SPEC (era ordinaPerformance.area).
-          evidenze.push({
-            area_slug: null,
-            categoria: "qualita_missione",
-            dimensione: "performance",
-            valore: corr,
-            peso: spec.ordinaPerformance.peso,
-            motivazione: corr >= 0.6 ? "Hai messo i fatti misurati sopra le impressioni e le affermazioni del sistema: è il cuore del metodo." : "L'ordine di affidabilità è ancora da mettere a fuoco: un dato misurato pesa più di ciò che «l'app dice».",
-            step_id: s.id,
-          });
+          // Fix D (estensione): la frase è composta, fattuale — «Al primo posto
+          // hai messo {X}». «Sopra le impressioni» era il verdetto.
+          const primoEl = s.elementi.find((e) => e.id === ordine[0]);
+          const testoAff = componiPerformance(corr, [{ tipo: "affidabilita", primo: primoEl ? primoEl.label.toLowerCase() : null }], "budget");
+          if (testoAff) evidenze.push({ area_slug: null, categoria: "qualita_missione", dimensione: "performance", valore: corr, peso: spec.ordinaPerformance.peso, motivazione: testoAff, step_id: s.id });
           // Stile: aver ordinato BENE per affidabilità (misura > stima >
           // interpretazione) è analitico — il segnale dipende dalla correttezza
           // dell'ordine, non dall'aver compilato lo step.
@@ -993,7 +989,7 @@ export async function calcolaEvidenze(
         if (s.compiti.length > 0 && ioCount >= s.compiti.length - 1) {
           // Fix B: «tenere tutto per sé» è un'osservazione sul metodo, non
           // competenza in scienze-educazione (area cablata) → qualità di missione.
-          evidenze.push({ area_slug: null, categoria: "qualita_missione", dimensione: "performance", valore: 0.2, peso: P.scartoPerf, motivazione: "Hai tenuto quasi tutti i compiti per te: così il gruppo non ha un contributo da mostrare, e nemmeno tu.", step_id: s.id });
+          evidenze.push({ area_slug: null, categoria: "qualita_missione", dimensione: "performance", valore: 0.2, peso: P.scartoPerf, motivazione: `Hai assegnato a te stesso ${ioCount} compiti su ${s.compiti.length}.`, step_id: s.id });
         }
         break;
       }
@@ -1040,17 +1036,13 @@ export async function calcolaEvidenze(
         const overlap = scelti.filter((id) => ideali.has(id)).length / s.quanti;
         const bonusOrdine = spec.pianificaIdeali.length > 0 && scelti[0] === spec.pianificaIdeali[0] ? 0.1 : 0;
         const correttezza = clamp01(overlap + bonusOrdine);
-        // Fix B: l'ordine dei primi passi è qualità di missione, non competenza
-        // nell'area del mandato (era areaMandato / fallback edilizia-architettura).
-        evidenze.push({
-          area_slug: null,
-          categoria: "qualita_missione",
-          dimensione: "performance",
-          valore: correttezza,
-          peso: P.passi,
-          motivazione: correttezza >= 0.6 ? "Hai messo in ordine i primi passi con criterio: prima le cose che rendono possibili le altre." : "L'ordine dei primi passi salta qualche base: utile ripensarci da dove conviene partire.",
-          step_id: s.id,
-        });
+        // Fix B/D: l'ordine dei primi passi è qualità di missione (non competenza
+        // nell'area del mandato), e la frase è composta e fattuale — li mette in
+        // fila, non dice se l'ordine è buono. Il valore `correttezza` resta per lo
+        // stile e la scelta buona/migliora, non per il testo.
+        const ordinePassi = scelti.map((id) => s.passi.find((x) => x.id === id)?.label.toLowerCase()).filter((l): l is string => Boolean(l));
+        const testoPassi = componiPerformance(correttezza, [{ tipo: "passi", ordine: ordinePassi }], "budget");
+        if (testoPassi) evidenze.push({ area_slug: null, categoria: "qualita_missione", dimensione: "performance", valore: correttezza, peso: P.passi, motivazione: testoPassi, step_id: s.id });
         break;
       }
     }
