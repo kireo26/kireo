@@ -9,6 +9,7 @@
 //   dipendenze   — «ordine rispettato», oppure «Prima andava Y, poi X»
 //   passi        — «I tuoi primi passi, in ordine: {lista}» (fatto, sempre)
 //   affidabilita — «Al primo posto hai messo {X}» (fatto, sempre)
+//   scarto       — 4 cornici su posizione+inversione della trappola (fatto)
 //   aggregato    — silenzio (pienezza/equilibrio non sono azioni ricordabili)
 //
 // Se NON emerge nessuna clausola la funzione ritorna null e il chiamante NON
@@ -33,6 +34,12 @@ export type DescrittoreVoce =
   // senza dire se è giusto. `ordine`/`primo` vuoti → nessuna clausola.
   | { tipo: "passi"; ordine: string[] }
   | { tipo: "affidabilita"; primo: string | null }
+  // scarto: quattro cornici fattuali, keyed su DOVE è la trappola (fra gli
+  // scartati o i tenuti) e se è INVERTITA (trappolaSeScartata, es. Missione 04:
+  // l'accessibilità è pericolosa da LASCIARE FUORI, non da tenere). Così chi fa
+  // la scelta giusta della 04 — tenere l'accessibilità — riceve comunque un
+  // fatto sulla trappola, invece di niente. `trappola: null` → nessuna trappola.
+  | { tipo: "scarto"; scartati: string[]; trappola: "scartata" | "tenuta" | null; invertita: boolean }
   | { tipo: "aggregato" };
 
 function elenco(items: string[]): string {
@@ -81,6 +88,22 @@ export function componiPerformance(
       if (v.ordine.length) clausole.push(`I tuoi primi passi, in ordine: ${elenco(v.ordine)}.`);
     } else if (v.tipo === "affidabilita") {
       if (v.primo) clausole.push(`Al primo posto hai messo ${v.primo}.`);
+    } else if (v.tipo === "scarto") {
+      const lista = v.scartati.length ? elenco(v.scartati) : null;
+      if (v.trappola === "scartata") {
+        // la trappola è FRA gli scartati: {lista} la contiene, «tra cui» la indica
+        clausole.push(v.invertita
+          ? `Hai scartato ${lista}, tra cui la scelta che, lasciata fuori, poteva far saltare tutto.`
+          : `Hai scartato ${lista}, tra cui la scelta che poteva far saltare tutto.`);
+      } else if (v.trappola === "tenuta") {
+        // la trappola è fra i TENUTI: prima cosa hai scartato, poi cosa hai tenuto
+        if (lista) clausole.push(`Hai scartato ${lista}.`);
+        clausole.push(v.invertita
+          ? "Hai tenuto la scelta che, lasciata fuori, avrebbe fatto saltare tutto."
+          : "Hai tenuto la scelta che poteva far saltare tutto.");
+      } else if (lista) {
+        clausole.push(`Hai scartato ${lista}.`);
+      }
     }
     // aggregato: silenzio
   }

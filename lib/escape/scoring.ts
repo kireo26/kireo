@@ -833,22 +833,17 @@ export async function calcolaEvidenze(
         // `trappolaSeScartata`, quando viene SCARTATA (es. lasciar fuori
         // l'accessibilità nel cantiere).
         const trapScattata = trappola ? (trappola.trappolaSeScartata ? scartati.has(trappola.id) : tenuti.some((o) => o.trappola)) : false;
-        // Fix B: «hai visto la trappola?» è qualità di missione, non competenza
-        // in meccanica/edilizia (era trappola.aree[0], o il fallback hardcoded
-        // studi-umanistici-beni-culturali). La scarto-INTEREST resta per opzione tenuta.
-        evidenze.push({
-          area_slug: null,
-          categoria: "qualita_missione",
-          dimensione: "performance",
-          valore: trapScattata ? Math.min(correttezza, 0.2) : correttezza,
-          peso: P.scartoPerf,
-          motivazione: trapScattata
-            ? (trappola?.trappolaSeScartata
-                ? "Hai lasciato fuori qualcosa che sembrava rimandabile e non lo era: verificabile alla mano, poteva far saltare tutto."
-                : "Hai tenuto la scelta che, verificabile alla mano, avrebbe fatto saltare tutto: valeva la pena controllarla prima.")
-            : "Hai riconosciuto cosa lasciare andare e cosa proteggere: scelta lucida sotto vincolo.",
-          step_id: s.id,
-        });
+        // Fix B/D: «hai visto la trappola?» è qualità di missione (non competenza
+        // in meccanica/edilizia), e la frase è COMPOSTA dalle 4 cornici di scarto —
+        // keyed su DOVE è la trappola (scartata/tenuta) e se è invertita
+        // (trappolaSeScartata). Fattuale in tutti e quattro i casi, compreso il
+        // buon-tenere della 04. Il valore resta come prima (trapScattata → 0.2),
+        // solo il testo cambia; `trapScattata` serve ora solo al valore, non al testo.
+        const scartatiLabels = s.opzioni.filter((o) => scartati.has(o.id)).map((o) => o.label.toLowerCase());
+        const trapWhere: "scartata" | "tenuta" | null = trappola ? (scartati.has(trappola.id) ? "scartata" : "tenuta") : null;
+        const valoreScarto = trapScattata ? Math.min(correttezza, 0.2) : correttezza;
+        const testoScarto = componiPerformance(valoreScarto, [{ tipo: "scarto", scartati: scartatiLabels, trappola: trapWhere, invertita: trappola?.trappolaSeScartata ?? false }], "budget");
+        if (testoScarto) evidenze.push({ area_slug: null, categoria: "qualita_missione", dimensione: "performance", valore: valoreScarto, peso: P.scartoPerf, motivazione: testoScarto, step_id: s.id });
         break;
       }
 

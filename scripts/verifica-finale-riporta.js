@@ -87,8 +87,13 @@ const CORNICI_APPROVATE = [
   { nome: "dipendenze/migliora/fallback", re: /^Hai saltato l'ordine dei lavori\.$/ },
   { nome: "passi", re: /^I tuoi primi passi, in ordine: .+\.$/ },
   { nome: "affidabilita", re: /^Al primo posto hai messo .+\.$/ },
-  // scarto: da aggiungere quando la cornice sarà decisa (la trappola invertita
-  // della Missione 04 rende ambigue le tre cornici proposte — vedi scoring.ts).
+  // scarto: 4 cornici (posizione × inversione della trappola) + la clausola
+  // neutra «Hai scartato {lista}» che precede il caso "tenuta".
+  { nome: "scarto/scartata/normale", re: /^Hai scartato .+, tra cui la scelta che poteva far saltare tutto\.$/ },
+  { nome: "scarto/scartata/invertita", re: /^Hai scartato .+, tra cui la scelta che, lasciata fuori, poteva far saltare tutto\.$/ },
+  { nome: "scarto/tenuta/normale", re: /^Hai tenuto la scelta che poteva far saltare tutto\.$/ },
+  { nome: "scarto/tenuta/invertita", re: /^Hai tenuto la scelta che, lasciata fuori, avrebbe fatto saltare tutto\.$/ },
+  { nome: "scarto/lista", re: /^Hai scartato .+\.$/ },
 ];
 
 // Override di testo del descrittore `negativo` (testoBuona/testoMigliora): frasi
@@ -220,6 +225,12 @@ console.log("═══ FORMA 1 — cornici composte (lista chiusa) ═══\n")
     { v: 0.3, voci: [{ tipo: "dipendenze", rispettato: false }], mecc: "piano" },
     { v: 0.5, voci: [{ tipo: "passi", ordine: ["chiedere cosa sa", "scrivere i compiti"] }], mecc: "budget" },
     { v: 0.5, voci: [{ tipo: "affidabilita", primo: "la misura diretta" }], mecc: "budget" },
+    // scarto: le 4 cornici (posizione × inversione) + il caso senza trappola.
+    { v: 0.7, voci: [{ tipo: "scarto", scartati: ["la facciata", "il piano b"], trappola: "scartata", invertita: false }], mecc: "budget" },
+    { v: 0.2, voci: [{ tipo: "scarto", scartati: ["il fondo", "la mostra"], trappola: "tenuta", invertita: false }], mecc: "budget" },
+    { v: 0.7, voci: [{ tipo: "scarto", scartati: ["il controsoffitto", "il pvc"], trappola: "tenuta", invertita: true }], mecc: "budget" },
+    { v: 0.2, voci: [{ tipo: "scarto", scartati: ["l'accessibilità", "il parquet"], trappola: "scartata", invertita: true }], mecc: "budget" },
+    { v: 0.5, voci: [{ tipo: "scarto", scartati: ["la voce a", "la voce b"], trappola: null, invertita: false }], mecc: "budget" },
   ];
   const sconosciute = [];
   for (const c of casi) {
