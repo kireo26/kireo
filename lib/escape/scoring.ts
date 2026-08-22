@@ -260,7 +260,7 @@ const SPEC: Record<string, ScoringSpec> = {
       const NOMI_CORTI: Record<string, string> = { elettrico: "l'impianto elettrico", copertura: "la copertura dell'angolo nord", controsoffitto: "il controsoffitto antisfondamento", parquet: "il parquet omologato", pvc: "il pavimento in PVC", pompa_calore: "la pompa di calore", accessibilita: "l'accessibilità degli spogliatoi", fondo_imprevisti: "il fondo imprevisti" };
       const nome = (id: string) => NOMI_CORTI[id] ?? step.lavori.find((l) => l.id === id)?.label ?? id;
       max += 2; punti += soldi <= budgetSoldi ? 2 : clamp01(1 - (soldi - budgetSoldi) / budgetSoldi) * 2;
-      desc.push({ tipo: "limite", usato: soldi, disponibile: budgetSoldi });
+      desc.push({ tipo: "limite", usato: soldi, disponibile: budgetSoldi, unita: step.unitaSoldi });
       max += 2; punti += giorni <= budgetGiorni ? 2 : clamp01(1 - (giorni - budgetGiorni) / budgetGiorni) * 2;
       desc.push({ tipo: "limite", usato: giorni, disponibile: budgetGiorni, unita: "giorni" });
       max += 1.5; punti += dipendenzeMancanti.length === 0 ? 1.5 : 0;
@@ -338,7 +338,7 @@ const SPEC: Record<string, ScoringSpec> = {
       const desc: DescrittoreVoce[] = [];
       const ord = (id: string) => step.lavori.findIndex((l) => l.id === id);
       max += 2; punti += soldi <= budgetSoldi ? 2 : clamp01(1 - (soldi - budgetSoldi) / budgetSoldi) * 2;
-      desc.push({ tipo: "limite", usato: soldi, disponibile: budgetSoldi });
+      desc.push({ tipo: "limite", usato: soldi, disponibile: budgetSoldi, unita: step.unitaSoldi });
       max += 1.5; punti += sel.includes("documentazione") ? 1.5 : 0; // per poter dichiarare senza mentire
       desc.push({ tipo: "appartenenza", label: "la documentazione", presente: sel.includes("documentazione"), ordine: ord("documentazione") });
       if (letti.has("M11")) {
@@ -393,7 +393,7 @@ const SPEC: Record<string, ScoringSpec> = {
       const desc: DescrittoreVoce[] = [];
       const ord = (id: string) => step.lavori.findIndex((l) => l.id === id);
       max += 2; punti += soldi <= budgetSoldi ? 2 : clamp01(1 - (soldi - budgetSoldi) / budgetSoldi) * 2;
-      desc.push({ tipo: "limite", usato: soldi, disponibile: budgetSoldi });
+      desc.push({ tipo: "limite", usato: soldi, disponibile: budgetSoldi, unita: step.unitaSoldi });
       const formatiRipetibili = ["fmt_podcast", "fmt_video", "fmt_pannelli", "fmt_schermi", "fmt_laboratorio"];
       const haRipetibile = formatiRipetibili.some((id) => sel.includes(id));
       max += 2; punti += haRipetibile ? 2 : 0; // il bando chiede un'iniziativa ripetibile senza nuovi fondi
@@ -571,7 +571,7 @@ const SPEC: Record<string, ScoringSpec> = {
       const desc: DescrittoreVoce[] = [];
       const ord = (id: string) => step.lavori.findIndex((l) => l.id === id);
       max += 2; punti += soldi <= budgetSoldi ? 2 : clamp01(1 - (soldi - budgetSoldi) / budgetSoldi) * 2;
-      desc.push({ tipo: "limite", usato: soldi, disponibile: budgetSoldi });
+      desc.push({ tipo: "limite", usato: soldi, disponibile: budgetSoldi, unita: step.unitaSoldi });
       // Nadir: l'ostello accessibile va incluso (se l'accessibilità è nota)
       if (letti.has("M4")) { max += 2; punti += sel.includes("ostello_accessibile") ? 2 : 0; desc.push({ tipo: "appartenenza", label: "l'ostello accessibile", presente: sel.includes("ostello_accessibile"), ordine: ord("ostello_accessibile") }); }
       // Marco: il fondo riservato lo risolve a costo zero (se scoperto)

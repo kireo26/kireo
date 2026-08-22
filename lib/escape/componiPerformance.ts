@@ -3,7 +3,7 @@
 // costruzione: compare solo se il fatto che nomina è davvero accaduto.
 //
 //   appartenenza — «hai tenuto/finanziato X» sse X è nella selezione
-//   limite       — «hai speso X su Y» sempre; «sforato» sse oltre
+//   limite       — «hai speso X su Y {unità}» sse dentro; «sforato: X su Y {unità}» sse oltre
 //   soglia       — SEMPRE (fattuale): «hai messo a su b €» / «sei arrivato al n%»
 //   negativo     — «hai evitato X» sse evitato; «hai scelto X» sse preso
 //   dipendenze   — «ordine rispettato», oppure «Prima andava Y, poi X»
@@ -23,7 +23,9 @@
 
 export type DescrittoreVoce =
   | { tipo: "appartenenza"; label: string; presente: boolean; ordine: number }
-  | { tipo: "limite"; usato: number; disponibile: number; unita?: "giorni" }
+  // unita: l'unità del limite, portata nel testo come fa la soglia («€», «cent»,
+  // «giorni»). «giorni» cambia anche il verbo (usato invece di speso).
+  | { tipo: "limite"; usato: number; disponibile: number; unita: string }
   | { tipo: "soglia"; label: string; stile: "finanziamento" | "livello"; usato: number; soglia: number }
   // testoBuona/testoMigliora: override per un negativo la cui frase non regge sul
   // verbo standard (es. «tutta l'esecuzione» — non la si «sceglie», la si prende).
@@ -73,8 +75,12 @@ export function componiPerformance(
 
   for (const v of voci) {
     if (v.tipo === "limite") {
-      if (buona) clausole.push(v.unita === "giorni" ? `Hai usato ${v.usato} giorni su ${v.disponibile}.` : `Hai speso ${v.usato} su ${v.disponibile}.`);
-      else if (v.usato > v.disponibile) clausole.push(`Hai sforato: ${v.usato} su ${v.disponibile}.`);
+      const u = raggruppa(v.usato), d = raggruppa(v.disponibile);
+      const giorni = v.unita === "giorni";
+      // Aggancio al FATTO (usato vs disponibile), non all'esito buona/migliora:
+      // la buona può scattare anche sforando, se un altro termine alza il valore.
+      if (v.usato > v.disponibile) clausole.push(giorni ? `Hai sforato: ${u} giorni su ${d}.` : `Hai sforato: ${u} su ${d} ${v.unita}.`);
+      else clausole.push(giorni ? `Hai usato ${u} giorni su ${d}.` : `Hai speso ${u} su ${d} ${v.unita}.`);
     } else if (v.tipo === "soglia") {
       // Sempre emessa, fattuale — vera al pieno, a metà, a zero: nessuno stato muto.
       clausole.push(v.stile === "finanziamento" ? `Per ${v.label} hai messo ${raggruppa(v.usato)} su ${raggruppa(v.soglia)} €.` : `Per ${v.label} sei arrivato al ${Math.round(v.usato)}%.`);
