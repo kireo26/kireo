@@ -708,6 +708,11 @@ export async function calcolaEvidenze(
           const el = s.elementi.find((e) => e.id === id);
           if (!el) return;
           const valore = clamp01(0.95 - (i / n) * 0.8);
+          // Guardia 1.1: una posizione BASSA non è interesse — metterci qualcosa
+          // in fondo è una rinuncia, non un segnale. Emette solo le posizioni alte
+          // (valore > 0.5 → circa le prime 3 su 5-6). Non tocca né la performance
+          // dell'affidabilità né lo stile (emessi fuori da questo forEach).
+          if (valore <= 0.5) return;
           for (const area of el.aree) {
             evidenze.push({ categoria: "area", area_slug: area, dimensione: "interest", valore, peso: P.ordinaInt, motivazione: `Hai messo «${el.label.toLowerCase()}» al ${i + 1}° posto.`, step_id: s.id });
           }
