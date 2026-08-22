@@ -95,20 +95,19 @@ export function componiPerformance(
     } else if (v.tipo === "affidabilita") {
       if (v.primo) clausole.push(`Al primo posto hai messo ${v.primo}.`);
     } else if (v.tipo === "scarto") {
-      const lista = v.scartati.length ? elenco(v.scartati) : null;
+      // Le etichette dello scarto sono FRASI (con «e» e virgolette): l'elenco
+      // «A, B e C» confonderebbe le congiunzioni → separatore a punto e virgola,
+      // preceduto da due punti. La clausola sulla trappola è SEMPRE una frase a
+      // sé, così tutte e quattro le cornici hanno la stessa struttura esatta.
+      if (v.scartati.length) clausole.push(`Hai scartato: ${v.scartati.join("; ")}.`);
       if (v.trappola === "scartata") {
-        // la trappola è FRA gli scartati: {lista} la contiene, «tra cui» la indica
         clausole.push(v.invertita
-          ? `Hai scartato ${lista}, tra cui la scelta che, lasciata fuori, poteva far saltare tutto.`
-          : `Hai scartato ${lista}, tra cui la scelta che poteva far saltare tutto.`);
+          ? "Fra queste c'era la scelta che, lasciata fuori, poteva far saltare tutto."
+          : "Fra queste c'era la scelta che poteva far saltare tutto.");
       } else if (v.trappola === "tenuta") {
-        // la trappola è fra i TENUTI: prima cosa hai scartato, poi cosa hai tenuto
-        if (lista) clausole.push(`Hai scartato ${lista}.`);
         clausole.push(v.invertita
           ? "Hai tenuto la scelta che, lasciata fuori, avrebbe fatto saltare tutto."
           : "Hai tenuto la scelta che poteva far saltare tutto.");
-      } else if (lista) {
-        clausole.push(`Hai scartato ${lista}.`);
       }
     }
     // aggregato: silenzio

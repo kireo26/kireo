@@ -88,13 +88,13 @@ const CORNICI_APPROVATE = [
   { nome: "dipendenze/migliora/fallback", re: /^Hai saltato l'ordine dei lavori\.$/ },
   { nome: "passi", re: /^I tuoi primi passi, in ordine: .+\.$/ },
   { nome: "affidabilita", re: /^Al primo posto hai messo .+\.$/ },
-  // scarto: 4 cornici (posizione × inversione della trappola) + la clausola
-  // neutra «Hai scartato {lista}» che precede il caso "tenuta".
-  { nome: "scarto/scartata/normale", re: /^Hai scartato .+, tra cui la scelta che poteva far saltare tutto\.$/ },
-  { nome: "scarto/scartata/invertita", re: /^Hai scartato .+, tra cui la scelta che, lasciata fuori, poteva far saltare tutto\.$/ },
-  { nome: "scarto/tenuta/normale", re: /^Hai tenuto la scelta che poteva far saltare tutto\.$/ },
-  { nome: "scarto/tenuta/invertita", re: /^Hai tenuto la scelta che, lasciata fuori, avrebbe fatto saltare tutto\.$/ },
-  { nome: "scarto/lista", re: /^Hai scartato .+\.$/ },
+  // scarto: la lista (frasi giunte da «; ») come clausola a sé, poi la clausola
+  // sulla trappola — 4 varianti (posizione × inversione), sempre separata.
+  { nome: "scarto/lista", re: /^Hai scartato: .+\.$/ },
+  { nome: "scarto/trappola/scartata/normale", re: /^Fra queste c'era la scelta che poteva far saltare tutto\.$/ },
+  { nome: "scarto/trappola/scartata/invertita", re: /^Fra queste c'era la scelta che, lasciata fuori, poteva far saltare tutto\.$/ },
+  { nome: "scarto/trappola/tenuta/normale", re: /^Hai tenuto la scelta che poteva far saltare tutto\.$/ },
+  { nome: "scarto/trappola/tenuta/invertita", re: /^Hai tenuto la scelta che, lasciata fuori, avrebbe fatto saltare tutto\.$/ },
 ];
 
 // Override di testo del descrittore `negativo` (testoBuona/testoMigliora): frasi
