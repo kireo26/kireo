@@ -1,28 +1,29 @@
 // Composizione delle frasi di performance del finale Escape («Come hai
-// ragionato») dai DESCRITTORI delle voci di punteggio, invece che da stringhe
-// cablate. Ogni clausola è vera per costruzione: compare solo se il fatto che
-// nomina è davvero accaduto nella selezione dello studente.
+// ragionato») dai DESCRITTORI delle voci di punteggio. Ogni clausola è vera per
+// costruzione: compare solo se il fatto che nomina è davvero accaduto.
 //
-//   appartenenza — compare SSE quella voce è nella selezione
-//   limite       — si dice sempre il fatto (usato/disponibile); «sforato» sse usato > disponibile
-//   soglia       — «raggiunto» SSE piena; «non raggiunto» SSE nulla; nel mezzo silenzio
-//   negativo     — «non ti sei appoggiato» SSE trappola evitata; «ti sei appoggiato» SSE presa
-//   dipendenze   — «rispettato l'ordine» SSE nessuna dipendenza saltata; altrimenti nomina la coppia
+//   appartenenza — «hai tenuto/finanziato X» sse X è nella selezione
+//   limite       — «hai speso X su Y» sempre; «sforato» sse oltre
+//   soglia       — SEMPRE (fattuale): «hai messo a su b €» / «sei arrivato al n%»
+//   negativo     — «hai evitato X» sse evitato; «hai scelto X» sse preso
+//   dipendenze   — «ordine rispettato», oppure «Prima andava Y, poi X»
 //   aggregato    — silenzio (pienezza/equilibrio non sono azioni ricordabili)
 //
 // Se NON emerge nessuna clausola la funzione ritorna null e il chiamante NON
-// emette la riga (silenzio totale del blocco — Opzione A). Le etichette sono
-// fornite dai descrittori; l'ordine delle appartenenze è quello della missione
-// (config), mai troncato. Logica pura, nessuna dipendenza — SOLO server per
-// convenzione (importata da scoring.ts).
+// emette la riga (silenzio totale del blocco — Opzione A).
+//
+// CORNICI INVARIANTI (vincolo non negoziabile): nessuna cornice concorda con
+// l'etichetta — niente participi che si accordano, niente preposizioni
+// articolate («di il», «a la»), niente articoli nella cornice. Così le ~40
+// etichette di genere/numero misto entrano senza produrre frasi storte.
+// Logica pura, nessuna dipendenza — SOLO server per convenzione.
 
 export type DescrittoreVoce =
   | { tipo: "appartenenza"; label: string; presente: boolean; ordine: number }
-  | { tipo: "limite"; label: string; usato: number; disponibile: number; unita?: string }
-  | { tipo: "soglia"; label: string; stato: "pieno" | "nullo" | "parziale" }
+  | { tipo: "limite"; usato: number; disponibile: number; unita?: "giorni" }
+  | { tipo: "soglia"; label: string; stile: "finanziamento" | "livello"; usato: number; soglia: number }
   // testoBuona/testoMigliora: override per un negativo la cui frase non regge sul
-  // verbo «appoggiato» (es. «tutta l'esecuzione» — non ci si appoggia, ci si
-  // carica). Quando assenti, si usano le forme standard «(Non) ti sei appoggiato a X».
+  // verbo standard (es. «tutta l'esecuzione» — non la si «sceglie», la si prende).
   | { tipo: "negativo"; label: string; presente: boolean; testoBuona?: string; testoMigliora?: string }
   | { tipo: "dipendenze"; rispettato: boolean; coppiaViolata?: { prima: string; dopo: string } }
   | { tipo: "aggregato" };
@@ -32,8 +33,8 @@ function elenco(items: string[]): string {
   return items.slice(0, -1).join(", ") + " e " + items[items.length - 1];
 }
 
-const spesa = (usato: number, disponibile: number, unita?: string) =>
-  `${usato} su ${disponibile}${unita ? " " + unita : ""}`;
+// Raggruppamento a migliaia con il punto (stile italiano) per gli importi in euro.
+const raggruppa = (n: number) => Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 
 export function componiPerformance(
   valore: number,
@@ -50,35 +51,28 @@ export function componiPerformance(
   const assenti = app.filter((v) => !v.presente).map((v) => v.label);
 
   if (buona) {
-    if (presenti.length) {
-      clausole.push(meccanismo === "piano" ? `Nel piano hai tenuto ${elenco(presenti)}.` : `Hai finanziato ${elenco(presenti)}.`);
-    }
-    for (const v of voci) {
-      if (v.tipo === "limite") clausole.push(`Hai speso ${spesa(v.usato, v.disponibile, v.unita)}.`);
-      else if (v.tipo === "soglia" && v.stato === "pieno") clausole.push(`Hai raggiunto ${v.label}.`);
-      else if (v.tipo === "negativo" && !v.presente) clausole.push(v.testoBuona ?? `Non ti sei appoggiato a ${v.label}.`);
-      else if (v.tipo === "dipendenze" && v.rispettato) clausole.push("Hai rispettato l'ordine dei lavori.");
-    }
-    return clausole.length ? clausole.join(" ") : null;
+    if (presenti.length) clausole.push(meccanismo === "piano" ? `Nel piano hai tenuto ${elenco(presenti)}.` : `Hai finanziato ${elenco(presenti)}.`);
+  } else {
+    if (presenti.length === 0 && app.length >= 2) clausole.push("Hai lasciato fuori quasi tutto.");
+    else if (assenti.length) clausole.push(`Hai lasciato fuori ${elenco(assenti)}.`);
   }
 
-  // migliora: l'elenco di cosa è rimasto fuori / cosa non ha retto
-  if (presenti.length === 0 && app.length >= 2) {
-    clausole.push(meccanismo === "piano" ? "Nel piano è rimasto fuori quasi tutto." : "Hai lasciato fuori quasi tutto.");
-  } else if (assenti.length) {
-    clausole.push(`Fuori ${assenti.length > 1 ? "sono rimasti" : "è rimasto"} ${elenco(assenti)}.`);
-  }
   for (const v of voci) {
-    if (v.tipo === "limite" && v.usato > v.disponibile) clausole.push(`Hai sforato: ${spesa(v.usato, v.disponibile, v.unita)}.`);
-    else if (v.tipo === "soglia" && v.stato === "nullo") clausole.push(`Non hai raggiunto ${v.label}.`);
-    else if (v.tipo === "negativo" && v.presente) clausole.push(v.testoMigliora ?? `Ti sei appoggiato a ${v.label}.`);
-    else if (v.tipo === "dipendenze" && !v.rispettato) {
-      clausole.push(
-        v.coppiaViolata
-          ? `Hai messo ${v.coppiaViolata.prima} prima di ${v.coppiaViolata.dopo}, che doveva venire per primo.`
-          : "Hai messo un lavoro prima di un altro che doveva venire per primo.",
-      );
+    if (v.tipo === "limite") {
+      if (buona) clausole.push(v.unita === "giorni" ? `Hai usato ${v.usato} giorni su ${v.disponibile}.` : `Hai speso ${v.usato} su ${v.disponibile}.`);
+      else if (v.usato > v.disponibile) clausole.push(`Hai sforato: ${v.usato} su ${v.disponibile}.`);
+    } else if (v.tipo === "soglia") {
+      // Sempre emessa, fattuale — vera al pieno, a metà, a zero: nessuno stato muto.
+      clausole.push(v.stile === "finanziamento" ? `Per ${v.label} hai messo ${raggruppa(v.usato)} su ${raggruppa(v.soglia)} €.` : `Per ${v.label} sei arrivato al ${Math.round(v.usato)}%.`);
+    } else if (v.tipo === "negativo") {
+      if (buona && !v.presente) clausole.push(v.testoBuona ?? `Hai evitato ${v.label}.`);
+      else if (!buona && v.presente) clausole.push(v.testoMigliora ?? `Hai scelto ${v.label}.`);
+    } else if (v.tipo === "dipendenze") {
+      if (buona && v.rispettato) clausole.push("Hai rispettato l'ordine dei lavori.");
+      else if (!buona && !v.rispettato) clausole.push(v.coppiaViolata ? `Prima andava ${v.coppiaViolata.dopo}, poi ${v.coppiaViolata.prima}.` : "Hai saltato l'ordine dei lavori.");
     }
+    // aggregato: silenzio
   }
+
   return clausole.length ? clausole.join(" ") : null;
 }

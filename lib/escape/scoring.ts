@@ -139,17 +139,16 @@ const SPEC: Record<string, ScoringSpec> = {
       let punti = 0, max = 0;
       const desc: DescrittoreVoce[] = [];
       const idx = (id: string) => voci.findIndex((v) => v.id === id);
-      const stato = (v: number, s: number): "pieno" | "nullo" | "parziale" => (v >= s ? "pieno" : v > 0 ? "parziale" : "nullo");
       const tetto = Number(alloc["tetto"]) || 0;
       const sogliaTetto = letti.has("M4") ? 27000 : 50000;
       max += 2; punti += tetto >= sogliaTetto ? 2 : clamp01(tetto / sogliaTetto) * 2;
-      desc.push({ tipo: "soglia", label: "la copertura del tetto", stato: stato(tetto, sogliaTetto) });
+      desc.push({ tipo: "soglia", label: "la copertura del tetto", stile: "finanziamento", usato: tetto, soglia: sogliaTetto });
       const voceVincolo = voci.find((v) => v.id === "adeguamento_vincolo");
       if (voceVincolo) {
         const sp = Number(alloc["adeguamento_vincolo"]) || 0;
         const soglia = (voceVincolo.costoIndicativo ?? 30000) * 0.8;
         max += 2; punti += sp >= soglia ? 2 : clamp01(sp / soglia) * 2;
-        desc.push({ tipo: "soglia", label: "gli spazi certificati per i minori", stato: stato(sp, soglia) });
+        desc.push({ tipo: "soglia", label: "gli spazi certificati per i minori", stile: "finanziamento", usato: sp, soglia });
       }
       if (letti.has("M7") && voci.some((v) => v.id === "fondo_gestione")) {
         const f = Number(alloc["fondo_gestione"]) || 0;
@@ -184,7 +183,7 @@ const SPEC: Record<string, ScoringSpec> = {
       // vale la pena guardare È ciò che la missione misura: non aver cercato M8
       // è una scelta, non un'ingiustizia. Zero.
       if (letti.has("M8")) { max += 1.5; punti += info > 0 ? 1.5 : 0; } else { max += 1; punti += info > 0 ? 1 : 0; }
-      desc.push({ tipo: "appartenenza", label: "l'informazione al personale", presente: info > 0, ordine: idx("informare_personale") });
+      desc.push({ tipo: "appartenenza", label: "l'avviso al personale", presente: info > 0, ordine: idx("informare_personale") });
       const verif = Number(alloc["verificare_fatti"]) || 0;
       max += 1; punti += verif > 0 ? 1 : 0;
       desc.push({ tipo: "appartenenza", label: "la verifica dei fatti", presente: verif > 0, ordine: idx("verificare_fatti") });
@@ -220,19 +219,19 @@ const SPEC: Record<string, ScoringSpec> = {
       if (prep <= 0) punti += 0;
       else if (prep > totale / 2) punti += 0.5;
       else punti += 1.5;
-      desc.push({ tipo: "appartenenza", label: "la preparazione della spiegazione", presente: prep > 0, ordine: idx("preparare_spiegazione") });
+      desc.push({ tipo: "appartenenza", label: "la spiegazione per l'open day", presente: prep > 0, ordine: idx("preparare_spiegazione") });
       const mis = Number(alloc["misurare_acqua"]) || 0;
       max += 1; punti += mis > 0 ? 1 : 0;
       desc.push({ tipo: "appartenenza", label: "la misura dell'acqua", presente: mis > 0, ordine: idx("misurare_acqua") });
       if (voci.some((v) => v.id === "correggere_registrazione")) {
         const c = Number(alloc["correggere_registrazione"]) || 0;
         max += 1; punti += c > 0 ? 1 : 0;
-        desc.push({ tipo: "appartenenza", label: "la correzione della registrazione", presente: c > 0, ordine: idx("correggere_registrazione") });
+        desc.push({ tipo: "appartenenza", label: "la registrazione solo a flusso confermato", presente: c > 0, ordine: idx("correggere_registrazione") });
       }
       if (voci.some((v) => v.id === "spostare_orario")) {
         const s = Number(alloc["spostare_orario"]) || 0;
         max += 1; punti += s > 0 ? 1 : 0;
-        desc.push({ tipo: "appartenenza", label: "lo spostamento dell'orario", presente: s > 0, ordine: idx("spostare_orario") });
+        desc.push({ tipo: "appartenenza", label: "lo spostamento degli orari", presente: s > 0, ordine: idx("spostare_orario") });
       }
       const { pienezza, equilibrio } = pienezzaEquilibrio(alloc, totale);
       max += 2; punti += pienezza + equilibrio;
@@ -257,11 +256,13 @@ const SPEC: Record<string, ScoringSpec> = {
       const budgetGiorni = step.budgetGiorni ?? Number.POSITIVE_INFINITY;
       let punti = 0, max = 0;
       const desc: DescrittoreVoce[] = [];
-      const nome = (id: string) => step.lavori.find((l) => l.id === id)?.label ?? id;
+      // Nomi corti per la frase sulle dipendenze (i label config sono lunghi).
+      const NOMI_CORTI: Record<string, string> = { elettrico: "l'impianto elettrico", copertura: "la copertura dell'angolo nord", controsoffitto: "il controsoffitto antisfondamento", parquet: "il parquet omologato", pvc: "il pavimento in PVC", pompa_calore: "la pompa di calore", accessibilita: "l'accessibilità degli spogliatoi", fondo_imprevisti: "il fondo imprevisti" };
+      const nome = (id: string) => NOMI_CORTI[id] ?? step.lavori.find((l) => l.id === id)?.label ?? id;
       max += 2; punti += soldi <= budgetSoldi ? 2 : clamp01(1 - (soldi - budgetSoldi) / budgetSoldi) * 2;
-      desc.push({ tipo: "limite", label: "il budget", usato: soldi, disponibile: budgetSoldi });
+      desc.push({ tipo: "limite", usato: soldi, disponibile: budgetSoldi });
       max += 2; punti += giorni <= budgetGiorni ? 2 : clamp01(1 - (giorni - budgetGiorni) / budgetGiorni) * 2;
-      desc.push({ tipo: "limite", label: "i giorni", usato: giorni, disponibile: budgetGiorni, unita: "giorni" });
+      desc.push({ tipo: "limite", usato: giorni, disponibile: budgetGiorni, unita: "giorni" });
       max += 1.5; punti += dipendenzeMancanti.length === 0 ? 1.5 : 0;
       const primaViolata = dipendenzeMancanti[0];
       desc.push({ tipo: "dipendenze", rispettato: dipendenzeMancanti.length === 0, coppiaViolata: primaViolata ? { prima: nome(primaViolata.lavoro), dopo: nome(primaViolata.mancanti[0]) } : undefined });
@@ -337,7 +338,7 @@ const SPEC: Record<string, ScoringSpec> = {
       const desc: DescrittoreVoce[] = [];
       const ord = (id: string) => step.lavori.findIndex((l) => l.id === id);
       max += 2; punti += soldi <= budgetSoldi ? 2 : clamp01(1 - (soldi - budgetSoldi) / budgetSoldi) * 2;
-      desc.push({ tipo: "limite", label: "il margine", usato: soldi, disponibile: budgetSoldi });
+      desc.push({ tipo: "limite", usato: soldi, disponibile: budgetSoldi });
       max += 1.5; punti += sel.includes("documentazione") ? 1.5 : 0; // per poter dichiarare senza mentire
       desc.push({ tipo: "appartenenza", label: "la documentazione", presente: sel.includes("documentazione"), ordine: ord("documentazione") });
       if (letti.has("M11")) {
@@ -350,7 +351,10 @@ const SPEC: Record<string, ScoringSpec> = {
       }
       const haTessuto = sel.includes("tessuto_alfa") || sel.includes("tessuto_beta");
       max += 1; punti += haTessuto ? 1 : 0; // hai comunque migliorato il materiale
-      desc.push({ tipo: "appartenenza", label: "il tessuto migliore", presente: haTessuto, ordine: ord("tessuto_alfa") });
+      // Etichetta calcolata: il nome vero del tessuto scelto; se nessuno (voce
+      // assente → migliora) l'indefinito, perché non sappiamo quale avrebbe preso.
+      const labelTessuto = sel.includes("tessuto_alfa") ? "il tessuto Alfa certificato" : sel.includes("tessuto_beta") ? "il tessuto Beta riciclato" : "un tessuto migliore";
+      desc.push({ tipo: "appartenenza", label: labelTessuto, presente: haTessuto, ordine: ord("tessuto_alfa") });
       return { valore: clamp01(max > 0 ? punti / max : 0.5), voci: desc };
     },
     promptProposta: (aree, { letti }) => {
@@ -389,7 +393,7 @@ const SPEC: Record<string, ScoringSpec> = {
       const desc: DescrittoreVoce[] = [];
       const ord = (id: string) => step.lavori.findIndex((l) => l.id === id);
       max += 2; punti += soldi <= budgetSoldi ? 2 : clamp01(1 - (soldi - budgetSoldi) / budgetSoldi) * 2;
-      desc.push({ tipo: "limite", label: "il budget", usato: soldi, disponibile: budgetSoldi });
+      desc.push({ tipo: "limite", usato: soldi, disponibile: budgetSoldi });
       const formatiRipetibili = ["fmt_podcast", "fmt_video", "fmt_pannelli", "fmt_schermi", "fmt_laboratorio"];
       const haRipetibile = formatiRipetibili.some((id) => sel.includes(id));
       max += 2; punti += haRipetibile ? 2 : 0; // il bando chiede un'iniziativa ripetibile senza nuovi fondi
@@ -440,16 +444,16 @@ const SPEC: Record<string, ScoringSpec> = {
       const ord = (id: string) => step.lavori.findIndex((l) => l.id === id);
       // 1) raggiungere davvero il traguardo di risparmio (la barra che si riempie)
       max += 2.5; punti += risparmio >= obiettivo ? 2.5 : clamp01(risparmio / obiettivo) * 2.5;
-      desc.push({ tipo: "soglia", label: `il traguardo del ${obiettivo}%`, stato: risparmio >= obiettivo ? "pieno" : risparmio > 0 ? "parziale" : "nullo" });
+      desc.push({ tipo: "soglia", label: `il traguardo del ${obiettivo}%`, stile: "livello", usato: risparmio, soglia: obiettivo });
       // 2) tempestività: la tariffa progressiva entra in vigore in 3 mesi, non
       //    serve a un'emergenza che è ora. Contarci sopra è un errore.
       max += 1; punti += sel.includes("tariffa") ? 0 : 1;
-      desc.push({ tipo: "negativo", label: "la tariffa che arriva a emergenza finita", presente: sel.includes("tariffa") });
+      desc.push({ tipo: "negativo", label: "la tariffa d'emergenza", presente: sel.includes("tariffa") });
       // 3) l'acqua «che esce per nessuno» (consumi pubblici) è risparmio a costo
       //    zero e senza colpire un cittadino, ma solo se l'ha scoperto (M8)
       if (letti.has("M8")) {
         max += 1.5; punti += sel.includes("consumi_pubblici") ? 1.5 : 0;
-        desc.push({ tipo: "appartenenza", label: "lo stop ai consumi pubblici sprecati", presente: sel.includes("consumi_pubblici"), ordine: ord("consumi_pubblici") });
+        desc.push({ tipo: "appartenenza", label: "il taglio dei consumi pubblici", presente: sel.includes("consumi_pubblici"), ordine: ord("consumi_pubblici") });
       }
       // 4) la perdita reale del 22% è la leva più grande, ma solo se l'ha misurata (M4)
       if (letti.has("M4")) {
@@ -478,15 +482,18 @@ const SPEC: Record<string, ScoringSpec> = {
       const desc: DescrittoreVoce[] = [];
       const idx = (id: string) => voci.findIndex((v) => v.id === id);
       // copertura della serata (il programma deve reggere fino ai fuochi)
+      // Peso abbassato 1.5→1.0 (Fix D): la pienezza da sola arrivava a 0.60 a
+      // materiali minimi (aggregato che tocca la soglia) — ora 0.50, sotto 0.55
+      // in ogni configurazione, e le buona vuote della 09 spariscono.
       const { pienezza } = pienezzaEquilibrio(alloc, totale);
-      max += 1.5; punti += pienezza * 1.5;
+      max += 1.0; punti += pienezza * 1.0;
       desc.push({ tipo: "aggregato" });
       // il coro del centro estivo, se scoperto, riempie il buco a costo zero
       if (letti.has("M6")) { const c = Number(alloc["coro_centro"]) || 0; max += 1.5; punti += c > 0 ? 1.5 : 0; desc.push({ tipo: "appartenenza", label: "il coro del centro", presente: c > 0, ordine: idx("coro_centro") }); }
       // la Filarmonica ridotta, se scoperta: salva il gruppo invece di eliminarlo
       if (letti.has("M5")) { const f = Number(alloc["filarmonica_ridotta"]) || 0; max += 1.5; punti += f > 0 ? 1.5 : 0; desc.push({ tipo: "appartenenza", label: "la banda ridotta", presente: f > 0, ordine: idx("filarmonica_ridotta") }); }
       // il momento di spiegazione, se ha letto del 2019
-      if (letti.has("M12")) { const r = Number(alloc["ringraziamento"]) || 0; max += 1; punti += r > 0 ? 1 : 0; desc.push({ tipo: "appartenenza", label: "il momento di spiegazione", presente: r > 0, ordine: idx("ringraziamento") }); }
+      if (letti.has("M12")) { const r = Number(alloc["ringraziamento"]) || 0; max += 1; punti += r > 0 ? 1 : 0; desc.push({ tipo: "appartenenza", label: "il ringraziamento", presente: r > 0, ordine: idx("ringraziamento") }); }
       // la Filarmonica completa non è eseguibile con 23 elementi
       const completa = (Number(alloc["filarmonica_completa"]) || 0) > 0;
       max += 1; punti += completa ? 0 : 1;
@@ -518,7 +525,7 @@ const SPEC: Record<string, ScoringSpec> = {
       // parlare uno a uno con chi non partecipa: è il cuore, non un lusso
       const parla = Number(alloc["parlare_uno_a_uno"]) || 0;
       max += 2; punti += parla > 0 ? 2 : 0;
-      desc.push({ tipo: "appartenenza", label: "il parlare uno a uno con chi non partecipa", presente: parla > 0, ordine: idx("parlare_uno_a_uno") });
+      desc.push({ tipo: "appartenenza", label: "i colloqui uno a uno", presente: parla > 0, ordine: idx("parlare_uno_a_uno") });
       // definire i compiti (se sbloccato): sblocca chi si ferma sul vago
       if (voci.some((v) => v.id === "rifare_piano")) { const r = Number(alloc["rifare_piano"]) || 0; max += 1; punti += r > 0 ? 1 : 0; desc.push({ tipo: "appartenenza", label: "la definizione dei compiti", presente: r > 0, ordine: idx("rifare_piano") }); }
       // dare a Elisa un compito compatibile, se scoperto
@@ -530,7 +537,7 @@ const SPEC: Record<string, ScoringSpec> = {
       // l'esecuzione» (non ci si appoggia, ci si carica). Override segnalato per
       // la riscrittura testuale.
       const troppa = esec > totale * 0.6;
-      desc.push({ tipo: "negativo", label: "tutta l'esecuzione", presente: troppa, testoBuona: "Non ti sei preso tutta l'esecuzione da solo.", testoMigliora: "Ti sei preso tutta l'esecuzione da solo, lasciando poco agli altri." });
+      desc.push({ tipo: "negativo", label: "tutta l'esecuzione", presente: troppa, testoBuona: "Non ti sei preso tutta l'esecuzione da solo.", testoMigliora: "Ti sei preso tutta l'esecuzione da solo." });
       return { valore: clamp01(max > 0 ? punti / max : 0.5), voci: desc };
     },
     assegnaSegnali: [
@@ -564,7 +571,7 @@ const SPEC: Record<string, ScoringSpec> = {
       const desc: DescrittoreVoce[] = [];
       const ord = (id: string) => step.lavori.findIndex((l) => l.id === id);
       max += 2; punti += soldi <= budgetSoldi ? 2 : clamp01(1 - (soldi - budgetSoldi) / budgetSoldi) * 2;
-      desc.push({ tipo: "limite", label: "il margine", usato: soldi, disponibile: budgetSoldi });
+      desc.push({ tipo: "limite", usato: soldi, disponibile: budgetSoldi });
       // Nadir: l'ostello accessibile va incluso (se l'accessibilità è nota)
       if (letti.has("M4")) { max += 2; punti += sel.includes("ostello_accessibile") ? 2 : 0; desc.push({ tipo: "appartenenza", label: "l'ostello accessibile", presente: sel.includes("ostello_accessibile"), ordine: ord("ostello_accessibile") }); }
       // Marco: il fondo riservato lo risolve a costo zero (se scoperto)
