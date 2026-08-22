@@ -60,15 +60,17 @@ export default function SezioneAffinita({ affinita }: { affinita: AffinitaHome }
     );
   }
 
-  // Stato vuoto — 0 attività.
+  // Stato vuoto — 0 attività. Nessun CTA: l'unica cosa che chiede qualcosa in
+  // home è la card «Il tuo percorso» (guida-first). Qui il blocco spiega solo
+  // COME nasce il ritratto (test + missioni), senza spingere alla missione —
+  // così l'ordine consigliato (guida → test → missioni) non viene scavalcato.
   if (!haAttivita) {
     return (
       <section className="rounded-2xl border border-white/5 bg-kireo-card p-6">
         <h2 className="font-heading text-lg font-semibold text-kireo-light">Le tue affinità appaiono qui.</h2>
         <p className="mt-2 text-sm leading-relaxed text-kireo-light/90">
-          Per dirti dove ti muovi meglio dobbiamo vederti all&apos;opera più di una volta: una partita sola non basta a distinguere quello che ti somiglia da quello che è capitato. Comincia da una missione — alla fine vedrai le prime ipotesi, e dalla seconda cominciano a diventare affinità.
+          Qui comparirà il tuo ritratto: verso quali aree ti orienti, e quanta prova ne abbiamo. Si costruisce con i test e con le missioni — per ora non c&apos;è ancora niente da mostrare.
         </p>
-        <Cta testo="Scegli una missione" />
       </section>
     );
   }
