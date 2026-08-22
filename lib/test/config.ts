@@ -81,13 +81,9 @@ export const SLUG_T1 = "da-dove-parti";
 export const SLUG_T2 = "come-ti-muovi";
 export const SLUG_T3 = "piu-a-fondo";
 
-// Il test attitudinale è disponibile agli studenti? Falso finché non va live
-// (previsto settembre 2026). Stesso pattern di GATE_ASSISTENTE_ATTIVO: un
-// interruttore, non una data sparsa nei testi. Le stringhe che dicono «il test
-// arriva a settembre» si spengono da sole quando questo diventa true — così non
-// scadono in silenzio (vedi CardProssimaTappa). Quando il test è live, portalo a
-// true e rivedi i testi che lo menzionano.
-export const TEST_ATTIVO = false;
+// (Il gate TEST_ATTIVO è stato rimosso il 2026-08: i tre test sono live in
+// /app/test e la card del percorso li consiglia come passo. Nessun interruttore
+// da mantenere.)
 
 // T3 non è un TestDef statico (item assemblati a runtime): ha solo i metadati
 // del catalogo + i testi della micro-schermata motivazionale, usati dal player.

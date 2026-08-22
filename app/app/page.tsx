@@ -6,6 +6,7 @@ import { getValoriRadar } from "@/lib/app/radarData";
 import { getProssimiEventi, getProssimiEventiPerAree } from "@/lib/app/eventi";
 import { getMessaggiScuolaStudente } from "@/lib/app/messaggi";
 import { caricaAffinitaHome } from "@/lib/percorso/stato";
+import { getProssimaTappa } from "@/lib/percorso/prossimaTappa";
 import HeaderSaluto from "@/components/app/HeaderSaluto";
 import CardProssimaTappa from "@/components/app/CardProssimaTappa";
 import SezioneAffinita from "@/components/app/SezioneAffinita";
@@ -49,13 +50,14 @@ export default async function AreaPersonaleHome() {
   const conTelefono = await supabase.from("profiles").select("telefono").eq("id", contesto.userId).maybeSingle();
   const telefonoCompilato = !conTelefono.error && Boolean(conTelefono.data?.telefono);
 
-  const [{ data: righeAree }, oreCertificate, valoriRadar, prossimoEvento, messaggiScuola, affinita] = await Promise.all([
+  const [{ data: righeAree }, oreCertificate, valoriRadar, prossimoEvento, messaggiScuola, affinita, prossimaTappa] = await Promise.all([
     supabase.from("student_area_interests").select("area_slug").eq("user_id", contesto.userId),
     getOreCertificate(supabase, contesto.userId),
     getValoriRadar(supabase, contesto.userId),
     getProssimiEventi(supabase, 1).then((e) => e[0] ?? null),
     getMessaggiScuolaStudente(supabase, contesto.userId),
     caricaAffinitaHome(supabase, contesto.userId),
+    getProssimaTappa(supabase, contesto.userId),
   ]);
 
   const areeInteresse: AreaInteresse[] = (righeAree ?? [])
@@ -82,7 +84,7 @@ export default async function AreaPersonaleHome() {
 
       <SezioneAffinita affinita={affinita} />
 
-      <CardProssimaTappa />
+      <CardProssimaTappa tappa={prossimaTappa} />
 
       <MessaggiScuola messaggiIniziali={messaggiScuola} />
 
