@@ -26,7 +26,7 @@ export const PROFILI: Record<ProfiloId, Profilo> = {
   stratega: {
     id: "stratega", nome: "stratega",
     comeTiMuovi: "Guardi bene la situazione e poi decidi. Non ti fermi all'analisi, ma non parti nemmeno senza aver capito.",
-    puntoCieco: "La lucidità ha un prezzo: quando la situazione chiede solo di buttarsi, a volte aspetti un dato in più di quanto serva.",
+    puntoCieco: "Guardare bene prima di decidere ha un prezzo: quando la situazione chiede solo di buttarsi, a volte aspetti un dato in più di quanto serva.",
   },
   facilitatore: {
     id: "facilitatore", nome: "facilitatore",
@@ -55,7 +55,7 @@ export const PROFILI: Record<ProfiloId, Profilo> = {
   },
   spec_analitico: {
     id: "spec_analitico", nome: "specialista analitico",
-    comeTiMuovi: "Vai a fondo. Ti fermi quando hai capito, non quando hai finito.",
+    comeTiMuovi: "Vai a fondo. Ti fermi quando la cosa ti è chiara, non quando è finita.",
     puntoCieco: "Andare a fondo è raro e utile: il prezzo è che a volte «ho capito» arriva dopo il momento in cui bastava «ho deciso».",
   },
   spec_relazionale: {
