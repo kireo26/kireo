@@ -277,21 +277,49 @@ export async function GET(request: NextRequest) {
     console.error("Alert revisore — eccezione lettura revisore_esiti:", erroreEscape);
   }
 
+  // ── Test attitudinali completati SENZA esito (osservabilità) ──────────────
+  // Un tentativo 'completata' senza NESSUNA riga in evidence: o le risposte non
+  // hanno fatto emergere niente (raro e legittimo), o lo scoring è tornato vuoto
+  // per un bug — l'unico "rotto" dei test che non si vede (un fallimento vero
+  // dà 500 e lascia il tentativo 'in_corso', vedi /api/test/finalizza). Contatore,
+  // non diagnosi: zero → silenzio, se cresce è un segnale da guardare. Il cron
+  // gira con la service-role, quindi legge i tentativi di tutti gli studenti.
+  let testSenzaEsito = 0;
+  try {
+    const dayFaTest = new Date(Date.now() - 86_400_000).toISOString();
+    const { data: completati, error: erroreTest } = await supabase
+      .from("test_attempt")
+      .select("id")
+      .eq("stato", "completata")
+      .gte("started_at", dayFaTest);
+    if (erroreTest) console.error("Alert test — errore lettura test_attempt:", erroreTest);
+    const ids = (completati ?? []).map((a) => a.id);
+    if (ids.length > 0) {
+      const { data: conEvidenze } = await supabase.from("evidence").select("test_attempt_id").in("test_attempt_id", ids);
+      const conEv = new Set((conEvidenze ?? []).map((e) => e.test_attempt_id));
+      testSenzaEsito = ids.filter((id) => !conEv.has(id)).length;
+    }
+  } catch (erroreTest) {
+    console.error("Alert test — eccezione conteggio senza esito:", erroreTest);
+  }
+
   const totaleFalliti = revisoriFalliti + escapeFalliti;
-  if (totaleFalliti > 0) {
-    const html = `<p>Nelle ultime 24 ore i revisori AI hanno prodotto <strong>${totaleFalliti}</strong> esiti non riusciti (chiamata o estrazione JSON fallita).</p>
+  if (totaleFalliti > 0 || testSenzaEsito > 0) {
+    const html = `<p>Nelle ultime 24 ore, segnali di osservabilità da controllare:</p>
 <ul>
-  <li>Escape — proposte finali non lette (ultime 24h): <strong>${escapeFalliti}</strong></li>
-  <li>Workshop — revisioni/feedback falliti (questa esecuzione del cron): <strong>${revisoriFalliti}</strong></li>
+  <li>Escape — proposte finali non lette dal revisore (24h): <strong>${escapeFalliti}</strong></li>
+  <li>Workshop — revisioni/feedback AI falliti (questa esecuzione del cron): <strong>${revisoriFalliti}</strong></li>
+  <li>Test attitudinali — tentativi completati senza nessuna prova in evidence (24h): <strong>${testSenzaEsito}</strong></li>
 </ul>
+<p>I «revisori non riusciti» sono guasti AI (chiamata o estrazione JSON fallita). I «test senza esito» sono tentativi finiti a cui lo scoring non ha prodotto righe: raro e spesso legittimo, ma se il numero cresce va guardato — potrebbe essere uno scoring che torna vuoto per un bug.</p>
 <p>Per i dettagli Escape, interroga la vista <code>revisore_esiti</code>:</p>
 <pre>select * from public.revisore_esiti
 where revisore_esito = 'non_riuscito'
   and aggiornato_il &gt; now() - interval '24 hours';</pre>
 <p>Per i workshop, cerca in questa esecuzione del cron le righe di log <code>Errore generazione revisione/feedback ... motivo=...</code>.</p>`;
-    const esitoMail = await inviaEmail(EMAIL_ADMIN, `KIREO — ${totaleFalliti} revisori AI non riusciti (24h)`, html, "Mario");
-    if (!esitoMail.ok) console.error(`Alert revisore — invio email fallito: ${esitoMail.motivo}`);
+    const esitoMail = await inviaEmail(EMAIL_ADMIN, `KIREO — osservabilità (24h): ${totaleFalliti} revisori, ${testSenzaEsito} test senza esito`, html, "Mario");
+    if (!esitoMail.ok) console.error(`Alert osservabilità — invio email fallito: ${esitoMail.motivo}`);
   }
 
-  return NextResponse.json({ processate, saltate, errori, revisoriFalliti, escapeFalliti });
+  return NextResponse.json({ processate, saltate, errori, revisoriFalliti, escapeFalliti, testSenzaEsito });
 }
