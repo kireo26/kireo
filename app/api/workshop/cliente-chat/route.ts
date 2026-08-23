@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/lib/supabase/server";
-import { MODELLO_CLIENTE_WORKSHOP, MAX_CARATTERI_MESSAGGIO_WORKSHOP, WORKSHOP_CLIENTE_PROMPTS } from "@/lib/workshop/config";
+import {
+  MODELLO_CLIENTE_WORKSHOP,
+  MAX_CARATTERI_MESSAGGIO_WORKSHOP,
+  WORKSHOP_CLIENTE_PROMPTS,
+  WORKSHOP_CLIENTE_NOME,
+  chiusuraCliente,
+  regoleConversazione,
+} from "@/lib/workshop/config";
+import { getStatoChatTappa } from "@/lib/workshop/chatTappa";
 
 export const runtime = "nodejs";
 
@@ -41,7 +49,7 @@ export async function POST(request: NextRequest) {
 
   const { data: iscrizione } = await supabase
     .from("workshop_iscrizioni")
-    .select("id, workshop_id")
+    .select("id, workshop_id, ruolo_id")
     .eq("id", iscrizioneId)
     .eq("student_id", user.id)
     .maybeSingle();
@@ -52,10 +60,32 @@ export async function POST(request: NextRequest) {
 
   const { data: workshop } = await supabase.from("workshop").select("slug").eq("id", iscrizione.workshop_id).maybeSingle();
   const workshopSlug = workshop?.slug;
-  const systemPrompt = workshopSlug ? WORKSHOP_CLIENTE_PROMPTS[workshopSlug] : undefined;
-  if (!systemPrompt) {
+  const promptBase = workshopSlug ? WORKSHOP_CLIENTE_PROMPTS[workshopSlug] : undefined;
+  if (!workshopSlug || !promptBase) {
     return erroreDiCortesia("Workshop non configurato.", 404);
   }
+
+  // Tetto per tappa. Contato PRIMA di scrivere: al tetto non si registra nulla
+  // e non si paga nessuna chiamata AI.
+  const { data: ruoloRiga } = await supabase
+    .from("workshop_ruoli")
+    .select("slug")
+    .eq("id", iscrizione.ruolo_id)
+    .maybeSingle();
+  const stato = await getStatoChatTappa(supabase, iscrizioneId, workshopSlug, ruoloRiga?.slug ?? "");
+
+  if (stato.raggiuntoTetto) {
+    return erroreDiCortesia(
+      `Per questa tappa hai già parlato abbastanza con il cliente. Torna al progetto e consegna la tappa.`,
+      429,
+    );
+  }
+
+  // Il messaggio che raggiunge il tetto riceve la battuta di chiusura scritta
+  // da noi, in personaggio: chiude la conversazione senza costare una chiamata.
+  const chiudeOra = stato.inviati + 1 >= stato.tetto;
+
+  const systemPrompt = promptBase + regoleConversazione(WORKSHOP_CLIENTE_NOME[workshopSlug] ?? "il cliente", stato.inviati, stato.minimo);
 
   // Registra il messaggio dello studente: la funzione applica il tetto di
   // messaggi per iscrizione (vincolo DB reale, non solo applicativo).
@@ -68,6 +98,18 @@ export async function POST(request: NextRequest) {
       return erroreDiCortesia("Hai raggiunto il numero massimo di messaggi con il cliente per questo workshop.", 429);
     }
     return erroreDiCortesia("Non è stato possibile inviare il messaggio. Riprova.", 500);
+  }
+
+  // Tetto raggiunto: la chiusura è la nostra, non dell'AI. Registrata comunque
+  // come turno "cliente" per non lasciare due "user" consecutivi nella history.
+  if (chiudeOra) {
+    const chiusura = chiusuraCliente(workshopSlug);
+    const { error: erroreChiusura } = await supabase.rpc("invia_risposta_cliente_workshop", {
+      p_iscrizione_id: iscrizioneId,
+      p_contenuto: chiusura,
+    });
+    if (erroreChiusura) console.error("Errore nel salvataggio della chiusura del cliente:", erroreChiusura);
+    return NextResponse.json({ risposta: chiusura, chiusa: true });
   }
 
   const { data: storico } = await supabase

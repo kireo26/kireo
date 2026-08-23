@@ -44,7 +44,23 @@ export default async function AssistenteAreaPage({ params }: { params: Promise<{
         </p>
         <h1 className="py-1 font-heading text-3xl font-bold leading-[1.25] text-kireo-light sm:text-4xl">{area.nome}</h1>
       </div>
+      {/* Uscita DICHIARATA: una chat senza un modo esplicito di finirla lascia
+          lo studente ad aspettare che sia l'altro a chiudere. Vale ovunque, non
+          solo qui — vedi la stessa uscita nella chat col cliente dei workshop. */}
+      <UscitaChat />
       <ChatAssistente areaSlug={area.slug} areaNome={area.nome} />
+      <UscitaChat />
     </div>
+  );
+}
+
+function UscitaChat() {
+  return (
+    <Link
+      href="/app/aree"
+      className="inline-block rounded-full border border-white/15 px-4 py-2 text-sm font-semibold text-kireo-light hover:border-kireo-green"
+    >
+      ← Interrompi la conversazione e torna alle aree
+    </Link>
   );
 }

@@ -9,6 +9,49 @@
 export const MODELLO_CLIENTE_WORKSHOP = "claude-haiku-4-5";
 export const MAX_MESSAGGI_CHAT_CLIENTE = 30;
 export const MAX_CARATTERI_MESSAGGIO_WORKSHOP = 2000;
+
+// Tetto di messaggi dello studente PER TAPPA (contati da quando la tappa si è
+// aperta, come la chat minima). Più del triplo del minimo (3, 4 sul pitch):
+// nessuno ci arriva per bisogno, ma il costo smette di essere illimitato.
+// Il primo utente reale ne ha mandati dieci non per scelta, ma perché dalla
+// chat non si usciva e il cliente non chiudeva mai.
+export const TETTO_MESSAGGI_CHAT_TAPPA = 10;
+
+// Battuta di chiusura del cliente al raggiungimento del tetto: in personaggio,
+// scritta da noi e NON generata dall'AI — così è sempre in carattere, sempre
+// coerente, e non costa una chiamata.
+export const WORKSHOP_CLIENTE_CHIUSURA: Record<string, string> = {
+  "palestra-popolare":
+    "Guarda, per me abbiamo detto abbastanza. Adesso non ho più bisogno di parole: mettimelo nero su bianco nel documento e poi ne riparliamo.",
+  "enoteca-centocelle":
+    "Va bene, mi hai dato un quadro. Adesso però basta chiacchiere: scrivilo nel documento, che le cose scritte si guardano meglio.",
+  "cargo-bike-torino":
+    "Ok, ho capito abbastanza per farmi un'idea. Il resto mettilo nel documento con i numeri: è lì che vedo se sta in piedi.",
+  "presidio-appennino":
+    "Bene, direi che abbiamo coperto il necessario. Ora mettilo per iscritto nel documento, con ordine: preferisco leggerlo con calma.",
+  "scuola-musica-napoli":
+    "Uè, mi hai convinto a parlare abbastanza. Mo' basta: scrivimelo nel documento, che così me lo guardo per bene.",
+};
+
+const CHIUSURA_GENERICA = "Per me abbiamo detto abbastanza. Mettilo nel documento e poi ne riparliamo.";
+
+export const chiusuraCliente = (slug: string) => WORKSHOP_CLIENTE_CHIUSURA[slug] ?? CHIUSURA_GENERICA;
+
+// Regole di conversazione appese al system prompt del cliente ad ogni turno.
+// Vivono qui e non dentro i cinque prompt: sono regole di FORMA, uguali per
+// tutti, e dipendono da quanti messaggi sono già stati scambiati.
+//
+// Due problemi osservati sul primo utente reale, entrambi affrontati qui:
+//   - ogni risposta conteneva due o tre domande → la conversazione si allargava
+//     invece di stringersi. Ora: UNA domanda per messaggio.
+//   - nessuna regola diceva al cliente di FINIRE (c'era «fai domande» e «se
+//     dice di no non mollare», nient'altro) → non chiudeva mai. Ora: superato
+//     il minimo, non apre temi nuovi, tira le somme e rimanda al documento.
+export function regoleConversazione(nome: string, inviati: number, minimo: number): string {
+  const base = `\n\nFORMA DELLA CONVERSAZIONE (vale sempre): fai UNA sola domanda per messaggio, mai due o tre. Tieni le risposte brevi, come si parla di persona.`;
+  if (inviati < minimo) return base;
+  return `${base}\n\nCHIUSURA: lo studente ti ha già detto abbastanza per farti un'idea. NON aprire temi nuovi e non fare altre domande di approfondimento: tira le somme in due righe, di' cosa ti ha convinto e cosa no, e invitalo a mettere tutto nel documento del progetto. Non devi essere convinto del tutto — ti basta avere abbastanza. Se insiste, resta ${nome} ma resta anche fermo: il resto si vede scritto.`;
+}
 export const MAX_FILE_SIZE_CONSEGNA = 10 * 1024 * 1024;
 export const TIPI_FILE_CONSEGNA_CONSENTITI = [
   "application/pdf",
