@@ -535,6 +535,17 @@ Aggiornato al 2026-08-09.
   6. **Ricordarsi di rimuovere `WORKSHOP_COOLDOWN_MINUTI` (o portarla a un valore alto) prima di lasciare l'ambiente in produzione reale** — altrimenti ogni tappa si sbloccherebbe dopo 1 minuto invece che dopo i 2-3 giorni pensati per dare tempo reale allo studente.
   7. Configurare in produzione lo schedule reale del cron (`vercel.json`, oggi `0 6 * * *` = ogni giorno alle 6:00 UTC) solo dopo aver verificato che il piano Vercel di Mario supporta i Vercel Cron (il piano Hobby li supporta, con intervallo minimo giornaliero).
 
+## Costi AI — due cose imparate sulla chat del cliente (2026-08-23)
+Valgono per ogni superficie conversazionale: la chat del cliente workshop, l'**assistente digitale** (stessa forma) e qualunque chat futura.
+- **Il risparmio vero non è il tetto, è la convergenza.** Misurato sulla chat di Ciro: il tetto a 10 messaggi toglie il **14%** del caso peggiore, ma la regola nel system prompt che fa CHIUDERE il cliente (superato il minimo non apre temi nuovi, tira le somme, rimanda al documento) sposta il caso *tipico* da $0,0298 a $0,0061 — **cinque volte meno**. Il tetto è la rete per il caso peggiore; il prompt è ciò che sposta il caso normale. Prima di alzare o abbassare un tetto, guardare cosa dice il prompt.
+- **L'input di una chat cresce quadraticamente**, perché ogni turno rimanda l'intera history: il decimo messaggio costa quasi il triplo del primo. Una chat senza tetto non è cara *linearmente*, **accelera**. È il motivo per cui una conversazione che non chiude mai è un problema di costo prima ancora che di UX.
+- Regola di forma che ha spostato il caso tipico più di ogni altra: **UNA domanda per messaggio**. Le risposte che ne contenevano due o tre allargavano la conversazione invece di stringerla.
+
+## Uscite dalle pagine (regola di prodotto)
+Ogni pagina in cui uno studente entra deve avere **un modo dichiarato di uscirne**. La freccia del browser non è un'uscita: è quello che si preme quando non se ne trova una.
+- La nav (sidebar/tab bar di `AppShell`) risponde a «dove posso andare», **non** a «posso smettere»: sono due domande diverse. Le pagine di sezione (Home, Aree, Test, Guide…) sono destinazioni della nav e bastano a sé; le **chat** no — lì lo studente non naviga, conversa, e senza un'uscita esplicita aspetta che sia l'altro a chiudere.
+- Le due chat del progetto (cliente workshop, assistente digitale) hanno un bottone «**Interrompi la conversazione e torna a…**» in alto (visibile senza scorrere) e in fondo sotto il campo. Il verbo «interrompi» è deliberato: dice che può fermarsi lui, senza il permesso dell'altro. Qualunque chat futura va costruita così.
+
 ## Convenzioni
 - Commenti nel codice in italiano
 - Componenti riutilizzabili in /components

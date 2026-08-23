@@ -30,7 +30,7 @@ export const WORKSHOP_CLIENTE_CHIUSURA: Record<string, string> = {
   "presidio-appennino":
     "Bene, direi che abbiamo coperto il necessario. Ora mettilo per iscritto nel documento, con ordine: preferisco leggerlo con calma.",
   "scuola-musica-napoli":
-    "Uè, mi hai convinto a parlare abbastanza. Mo' basta: scrivimelo nel documento, che così me lo guardo per bene.",
+    "Uè, abbiamo parlato abbastanza. Mo' basta: scrivimelo nel documento, che così me lo guardo per bene.",
 };
 
 const CHIUSURA_GENERICA = "Per me abbiamo detto abbastanza. Mettilo nel documento e poi ne riparliamo.";
