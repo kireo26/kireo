@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Elaborato } from "@/lib/workshop/elaborato-config";
-import { sezioniIncomplete, valoreVuoto, type FaseStatoRiga, type FeedbackFinale, type ValoreSezione } from "@/lib/workshop/elaboratoValore";
+import { fiduciaMassima, sezioniIncomplete, tappaNonValutata, valoreVuoto, type FaseStatoRiga, type FeedbackFinale, type ValoreSezione } from "@/lib/workshop/elaboratoValore";
 import { Button } from "@/components/Button";
 import StepperFasi from "./StepperFasi";
 import FiduciaBar from "./FiduciaBar";
@@ -85,6 +85,9 @@ export default function ElaboratoEditor({
   const indiceTappa = elaborato.fasi.findIndex((f) => f.id === tappaSelezionataId);
   const tappa = elaborato.fasi[indiceTappa] ?? elaborato.fasi[0];
   const rigaTappa = fasiStato.find((f) => f.faseId === tappa.id);
+  // Massimo REALE della fiducia: le tappe che non siamo riusciti a valutare
+  // escono dal denominatore invece di contare come zero (vedi FiduciaBar).
+  const fiduciaMax = fiduciaMassima(elaborato.fasi, fasiStato);
   const statoTappa = rigaTappa?.stato ?? "bloccata";
 
   const incomplete = useMemo(() => sezioniIncomplete(tappa, contenuto), [tappa, contenuto]);
@@ -128,14 +131,24 @@ export default function ElaboratoEditor({
           <h2 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">Progetto consegnato</h2>
           <p className="mt-1 text-sm text-kireo-muted">Hai completato il percorso. Ecco l&apos;esito finale.</p>
         </div>
-        <FiduciaBar fiducia={fiduciaIniziale} nomeCliente={nomeCliente} />
-        {rigaFinale?.revisione && (
-          <RevisionePanel revisione={rigaFinale.revisione} reazioneCliente={rigaFinale.reazioneCliente} nomeCliente={nomeCliente} />
+        <FiduciaBar fiducia={fiduciaIniziale} massimo={fiduciaMax} nomeCliente={nomeCliente} />
+        {tappaNonValutata(rigaFinale) ? (
+          <RevisioneNonRiuscita />
+        ) : (
+          rigaFinale?.revisione && (
+            <RevisionePanel revisione={rigaFinale.revisione} reazioneCliente={rigaFinale.reazioneCliente} nomeCliente={nomeCliente} />
+          )
         )}
         {feedbackFinale ? (
           <FeedbackFinalePanel feedback={feedbackFinale} nomeCliente={nomeCliente} />
         ) : (
-          <p className="text-sm text-kireo-muted">Il feedback finale arriva a breve.</p>
+          // Assente, non zero: se il feedback finale non è stato generato lo si
+          // dice. `punteggio_area` (dentro feedback_ai) è la fonte che
+          // collegherà i workshop al profilo — uno zero al posto di un'assenza
+          // rientrerebbe in evidence al cross-feed.
+          <p className="text-sm text-kireo-muted">
+            Non siamo riusciti a generare il commento finale del progetto: è un problema nostro, non un giudizio sul tuo lavoro.
+          </p>
         )}
       </div>
     );
@@ -143,7 +156,7 @@ export default function ElaboratoEditor({
 
   return (
     <div className="space-y-6">
-      <FiduciaBar fiducia={fiduciaIniziale} nomeCliente={nomeCliente} />
+      <FiduciaBar fiducia={fiduciaIniziale} massimo={fiduciaMax} nomeCliente={nomeCliente} />
 
       <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
         <StepperFasi fasi={elaborato.fasi} fasiStato={fasiStato} tappaSelezionataId={tappaSelezionataId} onSeleziona={setTappaSelezionataId} />
@@ -166,13 +179,22 @@ export default function ElaboratoEditor({
               <h3 className="font-heading text-base font-semibold text-kireo-light">In revisione</h3>
               <p className="mt-1 text-sm text-kireo-muted">
                 Hai consegnato questa tappa. La revisione del tutor e la risposta di {nomeCliente} arrivano tra un paio di giorni.
+                {/* Dal 2° ritentativo: onesto senza allarmare. Al 1° la copy resta
+                    invariata — è vera (il lavoro È in attesa) e il ritardo è di un
+                    giorno: allarmare un sedicenne sulla nostra infrastruttura è rumore. */}
+                {(rigaTappa?.tentativiRevisione ?? 0) >= 2 && " Ci stiamo mettendo un po' più del solito."}
               </p>
             </div>
           )}
 
-          {statoTappa === "revisionata" && rigaTappa?.revisione && (
-            <RevisionePanel revisione={rigaTappa.revisione} reazioneCliente={rigaTappa.reazioneCliente} nomeCliente={nomeCliente} />
-          )}
+          {statoTappa === "revisionata" &&
+            (tappaNonValutata(rigaTappa) ? (
+              <RevisioneNonRiuscita />
+            ) : (
+              rigaTappa?.revisione && (
+                <RevisionePanel revisione={rigaTappa.revisione} reazioneCliente={rigaTappa.reazioneCliente} nomeCliente={nomeCliente} />
+              )
+            ))}
 
           {tappa.sezioni.map((sezione) => (
             <SezioneEditor
@@ -213,6 +235,22 @@ export default function ElaboratoEditor({
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// Pannello mostrato al posto della revisione quando la generazione AI si è
+// arresa dopo i ritentativi. Mai una revisione vuota spacciata per giudizio: si
+// dice che è un guasto nostro, che il percorso continua, e che quella tappa non
+// pesa (esce dal denominatore della barra fiducia).
+function RevisioneNonRiuscita() {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-kireo-card p-6 sm:p-8">
+      <h3 className="font-heading text-base font-semibold text-kireo-light">Questa tappa non è stata revisionata</h3>
+      <p className="mt-1 text-sm leading-relaxed text-kireo-muted">
+        Non siamo riusciti a far revisionare questa tappa: è un problema nostro, non un giudizio sul tuo lavoro. La tappa successiva è
+        aperta lo stesso, e questa non pesa sulla barra della fiducia.
+      </p>
     </div>
   );
 }

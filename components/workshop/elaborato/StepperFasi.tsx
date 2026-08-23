@@ -1,5 +1,5 @@
 import type { FaseElaborato } from "@/lib/workshop/elaborato-config";
-import type { FaseStatoRiga } from "@/lib/workshop/elaboratoValore";
+import { tappaNonValutata, type FaseStatoRiga } from "@/lib/workshop/elaboratoValore";
 
 const ETICHETTA_STATO: Record<FaseStatoRiga["stato"], string> = {
   bloccata: "Bloccata",
@@ -27,6 +27,10 @@ export default function StepperFasi({
           const riga = fasiStato.find((r) => r.faseId === fase.id);
           const stato = riga?.stato ?? "bloccata";
           const bloccata = stato === "bloccata";
+          // Una tappa passata oltre senza revisione NON è «✓ Revisionata»: il
+          // segno di spunta direbbe che è stata valutata. Resta superata (il
+          // percorso è andato avanti) ma detta com'è.
+          const nonValutata = tappaNonValutata(riga);
           const selezionata = fase.id === tappaSelezionataId;
           const precedente = fasi[indice - 1];
 
@@ -42,7 +46,9 @@ export default function StepperFasi({
               >
                 <span
                   className={`mt-0.5 flex h-6 w-6 flex-none items-center justify-center rounded-full text-xs font-semibold ${
-                    stato === "revisionata"
+                    stato === "revisionata" && nonValutata
+                      ? "border border-white/20 text-kireo-muted"
+                      : stato === "revisionata"
                       ? "bg-kireo-green text-kireo-light"
                       : stato === "consegnata"
                         ? "border border-kireo-orange text-kireo-orange"
@@ -51,7 +57,7 @@ export default function StepperFasi({
                           : "border border-white/20 text-kireo-muted"
                   }`}
                 >
-                  {stato === "revisionata" ? "✓" : bloccata ? "🔒" : indice + 1}
+                  {stato === "revisionata" && !nonValutata ? "✓" : bloccata ? "🔒" : indice + 1}
                 </span>
                 <span className="min-w-0">
                   <span className={`block text-sm font-medium ${selezionata ? "text-kireo-light" : "text-kireo-light/90"}`}>{fase.titolo}</span>
@@ -60,7 +66,9 @@ export default function StepperFasi({
                       ? precedente
                         ? `Si apre dopo la revisione della tappa precedente (di solito entro ${precedente.cooldownGiorni} giorni dalla consegna)`
                         : "Bloccata"
-                      : ETICHETTA_STATO[stato]}
+                      : nonValutata
+                        ? "Superata, non revisionata"
+                        : ETICHETTA_STATO[stato]}
                   </span>
                 </span>
               </button>

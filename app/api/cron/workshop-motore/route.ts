@@ -23,6 +23,18 @@ const REVISIONE_VUOTA: RevisioneTappa = {
   punteggio_fiducia: 0,
 };
 
+// Quanti GIRI DI CRON provare prima di arrendersi su una tappa. chiamaJson fa
+// già 1 retry interno, quindi 3 giri = fino a 6 chiamate reali distribuite su
+// ~3 giorni. Arrendersi non significa mai uno zero silenzioso: la tappa avanza
+// (lo studente non resta bloccato) ma marcata, e la barra della fiducia
+// accorcia il denominatore invece di contare 0 su 25.
+const MAX_TENTATIVI_REVISIONE = 3;
+
+// Esito di una generazione AI, gemello dei tre stati del revisore Escape.
+// 'forma_non_valida' = JSON tornato ma di forma inattesa: prima cadeva in un
+// `else` che non c'era, quindi non produceva nulla E non veniva contato.
+type EsitoGenerazione = "riuscita" | "non_riuscita" | "forma_non_valida";
+
 // Motore del tempo di Workshop 2.0 v2: per ogni tappa 'consegnata' il cui
 // cooldown è passato, genera la revisione del tutor + la reazione in
 // carattere del cliente (prompt cablati da lib/workshop/prompt-revisore.ts,
@@ -57,7 +69,7 @@ export async function GET(request: NextRequest) {
   const { data: righe, error: erroreSelect } = await supabase
     .from("workshop_fasi_stato")
     .select(
-      "id, iscrizione_id, fase_id, consegnata_at, workshop_iscrizioni(student_id, workshop_id, ruolo_id, workshop(slug, titolo), workshop_ruoli(slug, titolo, area_slug))",
+      "id, iscrizione_id, fase_id, consegnata_at, tentativi_revisione, workshop_iscrizioni(student_id, workshop_id, ruolo_id, workshop(slug, titolo), workshop_ruoli(slug, titolo, area_slug))",
     )
     .eq("stato", "consegnata");
 
@@ -128,6 +140,7 @@ export async function GET(request: NextRequest) {
       };
 
       let revisione: RevisioneTappa = REVISIONE_VUOTA;
+      let esitoRevisioneStato: EsitoGenerazione = "non_riuscita";
       const esitoRevisione = await chiamaJson(client, {
         model: MODELLO_CLIENTE_WORKSHOP,
         maxTokens: 700,
@@ -150,6 +163,13 @@ export async function GET(request: NextRequest) {
             commento_breve: parsed.commento_breve,
             punteggio_fiducia: Math.max(0, Math.min(fase.fiduciaMax, Math.round(parsed.punteggio_fiducia as number))),
           };
+          esitoRevisioneStato = "riuscita";
+        } else {
+          // Il ramo che prima non esisteva: JSON valido, forma sbagliata →
+          // niente revisione, e ora lo si conta come tutti gli altri guasti.
+          esitoRevisioneStato = "forma_non_valida";
+          revisoriFalliti++;
+          console.error(`Revisione di forma non valida (iscrizione ${riga.iscrizione_id}, tappa ${riga.fase_id})`);
         }
       } else {
         revisoriFalliti++;
@@ -173,6 +193,10 @@ export async function GET(request: NextRequest) {
           });
           reazioneCliente = rispostaReazione.content[0]?.type === "text" ? rispostaReazione.content[0].text : "";
         } catch (erroreReazione) {
+          // Contata nell'alert come gli altri guasti AI (prima era solo un
+          // console.error). NON blocca l'avanzamento: la reazione del cliente è
+          // colore, non punteggio — a differenza della revisione, che è giudizio.
+          revisoriFalliti++;
           console.error(`Errore generazione reazione cliente (iscrizione ${riga.iscrizione_id}, tappa ${riga.fase_id}):`, erroreReazione);
         }
       }
@@ -182,7 +206,11 @@ export async function GET(request: NextRequest) {
       // lib/workshop/prompt-revisore.ts), basata sul contenuto COMPLETO
       // del progetto (tutte le tappe), non solo su questa.
       let feedbackFinale: FeedbackFinale | null = null;
+      // 'riuscita' di default: se non è l'ultima tappa non c'è feedback finale
+      // da generare, quindi non c'è niente che possa fallire.
+      let esitoFinaleStato: EsitoGenerazione = "riuscita";
       if (fase.ultima) {
+        esitoFinaleStato = "non_riuscita";
         const esitoFinale = await chiamaJson(client, {
           model: MODELLO_CLIENTE_WORKSHOP,
           maxTokens: 700,
@@ -205,12 +233,45 @@ export async function GET(request: NextRequest) {
               chiusura_cliente: parsed.chiusura_cliente,
               punteggio_area: Math.max(0, Math.min(100, Math.round(parsed.punteggio_area as number))),
             };
+            esitoFinaleStato = "riuscita";
+          } else {
+            esitoFinaleStato = "forma_non_valida";
+            revisoriFalliti++;
+            console.error(`Feedback finale di forma non valida (iscrizione ${riga.iscrizione_id})`);
           }
         } else {
           revisoriFalliti++;
           console.error(`Errore generazione feedback finale (iscrizione ${riga.iscrizione_id}): motivo=${esitoFinale.motivo}`);
         }
       }
+
+      // ── Ritentativo o resa ────────────────────────────────────────────────
+      // Il feedback finale conta quanto la revisione: `punteggio_area` (dentro
+      // feedback_ai) è la fonte che collegherà i workshop al profilo, e uno 0 al
+      // posto di un'assenza rientrerebbe in evidence al cross-feed
+      // reintroducendo «non misurato = zero».
+      const tentativiPrima = Number(riga.tentativi_revisione) || 0;
+      const esitoPeggiore: EsitoGenerazione =
+        esitoRevisioneStato !== "riuscita" ? esitoRevisioneStato : esitoFinaleStato;
+
+      if (esitoPeggiore !== "riuscita" && tentativiPrima + 1 < MAX_TENTATIVI_REVISIONE) {
+        // Non si avanza: la tappa resta 'consegnata' e il prossimo giro ritenta.
+        await supabase
+          .from("workshop_fasi_stato")
+          .update({ tentativi_revisione: tentativiPrima + 1 })
+          .eq("id", riga.id);
+        errori++;
+        continue;
+      }
+
+      // MARCARE PRIMA DI AVANZARE: se l'avanzamento fallisse a metà, resterebbe
+      // una riga marcata ma ancora 'consegnata' → il giro dopo la vede al
+      // massimo dei tentativi e si arrende di nuovo (si auto-ripara), invece di
+      // lasciare una tappa avanzata con esito NULL indistinguibile da una riuscita.
+      await supabase
+        .from("workshop_fasi_stato")
+        .update({ tentativi_revisione: tentativiPrima + 1, revisione_esito: esitoRevisioneStato })
+        .eq("id", riga.id);
 
       const indiceFase = fasi.findIndex((f) => f.id === fase.id);
       const prossimaFase = fasi[indiceFase + 1] ?? null;
@@ -308,10 +369,14 @@ export async function GET(request: NextRequest) {
     const html = `<p>Nelle ultime 24 ore, segnali di osservabilità da controllare:</p>
 <ul>
   <li>Escape — proposte finali non lette dal revisore (24h): <strong>${escapeFalliti}</strong></li>
-  <li>Workshop — revisioni/feedback AI falliti (questa esecuzione del cron): <strong>${revisoriFalliti}</strong></li>
+  <li>Workshop — tentativi AI falliti (questa esecuzione del cron): <strong>${revisoriFalliti}</strong></li>
   <li>Test attitudinali — tentativi completati senza nessuna prova in evidence (24h): <strong>${testSenzaEsito}</strong></li>
 </ul>
-<p>I «revisori non riusciti» sono guasti AI (chiamata o estrazione JSON fallita). I «test senza esito» sono tentativi finiti a cui lo scoring non ha prodotto righe: raro e spesso legittimo, ma se il numero cresce va guardato — potrebbe essere uno scoring che torna vuoto per un bug.</p>
+<p>I guasti AI sono chiamate fallite, estrazioni JSON fallite o risposte di forma inattesa. Sui workshop si contano i <strong>tentativi</strong>, non le tappe: una tappa che fallisce viene ritentata fino a ${MAX_TENTATIVI_REVISIONE} giri di cron, quindi lo stesso guasto può comparire per più giorni di fila — è persistenza, non moltiplicazione. Le «revisioni non riuscite» dei workshop si trovano con:</p>
+<pre>select iscrizione_id, fase_id, tentativi_revisione, revisione_esito
+from public.workshop_fasi_stato
+where revisione_esito is not null and revisione_esito &lt;&gt; 'riuscita';</pre>
+<p>I «test senza esito» sono tentativi finiti a cui lo scoring non ha prodotto righe: raro e spesso legittimo, ma se il numero cresce va guardato — potrebbe essere uno scoring che torna vuoto per un bug.</p>
 <p>Per i dettagli Escape, interroga la vista <code>revisore_esiti</code>:</p>
 <pre>select * from public.revisore_esiti
 where revisore_esito = 'non_riuscito'

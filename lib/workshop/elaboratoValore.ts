@@ -122,6 +122,10 @@ export type FeedbackFinale = {
 
 export type StatoTappa = "bloccata" | "aperta" | "consegnata" | "revisionata";
 
+// Esito della generazione AI della revisione. NULL = mai tentata (tappa non
+// ancora consegnata, o riga antecedente alla migrazione 20260823110000).
+export type RevisioneEsito = "riuscita" | "non_riuscita" | "forma_non_valida";
+
 export type FaseStatoRiga = {
   faseId: string;
   stato: StatoTappa;
@@ -130,4 +134,20 @@ export type FaseStatoRiga = {
   revisionataAt: string | null;
   revisione: RevisioneTappa | null;
   reazioneCliente: string | null;
+  revisioneEsito: RevisioneEsito | null;
+  tentativiRevisione: number;
 };
+
+// Una tappa è «non valutata» se la revisione AI si è arresa: NON conta come
+// zero, esce dal DENOMINATORE della barra fiducia (45/75, non 45/100).
+export const tappaNonValutata = (riga: FaseStatoRiga | undefined): boolean =>
+  riga?.revisioneEsito != null && riga.revisioneEsito !== "riuscita";
+
+// Fiducia massima ottenibile davvero: somma dei fiduciaMax delle sole tappe
+// che siamo riusciti a valutare. Pura, così la stessa regola vale ovunque.
+export function fiduciaMassima(fasi: { id: string; fiduciaMax: number }[], fasiStato: FaseStatoRiga[]): number {
+  return fasi.reduce((tot, f) => {
+    const riga = fasiStato.find((r) => r.faseId === f.id);
+    return tot + (tappaNonValutata(riga) ? 0 : f.fiduciaMax);
+  }, 0);
+}

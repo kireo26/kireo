@@ -29,7 +29,7 @@ export default async function ProgettoWorkshopPage({ params }: { params: Promise
   const elaboratoConfig = ruoloIscritto ? WORKSHOP_ELABORATO[slug]?.[ruoloIscritto.slug] : undefined;
   if (!ruoloIscritto || !elaboratoConfig) redirect(`/app/workshop/${slug}`);
 
-  const COLONNE_FASI_STATO = "fase_id, stato, aperta_at, consegnata_at, revisionata_at, revisione, reazione_cliente";
+  const COLONNE_FASI_STATO = "fase_id, stato, aperta_at, consegnata_at, revisionata_at, revisione, reazione_cliente, revisione_esito, tentativi_revisione";
 
   const { data: fasiStatoEsistenti } = await supabase.from("workshop_fasi_stato").select("fase_id").eq("iscrizione_id", iscrizione.id);
 
@@ -53,6 +53,8 @@ export default async function ProgettoWorkshopPage({ params }: { params: Promise
     revisionataAt: r.revisionata_at,
     revisione: r.revisione as FaseStatoRiga["revisione"],
     reazioneCliente: r.reazione_cliente,
+    revisioneEsito: (r.revisione_esito as FaseStatoRiga["revisioneEsito"]) ?? null,
+    tentativiRevisione: Number(r.tentativi_revisione) || 0,
   }));
 
   const { data: elaborato } = await supabase
