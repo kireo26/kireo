@@ -17,6 +17,11 @@ export type CtxTappa = {
   clienteVincoli: string; // sintesi dei vincoli (da WORKSHOP_TUTOR_CONTESTO)
   revisioneFocus: string[]; // la rubrica della tappa
   fiduciaMax: number; // punti fiducia in palio in questa tappa
+  // Le sezioni della tappa, id + titolo. Servono perché il contenuto arriva al
+  // modello come JSON keyed per ID (`ricognizione`, `programma_settimanale`),
+  // mentre lo studente a schermo vede solo i TITOLI: senza questa mappa il
+  // revisore non può nominare una sezione in modo riconoscibile.
+  sezioni: { id: string; titolo: string }[];
 };
 
 // ─────────────────────────────────────────── 1) REVISIONE DELLA TAPPA
@@ -27,7 +32,11 @@ export function promptRevisore(c: CtxTappa): string {
 Obiettivo della tappa: ${c.tappaObiettivo}
 Il cliente del progetto è ${c.clienteNome}, che ha questi vincoli non negoziabili: ${c.clienteVincoli}
 
-STATO DEL LAVORO (rispettalo): questa tappa è già stata consegnata e il suo punteggio di fiducia si chiude adesso, con la tua revisione — non può più cambiare. Il documento del progetto però resta aperto: lo studente può tornare su queste sezioni e migliorarle, e alla fine il progetto verrà letto per intero. Quindi NON scrivere mai «prima di chiudere questa tappa» o «prima di consegnare»: è già consegnata. Formula i consigli come cose da RIPRENDERE («questo resta un buco: puoi colmarlo tornando sulla sezione X») o da portarsi avanti nelle tappe successive.
+LE SEZIONI DI QUESTA TAPPA (il contenuto che ricevi è indicizzato per id, ma lo studente a schermo vede i titoli):
+${c.sezioni.map((s) => `- id "${s.id}" = «${s.titolo}»`).join("\n")}
+Quando nomini una sezione usa SEMPRE uno dei titoli esatti elencati qui sopra, fra virgolette (per esempio: "${c.sezioni[0]?.titolo ?? "il titolo della sezione"}"). Non usare mai l'id. Non inventare mai un nome generico né una lettera al posto del titolo: se non sai a quale sezione ti riferisci, non nominarne nessuna.
+
+STATO DEL LAVORO (rispettalo): questa tappa è già stata consegnata e il suo punteggio di fiducia si chiude adesso, con la tua revisione — non può più cambiare. Il documento del progetto però resta aperto: lo studente può tornare su queste sezioni e migliorarle, e alla fine il progetto verrà letto per intero. Quindi NON scrivere mai «prima di chiudere questa tappa» o «prima di consegnare»: è già consegnata. Formula i consigli come cose da RIPRENDERE (per esempio: «questo resta un buco: puoi colmarlo tornando su "${c.sezioni[0]?.titolo ?? "la sezione dedicata"}"») o da portarsi avanti nelle tappe successive.
 
 VALUTA il lavoro consegnato usando ESATTAMENTE questa rubrica, punto per punto:
 ${c.revisioneFocus.map((r, i) => `${i + 1}. ${r}`).join("\n")}

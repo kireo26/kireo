@@ -137,6 +137,10 @@ export async function GET(request: NextRequest) {
         clienteVincoli: WORKSHOP_TUTOR_CONTESTO[workshop.slug]?.vincoli ?? "",
         revisioneFocus: fase.revisioneFocus,
         fiduciaMax: fase.fiduciaMax,
+        // id → titolo: il contenuto viaggia keyed per id, lo studente vede i
+        // titoli. Senza questa mappa il revisore scriveva «(sezione X)»,
+        // copiando il segnaposto dell'esempio invece di nominare la sezione.
+        sezioni: fase.sezioni.map((s) => ({ id: s.id, titolo: s.titolo })),
       };
 
       let revisione: RevisioneTappa = REVISIONE_VUOTA;
