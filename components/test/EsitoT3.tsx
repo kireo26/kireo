@@ -9,6 +9,9 @@ export type RigaEsitoT3 = {
   slug: string;
   nome: string;
   status: "emergente" | "confermata" | "da_verificare";
+  // La motivazione del confronto vinto (perché quest'area è finita qui). Assente
+  // se l'area non ha vinto nessun incontro (T3 alza, non abbassa).
+  motivazione?: string;
 };
 
 const STATUS_LABEL: Record<RigaEsitoT3["status"], { testo: string; classe: string }> = {
@@ -36,15 +39,16 @@ export default function EsitoT3({ righe, missione }: { righe: RigaEsitoT3[]; mis
       ) : (
         <ol className="space-y-3">
           {righe.map((r, i) => (
-            <li key={r.slug} className="flex items-center gap-4 rounded-2xl border border-white/5 bg-kireo-card p-5">
-              <span className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-white/5 font-heading text-sm font-semibold text-kireo-light">{i + 1}</span>
+            <li key={r.slug} className="flex items-start gap-4 rounded-2xl border border-white/5 bg-kireo-card p-5">
+              <span className="mt-0.5 flex h-8 w-8 flex-none items-center justify-center rounded-full bg-white/5 font-heading text-sm font-semibold text-kireo-light">{i + 1}</span>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <h3 className="font-heading text-base font-semibold text-kireo-light">{r.nome}</h3>
                   <span className={`inline-block rounded-full border px-2 py-0.5 text-[11px] ${STATUS_LABEL[r.status].classe}`}>{STATUS_LABEL[r.status].testo}</span>
                 </div>
+                {r.motivazione && <p className="mt-2 text-sm leading-relaxed text-kireo-light/80">{r.motivazione}</p>}
               </div>
-              <Link href={`/aree/${r.slug}`} className="flex-none text-[11px] text-kireo-green-light hover:underline">Scopri →</Link>
+              <Link href={`/aree/${r.slug}`} className="mt-0.5 flex-none text-[11px] text-kireo-green-light hover:underline">Scopri →</Link>
             </li>
           ))}
         </ol>

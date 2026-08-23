@@ -92,7 +92,7 @@ export const T3_META: TestMeta & { motivazionaleDopo: number; motivazionaleTitol
   titolo: "Più a fondo",
   sottotitolo: "Le tue aree, una contro l'altra",
   descrizione:
-    "Costruito su misura sulle aree che ti sono già emerse. Non ti chiede se qualcosa ti interessa — quello lo sappiamo già —: ti chiede di scegliere tra due cose che ti attirano entrambe. La rinuncia è il dato.",
+    "Costruito sul tuo profilo finora — i test e le missioni che hai fatto. Non ti chiede se qualcosa ti interessa — quello lo sappiamo già —: ti chiede di scegliere tra due cose che ti attirano entrambe. La rinuncia è il dato.",
   durata: "4-5 minuti",
   motivazionaleDopo: 5,
   motivazionaleTitolo: "Scegliere costa",

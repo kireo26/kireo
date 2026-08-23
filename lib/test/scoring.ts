@@ -120,9 +120,16 @@ export function calcolaEvidenzeT2(testSlug: string, risposte: Map<string, Payloa
     if (item.tipo === "scelta") {
       const opz = item.opzioni.find((o) => o.id === p.opzioneId);
       if (!opz) continue;
-      for (const peso of opz.pesi) {
-        add(peso.asse, peso.punti);
-        if (peso.punti > 0) nota(peso.asse, item, opz.label.toLowerCase());
+      for (const peso of opz.pesi) add(peso.asse, peso.punti); // punteggi invariati
+      // Motivazione UNA VOLTA, sotto l'asse dove pesa di più; gli altri assi
+      // toccati nominati in coda («— tocca anche X»). Prima la stessa frase
+      // compariva identica sotto ogni asse e sembrava un errore: così è vera,
+      // e dice in più che certe risposte pesano su due dimensioni.
+      const positivi = opz.pesi.filter((x) => x.punti > 0).sort((a, b) => b.punti - a.punti);
+      if (positivi.length > 0) {
+        const cap = (a: AsseStile) => a.charAt(0).toUpperCase() + a.slice(1);
+        const coda = positivi.length > 1 ? ` — tocca anche ${positivi.slice(1).map((x) => cap(x.asse)).join(" e ")}` : "";
+        nota(positivi[0].asse, item, `${opz.label.toLowerCase()}${coda}`);
       }
     } else if (item.tipo === "ordina") {
       const ordine = p.ordine ?? item.elementi.map((e) => e.id);

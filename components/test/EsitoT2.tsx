@@ -44,7 +44,7 @@ export default function EsitoT2({
       <div className="rounded-2xl border border-kireo-green/30 bg-kireo-green/5 p-6 sm:p-8">
         <h2 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">Come ti sei mosso</h2>
         <p className="mt-2 text-sm leading-relaxed text-kireo-light/90">
-          In queste risposte ti sei mosso da <strong className="font-semibold text-kireo-light">{profilo.nome}</strong>. {profilo.comeTiMuovi}
+          Da come ti muovi finora, nei test e nelle missioni, ti sei mosso da <strong className="font-semibold text-kireo-light">{profilo.nome}</strong>. {profilo.comeTiMuovi}
         </p>
         <p className="mt-3 text-sm leading-relaxed text-kireo-light/70">
           È un&apos;ipotesi basata su come hai risposto oggi. Le missioni serviranno a capire se regge.

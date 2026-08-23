@@ -274,7 +274,11 @@ async function renderT3(userId: string, supabase: SB) {
     if (r.item_id === T3_FROZEN_ITEM_ID) continue;
     risposte.set(r.item_id, (r.payload as { opzioneId?: string }) ?? {});
   }
-  const { classifica } = calcolaEvidenzeT3(congelateSicure, attempt.id, risposte);
+  const { classifica, evidenze } = calcolaEvidenzeT3(congelateSicure, attempt.id, risposte);
+  // Le motivazioni d'area (i confronti vinti) esistono già nelle evidenze —
+  // prima venivano calcolate e buttate via. T3 era l'unico esito senza prova a
+  // schermo, ed è quello che afferma di più perché ordina: ora le mostra.
+  const motPerArea = new Map(evidenze.filter((e) => e.area_slug).map((e) => [e.area_slug as string, e.motivazione]));
 
   const { data: segnali } = await supabase
     .from("area_signal")
@@ -287,6 +291,7 @@ async function renderT3(userId: string, supabase: SB) {
     slug: c.area_slug,
     nome: getAreaBySlug(c.area_slug)?.nome ?? c.area_slug,
     status: statusPerArea.get(c.area_slug) ?? "emergente",
+    motivazione: motPerArea.get(c.area_slug),
   }));
   const vincitrice = classifica[0]?.area_slug;
   const missione = vincitrice ? missionePerArea(vincitrice) : null;
@@ -295,7 +300,7 @@ async function renderT3(userId: string, supabase: SB) {
     <div className="space-y-6">
       {Intestazione}
       <div className="flex flex-col gap-3 rounded-2xl border border-white/5 bg-kireo-card p-5 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-kireo-muted">Hai già fatto questo test. Puoi rifarlo quando vuoi: parte dalle aree che sono emerse adesso, quindi le domande possono cambiare.</p>
+        <p className="text-sm text-kireo-muted">Hai già fatto questo test. Puoi rifarlo quando vuoi: parte dal tuo profilo finora — i test e le missioni che hai fatto —, quindi le domande possono cambiare.</p>
         <div className="flex-none"><IniziaTestT3 etichetta="Rifai il test" /></div>
       </div>
       <EsitoT3 righe={righe} missione={missione} />
