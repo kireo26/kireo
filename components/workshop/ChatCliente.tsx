@@ -24,19 +24,19 @@ function UscitaChat({ href }: { href: string }) {
 
 // Contatore leggibile: dice quanti messaggi servono e, appena bastano, che si
 // può consegnare. Non è un obbligo a scrivere di più: è il permesso di smettere.
-function Contatore({ stato }: { stato: StatoChatTappa }) {
+function Contatore({ stato, nomeCliente }: { stato: StatoChatTappa; nomeCliente: string }) {
+  if (stato.raggiuntoMinimo) {
+    return (
+      <span className="text-xs text-kireo-green-light">
+        {stato.minimo}/{stato.minimo} messaggi — {nomeCliente} ha chiuso: puoi consegnare la tappa
+      </span>
+    );
+  }
   if (stato.raggiuntoTetto) {
     return <span className="text-xs text-kireo-muted">Conversazione conclusa per questa tappa — torna al progetto e consegna.</span>;
   }
   if (stato.minimo === 0) {
     return <span className="text-xs text-kireo-muted">{stato.inviati} messaggi inviati</span>;
-  }
-  if (stato.raggiuntoMinimo) {
-    return (
-      <span className="text-xs text-kireo-green-light">
-        {stato.inviati}/{stato.minimo} messaggi — puoi consegnare la tappa
-      </span>
-    );
   }
   return (
     <span className="text-xs text-kireo-muted">
@@ -79,18 +79,13 @@ export default function ChatCliente({
   async function invia(e: React.FormEvent) {
     e.preventDefault();
     const testoInvio = testo.trim();
-    if (!testoInvio || caricamento || stato.raggiuntoTetto) return;
+    if (!testoInvio || caricamento || stato.chiusa) return;
 
     setTesto("");
     setErrore(null);
     setMessaggi((prev) => [...prev, { mittente: "studente", contenuto: testoInvio }]);
     const inviatiDopo = stato.inviati + 1;
-    setStato((s) => ({
-      ...s,
-      inviati: inviatiDopo,
-      raggiuntoMinimo: s.minimo > 0 && inviatiDopo >= s.minimo,
-      raggiuntoTetto: inviatiDopo >= s.tetto,
-    }));
+    setStato((s) => ({ ...s, inviati: inviatiDopo, raggiuntoMinimo: s.minimo > 0 && inviatiDopo >= s.minimo, raggiuntoTetto: inviatiDopo >= s.tetto }));
     setCaricamento(true);
 
     try {
@@ -104,7 +99,14 @@ export default function ChatCliente({
         setErrore(data.errore ?? "Non è stato possibile inviare il messaggio.");
         return;
       }
-      setMessaggi((prev) => [...prev, { mittente: "cliente", contenuto: data.risposta }]);
+      // Alla chiusura arrivano DUE turni del cliente: la risposta vera al
+      // messaggio dello studente, e sotto la battuta di chiusura scritta.
+      setMessaggi((prev) => [
+        ...prev,
+        { mittente: "cliente" as const, contenuto: data.risposta },
+        ...(data.chiusura ? [{ mittente: "cliente" as const, contenuto: data.chiusura }] : []),
+      ]);
+      if (data.chiusa) setStato((s) => ({ ...s, chiusa: true }));
     } catch {
       setErrore("Errore di connessione. Riprova.");
     } finally {
@@ -124,7 +126,7 @@ export default function ChatCliente({
       {/* Uscita in alto, sopra la chat: visibile senza scorrere. */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <UscitaChat href={hrefProgetto} />
-        <Contatore stato={stato} />
+        <Contatore stato={stato} nomeCliente={nomeCliente} />
       </div>
 
       <div className="flex h-[70vh] flex-col rounded-2xl border border-white/5 bg-kireo-card">
@@ -160,13 +162,13 @@ export default function ChatCliente({
             value={testo}
             onChange={(e) => setTesto(e.target.value)}
             maxLength={MAX_CARATTERI_MESSAGGIO_WORKSHOP}
-            placeholder={stato.raggiuntoTetto ? `${nomeCliente} ha chiuso la conversazione` : `Scrivi a ${nomeCliente}...`}
-            disabled={caricamento || stato.raggiuntoTetto}
+            placeholder={stato.chiusa ? `${nomeCliente} ha chiuso la conversazione` : `Scrivi a ${nomeCliente}...`}
+            disabled={caricamento || stato.chiusa}
             className="flex-1 rounded-lg border border-white/10 bg-kireo-dark px-3 py-2 text-sm text-kireo-light placeholder:text-kireo-muted focus:outline-none focus:border-kireo-green disabled:cursor-not-allowed disabled:opacity-50"
           />
           <button
             type="submit"
-            disabled={caricamento || !testo.trim() || stato.raggiuntoTetto}
+            disabled={caricamento || !testo.trim() || stato.chiusa}
             className="rounded-lg bg-kireo-green px-4 py-2 text-sm font-semibold text-kireo-light hover:bg-kireo-green-light disabled:cursor-not-allowed disabled:opacity-50"
           >
             Invia
@@ -180,7 +182,7 @@ export default function ChatCliente({
           risalire per trovarla. */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <UscitaChat href={hrefProgetto} />
-        <Contatore stato={stato} />
+        <Contatore stato={stato} nomeCliente={nomeCliente} />
       </div>
     </div>
   );

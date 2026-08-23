@@ -38,20 +38,21 @@ const CHIUSURA_GENERICA = "Per me abbiamo detto abbastanza. Mettilo nel document
 export const chiusuraCliente = (slug: string) => WORKSHOP_CLIENTE_CHIUSURA[slug] ?? CHIUSURA_GENERICA;
 
 // Regole di conversazione appese al system prompt del cliente ad ogni turno.
-// Vivono qui e non dentro i cinque prompt: sono regole di FORMA, uguali per
-// tutti, e dipendono da quanti messaggi sono già stati scambiati.
+// Vive qui e non dentro i cinque prompt: è una regola di FORMA, uguale per
+// tutti. Riguarda come è fatta OGNI risposta, non quando finisce la
+// conversazione.
 //
-// Due problemi osservati sul primo utente reale, entrambi affrontati qui:
-//   - ogni risposta conteneva due o tre domande → la conversazione si allargava
-//     invece di stringersi. Ora: UNA domanda per messaggio.
-//   - nessuna regola diceva al cliente di FINIRE (c'era «fai domande» e «se
-//     dice di no non mollare», nient'altro) → non chiudeva mai. Ora: superato
-//     il minimo, non apre temi nuovi, tira le somme e rimanda al documento.
-export function regoleConversazione(nome: string, inviati: number, minimo: number): string {
-  const base = `\n\nFORMA DELLA CONVERSAZIONE (vale sempre): fai UNA sola domanda per messaggio, mai due o tre. Tieni le risposte brevi, come si parla di persona.`;
-  if (inviati < minimo) return base;
-  return `${base}\n\nCHIUSURA: lo studente ti ha già detto abbastanza per farti un'idea. NON aprire temi nuovi e non fare altre domande di approfondimento: tira le somme in due righe, di' cosa ti ha convinto e cosa no, e invitalo a mettere tutto nel documento del progetto. Non devi essere convinto del tutto — ti basta avere abbastanza. Se insiste, resta ${nome} ma resta anche fermo: il resto si vede scritto.`;
-}
+// C'ERA ANCHE una regola di CHIUSURA («superato il minimo tira le somme e
+// rimanda al documento»): RIMOSSA il 2026-08-23 perché non funzionava — provata
+// dal vivo sulla tappa 4, il cliente continuava a fare domande oltre il minimo.
+// La chiusura è ora DETERMINISTICA, nel codice (vedi
+// app/api/workshop/cliente-chat/route.ts): raggiunto il minimo della tappa il
+// sistema appende la battuta scritta del personaggio e disabilita il campo.
+// Una regola che il modello non può più applicare sarebbe solo rumore nel
+// prompt — e soprattutto: ciò che possiamo imporre nel codice non si chiede a
+// un modello.
+export const REGOLE_CONVERSAZIONE_CLIENTE =
+  "\n\nFORMA DELLA CONVERSAZIONE (vale sempre): fai UNA sola domanda per messaggio, mai due o tre. Tieni le risposte brevi, come si parla di persona.";
 export const MAX_FILE_SIZE_CONSEGNA = 10 * 1024 * 1024;
 export const TIPI_FILE_CONSEGNA_CONSENTITI = [
   "application/pdf",

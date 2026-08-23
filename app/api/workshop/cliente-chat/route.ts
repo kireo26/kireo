@@ -5,9 +5,8 @@ import {
   MODELLO_CLIENTE_WORKSHOP,
   MAX_CARATTERI_MESSAGGIO_WORKSHOP,
   WORKSHOP_CLIENTE_PROMPTS,
-  WORKSHOP_CLIENTE_NOME,
   chiusuraCliente,
-  regoleConversazione,
+  REGOLE_CONVERSAZIONE_CLIENTE,
 } from "@/lib/workshop/config";
 import { getStatoChatTappa } from "@/lib/workshop/chatTappa";
 
@@ -74,18 +73,25 @@ export async function POST(request: NextRequest) {
     .maybeSingle();
   const stato = await getStatoChatTappa(supabase, iscrizioneId, workshopSlug, ruoloRiga?.slug ?? "");
 
-  if (stato.raggiuntoTetto) {
+  if (stato.chiusa) {
     return erroreDiCortesia(
       `Per questa tappa hai già parlato abbastanza con il cliente. Torna al progetto e consegna la tappa.`,
       429,
     );
   }
 
-  // Il messaggio che raggiunge il tetto riceve la battuta di chiusura scritta
-  // da noi, in personaggio: chiude la conversazione senza costare una chiamata.
-  const chiudeOra = stato.inviati + 1 >= stato.tetto;
+  // CHIUSURA DETERMINISTICA. Il messaggio che raggiunge il MINIMO della tappa
+  // riceve una risposta vera del cliente (l'ultima cosa scritta dallo studente
+  // la merita) e SUBITO SOTTO la battuta di chiusura scritta da noi. Chiudere
+  // era una regola del prompt: non funzionava — provata dal vivo, il cliente
+  // continuava a fare domande oltre il minimo. Ciò che possiamo imporre nel
+  // codice non si chiede a un modello.
+  const raggiungeMinimo = stato.minimo > 0 && stato.inviati + 1 >= stato.minimo;
+  // Il tetto resta la rete per i casi senza minimo (nessuna tappa aperta): lì
+  // la chiusura arriva senza risposta AI, come prima.
+  const raggiungeTetto = stato.inviati + 1 >= stato.tetto;
 
-  const systemPrompt = promptBase + regoleConversazione(WORKSHOP_CLIENTE_NOME[workshopSlug] ?? "il cliente", stato.inviati, stato.minimo);
+  const systemPrompt = promptBase + REGOLE_CONVERSAZIONE_CLIENTE;
 
   // Registra il messaggio dello studente: la funzione applica il tetto di
   // messaggi per iscrizione (vincolo DB reale, non solo applicativo).
@@ -100,9 +106,10 @@ export async function POST(request: NextRequest) {
     return erroreDiCortesia("Non è stato possibile inviare il messaggio. Riprova.", 500);
   }
 
-  // Tetto raggiunto: la chiusura è la nostra, non dell'AI. Registrata comunque
-  // come turno "cliente" per non lasciare due "user" consecutivi nella history.
-  if (chiudeOra) {
+  // Tetto raggiunto senza minimo (nessuna tappa aperta): la chiusura è la
+  // nostra, non dell'AI. Registrata comunque come turno "cliente" per non
+  // lasciare due "user" consecutivi nella history.
+  if (raggiungeTetto && !raggiungeMinimo) {
     const chiusura = chiusuraCliente(workshopSlug);
     const { error: erroreChiusura } = await supabase.rpc("invia_risposta_cliente_workshop", {
       p_iscrizione_id: iscrizioneId,
@@ -118,10 +125,19 @@ export async function POST(request: NextRequest) {
     .eq("iscrizione_id", iscrizioneId)
     .order("created_at", { ascending: true });
 
-  const messaggiAPI = (storico ?? []).map((m) => ({
-    role: (m.mittente === "studente" ? "user" : "assistant") as "user" | "assistant",
-    content: m.contenuto,
-  }));
+  // La chiusura deterministica aggiunge un SECONDO turno "cliente" di fila
+  // (risposta vera + battuta di chiusura). La history però si rilegge tutta a
+  // ogni turno, anche quella delle tappe già chiuse: due "assistant"
+  // consecutivi arriverebbero all'API, che vuole ruoli alternati e risponde
+  // 400 — lo stesso guasto già pagato con i due "user" consecutivi. Qui si
+  // fondono in un turno solo prima di spedire.
+  const messaggiAPI: { role: "user" | "assistant"; content: string }[] = [];
+  for (const m of storico ?? []) {
+    const role = (m.mittente === "studente" ? "user" : "assistant") as "user" | "assistant";
+    const ultimo = messaggiAPI[messaggiAPI.length - 1];
+    if (ultimo && ultimo.role === role) ultimo.content += `\n\n${m.contenuto}`;
+    else messaggiAPI.push({ role, content: m.contenuto });
+  }
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
@@ -149,7 +165,20 @@ export async function POST(request: NextRequest) {
       console.error("Errore nel salvataggio della risposta del cliente:", erroreRisposta);
     }
 
-    return NextResponse.json({ risposta: testoFinale });
+    // Raggiunto il minimo: subito sotto la risposta vera, la battuta di
+    // chiusura del personaggio. Testo nostro, nessuna chiamata AI, sempre in
+    // carattere — ed è il codice a garantirla, non il prompt a chiederla.
+    if (raggiungeMinimo) {
+      const chiusura = chiusuraCliente(workshopSlug);
+      const { error: erroreChiusura } = await supabase.rpc("invia_risposta_cliente_workshop", {
+        p_iscrizione_id: iscrizioneId,
+        p_contenuto: chiusura,
+      });
+      if (erroreChiusura) console.error("Errore nel salvataggio della chiusura del cliente:", erroreChiusura);
+      return NextResponse.json({ risposta: testoFinale, chiusura, chiusa: true });
+    }
+
+    return NextResponse.json({ risposta: testoFinale, chiusa: false });
   } catch (errore) {
     // Log dettagliato per Vercel: con un APIError di Anthropic (modello
     // inesistente, chiave non valida, rate limit...) status/type/message

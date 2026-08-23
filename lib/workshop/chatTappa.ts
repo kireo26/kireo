@@ -18,6 +18,11 @@ export type StatoChatTappa = {
   tetto: number;
   raggiuntoMinimo: boolean;
   raggiuntoTetto: boolean;
+  // La conversazione della tappa è CHIUSA: nessun altro messaggio è possibile.
+  // Chiude il codice, non il modello — raggiunto il minimo il cliente ha
+  // abbastanza, e glielo si fa dire con una battuta scritta (vedi la route).
+  // Il tetto resta come rete per i casi senza minimo (nessuna tappa aperta).
+  chiusa: boolean;
 };
 
 export async function getStatoChatTappa(
@@ -49,11 +54,7 @@ export async function getStatoChatTappa(
   const { count } = await query;
   const inviati = count ?? 0;
 
-  return {
-    inviati,
-    minimo,
-    tetto,
-    raggiuntoMinimo: minimo > 0 && inviati >= minimo,
-    raggiuntoTetto: inviati >= tetto,
-  };
+  const raggiuntoMinimo = minimo > 0 && inviati >= minimo;
+  const raggiuntoTetto = inviati >= tetto;
+  return { inviati, minimo, tetto, raggiuntoMinimo, raggiuntoTetto, chiusa: raggiuntoMinimo || raggiuntoTetto };
 }
