@@ -27,11 +27,13 @@ export default function EsitoT2({
   assi,
   spiegazioni,
   divergenza,
+  prossima,
 }: {
   profilo: Profilo;
   assi: AsseEsito[];
   spiegazioni: SpiegazioneAsse[];
   divergenza: Divergenza;
+  prossima: { cta: string; href: string };
 }) {
   const max = Math.max(1, ...assi.map((a) => a.valore));
   const ordinati = [...assi].sort((a, b) => b.valore - a.valore);
@@ -113,8 +115,8 @@ export default function EsitoT2({
       )}
 
       <div className="flex flex-wrap gap-3">
-        <Link href="/app/escape" className="rounded-full border border-white/10 px-5 py-2 text-sm font-semibold text-kireo-light hover:border-kireo-green">
-          Prova una missione
+        <Link href={prossima.href} className="rounded-full bg-kireo-green px-5 py-2 text-sm font-semibold text-white hover:bg-kireo-green-light">
+          {prossima.cta} →
         </Link>
         <Link href="/app/aree" className="rounded-full border border-white/10 px-5 py-2 text-sm font-semibold text-kireo-light hover:border-kireo-green">
           Esplora le aree

@@ -13,6 +13,7 @@ import EsitoT3, { type RigaEsitoT3 } from "@/components/test/EsitoT3";
 import { assegnaProfilo } from "@/lib/test/profili";
 import { calcolaDivergenza } from "@/lib/test/divergenza";
 import { calcolaEvidenzeT3 } from "@/lib/test/scoring";
+import { getProssimaTappa } from "@/lib/percorso/prossimaTappa";
 import { assemblaT3, selezionaCandidate, T3_FROZEN_ITEM_ID, type CandidateCongelate } from "@/lib/test/assembla-t3";
 import type { AsseStile } from "@/lib/escape/tipi";
 
@@ -118,7 +119,7 @@ export default async function TestPage({ params }: { params: Promise<{ slug: str
             <IniziaTest testSlug={slug} etichetta="Rifai il test" />
           </div>
         </div>
-        <EsitoT2 profilo={profilo} assi={assi} spiegazioni={spiegazioni} divergenza={divergenza} />
+        <EsitoT2 profilo={profilo} assi={assi} spiegazioni={spiegazioni} divergenza={divergenza} prossima={await getProssimaTappa(supabase, contesto.userId)} />
       </div>
     );
   }
@@ -164,7 +165,7 @@ export default async function TestPage({ params }: { params: Promise<{ slug: str
             <IniziaTest testSlug={slug} etichetta="Rifai il test" />
           </div>
         </div>
-        <EsitoTest titolo={test.titolo} aree={aree} />
+        <EsitoTest titolo={test.titolo} aree={aree} prossima={await getProssimaTappa(supabase, contesto.userId)} />
       </div>
     );
   }

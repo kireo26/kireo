@@ -18,7 +18,7 @@ const STATUS_LABEL: Record<AreaEsitoTest["status"], { testo: string; classe: str
   da_verificare: { testo: "Da verificare — segnali contrastanti", classe: "border-kireo-orange/40 text-kireo-orange" },
 };
 
-export default function EsitoTest({ titolo, aree }: { titolo: string; aree: AreaEsitoTest[] }) {
+export default function EsitoTest({ titolo, aree, prossima }: { titolo: string; aree: AreaEsitoTest[]; prossima: { cta: string; href: string } }) {
   return (
     <div className="space-y-5">
       <div className="rounded-2xl border border-kireo-green/30 bg-kireo-green/5 p-6 sm:p-8">
@@ -60,11 +60,11 @@ export default function EsitoTest({ titolo, aree }: { titolo: string; aree: Area
       </p>
 
       <div className="flex flex-wrap gap-3">
+        <Link href={prossima.href} className="rounded-full bg-kireo-green px-5 py-2 text-sm font-semibold text-white hover:bg-kireo-green-light">
+          {prossima.cta} →
+        </Link>
         <Link href="/app/aree" className="rounded-full border border-white/10 px-5 py-2 text-sm font-semibold text-kireo-light hover:border-kireo-green">
           Esplora le aree
-        </Link>
-        <Link href="/app/escape" className="rounded-full border border-white/10 px-5 py-2 text-sm font-semibold text-kireo-light hover:border-kireo-green">
-          Prova una missione
         </Link>
         <Link href="/app" className="rounded-full border border-white/10 px-5 py-2 text-sm font-semibold text-kireo-light hover:border-kireo-green">
           Vai al tuo profilo

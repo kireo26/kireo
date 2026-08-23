@@ -18,7 +18,9 @@ import { caricaContestoPercorso } from "./stato";
 // aggiunge solo la lettura di T2/T3, che quel contesto non copre. Degrada a
 // «niente fatto» su qualunque errore di lettura, mai un crash.
 
-export type ProssimaTappa = { testo: string };
+// testo: la frase (per la card della home, sola indicazione). cta+href: etichetta
+// e destinazione del passo, per chi vuole un bottone (gli esiti dei test).
+export type ProssimaTappa = { testo: string; cta: string; href: string };
 
 export async function getProssimaTappa(supabase: SupabaseClient, studentId: string): Promise<ProssimaTappa> {
   const [contesto, testCompletati] = await Promise.all([
@@ -41,16 +43,17 @@ export async function getProssimaTappa(supabase: SupabaseClient, studentId: stri
   }
 
   // Ladder: dal traguardo più avanzato indietro — sempre un solo esito.
-  if (haMissione) return { testo: "Prova un workshop." };
-  if (t1 && t2 && t3) return { testo: "Le missioni sono aperte." };
-  if (t1 && t2) return { testo: 'Fai "Più a fondo".' };
-  if (t1) return { testo: 'Fai "Come ti muovi".' };
-  if (dueGuideStessaArea) return { testo: 'Fai il test "Da dove parti".' };
+  if (haMissione) return { testo: "Prova un workshop.", cta: "Prova un workshop", href: "/app/workshop" };
+  if (t1 && t2 && t3) return { testo: "Le missioni sono aperte.", cta: "Prova una missione", href: "/app/escape" };
+  if (t1 && t2) return { testo: 'Fai "Più a fondo".', cta: "Fai «Più a fondo»", href: `/app/test/${SLUG_T3}` };
+  if (t1) return { testo: 'Fai "Come ti muovi".', cta: "Fai «Come ti muovi»", href: `/app/test/${SLUG_T2}` };
+  if (dueGuideStessaArea) return { testo: 'Fai il test "Da dove parti".', cta: "Fai «Da dove parti»", href: `/app/test/${SLUG_T1}` };
   if (areeConUnaGuida.length > 0) {
-    const nome = getAreaBySlug(areeConUnaGuida.sort()[0])?.nome;
-    return { testo: nome ? `Leggi la seconda guida di ${nome}.` : "Leggi la seconda guida dell'area che hai iniziato." };
+    const slug = areeConUnaGuida.sort()[0];
+    const nome = getAreaBySlug(slug)?.nome;
+    return { testo: nome ? `Leggi la seconda guida di ${nome}.` : "Leggi la seconda guida dell'area che hai iniziato.", cta: "Leggi la seconda guida", href: `/app/guide/${slug}` };
   }
-  return { testo: "Comincia da una guida: scegli un'area che ti incuriosisce." };
+  return { testo: "Comincia da una guida: scegli un'area che ti incuriosisce.", cta: "Esplora le aree", href: "/app/aree" };
 }
 
 async function leggiTestCompletati(supabase: SupabaseClient, studentId: string): Promise<Set<string>> {
