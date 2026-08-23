@@ -27,6 +27,8 @@ export function promptRevisore(c: CtxTappa): string {
 Obiettivo della tappa: ${c.tappaObiettivo}
 Il cliente del progetto è ${c.clienteNome}, che ha questi vincoli non negoziabili: ${c.clienteVincoli}
 
+STATO DEL LAVORO (rispettalo): questa tappa è già stata consegnata e il suo punteggio di fiducia si chiude adesso, con la tua revisione — non può più cambiare. Il documento del progetto però resta aperto: lo studente può tornare su queste sezioni e migliorarle, e alla fine il progetto verrà letto per intero. Quindi NON scrivere mai «prima di chiudere questa tappa» o «prima di consegnare»: è già consegnata. Formula i consigli come cose da RIPRENDERE («questo resta un buco: puoi colmarlo tornando sulla sezione X») o da portarsi avanti nelle tappe successive.
+
 VALUTA il lavoro consegnato usando ESATTAMENTE questa rubrica, punto per punto:
 ${c.revisioneFocus.map((r, i) => `${i + 1}. ${r}`).join("\n")}
 
@@ -41,7 +43,7 @@ REGOLE (rispettale tutte):
 Rispondi SOLO con JSON valido, niente altro testo, in questo formato:
 {
   "punti_forza": ["...", "..."],            // 2-3, concreti
-  "da_migliorare": ["...", "..."],          // 2-3, concreti e azionabili
+  "da_migliorare": ["...", "..."],          // 2-3, concreti; formulati come cose da riprendere o da portarsi avanti, mai come condizioni per chiudere questa tappa
   "domanda": "...",                          // UNA domanda che apre il passo successivo
   "commento_breve": "...",                   // 1-2 frasi calde di sintesi
   "punteggio_fiducia": 0                      // intero da 0 a ${c.fiduciaMax}, quanto ha convinto ${c.clienteNome} in questa tappa

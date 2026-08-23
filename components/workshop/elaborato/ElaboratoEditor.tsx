@@ -196,6 +196,18 @@ export default function ElaboratoEditor({
               )
             ))}
 
+          {/* Il punteggio della tappa si chiude, il documento no: due misure
+              diverse (la fiducia misura quando hai capito, il progetto finale
+              cosa hai costruito). Senza dirlo, un consiglio del tutor tipo
+              «puoi colmarlo tornando sulla sezione X» resta lettera morta —
+              lo studente non sa di poterci tornare davvero. */}
+          {statoTappa === "revisionata" && (
+            <p className="rounded-2xl border border-white/10 bg-kireo-dark px-4 py-3 text-sm leading-relaxed text-kireo-light/90">
+              Il punteggio di questa tappa è chiuso, ma il documento no: puoi tornare qui e migliorare quello che il tutor ha segnalato. Alla
+              fine il progetto viene letto per intero.
+            </p>
+          )}
+
           {tappa.sezioni.map((sezione) => (
             <SezioneEditor
               key={sezione.id}
