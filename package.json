@@ -14,6 +14,7 @@
     "test:guide": "node scripts/verifica-guide.js",
     "test:finale": "node scripts/verifica-finale-riporta.js",
     "schede": "node scripts/schede-missioni.js",
+    "misura:genere": "node scripts/misura-genere-revisori.js",
     "censimento": "node scripts/censimento-motore.js"
   },
   "dependencies": {
