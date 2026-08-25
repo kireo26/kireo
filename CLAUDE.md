@@ -555,6 +555,13 @@ Ogni pagina in cui uno studente entra deve avere **un modo dichiarato di uscirne
 - La nav (sidebar/tab bar di `AppShell`) risponde a «dove posso andare», **non** a «posso smettere»: sono due domande diverse. Le pagine di sezione (Home, Aree, Test, Guide…) sono destinazioni della nav e bastano a sé; le **chat** no — lì lo studente non naviga, conversa, e senza un'uscita esplicita aspetta che sia l'altro a chiudere.
 - Le due chat del progetto (cliente workshop, assistente digitale) hanno un bottone «**Interrompi la conversazione e torna a…**» in alto (visibile senza scorrere) e in fondo sotto il campo. Il verbo «interrompi» è deliberato: dice che può fermarsi lui, senza il permesso dell'altro. Qualunque chat futura va costruita così.
 
+## La lingua di KIREO: forma invariante (regola di scrittura)
+KIREO **non conosce il genere di chi legge**: non è in `profiles`, non è mai stato chiesto, e non lo chiederemo. Ogni frase rivolta a uno studente deve poter essere letta da una ragazza e da un ragazzo **senza cambiare una lettera**. Non è un ripiego in attesa del dato: è la lingua del prodotto.
+- **La leva è una sola**: il participio con *avere* non concorda mai («hai preso», «hai scelto», «hai messo»), quello con *essere*/riflessivo sì («ti sei preso»). Quasi ogni riscrittura passa da lì. Per il resto: giri di frase a desinenza fissa («alle strette», «per conto tuo», «a tuo agio», «con calma»).
+- **Vale anche per le cornici composte** (`componiPerformance`): l'invariante era già «nessuna cornice concorda con l'ETICHETTA» — ora ha un secondo asse, «nessuna cornice concorda con CHI LEGGE».
+- **Sorvegliato**: `npm run test:finale`, famiglia `accordo-di-genere`. I pattern stanno in `scripts/lib/accordo-genere.js`, un posto solo (li usa anche `npm run misura:genere`). Coprono maschile e femminile **singolare**: il plurale resta fuori di proposito (il lettore è sempre uno, e includerlo cattura parole comuni — «sei mesi»).
+- **Il testo generato dall'AI non è coperto dal test**: lì si può solo scrivere una regola nel prompt, che orienta e non garantisce (vedi «Prompt e garanzie»). Prima di aggiungerla si misura con `npm run misura:genere` (3 revisori × 5 giri, con e senza regola): senza quel numero sarebbe una speranza, non una decisione.
+
 ## Convenzioni
 - Commenti nel codice in italiano
 - Componenti riutilizzabili in /components
