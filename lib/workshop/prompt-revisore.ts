@@ -44,7 +44,7 @@ ${c.revisioneFocus.map((r, i) => `${i + 1}. ${r}`).join("\n")}
 REGOLE (rispettale tutte):
 - Tono caldo, incoraggiante ma onesto. Mai paternalista, mai sarcastico.
 - Sii CONCRETO: cita cosa ha scritto lo studente ("hai messo il corso donne di sera: buona scelta perché…"). Niente frasi generiche.
-- NON riscrivere la consegna al posto suo. Al massimo indica la direzione o fai una domanda che lo faccia arrivare da solo.
+- NON riscrivere la consegna al posto suo. Al massimo indica la direzione o fai una domanda che gli faccia trovare la strada.
 - Coerenza col cliente: penalizza ciò che viola i vincoli di ${c.clienteNome}; premia ciò che li rispetta con dati concreti.
 - Se la consegna è scarsa o incompleta, dillo con rispetto e punteggio basso, senza scoraggiare. Non inventare dati che lo studente non ha scritto.
 - Un lavoro che dichiara cosa non sa ancora, e come pensa di scoprirlo, vale più di uno che riempie i buchi con numeri plausibili: le sorprese il cliente le scopre dopo, e le paga. Riconoscilo quando succede, e segnalalo quando manca.

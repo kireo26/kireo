@@ -70,7 +70,7 @@ const NARRATIVA: Record<string, Narrativa> = {
 
   "guasto-serra": {
     costruito: (mandato, topVoce) =>
-      `Sei partito dall'ipotesi ${mandato.label} ${mandato.frase.charAt(0).toLowerCase()}${mandato.frase.slice(1)}` +
+      `Hai iniziato dall'ipotesi ${mandato.label} ${mandato.frase.charAt(0).toLowerCase()}${mandato.frase.slice(1)}` +
       (topVoce ? ` Delle sei ore, ne hai messe di più su «${topVoce}».` : ""),
     occasioni: [
       { quando: (c) => facciataTenuta(c, "raddoppiare") && !c.letti.has("M6"), testo: "Avresti raddoppiato la durata dell'irrigazione. La valvola B, sotto 0,8 bar, non si apre affatto: raddoppiare zero fa zero. Era nel manuale della pompa, che non hai aperto." },
@@ -95,7 +95,7 @@ const NARRATIVA: Record<string, Narrativa> = {
 
   "sportello-insieme": {
     costruito: (mandato, topVoce) =>
-      `Hai deciso con la regola ${mandato.label}.` + (topVoce ? ` Il tempo più lungo, quando eri stretto, è andato a «${topVoce}».` : ""),
+      `Hai deciso con la regola ${mandato.label}.` + (topVoce ? ` Il tempo più lungo, quando eri alle strette, è andato a «${topVoce}».` : ""),
     occasioni: [
       { quando: (c) => facciataTenuta(c, "chiedi_identita"), testo: "Hai risposto alla mail chiedendo chi fosse. È la domanda che verrebbe a chiunque. Ma sei mesi fa era già successo, e quella persona non ha più scritto. C'era una nota che lo spiegava: non l'hai aperta." },
       { quando: (c) => !c.letti.has("M5"), testo: "La segnalazione della scuola andava trasmessa entro 48 ore, ed erano scadute stamattina. Sembrava la richiesta meno urgente delle cinque: era quella con il termine più stretto." },
@@ -107,7 +107,7 @@ const NARRATIVA: Record<string, Narrativa> = {
 
   "filiera-borea": {
     costruito: (mandato, topVoce) =>
-      `Sei partito dall'idea ${mandato.label}.` + (topVoce ? ` Nel piano, la voce su cui hai speso di più è stata «${topVoce}».` : ""),
+      `Hai iniziato dall'idea ${mandato.label}.` + (topVoce ? ` Nel piano, la voce su cui hai speso di più è stata «${topVoce}».` : ""),
     occasioni: [
       { quando: (c) => facciataTenuta(c, "beta_dichiara"), testo: "Hai scelto Beta e l'hai scritto in etichetta. Costava meno ed era più vicino: sulla carta la scelta migliore. Ma il riciclato non era tracciabile, e la responsabilità di quella frase era di Borea. Due anni fa un concorrente distrusse sessantamila confezioni per lo stesso motivo." },
       { quando: (c) => !(c.letti.has("M7") && c.letti.has("M8")), testo: "Il ventuno per cento dell'impatto stava nei trasporti, e quasi tutto in fibbie e zip che arrivavano dalla Cina in aereo. C'era un fornitore europeo a trentacinque centesimi. Guardavi il tessuto e il guadagno più grande era altrove." },
@@ -129,7 +129,7 @@ const NARRATIVA: Record<string, Narrativa> = {
       { quando: (c) => !c.letti.has("M5"), testo: "Hai lasciato la Filarmonica fuori dalla serata. Con ventitré elementi poteva fare quattro pezzi già eseguiti l'anno scorso. Il direttore non l'aveva proposto perché si vergognava: bastava chiederglielo." },
       { quando: (c) => !c.letti.has("M12"), testo: "Nel 2019 la gente non si arrabbiò per il cambio di programma: si arrabbiò per averlo scoperto in piazza. Era un precedente che non hai chiesto." },
       { quando: (c) => c.alloc !== undefined && c.letti.has("M12") && speso(c, "ringraziamento") === 0, testo: "Sapevi del 2019, ma non hai lasciato un minuto per spiegare al pubblico cosa stava succedendo: è esattamente quello che due anni fa fece arrabbiare la gente." },
-      { quando: (c) => assegnatoA(c, "direttore", "io"), testo: "Ti sei preso il compito più scomodo della serata: convincere un uomo che si vergognava a salire lo stesso." },
+      { quando: (c) => assegnatoA(c, "direttore", "io"), testo: "Hai preso su di te il compito più scomodo della serata: convincere un uomo che si vergognava a salire lo stesso." },
     ],
   },
 
@@ -138,8 +138,8 @@ const NARRATIVA: Record<string, Narrativa> = {
       `Hai deciso di muoverti così: ${mandato.label} — ${mandato.frase.charAt(0).toLowerCase()}${mandato.frase.slice(1)}` +
       (topVoce ? ` Delle nove giornate, la fetta più grande l'hai messa su «${topVoce}».` : ""),
     occasioni: [
-      { quando: (c) => facciataTenuta(c, "faccio_da_solo") && !c.letti.has("M8"), testo: "Hai deciso di finire la guida da solo. È la scelta più generosa della missione e avrebbe funzionato: la guida sarebbe uscita. Ma la valutazione era sul contributo di ciascuno, e chi fa tutto lascia gli altri senza contributo — compreso sé stesso. L'anno scorso era già andata così." },
-      { quando: (c) => facciataTenuta(c, "faccio_da_solo") && c.letti.has("M8"), testo: "Hai scelto di fare tutto da solo anche sapendo, dalla nota della prof che avevi letto, che così lasci gli altri senza un contributo da valutare — e abbassi anche il tuo voto." },
+      { quando: (c) => facciataTenuta(c, "faccio_da_solo") && !c.letti.has("M8"), testo: "Hai deciso di finire la guida per conto tuo. È la scelta più generosa della missione e avrebbe funzionato: la guida sarebbe uscita. Ma la valutazione era sul contributo di ciascuno, e chi fa tutto lascia gli altri senza contributo — compreso sé stesso. L'anno scorso era già andata così." },
+      { quando: (c) => facciataTenuta(c, "faccio_da_solo") && c.letti.has("M8"), testo: "Hai scelto di fare tutto per conto tuo anche sapendo, dalla nota della prof che avevi letto, che così lasci gli altri senza un contributo da valutare — e abbassi anche il tuo voto." },
       { quando: (c) => !c.letti.has("M4"), testo: "In quel gruppo c'era una persona che parla tre lingue e non ha mai scritto un messaggio in chat. Non per disinteresse: per paura di sbagliare a scrivere in italiano davanti agli altri. Le traduzioni sono uscite da un traduttore automatico mentre lui era seduto lì." },
       { quando: (c) => !c.letti.has("M5"), testo: "Elisa non si era tirata indietro: assisteva sua nonna tutti i pomeriggi. Poteva lavorare la mattina da casa, e nessuno gliel'ha chiesto." },
       { quando: (c) => !c.letti.has("M6"), testo: "La frase di Tommaso non veniva dal nulla: l'anno prima aveva fatto quasi tutto il lavoro e il voto era stato uguale per tutti. Era memoria, non altro." },
@@ -270,14 +270,14 @@ export function costruisciRestituzione(slug: string, get: LeggiRisposta, areeTop
   let ipotesi: string | null = null;
   if (areeTop.length > 0) {
     const nomi = areeTop.slice(0, 3).map((a) => a.nome);
-    ipotesi = `Da come hai messo in ordine le priorità e da dove hai messo le risorse quando eri stretto, le aree che si sono attivate di più sono ${elenco(nomi)}. È un'ipotesi, non un verdetto: serve un'altra missione per capire se regge.`;
+    ipotesi = `Da come hai messo in ordine le priorità e da dove hai messo le risorse quando eri alle strette, le aree che si sono attivate di più sono ${elenco(nomi)}. È un'ipotesi, non un verdetto: serve un'altra missione per capire se regge.`;
   }
 
   // ── nota da_verificare (autoefficacia≠performance)
   let notaVerifica: string | null = null;
   const daVerificare = areeTop.find((a) => a.status === "da_verificare");
   if (daVerificare) {
-    notaVerifica = `Su ${daVerificare.nome} c'è un segnale interessante: la fiducia che ti sei dato e come te la sei cavata davvero non vanno nella stessa direzione. Vale la pena controllare se ti succede spesso — a volte ci si sottovaluta.`;
+    notaVerifica = `Su ${daVerificare.nome} c'è un segnale interessante: la fiducia che avevi prima di scrivere e come te la sei cavata davvero non vanno nella stessa direzione. Vale la pena controllare se ti succede spesso — a volte ci si sottovaluta.`;
   }
 
   return { costruito, metodo, occasioni, ipotesi, notaVerifica };

@@ -514,7 +514,7 @@ const SPEC: Record<string, ScoringSpec> = {
   [SLUG_CLASSE]: {
     pesi: { ...PESI_BASE, mandato: 1.4, budgetPerf: 1.4, scartoPerf: 1.5, previsione: 1.0, passi: 1.0 },
     esploraTesti: {
-      conBonus: "Ti sei fermato su un dettaglio che nessuno aveva notato: in centoquaranta messaggi, una persona non ne ha mai scritto uno. È l'assenza che parla più forte.",
+      conBonus: "Hai dato peso a un dettaglio che nessuno aveva notato: in centoquaranta messaggi, una persona non ne ha mai scritto uno. È l'assenza che parla più forte.",
       base: "Hai guardato le schede, la chat e cosa chiede il progetto prima di muoverti: parti dai fatti, non dalle impressioni.",
     },
     pianificaIdeali: ["chiedere_cosa_sa", "scrivere_compiti", "quattrocchi"],
@@ -537,7 +537,7 @@ const SPEC: Record<string, ScoringSpec> = {
       // l'esecuzione» (non ci si appoggia, ci si carica). Override segnalato per
       // la riscrittura testuale.
       const troppa = esec > totale * 0.6;
-      desc.push({ tipo: "negativo", label: "tutta l'esecuzione", presente: troppa, testoBuona: "Non ti sei preso tutta l'esecuzione da solo.", testoMigliora: "Ti sei preso tutta l'esecuzione da solo." });
+      desc.push({ tipo: "negativo", label: "tutta l'esecuzione", presente: troppa, testoBuona: "Non hai preso su di te tutta l'esecuzione.", testoMigliora: "Hai preso su di te tutta l'esecuzione." });
       return { valore: clamp01(max > 0 ? punti / max : 0.5), voci: desc };
     },
     assegnaSegnali: [
@@ -560,7 +560,7 @@ const SPEC: Record<string, ScoringSpec> = {
   [SLUG_VIAGGIO]: {
     pesi: { ...PESI_BASE, mandato: 1.4, budgetPerf: 1.5, scartoPerf: 1.5, previsione: 1.0, passi: 1.0 },
     esploraTesti: {
-      conBonus: "Ti sei fermato sulla frase di Nadir, scritta a penna e ripetuta in corridoio: sta dicendo due volte una cosa che non pensa davvero. È il segnale più importante della missione.",
+      conBonus: "Hai dato peso alla frase di Nadir, scritta a penna e ripetuta in corridoio: sta dicendo due volte una cosa che non pensa davvero. È il segnale più importante della missione.",
       base: "Hai guardato preventivo, voci del gruppo e conti prima di decidere: parti dai fatti, non dalle apparenze.",
     },
     pianificaIdeali: ["strutture_accessibili", "fondo_a_tutti", "verificare_accessibilita"],
@@ -864,7 +864,7 @@ export async function calcolaEvidenze(
             dimensione: "self_efficacy",
             valore: clamp01(fiducia / 100),
             peso: P.previsione,
-            motivazione: `Prima di scrivere ti eri dato una fiducia ${fiducia >= 60 ? "alta" : fiducia >= 40 ? "media" : "prudente"} su questo lavoro.`,
+            motivazione: `Prima di scrivere la tua fiducia era ${fiducia >= 60 ? "alta" : fiducia >= 40 ? "media" : "prudente"} su questo lavoro.`,
             step_id: s.id,
           });
         }
@@ -950,9 +950,9 @@ export async function calcolaEvidenze(
         const ass = p?.assegnazioni ?? {};
         for (const r of s.ruoli) {
           if (ass[r.id] !== "io") continue;
-          evidenze.push({ categoria: "area", area_slug: r.area, dimensione: "interest", valore: 0.8, peso: P.ruoli, motivazione: `Ti sei preso «${r.label.toLowerCase()}»: un compito che senti tuo.`, step_id: s.id });
+          evidenze.push({ categoria: "area", area_slug: r.area, dimensione: "interest", valore: 0.8, peso: P.ruoli, motivazione: `Hai preso su di te «${r.label.toLowerCase()}»: un compito che senti tuo.`, step_id: s.id });
           evidenze.push({ categoria: "area", area_slug: r.area, dimensione: "self_efficacy", valore: 0.8, peso: P.ruoli, motivazione: `Prendendoti «${r.label.toLowerCase()}» hai mostrato di sentirti capace.`, step_id: s.id });
-          pushAssi(r.assi, 1, `Ti sei preso «${r.label.toLowerCase()}».`, s.id);
+          pushAssi(r.assi, 1, `Hai preso su di te «${r.label.toLowerCase()}».`, s.id);
         }
         break;
       }
@@ -968,8 +968,8 @@ export async function calcolaEvidenze(
         for (const c of s.compiti) {
           if (ass[c.id] === "io") {
             ioCount++;
-            evidenze.push({ categoria: "area", area_slug: c.area, dimensione: "self_efficacy", valore: 0.6, peso: P.ruoli, motivazione: `Ti sei preso «${c.label.toLowerCase()}».`, step_id: s.id });
-            pushAssi(c.assi, 1, `Ti sei preso «${c.label.toLowerCase()}».`, s.id);
+            evidenze.push({ categoria: "area", area_slug: c.area, dimensione: "self_efficacy", valore: 0.6, peso: P.ruoli, motivazione: `Hai preso su di te «${c.label.toLowerCase()}».`, step_id: s.id });
+            pushAssi(c.assi, 1, `Hai preso su di te «${c.label.toLowerCase()}».`, s.id);
           }
         }
         for (const seg of spec.assegnaSegnali ?? []) {
@@ -1012,7 +1012,7 @@ export async function calcolaEvidenze(
         // aree («ti sei sentito a tuo agio») — non dice competenza in nessuna →
         // una riga di qualità di missione, senza area (era una per area).
         if (emesse > 0) {
-          evidenze.push({ area_slug: null, categoria: "qualita_missione", dimensione: "self_efficacy", valore: maxSelfEff, peso: P.ai, motivazione: "Ti sei sentito a tuo agio mentre ripensavi al percorso.", step_id: s.id });
+          evidenze.push({ area_slug: null, categoria: "qualita_missione", dimensione: "self_efficacy", valore: maxSelfEff, peso: P.ai, motivazione: "Eri a tuo agio mentre ripensavi al percorso.", step_id: s.id });
         }
         break;
       }

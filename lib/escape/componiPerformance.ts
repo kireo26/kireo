@@ -4,7 +4,7 @@
 //
 //   appartenenza — «hai tenuto/finanziato X» sse X è nella selezione
 //   limite       — «hai speso X su Y {unità}» sse dentro; «sforato: X su Y {unità}» sse oltre
-//   soglia       — SEMPRE (fattuale): «hai messo a su b €» / «sei arrivato al n%»
+//   soglia       — SEMPRE (fattuale): «hai messo a su b €» / «sei al n%»
 //   negativo     — «hai evitato X» sse evitato; «hai scelto X» sse preso
 //   dipendenze   — «ordine rispettato», oppure «Prima andava Y, poi X»
 //   passi        — «I tuoi primi passi, in ordine: {lista}» (fatto, sempre)
@@ -83,7 +83,7 @@ export function componiPerformance(
       else clausole.push(giorni ? `Hai usato ${u} giorni su ${d}.` : `Hai speso ${u} su ${d} ${v.unita}.`);
     } else if (v.tipo === "soglia") {
       // Sempre emessa, fattuale — vera al pieno, a metà, a zero: nessuno stato muto.
-      clausole.push(v.stile === "finanziamento" ? `Per ${v.label} hai messo ${raggruppa(v.usato)} su ${raggruppa(v.soglia)} €.` : `Per ${v.label} sei arrivato al ${Math.round(v.usato)}%.`);
+      clausole.push(v.stile === "finanziamento" ? `Per ${v.label} hai messo ${raggruppa(v.usato)} su ${raggruppa(v.soglia)} €.` : `Per ${v.label} sei al ${Math.round(v.usato)}%.`);
     } else if (v.tipo === "negativo") {
       if (buona && !v.presente) clausole.push(v.testoBuona ?? `Hai evitato ${v.label}.`);
       else if (!buona && v.presente) clausole.push(v.testoMigliora ?? `Hai scelto ${v.label}.`);

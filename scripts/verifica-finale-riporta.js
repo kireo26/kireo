@@ -54,6 +54,7 @@ require.extensions[".ts"] = require.extensions[".tsx"] = function (mod, filename
 const { componiPerformance } = require("@/lib/escape/componiPerformance");
 const { getMissione, stepDellaMissione } = require("@/lib/escape/config");
 const { descrittoriPerformancePerTest } = require("@/lib/escape/scoring");
+const { PATTERN_ACCORDO } = require("./lib/accordo-genere");
 
 let falliti = 0;
 const ok = (cond, msg) => { if (!cond) { console.error("  ✗ " + msg); falliti++; } else { console.log("  ✓ " + msg); } };
@@ -80,7 +81,7 @@ const CORNICI_APPROVATE = [
   { nome: "limite/dentro/soldi", re: /^Hai speso -?[\d.]+ su -?[\d.]+ \S+\.$/ },
   { nome: "limite/oltre/soldi", re: /^Hai sforato: -?[\d.]+ su -?[\d.]+ \S+\.$/ },
   { nome: "soglia/finanziamento", re: /^Per .+ hai messo -?\d[\d.]* su -?\d[\d.]* €\.$/ },
-  { nome: "soglia/livello", re: /^Per .+ sei arrivato al -?\d+%\.$/ },
+  { nome: "soglia/livello", re: /^Per .+ sei al -?\d+%\.$/ },
   { nome: "negativo/buona", re: /^Hai evitato .+\.$/ },
   { nome: "negativo/migliora", re: /^Hai scelto .+\.$/ },
   { nome: "dipendenze/buona", re: /^Hai rispettato l'ordine dei lavori\.$/ },
@@ -101,8 +102,8 @@ const CORNICI_APPROVATE = [
 // LIBERE che bypassano le cornici. Sono ammesse solo se dichiarate QUI, come
 // stringhe esatte — così un override nuovo non entra senza revisione.
 const OVERRIDE_APPROVATI = new Set([
-  "Non ti sei preso tutta l'esecuzione da solo.",
-  "Ti sei preso tutta l'esecuzione da solo.",
+  "Non hai preso su di te tutta l'esecuzione.",
+  "Hai preso su di te tutta l'esecuzione.",
 ]);
 
 // Divide una frase composta nelle sue clausole (giunte da ". ").
@@ -221,8 +222,8 @@ console.log("═══ FORMA 1 — cornici composte (lista chiusa) ═══\n")
     { v: 0.5, voci: [{ tipo: "soglia", label: "il traguardo del 20%", stile: "livello", usato: 15, soglia: 20 }], mecc: "piano" },
     { v: 0.7, voci: [{ tipo: "negativo", label: "la tariffa d'emergenza", presente: false }], mecc: "budget" },
     { v: 0.3, voci: [{ tipo: "negativo", label: "la tariffa d'emergenza", presente: true }], mecc: "budget" },
-    { v: 0.7, voci: [{ tipo: "negativo", label: "x", presente: false, testoBuona: "Non ti sei preso tutta l'esecuzione da solo." }], mecc: "budget" },
-    { v: 0.3, voci: [{ tipo: "negativo", label: "x", presente: true, testoMigliora: "Ti sei preso tutta l'esecuzione da solo." }], mecc: "budget" },
+    { v: 0.7, voci: [{ tipo: "negativo", label: "x", presente: false, testoBuona: "Non hai preso su di te tutta l'esecuzione." }], mecc: "budget" },
+    { v: 0.3, voci: [{ tipo: "negativo", label: "x", presente: true, testoMigliora: "Hai preso su di te tutta l'esecuzione." }], mecc: "budget" },
     { v: 0.7, voci: [{ tipo: "dipendenze", rispettato: true }], mecc: "piano" },
     { v: 0.3, voci: [{ tipo: "dipendenze", rispettato: false, coppiaViolata: { prima: "il controsoffitto", dopo: "la copertura" } }], mecc: "piano" },
     { v: 0.3, voci: [{ tipo: "dipendenze", rispettato: false }], mecc: "piano" },
@@ -265,6 +266,10 @@ const LESSICO = {
     /\bsaggio\b/, /\bcoraggioso\b/, /\bbrillante\b/, /\bnotevole\b/, /\bottim\w*/,
     /\bben fatto\b/, /\befficace\b/,
   ],
+  // Terza famiglia: le forme che CONCORDANO col genere di chi legge. La
+  // definizione dei pattern (e il perché di ognuno) sta in un posto solo,
+  // scripts/lib/accordo-genere.js, condiviso con la misura sui revisori AI.
+  "accordo-di-genere": PATTERN_ACCORDO,
   "dichiara-significato": [
     /è la risposta più/, /è uno stile, non/, /questo cambia tutto/,
     /vuol dire che sei/, /sopra le impressioni/, /senza vantart\w*/,
@@ -285,9 +290,25 @@ const WHITELIST = new Map([
     "«sapevi» sostenuto da M12 letto: informazione che aveva davanti, non stato mentale"],
   ["Sapevi, dal dettaglio sugli edifici pubblici, che scuole vuote, piscina chiusa e fontane accese sprecavano un 5% a costo zero e senza colpire nessuno — e non l'hai messo nel pacchetto.",
     "«sapevi, dal dettaglio» sostenuto da M8 letto: cita la fonte, non la testa"],
+  ["Il tuo piano contava su tre operatori. Dalle 11 in poi ne restavano due, e una non poteva gestire un colloquio da sola.",
+    "«da sola» è l'operatrice del turno, non lo studente: qui l'accordo è corretto"],
+  ["I dati che hai aperto dicevano che il fabbisogno agricolo è concentrato a luglio e che dopo il 20 agosto crolla da solo dell'80%. Tagliare l'acqua all'agricoltura a metà agosto sarebbe stato un sacrificio grosso per un risparmio quasi nullo.",
+    "«da solo» è il fabbisogno idrico, non lo studente"],
   ["Undici idee in tre settimane, tutte accolte con «bella idea» e nessuna scelta. Due erano ottime. Non serviva frenare nessuno: serviva che qualcuno decidesse.",
     "«ottime» giudica le idee del gruppo (opzioni che la missione definisce), non lo studente"],
 ]);
+
+// Whitelist della sola famiglia accordo-di-genere: stesse regole (stringa intera,
+// ragione accanto), tenuta separata perché le ragioni sono di natura diversa —
+// lì il fatto è ammesso, qui l'accordo è corretto o la frase non arriva mai allo
+// studente. Le due mappe sono unite subito sotto: il resto del test ne vede una.
+const WHITELIST_GENERE = new Map([
+  [" c'è un segnale interessante: la fiducia che avevi prima di scrivere e come te la sei cavata davvero non vanno nella stessa direzione. Vale la pena controllare se ti succede spesso — a volte ci si sottovaluta.",
+    "«te la sei cavata» concorda con il pronome «la» (la cosa), non con chi legge: invariante per costruzione"],
+  ["Hai messo la persona giusta al posto giusto, con criterio.",
+    "motivazione di STILE (argomento posizionale di pushAssi): alimenta style_signal, mai letta dal finale — page.tsx mostra solo categoria='area' e qualita_missione"],
+]);
+for (const [k, v] of WHITELIST_GENERE) WHITELIST.set(k, v);
 
 function scanFamiglie(testo) {
   const t = testo.toLowerCase();
@@ -301,20 +322,16 @@ function scanFamiglie(testo) {
   return colpi;
 }
 
-// Raccoglie stringhe (letterali + parti dei template) con la riga. Due modalità:
-//   soloMotivazione=false → tutte le stringhe (restituzione.ts: è tutto finale
-//     narrativo, nessun prompt).
-//   soloMotivazione=true → SOLO le stringhe che sono (o sono annidate in) il
-//     valore di un `motivazione:` (scoring.ts). È ESATTAMENTE la superficie
-//     mostrata allo studente: page.tsx costruisce «Perché lo diciamo» dalle
-//     motivazioni categoria='area' (riga 63) e «il ragionamento» dalle
-//     qualita_missione (riga 174). Le motivazioni di STILE (pushAssi: arg
-//     posizionale, non una chiave `motivazione:`) alimentano style_signal e NON
-//     sono mai lette nel finale — restano fuori. I prompt del revisore restano
-//     fuori per costruzione (non sono mai il valore di un `motivazione:`). Se un
-//     giorno un consumatore mostrerà lo stile, questa scansione va allargata con
-//     lui — è la stessa regola: il tripwire guarda ciò che lo studente legge.
-function stringheDelFile(rel, { soloMotivazione }) {
+// Raccoglie TUTTE le stringhe (letterali + parti dei template) con la riga, e
+// toglie solo i prompt quando `escludiPrompt`.
+//
+// Una versione precedente filtrava sulle sole `motivazione:` — e proprio per
+// questo non vedeva `testoBuona`/`testoMigliora`, `esploraTesti` e le stringhe
+// di `pushAssi`: il rilevatore non trovava il caso che l'aveva fatto scrivere.
+// Da qui la regola: si scansiona tutto, e ciò che non arriva allo studente si
+// dichiara in whitelist con la sua ragione (dove resta leggibile) invece di
+// sparire dentro un filtro (dove nessuno la ritrova).
+function stringheDelFile(rel, { escludiPrompt }) {
   const src = fs.readFileSync(path.join(ROOT, rel), "utf8");
   const sf = ts.createSourceFile(path.basename(rel), src, ts.ScriptTarget.Latest, true);
   const out = [];
@@ -328,23 +345,19 @@ function stringheDelFile(rel, { soloMotivazione }) {
     }
     ts.forEachChild(node, raccogli);
   };
-  if (soloMotivazione) {
-    const walk = (node) => {
-      if (ts.isPropertyAssignment(node) && node.name.getText(sf) === "motivazione") raccogli(node.initializer);
-      ts.forEachChild(node, walk);
-    };
-    walk(sf);
-  } else {
-    raccogli(sf);
-  }
-  return out;
+  raccogli(sf);
+  // I PROMPT dei revisori sono istruzioni al modello, non testo mostrato: il
+  // revisore giudica perché ha letto, il finale riporta perché ha solo numeri.
+  // Riconosciuti dalla riga-persona / dall'istruzione di formato, presenti in
+  // ogni prompt e in nessuna frase del finale.
+  return escludiPrompt ? out.filter((r) => !/analista di orientamento|Rispondi SOLO|Sei un tutor/i.test(r.testo)) : out;
 }
 
 console.log("\n═══ FORMA 2 — parole-verdetto nelle frasi cablate ═══\n");
 
 const bersagli = [
-  ...stringheDelFile("lib/escape/restituzione.ts", { soloMotivazione: false }),
-  ...stringheDelFile("lib/escape/scoring.ts", { soloMotivazione: true }),
+  ...stringheDelFile("lib/escape/restituzione.ts", { escludiPrompt: false }),
+  ...stringheDelFile("lib/escape/scoring.ts", { escludiPrompt: true }),
 ];
 
 const catturati = [];
@@ -368,6 +381,18 @@ if (catturati.length === 0) {
   });
 }
 ok(catturati.length === 0, `nessuna parola-verdetto fuori whitelist (${catturati.length} catture)`);
+
+// La whitelist è essa stessa una seconda fonte di verità: se una frase viene
+// riscritta e la sua voce resta qui, la voce non protegge più niente ma continua
+// a sembrare una decisione presa. Quindi ogni voce deve corrispondere a una
+// stringa ancora presente nel codice — altrimenti il test fallisce nominandola.
+const testiPresenti = new Set(bersagli.map((b) => b.testo));
+const orfane = [...WHITELIST.keys()].filter((k) => !testiPresenti.has(k));
+if (orfane.length) {
+  console.error(`\n  ${orfane.length} voci di whitelist ORFANE (la frase non esiste più nel codice):\n`);
+  orfane.forEach((o, i) => console.error(`  [${i + 1}] ${o.slice(0, 160)}${o.length > 160 ? "…" : ""}\n`));
+}
+ok(orfane.length === 0, `nessuna voce di whitelist orfana (${orfane.length} orfane)`);
 
 // ═══════════════════════════════════════════════════════════════════════════
 console.log("\n═══════════════════════════════════════════");
