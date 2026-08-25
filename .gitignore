@@ -48,3 +48,7 @@ scripts/data/
 
 # Output del censimento del motore Escape (generato da scripts/censimento-motore.js)
 censimento-output/
+
+# Schede di gioco Escape: generate da `npm run schede`, mai committate
+# (sarebbero una seconda fonte di verita' che invecchia in silenzio).
+schede-missioni.md

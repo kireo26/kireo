@@ -13,6 +13,7 @@
     "test:t3": "node scripts/verifica-t3.js",
     "test:guide": "node scripts/verifica-guide.js",
     "test:finale": "node scripts/verifica-finale-riporta.js",
+    "schede": "node scripts/schede-missioni.js",
     "censimento": "node scripts/censimento-motore.js"
   },
   "dependencies": {
