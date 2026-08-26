@@ -15,6 +15,8 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { AREE, getAreaBySlug } from "@/data/aree";
 import { chiamaJson, type EsitoAI } from "@/lib/ai/chiamaJson";
+import { cifreNonCitabili, insiemeCifreCitabili } from "@/lib/escape/cifreCitabili";
+import { stringheInJson } from "@/lib/lingua/scansione";
 import { componiPerformance, type DescrittoreVoce } from "./componiPerformance";
 import type {
   AsseStile,
@@ -606,6 +608,7 @@ export function descrittoriPerformancePerTest(
 ): { valore: number; voci: DescrittoreVoce[]; meccanismo: "piano" | "budget" } | null {
   const spec = SPEC[mission.slug] ?? SPEC[SLUG_QUARTIERE];
   const letti = materialiLetti(get);
+
   for (const s of stepDellaMissione(mission)) {
     if (s.tipo === "alloca_budget" && spec.budgetPerformance) {
       const p = get(s.id) as PayloadAlloca | undefined;
@@ -632,8 +635,8 @@ const PROMPT_NON_APPROFONDIRE =
 // Escape, così i tre call-site (non-approfondire, proposta, riflessione)
 // ricevono un EsitoAI tipizzato — un fallimento (chiamata o estrazione) è un
 // esito, non più un null ambiguo che ingoiava la causa.
-function chiamaEscape(anthropic: Anthropic, system: string, user: string): Promise<EsitoAI> {
-  return chiamaJson(anthropic, { model: MODELLO_ESCAPE, maxTokens: 600, system, user });
+function chiamaEscape(anthropic: Anthropic, system: string, user: string, controlloExtra?: (dati: unknown) => string[]): Promise<EsitoAI> {
+  return chiamaJson(anthropic, { model: MODELLO_ESCAPE, maxTokens: 600, system, user, controlloExtra });
 }
 
 // ─────────────────────────────────────────── motore
@@ -654,6 +657,29 @@ export async function calcolaEvidenze(
   let revisoreEsito: RevisoreEsito | null = null;
 
   const letti = materialiLetti(get);
+
+  // Le cifre che il revisore può citare: quelle che lo studente poteva sapere.
+  // Si costruisce una volta per tentativo (vedi lib/escape/cifreCitabili.ts) e
+  // serve a due cose diverse, che è bene tenere distinte:
+  //   - come `controlloExtra`, innesca il secondo tentativo della guardia se la
+  //     prima risposta contiene una cifra che non torna;
+  //   - come filtro sulla singola motivazione, qui sotto, per il terminale che
+  //     la guardia non può avere: una cifra sopravvissuta al secondo tentativo
+  //     NON si spedisce, e al suo posto va il ripiego cablato.
+  // Il secondo è il motivo per cui il controllo non può vivere dentro
+  // chiamaJson: là si sa che qualcosa non torna, non QUALE frase sostituire.
+  const cifreOk = insiemeCifreCitabili(mission, risposte, letti);
+  const cifreInJson = (dati: unknown) => stringheInJson(dati).flatMap((t) => cifreNonCitabili(t, cifreOk));
+  // Una motivazione con una cifra non citabile è un'affermazione falsa su una
+  // scelta che lo studente non ha fatto: meglio la riga generica. Il log dice
+  // quale cifra, perché è l'unico modo per accorgersi che l'insieme è troppo
+  // stretto invece che il revisore troppo fantasioso.
+  const motivazioneSicura = (mot: string, ripiego: string, dove: string): string => {
+    const fuori = cifreNonCitabili(mot, cifreOk);
+    if (fuori.length === 0) return mot;
+    console.warn(`Cifra non citabile (${dove}, missione ${mission.slug}): ${fuori.join(", ")} — motivazione sostituita dal ripiego.`);
+    return ripiego;
+  };
 
   // Emette prove di STILE (asse) accanto a quelle d'area. `factor` scala il
   // valore del tag (es. la frazione di ore allocate a una voce). area_slug null:
@@ -879,12 +905,13 @@ export async function calcolaEvidenze(
           if (!testo || !anthropic) break;
           // Fix B: nessuna dipendenza dal mandato — questo step ora emette qualità
           // di missione (area null), non ha più bisogno di sapere qual è il mandato.
-          const esito = await chiamaEscape(anthropic, PROMPT_NON_APPROFONDIRE, testo);
+          const esito = await chiamaEscape(anthropic, PROMPT_NON_APPROFONDIRE, testo, cifreInJson);
           if (esito.ok) {
             const parsed = esito.dati as { consapevolezza?: number; motivazione?: string };
             if (typeof parsed.consapevolezza === "number") {
               const v = clamp01(Number(parsed.consapevolezza));
-              const mot = parsed.motivazione || "Hai saputo dire perché hai rinunciato a un'informazione: è consapevolezza del tuo metodo.";
+              const ripiegoNA = "Hai saputo dire perché hai rinunciato a un'informazione: è consapevolezza del tuo metodo.";
+              const mot = motivazioneSicura(parsed.motivazione || ripiegoNA, ripiegoNA, "non-approfondire");
               // Fix B: consapevolezza del proprio metodo = qualità di missione, non
               // competenza/autoefficacia nell'area del mandato (era areaMandato).
               evidenze.push({ area_slug: null, categoria: "qualita_missione", dimensione: "self_efficacy", valore: v, peso: P.ai, motivazione: mot, step_id: s.id });
@@ -905,7 +932,7 @@ export async function calcolaEvidenze(
           if (eProposta) revisoreEsito = "non_riuscito";
           break;
         }
-        const esito = await chiamaEscape(anthropic, spec.promptProposta(mission.areeCandidate, { letti }), testo);
+        const esito = await chiamaEscape(anthropic, spec.promptProposta(mission.areeCandidate, { letti }), testo, cifreInJson);
         if (!esito.ok) {
           if (eProposta) revisoreEsito = "non_riuscito";
           break;
@@ -938,7 +965,8 @@ export async function calcolaEvidenze(
           }
           const perf = clamp01(Number(a.performance ?? 0));
           const inter = clamp01(Number(a.interest ?? 0));
-          const mot = typeof a.motivazione === "string" && a.motivazione ? a.motivazione : `La tua proposta valorizza ${nomeArea(a.area_slug)}.`;
+          const ripiego = `La tua proposta valorizza ${nomeArea(a.area_slug)}.`;
+          const mot = motivazioneSicura(typeof a.motivazione === "string" && a.motivazione ? a.motivazione : ripiego, ripiego, "proposta");
           // Fix A: la performance della proposta è il giudizio del revisore sul
           // testo scritto → peso P.revisore (1.4), non P.ai (0.5). L'interest resta
           // generico → P.ai.
@@ -1016,7 +1044,7 @@ export async function calcolaEvidenze(
         const p = payload as PayloadTesto | undefined;
         const testo = p?.testo?.trim();
         if (!testo || !anthropic) break;
-        const esito = await chiamaEscape(anthropic, PROMPT_RIFLESSIONE(mission.areeCandidate), testo);
+        const esito = await chiamaEscape(anthropic, PROMPT_RIFLESSIONE(mission.areeCandidate), testo, cifreInJson);
         const parsed = esito.ok ? (esito.dati as { aree?: unknown[] }) : null;
         const aree = Array.isArray(parsed?.aree) ? parsed!.aree : [];
         let emesse = 0;
@@ -1024,7 +1052,8 @@ export async function calcolaEvidenze(
         for (const raw of aree) {
           const a = raw as { area_slug?: string; curiosity?: number; self_efficacy?: number; motivazione?: string };
           if (!a.area_slug || !mission.areeCandidate.includes(a.area_slug)) continue;
-          const mot = typeof a.motivazione === "string" && a.motivazione ? a.motivazione : `Dalla tua riflessione traspare un legame con ${nomeArea(a.area_slug)}.`;
+          const ripiegoRifl = `Dalla tua riflessione traspare un legame con ${nomeArea(a.area_slug)}.`;
+          const mot = motivazioneSicura(typeof a.motivazione === "string" && a.motivazione ? a.motivazione : ripiegoRifl, ripiegoRifl, "riflessione");
           // La curiosity ha motivazione DISTINTA per area (generata dall'Aì leggendo
           // la riflessione) → resta ad area.
           evidenze.push({ categoria: "area", area_slug: a.area_slug, dimensione: "curiosity", valore: clamp01(Number(a.curiosity ?? 0)), peso: P.ai, motivazione: mot, step_id: s.id });
