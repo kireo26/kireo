@@ -948,7 +948,7 @@ export async function calcolaEvidenze(
         // mai osservato in produzione. Registrato come candidato: se la vista
         // revisore_esiti mostrerà quello stato, si costruirà un consumatore con
         // una frequenza reale in mano, non con un'ipotesi.
-        const parsed = esito.dati as { aree?: unknown[] };
+        const parsed = esito.dati as { aree?: unknown[]; giudizio_complessivo?: unknown };
         const aree = Array.isArray(parsed.aree) ? parsed.aree : [];
         let propEmesse = 0;
         // Gli slug scartati, per il log qui sotto. Senza questo elenco i due modi
@@ -979,6 +979,31 @@ export async function calcolaEvidenze(
         // troppo scarna). La previsione self_efficacy NON è più qui: è emessa al
         // suo step (previsione_poi_esito), scollegata da questo esito.
         if (eProposta) revisoreEsito = propEmesse > 0 ? "letto" : "letto_senza_credito";
+
+        // `giudizio_complessivo`: lo slot che tutti e undici i prompt chiedono e
+        // che finora nessuno leggeva. Nasce come esca anti-poscritto (se la frase
+        // di chiusura ha un posto DENTRO il JSON, il modello non l'appende dopo
+        // la graffa) e resta anche quella. Ma quando il revisore non riconosce
+        // nessuna area, quella frase è l'UNICA cosa che ha da dire su un testo
+        // che lo studente ha scritto davvero — e la buttavamo via mentre a
+        // schermo compariva «non ne è emersa un'area da valutare».
+        //
+        // Si emette SOLO in quel caso. Quando le aree ci sono, le loro
+        // motivazioni sono già un giudizio sull'intero testo: mostrarlo anche
+        // qui sarebbe la stessa cosa detta due volte.
+        //
+        // Riga senza area (`qualita_missione`, `performance`): finisce in «Come
+        // hai ragionato», l'unico blocco che accetta un'osservazione non
+        // appesa a un'area. Non entra in area_signal — nessuna riga senza area
+        // ci entra — quindi `valore` qui non misura niente e non deve: è il
+        // display il consumatore, e il peso serve solo a metterla in cima al
+        // blocco. Se la frase porta una cifra non citabile non si emette
+        // affatto: qui un ripiego cablato non esiste, e una riga generica al
+        // posto di un giudizio non varrebbe la pena.
+        const giudizio = typeof parsed.giudizio_complessivo === "string" ? parsed.giudizio_complessivo.trim() : "";
+        if (eProposta && propEmesse === 0 && giudizio && cifreNonCitabili(giudizio, cifreOk).length === 0) {
+          evidenze.push({ area_slug: null, categoria: "qualita_missione", dimensione: "performance", valore: 0.5, peso: P.revisore, motivazione: giudizio, step_id: s.id });
+        }
         // Lo stato `letto_senza_credito` costa allo studente una dimensione
         // intera («Bravura — non ancora misurata») dopo che ha scritto davvero:
         // quando capita vogliamo sapere QUALE dei due modi è stato, non solo che

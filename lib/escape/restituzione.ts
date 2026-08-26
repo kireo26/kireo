@@ -270,7 +270,17 @@ export function costruisciRestituzione(slug: string, get: LeggiRisposta, areeTop
   let ipotesi: string | null = null;
   if (areeTop.length > 0) {
     const nomi = areeTop.slice(0, 3).map((a) => a.nome);
-    ipotesi = `Da come hai messo in ordine le priorità e da dove hai messo le risorse quando eri alle strette, le aree che si sono attivate di più sono ${elenco(nomi)}. È un'ipotesi, non un verdetto: serve un'altra missione per capire se regge.`;
+    // La provenienza dichiarata deve essere quella VERA. La classifica non esce
+    // da questa partita: `areeTop` viene da `area_signal`, che è il profilo
+    // cumulativo su tutte le missioni e tutti i test. La frase di prima («da
+    // come hai messo in ordine le priorità e da dove hai messo le risorse»)
+    // attribuiva alla partita un ordinamento che è del profilo — un «afferma»
+    // dentro il blocco che deve «riportare».
+    //
+    // Non si cambia la fonte: le card sono cumulative per natura (gli stati
+    // «emergente»/«da verificare» lo sono), si cambia la frase. E per chi è alla
+    // prima missione resta vera lo stesso.
+    ipotesi = `Mettendo insieme questa missione e quelle che hai già fatto, le aree con più segnale sono ${elenco(nomi)}. È un'ipotesi, non un verdetto: serve un'altra missione per capire se regge.`;
   }
 
   // ── nota da_verificare (autoefficacia≠performance)
