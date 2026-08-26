@@ -196,7 +196,23 @@ const NARRATIVA: Record<string, Narrativa> = {
       { quando: (c) => c.pianoSel !== undefined && nelPiano(c, "fmt_evento") && !["fmt_podcast", "fmt_video", "fmt_pannelli", "fmt_schermi", "fmt_laboratorio"].some((id) => nelPiano(c, id)), testo: "Hai puntato su un evento di una sola sera. Il bando chiede un'iniziativa ripetibile senza nuovi fondi: un colpo a effetto non è rendicontabile, e l'anno dopo non resta niente da mostrare." },
       { quando: (c) => c.pianoSel !== undefined && nelPiano(c, "fmt_schermi") && !c.letti.has("M12"), testo: "Hai puntato sugli schermi senza conoscere il precedente del museo vicino: +180% il primo anno, poi sotto i numeri di partenza quando si guastarono e nessuno aveva i fondi per ripararli. Era un precedente che non hai chiesto." },
       { quando: (c) => c.letti.has("M13") && c.pianoSel !== undefined && !nelPiano(c, "accessibilita_sala3"), testo: "La Sala 3, quella che contiene il registro del 1911, è al primo piano senza ascensore. Il bando premiava l'accessibilità e tu l'hai lasciata fuori dal piano: chi non fa le scale non arriva al pezzo che vale più di tutti." },
-      { quando: (c) => c.letti.has("M8"), testo: "L'indagine diceva che solo il 27% non torna per come comunicate, mentre il 44% non torna perché l'ha già visto da bambino. Non è un problema di pubblicità: è un problema di dare un motivo nuovo per rientrare." },
+      // Terza della famiglia che scattava sulla sola lettura (con la 08 e la 05).
+      // L'atto qui è il RUOLO: «Far conoscere l'iniziativa», preso o lasciato.
+      // Il piano non andava bene come aggancio — si sovrapponeva alla cornice
+      // sull'evento di una sera, e due cornici che dicono quasi la stessa cosa
+      // sono rumore che si nota subito.
+      //
+      // In B non si dice che l'indagine «conferma» la scelta: attribuirebbe allo
+      // studente un ragionamento che può non aver fatto — magari quel ruolo l'ha
+      // lasciato perché non se la sentiva. Si riporta cosa dice l'indagine e cosa
+      // ha scelto lui; il collegamento lo fa lui.
+      { quando: (c) => presoDaTe(c, "comunicazione") && c.letti.has("M8"), testo: "Hai preso su di te il far conoscere l'iniziativa. L'indagine che avevi aperto dice che solo il 27% non torna per come comunicate, mentre il 44% non torna perché l'ha già visto da bambino: il lavoro più grosso non era farlo sapere, era dare un motivo nuovo per rientrare." },
+      { quando: (c) => !presoDaTe(c, "comunicazione") && c.letti.has("M8"), testo: "Hai lasciato ad altri il far conoscere l'iniziativa. L'indagine che avevi aperto dice che solo il 27% non torna per come comunicate, mentre il 44% non torna perché l'ha già visto da bambino: il pezzo che pesava di più non era quello." },
+      // E il caso di chi l'indagine non l'ha aperta: stessa famiglia delle
+      // ventidue negative, l'atto è il non aver chiesto. È lo studente che ne ha
+      // più bisogno — senza questa cornice, chi salta l'indagine non sente mai
+      // il fatto più grosso della missione.
+      { quando: (c) => !c.letti.has("M8"), testo: "C'era un'indagine sui visitatori che nessuno aveva più aperto: solo il 27% non torna per come comunicate, mentre il 44% non torna perché l'ha già visto da bambino. Il problema non era farsi sentire: era dare un motivo nuovo per rientrare, e quel numero non l'hai chiesto." },
     ],
   },
 

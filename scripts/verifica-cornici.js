@@ -93,7 +93,16 @@ function partite(slug) {
 // palco-programma ne ha una da sempre («Hai preso su di te il compito più
 // scomodo della serata»): l'ha scoperta questo test, perché passava dal campo
 // dei compiti→persona della Missione 10 invece che da quello dei ruoli.
-const CORNICI_CHE_USANO_I_RUOLI = { "palco-programma": 1 };
+// Due numeri diversi, e tenerli distinti è il punto: `leggono` = quante cornici
+// referenziano i ruoli (si conta sulla SORGENTE); `delta` = quante cornici in
+// più possono comparire fra «ruoli compilati» e «non compilati» (si osserva sul
+// COMPORTAMENTO). Non coincidono quando due rami sono mutuamente esclusivi —
+// museo-seta ne ha due che leggono i ruoli, ma uno solo dei due scatta per
+// volta, quindi la differenza osservabile resta di una.
+const CORNICI_CHE_USANO_I_RUOLI = {
+  "palco-programma": { leggono: 1, delta: 1 },
+  "museo-seta": { leggono: 2, delta: 1 },
+};
 
 // Il controllo che risponde davvero alla domanda «allargare il contesto cambia
 // qualcosa?»: una cornice può cambiare comportamento SOLO se legge il campo
@@ -110,7 +119,7 @@ function main() {
 
   // 0. statico: quante cornici leggono il campo nuovo.
   const leggono = predicatiCheLeggonoIRuoli();
-  const dichiarate = Object.values(CORNICI_CHE_USANO_I_RUOLI).reduce((a, b) => a + b, 0);
+  const dichiarate = Object.values(CORNICI_CHE_USANO_I_RUOLI).reduce((a, b) => a + b.leggono, 0);
   ok(leggono === dichiarate, `${leggono} cornici leggono i ruoli, ${dichiarate} dichiarate qui: una cornice che li legge senza essere dichiarata non sarebbe distinguibile da una regressione`);
 
   let confronti = 0;
@@ -125,7 +134,7 @@ function main() {
       if (conRuoli) for (const [k, v] of Object.entries(conRuoli)) conMappa.set(k, v);
       const con = costruisciRestituzione(slug, (id) => conMappa.get(id), []);
 
-      const attese = CORNICI_CHE_USANO_I_RUOLI[slug] ?? 0;
+      const attese = CORNICI_CHE_USANO_I_RUOLI[slug]?.delta ?? 0;
       const soloCon = con.occasioni.filter((t) => !senza.occasioni.includes(t));
       const soloSenza = senza.occasioni.filter((t) => !con.occasioni.includes(t));
       if (soloCon.length + soloSenza.length > attese) {

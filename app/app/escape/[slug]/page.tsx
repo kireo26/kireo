@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { getAppContext } from "@/lib/app/studentContext";
 import { createClient } from "@/lib/supabase/server";
 import { getAreaBySlug } from "@/data/aree";
-import { accessoreDaMappa, getMissione } from "@/lib/escape/config";
+import { accessoreDaMappa, getMissione, stepDellaMissione } from "@/lib/escape/config";
 import { MIN_AZIONI_PER_CARD } from "@/lib/escape/soglie";
 import { costruisciRestituzione, type AreaTop } from "@/lib/escape/restituzione";
 import type { Payload } from "@/lib/escape/tipi";
@@ -110,14 +110,23 @@ export default async function MissionePage({ params }: { params: Promise<{ slug:
     // stesso difetto, altra vittima. Qui nessuna categoria di atto può sparire
     // del tutto — la sorgente è lo step, che è il modo in cui lo studente vede
     // la partita (una stanza = un tipo di scelta).
-    const perPeso = (a: Gruppo, b: Gruppo) => b.peso - a.peso;
-    const ordinati = Array.from(gruppi.values()).sort(perPeso);
-    const primaPerSorgente = new Map<string, Gruppo>();
-    for (const g of ordinati) if (!primaPerSorgente.has(g.step)) primaPerSorgente.set(g.step, g);
-    const garantite = new Set(primaPerSorgente.values());
-    const spiegazioni = [...garantite, ...ordinati.filter((g) => !garantite.has(g))]
-      .sort(perPeso)
-      .map((g) => ({ testo: g.testo, aree: g.aree }));
+    // ORDINE DI STANZA, non di peso. Il peso serviva a decidere chi veniva
+    // tagliato; senza tetto non decide più niente e resta solo a mescolare le
+    // sorgenti. Un blocco che si chiama «Perché lo diciamo», dietro un accordion
+    // che l'utente ha aperto apposta, si legge come il RACCONTO della partita —
+    // mandato, priorità, gettoni, piano, ruoli, revisore — non come la
+    // classifica di un numero che non vede. Dentro la stessa stanza l'ordine
+    // resta quello di emissione, che è l'ordine in cui ha agito.
+    // L'ordine viene dagli STEP DELLA MISSIONE, non dall'ordine in cui il
+    // database restituisce le righe: senza un ORDER BY quello non è garantito, e
+    // un ordine che «di solito è giusto» è il tipo di cosa che si scopre rotta
+    // in produzione.
+    const ordineStep = new Map<string, number>();
+    for (const st of stepDellaMissione(mission)) ordineStep.set(st.id, ordineStep.size);
+    const spiegazioni = Array.from(gruppi.values())
+      .map((g, i) => ({ g, i }))
+      .sort((a, b) => (ordineStep.get(a.g.step) ?? 99) - (ordineStep.get(b.g.step) ?? 99) || a.i - b.i)
+      .map(({ g }) => ({ testo: g.testo, aree: g.aree }));
 
     let aree: AreaEsito[] = [];
     const azioniPerArea = new Map<string, number>(); // area_slug -> azioni_distinte

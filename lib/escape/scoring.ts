@@ -123,6 +123,34 @@ function pienezzaEquilibrio(alloc: Record<string, number>, totale: number) {
   return { pienezza, equilibrio };
 }
 
+// ⚠️ PRIMA DI DECIDERE CHE UNA RIGA «CONTA POCO»: guarda l'operatore.
+//
+// Queste prove finiscono in `area_signal`, che per ogni (area, dimensione)
+// calcola una MEDIA PESATA — `Σ(valore·peso) / Σ(peso)` — non una somma. La
+// differenza cambia il segno di ogni ragionamento sull'opportunità di emettere
+// o no una riga:
+//
+//   su una SOMMA  una riga a valore basso aggiunge poco → toglierla è ripulire;
+//   su una MEDIA  una riga a valore basso ABBASSA → toglierla è alzare il voto.
+//
+// È già successo due volte, e nessuna delle due per distrazione:
+//   - la Guardia 1.1 sulle priorità (vedi il blocco lungo in ordina_priorita),
+//     giustificata su Σ(valore·peso) mentre il consumatore era la frazione;
+//   - il filtro «un solo tentativo per attività» (20260823100000), giustificato
+//     sulla confidence — che è davvero una somma satura — ma applicato dalla
+//     stessa WHERE anche alle quattro medie, dove «gonfiare» non è il problema
+//     che c'era (una media di tre tentativi resta una media). Lì il risultato è
+//     comunque quello voluto, per una ragione semantica diversa e approvata.
+//
+// E c'è una ragione per cui succede: il VOCABOLARIO. I commenti fondativi di
+// `ricalcola_area_signal` e `ricalcola_style_signal` dicono entrambi «dalla
+// SOMMA di tutte le prove», e tutte e due calcolano una media pesata. Chi legge
+// la documentazione ragiona da somma perché la documentazione dice somma.
+//
+// La quantità NON sta nella media: sta in `confidence` (Σpeso, satura a 10) e in
+// `attivita_distinte`/`azioni_distinte`. La media è invariante di scala — dice
+// quanto intensamente in media, mai quante volte.
+
 const PESI_BASE: Pesi = {
   mandato: 1.3, ordinaInt: 0.8, selCur: 0.6, selInt: 0.4, budgetInt: 0.6, budgetPerf: 1.3,
   scartoInt: 0.5, scartoPerf: 1.3, ruoli: 0.8, ai: 0.5, revisore: 1.4, previsione: 0.5, passi: 0.6, esplora: 0.4,
@@ -734,11 +762,36 @@ export async function calcolaEvidenze(
           const el = s.elementi.find((e) => e.id === id);
           if (!el) return;
           const valore = clamp01(0.95 - (i / n) * 0.8);
-          // Guardia 1.1: una posizione BASSA non è interesse — metterci qualcosa
-          // in fondo è una rinuncia, non un segnale. Emette solo le posizioni alte
-          // (valore > 0.5 → circa le prime 3 su 5-6). Non tocca né la performance
-          // dell'affidabilità né lo stile (emessi fuori da questo forEach).
-          if (valore <= 0.5) return;
+          // ⚠️ QUI C'ERA LA GUARDIA 1.1, e il perché è stata tolta vale più della
+          // riga che è sparita.
+          //
+          // Scartava le posizioni basse (valore <= 0.5) con questa ragione:
+          // «mettere qualcosa in fondo è una rinuncia, non un segnale
+          // d'interesse». Elegante, e sbagliata per due motivi.
+          //
+          // 1. L'ORDINAMENTO È FORZATO. Lo studente deve ordinare tutte e sei le
+          //    voci: non esiste il caso «non ha agito». Ogni posizione è un atto
+          //    deliberato, e l'ultima dice una cosa precisa — fra queste sei,
+          //    questa mi interessa meno. Vale la regola del progetto: non
+          //    misurare quando non poteva agire, misurare ZERO quando poteva e
+          //    non l'ha fatto. Qui poteva, ha agito, e ha scelto il fondo.
+          //
+          // 2. LA GIUSTIFICAZIONE FU CALCOLATA SU UNA SOMMA, IL CONSUMATORE È
+          //    UNA MEDIA. Il commit diceva: «per Σ(valore·peso), che alimenta
+          //    area_signal, cala poco — si toglie rumore, non segnale».
+          //    area_signal non è Σ(valore·peso): è Σ(valore·peso)/Σ(peso).
+          //    Togliere righe basse le toglie dal numeratore E dal denominatore,
+          //    e la media SALE. Per una somma erano rumore; per una media erano
+          //    l'unico segnale verso il basso che il motore avesse.
+          //
+          // Misurato sulle stesse partite, undici missioni: con la guardia il
+          // corpo della classifica sta in 19 punti, senza in 26; l'area con più
+          // prove passa da terza a prima, e una nata da quattro azioni scende
+          // dal secondo posto al quattordicesimo. Il pavimento — nessuna riga
+          // d'area sotto 0,40 — nasceva in buona parte qui.
+          //
+          // Se qualcuno rifà questo ragionamento fra un anno: non era stupido,
+          // era misurato sull'operatore sbagliato.
           for (const area of el.aree) {
             evidenze.push({ categoria: "area", area_slug: area, dimensione: "interest", valore, peso: P.ordinaInt, motivazione: `Hai messo «${el.label.toLowerCase()}» al ${i + 1}° posto.`, step_id: s.id });
           }
@@ -804,7 +857,9 @@ export async function calcolaEvidenze(
           // NON si emette la riga (silenzio, Opzione A). Il valore resta usato
           // solo qui (scelta buona/migliora) e per lo stile — non entra in
           // area_signal (area_slug null).
-          const testo = componiPerformance(r.valore, r.voci, "budget");
+          // Tutte le voci finanziate, non solo quelle che il punteggio guarda.
+          const finanziate = s.voci.filter((v) => (Number(alloc[v.id]) || 0) > 0).map((v) => v.label.toLowerCase());
+          const testo = componiPerformance(r.valore, finanziate.length ? [...r.voci, { tipo: "scelte" as const, label: finanziate }] : r.voci, "budget");
           if (testo) evidenze.push({ area_slug: null, categoria: "qualita_missione", dimensione: "performance", valore: r.valore, peso: P.budgetPerf, motivazione: testo, step_id: s.id });
           // Stile: comporre un piano che sta nei vincoli è operativo (dipende
           // dalla qualità del piano, non dall'aver compilato lo step).
@@ -831,7 +886,8 @@ export async function calcolaEvidenze(
         if (rp) {
           // Fix D: frase composta dai descrittori (vedi il ramo budget sopra),
           // null → silenzio (Opzione A).
-          const testo = componiPerformance(rp.valore, rp.voci, "piano");
+          const tenuti = s.lavori.filter((l) => sel.includes(l.id)).map((l) => l.label.toLowerCase());
+          const testo = componiPerformance(rp.valore, tenuti.length ? [...rp.voci, { tipo: "scelte" as const, label: tenuti }] : rp.voci, "piano");
           if (testo) evidenze.push({ area_slug: null, categoria: "qualita_missione", dimensione: "performance", valore: rp.valore, peso: P.budgetPerf, motivazione: testo, step_id: s.id });
           // Stile: un piano che sta nei vincoli e rispetta le dipendenze è operativo.
           pushAssi([{ asse: "operativo", valore: rp.valore }], 1, "Hai composto un piano che sta nei vincoli.", s.id);

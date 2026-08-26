@@ -23,6 +23,17 @@
 
 export type DescrittoreVoce =
   | { tipo: "appartenenza"; label: string; presente: boolean; ordine: number }
+  // Tutte le voci che lo studente ha scelto, non solo quelle che il punteggio
+  // guarda. L'asimmetria è deliberata: QUELLO CHE HA FATTO è un fatto e si
+  // elenca per intero; QUELLO CHE HA LASCIATO FUORI resta l'elenco delle voci
+  // che pesavano (gli `appartenenza` assenti), perché «hai lasciato fuori»
+  // seguito dal listino completo è vero e inutilizzabile.
+  //
+  // Serve perché la clausola diceva «Hai finanziato X, Y e Z» nominando solo i
+  // descrittori dichiarati dalla spec — nella Missione 09, tre voci su sette —
+  // e si legge come un riassunto di cosa hai fatto mentre era un riassunto di
+  // cosa ti è stato contato.
+  | { tipo: "scelte"; label: string[] }
   // unita: l'unità del limite, portata nel testo come fa la soglia («€», «cent»,
   // «giorni»). «giorni» cambia anche il verbo (usato invece di speso).
   | { tipo: "limite"; usato: number; disponibile: number; unita: string }
@@ -63,7 +74,11 @@ export function componiPerformance(
   const app = voci
     .filter((v): v is Extract<DescrittoreVoce, { tipo: "appartenenza" }> => v.tipo === "appartenenza")
     .sort((a, b) => a.ordine - b.ordine);
-  const presenti = app.filter((v) => v.presente).map((v) => v.label);
+  const scelte = voci.find((v): v is Extract<DescrittoreVoce, { tipo: "scelte" }> => v.tipo === "scelte");
+  // `scelte` ha la precedenza quando c'è; senza, il comportamento resta quello
+  // di prima (i soli descrittori dichiarati), così una missione che non lo
+  // emette non cambia.
+  const presenti = scelte ? scelte.label : app.filter((v) => v.presente).map((v) => v.label);
   const assenti = app.filter((v) => !v.presente).map((v) => v.label);
 
   if (buona) {
