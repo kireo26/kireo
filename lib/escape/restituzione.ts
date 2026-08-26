@@ -8,7 +8,7 @@
 // Retro-compatibile: su un tentativo senza i nuovi step i blocchi restano
 // null/vuoti.
 
-import type { LeggiRisposta, Mandato, PayloadAlloca, PayloadAssegnaPersone, PayloadLavori, PayloadScarta, PayloadSeleziona, StepAllocaBudget, StepPianificaLavori, StepSelezionaInformazioni } from "./tipi";
+import type { LeggiRisposta, Mandato, PayloadAlloca, PayloadAssegna, PayloadAssegnaPersone, PayloadLavori, PayloadScarta, PayloadSeleziona, StepAllocaBudget, StepPianificaLavori, StepSelezionaInformazioni } from "./tipi";
 import { getMissione, mandatoScelto, materialiLetti } from "./config";
 
 export type AreaTop = { slug: string; nome: string; status: "emergente" | "confermata" | "da_verificare" };
@@ -21,7 +21,11 @@ export type Restituzione = {
   notaVerifica: string | null;
 };
 
-type OccasioneCtx = { letti: Set<string>; alloc?: Record<string, number>; pianoSel?: string[]; scartati?: string[]; assegnazioni?: Record<string, string>; mandato: Mandato | null };
+// `ruoli` = le assegnazioni io/altri della Stanza dei ruoli (`assegna_ruoli`),
+// distinte da `assegnazioni`, che è il compito→persona della sola Missione 10
+// (`assegna_persone`). Sono due step diversi con due payload diversi: tenerli in
+// due campi evita che una cornice legga l'uno credendo di leggere l'altro.
+type OccasioneCtx = { letti: Set<string>; alloc?: Record<string, number>; pianoSel?: string[]; scartati?: string[]; assegnazioni?: Record<string, string>; ruoli?: Record<string, string>; mandato: Mandato | null };
 type OccasioneRule = { quando: (c: OccasioneCtx) => boolean; testo: string };
 type Narrativa = { costruito: (mandato: Mandato, topVoce: string | null) => string; occasioni: OccasioneRule[] };
 
@@ -31,6 +35,12 @@ const scartato = (c: OccasioneCtx, id: string) => c.scartati !== undefined && c.
 const nelPiano = (c: OccasioneCtx, id: string) => c.pianoSel?.includes(id) ?? false;
 const speso = (c: OccasioneCtx, id: string) => Number(c.alloc?.[id]) || 0;
 const assegnatoA = (c: OccasioneCtx, compito: string, persona: string) => c.assegnazioni?.[compito] === persona;
+// Il ruolo preso in prima persona. È false anche quando lo step non è stato
+// compilato affatto (`ruoli` undefined): finché nessuna cornice ha bisogno di
+// distinguere «l'ha lasciato ad altri» da «non è arrivato a quello step», il
+// caso non si separa — un helper senza chiamanti è codice che qualcuno userà
+// male prima che serva.
+const presoDaTe = (c: OccasioneCtx, ruolo: string) => c.ruoli?.[ruolo] === "io";
 // Missione 10: quanti dei 5 abbinamenti compito↔persona "forti" sono azzeccati
 // (con il relativo materiale letto).
 const ABBINAMENTI_CLASSE: { compito: string; persona: string; richiede: string }[] = [
@@ -101,7 +111,15 @@ const NARRATIVA: Record<string, Narrativa> = {
       { quando: (c) => !c.letti.has("M5"), testo: "La segnalazione della scuola andava trasmessa entro 48 ore, ed erano scadute stamattina. Sembrava la richiesta meno urgente delle cinque: era quella con il termine più stretto." },
       { quando: (c) => !c.letti.has("M4") && speso(c, "compila_kaur") > 0, testo: "Hai dedicato tempo a compilare per intero la domanda Kaur. Bastava protocollarla entro le 12: i documenti si potevano integrare in dieci giorni. Era scritto nel regolamento del bando." },
       { quando: (c) => !c.letti.has("M11"), testo: "Il tuo piano contava su tre operatori. Dalle 11 in poi ne restavano due, e una non poteva gestire un colloquio da sola." },
-      { quando: (c) => c.letti.has("M7"), testo: "Nel fascicolo del sig. Muratori c'era scritto che nessuno gli aveva detto niente per settantaquattro giorni. Non era un impaziente: era uno che aspettava una risposta." },
+      // Stessa famiglia della 08: scattava sulla sola lettura di M7. L'atto qui
+      // sono i minuti messi (o non messi) sul richiamo. Le due chiuse sono
+      // diverse apposta: a chi non l'ha richiamato si corregge una lettura
+      // sbagliata («non era un impaziente»), a chi l'ha fatto no — spiegargli
+      // una cosa che ha capito da solo sarebbe una lezione, non una
+      // restituzione. La chiusa di B è un fatto del registro: due accessi,
+      // quattro chiamate, mai un riscontro.
+      { quando: (c) => c.letti.has("M7") && speso(c, "richiama_muratori") === 0, testo: "Non hai messo minuti sul richiamo al sig. Muratori. Nel suo fascicolo, che avevi aperto, c'era scritto che nessuno gli aveva detto niente per settantaquattro giorni: non era un impaziente, era uno che aspettava una risposta." },
+      { quando: (c) => c.letti.has("M7") && speso(c, "richiama_muratori") > 0, testo: "Hai messo minuti sul richiamo al sig. Muratori. Nel suo fascicolo, che avevi aperto, c'era scritto che nessuno gli aveva detto niente per settantaquattro giorni: la tua telefonata è la prima risposta che riceve." },
     ],
   },
 
@@ -112,7 +130,7 @@ const NARRATIVA: Record<string, Narrativa> = {
       { quando: (c) => facciataTenuta(c, "beta_dichiara"), testo: "Hai scelto Beta e l'hai scritto in etichetta. Costava meno ed era più vicino: sulla carta la scelta migliore. Ma il riciclato non era tracciabile, e la responsabilità di quella frase era di Borea. Due anni fa un concorrente distrusse sessantamila confezioni per lo stesso motivo." },
       { quando: (c) => !(c.letti.has("M7") && c.letti.has("M8")), testo: "Il ventuno per cento dell'impatto stava nei trasporti, e quasi tutto in fibbie e zip che arrivavano dalla Cina in aereo. C'era un fornitore europeo a trentacinque centesimi. Guardavi il tessuto e il guadagno più grande era altrove." },
       { quando: (c) => !c.letti.has("M11"), testo: "Eliminare il sacchetto di plastica avrebbe tolto il quattro per cento d'impatto facendoti risparmiare otto centesimi. Era l'unica cosa gratis della missione." },
-      { quando: (c) => !c.letti.has("M12"), testo: "L'ordine ad Alfa andava fatto entro il 15 maggio. Te ne sei accorto quando il commerciale è entrato con il calendario in mano." },
+      { quando: (c) => !c.letti.has("M12"), testo: "L'ordine ad Alfa andava fatto entro il 15 maggio. L'hai saputo quando il commerciale è entrato con il calendario in mano." },
       { quando: (c) => c.pianoSel !== undefined && nelPiano(c, "tessuto_alfa") && !nelPiano(c, "documentazione"), testo: "Hai comprato il materiale migliore e non ti sono rimasti centesimi per documentarlo. Hai fatto la cosa giusta senza poterla provare — che in questo mestiere conta meno di quanto dovrebbe." },
       { quando: (c) => scartato(c, "beta_dichiara") && !scartato(c, "beta_muto"), testo: "Nello scarto hai buttato l'opzione di dichiarare un riciclato che non potevi certificare, e hai tenuto quella di migliorare il prodotto senza scriverlo in etichetta." },
     ],
@@ -129,7 +147,12 @@ const NARRATIVA: Record<string, Narrativa> = {
       { quando: (c) => !c.letti.has("M5"), testo: "Hai lasciato la Filarmonica fuori dalla serata. Con ventitré elementi poteva fare quattro pezzi già eseguiti l'anno scorso. Il direttore non l'aveva proposto perché si vergognava: bastava chiederglielo." },
       { quando: (c) => !c.letti.has("M12"), testo: "Nel 2019 la gente non si arrabbiò per il cambio di programma: si arrabbiò per averlo scoperto in piazza. Era un precedente che non hai chiesto." },
       { quando: (c) => c.alloc !== undefined && c.letti.has("M12") && speso(c, "ringraziamento") === 0, testo: "Sapevi del 2019, ma non hai lasciato un minuto per spiegare al pubblico cosa stava succedendo: è esattamente quello che due anni fa fece arrabbiare la gente." },
-      { quando: (c) => assegnatoA(c, "direttore", "io"), testo: "Hai preso su di te il compito più scomodo della serata: convincere un uomo che si vergognava a salire lo stesso." },
+      // Legge i RUOLI (io/altri), non i compiti→persona della 10. Prima passava
+      // da `assegnatoA`, cioè dal campo `assegnazioni`: funzionava solo perché
+      // in questa missione lo step dei ruoli si chiama `s3_ruoli` come quello
+      // della 10. Spostando i ruoli alla Stanza 4 avrebbe smesso di scattare in
+      // silenzio. Ora chiede la cosa che intende.
+      { quando: (c) => presoDaTe(c, "direttore"), testo: "Hai preso su di te il compito più scomodo della serata: convincere un uomo che si vergognava a salire lo stesso." },
     ],
   },
 
@@ -188,7 +211,19 @@ const NARRATIVA: Record<string, Narrativa> = {
       { quando: (c) => !c.letti.has("M4"), testo: "La perdita reale della rete era al 22%, non al 6% della stima del 2019: più di un quinto dell'acqua non arrivava a nessuno. Il rilievo era di giugno, mai pubblicato, e non l'hai chiesto." },
       { quando: (c) => c.pianoSel !== undefined && c.letti.has("M8") && !nelPiano(c, "consumi_pubblici"), testo: "Sapevi, dal dettaglio sugli edifici pubblici, che scuole vuote, piscina chiusa e fontane accese sprecavano un 5% a costo zero e senza colpire nessuno — e non l'hai messo nel pacchetto." },
       { quando: (c) => !c.letti.has("M8"), testo: "C'era un 5% che usciva per nessuno — scuole vuote con l'irrigazione accesa, piscina chiusa col ricircolo attivo, fontane. Risparmio immediato, a costo zero, senza toccare un cittadino. Era in un dettaglio che non hai chiesto." },
-      { quando: (c) => c.letti.has("M7"), testo: "I dati che hai aperto dicevano che il fabbisogno agricolo è concentrato a luglio e che dopo il 20 agosto crolla da solo dell'80%. Tagliare l'acqua all'agricoltura a metà agosto sarebbe stato un sacrificio grosso per un risparmio quasi nullo." },
+      // Tre cornici al posto di una, e il silenzio come quarto caso. La versione
+      // precedente scattava sulla SOLA lettura di M7: non guardava nessuna
+      // scelta, quindi commentava un atto che poteva non esserci — e letta di
+      // seguito suonava come un rimprovero per una cosa mai fatta. Qui l'atto è
+      // in apertura, come nelle altre cornici della missione.
+      //
+      // Il quarto caso — il taglio né messo nel pacchetto né scartato, cioè
+      // lasciato sul tavolo — non ha cornice di proposito: quello che resta in
+      // tavola è già riportato dal compositore («Hai scartato: …»), e dire
+      // qualcosa qui vorrebbe dire commentare una scelta non fatta.
+      { quando: (c) => nelPiano(c, "taglio_agricolo") && c.letti.has("M7"), testo: "Hai messo il taglio dell'acqua agricola nel pacchetto anche sapendo, dal ciclo colturale che avevi letto, che dopo il 20 agosto il fabbisogno crolla dell'80%. Sono tre punti di risparmio chiesti a chi, a metà agosto, aveva quasi finito di irrigare." },
+      { quando: (c) => nelPiano(c, "taglio_agricolo") && !c.letti.has("M7"), testo: "Hai messo il taglio dell'acqua agricola nel pacchetto. Dopo il 20 agosto il fabbisogno agricolo crolla dell'80%: erano tre punti chiesti a chi aveva quasi finito di irrigare. Era scritto in un documento che non hai aperto." },
+      { quando: (c) => scartato(c, "taglio_agricolo") && c.letti.has("M7"), testo: "Hai scartato il taglio dell'acqua agricola. Il ciclo colturale che avevi letto diceva che dopo il 20 agosto il fabbisogno crolla dell'80%: quei tre punti li avresti chiesti a chi aveva quasi finito di irrigare." },
     ],
   },
 };
@@ -202,11 +237,19 @@ export function costruisciRestituzione(slug: string, get: LeggiRisposta, areeTop
   const scartati = (get("s3_scarto") as PayloadScarta | undefined)?.scartati;
   // Assegnazioni compito→persona (Missione 10: s3_ruoli è un assegna_persone).
   const assegnazioni = (get("s3_ruoli") as PayloadAssegnaPersone | undefined)?.assegnazioni;
+  // I ruoli io/altri. L'id dello step cambia stanza da missione a missione
+  // (`s3_ruoli` nella 02/03/08/09, `s4_ruoli` nella 01/04/…), e nella Missione
+  // 10 lo stesso id `s3_ruoli` ospita un `assegna_persone`, che è un'altra cosa
+  // (compito→PERSONA, non io/altri). Quindi lo step non si indovina dal
+  // payload: si chiede alla missione risolta di quale tipo è. Così i due canali
+  // restano distinti per costruzione invece che per euristica.
   const narr = NARRATIVA[slug];
 
   // Missione risolta: per leggere le voci del budget / i lavori del piano
   // (etichetta della fetta più grande) e i dossier della Stanza 2.
   const mission = getMissione(slug, get);
+  const idStepRuoli = mission?.stanze.flatMap((st) => st.step).find((st) => st.tipo === "assegna_ruoli")?.id;
+  const ruoli = idStepRuoli ? (get(idStepRuoli) as PayloadAssegna | undefined)?.assegnazioni : undefined;
   const stepBudget = mission?.stanze.flatMap((s) => s.step).find((s) => s.id === "s3_budget") as StepAllocaBudget | StepPianificaLavori | undefined;
   const stepDossier = mission?.stanze.flatMap((s) => s.step).find((s) => s.id === "s2_informazioni") as StepSelezionaInformazioni | undefined;
 
@@ -262,7 +305,7 @@ export function costruisciRestituzione(slug: string, get: LeggiRisposta, areeTop
   // ── 3. Le occasioni (conseguenze)
   const occasioni: string[] = [];
   if (narr) {
-    const ctx: OccasioneCtx = { letti, alloc, pianoSel, scartati, assegnazioni, mandato };
+    const ctx: OccasioneCtx = { letti, alloc, pianoSel, scartati, assegnazioni, ruoli, mandato };
     for (const r of narr.occasioni) if (r.quando(ctx)) occasioni.push(r.testo);
   }
 

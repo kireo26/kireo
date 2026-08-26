@@ -157,7 +157,9 @@ export default function AppShell({ userId, children }: { userId: string; childre
       <aside className="hidden w-60 flex-none flex-col border-r border-white/5 px-4 py-6 md:flex">
         <div className="flex items-center justify-between px-2 pb-8">
           <Logo />
-          <NotificheBell userId={userId} />
+          {/* Sidebar: il pannello si apre verso il contenuto, non verso il bordo
+              della finestra (vedi il commento in NotificheBell). */}
+          <NotificheBell userId={userId} allineamento="sinistra" />
         </div>
         <nav className="flex flex-1 flex-col gap-1" aria-label="Navigazione area personale">
           {NAV_ITEMS.map((item) => {

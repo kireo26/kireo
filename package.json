@@ -17,7 +17,8 @@
     "schede": "node scripts/schede-missioni.js",
     "misura:genere": "node scripts/misura-genere-revisori.js",
     "censimento": "node scripts/censimento-motore.js",
-    "test:cifre": "node scripts/verifica-cifre-citabili.js"
+    "test:cifre": "node scripts/verifica-cifre-citabili.js",
+    "test:cornici": "node scripts/verifica-cornici.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.112.5",

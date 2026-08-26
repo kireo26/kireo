@@ -82,6 +82,23 @@ export type StatoAvanzamento = {
 // Sorgente: area_signal.interest_score (profilo attitudinale dedotto dalle
 // azioni), NON score_aree (somma di clic: «quanto ha esplorato», non affinità).
 //
+// ⚠️ DA RILEGGERE QUANDO QUESTA DECISIONE SI RIAPRE, perché una parte della
+// risposta è già qui. I due motori non differiscono solo per COSA misurano, ma
+// per l'OPERATORE: `score_aree` SOMMA i pesi, `area_signal` fa la MEDIA
+// pesata. La media è invariante di scala — cancella per costruzione quante
+// volte lo studente è tornato in un'area, che è l'unica cosa che distingue uno
+// studente da un altro.
+//
+// Misurato su uno studente simulato che ha giocato tutte e 11 le missioni: le
+// azioni per area vanno da 3 a 17 (un fattore 5,7) e l'interesse resta fra 64 e
+// 78. L'area PRIMA in classifica aveva 4 azioni e confidence 0,33; quella con
+// 17 azioni e confidence 1,00 era dodicesima. Non è uno strumento che non
+// separa: separa al contrario.
+//
+// Non è una raccomandazione a cambiare sorgente — si incrocia con altre
+// decisioni aperte. È il pezzo di analisi che serve a chi riaprirà la
+// domanda, messo dove la domanda vive.
+//
 // CLASSIFICA PER ELEGGIBILITÀ (item 3): l'affinità è un'affermazione SULLO
 // STUDENTE, quindi ha una barra di sufficienza — non basta un segnale qualunque.
 // Un'area entra nella classifica solo se:

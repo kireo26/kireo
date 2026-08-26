@@ -46,11 +46,15 @@ function descrizioneNonMisurata(chiave: ChiaveDim, revisoreEsito: StatoRevisore,
             corpo: "La misuriamo da quello che scrivi nella proposta finale, e questa volta la tua proposta parlava soprattutto di altre aree.",
           };
         case "letto_senza_credito":
-          // Asciutta e onesta: NON promette una spiegazione che non possiamo
-          // dare (perché nessun'area sia emersa non lo sappiamo dire a valle).
+          // La premessa di questa riga è CAMBIATA: da quando il giudizio
+          // complessivo del revisore ha un consumatore (scoring.ts, stesso
+          // stato), non è più vero che dalla proposta non è uscito niente — è
+          // uscito un giudizio, solo non legato a un'area. Prima era asciutta
+          // per onestà; ora la stessa asciuttezza nasconderebbe una cosa che
+          // c'è, due blocchi più sotto.
           return {
             heading: "Bravura — non ancora misurata.",
-            corpo: "Abbiamo letto la tua proposta finale, ma non ne è emersa un'area da valutare.",
+            corpo: "Della tua proposta finale non è emersa un'area da valutare. Quello che ci abbiamo letto sta più sotto, in «Come hai ragionato».",
           };
         case "non_riuscito":
           // Guasto nostro (chiave assente, o chiamata/estrazione fallita): la

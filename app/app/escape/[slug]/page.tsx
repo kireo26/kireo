@@ -60,7 +60,7 @@ export default async function MissionePage({ params }: { params: Promise<{ slug:
     // (sotto); l'ESPLORAZIONE non ha consumatore. Fix B: inclusione DICHIARATA
     // (categoria) al posto del proxy `.is("asse", null)`, che pescava anche
     // esplorazione e qualita_missione (area+asse entrambi null).
-    const { data: prove } = await supabase.from("evidence").select("area_slug, motivazione, peso").eq("attempt_id", attempt.id).eq("categoria", "area");
+    const { data: prove } = await supabase.from("evidence").select("area_slug, motivazione, peso, step_id").eq("attempt_id", attempt.id).eq("categoria", "area");
     const areeToccate = Array.from(new Set((prove ?? []).map((p) => p.area_slug).filter((a): a is string => Boolean(a))));
 
     // Bravura NULL: i tre casi ora li distingue il campo autorevole
@@ -82,11 +82,11 @@ export default async function MissionePage({ params }: { params: Promise<{ slug:
     // sta in area_slug), quindi righe della stessa azione condividono lo stesso
     // testo e si raggruppano; le aree vengono elencate insieme. Si mostrano solo
     // le 8 più significative (per peso).
-    type Gruppo = { testo: string; aree: string[]; areeViste: Set<string>; peso: number };
+    type Gruppo = { testo: string; aree: string[]; areeViste: Set<string>; peso: number; step: string };
     const gruppi = new Map<string, Gruppo>();
     for (const p of prove ?? []) {
       if (!p.motivazione) continue;
-      const g: Gruppo = gruppi.get(p.motivazione) ?? { testo: p.motivazione, aree: [], areeViste: new Set<string>(), peso: 0 };
+      const g: Gruppo = gruppi.get(p.motivazione) ?? { testo: p.motivazione, aree: [], areeViste: new Set<string>(), peso: 0, step: p.step_id ?? "?" };
       const nome = p.area_slug ? getAreaBySlug(p.area_slug)?.nome ?? p.area_slug : null;
       if (nome && !g.areeViste.has(nome)) {
         g.areeViste.add(nome);
@@ -95,9 +95,28 @@ export default async function MissionePage({ params }: { params: Promise<{ slug:
       g.peso = Math.max(g.peso, Number(p.peso) || 0);
       gruppi.set(p.motivazione, g);
     }
-    const spiegazioni = Array.from(gruppi.values())
-      .sort((a, b) => b.peso - a.peso)
-      .slice(0, 8)
+    // UNA RIGA GARANTITA PER SORGENTE D'AZIONE, poi il resto per peso.
+    //
+    // Il taglio secco per peso aveva un effetto che nessuno aveva scelto: con
+    // UN SOLO ruolo preso i sette slot in cima erano già occupati da mandato,
+    // priorità e revisore, e i gettoni sparivano in dieci missioni su undici
+    // (misurato). Sparivano anche le voci del budget. Cioè le due stanze in cui
+    // lo studente SPENDE — l'unica cosa che gli costa qualcosa — non comparivano
+    // quasi mai nel blocco che spiega perché diciamo quello che diciamo. E la
+    // curiosità, che la pagina descrive come «cosa scegli di approfondire quando
+    // non puoi approfondire tutto», è misurata esattamente dai gettoni.
+    //
+    // Riservare uno slot ai soli gettoni avrebbe spostato il taglio sul budget:
+    // stesso difetto, altra vittima. Qui nessuna categoria di atto può sparire
+    // del tutto — la sorgente è lo step, che è il modo in cui lo studente vede
+    // la partita (una stanza = un tipo di scelta).
+    const perPeso = (a: Gruppo, b: Gruppo) => b.peso - a.peso;
+    const ordinati = Array.from(gruppi.values()).sort(perPeso);
+    const primaPerSorgente = new Map<string, Gruppo>();
+    for (const g of ordinati) if (!primaPerSorgente.has(g.step)) primaPerSorgente.set(g.step, g);
+    const garantite = new Set(primaPerSorgente.values());
+    const spiegazioni = [...garantite, ...ordinati.filter((g) => !garantite.has(g))]
+      .sort(perPeso)
       .map((g) => ({ testo: g.testo, aree: g.aree }));
 
     let aree: AreaEsito[] = [];

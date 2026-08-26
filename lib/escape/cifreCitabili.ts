@@ -38,6 +38,33 @@
 // finale calcola già per conto suo, quindi non c'è niente di nuovo da fidarsi:
 // sono numeri che il motore conosce.
 //
+// ⚠️ COSA QUESTO GATE NON FA, ED È IL CASO DA CUI È NATO.
+//
+// Il gate verifica che una cifra ESISTA fra quelle conoscibili. NON verifica
+// che sia attaccata alla cosa giusta. Chiude le cifre inventate; non chiude le
+// cifre spostate.
+//
+// L'esempio è esattamente il difetto che ha motivato questo file. Il revisore
+// aveva scritto:
+//
+//     «la scelta di tenere un fondo imprevisti (37.000 euro)»
+//
+// dove il fondo imprevisti valeva 15.000 e 37.000 era l'avanzo del piano
+// (240.000 − 203.000). Con la quarta sorgente qui sopra — i residui — 37.000 è
+// nell'insieme citabile, e deve esserlo: senza, il gate mangerebbe anche i
+// paragrafi buoni, che degli avanzi parlano di continuo. Quindi il gate lo
+// trova, lo approva, e QUELLA FRASE PASSA ANCORA, identica.
+//
+// Non è un buco da tappare di corsa: è il limite della forma. «Esiste fra i
+// numeri conoscibili» è una proprietà della stringa e dell'insieme; «è
+// attribuita alla voce giusta» è una proprietà semantica, e per deciderla
+// servirebbe capire a quale voce del piano la frase sta legando il numero —
+// che è un'altra classe di problema.
+//
+// Chi legge fra sei mesi: NON dare per scontato che il revisore sui numeri sia
+// a posto. Metà del caso è chiusa, metà no, e la metà aperta è proprio quella
+// che ci ha fatto scrivere il file.
+
 // COSA SI CONTROLLA E COSA NO. Solo i token con almeno due cifre, o seguiti da
 // «%». «tre righe» e «i 3 punti» non sono affermazioni falsificabili e sarebbero
 // rumore; «6%» sì, ed è per questo che la percentuale entra a prescindere dalla

@@ -286,8 +286,6 @@ const WHITELIST = new Map([
     "«sapevi, dal dettaglio» sostenuto da M8 letto: cita la fonte, non la testa"],
   ["Il tuo piano contava su tre operatori. Dalle 11 in poi ne restavano due, e una non poteva gestire un colloquio da sola.",
     "«da sola» è l'operatrice del turno, non lo studente: qui l'accordo è corretto"],
-  ["I dati che hai aperto dicevano che il fabbisogno agricolo è concentrato a luglio e che dopo il 20 agosto crolla da solo dell'80%. Tagliare l'acqua all'agricoltura a metà agosto sarebbe stato un sacrificio grosso per un risparmio quasi nullo.",
-    "«da solo» è il fabbisogno idrico, non lo studente"],
   ["Undici idee in tre settimane, tutte accolte con «bella idea» e nessuna scelta. Due erano ottime. Non serviva frenare nessuno: serviva che qualcuno decidesse.",
     "«ottime» giudica le idee del gruppo (opzioni che la missione definisce), non lo studente"],
 ]);

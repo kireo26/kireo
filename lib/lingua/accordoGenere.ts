@@ -32,6 +32,14 @@ import { trovaConPattern, trovaConPatternInJson } from "@/lib/lingua/scansione";
 // Il participio con AVERE non concorda MAI: «hai preso» va bene per chiunque —
 // ed è per questo che la riscrittura passa quasi sempre da lì.
 //
+// I suffissi `orto|erto|olto` sono arrivati dopo, e per un caso reale: «te ne
+// sei accorto» stava in `restituzione.ts` da sempre e il pattern non la vedeva,
+// perché la prima stesura elencava i participi regolari e i più comuni fra gli
+// irregolari, non tutti. Con quei tre entrano anche «aperto», «offerto»,
+// «coperto», «svolto», «risolto», «accolto». Se ne mancherà un altro si aggiunge
+// qui: il posto è uno solo, e chi lo trova lo trova perché il tripwire diventa
+// rosso, non perché se lo ricorda.
+//
 // Coperti maschile e femminile al SINGOLARE. Il plurale resta fuori di
 // proposito: il lettore è sempre uno, e includerlo catturerebbe parole comuni
 // («sei mesi» finisce in -esi — misurato).
@@ -44,8 +52,8 @@ import { trovaConPattern, trovaConPatternInJson } from "@/lib/lingua/scansione";
 // guardia è una chiamata in più e nient'altro (il testo che torna è buono
 // uguale). In nessuno dei due casi vale la pena stringerli.
 export const PATTERN_ACCORDO: RegExp[] = [
-  /\b(?:ti\s+)?(?:sei|eri|fossi|sarai|saresti)\s+(?:gi[àa]\s+|subito\s+|poi\s+|anche\s+|mai\s+)?[a-zàèéìòù]+(?:ato|ito|uto|sso|sto|tto|rso|eso)\b/g,
-  /\b(?:ti\s+)?(?:sei|eri|fossi|sarai|saresti)\s+(?:gi[àa]\s+|subito\s+|poi\s+|anche\s+|mai\s+)?[a-zàèéìòù]+(?:ata|ita|uta|ssa|sta|tta|rsa|esa)\b/g,
+  /\b(?:ti\s+)?(?:sei|eri|fossi|sarai|saresti)\s+(?:gi[àa]\s+|subito\s+|poi\s+|anche\s+|mai\s+)?[a-zàèéìòù]+(?:ato|ito|uto|sso|sto|tto|rso|eso|orto|erto|olto)\b/g,
+  /\b(?:ti\s+)?(?:sei|eri|fossi|sarai|saresti)\s+(?:gi[àa]\s+|subito\s+|poi\s+|anche\s+|mai\s+)?[a-zàèéìòù]+(?:ata|ita|uta|ssa|sta|tta|rsa|esa|orta|erta|olta)\b/g,
   /\bda sol[oa]\b/g,
 ];
 

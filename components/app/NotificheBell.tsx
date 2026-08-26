@@ -29,7 +29,13 @@ const LINK_TIPO: Record<string, string> = {
 // Campanella con badge non-lette, solo in-app (nessun digest email, fuori
 // scope). Poll leggero ogni 60s invece di realtime: sufficiente per una
 // notifica che non richiede consegna immediata.
-export default function NotificheBell({ userId }: { userId: string }) {
+// `allineamento` — da che parte si apre il pannello. Non è un gusto: nella
+// sidebar (w-60 = 240px) la campanella sta al bordo destro, e un pannello
+// `right-0` largo w-80 (320px) si estende all'indietro fino a −80px, cioè
+// ottanta pixel FUORI dalla finestra. `max-w-[90vw]` non lo salva, perché il
+// vincolo è la sidebar, non il viewport. Nell'header mobile, dove la campanella
+// è già a destra, `right-0` è invece quello giusto.
+export default function NotificheBell({ userId, allineamento = "destra" }: { userId: string; allineamento?: "destra" | "sinistra" }) {
   const [aperto, setAperto] = useState(false);
   const [notifiche, setNotifiche] = useState<Notifica[]>([]);
   const [nonLette, setNonLette] = useState(0);
@@ -107,7 +113,7 @@ export default function NotificheBell({ userId }: { userId: string }) {
       </button>
 
       {aperto && (
-        <div className="absolute right-0 z-50 mt-2 w-80 max-w-[90vw] rounded-xl border border-white/10 bg-kireo-card p-3 shadow-xl">
+        <div className={`absolute ${allineamento === "sinistra" ? "left-0" : "right-0"} z-50 mt-2 w-80 max-w-[90vw] rounded-xl border border-white/10 bg-kireo-card p-3 shadow-xl`}>
           <div className="mb-2 flex items-center justify-between">
             <p className="text-sm font-semibold text-kireo-light">Notifiche</p>
             {nonLette > 0 && (

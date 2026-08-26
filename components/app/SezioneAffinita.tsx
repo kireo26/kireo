@@ -19,7 +19,13 @@ import type { AffinitaHome } from "@/lib/percorso/stato";
 const STATUS: Record<AffinitaHome["eleggibili"][number]["status"], { testo: string; classe: string }> = {
   emergente: { testo: "Sta emergendo", classe: "border-white/15 text-kireo-muted" },
   confermata: { testo: "Si va confermando", classe: "border-kireo-green/40 text-kireo-green-light" },
-  da_verificare: { testo: "Da verificare", classe: "border-kireo-orange/40 text-kireo-orange" },
+  // L'etichetta INTERA, come nella pagina di missione. Troncata a «Da
+  // verificare» diceva un'altra cosa: accanto alla barra più lunga si legge
+  // come un'avvertenza, mentre lo stato è il segnale più prezioso che abbiamo —
+  // la fiducia che uno si dà e come gli è andata divergono di trenta punti.
+  // Talento che lo studente non vede in sé, o insicurezza su una cosa in cui è
+  // bravo. La nota sotto la lista dice cosa significa: un badge da solo non può.
+  da_verificare: { testo: "Da verificare — segnali contrastanti", classe: "border-kireo-orange/40 text-kireo-orange" },
 };
 
 function Cta({ testo }: { testo: string }) {
@@ -32,6 +38,7 @@ function Cta({ testo }: { testo: string }) {
 
 export default function SezioneAffinita({ affinita }: { affinita: AffinitaHome }) {
   const { eleggibili, sfiorate, haAttivita } = affinita;
+  const contrastanti = eleggibili.filter((a) => a.status === "da_verificare").map((a) => a.nome);
   const vociSfiorate = sfiorate.map((s) => ({ nome: s.nome, testo: s.motivazione ?? "un segnale c'è, ma serve un'altra attività in quest'area." }));
 
   // Caso pieno: aree eleggibili → classifica per interesse.
@@ -54,6 +61,11 @@ export default function SezioneAffinita({ affinita }: { affinita: AffinitaHome }
               </li>
             ))}
           </ul>
+          {contrastanti.length > 0 && (
+            <p className="mt-4 rounded-lg border border-kireo-orange/30 bg-kireo-orange/5 px-3 py-2 text-sm text-kireo-light/90">
+              Su {contrastanti.join(", ")} la fiducia che ti dai e come te la cavi davvero non vanno nella stessa direzione. Non è un problema da correggere: è il segnale più utile che abbiamo, perché capita spesso di essere in gamba in una cosa senza sentirsi così.
+            </p>
+          )}
         </section>
         <AreeSfiorate titolo="Aree che stai sfiorando" sottotitolo="Un segnale c'è, ma serve una seconda attività in quest'area prima che diventi un'affinità." voci={vociSfiorate} />
       </div>
