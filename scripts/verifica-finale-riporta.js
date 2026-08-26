@@ -55,6 +55,7 @@ const { componiPerformance } = require("@/lib/escape/componiPerformance");
 const { getMissione, stepDellaMissione } = require("@/lib/escape/config");
 const { descrittoriPerformancePerTest } = require("@/lib/escape/scoring");
 const { PATTERN_ACCORDO } = require("@/lib/lingua/accordoGenere");
+const { LESSICO_VERDETTO } = require("@/lib/lingua/registroStudente");
 
 let falliti = 0;
 const ok = (cond, msg) => { if (!cond) { console.error("  ✗ " + msg); falliti++; } else { console.log("  ✓ " + msg); } };
@@ -256,25 +257,17 @@ console.log("═══ FORMA 1 — cornici composte (lista chiusa) ═══\n")
 // succederà ancora — la linea vieta di affermare cosa lo studente ha capito o
 // quanto è stato bravo, non di dire quando un fatto gli è arrivato davanti.
 const LESSICO = {
-  "stato-d'animo": [
-    /\bhai capito\b/, /\bhai compreso\b/, /\bhai intuito\b/, /\bhai realizzato\b/,
-    /\bhai scoperto\b/, /\bsapevi\b/, /\bavevi capito\b/,
-    /\bhai imparato\b/, /\bhai riconosciuto\b/,
-  ],
-  "verdetto-di-qualità": [
-    /\blucid\w*/, /\bcon criterio\b/, /\bsottile\b/, /\belegante\b/, /\bmaturo\b/,
-    /\bsaggio\b/, /\bcoraggioso\b/, /\bbrillante\b/, /\bnotevole\b/, /\bottim\w*/,
-    /\bben fatto\b/, /\befficace\b/,
-  ],
+  // Le famiglie del verdetto vivono in lib/lingua/registroStudente.ts, da dove
+  // le legge anche la guardia sulle risposte dei revisori: il testo cablato e
+  // quello generato rispondono alla stessa linea, e due liste in due file
+  // divergerebbero. Il perché di ogni voce (e il perché di ciò che NON c'è, tipo
+  // «sei accorto») sta accanto alla lista, non qui.
+  ...LESSICO_VERDETTO,
   // Terza famiglia: le forme che CONCORDANO col genere di chi legge. La
   // definizione dei pattern (e il perché di ognuno) sta in un posto solo,
   // lib/lingua/accordoGenere.ts, condiviso con la regola scritta nei prompt e
   // con la guardia che rilegge le risposte dei revisori.
   "accordo-di-genere": PATTERN_ACCORDO,
-  "dichiara-significato": [
-    /è la risposta più/, /è uno stile, non/, /questo cambia tutto/,
-    /vuol dire che sei/, /sopra le impressioni/, /senza vantart\w*/,
-  ],
 };
 
 // Whitelist per STRINGA INTERA (mai per pattern), ognuna con la RAGIONE (non la

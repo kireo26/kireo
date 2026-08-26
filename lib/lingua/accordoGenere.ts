@@ -21,6 +21,8 @@
 // vorrà togliere una delle due perché «basta l'altra» tolga prima questo
 // commento, e si accorga che non basta.
 
+import { trovaConPattern, trovaConPatternInJson } from "@/lib/lingua/scansione";
+
 // ── 1. i pattern ───────────────────────────────────────────────────────────
 // Solo i due affidabili:
 //   a) il participio con ESSERE o riflessivo — è lì che il modello ricasca, e
@@ -65,24 +67,15 @@ export const REGOLA_LINGUA_INVARIANTE = `
 LINGUA (vale per ogni frase che rivolgi allo studente): non sai se chi legge è una ragazza o un ragazzo, e non lo saprai mai. Racconta quello che ha fatto con verbi che al passato prossimo si coniugano con «avere» — «hai cercato», «hai parlato», «hai chiesto», «hai pensato», «hai messo», «hai lasciato fuori» — perché restano identici per chiunque. Se il verbo che ti viene si coniuga con «essere», oppure è riflessivo, sostituiscilo con uno che si coniuga con «avere»: vale anche dentro le frasi secondarie e le domande. Per il resto usa locuzioni che non cambiano desinenza («per conto tuo», «alle strette», «a tuo agio», «con calma»). Ogni frase deve poter essere letta da una ragazza e da un ragazzo senza cambiare una lettera.`;
 
 // ── 3. la scansione ────────────────────────────────────────────────────────
-// Tutte le occorrenze, non solo la prima: si contano i casi, non i testi.
+// Tutte le occorrenze, non solo la prima: si contano i casi, non i testi. La
+// meccanica (normalizzazione del flag `g`, ricorsione sul JSON) sta in
+// lib/lingua/scansione.ts, condivisa con la guardia sul registro: due
+// ricorsioni identiche in due file divergono, ed è la stessa ragione per cui
+// questi pattern stanno in un posto solo.
 export function trovaAccordi(testo: string): string[] {
-  const t = String(testo || "").toLowerCase();
-  const out: string[] = [];
-  for (const re of PATTERN_ACCORDO) {
-    re.lastIndex = 0;
-    for (const m of t.matchAll(re)) out.push(m[0]);
-  }
-  return out;
+  return trovaConPattern(testo, PATTERN_ACCORDO);
 }
 
-// Scansiona ogni stringa dentro un valore JSON, a qualunque profondità: la
-// risposta di un revisore è un oggetto con array di frasi, e la forma cambia da
-// un revisore all'altro. Le CHIAVI non si guardano (sono nomi di campo, non
-// lingua): solo i valori di tipo stringa.
 export function trovaAccordiInJson(valore: unknown): string[] {
-  if (typeof valore === "string") return trovaAccordi(valore);
-  if (Array.isArray(valore)) return valore.flatMap(trovaAccordiInJson);
-  if (valore && typeof valore === "object") return Object.values(valore).flatMap(trovaAccordiInJson);
-  return [];
+  return trovaConPatternInJson(valore, PATTERN_ACCORDO);
 }

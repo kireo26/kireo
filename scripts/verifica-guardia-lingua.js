@@ -49,6 +49,7 @@ require.cache[percorsoContatore] = {
 
 const { chiamaJson } = require("@/lib/ai/chiamaJson");
 const { REGOLA_LINGUA_INVARIANTE, trovaAccordi, trovaAccordiInJson } = require("@/lib/lingua/accordoGenere");
+const { REGOLA_REGISTRO, trovaRegistroInJson } = require("@/lib/lingua/registroStudente");
 
 let falliti = 0;
 const ok = (cond, msg) => { if (!cond) { console.error("  ✗ " + msg); falliti++; } else { console.log("  ✓ " + msg); } };
@@ -72,6 +73,13 @@ function clienteFinto(risposte) {
 const PULITA = JSON.stringify({ commento_breve: "Hai messo il corso della sera al posto giusto.", punti_forza: ["Hai cercato chi non si muove."] });
 const ACCORDATA = JSON.stringify({ commento_breve: "Sei partito dal realismo.", punti_forza: ["Hai cercato chi non si muove."] });
 const ACCORDATA_2 = JSON.stringify({ commento_breve: "Ti sei chiesto da dove cominciare.", punti_forza: [] });
+
+// Le due catture reali della Missione 04, parola per parola come sono uscite.
+const VERDETTO = JSON.stringify({ commento_breve: "Performance non perfetta perché la soluzione è parziale." });
+const TERZA_PERSONA = JSON.stringify({ commento_breve: "Lo studente lo nomina, il che è onesto." });
+// Pulita per la lingua e per il registro, ma con una cifra che il chiamante
+// (e solo lui) sa non essere citabile.
+const CIFRA = JSON.stringify({ commento_breve: "Hai tenuto un fondo imprevisti di 37.000 euro." });
 
 const opzioniBase = { model: "modello-finto", maxTokens: 100, system: "SISTEMA DI PROVA", user: "consegna" };
 
@@ -122,6 +130,58 @@ async function main() {
   esito = await chiamaJson(client, opzioniBase);
   ok(!esito.ok, "se la prima risposta non arriva proprio, l'esito resta un fallimento tipizzato");
   ok(registrati.length === 0, "un fallimento di chiamata non è un intervento della guardia");
+
+  // ── 6. il registro: parola-verdetto e terza persona ─────────────────────
+  // Stesso meccanismo del genere, stesso terminale: si richiede una risposta e
+  // si spedisce comunque. Ma NON tocca i contatori della lingua, che misurano
+  // il tasso di forme accordate e diventerebbero illeggibili con dentro
+  // un'altra popolazione.
+  for (const [nome, sporca] of [["una parola-verdetto", VERDETTO], ["la terza persona", TERZA_PERSONA]]) {
+    registrati.length = 0;
+    client = clienteFinto([sporca, PULITA]);
+    esito = await chiamaJson(client, opzioniBase);
+    ok(client.visti.length === 2, `${nome}: la guardia richiede una risposta`);
+    ok(esito.ok && esito.dati.commento_breve === "Hai messo il corso della sera al posto giusto.", `${nome}: viene spedita la seconda`);
+    ok(registrati.length === 0, `${nome}: non entra nei contatori della lingua`);
+  }
+
+  registrati.length = 0;
+  client = clienteFinto([VERDETTO, TERZA_PERSONA]);
+  esito = await chiamaJson(client, opzioniBase);
+  ok(esito.ok && esito.dati.commento_breve === "Lo studente lo nomina, il che è onesto.", "registro ancora sporco al secondo giro: il feedback parte lo stesso");
+
+  ok(String(client.visti[0].system).includes(REGOLA_REGISTRO.trim().slice(0, 40)), "anche la regola sul registro è appesa al system prompt");
+
+  // ── 7. il controllo del chiamante ────────────────────────────────────────
+  // Quello che questa funzione non può decidere da sola: una cifra è sbagliata
+  // solo rispetto a una verità che sta altrove. Qui si verifica che il
+  // controllo venga chiamato, che inneschi il secondo tentativo, e che il
+  // terminale resti «si spedisce» — è il CHIAMANTE a sostituire la frase.
+  registrati.length = 0;
+  const visti = [];
+  const controlloExtra = (dati) => {
+    visti.push(dati);
+    return JSON.stringify(dati).includes("37.000") ? ["37.000"] : [];
+  };
+  client = clienteFinto([CIFRA, PULITA]);
+  esito = await chiamaJson(client, { ...opzioniBase, controlloExtra });
+  // Il controllo gira UNA volta, sulla risposta da giudicare: dopo il secondo
+  // tentativo non serve rifarlo qui, perché è il chiamante a doverlo rifare
+  // comunque su ciò che riceve — è lui che sostituisce la frase, e deve sapere
+  // QUALE. Rifarlo anche qui sarebbe una scansione in più per nessuno.
+  ok(visti.length === 1, "il controllo del chiamante gira sulla risposta da giudicare, una volta");
+  ok(client.visti.length === 2, "una cifra non citabile innesca il secondo tentativo");
+  ok(esito.ok && esito.dati.commento_breve === "Hai messo il corso della sera al posto giusto.", "cifra: viene spedita la seconda risposta");
+  ok(registrati.length === 0, "una cifra non entra nei contatori della lingua");
+
+  registrati.length = 0;
+  client = clienteFinto([CIFRA, CIFRA]);
+  esito = await chiamaJson(client, { ...opzioniBase, controlloExtra });
+  ok(esito.ok && esito.dati.commento_breve.includes("37.000"), "cifra ancora presente al secondo giro: la guardia NON trattiene — sostituisce il chiamante");
+
+  // ── 8. le tre scansioni non si pestano i piedi ───────────────────────────
+  ok(trovaRegistroInJson({ a: "Hai messo il corso al posto giusto." }).length === 0, "una frase che riporta non viene catturata dal registro");
+  ok(trovaAccordiInJson({ a: "Lo studente lo nomina." }).length === 0, "il registro non è affare della guardia sul genere");
 
   console.log("\n═══════════════════════════════════════════\n");
   if (falliti) { console.error(`✗ ${falliti} controlli falliti.\n`); process.exit(1); }

@@ -15,6 +15,7 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { REGOLA_LINGUA_INVARIANTE, trovaAccordiInJson } from "@/lib/lingua/accordoGenere";
+import { REGOLA_REGISTRO, trovaRegistroInJson } from "@/lib/lingua/registroStudente";
 import { registraGuardiaLingua } from "@/lib/lingua/contatoreGuardia";
 
 // Istruzione appesa centralmente a ogni system prompt: riduce il poscritto alla
@@ -94,21 +95,41 @@ async function chiamaJsonGrezzo(
   return { ok: false, motivo: "chiamata" };
 }
 
-// La guardia sulla lingua invariante.
+// La guardia su come il revisore parla allo studente.
 //
-// KIREO non conosce il genere di chi legge (vedi lib/lingua/accordoGenere.ts).
-// Nel testo cablato la forma invariante la garantisce il tripwire; qui il testo
-// lo scrive un modello, e una regola nel prompt — che c'è, appesa qui sotto —
-// ORIENTA senza GARANTIRE: misurata, lascia passare qualcosa. Quindi il codice
-// rilegge la risposta e, se trova una forma accordata, ne chiede UN'ALTRA. Una
-// volta sola.
+// Sorveglia tre cose, con lo STESSO meccanismo e DUE terminali diversi.
+//
+// IL MECCANISMO. Nel testo cablato la linea la garantisce il tripwire; qui il
+// testo lo scrive un modello, e le regole nel prompt — che ci sono, appese qui
+// sotto — ORIENTANO senza GARANTIRE: misurate, lasciano passare qualcosa.
+// Quindi il codice rilegge la risposta e, se trova qualcosa, ne chiede UN'ALTRA.
+// Una volta sola, e una sola per tutte e tre: il secondo tentativo non è di
+// questo o quel controllo, è della risposta.
+//
+//   1. l'ACCORDO DI GENERE (lib/lingua/accordoGenere.ts) — KIREO non sa chi
+//      legge, e non lo saprà mai;
+//   2. il REGISTRO (lib/lingua/registroStudente.ts) — le parole-verdetto e la
+//      terza persona: «performance non perfetta», «lo studente lo nomina»;
+//   3. un CONTROLLO DEL CHIAMANTE, facoltativo (`controlloExtra`), per ciò che
+//      non è decidibile sulla stringa sola. Oggi ne esiste uno: le cifre
+//      citabili di Escape, che si possono giudicare solo conoscendo il payload
+//      dello studente e i documenti che ha aperto — cose che questa funzione,
+//      che è trasporto, non conosce e non deve conoscere.
 //
 // LA REGOLA CHE NON VA CAMBIATA IN BUONA FEDE: se anche il secondo tentativo
-// torna accordato — o fallisce del tutto — si SPEDISCE LO STESSO. La guardia
-// non deve mai poter trattenere il feedback di uno studente per una questione
-// di grammatica: meglio un participio al maschile che una schermata vuota. È la
-// stessa lezione già pagata con il JSON.parse, dove un revisore che aveva letto
+// torna sporco — o fallisce del tutto — si SPEDISCE LO STESSO. La guardia non
+// deve mai poter trattenere il feedback di uno studente per una questione di
+// lingua: meglio un participio al maschile che una schermata vuota. È la stessa
+// lezione già pagata con il JSON.parse, dove un revisore che aveva letto
 // benissimo produceva zero perché il parse falliva in silenzio.
+//
+// IL SECONDO TERMINALE non sta qui, e non può starci: una cifra fuori
+// dall'insieme citabile è un'affermazione falsa su una scelta dello studente,
+// e quella non si spedisce — al suo posto va un ripiego cablato. Ma è il
+// CHIAMANTE a saperlo fare, perché è lui che sa quale frase sostituire e con
+// che cosa. Qui si chiede la seconda risposta e la si restituisce; il
+// chiamante rifà il suo controllo su ciò che riceve e decide. Vedi
+// lib/escape/scoring.ts, al punto in cui nascono le prove del revisore.
 //
 // I pattern sono larghi e restano larghi: un falso positivo qui costa una
 // chiamata e nient'altro, perché il testo che torna è buono uguale.
@@ -119,24 +140,40 @@ export async function chiamaJson(
     maxTokens: number;
     system: string;
     user: Anthropic.Messages.MessageParam["content"];
+    // Ritorna i frammenti da correggere (vuoto = niente da correggere). Vive
+    // nelle opzioni e non in un parametro a sé perché i chiamanti che non ne
+    // hanno bisogno — quasi tutti — non devono nemmeno sapere che esiste.
+    controlloExtra?: (dati: unknown) => string[];
   },
 ): Promise<EsitoAI> {
-  const conRegola = { ...opzioni, system: opzioni.system + REGOLA_LINGUA_INVARIANTE };
+  const conRegola = { ...opzioni, system: opzioni.system + REGOLA_LINGUA_INVARIANTE + REGOLA_REGISTRO };
+  const sporco = (dati: unknown) =>
+    trovaAccordiInJson(dati).length > 0 ||
+    trovaRegistroInJson(dati).length > 0 ||
+    (opzioni.controlloExtra?.(dati).length ?? 0) > 0;
 
   const primo = await chiamaJsonGrezzo(client, conRegola);
   if (!primo.ok) return primo;
-  if (trovaAccordiInJson(primo.dati).length === 0) return primo;
+  if (!sporco(primo.dati)) return primo;
 
   const secondo = await chiamaJsonGrezzo(client, conRegola);
   const risposta = secondo.ok ? secondo : primo;
-  // «Ancora accordato» conta l'ESPOSIZIONE residua, non il lavoro della
-  // guardia: è vero anche quando il secondo tentativo fallisce, perché in quel
-  // caso allo studente arriva comunque la prima risposta.
-  const ancoraAccordato = !secondo.ok || trovaAccordiInJson(secondo.dati).length > 0;
-  // Atteso, anche se è solo osservabilità: su Vercel una promessa lasciata
-  // in volo dopo il ritorno della route può non essere mai eseguita, e un
-  // contatore che si perde a caso è peggio di nessun contatore. Costa una RPC,
-  // e non può fallire in modo visibile (è tutta dentro un try/catch).
-  await registraGuardiaLingua(ancoraAccordato);
+
+  // I due contatori restano quelli della LINGUA, e solo di quella: misurano il
+  // tasso di forme accordate per sostituire, fra qualche settimana, la stima
+  // fatta su una consegna-fixture (~8% su 24 chiamate). Contare qui anche i
+  // secondi tentativi chiesti per il registro o per una cifra renderebbe quel
+  // tasso illeggibile — stesso numeratore, denominatore gonfiato da un'altra
+  // popolazione. Quindi: si conta un intervento solo se la PRIMA risposta era
+  // accordata (la definizione scritta nella migrazione), e «ancora accordato»
+  // si misura sulla risposta che parte davvero, comunque sia stata innescata.
+  if (trovaAccordiInJson(primo.dati).length > 0) {
+    const ancoraAccordato = !secondo.ok || trovaAccordiInJson(secondo.dati).length > 0;
+    // Atteso, anche se è solo osservabilità: su Vercel una promessa lasciata
+    // in volo dopo il ritorno della route può non essere mai eseguita, e un
+    // contatore che si perde a caso è peggio di nessun contatore. Costa una RPC,
+    // e non può fallire in modo visibile (è tutta dentro un try/catch).
+    await registraGuardiaLingua(ancoraAccordato);
+  }
   return risposta;
 }
