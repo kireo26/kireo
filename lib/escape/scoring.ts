@@ -926,6 +926,41 @@ export async function calcolaEvidenze(
         const valoreScarto = trapScattata ? Math.min(correttezza, 0.2) : correttezza;
         const testoScarto = componiPerformance(valoreScarto, [{ tipo: "scarto", scartati: scartatiLabels, trappola: trapWhere, invertita: trappola?.trappolaSeScartata ?? false }], "budget");
         if (testoScarto) evidenze.push({ area_slug: null, categoria: "qualita_missione", dimensione: "performance", valore: valoreScarto, peso: P.scartoPerf, motivazione: testoScarto, step_id: s.id });
+
+        // LA TRAPPOLA, CON LA SUA AREA — e perché solo lei di tutto lo step.
+        //
+        // La riga qui sopra giudica lo scarto come atto intero (quante delle
+        // «da scartare» hai scartato) e resta senza area, perché una correttezza
+        // d'insieme non è un fatto su un campo. La TRAPPOLA invece è UNA
+        // opzione, e l'area ce l'ha scritta addosso nel config: tenere la
+        // chiusura notturna della 08 è un giudizio su una scelta di politica
+        // idrica e di legittimità, e `giurisprudenza-pa` sta sull'opzione, non
+        // la deduce nessuno.
+        //
+        // È la prima sorgente DETERMINISTICA della bravura d'area, e l'unica in
+        // tutte e undici le missioni che possa valere BASSO. Prima di questa,
+        // `performance` con un'area aveva due sorgenti sole: il revisore (che
+        // può fallire, e in due missioni su cinque giocate non ha emesso nulla)
+        // e un 0,9 fisso negli abbinamenti della Missione 10 — cioè positivi, o
+        // niente.
+        //
+        // Il testo è volutamente CORTO e diverso dalla frase composta qui sopra:
+        // quella racconta la stanza in «Come hai ragionato», questa dice il
+        // fatto singolo accanto all'area in «Perché lo diciamo». Ripetere la
+        // stessa frase in due blocchi sarebbe rumore.
+        if (trappola) {
+          const et = trappola.label.toLowerCase();
+          const invertita = trappola.trappolaSeScartata ?? false;
+          const tenutaOra = !scartati.has(trappola.id);
+          // Invertita: la trappola scatta se SCARTATA (Missione 04, lasciar
+          // fuori l'accessibilità). Il testo segue l'atto vero, non lo schema.
+          const testo = invertita
+            ? (tenutaOra ? `Hai tenuto «${et}», che serviva.` : `Hai lasciato fuori «${et}», che serviva.`)
+            : (tenutaOra ? `Hai tenuto «${et}», che non reggeva.` : `Hai scartato «${et}», che non reggeva.`);
+          for (const area of trappola.aree) {
+            evidenze.push({ categoria: "area", area_slug: area, dimensione: "performance", valore: trapScattata ? 0.2 : 0.85, peso: P.scartoPerf, motivazione: testo, step_id: s.id });
+          }
+        }
         break;
       }
 
