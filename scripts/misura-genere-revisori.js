@@ -168,12 +168,17 @@ async function main() {
       if (!esito.ok) { console.error(`  ${r.nome} giro ${g}: FALLITO (${esito.motivo})`); falliti++; continue; }
       const campi = r.campi(esito.dati).filter((c) => typeof c === "string" && c.trim());
       campiRev += campi.length;
+      // Il testo si stampa INTERO: «da sol[oa]» concorda anche con un nome
+      // femminile della frase («la palestra da sola non basta») — italiano
+      // corretto, non un modo di rivolgersi a chi legge. Una cattura tagliata a
+      // metà non si può giudicare, e un numero che non si può giudicare non
+      // decide niente.
       for (const c of campi) {
         const colpi = trovaAccordi(c);
         if (colpi.length) {
           campiConColpo++;
           colpiRev += colpi.length;
-          console.log(`  [${r.nome} g${g}] ${colpi.join(", ")}  →  ${c.slice(0, 150)}`);
+          console.log(`  [${r.nome} g${g}] ${colpi.join(", ")}\n      ${c}`);
         }
       }
     }
