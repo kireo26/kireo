@@ -937,8 +937,13 @@ export async function calcolaEvidenze(
         // idrica e di legittimità, e `giurisprudenza-pa` sta sull'opzione, non
         // la deduce nessuno.
         //
-        // È la prima sorgente DETERMINISTICA della bravura d'area, e l'unica in
-        // tutte e undici le missioni che possa valere BASSO. Prima di questa,
+        // È la prima sorgente DETERMINISTICA della bravura d'area, e l'unica
+        // che possa valere BASSO. Vale in DIECI missioni su undici, non in tutte:
+        // nella 10 la trappola («mi metto sotto io e finisco la guida») ha
+        // `aree: []`, e non per dimenticanza — in quella missione le mosse
+        // sbagliate dello scarto sono tutte senza area, perché fare il lavoro
+        // al posto degli altri non è un segnale su un campo. Dargliene una
+        // sarebbe la misattribuzione che stiamo togliendo. Prima di questa,
         // `performance` con un'area aveva due sorgenti sole: il revisore (che
         // può fallire, e in due missioni su cinque giocate non ha emesso nulla)
         // e un 0,9 fisso negli abbinamenti della Missione 10 — cioè positivi, o
@@ -949,7 +954,13 @@ export async function calcolaEvidenze(
         // fatto singolo accanto all'area in «Perché lo diciamo». Ripetere la
         // stessa frase in due blocchi sarebbe rumore.
         if (trappola) {
-          const et = trappola.label.toLowerCase();
+          // La glossa fra parentesi si toglie: nella 04 l'etichetta è
+          // «L'adeguamento degli spogliatoi (rimandato al prossimo
+          // finanziamento)» — scritta dal punto di vista di chi la scarta,
+          // perché lì scartare è la mossa pericolosa. In una frase che dice
+          // «Hai TENUTO …» quella parentesi si contraddice. È l'unica etichetta
+          // di trappola con una glossa; le altre dieci sono nomi neutri.
+          const et = trappola.label.toLowerCase().replace(/\s*\([^)]*\)\s*$/, "");
           const invertita = trappola.trappolaSeScartata ?? false;
           const tenutaOra = !scartati.has(trappola.id);
           // Invertita: la trappola scatta se SCARTATA (Missione 04, lasciar
