@@ -14,6 +14,8 @@
 // stato, mostrarlo, avvisare). Un solo ritentativo, che copre entrambi i motivi.
 
 import Anthropic from "@anthropic-ai/sdk";
+import { REGOLA_LINGUA_INVARIANTE, trovaAccordiInJson } from "@/lib/lingua/accordoGenere";
+import { registraGuardiaLingua } from "@/lib/lingua/contatoreGuardia";
 
 // Istruzione appesa centralmente a ogni system prompt: riduce il poscritto alla
 // fonte, invece di doverlo togliere a valle in ogni prompt sparso.
@@ -42,7 +44,13 @@ export function estraiJson(testo: string): unknown | undefined {
 // Chiama il modello e restituisce l'oggetto JSON estratto. Un solo ritentativo,
 // che copre ENTRAMBI i motivi (la chiamata fallisce, oppure l'estrazione non
 // trova JSON valido): il secondo fallimento diventa un esito `{ok:false}`.
-export async function chiamaJson(
+//
+// Su questa funzione passano TUTTI i revisori che scrivono testo letto da uno
+// studente (proposta e riflessione di Escape, revisione di tappa e feedback
+// finale del workshop, analisi della consegna): è il punto giusto per la
+// guardia sulla lingua invariante — vedi `chiamaJson` più sotto, che la
+// avvolge.
+async function chiamaJsonGrezzo(
   client: Anthropic,
   opzioni: {
     model: string;
@@ -84,4 +92,51 @@ export async function chiamaJson(
   }
   // irraggiungibile: il ramo `ultimo` ritorna sempre.
   return { ok: false, motivo: "chiamata" };
+}
+
+// La guardia sulla lingua invariante.
+//
+// KIREO non conosce il genere di chi legge (vedi lib/lingua/accordoGenere.ts).
+// Nel testo cablato la forma invariante la garantisce il tripwire; qui il testo
+// lo scrive un modello, e una regola nel prompt — che c'è, appesa qui sotto —
+// ORIENTA senza GARANTIRE: misurata, lascia passare qualcosa. Quindi il codice
+// rilegge la risposta e, se trova una forma accordata, ne chiede UN'ALTRA. Una
+// volta sola.
+//
+// LA REGOLA CHE NON VA CAMBIATA IN BUONA FEDE: se anche il secondo tentativo
+// torna accordato — o fallisce del tutto — si SPEDISCE LO STESSO. La guardia
+// non deve mai poter trattenere il feedback di uno studente per una questione
+// di grammatica: meglio un participio al maschile che una schermata vuota. È la
+// stessa lezione già pagata con il JSON.parse, dove un revisore che aveva letto
+// benissimo produceva zero perché il parse falliva in silenzio.
+//
+// I pattern sono larghi e restano larghi: un falso positivo qui costa una
+// chiamata e nient'altro, perché il testo che torna è buono uguale.
+export async function chiamaJson(
+  client: Anthropic,
+  opzioni: {
+    model: string;
+    maxTokens: number;
+    system: string;
+    user: Anthropic.Messages.MessageParam["content"];
+  },
+): Promise<EsitoAI> {
+  const conRegola = { ...opzioni, system: opzioni.system + REGOLA_LINGUA_INVARIANTE };
+
+  const primo = await chiamaJsonGrezzo(client, conRegola);
+  if (!primo.ok) return primo;
+  if (trovaAccordiInJson(primo.dati).length === 0) return primo;
+
+  const secondo = await chiamaJsonGrezzo(client, conRegola);
+  const risposta = secondo.ok ? secondo : primo;
+  // «Ancora accordato» conta l'ESPOSIZIONE residua, non il lavoro della
+  // guardia: è vero anche quando il secondo tentativo fallisce, perché in quel
+  // caso allo studente arriva comunque la prima risposta.
+  const ancoraAccordato = !secondo.ok || trovaAccordiInJson(secondo.dati).length > 0;
+  // Atteso, anche se è solo osservabilità: su Vercel una promessa lasciata
+  // in volo dopo il ritorno della route può non essere mai eseguita, e un
+  // contatore che si perde a caso è peggio di nessun contatore. Costa una RPC,
+  // e non può fallire in modo visibile (è tutta dentro un try/catch).
+  await registraGuardiaLingua(ancoraAccordato);
+  return risposta;
 }

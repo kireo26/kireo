@@ -12,8 +12,22 @@
 // COSA MISURA. Tre revisori reali (nessun prompt riscritto qui: sono presi dalle
 // stesse funzioni che girano in produzione), N esecuzioni ciascuno, sullo stesso
 // testo-studente. Conta le occorrenze nei SOLI campi che lo studente legge, con
-// gli stessi pattern del tripwire (scripts/lib/accordo-genere.js — un posto solo).
+// gli stessi pattern del prodotto (lib/lingua/accordoGenere.ts — un posto solo).
 // L'unica variabile fra i due giri è la regola: tutto il resto è identico.
+//
+// LA CHIAMATA È NUDA, non passa da `chiamaJson`: lì dentro vivono ora la regola
+// (appesa a ogni system prompt) e la guardia (che richiede una risposta quando
+// ne trova una accordata). Misurare attraverso quella funzione vorrebbe dire
+// misurare lo strumento invece del modello — il giro «senza regola» non
+// esisterebbe più, e quello «con regola» conterebbe risposte già ripulite.
+//
+// La prima misura (26/08/2026, Haiku 4.5, 24 chiamate per parte): 2 forme reali
+// senza regola, 2 con la prima stesura della regola — che parlava solo
+// dell'indirizzo frontale, dove il modello era già a posto. Tutte e quattro
+// erano verbi con «essere» o riflessivi, in secondarie e domande: da lì la
+// riformulazione. Con due catture per parte non si distingue «non funziona» da
+// «non lo vediamo»: il numero vero lo darà la produzione, con i contatori della
+// guardia nell'alert giornaliero.
 //
 // USO:
 //   ANTHROPIC_API_KEY=sk-... node scripts/misura-genere-revisori.js
@@ -49,7 +63,8 @@ require.extensions[".ts"] = require.extensions[".tsx"] = function (mod, filename
   return mod._compile(out.outputText, filename);
 };
 
-const { trovaAccordi } = require("./lib/accordo-genere");
+const { trovaAccordi, REGOLA_LINGUA_INVARIANTE } = require("@/lib/lingua/accordoGenere");
+const { estraiJson } = require("@/lib/ai/chiamaJson");
 const { costruisciPromptPropostaPerTest } = require("@/lib/escape/scoring");
 const { promptRevisore, promptFeedbackFinale } = require("@/lib/workshop/prompt-revisore");
 const { WORKSHOP_ELABORATO, WORKSHOP_TUTOR_CONTESTO } = require("@/lib/workshop/elaborato-config");
@@ -57,11 +72,10 @@ const { WORKSHOP_CLIENTE_NOME, MODELLO_CLIENTE_WORKSHOP } = require("@/lib/works
 const { AREE } = require("@/data/aree");
 
 // ─────────────────────────────────────────────────── la regola, in prova
-// Forma POSITIVA: dice cosa fare e mostra la forma giusta. Non cita mai la forma
-// da evitare — un modello a cui si mostra un esempio sbagliato tende a copiarlo
-// (già successo con il segnaposto «(sezione X)» nel revisore del workshop).
-const REGOLA_GENERE = `
-LINGUA: non sai se chi legge è una ragazza o un ragazzo, e non lo saprai mai. Scrivi in una forma che vada bene per chiunque: rivolgiti allo studente con il passato prossimo di «avere» («hai scritto», «hai scelto», «hai messo», «hai lasciato fuori»), che resta identico per tutti, e con giri di frase che non cambiano desinenza («con calma», «per conto tuo», «alle strette», «a tuo agio»). Ogni frase deve poter essere letta da una ragazza e da un ragazzo senza cambiare una lettera.`;
+// NON una copia: è la stessa costante che il prodotto appende ai prompt
+// (lib/lingua/accordoGenere.ts). Una copia qui diverge dalla produzione al
+// primo ritocco, e misureremmo una regola che non esiste più.
+const REGOLA_GENERE = REGOLA_LINGUA_INVARIANTE;
 
 // ─────────────────────────────────────────────────── fixture (dello strumento)
 const CONSEGNA_ESCAPE = `Il mercato lo trasformerei in uno spazio per lo studio e per i corsi del pomeriggio, perché nel quartiere non c'è una biblioteca e i ragazzi stanno per strada.
@@ -149,8 +163,31 @@ async function main() {
   }
 
   const Anthropic = require("@anthropic-ai/sdk").default ?? require("@anthropic-ai/sdk");
-  const { chiamaJson } = require("@/lib/ai/chiamaJson");
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+  // NON si passa da `chiamaJson`: lì dentro vivono ORA sia la regola (appesa a
+  // ogni system prompt) sia la guardia (che rilegge e richiede una risposta
+  // quando trova una forma accordata). Misurare attraverso quella funzione
+  // vorrebbe dire misurare lo strumento invece del modello: il giro «senza
+  // regola» sarebbe impossibile, e il giro «con regola» conterebbe le risposte
+  // già ripulite dalla guardia. Qui la chiamata è nuda; l'estrazione è la
+  // stessa (estraiJson, condivisa), perché non c'è motivo di riscriverla.
+  async function chiamataNuda(system, user) {
+    try {
+      const risposta = await client.messages.create({
+        model: MODELLO_CLIENTE_WORKSHOP,
+        max_tokens: 800,
+        system,
+        messages: [{ role: "user", content: user }],
+      });
+      const testo = risposta.content[0]?.type === "text" ? risposta.content[0].text : "";
+      const dati = estraiJson(testo);
+      return dati === undefined ? { ok: false, motivo: "estrazione" } : { ok: true, dati };
+    } catch (errore) {
+      console.error("  chiamata fallita:", errore?.message ?? errore);
+      return { ok: false, motivo: "chiamata" };
+    }
+  }
 
   const lista = revisori();
   console.log(`\nMisura accordo di genere — ${lista.length} revisori × ${giri} giri = ${lista.length * giri} chiamate`);
@@ -164,7 +201,7 @@ async function main() {
     let colpiRev = 0, campiRev = 0;
 
     for (let g = 1; g <= giri; g++) {
-      const esito = await chiamaJson(client, { model: MODELLO_CLIENTE_WORKSHOP, maxTokens: 800, system, user: r.user });
+      const esito = await chiamataNuda(system, r.user);
       if (!esito.ok) { console.error(`  ${r.nome} giro ${g}: FALLITO (${esito.motivo})`); falliti++; continue; }
       const campi = r.campi(esito.dati).filter((c) => typeof c === "string" && c.trim());
       campiRev += campi.length;

@@ -54,7 +54,7 @@ require.extensions[".ts"] = require.extensions[".tsx"] = function (mod, filename
 const { componiPerformance } = require("@/lib/escape/componiPerformance");
 const { getMissione, stepDellaMissione } = require("@/lib/escape/config");
 const { descrittoriPerformancePerTest } = require("@/lib/escape/scoring");
-const { PATTERN_ACCORDO } = require("./lib/accordo-genere");
+const { PATTERN_ACCORDO } = require("@/lib/lingua/accordoGenere");
 
 let falliti = 0;
 const ok = (cond, msg) => { if (!cond) { console.error("  ✗ " + msg); falliti++; } else { console.log("  ✓ " + msg); } };
@@ -268,7 +268,8 @@ const LESSICO = {
   ],
   // Terza famiglia: le forme che CONCORDANO col genere di chi legge. La
   // definizione dei pattern (e il perché di ognuno) sta in un posto solo,
-  // scripts/lib/accordo-genere.js, condiviso con la misura sui revisori AI.
+  // lib/lingua/accordoGenere.ts, condiviso con la regola scritta nei prompt e
+  // con la guardia che rilegge le risposte dei revisori.
   "accordo-di-genere": PATTERN_ACCORDO,
   "dichiara-significato": [
     /è la risposta più/, /è uno stile, non/, /questo cambia tutto/,

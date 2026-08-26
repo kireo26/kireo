@@ -13,6 +13,7 @@
     "test:t3": "node scripts/verifica-t3.js",
     "test:guide": "node scripts/verifica-guide.js",
     "test:finale": "node scripts/verifica-finale-riporta.js",
+    "test:guardia": "node scripts/verifica-guardia-lingua.js",
     "schede": "node scripts/schede-missioni.js",
     "misura:genere": "node scripts/misura-genere-revisori.js",
     "censimento": "node scripts/censimento-motore.js"

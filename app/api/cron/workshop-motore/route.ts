@@ -368,19 +368,44 @@ export async function GET(request: NextRequest) {
     console.error("Alert test — eccezione conteggio senza esito:", erroreTest);
   }
 
+  // ── Guardia sulla lingua invariante (osservabilità) ───────────────────────
+  // Due numeri, non una diagnosi: quante volte la guardia è intervenuta (la
+  // prima risposta di un revisore conteneva una forma accordata al genere) e
+  // quante volte lo studente ha comunque letto una forma accordata. Servono a
+  // sostituire, fra qualche settimana, la stima fatta su una consegna-fixture
+  // (~8% su 24 chiamate) con il tasso vero della produzione. Se la tabella non
+  // esiste ancora (migrazione non applicata) si resta a zero, in silenzio.
+  let guardiaInterventi = 0, guardiaAncoraAccordato = 0;
+  try {
+    const dayFaGuardia = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
+    const { data: righeGuardia, error: erroreGuardia } = await supabase
+      .from("guardia_lingua_giorno")
+      .select("interventi, ancora_accordato")
+      .gte("giorno", dayFaGuardia);
+    if (erroreGuardia) console.error("Alert guardia lingua — errore lettura:", erroreGuardia);
+    for (const r of righeGuardia ?? []) {
+      guardiaInterventi += r.interventi ?? 0;
+      guardiaAncoraAccordato += r.ancora_accordato ?? 0;
+    }
+  } catch (erroreGuardia) {
+    console.error("Alert guardia lingua — eccezione lettura:", erroreGuardia);
+  }
+
   const totaleFalliti = revisoriFalliti + escapeFalliti;
-  if (totaleFalliti > 0 || testSenzaEsito > 0) {
+  if (totaleFalliti > 0 || testSenzaEsito > 0 || guardiaAncoraAccordato > 0) {
     const html = `<p>Nelle ultime 24 ore, segnali di osservabilità da controllare:</p>
 <ul>
   <li>Escape — proposte finali non lette dal revisore (24h): <strong>${escapeFalliti}</strong></li>
   <li>Workshop — tentativi AI falliti (questa esecuzione del cron): <strong>${revisoriFalliti}</strong></li>
   <li>Test attitudinali — tentativi completati senza nessuna prova in evidence (24h): <strong>${testSenzaEsito}</strong></li>
+  <li>Lingua — la guardia è intervenuta <strong>${guardiaInterventi}</strong> volte (24h); in <strong>${guardiaAncoraAccordato}</strong> lo studente ha comunque letto una forma accordata al genere</li>
 </ul>
 <p>I guasti AI sono chiamate fallite, estrazioni JSON fallite o risposte di forma inattesa. Sui workshop si contano i <strong>tentativi</strong>, non le tappe: una tappa che fallisce viene ritentata fino a ${MAX_TENTATIVI_REVISIONE} giri di cron, quindi lo stesso guasto può comparire per più giorni di fila — è persistenza, non moltiplicazione. Le «revisioni non riuscite» dei workshop si trovano con:</p>
 <pre>select iscrizione_id, fase_id, tentativi_revisione, revisione_esito
 from public.workshop_fasi_stato
 where revisione_esito is not null and revisione_esito &lt;&gt; 'riuscita';</pre>
 <p>I «test senza esito» sono tentativi finiti a cui lo scoring non ha prodotto righe: raro e spesso legittimo, ma se il numero cresce va guardato — potrebbe essere uno scoring che torna vuoto per un bug.</p>
+<p>La riga sulla <strong>lingua</strong> non è un guasto: il primo numero è lavoro che la guardia ha fatto (una chiamata in più, testo poi corretto), il secondo è l'unico che conta davvero — quante volte la seconda risposta è tornata comunque accordata, o è fallita e si è spedita la prima. La guardia non trattiene mai un feedback per una questione di grammatica. Il tasso di intervento dice se la regola scritta nei prompt sta funzionando: la stima di partenza, misurata su una consegna-fixture, era ~8%.</p>
 <p>Per i dettagli Escape, interroga la vista <code>revisore_esiti</code>:</p>
 <pre>select * from public.revisore_esiti
 where revisore_esito = 'non_riuscito'
@@ -390,5 +415,5 @@ where revisore_esito = 'non_riuscito'
     if (!esitoMail.ok) console.error(`Alert osservabilità — invio email fallito: ${esitoMail.motivo}`);
   }
 
-  return NextResponse.json({ processate, saltate, errori, revisoriFalliti, escapeFalliti, testSenzaEsito });
+  return NextResponse.json({ processate, saltate, errori, revisoriFalliti, escapeFalliti, testSenzaEsito, guardiaInterventi, guardiaAncoraAccordato });
 }
