@@ -924,9 +924,18 @@ export async function calcolaEvidenze(
         const parsed = esito.dati as { aree?: unknown[] };
         const aree = Array.isArray(parsed.aree) ? parsed.aree : [];
         let propEmesse = 0;
+        // Gli slug scartati, per il log qui sotto. Senza questo elenco i due modi
+        // di finire in `letto_senza_credito` — «il revisore non ha proposto
+        // niente» e «ha proposto aree che la missione non ammette» — sono
+        // indistinguibili a valle, e hanno cure opposte (testo troppo scarno vs
+        // whitelist troppo stretta).
+        const scartate: string[] = [];
         for (const raw of aree) {
           const a = raw as { area_slug?: string; performance?: number; interest?: number; motivazione?: string };
-          if (!a.area_slug || !mission.areeCandidate.includes(a.area_slug)) continue;
+          if (!a.area_slug || !mission.areeCandidate.includes(a.area_slug)) {
+            scartate.push(a.area_slug ? String(a.area_slug) : "(slug assente)");
+            continue;
+          }
           const perf = clamp01(Number(a.performance ?? 0));
           const inter = clamp01(Number(a.interest ?? 0));
           const mot = typeof a.motivazione === "string" && a.motivazione ? a.motivazione : `La tua proposta valorizza ${nomeArea(a.area_slug)}.`;
@@ -942,6 +951,20 @@ export async function calcolaEvidenze(
         // troppo scarna). La previsione self_efficacy NON è più qui: è emessa al
         // suo step (previsione_poi_esito), scollegata da questo esito.
         if (eProposta) revisoreEsito = propEmesse > 0 ? "letto" : "letto_senza_credito";
+        // Lo stato `letto_senza_credito` costa allo studente una dimensione
+        // intera («Bravura — non ancora misurata») dopo che ha scritto davvero:
+        // quando capita vogliamo sapere QUALE dei due modi è stato, non solo che
+        // è stato. Una riga sola, e solo in quel caso — un log per ogni proposta
+        // sarebbe rumore.
+        if (eProposta && propEmesse === 0) {
+          console.warn(
+            `Revisore senza credito — missione ${mission.slug}: ` +
+              (scartate.length === 0
+                ? "il revisore non ha proposto nessuna area."
+                : `tutte le aree proposte sono fuori whitelist (${scartate.join(", ")}).`) +
+              ` Ammesse: ${mission.areeCandidate.join(", ")}.`,
+          );
+        }
         break;
       }
 
