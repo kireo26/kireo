@@ -9,5 +9,6 @@
 
   "vercelToken": "→ Vercel → Account Settings → Tokens → Create (scope: il team che possiede kireo)",
   "vercelProjectId": "→ Vercel → progetto kireo → Settings → General → Project ID (prj_...)",
+  "vercelProjectSlug": "kireo — il nome del progetto nell'indirizzo del pannello. Facoltativo: di solito arriva dall'API, serve solo come ripiego.",
   "vercelTeamSlug": "kireo — si legge dall'indirizzo del pannello (vercel.com/<team>/<progetto>/...). Facoltativo: serve solo a rendere cliccabile il link a un deploy fallito."
 }

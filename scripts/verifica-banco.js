@@ -75,11 +75,8 @@ const ora = Date.now();
 const min = (n) => n * 60_000;
 
 console.log("");
-const treDeploy = [
-  { uid: "dpl_delle_1729", createdAt: ora - min(21) },
-  { uid: "dpl_delle_1600", createdAt: ora - min(110) },
-  { uid: "dpl_delle_1430", createdAt: ora - min(200) },
-];
+const pronto = (uid, minutiFa) => ({ uid, readyState: "READY", createdAt: ora - min(minutiFa) });
+const treDeploy = [pronto("dpl_delle_1729", 21), pronto("dpl_delle_1600", 110), pronto("dpl_delle_1430", 200)];
 const c240 = finestreDeploy(treDeploy, ora - min(240));
 ok(c240.consultare.length === 3, "una finestra di 240 minuti consulta tutti e tre i deploy, non solo il corrente");
 ok(c240.consultare[0].uid === "dpl_delle_1729", "…a partire dal più recente");
@@ -94,9 +91,49 @@ ok(finestreDeploy([], ora - min(60)).consultare.length === 0, "senza deploy non 
 ok(/non posso vedere niente/.test(raccontaCopertura(finestreDeploy([], ora - min(60)), 60).join("\n")), "…e la frase dice «non posso vedere», non «nessuna riga»");
 
 // Un deploy nato DOPO la fine della finestra non c'entra niente con quelle ore.
-const futuro = finestreDeploy([{ uid: "dpl_dopo", createdAt: ora - min(5) }, { uid: "dpl_prima", createdAt: ora - min(300) }], ora - min(200), ora - min(100));
+const futuro = finestreDeploy([pronto("dpl_dopo", 5), pronto("dpl_prima", 300)], ora - min(200), ora - min(100));
 ok(futuro.consultare.some((d) => d.uid === "dpl_prima"), "una finestra nel passato consulta il deploy che allora reggeva il traffico");
 ok(!futuro.consultare.some((d) => d.uid === "dpl_dopo"), "…e non quello nato dopo, che di quelle ore non sa niente");
+
+// ── solo chi ha servito ha un regno ───────────────────────────────────────
+// `target=production` filtra la destinazione, non l'esito: nella lista di
+// Vercel finiscono anche i deploy falliti, annullati e in costruzione. Un
+// deploy che non ha mai servito non è inerte — CHIUDEREBBE il regno di quello
+// prima di lui, mandando il banco a cercare righe dove non ce ne sono.
+console.log("");
+const conFalliti = [
+  { uid: "dpl_in_corso", readyState: "BUILDING", createdAt: ora - min(1) },
+  { uid: "dpl_annullato", readyState: "CANCELED", createdAt: ora - min(2) },
+  { uid: "dpl_fallito", readyState: "ERROR", createdAt: ora - min(30) },
+  pronto("dpl_che_serve", 90),
+  pronto("dpl_di_prima", 300),
+];
+const f = finestreDeploy(conFalliti, ora - min(120));
+ok(!f.consultare.some((d) => d.uid === "dpl_in_corso"), "un deploy in BUILDING non entra: non ha ancora servito niente");
+ok(!f.consultare.some((d) => ["dpl_annullato", "dpl_fallito"].includes(d.uid)), "né uno CANCELED o ERROR");
+ok(f.scartati === 3, "…e il banco sa quanti ne ha esclusi");
+ok(/3 esclusi/.test(raccontaCopertura(f, 120).join("\n")), "…e lo dice, invece di far sparire tre righe in silenzio");
+
+// IL CASO PEGGIORE, che è anche il più probabile: si lancia il banco mentre un
+// redeploy costruisce — cioè subito dopo aver corretto qualcosa — e il deploy
+// in BUILDING, essendo il più recente, si prenderebbe il regno fino ad adesso.
+const corrente = f.consultare[0];
+ok(corrente && corrente.uid === "dpl_che_serve", "con un redeploy in costruzione, il presente resta coperto da chi sta davvero servendo");
+ok(corrente && corrente.regge[1] === Infinity, "…e il suo regno arriva fino ad adesso, non si chiude su un deploy che non serve");
+
+// Un READY promosso e poi sostituito ha servito: resta dentro.
+ok(f.consultare.some((d) => d.uid === "dpl_di_prima"), "un deploy READY sostituito da un altro resta consultabile: ha servito");
+
+// Il regno comincia quando il deploy è PRONTO, non quando è stato creato: fra
+// la creazione e la fine della build risponde ancora il precedente.
+const conReady = finestreDeploy(
+  [
+    { uid: "dpl_nuovo", readyState: "READY", createdAt: ora - min(50), ready: ora - min(46) },
+    { uid: "dpl_vecchio", readyState: "READY", createdAt: ora - min(200), ready: ora - min(196) },
+  ],
+  ora - min(48),
+);
+ok(conReady.consultare.some((d) => d.uid === "dpl_vecchio"), "una finestra che comincia durante una build consulta anche il deploy che allora rispondeva");
 
 console.log("\n═══════════════════════════════════════════\n");
 if (falliti) { console.error(`✗ ${falliti} controlli falliti.\n`); process.exit(1); }
