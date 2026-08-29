@@ -95,10 +95,19 @@ export async function GET(request: NextRequest) {
   const supabase = createServiceRoleClient();
   const client = new Anthropic({ apiKey });
 
-  // Override di test: minuti invece di giorni per il cooldown di OGNI
-  // tappa, per collaudare il gating senza aspettare giorni veri (vedi
-  // CLAUDE.md per come usarlo).
-  const cooldownMinutiOverride = process.env.WORKSHOP_COOLDOWN_MINUTI ? Number(process.env.WORKSHOP_COOLDOWN_MINUTI) : null;
+  // IL RAFFREDDAMENTO SALTA PER I PROFILI DI PROVA, E PER NESSUN ALTRO.
+  //
+  // Prima qui c'era `WORKSHOP_COOLDOWN_MINUTI`, una variabile d'ambiente che
+  // azzerava il cooldown di TUTTI: per la durata di una prova, e per tutto il
+  // tempo in cui ci si dimenticava di toglierla, nessuno studente vero aveva
+  // più i due giorni fra una tappa e l'altra. Era anche l'unica cosa in tutta
+  // questa architettura che chiedeva a qualcuno di ricordarsi di spegnere
+  // qualcosa — e un interruttore di collaudo che si dimentica acceso è una
+  // questione di quando, non di se.
+  //
+  // Adesso il robot non ha bisogno che il mondo cambi per lui: ha bisogno di
+  // essere riconoscibile. È lo stesso principio del flag applicato al TEMPO
+  // invece che alle misure.
 
   const { data: righe, error: erroreSelect } = await supabase
     .from("workshop_fasi_stato")
@@ -137,14 +146,15 @@ export async function GET(request: NextRequest) {
         continue;
       }
 
-      const cooldownMs =
-        cooldownMinutiOverride !== null && !Number.isNaN(cooldownMinutiOverride)
-          ? cooldownMinutiOverride * 60_000
-          : fase.cooldownGiorni * 86_400_000;
-      const dueDa = new Date(riga.consegnata_at).getTime() + cooldownMs;
-      if (Date.now() < dueDa) {
-        saltate++;
-        continue;
+      // `e_profilo_di_prova` è la stessa funzione che usano le misure: una
+      // sola definizione del predicato, non due che col tempo divergono.
+      const { data: diProva } = await supabase.rpc("e_profilo_di_prova", { p_student_id: iscrizione.student_id });
+      if (diProva !== true) {
+        const dueDa = new Date(riga.consegnata_at).getTime() + fase.cooldownGiorni * 86_400_000;
+        if (Date.now() < dueDa) {
+          saltate++;
+          continue;
+        }
       }
 
       const { data: elaborato } = await supabase

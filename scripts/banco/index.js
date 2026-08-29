@@ -15,6 +15,10 @@
 //
 // Sola lettura, tranne `azzera-tentativi`, che sta in un file suo e chiede
 // conferma mostrando la riga che cambia.
+//
+// E tranne `robot`, che è il secondo pezzo: quello scrive eccome — gioca i
+// workshop come uno studente. Per questo si rifiuta di partire se l'account
+// non è marcato `di_prova`, e dice quanto sta per spendere prima di farlo.
 
 /* eslint-disable @typescript-eslint/no-require-imports -- script Node CommonJS di utilità */
 
@@ -22,6 +26,7 @@ const { motore } = require("./motore");
 const { percorso } = require("./percorso");
 const { log, deploy } = require("./vercel");
 const { azzeraTentativi } = require("./azzera");
+const { robot } = require("./robot");
 const { PERCORSO } = require("./config");
 
 const AIUTO = `
@@ -47,6 +52,14 @@ BANCO DI PROVA — i gesti manuali, fatti dal terminale
   npm run banco deploy
       Aspetta che il deploy di produzione sia READY, invece di ricaricare
       una pagina. Esce da solo quando è pronto o se fallisce.
+
+  npm run banco robot [filtro] [--vai]
+      IL SECONDO PEZZO: gioca i workshop come uno studente — iscrizione,
+      sezioni, chat col cliente, consegna, cron — e alla fine misura i
+      testi che i revisori hanno scritto. Dice quanto sta per spendere e
+      chiede conferma (--vai la salta). Il filtro è una sottostringa:
+      «palestra», «enoteca > food».
+      Si rifiuta di partire se l'account non è marcato di_prova.
 
   npm run banco azzera-tentativi <id-iscrizione> <id-fase>
       L'UNICO comando che scrive. Rimette a zero i tentativi di una tappa
@@ -118,6 +131,10 @@ async function main() {
     }
     case "deploy":
       return deploy(true);
+    case "robot": {
+      const filtro = resto.find((a) => !a.startsWith("--"));
+      return robot(filtro, { vai: resto.includes("--vai") });
+    }
     case "azzera-tentativi":
       return azzeraTentativi(resto[0], resto[1]);
     case "aiuto-segreto":

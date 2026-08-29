@@ -25,7 +25,8 @@
     "banco": "node scripts/banco/index.js",
     "test:banco": "node scripts/verifica-banco.js",
     "test:prova": "node scripts/verifica-misure-depurate.js",
-    "test:consegne": "node scripts/verifica-consegne-robot.js"
+    "test:consegne": "node scripts/verifica-consegne-robot.js",
+    "test:robot": "node scripts/verifica-robot.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.112.5",

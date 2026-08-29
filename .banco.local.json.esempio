@@ -5,6 +5,10 @@
   "cronSecret": "→ Vercel → progetto kireo → Settings → Environment Variables → CRON_SECRET (se non è rileggibile: npm run banco aiuto-segreto)",
 
   "supabaseUrl": "→ Supabase → Project Settings → Data API → Project URL",
+  "supabaseAnonKey": "→ Supabase → Project Settings → API keys → anon public (NON la service_role: il robot passa dalla RLS come uno studente)",
+  "robotEmail": "l'account studente del robot, registrato a mano dal sito e marcato di_prova=true su profiles",
+  "robotPassword": "la password di quell'account",
+
   "supabaseServiceRoleKey": "→ Supabase → Project Settings → API keys → service_role (NON la anon)",
 
   "vercelToken": "→ Vercel → Account Settings → Tokens → Create (scope: il team che possiede kireo)",
