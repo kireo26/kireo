@@ -47,6 +47,10 @@ const CHIAVI = {
   // Facoltativa: nessun comando la richiede, serve solo a rendere cliccabile
   // il link a un deploy fallito. Non è un segreto — sta nell'indirizzo del
   // pannello — ma sta qui e non nel codice per non cablare un nome di team.
+  vercelProjectSlug: {
+    cosa: "Il nome del progetto su Vercel, solo come ripiego per i link.",
+    dove: "Il secondo segmento dell'indirizzo del pannello: vercel.com/<team>/<progetto>/… — per KIREO è «kireo». Di solito non serve: il nome arriva dall'API.",
+  },
   vercelTeamSlug: {
     cosa: "Lo slug del team Vercel, solo per costruire link cliccabili.",
     dove: "Si legge dall'indirizzo del pannello: vercel.com/<team>/<progetto>/… — per KIREO è «kireo».",

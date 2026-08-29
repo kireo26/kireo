@@ -36,15 +36,22 @@ async function api(c, percorso) {
   return risposta.json();
 }
 
-async function deployProduzione(c, quanti = 20) {
+// Se ne chiedono più del necessario: alcuni verranno scartati perché non hanno
+// mai servito (ERROR, CANCELED, BUILDING, QUEUED), e chiederne pochi
+// significherebbe restringere in silenzio la finestra coperta.
+async function deployProduzione(c, quanti = 30) {
   const dati = await api(c, `/v6/deployments?projectId=${c.vercelProjectId}&target=production&limit=${quanti}`);
   return dati.deployments ?? [];
 }
 
-function linkDeploy(c, uid) {
-  // Con lo slug del team il link è cliccabile; senza, resta l'uid, che si
-  // trova comunque cercandolo nel pannello.
-  return c.vercelTeamSlug ? `https://vercel.com/${c.vercelTeamSlug}/${c.vercelTeamSlug}/${uid}` : uid;
+// L'indirizzo di un deploy è vercel.com/<team>/<progetto>/<uid>: due segmenti
+// DIVERSI. La prima stesura ci metteva lo slug del team due volte, e funzionava
+// solo perché qui team e progetto si chiamano tutti e due «kireo» — una
+// coincidenza, non una regola. Il nome del progetto arriva dall'API (`name`);
+// senza, resta l'uid, che nel pannello si trova cercandolo.
+function linkDeploy(c, deploy) {
+  const progetto = deploy?.name ?? c.vercelProjectSlug;
+  return c.vercelTeamSlug && progetto ? `https://vercel.com/${c.vercelTeamSlug}/${progetto}/${deploy.uid}` : deploy.uid;
 }
 
 // ── log ────────────────────────────────────────────────────────────────────
@@ -181,7 +188,7 @@ async function deploy(attendi = true) {
     }
     if (stato === "ERROR" || stato === "CANCELED") {
       console.log(`\n✗ DEPLOY ${stato}\n${riga}`);
-      console.log(`\n  ${linkDeploy(c, d.uid)}\n`);
+      console.log(`\n  ${linkDeploy(c, d)}\n`);
       process.exit(1);
     }
     if (!attendi) {
