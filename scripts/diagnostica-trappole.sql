@@ -38,10 +38,16 @@ with trappole (mission_slug, trappola_id, invertita) as (
     ('viaggio-impossibile', 'chiedi_nadir',        false)
 ),
 scarti as (
+  -- Il LEFT JOIN tiene anche i tentativi che allo scarto non sono mai
+  -- arrivati: sono un'informazione (quanti hanno smesso prima della Stanza 3),
+  -- ma NON vanno contati come «tentativi con scarto». Il flag `giocato` è
+  -- quello che separa i due gruppi — la prima stesura contava le righe del
+  -- join e diceva 2 dove i giocati erano 1.
   select a.mission_slug,
          a.id as attempt_id,
          a.stato,
-         coalesce(r.payload -> 'scartati', '[]'::jsonb) as scartati
+         coalesce(r.payload -> 'scartati', '[]'::jsonb) as scartati,
+         (r.attempt_id is not null and coalesce(jsonb_array_length(r.payload -> 'scartati'), 0) > 0) as giocato
   from public.mission_attempt a
   left join public.step_response r
          on r.attempt_id = a.id and r.step_id = 's3_scarto'
@@ -49,14 +55,15 @@ scarti as (
 select t.mission_slug,
        t.trappola_id,
        t.invertita,
-       count(s.attempt_id)                                              as tentativi_con_scarto,
-       count(*) filter (where s.scartati ? t.trappola_id)               as volte_scartata,
-       count(*) filter (where s.scartati <> '[]'::jsonb
+       count(*) filter (where s.giocato)                                as scarto_giocato,
+       count(*) filter (where s.attempt_id is not null and not s.giocato) as mai_arrivati_allo_scarto,
+       count(*) filter (where s.giocato and s.scartati ? t.trappola_id) as volte_scartata,
+       count(*) filter (where s.giocato
                           and not (s.scartati ? t.trappola_id))         as volte_tenuta,
        case
-         when count(*) filter (where s.scartati <> '[]'::jsonb) = 0 then 'MAI GIOCATA'
-         when t.invertita and count(*) filter (where s.scartati ? t.trappola_id) > 0 then 'scattata (scartata)'
-         when not t.invertita and count(*) filter (where s.scartati <> '[]'::jsonb
+         when count(*) filter (where s.giocato) = 0 then 'MAI GIOCATA'
+         when t.invertita and count(*) filter (where s.giocato and s.scartati ? t.trappola_id) > 0 then 'scattata (scartata)'
+         when not t.invertita and count(*) filter (where s.giocato
                                                      and not (s.scartati ? t.trappola_id)) > 0 then 'scattata (tenuta)'
          else 'incontrata, mai scattata'
        end as esito
