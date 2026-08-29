@@ -37,6 +37,9 @@ per_area as (
          count(distinct e.test_attempt_id) filter (where e.fonte = 'test') as tentativi_test
   from public.evidence e
   where e.area_slug is not null
+    -- Gli account di prova (il robot del banco) fuori da ogni conto: queste
+    -- righe descrivono studenti, e una riga fabbricata non è uno studente.
+    and not public.e_profilo_di_prova(e.student_id)
   group by e.student_id, e.area_slug
 ),
 caso_d as (
@@ -69,7 +72,8 @@ union all
 --    comparisse a uno su venti in un altro.
 select 'totale',
        'studenti con almeno un test',
-       (select count(distinct student_id)::text from public.evidence where fonte = 'test'),
+       (select count(distinct student_id)::text from public.evidence
+         where fonte = 'test' and not public.e_profilo_di_prova(student_id)),
        (select count(distinct student_id)::text || ' di questi cadono nel caso D' from caso_d)
 
 order by 1, 3 desc, 2;

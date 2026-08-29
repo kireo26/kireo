@@ -23,7 +23,8 @@
     "test:consegna": "node scripts/verifica-consegna-tappa.js",
     "test:prompt": "node scripts/verifica-prompt-revisori.js",
     "banco": "node scripts/banco/index.js",
-    "test:banco": "node scripts/verifica-banco.js"
+    "test:banco": "node scripts/verifica-banco.js",
+    "test:prova": "node scripts/verifica-misure-depurate.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.112.5",
