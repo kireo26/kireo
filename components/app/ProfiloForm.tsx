@@ -129,7 +129,7 @@ function SezioneScuola({
           {nomeScuolaAttuale ?? "—"} {classeLabel && `· ${classeLabel}`}
         </p>
         <p className="mt-3 text-sm text-kireo-muted">
-          La tua scuola ha verificato la tua appartenenza: non puoi più cambiarla da qui. Se ti sei trasferito, scrivici da{" "}
+          La tua scuola ha verificato la tua appartenenza: non puoi più cambiarla da qui. Se hai cambiato scuola, scrivici da{" "}
           <Link href="/contatti" className="text-kireo-orange underline underline-offset-2">
             Contatti
           </Link>

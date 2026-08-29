@@ -45,7 +45,7 @@ export default function IscrizioneRuolo({
       });
       if (error) {
         if (error.code === "23505") {
-          setErrore("Questo ruolo è stato appena preso da un altro studente, oppure sei già iscritto a questo workshop.");
+          setErrore("Questo ruolo è stato appena preso da un altro studente — oppure la tua iscrizione a questo workshop c'è già.");
         } else {
           setErrore("Non è stato possibile completare l'iscrizione. Riprova.");
         }

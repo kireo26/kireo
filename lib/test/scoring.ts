@@ -157,7 +157,7 @@ export function calcolaEvidenzeT2(testSlug: string, risposte: Map<string, Payloa
     } else {
       // likert 1-5
       const val = Math.max(1, Math.min(5, Number(p.valore) || 0));
-      if (val > 0) { add(item.asse, val); if (val >= 4) nota(item.asse, item, "ti ci sei riconosciuto"); }
+      if (val > 0) { add(item.asse, val); if (val >= 4) nota(item.asse, item, "l'hai scelto"); }
     }
   }
 

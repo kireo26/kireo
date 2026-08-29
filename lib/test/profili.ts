@@ -1,7 +1,22 @@
-// KIREO — I dieci profili di stile, come IPOTESI (Fase 2). Regole di linguaggio
-// vincolanti: mai «sei uno Stratega», sempre «in queste risposte ti sei mosso da
-// stratega» (la pagina antepone la formula); il punto cieco è il PREZZO DI UNA
-// QUALITÀ, mai un difetto; mai dire che uno è «portato» o «non portato».
+// KIREO — I dieci profili di stile, come IPOTESI (Fase 2).
+//
+// IL NOME NON SI MOSTRA PIÙ. Fino al 29/08 la pagina scriveva «ti sei mosso da
+// esploratore»: due problemi in sei parole. Il primo è l'accordo — cinque dei
+// dieci nomi sono in -tore e al femminile fanno -trice, e tre sono aggettivi
+// dopo «specialista»: otto su dieci concordavano col genere di chi legge, che
+// KIREO non conosce. Il secondo è più grosso e non riguarda la grammatica:
+// **etichettare una persona** è la cosa che abbiamo passato una settimana a
+// togliere dal finale delle missioni. La descrizione fa già tutto il lavoro, e
+// in una descrizione uno si riconosce mentre in un'etichetta si sente messo in
+// una casella.
+//
+// Quindi `nome` resta come CHIAVE (il profilo deve pur chiamarsi in qualche
+// modo nel codice e nei log) e la pagina mostra solo `comeTiMuovi`, dietro la
+// cornice «Da come ti muovi finora, nei test e nelle missioni: …». Le dieci
+// descrizioni sono scritte per stare DA SOLE, senza il nome davanti.
+//
+// Regole di linguaggio vincolanti: il punto cieco è il PREZZO DI UNA QUALITÀ,
+// mai un difetto; mai dire che uno è «portato» o «non portato».
 //
 // Il profilo si calcola da asse dominante e secondario sui punteggi 0-100:
 //  - distacco ≥ 12 → profilo dominante (uno dei quattro Specialista);
@@ -18,7 +33,7 @@ export type ProfiloId =
 export type Profilo = {
   id: ProfiloId;
   nome: string;
-  comeTiMuovi: string; // «Guardi bene la situazione e poi decidi…» (mai «sei un…»)
+  comeTiMuovi: string; // regge DA SOLA: è l'unica cosa che lo studente legge
   puntoCieco: string;  // prezzo di una qualità, senza giudizio
 };
 
@@ -35,12 +50,12 @@ export const PROFILI: Record<ProfiloId, Profilo> = {
   },
   esploratore: {
     id: "esploratore", nome: "esploratore",
-    comeTiMuovi: "Ti vengono idee, ma poi vuoi vedere se stanno in piedi.",
+    comeTiMuovi: "Le idee ti vengono in fretta, e poi vuoi vedere se stanno in piedi.",
     puntoCieco: "Verificare ogni idea è una forza: il rovescio è che a volte l'idea buona resta ferma mentre la controlli.",
   },
   attivatore: {
     id: "attivatore", nome: "attivatore",
-    comeTiMuovi: "Fai muovere le cose portandoti dietro le persone.",
+    comeTiMuovi: "Fai muovere le cose, e ti porti dietro le persone.",
     puntoCieco: "L'energia che sblocca ha un costo: a volte si parte prima di aver capito bene dove si sta andando.",
   },
   inventore: {
@@ -65,7 +80,7 @@ export const PROFILI: Record<ProfiloId, Profilo> = {
   },
   spec_creativo: {
     id: "spec_creativo", nome: "specialista creativo",
-    comeTiMuovi: "Vedi possibilità dove altri vedono un muro.",
+    comeTiMuovi: "Dove gli altri vedono un muro, tu vedi che si può girarci intorno — e di solito trovi più di un modo.",
     puntoCieco: "Aprire strade nuove è prezioso: il rovescio è che portarne una fino in fondo chiede una pazienza diversa dall'immaginarle.",
   },
   spec_operativo: {

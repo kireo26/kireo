@@ -22,10 +22,16 @@ export default function BarreEsplorazione({ valori }: { valori: Record<string, n
     .map(([slug, v]) => ({ slug, nome: getAreaBySlug(slug)?.nome ?? slug, v }))
     .sort((a, b) => b.v - a.v);
 
+  // Lo stato vuoto dice PRIMA cosa conta questo blocco. Senza, uno studente che
+  // ha fatto due missioni leggeva «non hai ancora esplorato nessuna area» con,
+  // trenta centimetri più su, otto aree ricavate da quelle stesse missioni: due
+  // affermazioni contrarie nella stessa schermata. Non è il cross-feed (che
+  // resta una voce aperta a sé): è che i due blocchi contano cose diverse e uno
+  // dei due non lo diceva.
   if (voci.length === 0) {
     return (
       <p className="text-sm leading-relaxed text-kireo-muted">
-        Non hai ancora esplorato nessuna area. Scarica una guida, apri la pagina di un&apos;area o iscriviti a un evento: qui comparirà dove sei passato.
+        Qui contiamo guide, pagine ed eventi. Le missioni e i test raccontano un&apos;altra cosa e stanno nelle affinità. Non hai ancora aperto niente: scarica una guida, apri la pagina di un&apos;area o iscriviti a un evento, e qui comparirà dove hai messo piede.
       </p>
     );
   }

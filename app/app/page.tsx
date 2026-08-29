@@ -93,7 +93,7 @@ export default async function AreaPersonaleHome() {
           <h2 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">
             Dove hai esplorato finora
           </h2>
-          <p className="mt-1 text-xs text-kireo-muted">Conta le attività che hai fatto in ogni area (guide, pagine, eventi) — dove sei passato, non le tue attitudini.</p>
+          <p className="mt-1 text-xs text-kireo-muted">Conta le attività che hai fatto in ogni area (guide, pagine, eventi) — dove hai messo piede, non le tue attitudini.</p>
           <div className="mt-4">
             <BarreEsplorazione valori={valoriRadar} />
           </div>

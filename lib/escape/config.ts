@@ -227,7 +227,7 @@ const MD01: MissioneDef = {
     titolo: "Il progetto per il quartiere",
     sottotitolo: "L'ex mercato di Via Sanzio, da rigenerare",
     descrizione:
-      "L'ex mercato coperto di Via Sanzio, 900 m², chiuso da undici anni. Il Comune lo assegna per nove anni a chi presenta il progetto migliore: c'è un bando, ci sono 180.000 € e una scadenza. Tu sei nel gruppo che scrive la proposta — non decidi da solo, ma la firmi tu. Le tue scelte apriranno e chiuderanno porte: quello che non vorrai sapere ti mancherà quando dovrai decidere. Niente cronometro, niente sconfitta: puoi riprendere quando vuoi.",
+      "L'ex mercato coperto di Via Sanzio, 900 m², chiuso da undici anni. Il Comune lo assegna per nove anni a chi presenta il progetto migliore: c'è un bando, ci sono 180.000 € e una scadenza. Tu sei nel gruppo che scrive la proposta — la decisione non è solo tua, ma la firma sì. Le tue scelte apriranno e chiuderanno porte: quello che non vorrai sapere ti mancherà quando dovrai decidere. Niente cronometro, niente sconfitta: puoi riprendere quando vuoi.",
     tipo: "cross-area",
   },
   areeCandidate: [
@@ -320,7 +320,7 @@ const MD01: MissioneDef = {
     ruoli: { titolo: "Siete in sette. Chi fa cosa nei primi sei mesi?", prompt: "Per ogni compito: te ne occupi tu o lo lascia a un altro del gruppo? Quello che ti prendi è quello che ti senti di saper fare." },
     previsione: { titolo: "Prima di scrivere: quanto reggerà, secondo te?", prompt: "Quanto pensi che la vostra proposta reggerà l'esame della commissione?", domanda: "La tua sensazione, prima di scrivere" },
     proposta: { titolo: "Scrivete la proposta", prompt: "Cosa diventa l'ex mercato, per chi, e come sta in piedi dal terzo anno? Scrivetelo come lo leggerebbe la commissione.", hint: "Non servono paroloni: concretezza, coerenza col mandato e col vincolo ricevuto.", minCaratteri: 300 },
-    riflessione: { titolo: "Ripensando a questi ventidue giorni…", prompt: "Qual è il momento in cui ti sei sentito più nel tuo? E quello in cui ti sei sentito più fuori posto?", hint: "Questa è la parte che resta tua: la salviamo nel tuo diario.", minCaratteri: 120 },
+    riflessione: { titolo: "Ripensando a questi ventidue giorni…", prompt: "Qual è il momento in cui eri più nel tuo? E quello in cui eri più fuori posto?", hint: "Questa è la parte che resta tua: la salviamo nel tuo diario.", minCaratteri: 120 },
     passi: { titolo: "Se il progetto viene approvato, i primi tre passi?", prompt: "Scegli tre passi e mettili in ordine: quale per primo, quale per secondo, quale per terzo.", hint: "L'ordine conta: da dove è più saggio cominciare?" },
   },
 };
@@ -1867,7 +1867,7 @@ const MD10: MissioneDef = {
     introS1: "Aula 12, quinta ora, la prof è uscita. Siete in sette intorno a due banchi accostati e nessuno parla.\n\nSul portatile di Sofia c'è la cartella del progetto: dentro, una copertina bella e un file di testo con undici indirizzi. Yuri rompe il silenzio: «Raga, e se facessimo anche un video?»\n\nRestano quattordici giorni. E gli altri sei hanno chiesto a te di tenere le fila — non perché tu sia il capo, ma perché qualcuno doveva farlo.",
     introS2: "Hai quattordici giorni e sei persone. Prima di muovere qualsiasi cosa puoi fare cinque cose: una conversazione a quattr'occhi, un messaggio privato, una domanda alla prof, una verifica del lavoro fatto.\n\nCinque. Non puoi parlare con tutti di tutto: dovrai scegliere a chi dedicare attenzione, che qui è la cosa che scarseggia.",
     introS4: "Domenica sera. Nove giorni sono diventati sette. Apri la chat: centoquaranta messaggi sopra il tuo, e il cursore che lampeggia.\n\nQuello che scrivi adesso lo leggeranno tutti e sei, compreso chi non risponde mai.",
-    introS5: "Il messaggio è partito. Nei prossimi giorni si vedrà se il gruppo si muove. Ma una cosa l'hai già capita: quando ti sei sentito più utile, e cosa hai capito di qualcuno che prima ti sembrava solo svogliato.",
+    introS5: "Il messaggio è partito. Nei prossimi giorni si vedrà se il gruppo si muove. Ma due cose le hai già capite: quando eri più utile, e cosa c'era dietro a qualcuno che prima ti sembrava solo svogliato.",
     materiali: { titolo: "Prima di tutto: chi sono i sette e a che punto è il lavoro?", prompt: "Apri le schede del gruppo, gli estratti della chat e cosa chiede il progetto.", hint: "Guarda chi non ha mai scritto un messaggio: è l'unica assenza totale in centoquaranta messaggi, ed è l'informazione più forte della chat." },
     priorita: { titolo: "Guardando il gruppo, quali sono i problemi? Mettili in ordine.", prompt: "Da quello che pesa di più. La prima scelta conta più delle altre.", hint: "Non tutti i silenzi sono uguali: qualcuno tace, qualcuno manca, qualcuno si è arreso." },
     mandato: { titolo: "Come pensi di muoverti? Dillo in una frase.", prompt: "È l'approccio che deciderà cosa vai a scoprire e cosa ti troverai davanti.", hint: "Far funzionare il lavoro e far funzionare il gruppo non sempre coincidono." },
@@ -1878,7 +1878,7 @@ const MD10: MissioneDef = {
     ruoli: { titolo: "Sei persone, cinque cose da fare. Chi fa cosa?", prompt: "Assegna ogni compito a una persona del gruppo o a te stesso. La persona giusta al posto giusto vale più di chi lavora di più.", hint: "Quello che hai scoperto informandoti serve proprio qui: dai a ciascuno ciò che sa fare o può fare davvero." },
     previsione: { titolo: "Prima di scriverlo: quanto muoverà il gruppo?", prompt: "Quanto pensi che questo messaggio farà muovere il gruppo?", domanda: "La tua sensazione, prima di scrivere" },
     proposta: { titolo: "Scrivi il messaggio al gruppo (max 120 parole)", prompt: "Cosa serve, da chi, entro quando. E qualcosa che riguardi il fatto che siete in sette.", hint: "Assegna cose precise a persone precise con una scadenza. Niente rimproveri al gruppo in blocco, niente richieste vaghe. Lascia una porta aperta a chi è sparito.", minCaratteri: 150 },
-    riflessione: { titolo: "Quando ti sei sentito più utile in queste settimane?", prompt: "E c'è stato un momento in cui hai capito qualcosa di qualcuno che prima ti sembrava solo svogliato?", hint: "Questa è la parte che resta tua: la salviamo nel tuo diario.", minCaratteri: 120 },
+    riflessione: { titolo: "In quale momento di queste settimane eri più utile?", prompt: "E c'è stato un momento in cui hai capito qualcosa di qualcuno che prima ti sembrava solo svogliato?", hint: "Questa è la parte che resta tua: la salviamo nel tuo diario.", minCaratteri: 120 },
     passi: { titolo: "Se doveste rifarlo, i primi tre passi?", prompt: "Scegli tre passi e mettili in ordine: quale per primo, quale per secondo, quale per terzo.", hint: "Quasi tutto quello che è andato storto è cominciato prima di iniziare il lavoro." },
   },
 };

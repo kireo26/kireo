@@ -331,12 +331,17 @@ function scanFamiglie(testo) {
 // Da qui la regola: si scansiona tutto, e ciò che non arriva allo studente si
 // dichiara in whitelist con la sua ragione (dove resta leggibile) invece di
 // sparire dentro un filtro (dove nessuno la ritrova).
-function stringheDelFile(rel, { escludiPrompt }) {
+function stringheDelFile(rel, { escludiPrompt, jsx = false }) {
   const src = fs.readFileSync(path.join(ROOT, rel), "utf8");
   const sf = ts.createSourceFile(path.basename(rel), src, ts.ScriptTarget.Latest, true);
   const out = [];
   const raccogli = (node) => {
-    if (ts.isStringLiteralLike(node)) {
+    // Il testo JSX (fuori dalle graffe) è prodotto quanto un literal: senza
+    // questo ramo una frase scritta direttamente dentro un <p> non si vede.
+    if (jsx && ts.isJsxText(node)) {
+      const t = node.text.replace(/\s+/g, " ").trim();
+      if (t) out.push({ file: rel, line: sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1, testo: t });
+    } else if (ts.isStringLiteralLike(node)) {
       if (node.text) out.push({ file: rel, line: sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1, testo: node.text });
     } else if (ts.isTemplateExpression(node)) {
       for (const p of [node.head, ...node.templateSpans.map((s) => s.literal)]) {
@@ -393,6 +398,108 @@ if (orfane.length) {
   orfane.forEach((o, i) => console.error(`  [${i + 1}] ${o.slice(0, 160)}${o.length > 160 ? "…" : ""}\n`));
 }
 ok(orfane.length === 0, `nessuna voce di whitelist orfana (${orfane.length} orfane)`);
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FORMA 3 — l'accordo di genere su TUTTE le superfici che lo studente legge.
+//
+// Le prime due forme guardano il finale delle missioni. Ma «ti sei mosso da
+// esploratore» stava nell'esito di un test, e lì il controllo non era mai
+// passato: la famiglia era chiusa su una superficie e le altre non le aveva
+// guardate nessuno. L'ha trovata Mario aprendo la pagina.
+//
+// Qui si scansiona SOLO la famiglia dell'accordo — le altre due (parole-verdetto,
+// significati dichiarati) valgono per il finale, che riporta senza aver letto;
+// una pagina di test o una schermata di workshop hanno altri mestieri.
+//
+// Fuori: /ente, /scuola, /docente, /admin e le pagine pubbliche. Altro
+// pubblico, altra lingua, altro giro — quando toccherà a loro, si allarga qui.
+// ═══════════════════════════════════════════════════════════════════════════
+
+console.log("\n═══ FORMA 3 — accordo di genere sulle superfici dello studente ═══\n");
+
+const RADICI_STUDENTE = [
+  "app/app", "components/app", "components/escape", "components/test",
+  "components/workshop", "components/live", "components/messaggi",
+  "lib/escape", "lib/test", "lib/percorso", "lib/app", "lib/workshop",
+  "lib/guide", "lib/assistente",
+];
+
+// I prompt sono istruzioni al MODELLO, non testo mostrato: la seconda persona
+// lì dentro parla al modello («Sei Renzo, 47 anni…»), non a chi legge.
+// «REGOLE NON NEGOZIABILI» compare in tutte e cinque le persone dei clienti
+// workshop e in nessuna frase di prodotto.
+const MARCHI_PROMPT = /analista di orientamento|Rispondi SOLO|Sei un tutor|Sei un mentor|REGOLE NON NEGOZIABILI|Reagisci come faresti|LINGUA \(vale per/i;
+
+// Whitelist della FORMA 3: stringa intera + ragione, come sempre. Sono TUTTE
+// dello stesso tipo — «da solo/a» che concorda con un nome della finzione o
+// dell'interfaccia, non con chi legge — e restano perché il pattern è LARGO di
+// proposito: stringerlo per non vederle costerebbe le catture vere.
+const WHITELIST_SUPERFICI = new Map([
+  [". Questa pagina si aggiorna da sola, torna a trovarci qualche minuto prima.",
+    "«da sola» concorda con «la pagina», non con chi legge"],
+  ["La signora Colella è qui e sta male adesso. Non possiamo lasciarla lì a urlare da sola per due ore.",
+    "«da sola» è la signora Colella, un personaggio della missione"],
+  ["Nadia esce alle 11:00 (commissione). Paolo è l'unico che parla arabo. Sofia è in formazione: non può gestire un colloquio da sola, può affiancare. Cioè dalle 11 in poi restano due persone, di cui una non autonoma.",
+    "«da sola»/«da solo» sono Sofia e l'operatore del turno, non chi legge"],
+  ["I tessuti storici tollerano max 50 lux e non più di tre mesi l'anno di esposizione. Ogni progetto che li porti in giro, li illumini o li faccia toccare è irrealizzabile senza un intervento di conservazione che costa da solo più dell'intero budget.",
+    "«costa da solo» è l'intervento di conservazione"],
+  ["Le tre scuole del comprensorio confermano che tornerebbero due volte l'anno invece di una se ci fosse un'attività pratica. Sono 1.900 visite che diventerebbero 3.400. Da solo, questo raddoppia i numeri che chiede il sindaco.",
+    "«Da solo, questo raddoppia» è il dato delle visite"],
+  ["«Sto seguendo mia nonna, è caduta il mese scorso. Sono a casa da sola con lei tutti i pomeriggi. Non l'ho detto perché non voglio che pensiate che mi tiro indietro.» Può lavorare, ma solo la mattina e da casa. Non è disimpegno: è un vincolo che nessuno conosceva.",
+    "«a casa da sola» è la studentessa che parla di sé nella citazione"],
+  ["«Valuto il contributo di ciascuno, non chi ha lavorato di più. Se qualcuno fa tutto da solo, gli altri non hanno un contributo da valutare — e il voto individuale ne risente. Anche il suo.» Fare tutto da soli non è generoso: è la scelta che danneggia tutti, incluso chi la fa.",
+    "«fa tutto da solo» è un terzo generico dentro la citazione del docente"],
+  ["Il treno del preventivo arriva l'ultimo giorno alle 18:40; Sara deve essere a casa per le 17:00. Esiste un treno precedente: stesso prezzo, ma parte 2 ore prima e taglia l'ultima mattinata a tutti. Oppure Sara torna da sola con un treno anticipato: +31 € di biglietto singolo.",
+    "«Sara torna da sola» è una compagna di classe"],
+  ["Un orto verticale che funziona da solo",
+    "«funziona da solo» è l'orto verticale"],
+  ["Nessun bando finanzia una palestra da sola: finanzia una rete.",
+    "«da sola» è la palestra"],
+  ["Quanto lasci come cuscinetto per i primi mesi, prima che l'enoteca cammini da sola?",
+    "«cammini da sola» è l'enoteca"],
+]);
+
+const bersagliSuperfici = [];
+for (const radice of RADICI_STUDENTE) {
+  const dir = path.join(ROOT, radice);
+  if (!fs.existsSync(dir)) continue;
+  const pila = [dir];
+  while (pila.length) {
+    const corrente = pila.pop();
+    for (const e of fs.readdirSync(corrente, { withFileTypes: true })) {
+      const p = path.join(corrente, e.name);
+      if (e.isDirectory()) pila.push(p);
+      else if (/\.(ts|tsx)$/.test(e.name)) bersagliSuperfici.push(...stringheDelFile(path.relative(ROOT, p), { escludiPrompt: false, jsx: true }));
+    }
+  }
+}
+
+const catturateSuperfici = [];
+for (const b of bersagliSuperfici) {
+  if (MARCHI_PROMPT.test(b.testo)) continue;
+  if (WHITELIST.has(b.testo) || WHITELIST_SUPERFICI.has(b.testo)) continue;
+  const colpi = [];
+  for (const re of PATTERN_ACCORDO) {
+    const t = b.testo.toLowerCase();
+    re.lastIndex = 0;
+    for (const m of t.matchAll(re)) colpi.push(m[0]);
+  }
+  if (colpi.length) catturateSuperfici.push({ ...b, colpi });
+}
+
+catturateSuperfici.sort((a, b) => (a.file === b.file ? a.line - b.line : a.file.localeCompare(b.file)));
+if (catturateSuperfici.length === 0) {
+  console.log(`  (nessuna cattura in ${bersagliSuperfici.length} stringhe — la lingua regge per chiunque)`);
+} else {
+  console.log(`  ${catturateSuperfici.length} stringhe catturate:\n`);
+  catturateSuperfici.forEach((c, i) => console.error(`  [${i + 1}] ${c.file}:${c.line}  [${c.colpi.join(", ")}]\n      ${c.testo.slice(0, 220)}\n`));
+}
+ok(catturateSuperfici.length === 0, `nessuna forma accordata fuori whitelist (${catturateSuperfici.length} catture)`);
+
+const testiSuperfici = new Set(bersagliSuperfici.map((b) => b.testo));
+const orfaneSuperfici = [...WHITELIST_SUPERFICI.keys()].filter((k) => !testiSuperfici.has(k));
+if (orfaneSuperfici.length) orfaneSuperfici.forEach((o) => console.error(`  voce di whitelist ORFANA: ${o.slice(0, 140)}`));
+ok(orfaneSuperfici.length === 0, `nessuna voce di whitelist orfana sulle superfici (${orfaneSuperfici.length})`);
 
 // ═══════════════════════════════════════════════════════════════════════════
 console.log("\n═══════════════════════════════════════════");
