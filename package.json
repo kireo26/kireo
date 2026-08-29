@@ -21,7 +21,9 @@
     "test:cifre": "node scripts/verifica-cifre-citabili.js",
     "test:cornici": "node scripts/verifica-cornici.js",
     "test:consegna": "node scripts/verifica-consegna-tappa.js",
-    "test:prompt": "node scripts/verifica-prompt-revisori.js"
+    "test:prompt": "node scripts/verifica-prompt-revisori.js",
+    "banco": "node scripts/banco/index.js",
+    "test:banco": "node scripts/verifica-banco.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.112.5",

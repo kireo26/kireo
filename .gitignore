@@ -52,3 +52,7 @@ censimento-output/
 # Schede di gioco Escape: generate da `npm run schede`, mai committate
 # (sarebbero una seconda fonte di verita' che invecchia in silenzio).
 schede-missioni.md
+
+# Configurazione locale del banco di prova: contiene segreti veri
+# (segreto del cron, chiave service_role, token Vercel). Mai committata.
+.banco.local.json
