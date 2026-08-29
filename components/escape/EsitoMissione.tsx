@@ -33,6 +33,22 @@ export type StatoRevisore = "letto" | "letto_senza_credito" | "non_riuscito" | n
 // è la proposta finale, e il messaggio cambia se l'abbiamo valutata su altre
 // aree, se l'abbiamo letta ma non ne è emersa un'area, o se non siamo riusciti
 // a leggerla per un guasto nostro.
+// L'apertura della Bravura, condivisa dai quattro rami. Dice le TRE sorgenti,
+// perché la bravura d'area nasce da tre punti di scoring.ts e non da uno:
+// il revisore della proposta finale, la trappola dello scarto e gli
+// abbinamenti compito-persona della Missione 10. La versione precedente
+// nominava solo la scrittura — esatta per le sei aree che non hanno sorgenti
+// deterministiche, incompleta per le altre dodici: un caso reale l'ha resa
+// visibile, uno studente con bravura 20 su Mobilità arrivata da una trappola
+// mentre la pagina gli diceva che la misuriamo da quello che scrive.
+//
+// Resta UNA frase e resta dov'è, nel blocco che spiega le dimensioni una volta
+// sola. Renderla per-area vorrebbe dire riportarla dentro la card, cioè
+// riaprire la decisione che quel blocco aveva chiuso («era otto volte a
+// pagina»): non si riapre per aggiungere una precisazione.
+const APERTURA_BRAVURA =
+  "La leggiamo da quello che scrivi nella proposta finale — e, quando la missione la mette, da una scelta secca: quale strada lasci cadere, chi metti su quale compito.";
+
 // Le aree che lo studente vede in «Perché lo diciamo» possono venire da fonti
 // che NON sono la proposta finale: le priorità, i gettoni, lo scarto, la
 // riflessione. Quando la Bravura resta non misurata, le due cose si leggono
@@ -57,7 +73,7 @@ function descrizioneNonMisurata(chiave: ChiaveDim, revisoreEsito: StatoRevisore,
         case "letto":
           return {
             heading: "Bravura — non ancora misurata.",
-            corpo: "La misuriamo da quello che scrivi nella proposta finale, e questa volta la tua proposta parlava soprattutto di altre aree." + ALTRE_FONTI,
+            corpo: `${APERTURA_BRAVURA} Questa volta la tua proposta parlava soprattutto di altre aree.${ALTRE_FONTI}`,
           };
         case "letto_senza_credito":
           // La premessa di questa riga è CAMBIATA: da quando il giudizio
@@ -68,21 +84,21 @@ function descrizioneNonMisurata(chiave: ChiaveDim, revisoreEsito: StatoRevisore,
           // c'è, due blocchi più sotto.
           return {
             heading: "Bravura — non ancora misurata.",
-            corpo: "Della tua proposta finale non è emersa un'area da valutare. Quello che ci abbiamo letto sta più sotto, in «Come hai ragionato»." + ALTRE_FONTI,
+            corpo: `${APERTURA_BRAVURA} Questa volta dalla tua proposta non è emersa un'area da valutare: quello che ci abbiamo letto sta più sotto, in «Come hai ragionato».${ALTRE_FONTI}`,
           };
         case "non_riuscito":
           // Guasto nostro (chiave assente, o chiamata/estrazione fallita): la
           // colpa allo studente sarebbe falsa. Distinta da «non l'abbiamo letta».
           return {
             heading: "Bravura — non ancora misurata.",
-            corpo: "La misuriamo da quello che scrivi nella proposta finale del progetto: questa volta non siamo riusciti a leggerla." + ALTRE_FONTI,
+            corpo: `${APERTURA_BRAVURA} Questa volta la proposta non siamo riusciti a leggerla.${ALTRE_FONTI}`,
           };
         default:
           // null: proposta non scritta (o tentativo vecchio senza prove). Vera
           // in entrambi i casi, non accusa nessuno.
           return {
             heading: "Bravura — non ancora misurata.",
-            corpo: "La misuriamo da quello che scrivi nella proposta finale del progetto: questa volta non l'abbiamo letta." + ALTRE_FONTI,
+            corpo: `${APERTURA_BRAVURA} Questa volta la proposta non l'abbiamo letta.${ALTRE_FONTI}`,
           };
       }
     }

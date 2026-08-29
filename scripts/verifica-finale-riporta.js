@@ -296,6 +296,8 @@ const WHITELIST = new Map([
     "«da sola» è l'operatrice del turno, non lo studente: qui l'accordo è corretto"],
   ["Undici idee in tre settimane, tutte accolte con «bella idea» e nessuna scelta. Due erano ottime. Non serviva frenare nessuno: serviva che qualcuno decidesse.",
     "«ottime» giudica le idee del gruppo (opzioni che la missione definisce), non lo studente"],
+  ["Hai proposto di rivestire la facciata anche se la perizia della Soprintendenza, che avevi letto, la dava per tutelata: la domanda sarebbe stata respinta. Sapevi che c'era un vincolo e hai deciso di provarci lo stesso.",
+    "«sapevi» sostenuto da M6 letto — la cornice scatta solo in quel ramo, e la frase cita la prova: possesso d'informazione, non stato mentale"],
 ]);
 
 // Whitelist della sola famiglia accordo-di-genere: stesse regole (stringa intera,
