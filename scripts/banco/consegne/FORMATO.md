@@ -122,6 +122,21 @@ entrato dalla porta di servizio avrebbe certificato che andava tutto bene.
   misurando, e scriverlo prima vorrebbe dire deciderlo;
 - **niente giudizi sulla qualità della revisione**: quelli li leggete voi.
 
+## Come si verifica un file, prima che il robot lo giri
+
+```
+npm run test:consegne
+```
+
+Controlla **contro il motore vero**, non contro questo documento: gli id delle
+sezioni, i minimi, il numero di colonne e soprattutto `sezioniIncomplete` —
+cioè lo stesso identico gate che il robot troverà quando proverà a consegnare.
+Un controllo scritto a parte direbbe che va tutto bene fino al giorno in cui il
+gate cambia.
+
+Dice anche quello che non è un errore ma costa: i messaggi di chat oltre il
+minimo, che il robot non manderà.
+
 ## Quanti file servono
 
 Cinque `base`, uno per workshop, con tutti e cinque i ruoli dentro: sono i

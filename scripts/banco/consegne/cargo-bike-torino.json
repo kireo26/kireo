@@ -1,0 +1,275 @@
+{
+  "workshop": "cargo-bike-torino",
+
+  "ruoli": {
+    "economia": {
+      "livello": "base",
+      "tappe": {
+        "confronto": {
+          "sezioni": {
+            "confronto_costi": [
+              ["Acquisto del mezzo", "22.000 € (usato recente)", "7.500 € (elettrica con cassone)"],
+              ["Carburante / energia", "3.800 €/anno", "180 €/anno di elettricità"],
+              ["Assicurazione e bollo", "1.250 €/anno", "150 €/anno"],
+              ["Manutenzione ordinaria", "1.400 €/anno", "600 €/anno"],
+              ["Permessi ZTL e multe", "1.100 €/anno", "0 €"],
+              ["Soste e parcheggi", "700 €/anno", "0 €"]
+            ],
+            "voce_chiave": "La voce dove la cargo bike cambia davvero le cose non è il carburante, che pure si vede subito: è il costo di stare in centro. Fra permesso ZTL, multe prese perché il furgone resta in doppia fila mentre il ragazzo sale ai piani, e soste a pagamento, il furgone si mangia quasi duemila euro l'anno solo per poter essere dove deve consegnare. La cargo bike quel costo non ce l'ha per niente, e in più non perde i dieci minuti a giro che il furgone perde per trovare posto."
+          },
+          "chat": [
+            "Renzo, prima di mettere giù i conti: quanto spendi oggi in un anno di gasolio per i tre furgoni?",
+            "Le multe e il permesso ZTL le tieni contate da qualche parte, o vanno un po' a sentimento?",
+            "I furgoni sono di proprietà o in leasing? Cambia parecchio il conto che ti faccio."
+          ]
+        },
+        "investimento": {
+          "sezioni": {
+            "investimento": [
+              ["Cargo bike elettriche con cassone", "4", "30.000"],
+              ["Batterie di scorta", "4", "3.200"],
+              ["Colonnine di ricarica in magazzino", "2", "1.800"],
+              ["Attrezzatura e box di carico", "4 kit", "2.400"],
+              ["Formazione dei rider e sicurezza", "5 persone", "1.500"],
+              ["Contratto di manutenzione primo anno", "1", "2.400"]
+            ],
+            "budget": "Il totale è 41.300 €, quindi restano 18.700 € dei 60.000 che hai messo sul piatto. Quel margine non lo spendo, e non è prudenza generica: le quattro cargo bike sostituiscono due furgoni su tre, e il primo anno serve tenere da parte i soldi per due cose che non si possono prevedere adesso — un mezzo fermo più a lungo del previsto, e la possibilità che i giri vadano riorganizzati dopo i primi mesi. Se a fine anno il margine è ancora lì, quello diventa la quinta cargo bike."
+          },
+          "chat": [
+            "Renzo, i 60.000 sono tutto quello che c'è o è il tetto che ti sei dato per non sforare?",
+            "Quanto pensi di tenere i furgoni che resteranno? Se durano ancora tre anni il conto cambia.",
+            "Il magazzino ha una presa di corrente decente o va rifatto l'impianto per le ricariche?"
+          ]
+        },
+        "break_even": {
+          "sezioni": {
+            "calcolo": "Parto dai costi annui di un furgone, presi dalla tabella della prima tappa: 3.800 di gasolio, 1.250 fra assicurazione e bollo, 1.400 di manutenzione, 1.100 fra permesso ZTL e multe, 700 di soste. Fanno 8.250 € l'anno per mezzo. Una cargo bike costa 930 € l'anno — 180 di elettricità, 150 fra assicurazione e bollo, 600 di manutenzione — e per coprire il lavoro di un furgone in centro ne servono due, quindi 1.860. Il risparmio netto è di 6.390 € l'anno per ogni furgone che smette di girare. Ne tolgo due su tre, come hai chiesto: 12.780 € l'anno. L'investimento è 41.300 €, quindi 41.300 diviso 12.780 fa 3 anni e 3 mesi, cioè 39 mesi. Non è un anno, e non voglio raccontartelo più corto di quello che è: quello che cambia prima dei 39 mesi non sono i soldi, sono i tempi di consegna in centro."
+          },
+          "chat": [
+            "Renzo, in un mese quante consegne fai dentro la ZTL rispetto a quelle fuori?",
+            "Il furgone che tieni lo useresti solo per il pesante e la periferia, giusto?",
+            "Quanto ti costa oggi un'ora di fermo di un mezzo? Mi serve per pesare i giorni di manutenzione."
+          ]
+        },
+        "pitch": {
+          "sezioni": {
+            "sintesi": "Renzo, il conto è questo. Un furgone ti costa 8.250 € l'anno solo per esistere e girare: gasolio, assicurazione, manutenzione, permesso ZTL, multe, soste. Le due cargo bike che fanno lo stesso lavoro in centro te ne costano 1.860. Togliendo dalla strada due furgoni su tre risparmi 12.780 € l'anno. L'investimento è 41.300 € — quattro mezzi, batterie di scorta, ricariche, attrezzatura, formazione e manutenzione del primo anno — e resta un margine di 18.700 dentro i 60.000 che non tocco. Rientri dell'investimento in 39 mesi. Ti dico anche cosa non so: non so quante consegne al giorno reggeranno davvero i ragazzi finché non provano un mese vero, e da quel numero dipende se i 39 mesi diventano 34 o 45. Il terzo furgone resta dov'è, per il pesante e per fuori centro, e nessuno dei cinque va a casa."
+          },
+          "chat": [
+            "Ultima tappa, Renzo. C'è qualcosa dei conti che ti ho fatto che non ti torna?",
+            "Se dopo sei mesi il risparmio fosse la metà di quello che ho scritto, cosa faresti?",
+            "Preferisci che tenga il margine da parte o che lo metta subito in una quinta bici?",
+            "C'è un numero che vuoi assolutamente vedere scritto nel documento?"
+          ]
+        }
+      }
+    },
+
+    "mobilita": {
+      "livello": "base",
+      "tappe": {
+        "hub": {
+          "sezioni": {
+            "hub": "Tengo il magazzino che hai già come base grossa: lì arrivano i furgoni dei fornitori, lì si caricano le cargo bike la mattina e lì tornano a ricaricare la notte. Ma il magazzino da solo non basta, perché sta fuori dal centro e ogni rientro per ricaricare il cassone sono quaranta minuti buttati. Quindi aggiungo due nano-hub dentro la ZTL: due box in affitto, uno verso Porta Palazzo e uno verso San Salvario, dove un furgone porta la merce all'alba e le cargo bike la prendono senza uscire dal centro. Sono due, non quattro, perché ogni box è un affitto e un mazzo di chiavi in più: si comincia con due, si guarda per un mese quale dei due lavora davvero, e solo dopo si decide se ne serve un terzo."
+          },
+          "chat": [
+            "Renzo, il magazzino dove sta di preciso? Mi serve per capire quanto ci mette una bici ad arrivare in centro.",
+            "Le consegne in centro sono sparse o si concentrano in due o tre zone?",
+            "Hai già dei fornitori che ti scaricano la merce presto la mattina?"
+          ]
+        },
+        "copertura": {
+          "sezioni": {
+            "zone": [
+              ["Centro storico e Quadrilatero", "1,2 km dal nano-hub di Porta Palazzo", "28"],
+              ["San Salvario e Crocetta", "1,8 km dal nano-hub di San Salvario", "24"],
+              ["Vanchiglia e Aurora", "2,5 km dal magazzino", "18"],
+              ["Borgo Po e collina bassa", "3 km dal magazzino, con dislivello", "12"]
+            ]
+          },
+          "chat": [
+            "Renzo, in una giornata normale quante consegne fa oggi un furgone in centro?",
+            "Quanto pesa in media un pacco? Se ci sono spesso cose da trenta chili cambia tutto.",
+            "Ci sono clienti che pretendono la consegna entro un'ora precisa?"
+          ]
+        },
+        "giri": {
+          "sezioni": {
+            "giri": "Divido la giornata in tre giri invece che in uno solo lungo. Il primo parte alle 8 dal nano-hub già carico e chiude entro le 11: sono le consegne prese il giorno prima, quelle che non hanno fretta ma che devono essere fatte presto per liberare il cassone. Il secondo parte alle 11:30 e chiude alle 14, ed è quello che assorbe gli ordini arrivati in mattinata. Il terzo va dalle 15 alle 18 ed è il giro corto, per le urgenze e per i secondi tentativi su chi non era in casa. Ogni rider rientra al nano-hub fra un giro e l'altro, mai al magazzino: sono cinque minuti invece di quaranta. La priorità dentro ogni giro la decide la distanza, non l'orario di arrivo dell'ordine, perché in centro il tempo si perde negli spostamenti e non nelle consegne."
+          },
+          "chat": [
+            "Renzo, oggi a che ora escono i furgoni e a che ora rientrano?",
+            "Quante volte capita che uno non sia in casa e si debba tornare?",
+            "I tuoi cinque ragazzi lavorano tutti sulle stesse fasce o vi dividete già la giornata?"
+          ]
+        },
+        "pitch": {
+          "sezioni": {
+            "sintesi": "Renzo, la rete funziona così. Il magazzino resta la base: lì si carica, lì si ricarica la notte. In centro metto due nano-hub, uno a Porta Palazzo e uno a San Salvario, dove un furgone porta la merce all'alba: da lì le cargo bike lavorano senza mai uscire dalla ZTL. Le quattro bici coprono quattro zone — centro storico, San Salvario e Crocetta, Vanchiglia e Aurora, Borgo Po — per un totale di 82 consegne al giorno. La giornata è divisa in tre giri con rientro al nano-hub, cinque minuti invece dei quaranta che servono per tornare al magazzino: è lì che si recupera il tempo che si perde andando più piano di un furgone. Quello che non so ancora è quanto reggono le zone in collina con il carico pieno: le ho messe a 12 consegne, ma è una stima e va verificata il primo mese. Il furgone che tieni copre il pesante e tutto quello che sta fuori dai 3 km."
+          },
+          "chat": [
+            "Ultimo pezzo, Renzo. Dei tre giri al giorno, c'è qualcosa che non ti convince?",
+            "Se un cliente in collina si lamenta dei tempi, preferisci che ci vada il furgone?",
+            "I due box in affitto sono la spesa fissa nuova: te la senti o preferisci partire con uno solo?",
+            "C'è una zona di Torino che secondo te non ho considerato e che ti porta lavoro?"
+          ]
+        }
+      }
+    },
+
+    "tecnica": {
+      "livello": "base",
+      "tappe": {
+        "modelli": {
+          "sezioni": {
+            "modelli": [
+              ["Cargo bike a tre ruote con cassone anteriore", "180 kg di carico, cassone da 1.100 litri", "60-70 km con una batteria", "7.500 €"],
+              ["Cargo bike a due ruote lunga (longtail)", "100 kg di carico, borse laterali", "70-80 km con una batteria", "5.200 €"],
+              ["Cargo bike a tre ruote con box chiuso e refrigerato", "150 kg, box chiuso a chiave", "55-65 km", "9.800 €"]
+            ]
+          },
+          "chat": [
+            "Renzo, qual è il pacco più pesante che ti capita in una settimana normale?",
+            "La merce che consegni sta sotto la pioggia o va tenuta al riparo?",
+            "I ragazzi hanno mai guidato una bici elettrica carica, o partiamo da zero?"
+          ]
+        },
+        "batterie": {
+          "sezioni": {
+            "batterie": "Una giornata di lavoro in centro sono fra i 45 e i 60 km, con i saliscendi e le partenze da fermo che consumano più della strada piana. Le batterie da 60-70 km dichiarati reggono, ma dichiarato e reale non sono la stessa cosa: con il cassone pieno e il freddo di gennaio si perde facilmente un quarto dell'autonomia. Quindi ogni bici ha la sua batteria più una di scorta, e la scorta non sta in magazzino: sta al nano-hub, dove il rider passa comunque fra un giro e l'altro. Il cambio è un gesto da due minuti. Le batterie scariche tornano al magazzino la sera con il furgone che rientra e si ricaricano di notte, quando l'elettricità costa meno. Due colonnine bastano per otto batterie, perché la ricarica completa sono quattro ore e la notte ne ha otto."
+          },
+          "chat": [
+            "Renzo, in magazzino c'è una presa industriale o solo prese normali?",
+            "Il furgone che tieni passa dai nano-hub la sera o va dritto al magazzino?",
+            "D'inverno i ragazzi lavorano con le stesse ore o si riduce la giornata?"
+          ]
+        },
+        "manutenzione": {
+          "sezioni": {
+            "manutenzione": "La manutenzione ordinaria è ogni 1.500 km circa: freni, catena, gomme, controllo del motore. Con 50 km al giorno vuol dire ogni sei settimane per bici, quindi un passaggio in officina ogni dieci giorni contando tutta la flotta. Ho messo a budget un contratto con un'officina di Torino che le ritira e le riporta, perché un rider che porta la bici in officina è un rider che non consegna. Per la pioggia non serve un piano speciale: le cargo bike lavorano, i rider hanno l'attrezzatura, e la merce sta nel cassone chiuso. Il piano serve per il ghiaccio, che a Torino sono cinque o sei giorni l'anno: quei giorni le consegne del centro le fa il furgone che hai tenuto, con un giro più lungo e più lento. Sulle salite di Borgo Po il motore assiste fino a 25 km/h e regge, ma il carico va tenuto sotto i 120 kg: sopra quella soglia si fatica e la batteria cala in fretta. Quando una bici è ferma, le sue consegne si dividono fra le altre tre: è per questo che nessuna zona è caricata al massimo."
+          },
+          "chat": [
+            "Renzo, hai un meccanico di fiducia in zona o cerchiamo un'officina apposta?",
+            "Quanti giorni all'anno secondo te il ghiaccio ti blocca davvero?",
+            "Se una bici resta ferma tre giorni, il lavoro lo assorbono gli altri o perdi consegne?"
+          ]
+        },
+        "pitch": {
+          "sezioni": {
+            "sintesi": "Renzo, la flotta regge tutti i giorni e ti dico perché. Prendo tre cargo bike a tre ruote con cassone, che portano 180 chili, e una longtail più leggera per i giri sparsi. Ogni bici ha una batteria in più che sta al nano-hub, dove il rider passa comunque fra un giro e l'altro: il cambio sono due minuti, non un rientro. Di notte si ricarica tutto in magazzino, quando la corrente costa meno. La manutenzione è un contratto con un'officina che le ritira e le riporta, perché un ragazzo che porta la bici dal meccanico è un ragazzo che non consegna. La pioggia non ferma niente, il ghiaccio sì: quei cinque o sei giorni l'anno il centro lo fa il furgone che hai tenuto. E le zone non sono caricate al massimo apposta, così quando una bici è ferma le altre tre assorbono senza che nessun cliente se ne accorga. Quello che non so è come si comportano le batterie al secondo inverno: quello lo dirà l'uso."
+          },
+          "chat": [
+            "Siamo all'ultimo, Renzo. Dei mezzi che ho scelto, ce n'è uno che non ti piace?",
+            "Se ti dicessi di prenderne tre invece di quattro per il primo anno, che dici?",
+            "L'officina che ritira e riporta è un costo fisso: la vedi come una spesa o come una sicurezza?",
+            "C'è qualcosa dei tuoi furgoni che ti manca già solo a pensare di toglierli?"
+          ]
+        }
+      }
+    },
+
+    "digitale": {
+      "livello": "base",
+      "tappe": {
+        "cosa_serve": {
+          "sezioni": {
+            "funzioni": "Servono quattro cose, e nient'altro. La prima: sapere dove sta ogni pacco senza telefonare a nessuno — chi ce l'ha, se è stato consegnato, a che ora. Oggi questa cosa vive nella testa dei ragazzi e in un quaderno, e ogni volta che un cliente chiama qualcuno deve smettere di lavorare per rispondere. La seconda: distribuire i giri la mattina senza stampare fogli, così se arriva un ordine alle dieci si aggiunge al giro giusto invece di aspettare domani. La terza: la prova di consegna, una firma o una foto sul telefono, perché quando un cliente dice che non gli è arrivato niente serve qualcosa da mostrare. La quarta: avvisare il destinatario che la consegna arriva, perché metà dei secondi tentativi succede solo perché non c'era nessuno in casa. Tutto il resto — statistiche, mappe in tempo reale, punteggi dei rider — non serve adesso e costa."
+          },
+          "chat": [
+            "Renzo, quante telefonate al giorno ricevi da clienti che chiedono dov'è il pacco?",
+            "Come segnate oggi le consegne fatte? Foglio, quaderno, messaggi?",
+            "Quante volte in una settimana bisogna tornare perché non c'era nessuno?"
+          ]
+        },
+        "sistema": {
+          "sezioni": {
+            "strumenti": [
+              ["Registro dei pacchi e stato consegna", "Un foglio condiviso su Google Sheets, con una vista per rider", "0 €"],
+              ["Giri del giorno sul telefono", "Lo stesso foglio in versione mobile, aggiornato in tempo reale", "0 €"],
+              ["Prova di consegna con foto e firma", "Un modulo Google Form collegato al foglio", "0 €"],
+              ["Avviso al destinatario", "Messaggi WhatsApp inviati dal telefono aziendale", "0 €"],
+              ["Spazio e backup dei dati", "Google Workspace base, 5 utenti", "36 €/mese"]
+            ]
+          },
+          "chat": [
+            "Renzo, i cinque ragazzi hanno tutti uno smartphone con i dati?",
+            "Hai già una casella di posta aziendale o usate gli indirizzi personali?",
+            "Quanto saresti disposto a spendere al mese per una cosa del genere?"
+          ]
+        },
+        "risparmio": {
+          "sezioni": {
+            "risparmio": "Il risparmio non lo dimostro con le parole ma con tre numeri che puoi contare tu. Primo: le telefonate. Se oggi ne ricevi otto al giorno per chiedere dov'è un pacco, e ognuna ti porta via cinque minuti fra rispondere e richiamare il rider, sono quaranta minuti al giorno, cioè più di tre ore a settimana di una persona. Con lo stato aggiornato sul foglio, chi risponde guarda e dice, senza chiamare nessuno. Secondo: i secondi tentativi. Un avviso mandato la mattina fa restare a casa la gente, e ogni ritorno evitato è un quarto d'ora di rider. Terzo: le contestazioni. Con foto e firma, un cliente che dice di non aver ricevuto niente si chiude in trenta secondi invece che in una discussione. Non ti chiedo di crederci: proviamo un mese su un rider solo, contiamo le telefonate prima e dopo, e se non cambia niente lo spegniamo."
+          },
+          "chat": [
+            "Renzo, quanto tempo passi tu al telefono in una giornata per queste cose?",
+            "È mai capitato di perdere un cliente per una contestazione su una consegna?",
+            "Se ti propongo di provarlo su un ragazzo solo per un mese, ci stai?"
+          ]
+        },
+        "pitch": {
+          "sezioni": {
+            "sintesi": "Renzo, te lo spiego come lo spiegherei a mio zio. Non ti sto vendendo un'app. Ti sto dicendo di mettere su un foglio condiviso quello che oggi sta in un quaderno e nella testa dei ragazzi. Sul foglio c'è ogni pacco con il suo stato: chi ce l'ha, dov'è, se è stato consegnato e a che ora. I ragazzi lo vedono dal telefono e lo aggiornano con due tocchi. Quando consegnano fanno una foto, e la foto resta. La mattina parte un messaggio a chi aspetta il pacco, così lo trovano in casa. Costa 36 euro al mese in tutto, che è meno di un pieno di gasolio. E non ti chiedo di fidarti: si prova un mese con un rider solo, si contano le telefonate prima e dopo, e se non cambia niente si spegne e non ne parliamo più. Quello che non ti so dire è quanto ci mettono i ragazzi ad abituarsi: qualcuno in una settimana, qualcuno in un mese."
+          },
+          "chat": [
+            "Ci siamo, Renzo. La cosa che ti fa più storcere il naso qual è?",
+            "Se i ragazzi si rifiutassero di aggiornarlo, cosa faresti tu?",
+            "Preferisci partire dal registro dei pacchi o dagli avvisi ai clienti?",
+            "C'è qualcosa che vuoi assolutamente scritto nel documento?"
+          ]
+        }
+      }
+    },
+
+    "sostenibilita": {
+      "livello": "base",
+      "tappe": {
+        "emissioni": {
+          "sezioni": {
+            "co2": "Faccio il conto sui due furgoni che smettono di girare in centro. Ognuno fa circa 18.000 km l'anno e consuma intorno a 9 litri di gasolio ogni 100 km, quindi 1.620 litri l'anno. Un litro di gasolio bruciato fa circa 2,6 chili di anidride carbonica: sono 4.200 chili l'anno per furgone, cioè 8,4 tonnellate per i due. Le cargo bike consumano elettricità, non zero: circa 900 kWh l'anno in tutto, che con il mix elettrico italiano fanno intorno a 250 chili di CO₂. Il risparmio netto è quindi di circa 8,1 tonnellate l'anno. Due precisazioni, perché i numeri gonfiati si riconoscono subito: i chilometri l'anno sono una stima mia sulla base dei giri che mi hai descritto e vanno verificati sui libretti, e il conto non include la CO₂ per costruire le cargo bike, che c'è e che non ho i dati per calcolare."
+          },
+          "chat": [
+            "Renzo, quanti chilometri fa in un anno un tuo furgone? C'è scritto sul libretto o sulle revisioni.",
+            "Che tipo di furgoni sono, diesel di che anno?",
+            "Ti è mai capitato che un cliente ti chiedesse quanto inquini?"
+          ]
+        },
+        "bandi": {
+          "sezioni": {
+            "bandi": [
+              ["Incentivi comunali per la logistica sostenibile in ZTL", "Fino a 2.000 € per mezzo, secondo il bando dell'anno", "Impresa con sede in città, mezzo elettrico immatricolato o registrato, impegno a operare in ZTL — importi e finestre cambiano ogni anno, da verificare sul sito del Comune"],
+              ["Contributi regionali per il rinnovo del parco mezzi delle micro-imprese", "Percentuale sulla spesa, di solito fra il 30% e il 50%", "Micro o piccola impresa, spesa minima, rendicontazione a fine progetto — la Regione apre gli sportelli a finestre, va seguito il bollettino"],
+              ["Credito d'imposta su beni strumentali nuovi", "Percentuale sul valore del bene, cumulabile con i contributi locali salvo divieto espresso", "Fattura con la dicitura di legge, bene nuovo e strumentale all'attività, verifica preventiva con il commercialista"]
+            ]
+          },
+          "chat": [
+            "Renzo, hai mai chiesto un contributo pubblico per l'azienda o è la prima volta?",
+            "Hai un commercialista che segue queste cose o le fai da solo?",
+            "Se un bando ti obbliga a rendicontare per due anni, per te è un problema?"
+          ]
+        },
+        "vantaggio": {
+          "sezioni": {
+            "vantaggio": "La consegna a zero emissioni non è una medaglia da appendere: è una cosa da mettere sul preventivo. Tre modi concreti. Il primo: i negozi del centro che vendono roba biologica, cosmetica naturale, abbigliamento di seconda mano hanno già i clienti che chiedono come arriva la merce, e a loro serve poter dire che arriva in bici. A quelli ci si presenta con una riga sola: consegniamo in ZTL a zero emissioni, e ve lo mettiamo per iscritto. Il secondo: le gare e gli appalti, anche piccoli, dei comuni e delle aziende partecipate danno punteggio ai fornitori che dimostrano di ridurre le emissioni, e con il conto della CO₂ evitata quel punteggio si prende. Il terzo, che vale meno ma costa zero: la bici col tuo nome sopra che gira in centro tutto il giorno è pubblicità che un furgone in tangenziale non fa. Su questo però non ti prometto numeri: i primi due li puoi misurare, il terzo no."
+          },
+          "chat": [
+            "Renzo, i tuoi clienti chi sono soprattutto: negozi, uffici, privati?",
+            "Hai mai partecipato a una gara o lavorato per un ente pubblico?",
+            "Sui furgoni c'è già scritto il nome dell'azienda?"
+          ]
+        },
+        "pitch": {
+          "sezioni": {
+            "sintesi": "Renzo, la sostenibilità qui non è un discorso: sono soldi che entrano e soldi che non escono. Togliendo due furgoni dal centro eviti circa 8,1 tonnellate di anidride carbonica l'anno — è un conto fatto sui chilometri che mi hai detto tu e sui consumi reali, non su una brochure, e togliendo già l'elettricità che le bici consumano. Sui contributi: fra incentivi comunali per la logistica in ZTL, contributi regionali per il rinnovo dei mezzi e il credito d'imposta, una parte dell'investimento può tornare indietro — ma gli importi e le finestre cambiano ogni anno, quindi non ti scrivo una cifra che poi non c'è: ti dico che vanno verificati con il commercialista prima di comprare, non dopo. E poi ci sono i clienti nuovi: i negozi del centro che quella cosa la vendono ai loro clienti, e le gare pubbliche che danno punteggio a chi le emissioni le riduce e lo dimostra. Quella è l'unica parte per cui il conto della CO₂ serve davvero: senza un numero, non convinci nessuno."
+          },
+          "chat": [
+            "Ultimo giro, Renzo. Delle tre cose — CO₂, bandi, clienti nuovi — quale ti interessa davvero?",
+            "Se i contributi non arrivassero, la conversione la faresti lo stesso?",
+            "Vuoi che vada io a parlare con qualche negozio del centro per capire se la cosa gli interessa?",
+            "C'è qualcosa che vuoi assolutamente vedere scritto nel documento finale?"
+          ]
+        }
+      }
+    }
+  }
+}
