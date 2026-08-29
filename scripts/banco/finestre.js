@@ -29,16 +29,35 @@
 // ed è il caso normale.
 const HA_SERVITO = (d) => (d.readyState ?? d.state) === "READY";
 
-// Il regno comincia quando il deploy ha cominciato a SERVIRE, non quando è
-// stato creato: fra `createdAt` e la fine della build passa un minuto o due in
-// cui a rispondere è ancora il precedente. Vercel espone `ready` quando ce
-// l'ha; senza, si ripiega su `createdAt` (l'errore è di un paio di minuti, e
-// in eccesso: si consulta un deploy in più, mai uno in meno).
-const inizioRegno = (d) => d.ready ?? d.createdAt;
+// I DUE ESTREMI DEL REGNO SI PRENDONO DA DUE CAMPI DIVERSI, apposta, perché
+// nel dubbio si consulti un deploy in più e mai uno in meno:
+//   · l'inizio dal `createdAt` (il primo istante in cui POTREBBE aver servito);
+//   · la fine dal `ready` del successore (l'ultimo istante in cui POTREBBE
+//     aver servito ancora — il successore prima di essere pronto non risponde).
+// I regni si sovrappongono per la durata della build, e una finestra che cade
+// lì dentro consulta tutti e due.
+const primoIstante = (d) => d.createdAt ?? d.ready;
+const ultimoIstante = (d) => d.ready ?? d.createdAt;
 
-// Ogni deploy di produzione che ha servito "regge" il traffico da quando è
-// pronto fino a quando è pronto il successivo. `deploys` è la lista grezza
-// dell'API, in qualunque ordine e con qualunque stato.
+// IL LIMITE, detto perché nessuno ci si appoggi: la sovrapposizione esiste solo
+// se il successore espone `ready`. Se non ce l'ha, il buco della sua build è
+// invisibile — quei due minuti risultano suoi mentre a rispondere era ancora il
+// precedente, e il banco andrebbe a cercare le righe nel deploy sbagliato.
+// Non è compensabile: il dato per farlo non c'è. In pratica quasi non morde,
+// perché passano solo i READY e un READY ha quasi sempre `ready` popolato.
+//
+// (La prima stesura di questo commento diceva il contrario — «l'errore è in
+// eccesso, un deploy in più mai uno in meno» — e non era vero: era quello
+// sbagliato AL POSTO di quello giusto. Un commento che promette una sicurezza
+// che non c'è è peggio di nessun commento, perché il prossimo ci si appoggia:
+// è già successo in questo progetto con `ricalcola_area_signal`, che diceva
+// «somma» e calcolava una media, e su quella frase è stata poi giustificata
+// una modifica sbagliata.)
+
+// Ogni deploy di produzione che ha servito "regge" il traffico dalla propria
+// creazione fino a quando è PRONTO il successivo — i due estremi presi larghi,
+// come detto sopra. `deploys` è la lista grezza dell'API, in qualunque ordine
+// e con qualunque stato.
 //
 // Restituisce:
 //   consultare  — i deploy che si sovrappongono alla finestra, dal più recente
@@ -47,20 +66,21 @@ const inizioRegno = (d) => d.ready ?? d.createdAt;
 //   scartati    — quanti sono stati esclusi perché non hanno mai servito
 //   piuVecchio  — il timestamp da cui parte la copertura possibile
 function finestreDeploy(deploys, daMs, aMs = Date.now()) {
-  const validi = deploys.filter((d) => typeof (d.ready ?? d.createdAt) === "number");
-  const ordinati = validi.filter(HA_SERVITO).sort((a, b) => inizioRegno(b) - inizioRegno(a));
+  const validi = deploys.filter((d) => typeof (d.createdAt ?? d.ready) === "number");
+  const ordinati = validi.filter(HA_SERVITO).sort((a, b) => primoIstante(b) - primoIstante(a));
   const scartati = validi.length - ordinati.length;
 
   const consultare = [];
   for (let i = 0; i < ordinati.length; i++) {
-    const inizio = inizioRegno(ordinati[i]);
+    const inizio = primoIstante(ordinati[i]);
     // Il precedente in elenco è il PIÙ RECENTE fra i più vecchi: quello che ha
-    // sostituito questo. Per il primo (il corrente) la fine è «adesso».
-    const fine = i === 0 ? Infinity : inizioRegno(ordinati[i - 1]);
+    // sostituito questo, e che ha cominciato a rispondere quando è stato
+    // PRONTO. Per il primo (il corrente) la fine è «adesso».
+    const fine = i === 0 ? Infinity : ultimoIstante(ordinati[i - 1]);
     if (fine > daMs && inizio < aMs) consultare.push({ ...ordinati[i], regge: [inizio, fine] });
   }
 
-  const piuVecchio = ordinati.length > 0 ? inizioRegno(ordinati[ordinati.length - 1]) : null;
+  const piuVecchio = ordinati.length > 0 ? primoIstante(ordinati[ordinati.length - 1]) : null;
   const scoperto = piuVecchio !== null && piuVecchio > daMs ? piuVecchio - daMs : 0;
 
   return { consultare, scoperto, scartati, piuVecchio };
@@ -89,7 +109,7 @@ function raccontaCopertura({ consultare, scoperto, scartati = 0 }, minutiChiesti
 
   righe.push(`Deploy consultati: ${consultare.length}${nota} — i log di runtime appartengono al singolo deploy, non al progetto.`);
   for (const d of consultare) {
-    righe.push(`  · ${d.uid}  pronto ${durata(Date.now() - inizioRegno(d))} fa`);
+    righe.push(`  · ${d.uid}  pronto ${durata(Date.now() - ultimoIstante(d))} fa`);
   }
 
   if (scoperto > 0) {
