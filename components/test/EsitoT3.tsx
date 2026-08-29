@@ -63,7 +63,7 @@ export default function EsitoT3({ righe, missione }: { righe: RigaEsitoT3[]; mis
         <div className="rounded-2xl border border-kireo-green/30 bg-kireo-green/5 p-6 sm:p-8">
           <h2 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">Da qui, dove provare</h2>
           <p className="mt-2 text-sm leading-relaxed text-kireo-light/90">
-            La missione che ti somiglia di più è <strong className="font-semibold text-kireo-light">«{missione.titolo}»</strong>. Provala, e vediamo se l&apos;ipotesi regge. Non sei obbligato: le altre restano tutte aperte.
+            La missione che ti somiglia di più è <strong className="font-semibold text-kireo-light">«{missione.titolo}»</strong>. Provala, e vediamo se l&apos;ipotesi regge. Non è obbligatorio: le altre restano tutte aperte.
           </p>
           <div className="mt-4">
             <Link href={`/app/escape/${missione.slug}`} className="inline-block rounded-full bg-kireo-green px-5 py-2 text-sm font-semibold text-white hover:bg-kireo-green-light">

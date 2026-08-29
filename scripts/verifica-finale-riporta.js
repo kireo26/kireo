@@ -25,6 +25,12 @@
 //     di scoring.ts): lint su un LESSICO di parole-verdetto in tre famiglie.
 //     Whitelist per STRINGA INTERA (mai per pattern), ognuna con motivo.
 //
+// QUANDO SI ALLARGA UN TEST, PRIMA SI RIPARA. Un test che nasce rosso viene
+// silenziato: il primo che lo incontra lo commenta «per ora», e da lì in poi
+// quel colore non significa più niente. Vale come regola generale, non solo per
+// questo file — le superfici nuove entrano nel controllo DOPO le riscritture,
+// mai prima, così il verde di partenza è vero.
+//
 // Esecuzione: `npm run test:finale` (o `node scripts/verifica-finale-riporta.js`).
 
 /* eslint-disable @typescript-eslint/no-require-imports -- script Node CommonJS di utilità */

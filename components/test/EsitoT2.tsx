@@ -40,9 +40,9 @@ export default function EsitoT2({
 
   return (
     <div className="space-y-5">
-      {/* 1 — Come ti sei mosso */}
+      {/* 1 — Come ti muovi */}
       <div className="rounded-2xl border border-kireo-green/30 bg-kireo-green/5 p-6 sm:p-8">
-        <h2 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">Come ti sei mosso</h2>
+        <h2 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">Come ti muovi</h2>
         <p className="mt-2 text-sm leading-relaxed text-kireo-light/90">
           Da come ti muovi finora, nei test e nelle missioni, ti sei mosso da <strong className="font-semibold text-kireo-light">{profilo.nome}</strong>. {profilo.comeTiMuovi}
         </p>
@@ -81,7 +81,7 @@ export default function EsitoT2({
         <div className="rounded-2xl border border-kireo-orange/30 bg-kireo-orange/5 p-6 sm:p-8">
           <span className="inline-block rounded-full border border-kireo-orange/40 px-2 py-0.5 text-[11px] text-kireo-orange">Da verificare</span>
           <p className="mt-3 text-sm leading-relaxed text-kireo-light/90">
-            Nel test ti sei mosso soprattutto in modo <strong className="font-semibold text-kireo-light">{ETICHETTE_ASSE[divergenza.asseTest].nome.toLowerCase()}</strong>, ma nelle missioni che hai fatto finora è emerso di più il lato <strong className="font-semibold text-kireo-light">{ETICHETTE_ASSE[divergenza.asseMissioni].nome.toLowerCase()}</strong>.
+            Nel test ti muovi soprattutto in modo <strong className="font-semibold text-kireo-light">{ETICHETTE_ASSE[divergenza.asseTest].nome.toLowerCase()}</strong>, ma nelle missioni che hai fatto finora è emerso di più il lato <strong className="font-semibold text-kireo-light">{ETICHETTE_ASSE[divergenza.asseMissioni].nome.toLowerCase()}</strong>.
           </p>
           <p className="mt-3 text-sm leading-relaxed text-kireo-light/70">
             Non è una contraddizione da correggere: il modo in cui rispondi a mente fredda e quello con cui agisci davanti a un problema vero possono raccontare due lati dello stesso te. Le prossime missioni aiuteranno a capire quale pesa di più — senza fretta.

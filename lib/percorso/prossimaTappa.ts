@@ -56,6 +56,28 @@ export async function getProssimaTappa(supabase: SupabaseClient, studentId: stri
   return { testo: "Comincia da una guida: scegli un'area che ti incuriosisce.", cta: "Esplora le aree", href: "/app/aree" };
 }
 
+// Il passo dopo un TEST, che è una domanda diversa da quella della home.
+//
+// `getProssimaTappa` risponde a «a che punto sei del percorso» e lo fa dal
+// traguardo più avanzato, apposta: chi salta avanti non deve essere rimandato
+// indietro. È la risposta giusta per la card della home, e sbagliata in fondo a
+// un test — lì la domanda è «e adesso?», e la risposta è locale: **i tre test
+// sono una sequenza**. Dopo «Da dove parti» viene «Come ti muovi», dopo «Come
+// ti muovi» viene «Più a fondo», e dopo l'ultimo non c'è un quarto test: ci
+// sono le missioni.
+//
+// Deterministica, senza database, e soprattutto NON manda mai indietro: queste
+// pagine puntano solo avanti, quindi non serve nessun modo gentile di dire «ti
+// manca ancora una cosa».
+//
+// (L'esito di «Più a fondo» non passa di qui: ha una CTA sua, la missione in cui
+// l'area vincitrice è più centrale — vedi `missionePerArea`.)
+export function passoDopoTest(slugTest: string): ProssimaTappa {
+  if (slugTest === SLUG_T1) return { testo: 'Fai "Come ti muovi".', cta: "Fai «Come ti muovi»", href: `/app/test/${SLUG_T2}` };
+  if (slugTest === SLUG_T2) return { testo: 'Fai "Più a fondo".', cta: "Fai «Più a fondo»", href: `/app/test/${SLUG_T3}` };
+  return { testo: "Le missioni sono aperte.", cta: "Prova una missione", href: "/app/escape" };
+}
+
 async function leggiTestCompletati(supabase: SupabaseClient, studentId: string): Promise<Set<string>> {
   try {
     const { data, error } = await supabase

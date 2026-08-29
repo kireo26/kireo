@@ -25,7 +25,7 @@ export default function BloccoLeMieAree({ aree, areeConGuida1 = [] }: { aree: Ar
       {/* La terza delle tre lenti, dichiarata: dette (qui) / dedotte (affinità) /
           dove sei passato (esplorazione). Serve a capire perché i tre elenchi
           non coincidono. */}
-      <p className="mt-1 text-xs text-kireo-muted">Le aree che hai scelto quando ti sei iscritto.</p>
+      <p className="mt-1 text-xs text-kireo-muted">Le aree che hai scelto al momento dell&apos;iscrizione.</p>
       {aree.length > 0 ? (
         <ul className="mt-4 space-y-3">
           {aree.map((area) => (

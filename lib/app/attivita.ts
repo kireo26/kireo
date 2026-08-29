@@ -77,7 +77,7 @@ const ETICHETTE_TIPO: Record<TipoAttivita, (areaNome: string) => string> = {
   lettura_articolo: (a) => `Hai letto un articolo su ${a}`,
   chat_assistente: (a) => `Hai aperto l'assistente digitale di ${a}`,
   download_guida: (a) => `Hai scaricato la guida di ${a}`,
-  iscrizione_webinar: (a) => `Ti sei iscritto a un evento di ${a}`,
+  iscrizione_webinar: (a) => `Iscrizione a un evento di ${a}`,
   partecipazione_webinar: (a) => `Hai partecipato a un evento di ${a}`,
   workshop_pcto: (a) => `Hai completato un workshop PCTO di ${a}`,
 };
