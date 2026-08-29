@@ -580,6 +580,16 @@ Aggiornato al 2026-08-09.
 - **La cura sta nel prompt e ha una forma precisa**: non «cerca queste cose», ma «per ogni punto della rubrica cerca la risposta nei campi strutturati E nella prosa, e considera coperto solo ciò che regge in tutti e due; una casella spuntata è un'intenzione dichiarata, non la prova che la cosa sia stata pensata fino in fondo». Più la riga che chiude il caso osservato: **non elogiare l'ordine di un ragionamento senza aver verificato che copra il caso peggiore** fra quelli che la rubrica fa cercare.
 - **Vale per ogni revisore su contenuto misto** (strutturato + prosa), non solo per questo: è la stessa famiglia del gate delle cifre di Escape, che verifica ciò che è controllabile e sull'ipotesi dello studente non entra.
 
+## Divieti e compiti: un prompt fatto solo di «non» produce un revisore spento (2026-08-30)
+**Quando un revisore sembra spento, la prima strada è chiedersi che cosa può fare LUI che nessun altro può fare, e dirglielo.** Togliergli un altro permesso è la strada che sembra più sicura ed è quella che lo spegne di più.
+- **Il conto che ha aperto la regola**: dopo una giornata di correzioni, nei due prompt dei revisori workshop c'erano **cinque regole che tolgono un permesso** (non elogiare senza aver verificato il caso peggiore, non concludere sul budget, non chiamare lo studente col nome del cliente, non annunciare chi parla, non sostituire una lettera con un segno) e **una che assegna un compito**: al feedback finale, che è l'unico a leggere tutte e quattro le tappe insieme, e a cui è stato detto che una contraddizione fra due tappe è la cosa più utile che possa trovare.
+- Ogni divieto preso da solo era giusto; tutti insieme fanno un revisore che sta attento a non sbagliare, che è un modo elegante di non dire niente.
+- **La riga che ha reso utile il feedback finale non gli ha tolto niente**: gli ha detto qual era il suo mestiere. Era già capace di trovare la contraddizione fra la tappa 4 e la tappa 3 — non sapeva che gli toccasse.
+
+## Quando fondere su `main` senza chiedere (2026-08-30)
+Si fonde senza chiedere quando valgono **tutte e tre**: la correzione **attua una decisione già presa** insieme (non ne prende una nuova); è **piccola e circoscritta** (un carattere, una costante, una riga di prompt già concordata); ed è **coperta da una prova che prima falliva e adesso passa** — quest'ultima conta più delle altre due, perché è quella che permette a Mario di verificarla in trenta secondi invece di rileggere il ragionamento.
+Si chiede quando la modifica **decide qualcosa**: cambia cosa uno studente legge in un modo di cui non si è parlato, tocca una soglia o un peso, o risolve un'ambiguità scegliendo una delle due strade. Lì il costo di chiedere è un messaggio; il costo di non chiedere è una decisione presa da chi aveva in mano metà del contesto.
+
 ## Il ripiego tipografico è un accordo mancato, non una lingua invariante (2026-08-30)
 **Un modello a cui si chiede di non accordare può SOSTITUIRE invece di RIFORMULARE**, e il risultato è una parola che nessuno legge. Caso reale: la chiusura in carattere del cliente workshop è uscita «Questo me piace, **ragazz@**», e la guardia l'ha considerata pulita — tecnicamente invariante lo è. Ma la lingua del prodotto non è «una forma che vale per entrambi», è una frase che si legge.
 - **Il pattern** sta in `lib/lingua/accordoGenere.ts` come tutti gli altri (chiocciola e schwa; la «x» finale NO, misurata: `[a-z]{2,}x` prende 233 stringhe vere — «flex» in ogni classe CSS, «lux» nei vincoli della Missione 07 — e un tripwire con duecento eccezioni non è un tripwire).
@@ -631,3 +641,12 @@ KIREO **non conosce il genere di chi legge**: non è in `profiles`, non è mai s
 - Mobile-first: gli studenti navigano da smartphone
 - Accessibilità: contrasti AA, alt text, navigazione da tastiera
 - Commit piccoli e frequenti con messaggi in italiano
+
+## Il banco di prova (`npm run banco`)
+Primo pezzo, agosto 2026: **i gesti manuali, fatti dal terminale.** Nessuna AI e nessun giudizio automatico — solo quello che il 30 agosto è stato fatto a mano otto, due, tre e quattro volte (lanciare il cron, guardare dove sta un percorso, cercare l'errore di un revisore nei log, aspettare un deploy): due ore su tre di sessione.
+- `npm run banco` senza argomenti stampa l'elenco; `motore`, `percorso [filtro]`, `log [minuti]`, `deploy`, `azzera-tentativi`, `aiuto-segreto`.
+- **La parte che vale è la traduzione, non la chiamata**: `{"processate":0,"errori":1}` non dice se rilanciare o fermarsi. La tabella di decisione vive in `interpreta()` (`scripts/banco/motore.js`), pura e provata da `npm run test:banco` — inclusa la precedenza che conta: **un fallimento non viene coperto da un successo nello stesso giro**.
+- **Sola lettura, tranne `azzera-tentativi`**, che sta in un file suo, mostra la riga e chiede conferma. Se servirà un secondo comando che scrive, va lì accanto, non dentro `percorso.js`.
+- **Nessun segreto nel repository**: tutto da `.banco.local.json` (ignorato da git, si parte da `.banco.local.json.esempio`). Ogni comando chiede solo le chiavi che gli servono, e quando ne manca una dice **cosa** è e **dove** si prende, invece di fallire su `undefined`.
+- `MAX_TENTATIVI_REVISIONE` non è duplicato nel banco: si legge dal codice del cron, e se la costante cambiasse nome il banco tace sul numero invece di riportarne uno vecchio.
+- **Fuori di proposito**: qualunque cosa giochi un workshop o giudichi una revisione. È il secondo pezzo, e ha dentro una decisione da prendere prima — un robot che gioca scrive righe vere in tabelle vere, e va deciso come lo si tiene fuori dalle misure (pesi per area, caso D, `mai_arrivati_allo_scarto`) prima di scriverne una.

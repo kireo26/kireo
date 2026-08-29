@@ -1,0 +1,12 @@
+{
+  "_leggimi": "Copia questo file in .banco.local.json e riempi i valori. Il file vero è ignorato da git: i segreti che ci metti non finiscono in un commit. Ogni comando del banco chiede solo le chiavi che gli servono, quindi puoi cominciare compilandone due e aggiungere le altre quando ti servono.",
+
+  "sitoUrl": "https://www.kireo.it",
+  "cronSecret": "→ Vercel → progetto kireo → Settings → Environment Variables → CRON_SECRET (se non è rileggibile: npm run banco aiuto-segreto)",
+
+  "supabaseUrl": "→ Supabase → Project Settings → Data API → Project URL",
+  "supabaseServiceRoleKey": "→ Supabase → Project Settings → API keys → service_role (NON la anon)",
+
+  "vercelToken": "→ Vercel → Account Settings → Tokens → Create (scope: il team che possiede kireo)",
+  "vercelProjectId": "→ Vercel → progetto kireo → Settings → General → Project ID (prj_...)"
+}
