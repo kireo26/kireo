@@ -27,6 +27,7 @@ const { percorso } = require("./percorso");
 const { log, deploy } = require("./vercel");
 const { azzeraTentativi } = require("./azzera");
 const { robot } = require("./robot");
+const { iscrizioni } = require("./iscrizioni");
 const { PERCORSO } = require("./config");
 
 const AIUTO = `
@@ -52,6 +53,12 @@ BANCO DI PROVA — i gesti manuali, fatti dal terminale
   npm run banco deploy
       Aspetta che il deploy di produzione sia READY, invece di ricaricare
       una pagina. Esce da solo quando è pronto o se fallisce.
+
+  npm run banco iscrizioni
+      Chi sta facendo cosa nei workshop: ruolo per ruolo, quante iscrizioni
+      in corso, finite e lasciate. Nessuno è in coda — un ruolo lo possono
+      fare quanti vogliono — quindi è un'informazione, non una scarsità.
+      Segnala le iscrizioni che dicono «in corso» su un progetto già chiuso.
 
   npm run banco robot [filtro] [--vai]
       IL SECONDO PEZZO: gioca i workshop come uno studente — iscrizione,
@@ -131,6 +138,8 @@ async function main() {
     }
     case "deploy":
       return deploy(true);
+    case "iscrizioni":
+      return iscrizioni();
     case "robot": {
       const filtro = resto.find((a) => !a.startsWith("--"));
       return robot(filtro, { vai: resto.includes("--vai") });

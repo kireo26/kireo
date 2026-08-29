@@ -130,24 +130,43 @@ function ThreadPeer({ workshopId, peer, onChiudi }: { workshopId: string; peer: 
   );
 }
 
-export default function NetworkPeers({ workshopId, peers }: { workshopId: string; peers: Peer[] }) {
+// Dal 2026-08-30 un ruolo lo possono fare più studenti insieme, quindi qui il
+// ruolo di ognuno va DETTO: prima era implicito (cinque persone, cinque ruoli
+// diversi), adesso non lo è più. E chi sta facendo il TUO stesso ruolo va
+// segnalato per primo — è la conversazione più utile che questa chat possa
+// ospitare, e prima non poteva esistere.
+export default function NetworkPeers({ workshopId, peers, mioRuoloSlug }: { workshopId: string; peers: Peer[]; mioRuoloSlug: string }) {
   const [aperto, setAperto] = useState<string | null>(null);
+  const stessoRuolo = peers.filter((p) => p.ruolo_slug === mioRuoloSlug).length;
+  const ordinati = [...peers].sort((a, b) => Number(b.ruolo_slug === mioRuoloSlug) - Number(a.ruolo_slug === mioRuoloSlug));
 
   return (
     <div className="rounded-2xl border border-white/5 bg-kireo-card p-6 sm:p-8">
       <h2 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">Chi altro sta lavorando al progetto</h2>
-      <p className="mt-1 text-sm text-kireo-muted">Confrontati con chi copre le altre aree — siete nella stessa squadra.</p>
+      <p className="mt-1 text-sm text-kireo-muted">
+        {stessoRuolo > 0
+          ? stessoRuolo === 1
+            ? "C'è anche chi sta facendo il tuo stesso ruolo: confrontarvi su come lo state affrontando è la conversazione più utile che potete fare."
+            : `Ci sono ${stessoRuolo} persone sul tuo stesso ruolo: confrontarvi su come lo state affrontando è la conversazione più utile che potete fare.`
+          : "Confrontati con chi sta lavorando alle altre aree dello stesso progetto."}
+      </p>
 
       <ul className="mt-5 space-y-2">
-        {peers.map((peer) => (
-          <li key={peer.student_id} className="rounded-xl border border-white/10 p-3">
+        {ordinati.map((peer) => (
+          <li
+            key={peer.student_id}
+            className={`rounded-xl border p-3 ${peer.ruolo_slug === mioRuoloSlug ? "border-kireo-orange/40 bg-kireo-orange/5" : "border-white/10"}`}
+          >
             <div className="flex items-center gap-3">
               <Iniziali nome={peer.nome} cognome={peer.cognome} />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-kireo-light">
                   {peer.nome} {peer.cognome}
                 </p>
-                <p className="text-xs text-kireo-muted">{peer.ruolo_titolo}</p>
+                <p className="text-xs text-kireo-muted">
+                  {peer.ruolo_titolo}
+                  {peer.ruolo_slug === mioRuoloSlug && <span className="text-kireo-orange"> · il tuo stesso ruolo</span>}
+                </p>
               </div>
               <button
                 type="button"

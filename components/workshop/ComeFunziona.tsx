@@ -3,7 +3,7 @@
 // online» dentro la pagina del ruolo: qui non si ripetono, così le due schede
 // non finiscono per dire la stessa cosa in due modi diversi.
 const PASSI = [
-  { titolo: "Scegli il tuo ruolo", testo: "coprirai una delle 5 aree del progetto. Un ruolo per persona." },
+  { titolo: "Scegli il tuo ruolo", testo: "coprirai una delle 5 aree del progetto. Se cambi idea puoi lasciarlo e prenderne un altro." },
   { titolo: "Conosci il cliente", testo: "ha vincoli precisi e non li molla. Prima di scrivere, chiedigli quello che ti serve." },
   { titolo: "Lavora a tappe", testo: "quattro consegne, una alla volta. Ogni tappa si costruisce su quella prima." },
   { titolo: "Fatti dire cosa non torna", testo: "a ogni tappa un tutor legge quello che hai scritto, e il cliente reagisce." },

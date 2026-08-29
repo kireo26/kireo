@@ -82,9 +82,13 @@ begin
   end if;
   raise notice '  ok  un autenticato senza profilo è bloccato (fail closed)';
 
-  raise notice '';
-  raise notice '  Tutte e quattro le proprietà reggono.';
 end $$;
+
+-- Il SQL Editor non mostra i `raise notice`: senza questa riga il successo si
+-- deduceva dall'assenza di un errore, che è il modo peggiore di sapere una
+-- cosa. Se una delle quattro proprietà fosse saltata, qui ci sarebbe un
+-- messaggio rosso invece di questa riga.
+select 'Quattro proprietà verificate: il flag si mette dalla via prescritta, e nessuno se lo mette da solo.' as esito;
 
 rollback;
 

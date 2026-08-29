@@ -1,7 +1,11 @@
 // Il robot che gioca un ruolo, dall'iscrizione al feedback finale.
 //
 // OGNI GESTO È QUELLO DEL PRODOTTO, non una scorciatoia equivalente:
-//   · iscrizione        → insert su workshop_iscrizioni, come IscrizioneRuolo;
+//   · iscrizione        → insert su workshop_iscrizioni, come IscrizioneRuolo,
+//                         dopo aver CHIESTO cosa c'è già invece di scoprire il
+//                         vincolo dall'errore;
+//   · lasciare un ruolo → ritira_iscrizione_workshop, la stessa funzione del
+//                         bottone «Lascia il workshop»;
 //   · apertura tappe    → GET della pagina /progetto, che è ciò che chiama
 //                         `inizializza_fasi_workshop` (il robot NON chiama la
 //                         funzione SQL: chiama la pagina che la chiama);
@@ -60,28 +64,63 @@ async function giocaRuolo({ sessione, workshopSlug, ruoloSlug, consegne, fasi, r
   const { data: ruolo } = await supabase.from("workshop_ruoli").select("id").eq("workshop_id", ws.id).eq("slug", ruoloSlug).maybeSingle();
   if (!ruolo) return { ...esito, fermato: { dove: "iscrizione", perche: `il ruolo «${ruoloSlug}» non esiste in questo workshop` } };
 
-  let { data: iscrizione } = await supabase
+  // SI CHIEDE PRIMA DI INSERIRE, non si scopre il vincolo dall'errore. È la
+  // regola della porta, e vale anche adesso che il vincolo è più largo di
+  // prima: l'unico rimasto è una sola iscrizione IN CORSO per studente e
+  // workshop (il ruolo non è più esclusivo dal 2026-08-30).
+  const { data: mie } = await supabase
     .from("workshop_iscrizioni")
-    .select("id")
+    .select("id, ruolo_id, stato")
     .eq("workshop_id", ws.id)
     .eq("student_id", utente.id)
-    .maybeSingle();
+    .order("created_at", { ascending: false });
 
-  if (!iscrizione) {
-    const { data: nuova, error } = await supabase
-      .from("workshop_iscrizioni")
-      .insert({ workshop_id: ws.id, ruolo_id: ruolo.id, student_id: utente.id })
-      .select("id")
-      .single();
-    if (error) {
-      // Il caso più probabile è l'indice unico: quel ruolo è già di qualcun
-      // altro. Non si forza — è il gate che fa il suo lavoro.
-      return { ...esito, fermato: { dove: "iscrizione", perche: error.message } };
-    }
-    iscrizione = nuova;
-    di("iscritto");
+  const righe = mie ?? [];
+  const inCorso = righe.find((r) => r.stato === "attivo");
+  let iscrizione = null;
+
+  if (inCorso && inCorso.ruolo_id === ruolo.id) {
+    iscrizione = inCorso;
+    di("già iscritto a questo ruolo (riprende da dove era)");
   } else {
-    di("già iscritto (riprende da dove era)");
+    if (inCorso) {
+      // Un altro ruolo di questo stesso workshop è ancora in corso: il robot
+      // gioca un ruolo alla volta con un account solo, quindi deve lasciarlo
+      // prima. Lo fa con il gesto del prodotto (la stessa funzione che chiama
+      // il bottone «Lascia il workshop»), e lo DICE: una transizione di stato
+      // fatta in silenzio è una cosa che poi nessuno sa spiegare.
+      const { error: erroreLascia } = await supabase.rpc("ritira_iscrizione_workshop", { p_iscrizione_id: inCorso.id });
+      if (erroreLascia) {
+        return { ...esito, fermato: { dove: "iscrizione", perche: `non è stato possibile lasciare il ruolo precedente: ${erroreLascia.message}` } };
+      }
+      di("lasciato il ruolo precedente di questo workshop (il suo lavoro resta)");
+    }
+
+    const lasciata = righe.find((r) => r.ruolo_id === ruolo.id && r.stato === "ritirato");
+    if (lasciata) {
+      const { error: erroreRiprendi } = await supabase.rpc("riprendi_iscrizione_workshop", { p_iscrizione_id: lasciata.id });
+      if (erroreRiprendi) {
+        return { ...esito, fermato: { dove: "iscrizione", perche: `riprendere il ruolo è stato rifiutato: ${erroreRiprendi.message}` } };
+      }
+      iscrizione = lasciata;
+      di("ripreso un ruolo lasciato in una passata precedente");
+    } else if (righe.some((r) => r.ruolo_id === ruolo.id && r.stato === "completato")) {
+      // Un ruolo già portato a termine non si rigioca: rifarlo sovrascriverebbe
+      // un percorso vero con uno di prova, e la misura conterebbe due volte gli
+      // stessi testi.
+      return { ...esito, fermato: { dove: "iscrizione", perche: "questo ruolo risulta già completato da questo account: niente da rigiocare" } };
+    } else {
+      const { data: nuova, error } = await supabase
+        .from("workshop_iscrizioni")
+        .insert({ workshop_id: ws.id, ruolo_id: ruolo.id, student_id: utente.id })
+        .select("id, ruolo_id, stato")
+        .single();
+      if (error) {
+        return { ...esito, fermato: { dove: "iscrizione", perche: error.message } };
+      }
+      iscrizione = nuova;
+      di("iscritto");
+    }
   }
   esito.iscrizioneId = iscrizione.id;
 

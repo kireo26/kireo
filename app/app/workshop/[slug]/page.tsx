@@ -8,6 +8,8 @@ import IscrizioneRuolo from "@/components/workshop/IscrizioneRuolo";
 import KitRuolo from "@/components/workshop/KitRuolo";
 import NetworkPeers from "@/components/workshop/NetworkPeers";
 import ComeFunziona from "@/components/workshop/ComeFunziona";
+import RitiroIscrizione from "@/components/workshop/RitiroIscrizione";
+import IscrizioneLasciata from "@/components/workshop/IscrizioneLasciata";
 
 export const metadata = { title: "Workshop — KIREO" };
 
@@ -24,14 +26,24 @@ export default async function WorkshopPage({ params }: { params: Promise<{ slug:
     .maybeSingle();
   if (!ws) notFound();
 
-  const { data: iscrizione } = await supabase
+  // Non più una riga sola per studente e workshop: chi lascia un ruolo e ne
+  // prende un altro ne ha diverse, di cui al massimo una attiva. Si guarda
+  // quella; se non c'è, l'ultima lasciata — per poterla riprendere.
+  const { data: iscrizioni } = await supabase
     .from("workshop_iscrizioni")
-    .select("id, ruolo_id, workshop_ruoli(id, slug, titolo, area_slug, descrizione)")
+    .select("id, ruolo_id, stato, created_at, workshop_ruoli(id, slug, titolo, area_slug, descrizione)")
     .eq("workshop_id", ws.id)
     .eq("student_id", contesto.userId)
-    .maybeSingle();
+    .order("created_at", { ascending: false });
 
-  const ruoloIscritto = iscrizione ? (Array.isArray(iscrizione.workshop_ruoli) ? iscrizione.workshop_ruoli[0] : iscrizione.workshop_ruoli) : null;
+  const righe = iscrizioni ?? [];
+  const iscrizione = righe.find((r) => r.stato === "attivo") ?? righe.find((r) => r.stato === "completato") ?? null;
+  const lasciata = iscrizione ? null : (righe.find((r) => r.stato === "ritirato") ?? null);
+
+  const ruoloDi = (r: (typeof righe)[number] | null) =>
+    r ? (Array.isArray(r.workshop_ruoli) ? r.workshop_ruoli[0] : r.workshop_ruoli) : null;
+  const ruoloIscritto = ruoloDi(iscrizione);
+  const ruoloLasciato = ruoloDi(lasciata);
 
   return (
     <div className="space-y-8">
@@ -46,7 +58,11 @@ export default async function WorkshopPage({ params }: { params: Promise<{ slug:
 
       {!iscrizione && (
         <>
-          <ComeFunziona />
+          {lasciata && ruoloLasciato ? (
+            <IscrizioneLasciata iscrizioneId={lasciata.id} ruoloTitolo={ruoloLasciato.titolo} />
+          ) : (
+            <ComeFunziona />
+          )}
           <SceltaRuolo workshopId={ws.id} studentId={contesto.userId} supabase={supabase} />
         </>
       )}
@@ -55,7 +71,9 @@ export default async function WorkshopPage({ params }: { params: Promise<{ slug:
         <>
           <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-white/5 bg-kireo-card p-6">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-kireo-muted">Il tuo ruolo</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-kireo-muted">
+                {iscrizione.stato === "completato" ? "Progetto chiuso" : "Il tuo ruolo"}
+              </p>
               <p className="mt-1 font-heading text-lg font-semibold text-kireo-light">{ruoloIscritto.titolo}</p>
               {ruoloIscritto.descrizione && <p className="mt-1 text-sm text-kireo-muted">{ruoloIscritto.descrizione}</p>}
             </div>
@@ -84,7 +102,12 @@ export default async function WorkshopPage({ params }: { params: Promise<{ slug:
 
           {WORKSHOP_KIT[ws.slug]?.[ruoloIscritto.slug] && <KitRuolo ruolo={ruoloIscritto.titolo} materiali={WORKSHOP_KIT[ws.slug][ruoloIscritto.slug]} />}
 
-          <Peers workshopId={ws.id} supabase={supabase} />
+          {/* peers_workshop richiede un'iscrizione attiva: chi ha chiuso il
+              progetto non è più un compagno di lavoro, e la funzione lo dice
+              alzando non_autorizzato. Non la si chiama nemmeno. */}
+          {iscrizione.stato === "attivo" && <Peers workshopId={ws.id} supabase={supabase} mioRuoloSlug={ruoloIscritto.slug} />}
+
+          {iscrizione.stato === "attivo" && <RitiroIscrizione iscrizioneId={iscrizione.id} ruoloTitolo={ruoloIscritto.titolo} />}
         </>
       )}
     </div>
@@ -100,22 +123,30 @@ async function SceltaRuolo({
   studentId: string;
   supabase: Awaited<ReturnType<typeof createClient>>;
 }) {
-  const [{ data: ruoli }, { data: occupati }] = await Promise.all([
-    supabase.from("workshop_ruoli").select("id, slug, titolo, area_slug, descrizione").eq("workshop_id", workshopId).order("ordine"),
-    supabase.rpc("ruoli_occupati_workshop", { p_workshop_id: workshopId }),
-  ]);
+  // Nessuna chiamata a `ruoli_occupati_workshop`: dal 2026-08-30 un ruolo già
+  // preso da qualcuno non è un impedimento, quindi non c'è niente da
+  // disabilitare qui.
+  const { data: ruoli } = await supabase
+    .from("workshop_ruoli")
+    .select("id, slug, titolo, area_slug, descrizione")
+    .eq("workshop_id", workshopId)
+    .order("ordine");
 
-  const ruoliOccupati: string[] = (occupati ?? []).map((riga: unknown) =>
-    typeof riga === "string" ? riga : (riga as { ruoli_occupati_workshop: string }).ruoli_occupati_workshop,
-  );
-
-  return <IscrizioneRuolo workshopId={workshopId} studentId={studentId} ruoli={ruoli ?? []} ruoliOccupati={ruoliOccupati} />;
+  return <IscrizioneRuolo workshopId={workshopId} studentId={studentId} ruoli={ruoli ?? []} />;
 }
 
-async function Peers({ workshopId, supabase }: { workshopId: string; supabase: Awaited<ReturnType<typeof createClient>> }) {
+async function Peers({
+  workshopId,
+  supabase,
+  mioRuoloSlug,
+}: {
+  workshopId: string;
+  supabase: Awaited<ReturnType<typeof createClient>>;
+  mioRuoloSlug: string;
+}) {
   const { data: peers } = await supabase.rpc("peers_workshop", { p_workshop_id: workshopId });
   if (!peers || peers.length === 0) return null;
-  return <NetworkPeers workshopId={workshopId} peers={peers} />;
+  return <NetworkPeers workshopId={workshopId} peers={peers} mioRuoloSlug={mioRuoloSlug} />;
 }
 
 // Qui c'era il punto di ingresso del CARICAMENTO FILE (motore v1): il blocco
