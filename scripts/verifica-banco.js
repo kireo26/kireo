@@ -124,16 +124,31 @@ ok(corrente && corrente.regge[1] === Infinity, "…e il suo regno arriva fino ad
 // Un READY promosso e poi sostituito ha servito: resta dentro.
 ok(f.consultare.some((d) => d.uid === "dpl_di_prima"), "un deploy READY sostituito da un altro resta consultabile: ha servito");
 
-// Il regno comincia quando il deploy è PRONTO, non quando è stato creato: fra
-// la creazione e la fine della build risponde ancora il precedente.
-const conReady = finestreDeploy(
-  [
-    { uid: "dpl_nuovo", readyState: "READY", createdAt: ora - min(50), ready: ora - min(46) },
-    { uid: "dpl_vecchio", readyState: "READY", createdAt: ora - min(200), ready: ora - min(196) },
-  ],
+// ── il buco della build: i due estremi si prendono larghi ─────────────────
+// Fra `createdAt` del successore e il suo `ready` passa un minuto o due in cui
+// a rispondere è ancora il PRECEDENTE. Prendendo l'inizio del regno da
+// `createdAt` e la fine dal `ready` del successore, i regni si sovrappongono
+// per la durata della build: una finestra che cade lì dentro consulta tutti e
+// due, invece di quello sbagliato al posto di quello giusto.
+console.log("");
+const nuovo = { uid: "dpl_nuovo", readyState: "READY", createdAt: ora - min(50), ready: ora - min(46) };
+const vecchio = { uid: "dpl_vecchio", readyState: "READY", createdAt: ora - min(200), ready: ora - min(196) };
+const nelBuco = finestreDeploy([nuovo, vecchio], ora - min(48)).consultare.map((d) => d.uid);
+ok(nelBuco.includes("dpl_vecchio"), "una finestra dentro il buco della build consulta il deploy che allora rispondeva");
+ok(nelBuco.includes("dpl_nuovo"), "…e anche quello nuovo: nel dubbio uno in più, mai uno in meno");
+const dopoIlReady = finestreDeploy([nuovo, vecchio], ora - min(40)).consultare.map((d) => d.uid);
+ok(dopoIlReady.length === 1 && dopoIlReady[0] === "dpl_nuovo", "…mentre fuori dal buco non si consulta nessuno di troppo");
+
+// IL LIMITE, provato perché resti dichiarato e non si trasformi in una
+// sicurezza che nessuno ha verificato: se il successore non espone `ready`, il
+// buco della sua build è invisibile e quei minuti risultano suoi. Non è
+// compensabile — il dato per farlo non c'è — ed è raro, perché passano solo i
+// READY e un READY ha quasi sempre `ready`.
+const senzaReady = finestreDeploy(
+  [{ uid: "dpl_nuovo", readyState: "READY", createdAt: ora - min(50) }, vecchio],
   ora - min(48),
-);
-ok(conReady.consultare.some((d) => d.uid === "dpl_vecchio"), "una finestra che comincia durante una build consulta anche il deploy che allora rispondeva");
+).consultare.map((d) => d.uid);
+ok(!senzaReady.includes("dpl_vecchio"), "senza `ready` sul successore il buco resta invisibile: limite noto, non sicurezza promessa");
 
 console.log("\n═══════════════════════════════════════════\n");
 if (falliti) { console.error(`✗ ${falliti} controlli falliti.\n`); process.exit(1); }
