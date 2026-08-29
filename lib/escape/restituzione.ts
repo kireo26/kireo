@@ -59,7 +59,7 @@ const NARRATIVA: Record<string, Narrativa> = {
       (topVoce ? ` Quando hai dovuto distribuire il budget, la fetta più grande è andata a «${topVoce}».` : ""),
     occasioni: [
       { quando: (c) => c.alloc !== undefined && !c.letti.has("M4"), testo: "Non hai aperto la perizia strutturale, e il tetto è arrivato quando il budget era già distribuito. Succede: nessuno può sapere tutto. Ma è un'informazione su di te — in questa missione hai preferito muoverti piuttosto che sapere prima." },
-      { quando: (c) => facciataTenuta(c, "facciata_pannelli") && c.letti.has("M6"), testo: "Hai proposto di rivestire la facciata anche se la perizia della Soprintendenza, che avevi letto, la dava per tutelata: la domanda sarebbe stata respinta. Sapevi che c'era un vincolo e hai deciso di provarci lo stesso." },
+      { quando: (c) => facciataTenuta(c, "facciata_pannelli") && c.letti.has("M6"), testo: "Hai proposto di rivestire la facciata anche se la perizia della Soprintendenza, che avevi letto, la dava per tutelata: la domanda sarebbe stata respinta. La perizia l'avevi letta, e hai proposto lo stesso." },
       { quando: (c) => facciataTenuta(c, "facciata_pannelli") && !c.letti.has("M6"), testo: "Hai proposto di coprire la facciata. La Soprintendenza l'avrebbe respinta perché la facciata è tutelata: stava in una perizia che non hai aperto." },
       { quando: (c) => c.alloc !== undefined && c.letti.has("M7") && speso(c, "fondo_gestione") === 0, testo: "Sapevi dei costi di gestione dal terzo anno — l'avevi letto — ma non hai lasciato nulla da parte per coprirli. È il tipo di dettaglio che decide se un progetto regge nel tempo." },
     ],

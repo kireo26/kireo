@@ -61,7 +61,11 @@ const APERTURA_BRAVURA =
 // appartiene ogni riga: è una questione di leggibilità, non di verità, e come
 // tale sta in lista — qui si toglie solo la contraddizione apparente, dicendo
 // da dove viene il resto.
-const ALTRE_FONTI = " Le aree che vedi in «Perché lo diciamo» vengono da altre cose che hai fatto — le priorità, i gettoni, lo scarto, la riflessione — non dalla proposta.";
+// Senza ELENCO, di proposito: l'apertura qui sopra nomina già lo scarto come
+// sorgente di bravura, e ripeterlo in due frasi consecutive con due funzioni
+// diverse fa inciampare. Questa frase non ha bisogno di enumerare per fare il
+// suo lavoro — dire perché altre aree compaiono in un altro blocco.
+const ALTRE_FONTI = " Le altre righe qui sotto vengono dal resto della missione, non dalla proposta.";
 
 function descrizioneNonMisurata(chiave: ChiaveDim, revisoreEsito: StatoRevisore, propostaValutata: boolean): NonMisurata {
   switch (chiave) {

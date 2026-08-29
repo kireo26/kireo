@@ -278,6 +278,16 @@ const LESSICO = {
   "accordo-di-genere": PATTERN_ACCORDO,
 };
 
+// UN'ECCEZIONE È L'ULTIMA RISORSA, NON LA PRIMA. Prima di aggiungere una voce
+// qui si prova a RISCRIVERE la frase: ogni esenzione è un buco permanente che
+// qualcuno dovrà mantenere, e la credibilità di questa lista sta nel restare
+// corta. Il caso che l'ha insegnato: la chiusa «Sapevi che c'era un vincolo e
+// hai deciso di provarci lo stesso» aveva una ragione valida per essere
+// esentata (scatta solo col documento letto, e la frase cita la prova) — ma
+// diventata «La perizia l'avevi letta, e hai proposto lo stesso» non serve
+// nessuna eccezione, ed è più corta e più dura. L'esenzione resta per i casi in
+// cui il testo DEVE dire quella cosa, non per quelli in cui è venuta così.
+//
 // Whitelist per STRINGA INTERA (mai per pattern), ognuna con la RAGIONE (non la
 // firma di chi l'ha approvata: fra sei mesi serve la ragione, non la firma). La
 // linea: «l'avevi letto» è possesso d'informazione, non comprensione, e cita la
@@ -296,8 +306,6 @@ const WHITELIST = new Map([
     "«da sola» è l'operatrice del turno, non lo studente: qui l'accordo è corretto"],
   ["Undici idee in tre settimane, tutte accolte con «bella idea» e nessuna scelta. Due erano ottime. Non serviva frenare nessuno: serviva che qualcuno decidesse.",
     "«ottime» giudica le idee del gruppo (opzioni che la missione definisce), non lo studente"],
-  ["Hai proposto di rivestire la facciata anche se la perizia della Soprintendenza, che avevi letto, la dava per tutelata: la domanda sarebbe stata respinta. Sapevi che c'era un vincolo e hai deciso di provarci lo stesso.",
-    "«sapevi» sostenuto da M6 letto — la cornice scatta solo in quel ramo, e la frase cita la prova: possesso d'informazione, non stato mentale"],
 ]);
 
 // Whitelist della sola famiglia accordo-di-genere: stesse regole (stringa intera,
