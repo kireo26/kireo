@@ -20,7 +20,8 @@
     "censimento": "node scripts/censimento-motore.js",
     "test:cifre": "node scripts/verifica-cifre-citabili.js",
     "test:cornici": "node scripts/verifica-cornici.js",
-    "test:consegna": "node scripts/verifica-consegna-tappa.js"
+    "test:consegna": "node scripts/verifica-consegna-tappa.js",
+    "test:prompt": "node scripts/verifica-prompt-revisori.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.112.5",

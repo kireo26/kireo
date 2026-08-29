@@ -55,6 +55,26 @@ export const PATTERN_ACCORDO: RegExp[] = [
   /\b(?:ti\s+)?(?:sei|eri|fossi|sarai|saresti)\s+(?:gi[àa]\s+|subito\s+|poi\s+|anche\s+|mai\s+)?[a-zàèéìòù]+(?:ato|ito|uto|sso|sto|tto|rso|eso|orto|erto|olto)\b/g,
   /\b(?:ti\s+)?(?:sei|eri|fossi|sarai|saresti)\s+(?:gi[àa]\s+|subito\s+|poi\s+|anche\s+|mai\s+)?[a-zàèéìòù]+(?:ata|ita|uta|ssa|sta|tta|rsa|esa|orta|erta|olta)\b/g,
   /\bda sol[oa]\b/g,
+  // Il RIPIEGO TIPOGRAFICO: un segno al posto della vocale finale — chiocciola,
+  // schwa, asterisco, x. Arrivato per un caso reale: la chiusura in carattere
+  // del cliente workshop è uscita «Questo me piace, ragazz@», e la guardia l'ha
+  // considerata pulita, perché tecnicamente invariante lo è. Ma la lingua del
+  // prodotto non è «una forma che vale per entrambi», è una frase che si legge
+  // — e nessuno legge una chiocciola. Il modello ci arriva quando gli si chiede
+  // di non accordare e lui SOSTITUISCE invece di RIFORMULARE.
+  // Richiede almeno due lettere prima del segno; l'esclusione guarda cosa viene
+  // DOPO, e solo se somiglia a un dominio — così «scrivi a mario@kireo.it» non
+  // viene catturato mentre «ragazz@.» a fine frase sì. (La prima stesura
+  // escludeva un punto qualsiasi dopo il segno, e con quello non catturava
+  // proprio il caso reale da cui è nata: verificato, non dedotto.)
+  //
+  // La «x» finale (todxs, Latinx) NON è in questa lista, ed è una scelta
+  // misurata: `[a-z]{2,}x` prende 233 stringhe vere del progetto — «flex» in
+  // ogni classe CSS, «lux» nei vincoli di conservazione della Missione 07 —
+  // e un tripwire con duecento eccezioni non è un tripwire. In italiano il
+  // ripiego è la chiocciola o lo schwa; se un giorno uscisse una «x» si
+  // aggiunge qui con l'ancoraggio giusto, non a tappeto.
+  /\b[a-zàèéìòù]{2,}[@əǝ](?![a-zA-Z0-9-]+\.[a-zA-Z]{2,})/gi,
 ];
 
 // ── 2. la regola nei prompt ────────────────────────────────────────────────
@@ -70,9 +90,17 @@ export const PATTERN_ACCORDO: RegExp[] = [
 // Le forme uscite nella misura stavano tutte lì, e tutte in secondarie o
 // riflessivi: da qui l'aggiunta esplicita «anche nelle frasi secondarie e
 // nelle domande».
+//
+// La riga sulle SOLE LETTERE DELL'ALFABETO è arrivata dopo, e da un caso reale:
+// «Questo me piace, ragazz@». Non è un accordo sbagliato, è un modello che ha
+// capito la regola e l'ha applicata SOSTITUENDO invece che RIFORMULANDO. Anche
+// qui la forma resta positiva: dice come si scrive una parola, non esibisce il
+// segno da evitare — mostrarglielo sarebbe insegnarglielo. E dice dove sta la
+// strada più corta, che nel caso osservato era togliere il vocativo: «Questo me
+// piace. Non mi prometti la luna» è più in carattere di qualunque appellativo.
 export const REGOLA_LINGUA_INVARIANTE = `
 
-LINGUA (vale per ogni frase che rivolgi allo studente): non sai se chi legge è una ragazza o un ragazzo, e non lo saprai mai. Racconta quello che ha fatto con verbi che al passato prossimo si coniugano con «avere» — «hai cercato», «hai parlato», «hai chiesto», «hai pensato», «hai messo», «hai lasciato fuori» — perché restano identici per chiunque. Se il verbo che ti viene si coniuga con «essere», oppure è riflessivo, sostituiscilo con uno che si coniuga con «avere»: vale anche dentro le frasi secondarie e le domande. Per il resto usa locuzioni che non cambiano desinenza («per conto tuo», «alle strette», «a tuo agio», «con calma»). Ogni frase deve poter essere letta da una ragazza e da un ragazzo senza cambiare una lettera.`;
+LINGUA (vale per ogni frase che rivolgi allo studente): non sai se chi legge è una ragazza o un ragazzo, e non lo saprai mai. Racconta quello che ha fatto con verbi che al passato prossimo si coniugano con «avere» — «hai cercato», «hai parlato», «hai chiesto», «hai pensato», «hai messo», «hai lasciato fuori» — perché restano identici per chiunque. Se il verbo che ti viene si coniuga con «essere», oppure è riflessivo, sostituiscilo con uno che si coniuga con «avere»: vale anche dentro le frasi secondarie e le domande. Per il resto usa locuzioni che non cambiano desinenza («per conto tuo», «alle strette», «a tuo agio», «con calma»). Scrivi ogni parola con le sole lettere dell'alfabeto: quando una parola ti costringerebbe a scegliere un genere, cambia la parola — e spesso la strada più corta è toglierla, perché un appellativo o un aggettivo riferito a chi legge quasi sempre si può semplicemente non mettere. Ogni frase deve poter essere letta da una ragazza e da un ragazzo senza cambiare una lettera.`;
 
 // ── 3. la scansione ────────────────────────────────────────────────────────
 // Tutte le occorrenze, non solo la prima: si contano i casi, non i testi. La
