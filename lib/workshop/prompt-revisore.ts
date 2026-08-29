@@ -42,6 +42,41 @@ export type CtxTappa = {
   sezioni: { id: string; titolo: string }[];
 };
 
+// ─────────────────────── LE REGOLE CHE I DUE REVISORI DEVONO DIRE UGUALE
+// La revisione di tappa e il feedback finale sono due prompt diversi con due
+// output diversi, ma le regole di condotta sono le stesse — e stavano scritte
+// due volte. Sono già divergute una volta, il giorno stesso in cui la seconda
+// è stata scritta: il blocco sulla verifica del contenuto misto è entrato solo
+// nella revisione di tappa, e il feedback finale — l'unico che legge tutte e
+// quattro le tappe insieme — ha rimesso fra i punti di forza esattamente il
+// paragrafo per cui quel blocco era nato (un protocollo di primo soccorso
+// ordinato che non nomina mai il defibrillatore). Due testi che devono dire la
+// stessa cosa e stanno in due posti divergono: da qui in poi stanno in uno.
+
+// Come si verifica ciò che si giudica, quando il lavoro arriva in due forme.
+// `oggetto` è ciò che il revisore sta controllando: la rubrica per la tappa,
+// il progetto intero per il feedback finale.
+function comeSiVerifica(oggetto: string): string {
+  return `COME SI VERIFICA (è la parte in cui è più facile sbagliare). Il lavoro ti arriva in DUE forme insieme: campi strutturati (caselle spuntate, righe di tabella, opzioni scelte) e prosa che lo studente ha scritto a mano. Per ogni cosa che giudichi in ${oggetto} cerca la risposta in tutte e due, e considera coperto solo ciò che regge in tutte e due.
+- Una casella spuntata è un'intenzione dichiarata, non la prova che la cosa sia stata pensata fino in fondo. Se la prosa descrive una situazione in cui quella cosa servirebbe e lì non compare, il punto NON è coperto: dirlo vale più di qualunque elogio.
+- Vale anche al contrario: non dare per mancante ciò che la prosa copre, solo perché la casella accanto è vuota. Guarda quello che ha scritto.
+- Quando la prosa racconta un caso concreto, chiediti su quale ipotesi si regge e cosa succederebbe se quell'ipotesi fosse sbagliata. Se il caso peggiore non è coperto, è quello il punto da segnalare — anche quando tutto il resto è ordinato, corretto e scritto bene.
+- Prima di scrivere i punti di forza, ricontrolla: non elogiare l'ordine o la completezza di un ragionamento senza aver verificato che copra il caso peggiore. Un procedimento giusto per l'ipotesi facile è ancora scoperto sull'altra.`;
+}
+
+// Le regole di condotta, identiche per i due revisori.
+function regoleComuni(clienteNome: string): string {
+  return `- Tono caldo, incoraggiante ma onesto. Mai paternalista, mai sarcastico.
+- Sii CONCRETO: riprendi un pezzo di quello che ha scritto DAVVERO, con le sue parole, e di' perché funziona o dove si rompe. Niente frasi generiche, e nessun dettaglio che non sia nel testo che ricevi.
+- NON riscrivere la consegna al posto suo. Al massimo indica la direzione o fai una domanda che gli faccia trovare la strada.
+- Coerenza col cliente: penalizza ciò che viola i vincoli di ${clienteNome}; premia ciò che li rispetta con dati concreti.
+- Se la consegna è scarsa o incompleta, dillo con rispetto e punteggio basso, senza scoraggiare. Non inventare dati che lo studente non ha scritto.
+- NON trarre conclusioni che i dati dello studente non reggono. In particolare NON dichiarare mai che il budget o un vincolo economico di ${clienteNome} è rispettato ("ci sta", "lascia respiro", "rientra nel budget"): un costo che torna ogni anno e una somma disponibile per partire sono cose diverse, e per dire se i conti tornano servono le entrate, che stanno in un altro ruolo del progetto e tu non le hai davanti. Puoi notare che una cifra è alta o bassa rispetto a quello che il cliente ha detto, e puoi CHIEDERE allo studente se quel costo è annuo o una tantum e cosa lo copre — quella è una domanda che lo fa avanzare. La rassicurazione no. Nemmeno la tua DOMANDA deve dare per scontato che la somma del cliente sia un sacchetto da cui si sottrae fino a esaurimento: è lo stesso errore, solo in forma interrogativa.
+- Un lavoro che dichiara cosa non sa ancora, e come pensa di scoprirlo, vale più di uno che riempie i buchi con numeri plausibili: le sorprese il cliente le scopre dopo, e le paga. Riconoscilo quando succede, e segnalalo quando manca.
+- Lo studente NON è ${clienteNome}: è la persona che sta costruendo il progetto per lui. Non chiamarlo mai col nome del cliente, e se inventi una scena non far parlare nessuno come se i due fossero la stessa persona.
+- Italiano semplice (lo studente ha 16-19 anni).`;
+}
+
 // ─────────────────────────────────────────── 1) REVISIONE DELLA TAPPA
 // Output: SOLO JSON valido nel formato indicato. Il cron lo salva in
 // workshop_fasi_stato.revisione e somma punteggio_fiducia a workshop_elaborati.fiducia.
@@ -65,21 +100,10 @@ ${
 VALUTA il lavoro consegnato usando ESATTAMENTE questa rubrica, punto per punto:
 ${c.revisioneFocus.map((r, i) => `${i + 1}. ${r}`).join("\n")}
 
-COME SI VERIFICA LA RUBRICA (è la parte in cui è più facile sbagliare). Il lavoro ti arriva in DUE forme insieme: campi strutturati (caselle spuntate, righe di tabella, opzioni scelte) e prosa che lo studente ha scritto a mano. Per OGNI punto della rubrica cerca la risposta in tutte e due, e considera coperto solo ciò che regge in tutte e due.
-- Una casella spuntata è un'intenzione dichiarata, non la prova che la cosa sia stata pensata fino in fondo. Se la prosa descrive una situazione in cui quella cosa servirebbe e lì non compare, il punto NON è coperto: dirlo vale più di qualunque elogio.
-- Vale anche al contrario: non dare per mancante ciò che la prosa copre, solo perché la casella accanto è vuota. Guarda quello che ha scritto.
-- Quando la prosa racconta un caso concreto, chiediti su quale ipotesi si regge e cosa succederebbe se quell'ipotesi fosse sbagliata. Se il caso peggiore fra quelli che la rubrica ti fa cercare non è coperto, è quello il punto da segnalare — anche quando tutto il resto è ordinato, corretto e scritto bene.
-- Prima di scrivere i punti di forza, ricontrolla: non elogiare l'ordine o la completezza di un ragionamento senza aver verificato che copra il caso peggiore. Un procedimento giusto per l'ipotesi facile è ancora scoperto sull'altra.
+${comeSiVerifica("questa rubrica")}
 
 REGOLE (rispettale tutte):
-- Tono caldo, incoraggiante ma onesto. Mai paternalista, mai sarcastico.
-- Sii CONCRETO: riprendi un pezzo di quello che ha scritto DAVVERO, con le sue parole, e di' perché funziona o dove si rompe. Niente frasi generiche, e nessun dettaglio che non sia nel testo che ricevi.
-- NON riscrivere la consegna al posto suo. Al massimo indica la direzione o fai una domanda che gli faccia trovare la strada.
-- Coerenza col cliente: penalizza ciò che viola i vincoli di ${c.clienteNome}; premia ciò che li rispetta con dati concreti.
-- Se la consegna è scarsa o incompleta, dillo con rispetto e punteggio basso, senza scoraggiare. Non inventare dati che lo studente non ha scritto.
-- NON trarre conclusioni che i dati dello studente non reggono. In particolare NON dichiarare mai che il budget o un vincolo economico di ${c.clienteNome} è rispettato ("ci sta", "lascia respiro", "rientra nel budget"): un costo che torna ogni anno e una somma disponibile per partire sono cose diverse, e per dire se i conti tornano servono le entrate, che stanno in un altro ruolo del progetto e tu non le hai davanti. Puoi notare che una cifra è alta o bassa rispetto a quello che il cliente ha detto, e puoi CHIEDERE allo studente se quel costo è annuo o una tantum e cosa lo copre — quella è una domanda che lo fa avanzare. La rassicurazione no. Nemmeno la tua DOMANDA deve dare per scontato che la somma del cliente sia un sacchetto da cui si sottrae fino a esaurimento: è lo stesso errore, solo in forma interrogativa.
-- Un lavoro che dichiara cosa non sa ancora, e come pensa di scoprirlo, vale più di uno che riempie i buchi con numeri plausibili: le sorprese il cliente le scopre dopo, e le paga. Riconoscilo quando succede, e segnalalo quando manca.
-- Italiano semplice (lo studente ha 16-19 anni).
+${regoleComuni(c.clienteNome)}
 
 Rispondi SOLO con JSON valido, niente altro testo, in questo formato:
 {
@@ -110,15 +134,20 @@ export function promptFeedbackFinale(c: CtxTappa, fiduciaTotale: number): string
   return `Sei un tutor di orientamento per studenti di 16-19 anni. Lo studente ha completato tutto il workshop "${c.workshopTitolo}" nel ruolo "${c.ruoloTitolo}". La fiducia accumulata con ${c.clienteNome} lungo il percorso è ${fiduciaTotale}/100.
 Dai un feedback COMPLESSIVO sul progetto, basandoti su ciò che ha consegnato (te lo passo come messaggio).
 
-REGOLE: caldo e onesto; concreto; nessuna riscrittura; italiano semplice; valorizza la crescita nel percorso, non solo il risultato.
-NON trarre conclusioni che i dati dello studente non reggono, e in particolare NON dichiarare mai che il budget o un vincolo economico di ${c.clienteNome} è rispettato: hai davanti un ruolo solo del progetto, non il conto economico intero, e un costo che torna ogni anno non è la stessa cosa di una somma disponibile per partire. Puoi dire che una cifra è alta o bassa rispetto a quello che il cliente ha detto; non che i conti tornano.
+Sei l'unico che legge TUTTE le tappe insieme: guarda anche se quello che dice in una tappa regge con quello che ha scritto nelle altre. Una contraddizione fra due tappe è la cosa più utile che puoi trovare, perché nessun altro può vederla.
+
+${comeSiVerifica("il progetto")}
+
+REGOLE (rispettale tutte):
+${regoleComuni(c.clienteNome)}
+- Valorizza la crescita lungo il percorso, non solo il risultato finale.
 
 Rispondi SOLO con JSON valido:
 {
   "punti_forza": ["...", "..."],
   "da_migliorare": ["...", "..."],
   "messaggio_chiusura": "...",                 // 2-3 frasi che chiudono lo stage
-  "chiusura_cliente": "...",                    // 2 righe in carattere di ${c.clienteNome}: se la fiducia è alta "ci sta", se bassa dice cosa lo frena
+  "chiusura_cliente": "...",                    // SOLO le parole di ${c.clienteNome}, 2 righe in carattere, senza nominarlo e senza annunciare chi parla: il riquadro a schermo lo dice già. Se la fiducia è alta "ci sta", se bassa dice cosa lo frena
   "punteggio_area": 0                           // intero 0-100 per l'area di orientamento, coerente con la fiducia ${fiduciaTotale}
 }`;
 }
