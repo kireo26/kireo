@@ -43,9 +43,17 @@ const MAX_TENTATIVI_REVISIONE = 3;
 // che in italiano fanno ~525 token — il rapporto ~3,5 caratteri per token
 // torna con la stima indipendente fatta sulla risposta vera. Una revisione
 // verbosa, con gli stessi campi ma metà più lunghi, arriva intorno agli 800.
-// 1200 tiene quel caso con margine. Il FEEDBACK FINALE ha il tetto più alto
-// perché legge il progetto INTERO, tutte e quattro le tappe, ed è il testo che
-// chiude lo stage: stessa forma, item più ricchi, ~1000 token nel caso verboso.
+// 1200 tiene quel caso con margine. Il FEEDBACK FINALE legge il progetto
+// INTERO, tutte e quattro le tappe: stessa forma, item più ricchi, ~1000 token
+// nel caso verboso.
+//
+// SUL FEEDBACK FINALE IL MARGINE È DELIBERATAMENTE PIÙ LARGO DEL NECESSARIO
+// (2000, non i ~1400 che basterebbero). Non è imprecisione: è il testo che
+// chiude lo stage, si genera UNA volta sola per progetto, e se si tronca tre
+// giri di fila il progetto si chiude con feedback null — un giudizio finale
+// che non si recupera se non rigiocando quattro tappe. Il costo di un tetto
+// largo è zero quando non serve; il costo di uno stretto è quello, ed è già
+// successo una volta (tappa 4 di palestra/salute, 2026-08-30).
 //
 // Un tetto è un LIMITE, non un'allocazione: quello che non viene generato non
 // si paga. Alzarlo costa zero sulle risposte normali e, nel caso peggiore in
@@ -54,7 +62,7 @@ const MAX_TENTATIVI_REVISIONE = 3;
 // limit, sovraccarico) alzarlo non cambierebbe niente — per questo
 // `chiamaJson` ora distingue il motivo `troncata` e registra i token usati.
 const MAX_TOKEN_REVISIONE = 1200;
-const MAX_TOKEN_FEEDBACK_FINALE = 1600;
+const MAX_TOKEN_FEEDBACK_FINALE = 2000;
 
 // Esito di una generazione AI, gemello dei tre stati del revisore Escape.
 // 'forma_non_valida' = JSON tornato ma di forma inattesa: prima cadeva in un
