@@ -1,0 +1,269 @@
+{
+  "workshop": "scuola-musica-napoli",
+
+  "ruoli": {
+    "musica": {
+      "livello": "base",
+      "tappe": {
+        "offerta": {
+          "sezioni": {
+            "corsi": [
+              ["Chitarra", "8-14 anni", "Collettivo, gruppi da 4", "20 €/mese"],
+              ["Chitarra", "15 anni e oltre", "Individuale, 45 minuti", "45 €/mese"],
+              ["Percussioni e tamburi", "6-11 anni", "Collettivo, gruppi da 8", "15 €/mese"],
+              ["Canto", "12 anni e oltre", "Collettivo, gruppi da 6", "25 €/mese"],
+              ["Basso e batteria", "13 anni e oltre", "Individuale a rotazione", "45 €/mese"],
+              ["Laboratorio di band", "14-19 anni", "Collettivo, una band per volta", "10 €/mese"],
+              ["Musica d'insieme per adulti", "Adulti, anche principianti", "Collettivo", "30 €/mese"]
+            ]
+          },
+          "chat": [
+            "Ciro, quanti ragazzi del rione secondo te verrebbero se domani aprissimo?",
+            "Oltre alla chitarra, quali strumenti sai insegnare tu direttamente?",
+            "Quanto pagano oggi i ragazzi del quartiere per una lezione privata, se la fanno?"
+          ]
+        },
+        "palinsesto": {
+          "sezioni": {
+            "palinsesto": "La sera lo spazio non si spegne, ma non diventa nemmeno un locale: la differenza la fa chi decide cosa succede. Il giovedì è la serata degli allievi — le band del laboratorio suonano davanti a trenta persone, entrata libera, e chi viene sono i genitori, i fratelli, i compagni di scuola. Il sabato una volta al mese c'è il concerto vero, con un musicista invitato: si paga cinque euro, ci sono cinquanta posti, e quei soldi finiscono nelle borse di studio. Poi ci sono le residenze: due volte l'anno un gruppo che sta preparando un disco usa la sala prove per due settimane gratis, e in cambio fa una lezione aperta ai ragazzi e suona alla fine. La regola che tiene tutto in piedi è una sola e va scritta subito: non si vende da bere se non c'è musica dal vivo, e la musica non è il sottofondo di qualcos'altro. Il giorno in cui la gente viene per stare fuori e la musica diventa il rumore di fondo, questo posto è diventato un'altra cosa."
+          },
+          "chat": [
+            "Ciro, ci sono già gruppi del quartiere che cercano un posto per provare?",
+            "La sera il rione è vivo o dopo una certa ora si svuota?",
+            "Te la senti di stare qui anche tre sere a settimana?"
+          ]
+        },
+        "tariffe": {
+          "sezioni": {
+            "sostenibilita": "Le tariffe basse non si tengono facendo beneficenza: si tengono spostando il peso su chi può, e trovando soldi che non vengono dalle famiglie. Tre cose insieme. La prima: i corsi collettivi. Una lezione a quattro costa a noi come una individuale ma la pagano in quattro, e per un ragazzino che comincia il gruppo è anche didatticamente meglio. È per questo che i corsi dei più piccoli sono tutti collettivi e costano quindici o venti euro al mese. La seconda: chi può paga di più, senza che nessuno lo sappia. Gli adulti e le individuali stanno a quarantacinque euro, che è comunque sotto il prezzo di mercato, e quella differenza copre una parte delle quote basse. La terza: i soldi che non vengono dalle famiglie — i cinque euro dei concerti del sabato, il cinque per mille, e i bandi, che però non li metto nel conto delle spese fisse perché un bando non è uno stipendio: se arriva finanzia gli strumenti e i lavori, non le lezioni. Le borse di studio sono dieci l'anno, gratuite, e chi le prende non lo sa nessuno tranne me e te: la lista non si appende."
+          },
+          "chat": [
+            "Ciro, quante famiglie del rione secondo te non possono permettersi nemmeno venti euro al mese?",
+            "Su quanti allievi paganti pensi si possa arrivare il primo anno?",
+            "Ti va bene che qualcuno paghi il doppio di qualcun altro per la stessa cosa?"
+          ]
+        },
+        "pitch": {
+          "sezioni": {
+            "sintesi": "Ciro, la scuola è fatta così. Sette corsi, e i più piccoli fanno tutti lezione in gruppo: quindici o venti euro al mese, che è una cifra che una famiglia del rione può dire di sì. Gli adulti e le lezioni individuali stanno a quarantacinque, sotto il prezzo di mercato ma abbastanza da coprire una parte delle quote basse — chi può paga di più senza che nessuno lo sappia. Poi ci sono dieci borse di studio all'anno, gratuite, e la lista non si appende da nessuna parte. La sera lo spazio vive: il giovedì suonano le band degli allievi davanti ai genitori, un sabato al mese c'è un concerto vero a cinque euro e quei soldi vanno nelle borse, e due volte l'anno un gruppo usa la sala prove gratis in cambio di una lezione aperta ai ragazzi. La regola che tiene tutto insieme è una: non si vende da bere se non c'è musica dal vivo. Il giorno in cui la gente viene per stare fuori e la musica diventa il sottofondo, questo posto è diventato un bar con le chitarre appese. Sui bandi non ci conto per pagare le lezioni: quelli comprano strumenti e fanno lavori, non stipendi."
+          },
+          "chat": [
+            "Ultimo pezzo, Ciro. Dei sette corsi, ce n'è uno che secondo te non parte?",
+            "Le borse di studio: dieci ti sembrano poche o troppe?",
+            "Se dopo un anno venissero solo trenta allievi, il progetto regge o no?",
+            "C'è una cosa che vuoi assolutamente scritta nel documento?"
+          ]
+        }
+      }
+    },
+
+    "spazio": {
+      "livello": "base",
+      "tappe": {
+        "divisione": {
+          "sezioni": {
+            "divisione": "I 120 metri li divido così. Ingresso e spazio comune, 20 metri: è il pezzo che si vede dalla strada, con le sedie, la bacheca e il banco — serve che chi passa veda dentro e capisca che può entrare. Sala grande, 45 metri: è insieme lo spazio dei concerti e l'aula di musica d'insieme, con le sedie impilabili e un palco basso da venti centimetri, smontabile. Due aule piccole da 12 metri l'una per le lezioni individuali. Sala prove insonorizzata, 20 metri, che è quella che serve alle band e alle residenze. Restano 11 metri per bagno, ripostiglio degli strumenti e un angolo con la macchinetta del caffè. Le scelte che stanno dietro sono due. La prima: non faccio una sala concerti separata, perché in 120 metri sarebbe uno spazio che sta vuoto sei giorni su sette — la sala grande fa due lavori. La seconda: la sala prove è l'unica stanza davvero insonorizzata, e ci finiscono la batteria e gli amplificatori, così tutto il rumore serio sta in un posto solo invece che sparso."
+          },
+          "chat": [
+            "Ciro, il locale che forma ha? Una stanza sola grande o già diviso?",
+            "Ci sono finestre sulla strada o è cieco?",
+            "Sopra e di fianco chi c'è? Case abitate o altri negozi?"
+          ]
+        },
+        "acustica": {
+          "sezioni": {
+            "acustica": "Insonorizzare tutto costerebbe più dell'intero budget, quindi non si insonorizza tutto: si insonorizza dove sta il rumore che dà fastidio. La batteria e gli amplificatori vanno solo nella sala prove, e quella la tratto sul serio: doppia parete in cartongesso con lana di roccia in mezzo sulle due pareti che confinano con le case, controsoffitto sospeso, porta acustica vera — che è la voce più cara e su cui non si risparmia, perché una porta normale annulla tutto il resto — e pavimento galleggiante sotto la batteria, che si può fare anche con un pannello su tappetini di gomma. Le due aule piccole invece non hanno bisogno di isolamento: una chitarra o un canto non passano il muro, e lì basta il trattamento interno, pannelli fonoassorbenti fatti con pannelli di lana pressata e moquette sulla parete, che costano poco e servono a non sentire l'eco. La cosa che evita i problemi coi vicini però non è tecnica: sono gli orari scritti sulla porta e rispettati, e l'essere andato a parlare con chi sta sopra **prima** di cominciare i lavori, non dopo la prima lamentela."
+          },
+          "chat": [
+            "Ciro, hai già parlato con qualcuno dei vicini di casa?",
+            "La batteria è indispensabile o si può cominciare senza?",
+            "Fino a che ora pensi di tenere aperto la sera?"
+          ]
+        },
+        "identita": {
+          "sezioni": {
+            "identita": "Lo spazio deve sembrare del rione, non atterrato dal centro. Quindi: la vetrina resta trasparente e non si copre, perché un posto che non si vede dentro sembra un posto in cui non si entra. Dentro, le pareti restano quelle che sono — intonaco, muro a vista dove c'è — e non si fa il locale industriale con le lampadine a vista, che a Napoli ormai si riconosce a un chilometro e dice «questo non è per voi». Sulla parete grande della sala si mettono le foto degli allievi che suonano, stampate su carta normale e attaccate con lo scotch di carta, e cambiate ogni mese: costa niente e chiunque entri vede facce che conosce. L'insegna è scritta a mano, in italiano, con il nome dello spazio e sotto «scuola di musica» — niente inglese e niente sigle. E la porta sta aperta il pomeriggio, non solo socchiusa."
+          },
+          "chat": [
+            "Ciro, come si chiama lo spazio? Hai già un nome?",
+            "Vuoi che dalla strada si veda dentro o preferisci più riservatezza?",
+            "C'è un muro che si vede appena si entra dove mettere qualcosa?"
+          ]
+        },
+        "pitch": {
+          "sezioni": {
+            "sintesi": "Ciro, i 120 metri sono divisi così: 20 di ingresso che si vede dalla strada, una sala grande da 45 che fa sia i concerti sia la musica d'insieme, due aule piccole da 12 per le lezioni individuali, una sala prove insonorizzata da 20, e il resto fra bagno, ripostiglio e caffè. Non faccio una sala concerti separata, perché in centoventi metri starebbe vuota sei giorni su sette: la sala grande fa due lavori con le sedie impilabili e un palco da venti centimetri che si smonta. L'insonorizzazione seria la faccio in un posto solo, la sala prove, dove finiscono la batteria e gli amplificatori: doppia parete con lana di roccia sui due muri che danno sulle case, controsoffitto, e la porta acustica, che è la voce cara e su cui non si risparmia perché una porta normale butta via tutto il resto. Nelle aule piccole basta qualche pannello: una chitarra il muro non lo passa. E la cosa che evita davvero i problemi coi vicini non è tecnica: è andare a parlare con chi sta sopra prima dei lavori, non dopo la prima lamentela. Sull'aspetto: vetrina trasparente, muri come sono, le foto degli allievi attaccate col nastro di carta, e l'insegna scritta a mano in italiano."
+          },
+          "chat": [
+            "Siamo all'ultimo, Ciro. Della divisione degli spazi, cosa ti sembra sbagliato?",
+            "Se dovessi tagliare una cosa per risparmiare, taglieresti la sala prove?",
+            "La porta acustica è la spesa più grossa: te la senti?",
+            "C'è qualcosa che vuoi assolutamente vedere scritto?"
+          ]
+        }
+      }
+    },
+
+    "didattica": {
+      "livello": "base",
+      "tappe": {
+        "metodo": {
+          "sezioni": {
+            "metodo": "Il metodo cambia con l'età, ma parte sempre dalla stessa cosa: si suona dal primo giorno. Con i bambini dai sei agli undici si comincia dal ritmo e dal corpo — battere le mani, i tamburi, cantare insieme — e lo strumento arriva dopo qualche settimana, quando il tempo lo sentono. Non si legge la musica per mesi prima di toccare una chitarra: quello è il modo migliore per farli smettere. Con i ragazzi dai dodici in su si parte da un pezzo che conoscono e che vogliono suonare, e da lì si va indietro verso la tecnica che serve per suonarlo: la scala si studia perché serve a quel pezzo, non perché è la lezione tre. Con gli adulti il problema è quasi sempre la vergogna, non la difficoltà: sono convinti di essere negati e di essere in ritardo. Con loro si lavora in gruppo, mai da soli davanti a un maestro, e il primo obiettivo non è suonare bene ma suonare insieme a qualcun altro senza fermarsi. Per chi non ha mai suonato, di qualunque età, la prima lezione è sempre di gruppo e finisce con una cosa che suona: tre accordi, quattro persone, e una canzone riconoscibile."
+          },
+          "chat": [
+            "Ciro, tu come hai imparato? Da un maestro o da solo?",
+            "Quanti dei ragazzi del rione hanno già provato a suonare qualcosa?",
+            "Cosa ti fa più paura, che si annoino o che si scoraggino?"
+          ]
+        },
+        "inclusione": {
+          "sezioni": {
+            "inclusione": "Il primo ostacolo non sono i soldi, è la porta: un ragazzino che non ha mai suonato non entra da solo in una scuola di musica, perché pensa che sia un posto dove tutti sanno già fare. Quindi non aspetto che venga: vado io. Il primo mese porto una chitarra e un tamburo dove i ragazzi stanno già — davanti alla scuola media all'uscita, all'oratorio, al campetto — e faccio suonare chi passa per dieci minuti, senza parlare di iscrizioni. Chi si diverte poi viene, e viene con un altro. Il secondo ostacolo è lo strumento. Tengo dieci chitarre e due bassi della scuola in comodato gratuito: si firma un foglio, si porta a casa, e se si rompe si aggiusta qui senza far pagare niente — perché una famiglia che ha paura di dover ripagare uno strumento dice di no prima ancora di provare. Le percussioni restano in sala, così quel corso non ha nessun costo di strumento. Il terzo ostacolo è restare: dopo tre mesi molti mollano, e non perché non gli piace, ma perché non vedono che stanno migliorando. Per quello ogni ragazzo entra in una band entro sei mesi, anche se suona male: chi ha un concerto fra due mesi non molla."
+          },
+          "chat": [
+            "Ciro, quanti strumenti hai già tu che si potrebbero prestare?",
+            "C'è una scuola media o un oratorio qui vicino dove i ragazzi stanno?",
+            "Secondo te dopo quanto tempo uno mollerebbe?"
+          ]
+        },
+        "percorsi": {
+          "sezioni": {
+            "percorsi": [
+              ["Primo anno — si comincia", "Il tempo, tre o quattro accordi, la posizione delle mani, suonare insieme senza fermarsi quando si sbaglia", "Il saggio di giugno davanti alle famiglie: un pezzo solo, suonato in gruppo"],
+              ["Secondo anno — si sta in una band", "Ascoltare gli altri mentre suoni, entrare e uscire al momento giusto, imparare un pezzo intero da soli a casa", "Suonare il giovedì sera davanti a trenta persone, con la propria band"],
+              ["Terzo anno — si costruisce qualcosa di proprio", "Scrivere un pezzo, arrangiarlo per gli strumenti che ci sono, registrarlo con quello che abbiamo", "Aprire il concerto del sabato per il musicista invitato"],
+              ["Chi vuole andare oltre", "Preparazione seria dello strumento, teoria, lettura, e come si fa un provino", "Ammissione a un conservatorio o a una scuola superiore di musica, per chi la vuole"]
+            ]
+          },
+          "chat": [
+            "Ciro, ti immagini che qualcuno da qui possa arrivare al conservatorio?",
+            "Il saggio di fine anno lo faresti qui dentro o fuori nel rione?",
+            "Quanti anni pensi che resti mediamente un allievo?"
+          ]
+        },
+        "pitch": {
+          "sezioni": {
+            "sintesi": "Ciro, la scuola accoglie e fa crescere, e sono due cose diverse. Per accogliere: si suona dal primo giorno, sempre. Ai bambini non si fa leggere la musica per mesi prima di toccare uno strumento, ai ragazzi si parte dal pezzo che vogliono suonare e si torna indietro verso la tecnica, agli adulti si lavora in gruppo perché il loro problema è la vergogna e non la difficoltà. E non aspetto che i ragazzi del rione entrino da soli, perché non lo faranno: il primo mese porto una chitarra e un tamburo dove stanno già — davanti alla media, all'oratorio, al campetto — e faccio suonare chi passa dieci minuti, senza parlare di iscrizioni. Dieci chitarre e due bassi restano della scuola, in prestito gratuito, e se si rompono si aggiustano qui: una famiglia che teme di dover ripagare uno strumento dice di no prima ancora di provare. Per far crescere: quattro livelli, e ognuno finisce con una cosa che si vede — il saggio di giugno, la propria band il giovedì sera, un pezzo scritto e registrato, e per chi lo vuole la preparazione per entrare in conservatorio. Ogni ragazzo entra in una band entro sei mesi anche se suona male, perché chi ha un concerto fra due mesi non molla."
+          },
+          "chat": [
+            "Ultimo pezzo, Ciro. Dell'andare a suonare per strada il primo mese, che ne pensi?",
+            "Prestare dieci chitarre e non far pagare le riparazioni: ti sembra sostenibile?",
+            "Preferisci che il traguardo sia il conservatorio o la band del quartiere?",
+            "C'è una cosa che vuoi assolutamente nel documento finale?"
+          ]
+        }
+      }
+    },
+
+    "bandi": {
+      "livello": "base",
+      "tappe": {
+        "forma": {
+          "sezioni": {
+            "forma": {
+              "opzione": "APS — Associazione di Promozione Sociale",
+              "motivazione": "È la forma pensata per attività culturali e sociali aperte al territorio, ed è quella che apre più bandi senza far perdere a Ciro il controllo."
+            },
+            "motivazione": "L'APS è un ente del terzo settore, e questo conta soprattutto per due ragioni pratiche. La prima: moltissimi bandi — comunali, regionali, delle fondazioni bancarie — sono riservati agli enti iscritti al registro unico del terzo settore, e un'associazione culturale semplice, non iscritta, da quei bandi resta fuori. La seconda: l'APS può svolgere attività verso i propri soci e anche verso terzi, cosa che serve quando si fanno concerti aperti al pubblico e non solo lezioni ai tesserati. I contro vanno detti. Il primo è la governance: in un'associazione decide l'assemblea dei soci, non il presidente, e questo è esattamente il punto su cui Ciro ha detto che non vuole nessuno che decida al posto suo. Si può gestire — un consiglio piccolo, di persone scelte da lui, e uno statuto scritto bene — ma la forma è per natura democratica, e su questo non voglio raccontargli una favola. Il secondo è che c'è più burocrazia di un'associazione semplice: registro, bilanci, adempimenti annuali, e un commercialista che li segua. L'impresa sociale darebbe più controllo gestionale ma costa di più da costituire e ha vincoli sulla distribuzione degli utili che qui non servono a niente, visto che utili non ce ne saranno."
+          },
+          "chat": [
+            "Ciro, quante persone ci sono con te in questo progetto, o sei solo?",
+            "Ti dà fastidio l'idea di un'assemblea che vota su cosa si fa?",
+            "Hai già un commercialista o qualcuno che ti segue le carte?"
+          ]
+        },
+        "bandi": {
+          "sezioni": {
+            "bandi": [
+              ["Bandi delle fondazioni bancarie per la povertà educativa e la musica giovanile", "Tipicamente da 20.000 a 80.000 € per progetti pluriennali", "Escono di solito una volta l'anno, con finestre di poche settimane", "Ente del terzo settore, spesso in partenariato con una scuola o un ente pubblico, cofinanziamento del 20% circa. Importi e requisiti cambiano ogni edizione: vanno letti sul bando dell'anno, non su quello vecchio"],
+              ["Contributi comunali e municipali per attività culturali di quartiere", "Cifre più piccole, dai 3.000 ai 15.000 €", "Bandi annuali del Comune, con scadenze pubblicate all'albo", "Sede nel territorio, attività aperta ai residenti, rendicontazione delle spese. Più facili da ottenere e più veloci, utili per le spese correnti"],
+              ["Fondi regionali per la rigenerazione culturale e gli spazi", "Percentuale sulla spesa per lavori e attrezzature", "A sportello o a finestre, secondo la programmazione regionale", "Serve un immobile con un titolo di disponibilità lungo, e una rendicontazione seria. Copre i lavori e gli strumenti, non gli stipendi"],
+              ["Cinque per mille e donazioni", "Variabile, dai poche centinaia ai qualche migliaio di euro l'anno", "Iscrizione una volta, poi automatico ogni anno", "Iscrizione al registro del terzo settore. Non è un bando ma è l'unica entrata che si ripete e che non si deve rendicontare a nessuno"]
+            ]
+          },
+          "chat": [
+            "Ciro, l'immobile dei 120 metri è tuo, in affitto o in comodato?",
+            "Hai già rapporti con qualche scuola del quartiere che possa fare da partner?",
+            "Quanto puoi mettere di tuo come cofinanziamento se un bando lo chiede?"
+          ]
+        },
+        "siae": {
+          "sezioni": {
+            "siae": "Per fare concerti in regola servono tre cose diverse, che spesso si confondono. La prima è il permesso per l'esecuzione delle opere: se si suona musica di altri, anche dal vivo e anche gratis, va pagato il compenso agli autori tramite SIAE o l'altro organismo a cui l'autore è iscritto, e il modulo con l'elenco dei pezzi eseguiti va compilato e consegnato. Per un concerto piccolo a ingresso libero l'importo è di poche decine di euro; con il biglietto sale in proporzione all'incasso. La seconda è il certificato di agibilità del locale per il pubblico spettacolo, che dipende dalla capienza: sotto una certa soglia di persone le procedure sono semplificate, sopra serve la commissione di vigilanza, e la soglia cambia secondo la norma e il tipo di locale — con cinquanta posti si sta nella fascia semplice, ma è la prima cosa da verificare al Comune prima di fissare quanti posti mettere. La terza riguarda i musicisti: chi suona va pagato in modo regolare, e per le prestazioni occasionali dello spettacolo ci sono adempimenti previdenziali specifici che il commercialista deve seguire. Sul budget incide poco se i concerti sono uno al mese e piccoli: qualche decina di euro a serata più il compenso ai musicisti. Diventa una voce vera se si passa a fare spettacolo tutte le settimane, e a quel punto cambia anche la natura del posto."
+          },
+          "chat": [
+            "Ciro, quante persone al massimo pensi di far entrare per un concerto?",
+            "I musicisti invitati li pagheresti o verrebbero per la cosa in sé?",
+            "Vuoi fare biglietti veri o offerta libera?"
+          ]
+        },
+        "pitch": {
+          "sezioni": {
+            "sintesi": "Ciro, le regole e i soldi stanno così. Ti consiglio l'APS, che è la forma pensata per le attività culturali aperte al quartiere, e soprattutto è quella che ti apre i bandi: moltissimi sono riservati agli enti iscritti al registro del terzo settore, e un'associazione culturale semplice da lì resta fuori. Ma ti devo dire la cosa che non ti piacerà: in un'associazione decide l'assemblea dei soci, non il presidente. Si può gestire con un consiglio piccolo di persone scelte da te e uno statuto scritto bene, ma la forma è democratica per natura, e non voglio raccontartela diversa. Sui bandi: le fondazioni bancarie sui progetti educativi e musicali sono la fonte più grossa, i contributi del Comune sono più piccoli ma più veloci e servono per le spese di ogni giorno, i fondi regionali coprono lavori e strumenti ma non gli stipendi, e il cinque per mille è poco ma torna ogni anno e non lo devi rendicontare a nessuno. Importi e scadenze non te li scrivo come se fossero certi, perché cambiano a ogni edizione e vanno letti sul bando dell'anno. Sui concerti: si paga il diritto d'autore anche quando l'ingresso è libero, serve controllare l'agibilità in base a quanti posti metti — e con cinquanta si sta nella fascia semplice, ma va verificato al Comune prima di decidere — e i musicisti vanno pagati in regola. Con un concerto al mese incide poche decine di euro a serata."
+          },
+          "chat": [
+            "Ultimo passo, Ciro. La questione dell'assemblea che decide ti blocca?",
+            "Se nel primo anno non arrivasse nessun bando, il progetto parte lo stesso?",
+            "Preferisci fare meno concerti ma in regola, o tanti e alla buona?",
+            "C'è qualcosa che vuoi assolutamente vedere scritto nel documento?"
+          ]
+        }
+      }
+    },
+
+    "comunicazione": {
+      "livello": "base",
+      "tappe": {
+        "radicarsi": {
+          "sezioni": {
+            "radicarsi": "La Sanità sente come suo quello che nasce da dentro, e riconosce a distanza quello che ci viene calato sopra. Quindi il radicamento non è una campagna, sono tre gesti fatti prima di aprire. Il primo: si va a parlare, uno per uno, con chi in quel rione ha già un pezzo di fiducia — il parroco della basilica, chi gestisce le cooperative che già fanno cose coi ragazzi, i commercianti della strada. Non per chiedere niente: per dire cosa si sta facendo e chiedere cosa ne pensano. Il secondo: i primi allievi si cercano lì, non su internet. Dieci ragazzi trovati passando dai posti dove stanno valgono più di cento contatti presi con un annuncio, perché ognuno di quei dieci porta la sua famiglia e i suoi amici. Il terzo, ed è quello che conta di più: chi lavora nella scuola deve essere anche di lì. Se i maestri vengono tutti da fuori e vanno via alle otto di sera, il posto resta un servizio; se almeno una parte di chi insegna è cresciuta al rione, il posto diventa una cosa del rione. Ciro è di qui, e questa è già metà del lavoro fatto: è il suo nome che apre le porte, non un volantino."
+          },
+          "chat": [
+            "Ciro, quante persone del rione ti conoscono già come musicista?",
+            "Chi sono, secondo te, le persone che qui contano davvero?",
+            "C'è qualcuno che potrebbe vederci come una minaccia?"
+          ]
+        },
+        "alleati": {
+          "sezioni": {
+            "alleati": [
+              ["La basilica e le realtà parrocchiali", "Hanno gli spazi, i ragazzi e la fiducia delle famiglie: possono segnalare gli allievi, ospitare un saggio, e dire una parola che vale più di un manifesto"],
+              ["Le cooperative sociali che già lavorano coi minori del rione", "Sanno chi sono i ragazzi che rischiano di perdersi, e sono i partner giusti per i bandi sulla povertà educativa"],
+              ["Le scuole medie del quartiere", "Ci sono i ragazzi dell'età giusta tutti insieme: un'ora di laboratorio in classe vale più di dieci volantini"],
+              ["I commercianti della strada", "Vedono passare tutti e parlano con tutti: se hanno capito cos'è il posto, lo spiegano al posto nostro"],
+              ["I musicisti napoletani già affermati", "Vengono a suonare al sabato per poco o per niente, portano pubblico da fuori, e per i ragazzi vedere uno vero da vicino vale un anno di lezioni"],
+              ["Le guide e le realtà che portano visitatori alla Sanità", "Possono far conoscere lo spazio a chi viene da fuori, purché resti chiaro che è una scuola e non un'attrazione"]
+            ]
+          },
+          "chat": [
+            "Ciro, con le cooperative del rione hai già rapporti?",
+            "Conosci qualcuno nelle scuole medie qui intorno?",
+            "Ci sono musicisti napoletani che verrebbero a suonare da te per amicizia?"
+          ]
+        },
+        "far_conoscere": {
+          "sezioni": {
+            "piano": "C'è una tensione da governare, e conviene dirsela: più il posto diventa noto fuori, più rischia di diventare una tappa per chi viene a farsi la foto alla Sanità, e meno resta dei ragazzi che ci abitano. Non si risolve rinunciando a farsi conoscere — servono pubblico e bandi — ma tenendo separati i due canali. Verso il rione: niente social e niente stampa, ma le persone. I laboratori nelle scuole medie, il passaparola dei primi allievi, e il giovedì sera delle band, che è aperto e gratuito e a cui vengono famiglie e amici. Quello è il canale che porta gli allievi. Verso fuori: i concerti del sabato, i social e i giornali, che portano pubblico pagante e visibilità per i bandi. Due regole tengono la cosa in equilibrio. La prima: gli allievi non si mettono mai nei materiali per l'esterno come storie da raccontare — niente ragazzino della Sanità salvato dalla musica, che è la cosa che i giornali chiedono sempre e che umilia le persone di cui parla. La seconda: il giovedì resta gratuito e senza fotografi. Se un giorno il sabato riempie e il giovedì si svuota, vuol dire che stiamo diventando un locale, e quello è il momento di preoccuparsi."
+          },
+          "chat": [
+            "Ciro, ti è già capitato che qualcuno venisse al rione a fare il turista dei quartieri difficili?",
+            "Ti va di parlare con i giornali o preferisci starne fuori?",
+            "Preferisci cinquanta allievi del rione o venti allievi e un posto conosciuto in città?"
+          ]
+        },
+        "pitch": {
+          "sezioni": {
+            "sintesi": "Ciro, la scuola diventa del rione se nasce da dentro, e questo è già mezzo fatto perché tu sei di qui: è il tuo nome che apre le porte, non un volantino. Prima di aprire si va a parlare uno per uno con chi ha già un pezzo di fiducia — la basilica, le cooperative che lavorano coi ragazzi, i commercianti della strada — non per chiedere niente, per dire cosa stiamo facendo. I primi dieci allievi si cercano lì, passando dai posti dove i ragazzi stanno già, perché dieci trovati così portano le loro famiglie e i loro amici. Gli alleati veri sono sei, e le scuole medie sono i più importanti: un'ora di laboratorio in classe vale più di dieci volantini. Poi c'è una cosa da governare, e te la dico chiara: più il posto si fa conoscere fuori, più rischia di diventare una tappa per chi viene a farsi la foto alla Sanità. Quindi teniamo due canali separati — verso il rione le persone e il giovedì sera gratuito, verso fuori i concerti del sabato e i giornali — e due regole. Gli allievi non finiscono mai nei materiali per l'esterno come storie da raccontare, perché il ragazzino salvato dalla musica è la cosa che i giornali chiedono sempre e che umilia chi ne è protagonista. E il giovedì resta gratuito e senza fotografi. Il giorno in cui il sabato riempie e il giovedì si svuota, stiamo diventando un locale."
+          },
+          "chat": [
+            "Ultimo pezzo, Ciro. Della separazione fra i due canali, cosa ne pensi?",
+            "Se un giornale volesse fare un servizio sui ragazzi, li faresti intervistare?",
+            "Preferisci crescere piano restando del rione o più in fretta rischiando?",
+            "C'è qualcosa che vuoi assolutamente scritto nel documento finale?"
+          ]
+        }
+      }
+    }
+  }
+}
