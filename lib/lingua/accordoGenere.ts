@@ -68,13 +68,19 @@ export const PATTERN_ACCORDO: RegExp[] = [
   // escludeva un punto qualsiasi dopo il segno, e con quello non catturava
   // proprio il caso reale da cui è nata: verificato, non dedotto.)
   //
+  // Lo schwa è in DUE codifiche perché in italiano sono due segni diversi:
+  // `ə` (U+0259) per il singolare, `ɜ` (U+025C, lo schwa lungo) per il
+  // plurale. Chi scrive l'uno scrive l'altro: è la stessa mano. C'è anche
+  // `ǝ` (U+01DD, la «e» rovesciata), che non è lo schwa fonetico ma gli
+  // somiglia abbastanza da finire nei testi al posto suo.
+  //
   // La «x» finale (todxs, Latinx) NON è in questa lista, ed è una scelta
   // misurata: `[a-z]{2,}x` prende 233 stringhe vere del progetto — «flex» in
   // ogni classe CSS, «lux» nei vincoli di conservazione della Missione 07 —
   // e un tripwire con duecento eccezioni non è un tripwire. In italiano il
   // ripiego è la chiocciola o lo schwa; se un giorno uscisse una «x» si
   // aggiunge qui con l'ancoraggio giusto, non a tappeto.
-  /\b[a-zàèéìòù]{2,}[@əǝ](?![a-zA-Z0-9-]+\.[a-zA-Z]{2,})/gi,
+  /\b[a-zàèéìòù]{2,}[@əǝɜ](?![a-zA-Z0-9-]+\.[a-zA-Z]{2,})/gi,
 ];
 
 // ── 2. la regola nei prompt ────────────────────────────────────────────────
