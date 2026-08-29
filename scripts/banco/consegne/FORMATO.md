@@ -140,7 +140,14 @@ minimo, che il robot non manderà.
 ## Quanti file servono
 
 Cinque `base`, uno per workshop, con tutti e cinque i ruoli dentro: sono i
-venticinque giri che rispondono alla domanda strutturale.
+venticinque giri che rispondono alla domanda strutturale. **Ci sono tutti e
+cinque** (agosto 2026).
+
+Il conto della passata completa, misurato sul motore e non a spanne:
+**25 ruoli, 100 tappe, 126 sezioni, 325 messaggi di chat, 550 chiamate AI**
+— 2 per tappa (revisione + reazione del cliente) più la chat minima, più un
+feedback finale per ruolo. La chat pesa quanto i revisori, ed è la ragione per
+cui un messaggio in più nel file non è gratis.
 
 Le `trappola` sono cinque o sei in tutto, non venticinque, e stanno in
 `scripts/banco/consegne/trappole/<nome>.json` con la stessa forma — un ruolo
