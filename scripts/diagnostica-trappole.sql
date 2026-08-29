@@ -51,6 +51,10 @@ scarti as (
   from public.mission_attempt a
   left join public.step_response r
          on r.attempt_id = a.id and r.step_id = 's3_scarto'
+  -- Gli account di prova fuori: `mai_arrivati_allo_scarto` è il primo
+  -- indicatore di abbandono che abbiamo, e un robot che non abbandona mai lo
+  -- farebbe sembrare migliore di quello che è.
+  where not public.e_profilo_di_prova(a.student_id)
 )
 select t.mission_slug,
        t.trappola_id,
