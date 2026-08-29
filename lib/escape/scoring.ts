@@ -811,6 +811,12 @@ export async function calcolaEvidenze(
           // Fix D (estensione): la frase è composta, fattuale — «Al primo posto
           // hai messo {X}». «Sopra le impressioni» era il verdetto.
           const primoEl = s.elementi.find((e) => e.id === ordine[0]);
+          // Il METRO prima del fatto: senza, «Al primo posto hai messo X» non
+          // dice nemmeno che quella stanza stava misurando una gerarchia, e un
+          // ordinamento corretto non era leggibile da nessuna parte. La frase dà
+          // il criterio e lascia il confronto a chi legge: nessun ramo, nessun
+          // aggettivo. (Dichiarato in un commit precedente e non implementato:
+          // il messaggio lo annunciava, il diff non lo conteneva.)
           const testoAff = componiPerformance(corr, [{ tipo: "affidabilita", primo: primoEl ? primoEl.label.toLowerCase() : null }], "budget");
           if (testoAff) evidenze.push({ area_slug: null, categoria: "qualita_missione", dimensione: "performance", valore: corr, peso: spec.ordinaPerformance.peso, motivazione: testoAff, step_id: s.id });
           // Stile: aver ordinato BENE per affidabilità (misura > stima >
@@ -899,10 +905,15 @@ export async function calcolaEvidenze(
         const p = payload as PayloadScarta | undefined;
         const scartati = new Set(p?.scartati ?? []);
         const tenuti = s.opzioni.filter((o) => !scartati.has(o.id));
+        // Si RIPORTA l'atto, non lo si interpreta: in questo step si rinuncia a
+        // due opzioni su sei, quindi le altre quattro non sono state dichiarate
+        // essenziali — sono quelle che non sono state buttate. «Lo consideri
+        // essenziale» era lo stesso «lo conferma» già tolto altrove, e per di
+        // più ripetuto in quattro righe di fila.
         for (const o of tenuti) {
           if (o.trappola) continue;
           for (const area of o.aree) {
-            evidenze.push({ categoria: "area", area_slug: area, dimensione: "interest", valore: 0.6, peso: P.scartoInt, motivazione: `Hai scelto di tenere «${o.label.toLowerCase()}»: lo consideri essenziale.`, step_id: s.id });
+            evidenze.push({ categoria: "area", area_slug: area, dimensione: "interest", valore: 0.6, peso: P.scartoInt, motivazione: `Hai tenuto «${o.label.toLowerCase()}» sul tavolo.`, step_id: s.id });
           }
           pushAssi(o.assi, 1, `Hai scelto di tenere «${o.label.toLowerCase()}».`, s.id);
         }
@@ -954,12 +965,12 @@ export async function calcolaEvidenze(
         // fatto singolo accanto all'area in «Perché lo diciamo». Ripetere la
         // stessa frase in due blocchi sarebbe rumore.
         if (trappola) {
-          // La glossa fra parentesi si toglie: nella 04 l'etichetta è
-          // «L'adeguamento degli spogliatoi (rimandato al prossimo
-          // finanziamento)» — scritta dal punto di vista di chi la scarta,
-          // perché lì scartare è la mossa pericolosa. In una frase che dice
-          // «Hai TENUTO …» quella parentesi si contraddice. È l'unica etichetta
-          // di trappola con una glossa; le altre dieci sono nomi neutri.
+          // La glossa fra parentesi si toglie. Non serve più a nessuna etichetta
+          // di oggi — le sei della 04, le uniche che l'avevano, sono state
+          // ripulite nel config, che è dove andava chiusa: qui la toglievamo da
+          // UNA frase mentre nelle altre restava, e due sorgenti che divergono
+          // sono esattamente il problema. Resta come cintura di sicurezza, così
+          // una glossa reintrodotta un domani non contraddice «hai TENUTO …».
           const et = trappola.label.toLowerCase().replace(/\s*\([^)]*\)\s*$/, "");
           const invertita = trappola.trappolaSeScartata ?? false;
           const tenutaOra = !scartati.has(trappola.id);

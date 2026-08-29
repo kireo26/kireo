@@ -806,13 +806,23 @@ const MD04: MissioneDef = {
       return lavori;
     },
   },
+  // Le sei etichette si chiamano per quello che SONO, senza la glossa fra
+  // parentesi che diceva cosa succede a rinunciarci («si rinvia», «si tiene la
+  // vecchia caldaia»). Quella glossa era scritta dal punto di vista di chi
+  // scarta, e la stessa etichetta compare anche in frasi che dicono «hai
+  // TENUTO …»: lì si contraddiceva. Quattro delle sei non aggiungevano niente
+  // che lo step non dica già («rinuncia a due»); le altre due dicevano un
+  // ripiego che lo studente ha comunque davanti (la caldaia vecchia è uno dei
+  // sei problemi in classifica). La conseguenza vera, quando c'è, sta
+  // nell'`avviso` — che compare solo a chi ha letto il documento, ed è lì che
+  // deve restare il suo peso.
   scarto: (letti) => [
-    { id: "accessibilita", label: "L'adeguamento degli spogliatoi (rimandato al prossimo finanziamento)", aree: ["mobilita-sostenibile"], qualita: 0.85, trappola: true, trappolaSeScartata: true, avviso: letti.has("M9") ? "Il dossier accessibilità (che hai letto): quattro studenti restano fuori, e in una ristrutturazione significativa il collaudo può rilevarlo. Non è un «di più»." : undefined },
-    { id: "pompa_calore", label: "La pompa di calore (si tiene la vecchia caldaia)", aree: ["energia-sostenibilita"], qualita: 0.1 },
-    { id: "parquet", label: "Il parquet omologato (si ripiega sul PVC)", aree: ["edilizia-architettura"], qualita: 0.2 },
-    { id: "copertura", label: "La copertura del tetto (rimandata al prossimo anno)", aree: ["edilizia-architettura"], qualita: 0.6, avviso: letti.has("M5") ? "La perizia (che hai letto): senza rifare la guaina, l'acqua rovinerà il controsoffitto nuovo entro il primo inverno." : undefined },
-    { id: "elettrico", label: "Il rifacimento dell'impianto elettrico (si tiene com'è)", aree: ["edilizia-architettura"], qualita: 0.75, avviso: letti.has("M4") ? "La relazione (che hai letto): senza rifacimento il collaudo non passa e la palestra non riapre, comunque siano andati gli altri lavori." : undefined },
-    { id: "controsoffitto", label: "Il controsoffitto nuovo (si rinvia)", aree: ["edilizia-architettura"], qualita: 0.9 },
+    { id: "accessibilita", label: "L'adeguamento degli spogliatoi", aree: ["mobilita-sostenibile"], qualita: 0.85, trappola: true, trappolaSeScartata: true, avviso: letti.has("M9") ? "Il dossier accessibilità (che hai letto): quattro studenti restano fuori, e in una ristrutturazione significativa il collaudo può rilevarlo. Non è un «di più»." : undefined },
+    { id: "pompa_calore", label: "La pompa di calore", aree: ["energia-sostenibilita"], qualita: 0.1 },
+    { id: "parquet", label: "Il parquet omologato", aree: ["edilizia-architettura"], qualita: 0.2 },
+    { id: "copertura", label: "La copertura del tetto", aree: ["edilizia-architettura"], qualita: 0.6, avviso: letti.has("M5") ? "La perizia (che hai letto): senza rifare la guaina, l'acqua rovinerà il controsoffitto nuovo entro il primo inverno." : undefined },
+    { id: "elettrico", label: "Il rifacimento dell'impianto elettrico", aree: ["edilizia-architettura"], qualita: 0.75, avviso: letti.has("M4") ? "La relazione (che hai letto): senza rifacimento il collaudo non passa e la palestra non riapre, comunque siano andati gli altri lavori." : undefined },
+    { id: "controsoffitto", label: "Il controsoffitto nuovo", aree: ["edilizia-architettura"], qualita: 0.9 },
   ],
   introStanza3: (m, letti) => {
     const parti = ["14 luglio, ventinovesimo giorno. Il capocantiere vi chiama nel container."];

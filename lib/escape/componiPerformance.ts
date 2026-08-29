@@ -8,7 +8,7 @@
 //   negativo     — «hai evitato X» sse evitato; «hai scelto X» sse preso
 //   dipendenze   — «ordine rispettato», oppure «Prima andava Y, poi X»
 //   passi        — «I tuoi primi passi, in ordine: {lista}» (fatto, sempre)
-//   affidabilita — «Al primo posto hai messo {X}» (fatto, sempre)
+//   affidabilita — il metro della stanza, poi «Al primo posto hai messo «{X}»»
 //   scarto       — 4 cornici su posizione+inversione della trappola (fatto)
 //   aggregato    — silenzio (pienezza/equilibrio non sono azioni ricordabili)
 //
@@ -108,7 +108,21 @@ export function componiPerformance(
     } else if (v.tipo === "passi") {
       if (v.ordine.length) clausole.push(`I tuoi primi passi, in ordine: ${elenco(v.ordine)}.`);
     } else if (v.tipo === "affidabilita") {
-      if (v.primo) clausole.push(`Al primo posto hai messo ${v.primo}.`);
+      // Due clausole, entrambe fattuali: prima il METRO della stanza (che
+      // criterio si stava applicando), poi il fatto (cosa è finito primo). Senza
+      // il metro, «Al primo posto hai messo X» non dice nemmeno che si stava
+      // ordinando per affidabilità, e un ordinamento corretto non è leggibile da
+      // nessuna parte. Il confronto lo fa chi legge: nessun ramo, nessun
+      // aggettivo, nessun «bene»/«male».
+      //
+      // L'etichetta va fra VIRGOLETTE: qui è una frase intera («l'invaso è al
+      // 38% della capacità»), e senza virgolette la clausola non sta in piedi.
+      // Nel blocco «Perché lo diciamo» la stessa etichetta era già virgolettata:
+      // erano due trattamenti diversi dello stesso dato.
+      if (v.primo) {
+        clausole.push("Quella fila andava messa in ordine di affidabilità: prima la misura diretta, poi la stima, poi l'interpretazione.");
+        clausole.push(`Al primo posto hai messo «${v.primo}».`);
+      }
     } else if (v.tipo === "scarto") {
       // Le etichette dello scarto sono FRASI (con «e» e virgolette): l'elenco
       // «A, B e C» confonderebbe le congiunzioni → separatore a punto e virgola,

@@ -89,7 +89,9 @@ const CORNICI_APPROVATE = [
   { nome: "dipendenze/migliora/coppia", re: /^Prima andava .+, poi .+\.$/ },
   { nome: "dipendenze/migliora/fallback", re: /^Hai saltato l'ordine dei lavori\.$/ },
   { nome: "passi", re: /^I tuoi primi passi, in ordine: .+\.$/ },
-  { nome: "affidabilita", re: /^Al primo posto hai messo .+\.$/ },
+  // affidabilita: due clausole — il metro della stanza, poi il fatto.
+  { nome: "affidabilita/metro", re: /^Quella fila andava messa in ordine di affidabilità: prima la misura diretta, poi la stima, poi l'interpretazione\.$/ },
+  { nome: "affidabilita/primo", re: /^Al primo posto hai messo «.+»\.$/ },
   // scarto: la lista (frasi giunte da «; ») come clausola a sé, poi la clausola
   // sulla trappola — 4 varianti (posizione × inversione), sempre separata.
   { nome: "scarto/lista", re: /^Hai scartato: .+\.$/ },
