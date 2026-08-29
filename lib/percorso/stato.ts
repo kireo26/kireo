@@ -370,9 +370,22 @@ async function contaMissioniCompletate(supabase: SupabaseClient, studentId: stri
   }
 }
 
-// Un workshop "consegnato" vale sia sul motore v1 (una riga in
-// workshop_consegne) sia sul motore v2 (workshop_elaborati.stato='consegnato').
-// Entrambi passano dall'iscrizione dello studente (workshop_iscrizioni).
+// Quanti WORKSHOP lo studente ha consegnato. L'unità è l'ISCRIZIONE — una
+// persona iscritta a un progetto — non la riga: si contano gli `iscrizione_id`
+// DISTINTI che hanno almeno una consegna, su uno qualunque dei due motori.
+//
+// Sommare le righe dava tre risposte sbagliate, tutte nella stessa direzione:
+// `workshop_consegne` non ha un unique su `iscrizione_id` (l'indice è
+// `(iscrizione_id, created_at desc)`, fatto apposta per tenerne tante), quindi
+// tre file caricati sullo stesso progetto valevano tre workshop; e chi aveva
+// caricato un file E consegnato l'elaborato sulla stessa iscrizione valeva due.
+// Oggi il numero alimenta solo una soglia a zero, quindi non si vedeva: si
+// vedrebbe il giorno in cui una pagina scrivesse «hai consegnato N workshop».
+//
+// Sullo stato: il lato v2 filtra `stato='consegnato'` perché una bozza NON è
+// una consegna. Il lato v1 non filtra di proposito — i due valori possibili
+// sono 'caricato' e 'analizzato', e la differenza è solo se il feedback AI è
+// arrivato: un file consegnato senza feedback resta un file consegnato.
 async function contaWorkshopConsegnati(supabase: SupabaseClient, studentId: string): Promise<number> {
   try {
     const { data: iscrizioni, error } = await supabase
@@ -383,13 +396,14 @@ async function contaWorkshopConsegnati(supabase: SupabaseClient, studentId: stri
     const ids = iscrizioni.map((i) => i.id);
 
     const [v1, v2] = await Promise.all([
-      supabase.from("workshop_consegne").select("id").in("iscrizione_id", ids),
+      supabase.from("workshop_consegne").select("iscrizione_id").in("iscrizione_id", ids),
       supabase.from("workshop_elaborati").select("iscrizione_id").in("iscrizione_id", ids).eq("stato", "consegnato"),
     ]);
 
-    const consegneV1 = v1.error || !v1.data ? 0 : v1.data.length;
-    const elaboratiV2 = v2.error || !v2.data ? 0 : v2.data.length;
-    return consegneV1 + elaboratiV2;
+    const consegnate = new Set<string>();
+    for (const riga of v1.error ? [] : (v1.data ?? [])) consegnate.add(riga.iscrizione_id);
+    for (const riga of v2.error ? [] : (v2.data ?? [])) consegnate.add(riga.iscrizione_id);
+    return consegnate.size;
   } catch {
     return 0;
   }

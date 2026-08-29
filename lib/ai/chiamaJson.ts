@@ -47,10 +47,22 @@ export function estraiJson(testo: string): unknown | undefined {
 // trova JSON valido): il secondo fallimento diventa un esito `{ok:false}`.
 //
 // Su questa funzione passano TUTTI i revisori che scrivono testo letto da uno
-// studente (proposta e riflessione di Escape, revisione di tappa e feedback
-// finale del workshop, analisi della consegna): è il punto giusto per la
-// guardia sulla lingua invariante — vedi `chiamaJson` più sotto, che la
-// avvolge.
+// studente. Quelli che una pagina chiama davvero sono TRE:
+//   1. Escape — non-approfondire, proposta, riflessione (lib/escape/scoring.ts,
+//      da app/api/escape/finalizza)
+//   2. revisione di tappa            (app/api/cron/workshop-motore)
+//   3. feedback finale del progetto  (app/api/cron/workshop-motore, ultima tappa)
+//
+// Erano quattro fino al 2026-08-29: il quarto era l'analisi del file caricato
+// (app/api/workshop/consegna), chiusa insieme al caricamento file del workshop.
+// Ne resta un quinto RAGGIUNGIBILE MA ORFANO: il feedback finale in
+// app/api/workshop/elaborato/consegna, che nessun componente chiama più da
+// quando la chiusura del progetto la fa il cron sull'ultima tappa. Sta qui
+// scritto perché non venga contato per errore fra i vivi, e perché la
+// decisione se chiuderlo sia presa apposta invece che dimenticata.
+//
+// È il punto giusto per la guardia sulla lingua invariante — vedi `chiamaJson`
+// più sotto, che la avvolge.
 async function chiamaJsonGrezzo(
   client: Anthropic,
   opzioni: {
