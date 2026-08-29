@@ -1,0 +1,277 @@
+{
+  "workshop": "presidio-appennino",
+
+  "ruoli": {
+    "salute": {
+      "livello": "base",
+      "tappe": {
+        "servizi": {
+          "sezioni": {
+            "servizi": [
+              ["Ambulatorio infermieristico", "Chi ha una cronicità seguita: diabete, scompenso, ipertensione", "Due mattine a settimana, su appuntamento"],
+              ["Prelievi del sangue", "Tutti, ma soprattutto chi non può scendere a valle", "Un giorno a settimana, la mattina presto"],
+              ["Telemonitoraggio della pressione e del peso", "Pazienti con scompenso cardiaco già in cura", "Ogni giorno a casa, letto dall'infermiere una volta a settimana"],
+              ["Medicazioni e piccola chirurgia ambulatoriale", "Chi oggi fa quaranta chilometri per una medicazione", "Due pomeriggi a settimana"],
+              ["Consulto con lo specialista in collegamento", "Chi aspetta mesi per una visita e intanto peggiora", "Su richiesta del medico, con l'infermiere presente"]
+            ],
+            "priorita": "Apro con l'ambulatorio infermieristico e i prelievi. Non perché siano i più moderni, ma perché sono quelli che tolgono subito un viaggio a chi fa più fatica a farlo: una signora di ottant'anni che deve trovare qualcuno che la porti a valle per un prelievo, e che quel qualcuno lo deve chiedere come un favore. Sono anche i due servizi che non hanno bisogno di convincere nessuno: la gente sa già cosa sono. Il telemonitoraggio lo metto per terzo, quando le persone hanno già preso l'abitudine di entrare in quella porta."
+          },
+          "chat": [
+            "Dottoressa, dei suoi 3.200 assistiti quanti hanno una cronicità che segue lei personalmente?",
+            "Quali sono le prestazioni per cui oggi i suoi pazienti sono costretti a scendere a valle?",
+            "C'è già un infermiere sul territorio o parte tutto da zero?"
+          ]
+        },
+        "figure": {
+          "sezioni": {
+            "figure": [
+              ["Infermiere di comunità", "Tiene l'ambulatorio, fa i prelievi, legge i dati del telemonitoraggio, va a casa di chi non può muoversi", "Tempo pieno, cinque giorni"],
+              ["Medico di medicina generale", "È lei: usa il presidio come base, riceve, valuta i casi che l'infermiere gli segnala", "Due mezze giornate a settimana nel presidio"],
+              ["Operatore socio-sanitario", "Accoglienza, aiuto alle persone poco autonome, accompagnamento", "Part-time, tre mattine"],
+              ["Amministrativo part-time", "Appuntamenti, telefono, pratiche, rapporti con l'ASL", "Venti ore a settimana"],
+              ["Specialisti in collegamento", "Cardiologo e diabetologo, in consulto con l'infermiere presente", "A chiamata, su agenda dedicata"]
+            ],
+            "infermiere": "L'infermiere di comunità non è un aiutante del medico: è la persona che tiene il filo. È lui che conosce i nomi, che sa chi vive solo e chi ha una figlia che chiama tutti i giorni, che si accorge se una signora ha smesso di venire. Fa i prelievi e le medicazioni, ma la parte che conta è che guarda i dati del telemonitoraggio una volta a settimana e decide cosa portare a lei e cosa no. Senza quella figura il presidio diventa un ambulatorio con dentro delle macchine, e le macchine da sole nessuno le guarda."
+          },
+          "chat": [
+            "Dottoressa, quante ore alla settimana riuscirebbe realisticamente a stare nel presidio?",
+            "Nei quattro comuni c'è già personale infermieristico dell'ASL o va assunto?",
+            "Gli specialisti con cui lavora oggi sarebbero disponibili a fare consulti a distanza?"
+          ]
+        },
+        "percorsi": {
+          "sezioni": {
+            "percorsi": "Prendo lo scompenso cardiaco, che è il caso più frequente qui. Il paziente entra nel percorso quando lei lo segnala. L'infermiere lo vede la prima volta di persona, gli spiega la bilancia e il misuratore di pressione, e glieli lascia a casa con un foglio grande scritto a caratteri larghi. Da lì il paziente pesa e misura ogni mattina; i dati arrivano da soli. Una volta a settimana l'infermiere li guarda tutti insieme e cerca una cosa sola: un aumento di peso di due chili in tre giorni, che nello scompenso vuol dire che il paziente sta trattenendo liquidi e che qualcosa si sta muovendo. Se lo trova, telefona. Se al telefono la cosa non si chiarisce, il paziente viene visto. Ogni tre mesi c'è comunque una visita di persona, che non salta mai anche se i dati sono buoni: è quella che tiene in piedi il rapporto, e senza rapporto la bilancia diventa un oggetto che sta in un angolo. La tecnologia qui non sostituisce niente, fa una cosa sola: accorcia il tempo fra il momento in cui il corpo cambia e il momento in cui qualcuno se ne accorge."
+          },
+          "chat": [
+            "Dottoressa, oggi come si accorge che un paziente con scompenso sta peggiorando?",
+            "Quanti dei suoi pazienti hanno in casa qualcuno che li può aiutare con una bilancia elettronica?",
+            "Ogni quanto riesce a rivedere di persona un cronico stabile?"
+          ]
+        },
+        "pitch": {
+          "sezioni": {
+            "sintesi": "Dottoressa, il presidio che le propongo non è un ospedale piccolo: è il posto dove i suoi assistiti smettono di dover scendere a valle per cose che si possono fare qui. Apre con due servizi soli, ambulatorio infermieristico e prelievi, perché sono quelli che tolgono subito un viaggio a chi fa più fatica a farlo. Al centro c'è l'infermiere di comunità a tempo pieno, che conosce le persone per nome e che è il filo fra loro e lei. Lei ci sta due mezze giornate a settimana e riceve chi l'infermiere le segnala. Il telemonitoraggio arriva dopo, quando la gente ha già preso l'abitudine di entrare da quella porta, e serve a una cosa sola: accorciare il tempo fra quando il corpo cambia e quando qualcuno se ne accorge. La visita di persona ogni tre mesi non salta mai, nemmeno quando i numeri sono buoni. Quello che non so ancora è quante persone accetteranno davvero di avere una bilancia che parla in casa: quello lo dirà il primo anno, e va misurato."
+          },
+          "chat": [
+            "Siamo all'ultimo pezzo, dottoressa. Dei servizi che ho messo, ce n'è uno che non le sembra realistico?",
+            "Se dovesse scegliere una sola cosa da avere subito, quale sarebbe?",
+            "C'è qualcosa che teme le porti via più tempo invece di dargliene?",
+            "C'è qualcosa che vuole assolutamente scritto nel documento?"
+          ]
+        }
+      }
+    },
+
+    "digitale": {
+      "livello": "base",
+      "tappe": {
+        "quali_servizi": {
+          "sezioni": {
+            "servizi": "Le tre cose si confondono spesso, quindi le separo. La televisita è una visita vera fatta in collegamento video fra medico e paziente, e sostituisce a tutti gli effetti una visita ambulatoriale: vale come prestazione ed è refertata. Il teleconsulto invece è fra professionisti — il medico di base e lo specialista che si parlano su un caso, con o senza il paziente collegato — e serve a evitare che il paziente venga mandato in giro per avere un parere. Il telemonitoraggio non è una visita: è la raccolta continua di parametri a casa del paziente, pressione, peso, saturazione, che qualcuno legge periodicamente. Qui attivo per primi teleconsulto e telemonitoraggio, e per ultima la televisita. Il motivo è che i primi due funzionano anche se il paziente non tocca niente di tecnologico — nel teleconsulto parlano i medici, nel telemonitoraggio il paziente usa una bilancia e un bracciale — mentre la televisita chiede a una persona di ottant'anni di gestire una videochiamata da sola, ed è la cosa più difficile di tutte."
+          },
+          "chat": [
+            "Dottoressa, i suoi pazienti hanno uno smartphone o siamo ancora al telefono di casa?",
+            "Le è mai capitato di fare un consulto con uno specialista al telefono per un suo paziente?",
+            "Quali visite specialistiche fanno più fatica a ottenere i suoi assistiti?"
+          ]
+        },
+        "connettivita": {
+          "sezioni": {
+            "connettivita": "In montagna la connessione non è assente ovunque: è discontinua, e la differenza conta. Il presidio, che è un edificio solo, lo collego bene una volta per tutte: fibra se arriva al paese, altrimenti un collegamento radio verso il ripetitore più vicino, con un secondo collegamento via rete mobile come riserva automatica. Quello è il punto forte della rete, e lì si fanno le televisite e i teleconsulti, con l'infermiere accanto al paziente. Nelle case invece non do per scontato niente. I dispositivi di telemonitoraggio li scelgo con la scheda telefonica dentro e con la memoria: se la linea non c'è, la misurazione viene salvata e parte quando la linea torna, anche dopo ore. Nessun apparecchio deve richiedere il wi-fi di casa, perché metà di quelle case un wi-fi non ce l'ha e l'altra metà ha una password che nessuno ricorda. Per le tre o quattro frazioni dove il segnale non arriva proprio, il telemonitoraggio non lo prometto: lì passa l'infermiere di persona, e va detto adesso invece di scoprirlo a dispositivi comprati."
+          },
+          "chat": [
+            "Dottoressa, nei quattro comuni ci sono frazioni dove il telefono proprio non prende?",
+            "L'edificio del presidio ha già una linea internet o va portata?",
+            "Sa se il Comune ha già fatto lavori di banda larga negli ultimi anni?"
+          ]
+        },
+        "supporto": {
+          "sezioni": {
+            "supporto": [
+              ["Bilancia e misuratore di pressione a casa del paziente", "L'infermiere di comunità, alla prima visita, con foglio a caratteri grandi", "Sostituzione diretta: si porta quello nuovo e si ritira il vecchio, nessuna riparazione"],
+              ["Postazione per televisita e teleconsulto nel presidio", "Il fornitore all'installazione, poi l'amministrativo per l'uso quotidiano", "Contratto di assistenza con intervento entro due giorni lavorativi"],
+              ["Collegamento internet del presidio", "L'operatore che porta la linea", "L'operatore, con la rete mobile che entra in funzione da sola nel frattempo"],
+              ["Cartella e archivio dei dati", "Il fornitore, con formazione a infermiere e amministrativo", "Assistenza da remoto del fornitore, dati salvati fuori dal presidio"]
+            ]
+          },
+          "chat": [
+            "Dottoressa, chi c'è nel presidio nelle ore in cui lei non c'è?",
+            "Se una bilancia smette di funzionare, secondo lei il paziente lo direbbe o smetterebbe e basta?",
+            "L'ASL ha già un fornitore per queste cose o si sceglie da capo?"
+          ]
+        },
+        "pitch": {
+          "sezioni": {
+            "sintesi": "Dottoressa, la telemedicina qui funziona perché ho tolto dal progetto tutto quello che chiede ai suoi pazienti di essere bravi con la tecnologia. Comincio da teleconsulto e telemonitoraggio, e lascio la televisita per ultima: nel primo parlano i medici fra loro, nel secondo il paziente usa una bilancia e un bracciale e nient'altro. Gli apparecchi hanno la scheda telefonica dentro e la memoria, quindi funzionano anche dove la linea va e viene, e non chiedono mai il wi-fi di casa. Il presidio invece lo collego bene, con una linea principale e una di riserva che entra da sola. E per le frazioni dove il segnale non arriva proprio non prometto niente: lì passa l'infermiere di persona, e lo dico adesso invece di scoprirlo dopo aver comprato gli apparecchi. Chi installa e chi insegna è sempre l'infermiere, che è la persona che quei pazienti conoscono; quando qualcosa si rompe non si ripara, si sostituisce, perché una signora di ottant'anni con la bilancia rotta smette di pesarsi e non lo dice a nessuno."
+          },
+          "chat": [
+            "Ultimo pezzo, dottoressa. C'è una tecnologia fra quelle che ho messo che secondo lei non useranno?",
+            "Le sembra realistico che l'infermiere faccia anche da tecnico, o è troppo?",
+            "Preferisce partire dal telemonitoraggio o dal teleconsulto con gli specialisti?",
+            "C'è qualcosa che vuole assolutamente vedere scritto?"
+          ]
+        }
+      }
+    },
+
+    "normativa": {
+      "livello": "base",
+      "tappe": {
+        "fondi": {
+          "sezioni": {
+            "fondi": [
+              ["Missione Salute del PNRR — case e ospedali di comunità, telemedicina", "Strutture, apparecchiature e piattaforme per l'assistenza territoriale", "Risorse assegnate alle Regioni con scadenze di rendicontazione fissate: il presidio deve rientrare nella programmazione regionale, non si accede da soli"],
+              ["Fondi europei della programmazione regionale (FESR e FSE+)", "Investimenti in aree interne, innovazione dei servizi, formazione del personale", "Bandi a finestre pubblicati dalla Regione; serve un ente capofila con capacità amministrativa, di solito il Comune o l'Unione dei Comuni"],
+              ["Strategia nazionale per le aree interne", "Servizi essenziali nei territori marginali, sanità compresa", "Il territorio deve essere in un'area selezionata: va verificato se questi quattro comuni ci rientrano"],
+              ["Fondazioni bancarie e bandi del terzo settore", "Cofinanziamento di attrezzature e progetti pilota", "Importi minori, ma tempi rapidi e meno vincoli; utili per coprire quello che i fondi grandi non pagano"]
+            ]
+          },
+          "chat": [
+            "Dottoressa, i quattro comuni fanno parte di un'Unione o si muovono ognuno per conto suo?",
+            "L'ASL ha già presentato progetti per la casa di comunità in questa zona?",
+            "C'è un immobile comunale disponibile o va cercato?"
+          ]
+        },
+        "requisiti": {
+          "sezioni": {
+            "requisiti": "Il presidio, per esistere, deve stare dentro un modello previsto: il decreto sugli standard dell'assistenza territoriale definisce cosa sono le case della comunità e cosa devono avere, e un ambulatorio che nasce fuori da quello schema non prende fondi pubblici e non fa prestazioni per conto del servizio sanitario. Quindi la prima cosa non è aprire, è farsi riconoscere come nodo della rete territoriale dall'ASL. Poi servono le autorizzazioni sanitarie: l'autorizzazione all'esercizio rilasciata dalla Regione o dal Comune secondo la normativa regionale, che verifica requisiti strutturali, tecnologici e organizzativi — spazi, accessibilità, smaltimento dei rifiuti sanitari, personale con i titoli. Sull'immobile: se è comunale, la strada più semplice è un comodato d'uso gratuito con delibera di giunta, che costa zero e si fa in poche settimane, ma va messo per iscritto con una durata lunga, perché un fondo pubblico non finanzia lavori su un immobile che ti possono togliere fra un anno. Va infine nominato un direttore sanitario e va fatto il trattamento dei dati a norma, perché qui si raccolgono parametri clinici a casa delle persone."
+          },
+          "chat": [
+            "Dottoressa, l'ASL con cui lavora è stata coinvolta nel progetto o va convinta?",
+            "L'immobile che avete in mente di chi è, del Comune o di un privato?",
+            "Chi farebbe da direttore sanitario? Può essere lei?"
+          ]
+        },
+        "sostenibilita": {
+          "sezioni": {
+            "dopo_pnrr": "Il PNRR paga la nascita, non la vita: mura, apparecchiature, piattaforme. Il personale e la gestione, che sono la spesa vera e ricorrente, dopo devono stare in piedi da soli, e va progettato adesso perché un presidio che chiude dopo tre anni fa più danno di uno che non è mai nato. Le strade sono tre, e nessuna basta da sola. La prima: far diventare il presidio un nodo riconosciuto della rete dell'ASL, così l'infermiere di comunità e le prestazioni che eroga rientrano nella spesa ordinaria del servizio sanitario invece che in un progetto. È la strada principale, e va aperta prima di comprare qualsiasi cosa. La seconda: i Comuni. Le utenze, la manutenzione dell'immobile e l'amministrativo part-time sono cifre che quattro Comuni possono reggere insieme con una convenzione, e sono la parte che il servizio sanitario tipicamente non copre. La terza: le prestazioni che il presidio può erogare a tariffa per l'ASL, che portano risorse proporzionate a quanto si lavora. Quello che non farei mai è basare la sostenibilità sui contributi delle fondazioni: quelli si rinnovano un anno per volta e non si può appoggiarci sopra uno stipendio."
+          },
+          "chat": [
+            "Dottoressa, l'infermiere di comunità sarebbe assunto dall'ASL o dal Comune?",
+            "I quattro Comuni hanno bilanci che reggono una spesa fissa, anche piccola, ogni anno?",
+            "Quanto durerebbe realisticamente il finanziamento iniziale, tre anni o cinque?"
+          ]
+        },
+        "pitch": {
+          "sezioni": {
+            "sintesi": "Dottoressa, il presidio può nascere e può durare, ma sono due problemi diversi e vanno risolti in ordine. Per nascere: si entra nella programmazione della Missione Salute del PNRR attraverso l'ASL, perché a quei fondi non si accede da soli, e in parallelo si guardano i bandi regionali e la strategia per le aree interne, che per un territorio come questo può valere. L'immobile lo dà il Comune in comodato gratuito, con una delibera e una durata lunga scritta nero su bianco: nessun fondo pubblico paga lavori su un immobile che ti possono togliere fra un anno. Poi servono le autorizzazioni sanitarie e il riconoscimento come nodo della rete territoriale, che è la cosa che fa la differenza fra un ambulatorio privato e un pezzo del servizio pubblico. Per durare, la strada vera è una sola: che l'infermiere e le prestazioni finiscano nella spesa ordinaria dell'ASL invece che in un progetto a termine. I Comuni coprono utenze, immobile e amministrativo con una convenzione fra i quattro. Sulle fondazioni non appoggerei mai uno stipendio: quelle finanziano una cosa, non una persona."
+          },
+          "chat": [
+            "Ultimo passo, dottoressa. Se l'ASL dicesse di no, il progetto lo faremmo lo stesso in altra forma?",
+            "Quanto tempo pensa ci voglia per ottenere una delibera dai quattro Comuni?",
+            "C'è un sindaco fra i quattro che è già dalla nostra parte?",
+            "C'è qualcosa che vuole assolutamente scritto nel documento finale?"
+          ]
+        }
+      }
+    },
+
+    "comunicazione": {
+      "livello": "base",
+      "tappe": {
+        "fiducia": {
+          "sezioni": {
+            "fiducia": "La fiducia qui non si costruisce spiegando la telemedicina, perché nessuno di ottant'anni si convince con una spiegazione tecnica. Si costruisce in tre modi. Il primo è la faccia: le persone si fidano di una persona, non di un servizio, e quella persona deve essere sempre la stessa. Se l'infermiere di comunità è quello che entra in casa la prima volta, quello che risponde al telefono e quello che c'è quando tornano in ambulatorio, il presidio diventa lui. Il secondo è che la prima esperienza sia una cosa semplice e utile: un prelievo fatto in paese invece che a valle. Non si comincia da un apparecchio da tenere in casa, si comincia da un viaggio risparmiato. Il terzo è chi lo dice: se la notizia arriva dal parroco, dalla farmacia o dalla figlia, entra; se arriva da un volantino del Comune, resta sul tavolo. E c'è una cosa da non fare mai: dire che così si va meno dal medico. È esattamente la paura di chi è anziano — che il telefono sostituisca la visita — e nominarla come vantaggio chiude la porta."
+          },
+          "chat": [
+            "Dottoressa, quando ha introdotto qualcosa di nuovo in passato, come l'hanno presa i suoi pazienti?",
+            "Chi è la persona di cui si fidano di più in paese, dopo di lei?",
+            "C'è una farmacia in ognuno dei quattro comuni?"
+          ]
+        },
+        "alleati": {
+          "sezioni": {
+            "alleati": [
+              ["Le farmacie dei quattro comuni", "Sono aperte tutti i giorni e la gente ci entra comunque: possono spiegare cos'è il presidio, fissare un appuntamento, e segnalare all'infermiere chi non si vede da un po'"],
+              ["Le parrocchie", "Un annuncio dopo la messa arriva a più anziani di qualunque manifesto, e il parroco è una voce di cui ci si fida"],
+              ["I quattro Comuni", "Mettono a disposizione i loro canali, gli spazi per gli incontri, e soprattutto il trasporto sociale per chi non può muoversi"],
+              ["I sindacati dei pensionati e i centri anziani", "Hanno gli elenchi e le riunioni già fatte: si va a parlare dove le persone sono già sedute, invece di aspettarle"],
+              ["Le badanti e i familiari che assistono", "Sono loro che usano davvero la bilancia e leggono i fogli: se non capiscono, il servizio non funziona, per quanto il paziente sia d'accordo"]
+            ]
+          },
+          "chat": [
+            "Dottoressa, esiste un servizio di trasporto sociale nei quattro comuni?",
+            "Quanti dei suoi assistiti hanno una badante o un familiare che si occupa di loro?",
+            "C'è un centro anziani o un circolo dove si trovano regolarmente?"
+          ]
+        },
+        "piano": {
+          "sezioni": {
+            "piano": "Nei primi tre mesi non faccio pubblicità: faccio in modo che la gente ci passi dentro. Primo mese: si apre solo con prelievi e ambulatorio infermieristico, e l'unica comunicazione è che in paese adesso si fanno i prelievi. Un foglio in farmacia, un annuncio in chiesa, una riga sul gruppo del paese. Niente parola telemedicina, niente logo, niente inaugurazione con le autorità. Secondo mese: l'infermiere comincia a andare a casa dei pazienti che lei gli segnala, uno alla volta, e quelle visite sono il vero canale — una persona a cui è stato spiegato bene qualcosa in cucina lo racconta a cinque. Terzo mese: si fa un incontro nel centro anziani di ogni comune, la sera, con lei presente. Non una presentazione con le slide: lei che risponde alle domande, e l'infermiere che fa vedere la bilancia e la fa provare a chi vuole. Da lì in poi la cosa che tiene viva la comunicazione è una sola: che chi ci è passato ne parli bene. Quindi il presidio deve essere puntuale, e chi chiama deve trovare qualcuno che risponde."
+          },
+          "chat": [
+            "Dottoressa, quanti pazienti pensa di poterci mandare lei personalmente il primo mese?",
+            "Le andrebbe di essere presente agli incontri serali nei quattro comuni?",
+            "Esiste un gruppo o una pagina dove passano le notizie del paese?"
+          ]
+        },
+        "pitch": {
+          "sezioni": {
+            "sintesi": "Dottoressa, la gente non userà il presidio perché glielo spieghiamo bene: lo userà se si fida di chi ci lavora e se la prima volta che ci entra risparmia un viaggio. Quindi il piano è al contrario di come si fanno di solito queste cose. Non c'è inaugurazione, non c'è la parola telemedicina, non c'è il volantino nella cassetta. C'è che da lunedì i prelievi si fanno in paese, e lo sanno la farmacia, il parroco e il gruppo del paese. Poi c'è l'infermiere che va a casa una persona alla volta, e ogni persona a cui viene spiegato bene qualcosa in cucina lo racconta ad altre cinque. Al terzo mese si fa una sera nel centro anziani di ogni comune, con lei che risponde alle domande e la bilancia da provare. Gli alleati sono farmacie, parrocchie, Comuni e i sindacati dei pensionati, e sono importanti anche le badanti e i figli, perché sono loro che quegli apparecchi li useranno davvero. Una cosa non la diremo mai: che così si va meno dal medico. È la paura di tutti, e nominarla come vantaggio chiude la porta."
+          },
+          "chat": [
+            "Siamo all'ultimo, dottoressa. Del piano, c'è qualcosa che le sembra troppo lento?",
+            "Se dopo sei mesi venissero solo dieci persone, cosa penserebbe?",
+            "Preferisce che il suo nome sia in prima fila nella comunicazione o che resti sullo sfondo?",
+            "C'è una cosa che vuole assolutamente scritta nel documento?"
+          ]
+        }
+      }
+    },
+
+    "dati": {
+      "livello": "base",
+      "tappe": {
+        "bisogni": {
+          "sezioni": {
+            "bisogni": "La popolazione è di 3.200 assistiti su quattro comuni, con un'età media alta. Da lì derivano tre bisogni, e li ordino per peso. Primo: la cronicità. In una popolazione anziana la quota di persone con almeno una malattia cronica seguita nel tempo è alta, e sono quelle che generano la maggior parte degli accessi. Diabete, scompenso, ipertensione, broncopneumopatia. Secondo: la distanza. Non è un dato sanitario ma pesa come tale, perché una prestazione che richiede un viaggio di quaranta minuti per una persona che non guida più diventa una prestazione non fatta. Terzo: la solitudine, che qui non è un modo di dire ma un fattore che peggiora tutto il resto — chi vive solo si accorge più tardi di stare male e chiama più tardi. Sui dati che uso devo essere chiaro: l'anagrafe degli assistiti e le esenzioni per patologia sono numeri veri che l'ASL ha, e sono la base. Le statistiche nazionali sull'invecchiamento e sulle aree interne servono per l'ordine di grandezza, non per descrivere questi 3.200. Prima di scrivere qualunque numero definitivo bisogna chiedere all'ASL l'estrazione per questi quattro comuni, e finché non c'è, quello che scrivo è una stima."
+          },
+          "chat": [
+            "Dottoressa, ha un'idea di quanti dei suoi assistiti hanno un'esenzione per patologia cronica?",
+            "L'ASL le dà dei report sui suoi pazienti o deve chiederli?",
+            "Quanti dei suoi assistiti vivono soli?"
+          ]
+        },
+        "indicatori": {
+          "sezioni": {
+            "indicatori": [
+              ["Accessi al pronto soccorso dei pazienti seguiti dal presidio", "Numero di accessi nei dodici mesi prima e nei dodici dopo l'ingresso nel percorso, dato fornito dall'ASL"],
+              ["Ricoveri per scompenso cardiaco fra i pazienti in telemonitoraggio", "Conteggio dei ricoveri con quella diagnosi, confrontato con l'anno precedente"],
+              ["Prestazioni erogate nel presidio", "Registro interno: prelievi, medicazioni, visite infermieristiche, consulti, mese per mese"],
+              ["Viaggi risparmiati", "Prestazioni fatte in paese che prima si facevano a valle, moltiplicate per la distanza media"],
+              ["Aderenza al telemonitoraggio", "Percentuale di giorni in cui il paziente ha davvero misurato, sul totale dei giorni nel percorso"],
+              ["Persone uscite dal percorso senza dirlo", "Pazienti che smettono di misurare per più di due settimane e non rispondono: si contano, non si nascondono"]
+            ]
+          },
+          "chat": [
+            "Dottoressa, riesce a sapere quando un suo assistito finisce al pronto soccorso?",
+            "Secondo lei quanti dei suoi pazienti con scompenso vengono ricoverati in un anno?",
+            "Quanto dista mediamente l'ospedale dai quattro comuni?"
+          ]
+        },
+        "valore": {
+          "sezioni": {
+            "valore": "Chi decide se rifinanziare non legge una relazione: guarda due o tre numeri e decide. Quindi preparo quei numeri dal primo giorno, non alla fine. Il primo è il confronto prima e dopo sugli accessi al pronto soccorso dei pazienti seguiti: è il numero che l'ASL capisce senza spiegazioni, perché ogni accesso evitato è una spesa che non ha sostenuto. Il secondo è il volume: quante prestazioni sono state fatte qui che altrimenti sarebbero state fatte altrove o non fatte affatto. Il terzo sono i viaggi risparmiati, che non è un numero sanitario ma è quello che i sindaci e i cittadini capiscono, ed è la cosa che tiene in piedi il consenso politico. Due avvertenze che metterei per iscritto nel rapporto invece di lasciarle scoprire. La prima: con 3.200 assistiti i numeri sono piccoli, e differenze di pochi casi possono essere solo caso — vanno presentate come tendenze, non come prove. La seconda: se il presidio funziona, all'inizio i problemi trovati aumentano, perché si guarda dove prima non si guardava. Se non lo si dice prima, il primo anno sembrerà un peggioramento."
+          },
+          "chat": [
+            "Dottoressa, chi decide materialmente se il presidio viene rifinanziato?",
+            "L'ASL le ha mai chiesto dati per giustificare un servizio?",
+            "Secondo lei i sindaci a quali numeri sono più sensibili?"
+          ]
+        },
+        "pitch": {
+          "sezioni": {
+            "sintesi": "Dottoressa, i dati qui servono a due cose: capire cosa serve prima di partire, e dimostrare dopo che è servito. Sui bisogni: 3.200 assistiti, età alta, e tre problemi in ordine di peso — la cronicità, che genera la maggior parte degli accessi; la distanza, che trasforma una prestazione in un viaggio e quindi in una prestazione non fatta; e la solitudine, che fa arrivare tutto più tardi. I numeri veri li ha l'ASL e vanno chiesti prima di scrivere qualunque cifra definitiva: quello che ho messo finora è una stima e va detto. Sugli indicatori ne tengo sei, ma quelli che decidono sono tre: gli accessi al pronto soccorso prima e dopo, le prestazioni fatte qui, e i viaggi risparmiati. I primi due li capisce l'ASL, il terzo lo capiscono i sindaci e i cittadini. E due cose le scrivo nel rapporto invece di lasciarle scoprire: che con numeri piccoli le differenze possono essere caso e vanno dette come tendenze, e che se il presidio funziona all'inizio i problemi trovati aumentano, perché si guarda dove prima non si guardava. Se non lo diciamo prima, il primo anno sembrerà un fallimento."
+          },
+          "chat": [
+            "Ultimo passo, dottoressa. Dei sei indicatori, ce n'è uno che secondo lei non riusciremo a raccogliere?",
+            "Le sembra giusto contare anche le persone che smettono e non lo dicono?",
+            "Se dopo un anno i numeri fossero incerti, preferisce che lo scriva o che lo smorzi?",
+            "C'è qualcosa che vuole assolutamente vedere nel documento finale?"
+          ]
+        }
+      }
+    }
+  }
+}
