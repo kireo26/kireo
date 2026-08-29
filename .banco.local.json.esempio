@@ -8,5 +8,6 @@
   "supabaseServiceRoleKey": "→ Supabase → Project Settings → API keys → service_role (NON la anon)",
 
   "vercelToken": "→ Vercel → Account Settings → Tokens → Create (scope: il team che possiede kireo)",
-  "vercelProjectId": "→ Vercel → progetto kireo → Settings → General → Project ID (prj_...)"
+  "vercelProjectId": "→ Vercel → progetto kireo → Settings → General → Project ID (prj_...)",
+  "vercelTeamSlug": "kireo — si legge dall'indirizzo del pannello (vercel.com/<team>/<progetto>/...). Facoltativo: serve solo a rendere cliccabile il link a un deploy fallito."
 }

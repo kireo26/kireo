@@ -37,9 +37,12 @@ BANCO DI PROVA — i gesti manuali, fatti dal terminale
       tentativi spesi, esito della revisione, fiducia accumulata.
       Il filtro è una sottostringa (slug del workshop, del ruolo, o id).
 
-  npm run banco log [minuti]
+  npm run banco log [minuti] [dpl_...] [--tutto]
       Le righe di errore dei revisori dai log di produzione (default: 60
-      minuti), più cosa fare per ciascun motivo.
+      minuti), più cosa fare per ciascun motivo. Consulta TUTTI i deploy che
+      coprono la finestra — dopo un redeploy le righe del guasto stanno sul
+      deploy di prima — e dice sempre cosa ha potuto guardare e cosa no.
+      Con --tutto mostra ogni riga, non solo quelle filtrate.
 
   npm run banco deploy
       Aspetta che il deploy di produzione sia READY, invece di ricaricare
@@ -106,8 +109,13 @@ async function main() {
       return motore();
     case "percorso":
       return percorso(resto[0]);
-    case "log":
-      return log(resto[0] ? Number(resto[0]) : 60);
+    case "log": {
+      // `--tutto` mostra ogni riga, non solo quelle filtrate: il filtro è una
+      // comodità, non l'unico modo di vedere cosa è successo.
+      const minuti = resto.find((a) => /^\d+$/.test(a));
+      const deployId = resto.find((a) => a.startsWith("dpl_"));
+      return log(minuti ? Number(minuti) : 60, { tutto: resto.includes("--tutto"), deployId });
+    }
     case "deploy":
       return deploy(true);
     case "azzera-tentativi":
