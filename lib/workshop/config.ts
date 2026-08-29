@@ -258,7 +258,11 @@ RICORDA: sei il cliente che deve essere convinto, non il professore che valuta. 
 export type MaterialeWorkshop = {
   titolo: string;
   descrizione: string;
-  tipo: "link" | "pdf" | "template" | "esempio" | "domanda";
+  // "template" e "domanda" sono usciti il 2026-08-29 insieme al caricamento
+  // file: una scheda da compilare e una domanda «a cui rispondere nella
+  // consegna» descrivevano un modo di consegnare che non esiste più. Il brief
+  // oggi lo dà l'`obiettivo` di ogni tappa in elaborato-config.ts.
+  tipo: "link" | "pdf" | "esempio";
   url?: string;
 };
 
@@ -268,7 +272,12 @@ export type MaterialeWorkshop = {
 // necessariamente uguale al workshop_slug in DB, es. "cargo-bike" vs
 // "cargo-bike-torino"), non 3-4 card frammentate che punterebbero tutte
 // allo stesso file — un solo materiale "pdf" reale per ruolo, più gli
-// eventuali link interni genuinamente distinti e la domanda della consegna.
+// eventuali link interni genuinamente distinti e l'esempio svolto.
+//
+// COSA CI STA E COSA NO. Qui dentro va il materiale di CAMPO: i dati, il
+// metodo, le qualifiche, i costi — roba che serve a chi lavora, qualunque sia
+// il modo in cui poi consegna. NON ci va niente che descriva il MECCANISMO di
+// consegna: quello lo dicono le tappe dell'elaborato, in un posto solo.
 export const WORKSHOP_KIT: Record<string, Record<string, MaterialeWorkshop[]>> = {
   "enoteca-centocelle": {
     economia: [
@@ -285,12 +294,6 @@ export const WORKSHOP_KIT: Record<string, Record<string, MaterialeWorkshop[]>> =
         tipo: "link",
         url: "/aree/economia-management",
       },
-      {
-        titolo: "Domanda a cui rispondere nella consegna",
-        descrizione:
-          "Piano investimento iniziale (dove vanno gli 80.000€, voce per voce), conto economico mensile per i primi 24 mesi, calcolo del break-even e runway: quanti mesi di cassa hai prima di finire i soldi.",
-        tipo: "domanda",
-      },
     ],
     giurisprudenza: [
       {
@@ -299,11 +302,6 @@ export const WORKSHOP_KIT: Record<string, Record<string, MaterialeWorkshop[]>> =
           "Le pratiche in ordine cronologico con tempi e costi (partita IVA, SCIA al SUAP, HACCP...) e il confronto tra ditta individuale e SRL semplificata.",
         tipo: "pdf",
         url: "/materiali/workshop/enoteca/giurisprudenza-kit.pdf",
-      },
-      {
-        titolo: "Domanda a cui rispondere nella consegna",
-        descrizione: "Gianni vuole vendere vino anche online. Cosa cambia rispetto alla vendita in negozio? Serve un'autorizzazione in più?",
-        tipo: "domanda",
       },
     ],
     grafica: [
@@ -314,12 +312,6 @@ export const WORKSHOP_KIT: Record<string, Record<string, MaterialeWorkshop[]>> =
         tipo: "pdf",
         url: "/materiali/workshop/enoteca/grafica-kit.pdf",
       },
-      {
-        titolo: "Domanda a cui rispondere nella consegna",
-        descrizione:
-          "Il logo deve funzionare su insegna esterna, vetrofania, etichetta private label, profilo Instagram, menù stampato e scontrino. Hai testato tutte le applicazioni?",
-        tipo: "domanda",
-      },
     ],
     marketing: [
       {
@@ -329,12 +321,6 @@ export const WORKSHOP_KIT: Record<string, Record<string, MaterialeWorkshop[]>> =
         tipo: "pdf",
         url: "/materiali/workshop/enoteca/marketing-kit.pdf",
       },
-      {
-        titolo: "Domanda a cui rispondere nella consegna",
-        descrizione:
-          "Gianni non vuole spendere in advertising. Come generi traffico nei primi 3 mesi senza budget paid? Presenta esattamente 3 tattiche concrete con stima del risultato atteso.",
-        tipo: "domanda",
-      },
     ],
     food: [
       {
@@ -343,11 +329,6 @@ export const WORKSHOP_KIT: Record<string, Record<string, MaterialeWorkshop[]>> =
           "Cosa significa davvero \"vino naturale\", come strutturare una carta da 30-40 etichette, dove si compra nel Lazio e un menu food pairing a food cost contenuto.",
         tipo: "pdf",
         url: "/materiali/workshop/enoteca/food-kit.pdf",
-      },
-      {
-        titolo: "Domanda a cui rispondere nella consegna",
-        descrizione: "Gianni vuole un piatto caldo serale — uno solo, semplice. Come lo integri senza aumentare i costi fissi di gestione della cucina?",
-        tipo: "domanda",
       },
     ],
   },
@@ -359,12 +340,6 @@ export const WORKSHOP_KIT: Record<string, Record<string, MaterialeWorkshop[]>> =
         tipo: "pdf",
         url: "/materiali/workshop/cargo-bike/economia-kit.pdf",
       },
-      {
-        titolo: "Domanda a cui rispondere nella consegna",
-        descrizione:
-          "Calcola il punto di pareggio della conversione: in quanti mesi le cargo bike ripagano l'investimento, considerando i risparmi su carburante, multe ZTL e manutenzione.",
-        tipo: "domanda",
-      },
     ],
     mobilita: [
       {
@@ -372,11 +347,6 @@ export const WORKSHOP_KIT: Record<string, Record<string, MaterialeWorkshop[]>> =
         descrizione: "Tipologie di hub (grandi, medi, nano-hub), raggio di copertura efficace, densità di consegne necessaria. Dati da progetti pilota europei.",
         tipo: "pdf",
         url: "/materiali/workshop/cargo-bike/mobilita-kit.pdf",
-      },
-      {
-        titolo: "Domanda a cui rispondere nella consegna",
-        descrizione: "Disegna la rete: dove metti gli hub a Torino, quale area copre ogni cargo bike, quante consegne al giorno può fare un rider realisticamente.",
-        tipo: "domanda",
       },
     ],
     tecnica: [
@@ -386,11 +356,6 @@ export const WORKSHOP_KIT: Record<string, Record<string, MaterialeWorkshop[]>> =
         tipo: "pdf",
         url: "/materiali/workshop/cargo-bike/tecnica-kit.pdf",
       },
-      {
-        titolo: "Domanda a cui rispondere nella consegna",
-        descrizione: "Quante cargo bike servono e di che tipo? Come gestisci ricarica, manutenzione e i giorni di pioggia? Renzo teme le salite di Torino: rispondigli.",
-        tipo: "domanda",
-      },
     ],
     digitale: [
       {
@@ -399,11 +364,6 @@ export const WORKSHOP_KIT: Record<string, Record<string, MaterialeWorkshop[]>> =
         tipo: "pdf",
         url: "/materiali/workshop/cargo-bike/digitale-kit.pdf",
       },
-      {
-        titolo: "Domanda a cui rispondere nella consegna",
-        descrizione: "Progetta il sistema minimo indispensabile. Renzo è scettico sulle app: dimostragli il risparmio concreto in tempo e errori.",
-        tipo: "domanda",
-      },
     ],
     sostenibilita: [
       {
@@ -411,11 +371,6 @@ export const WORKSHOP_KIT: Record<string, Record<string, MaterialeWorkshop[]>> =
         descrizione: "Come si calcolano le emissioni risparmiate, quali bandi regionali finanziano le cargo bike, come si costruisce la rendicontazione.",
         tipo: "pdf",
         url: "/materiali/workshop/cargo-bike/sostenibilita-kit.pdf",
-      },
-      {
-        titolo: "Domanda a cui rispondere nella consegna",
-        descrizione: "Quanta CO₂ evita la conversione in un anno? Quali contributi pubblici può ottenere Renzo e a quali condizioni?",
-        tipo: "domanda",
       },
     ],
   },
@@ -427,11 +382,6 @@ export const WORKSHOP_KIT: Record<string, Record<string, MaterialeWorkshop[]>> =
         tipo: "pdf",
         url: "/materiali/workshop/presidio/salute-kit.pdf",
       },
-      {
-        titolo: "Domanda a cui rispondere nella consegna",
-        descrizione: "Definisci i servizi del presidio e le figure necessarie. La dottoressa Ferretti ti chiederà come funziona per una signora di 82 anni con scompenso cardiaco.",
-        tipo: "domanda",
-      },
     ],
     digitale: [
       {
@@ -439,11 +389,6 @@ export const WORKSHOP_KIT: Record<string, Record<string, MaterialeWorkshop[]>> =
         descrizione: "Televisita, teleconsulto, telemonitoraggio: differenze, requisiti tecnici, Piattaforma Nazionale Telemedicina, connettività in aree montane.",
         tipo: "pdf",
         url: "/materiali/workshop/presidio/digitale-kit.pdf",
-      },
-      {
-        titolo: "Domanda a cui rispondere nella consegna",
-        descrizione: "Progetta l'infrastruttura. Ricorda: i pazienti hanno 75+ anni e in montagna il segnale non c'è ovunque. Chi installa, chi insegna, chi ripara?",
-        tipo: "domanda",
       },
     ],
     normativa: [
@@ -453,11 +398,6 @@ export const WORKSHOP_KIT: Record<string, Record<string, MaterialeWorkshop[]>> =
         tipo: "pdf",
         url: "/materiali/workshop/presidio/normativa-kit.pdf",
       },
-      {
-        titolo: "Domanda a cui rispondere nella consegna",
-        descrizione: "Quali fondi sono realmente accessibili e con quali scadenze? Cosa succede quando il PNRR finisce nel 2026? La dottoressa non vuole aprire e chiudere.",
-        tipo: "domanda",
-      },
     ],
     comunicazione: [
       {
@@ -466,11 +406,6 @@ export const WORKSHOP_KIT: Record<string, Record<string, MaterialeWorkshop[]>> =
         tipo: "pdf",
         url: "/materiali/workshop/presidio/comunicazione-kit.pdf",
       },
-      {
-        titolo: "Domanda a cui rispondere nella consegna",
-        descrizione: "Come fai conoscere il presidio e convinci le persone a usarlo? Chi sono gli alleati sul territorio?",
-        tipo: "domanda",
-      },
     ],
     dati: [
       {
@@ -478,11 +413,6 @@ export const WORKSHOP_KIT: Record<string, Record<string, MaterialeWorkshop[]>> =
         descrizione: "Indicatori demografici e epidemiologici, prevalenza cronicità negli over 65, come si costruisce un profilo di salute di comunità.",
         tipo: "pdf",
         url: "/materiali/workshop/presidio/dati-kit.pdf",
-      },
-      {
-        titolo: "Domanda a cui rispondere nella consegna",
-        descrizione: "Quali bisogni ha questa popolazione? Quali indicatori userai per dimostrare che il presidio funziona dopo 12 mesi?",
-        tipo: "domanda",
       },
     ],
   },
@@ -494,11 +424,6 @@ export const WORKSHOP_KIT: Record<string, Record<string, MaterialeWorkshop[]>> =
         tipo: "pdf",
         url: "/materiali/workshop/scuola-musica/musica-kit.pdf",
       },
-      {
-        titolo: "Domanda a cui rispondere nella consegna",
-        descrizione: "Definisci corsi, orari e tariffe. Ciro vuole che un ragazzino del quartiere possa permettersele: come lo garantisci senza andare in perdita?",
-        tipo: "domanda",
-      },
     ],
     spazio: [
       {
@@ -506,11 +431,6 @@ export const WORKSHOP_KIT: Record<string, Record<string, MaterialeWorkshop[]>> =
         descrizione: "Acustica e insonorizzazione a basso costo, uso flessibile delle sale, identità visiva di uno spazio culturale.",
         tipo: "pdf",
         url: "/materiali/workshop/scuola-musica/spazio-kit.pdf",
-      },
-      {
-        titolo: "Domanda a cui rispondere nella consegna",
-        descrizione: "Come dividi i 120 mq tra aule, sala prove e spazio concerti? Come gestisci l'insonorizzazione con budget minimo in un condominio?",
-        tipo: "domanda",
       },
     ],
     didattica: [
@@ -520,11 +440,6 @@ export const WORKSHOP_KIT: Record<string, Record<string, MaterialeWorkshop[]>> =
         tipo: "pdf",
         url: "/materiali/workshop/scuola-musica/didattica-kit.pdf",
       },
-      {
-        titolo: "Domanda a cui rispondere nella consegna",
-        descrizione: "Progetta il percorso per un principiante di 10 anni e per un adulto. Come coinvolgi chi non ha mai suonato e non può comprare uno strumento?",
-        tipo: "domanda",
-      },
     ],
     bandi: [
       {
@@ -533,11 +448,6 @@ export const WORKSHOP_KIT: Record<string, Record<string, MaterialeWorkshop[]>> =
         tipo: "pdf",
         url: "/materiali/workshop/scuola-musica/bandi-kit.pdf",
       },
-      {
-        titolo: "Domanda a cui rispondere nella consegna",
-        descrizione: "Individua 3 bandi reali con scadenze e requisiti. Quale forma giuridica conviene e perché? Quanto costa la SIAE per un concerto mensile?",
-        tipo: "domanda",
-      },
     ],
     comunicazione: [
       {
@@ -545,12 +455,6 @@ export const WORKSHOP_KIT: Record<string, Record<string, MaterialeWorkshop[]>> =
         descrizione: "Come uno spazio culturale costruisce rapporto col territorio senza essere percepito come corpo estraneo. Casi italiani reali.",
         tipo: "pdf",
         url: "/materiali/workshop/scuola-musica/comunicazione-kit.pdf",
-      },
-      {
-        titolo: "Domanda a cui rispondere nella consegna",
-        descrizione:
-          "Come fai sapere al rione che esisti e che è anche loro? Ciro ha visto arrivare spazi che al quartiere non hanno dato nulla: convincilo che il tuo è diverso.",
-        tipo: "domanda",
       },
     ],
   },
@@ -564,24 +468,11 @@ export const WORKSHOP_KIT: Record<string, Record<string, MaterialeWorkshop[]>> =
         url: "/materiali/workshop/palestra-popolare/salute-kit.pdf",
       },
       {
-        titolo: "Il template: la scheda del programma",
-        descrizione:
-          "Scheda da compilare per costruire la consegna: programma settimanale, figure e qualifiche, sicurezza, inclusione. Ti toglie il foglio bianco.",
-        tipo: "template",
-        url: "/materiali/workshop/palestra-popolare/salute-template.pdf",
-      },
-      {
         titolo: "Un esempio svolto",
         descrizione:
           "Una consegna fatta bene per un progetto diverso (una scuola di pallavolo): guarda la forma, non copiare i contenuti.",
         tipo: "esempio",
         url: "/materiali/workshop/palestra-popolare/salute-esempio.pdf",
-      },
-      {
-        titolo: "Domanda a cui rispondere nella consegna",
-        descrizione:
-          "Costruisci il programma settimanale per fasce d'età e l'elenco delle figure necessarie con le loro qualifiche. Tonino sa allenare alla boxe: digli chi trova per il resto e quanto costa.",
-        tipo: "domanda",
       },
     ],
     educazione: [
@@ -593,24 +484,11 @@ export const WORKSHOP_KIT: Record<string, Record<string, MaterialeWorkshop[]>> =
         url: "/materiali/workshop/palestra-popolare/educazione-kit.pdf",
       },
       {
-        titolo: "Il template: la scheda del progetto educativo",
-        descrizione:
-          "Scheda da compilare: a chi ti rivolgi e perché, le attività, gli alleati, come misuri i risultati.",
-        tipo: "template",
-        url: "/materiali/workshop/palestra-popolare/educazione-template.pdf",
-      },
-      {
         titolo: "Un esempio svolto",
         descrizione:
           "Una consegna fatta bene per un progetto diverso (un doposcuola in biblioteca): guarda la forma, non copiare i contenuti.",
         tipo: "esempio",
         url: "/materiali/workshop/palestra-popolare/educazione-esempio.pdf",
-      },
-      {
-        titolo: "Domanda a cui rispondere nella consegna",
-        descrizione:
-          "Scrivi il progetto educativo: a chi si rivolge, quali attività oltre all'allenamento, con quali alleati e come misuri i risultati. Mostra a Tonino come si fa senza diventare una scuola.",
-        tipo: "domanda",
       },
     ],
     economia: [
@@ -622,24 +500,11 @@ export const WORKSHOP_KIT: Record<string, Record<string, MaterialeWorkshop[]>> =
         url: "/materiali/workshop/palestra-popolare/economia-kit.pdf",
       },
       {
-        titolo: "Il template: la scheda dei conti",
-        descrizione:
-          "Scheda da compilare: tabella costi già impostata, calcolo del pareggio, entrate alternative, piano di investimento entro i 30.000€.",
-        tipo: "template",
-        url: "/materiali/workshop/palestra-popolare/economia-template.pdf",
-      },
-      {
         titolo: "Un esempio svolto",
         descrizione:
           "Una consegna fatta bene per un progetto diverso (una ciclofficina popolare): guarda come si costruisce il ragionamento economico.",
         tipo: "esempio",
         url: "/materiali/workshop/palestra-popolare/economia-esempio.pdf",
-      },
-      {
-        titolo: "Domanda a cui rispondere nella consegna",
-        descrizione:
-          "Con 30.000€ di budget e i minori che non pagano, quante quote adulti servono per il pareggio e da dove arrivano le altre entrate? Tonino vuole un numero preciso e parole semplici.",
-        tipo: "domanda",
       },
     ],
     spazio: [
@@ -651,22 +516,11 @@ export const WORKSHOP_KIT: Record<string, Record<string, MaterialeWorkshop[]>> =
         url: "/materiali/workshop/palestra-popolare/spazio-kit.pdf",
       },
       {
-        titolo: "Il template: la scheda dello spazio",
-        descrizione: "Scheda da compilare: la pianta a blocchi, il preventivo per fasi, la checklist \"a norma\".",
-        tipo: "template",
-        url: "/materiali/workshop/palestra-popolare/spazio-template.pdf",
-      },
-      {
         titolo: "Un esempio svolto",
         descrizione:
           "Una consegna fatta bene per un progetto diverso (un ex negozio trasformato in sala studio): guarda la logica delle fasi e delle norme.",
         tipo: "esempio",
         url: "/materiali/workshop/palestra-popolare/spazio-esempio.pdf",
-      },
-      {
-        titolo: "Domanda a cui rispondere nella consegna",
-        descrizione: "Disegna la pianta dello spazio e il preventivo per fasi entro i 30.000€. Tonino vuole sapere cosa apre subito a norma e cosa rimanda a dopo.",
-        tipo: "domanda",
       },
     ],
     legale: [
@@ -678,24 +532,11 @@ export const WORKSHOP_KIT: Record<string, Record<string, MaterialeWorkshop[]>> =
         url: "/materiali/workshop/palestra-popolare/legale-kit.pdf",
       },
       {
-        titolo: "Il template: la scheda legale e bandi",
-        descrizione:
-          "Scheda da compilare: la forma giuridica e il perché, gli adempimenti, i 3 bandi (nome, importo, scadenza), l'inquadramento degli istruttori.",
-        tipo: "template",
-        url: "/materiali/workshop/palestra-popolare/legale-template.pdf",
-      },
-      {
         titolo: "Un esempio svolto",
         descrizione:
           "Una consegna fatta bene per un progetto diverso (un coro di quartiere che diventa APS): guarda come si motiva una scelta e si trovano i bandi.",
         tipo: "esempio",
         url: "/materiali/workshop/palestra-popolare/legale-esempio.pdf",
-      },
-      {
-        titolo: "Domanda a cui rispondere nella consegna",
-        descrizione:
-          "Scegli la forma giuridica e individua 3 bandi reali con scadenze e requisiti. Spiega tutto a Tonino in parole semplici: ha la terza media e non vuole sorprese burocratiche.",
-        tipo: "domanda",
       },
     ],
   },
