@@ -56,3 +56,6 @@ schede-missioni.md
 # Configurazione locale del banco di prova: contiene segreti veri
 # (segreto del cron, chiave service_role, token Vercel). Mai committata.
 .banco.local.json
+
+# Rapporti del robot del banco: materiale da leggere, non da versionare
+banco-robot-*.json

@@ -32,6 +32,22 @@ const CHIAVI = {
     cosa: "L'indirizzo del progetto Supabase.",
     dove: "Supabase → Project Settings → Data API → Project URL (finisce in .supabase.co).",
   },
+  // Le tre chiavi del robot. Stanno QUI e in nessun altro posto: non in
+  // variabili d'ambiente, non nel codice, non in un .env che poi qualcuno
+  // committa. Un segreto che vive in due posti è un segreto che in uno dei due
+  // resta vecchio.
+  supabaseAnonKey: {
+    cosa: "La chiave pubblica (anon) di Supabase: è quella che usa il browser di uno studente.",
+    dove: "Supabase → Project Settings → API keys → anon public. NON la service_role: il robot deve passare dalla RLS come chiunque altro.",
+  },
+  robotEmail: {
+    cosa: "L'indirizzo dell'account con cui il robot gioca.",
+    dove: "È un account studente registrato a mano dal sito, e marcato `di_prova = true` su profiles. Il robot verifica il flag all'avvio e si rifiuta di partire se manca.",
+  },
+  robotPassword: {
+    cosa: "La password di quell'account.",
+    dove: "Quella che hai scelto registrandolo. Resta solo in questo file, che git ignora.",
+  },
   supabaseServiceRoleKey: {
     cosa: "La chiave service_role di Supabase: legge tutto scavalcando la RLS.",
     dove: "Supabase → Project Settings → API keys → service_role. NON è la chiave anon: quella non vede le righe degli studenti.",
