@@ -97,6 +97,28 @@ async function main() {
 
   // ── i pattern, su una struttura JSON annidata ────────────────────────────
   ok(trovaAccordi("Hai cercato, hai parlato, hai messo.").length === 0, "una frase con soli participi in «avere» non viene catturata");
+
+  // Il RIPIEGO TIPOGRAFICO, provato e non riletto: la prima stesura di questo
+  // pattern escludeva un punto qualsiasi dopo il segno (per gli indirizzi
+  // email) e con quello non catturava proprio il caso reale da cui era nata.
+  // Un pattern si prova sulle stringhe, non si legge.
+  const CASI_SEGNO = [
+    ["Questo me piace, ragazz@.", 1, "chiocciola a fine frase"],
+    ["Ciao ragazz@, come va?", 1, "chiocciola a metà frase"],
+    ["bravissim@", 1, "chiocciola in fondo alla stringa"],
+    ["Bravə davvero.", 1, "schwa singolare (U+0259)"],
+    ["Siete tuttɜ invitati.", 1, "schwa plurale (U+025C) — il quattordicesimo caso"],
+    ["Bravǝ davvero.", 1, "e rovesciata (U+01DD)"],
+    ["Scrivi a mario.izzo@hotmail.it quando vuoi.", 0, "indirizzo email con punto nel nome"],
+    ["noreply@kireo.it", 0, "indirizzo email nudo"],
+    ["MARIO@KIREO.IT", 0, "indirizzo email in maiuscolo"],
+    ["info@my-scuola.edu.it", 0, "dominio col trattino"],
+    ["Seguici su @kireo26", 0, "una menzione non è un ripiego"],
+    ["Hai messo il corso della sera al posto giusto.", 0, "una frase invariante resta pulita"],
+  ];
+  for (const [testo, atteso, nome] of CASI_SEGNO) {
+    ok(trovaAccordi(testo).length === atteso, `segno: ${nome}`);
+  }
   ok(trovaAccordiInJson({ a: ["tutto bene", "sei partito da lì"] }).length === 1, "la scansione entra dentro gli array annidati");
   ok(trovaAccordiInJson({ sei_andato: "Hai scelto bene." }).length === 0, "le CHIAVI non sono lingua: non vengono scansionate");
 
