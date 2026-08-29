@@ -1,130 +1,33 @@
-import { NextRequest, NextResponse } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
-import { createClient } from "@/lib/supabase/server";
-import { chiamaJson } from "@/lib/ai/chiamaJson";
-import { MODELLO_CLIENTE_WORKSHOP, MAX_FILE_SIZE_CONSEGNA, TIPI_FILE_CONSEGNA_CONSENTITI } from "@/lib/workshop/config";
+import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
-function erroreDiCortesia(testo: string, status: number) {
-  return NextResponse.json({ errore: testo }, { status });
-}
-
-type FeedbackAI = {
-  punti_forza: string[];
-  aree_miglioramento: string[];
-  domanda_stimolante: string;
-};
-
-// Upload della consegna su Storage (bucket privato) + analisi automatica
-// del file da parte dell'AI. La chiave Anthropic resta lato server; se
-// l'analisi fallisce l'upload resta comunque valido (feedback_ai null),
-// mai un errore bloccante per un problema del solo feedback.
-export async function POST(request: NextRequest) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return erroreDiCortesia("Devi accedere con il tuo profilo studente.", 401);
-  }
-
-  const formData = await request.formData();
-  const file = formData.get("file");
-  const iscrizioneId = formData.get("iscrizioneId");
-  const ruoloSlug = formData.get("ruoloSlug");
-  const workshopTitolo = formData.get("workshopTitolo");
-
-  if (!(file instanceof File) || typeof iscrizioneId !== "string" || typeof ruoloSlug !== "string") {
-    return erroreDiCortesia("Dati mancanti.", 400);
-  }
-
-  if (file.size > MAX_FILE_SIZE_CONSEGNA) {
-    return erroreDiCortesia("File troppo grande (max 10 MB).", 400);
-  }
-  if (!TIPI_FILE_CONSEGNA_CONSENTITI.includes(file.type)) {
-    return erroreDiCortesia("Tipo di file non supportato.", 400);
-  }
-
-  const { data: iscrizione } = await supabase
-    .from("workshop_iscrizioni")
-    .select("id")
-    .eq("id", iscrizioneId)
-    .eq("student_id", user.id)
-    .maybeSingle();
-  if (!iscrizione) {
-    return erroreDiCortesia("Iscrizione non trovata.", 403);
-  }
-
-  const estensione = file.name.split(".").pop() ?? "bin";
-  const percorso = `${user.id}/${iscrizioneId}/${Date.now()}.${estensione}`;
-  const fileBuffer = Buffer.from(await file.arrayBuffer());
-
-  const { error: erroreUpload } = await supabase.storage.from("workshop-consegne").upload(percorso, fileBuffer, {
-    contentType: file.type,
-    upsert: false,
-  });
-  if (erroreUpload) {
-    console.error("Errore upload consegna workshop:", erroreUpload);
-    return erroreDiCortesia("Non è stato possibile caricare il file. Riprova.", 500);
-  }
-
-  let feedbackAI: FeedbackAI | null = null;
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  const isImmagine = file.type.startsWith("image/");
-  const isPDF = file.type === "application/pdf";
-
-  if (apiKey && (isImmagine || isPDF)) {
-    const systemPromptFeedback = `Sei un mentor esperto in orientamento professionale per studenti delle scuole superiori italiane (16-19 anni). Stai analizzando un lavoro prodotto nell'ambito del workshop "${workshopTitolo || "KIREO"}", per il ruolo "${ruoloSlug}". Fornisci un feedback strutturato, incoraggiante ma onesto. Tono diretto, caldo, mai paternalistico, mai una promessa di risultato garantito. Rispondi SOLO con JSON valido in questo formato, senza altro testo:
-{"punti_forza": ["...", "...", "..."], "aree_miglioramento": ["...", "..."], "domanda_stimolante": "..."}`;
-
-    const base64 = fileBuffer.toString("base64");
-    const contenuto = isImmagine
-      ? [
-          { type: "image" as const, source: { type: "base64" as const, media_type: file.type as "image/png" | "image/jpeg", data: base64 } },
-          { type: "text" as const, text: `Analizza questo lavoro prodotto per il ruolo di ${ruoloSlug}.` },
-        ]
-      : [
-          { type: "document" as const, source: { type: "base64" as const, media_type: "application/pdf" as const, data: base64 } },
-          { type: "text" as const, text: `Analizza questo documento prodotto per il ruolo di ${ruoloSlug}.` },
-        ];
-
-    // chiamaJson: estrazione robusta al poscritto (vale anche per l'analisi
-    // multimodale). Un fallimento lascia feedbackAI a null — l'upload resta
-    // valido, il feedback semplicemente non compare (invariato).
-    const esito = await chiamaJson(new Anthropic({ apiKey }), { model: MODELLO_CLIENTE_WORKSHOP, maxTokens: 600, system: systemPromptFeedback, user: contenuto });
-    if (esito.ok) {
-      const parsed = esito.dati as { punti_forza?: unknown; aree_miglioramento?: unknown; domanda_stimolante?: unknown };
-      if (Array.isArray(parsed.punti_forza) && Array.isArray(parsed.aree_miglioramento) && typeof parsed.domanda_stimolante === "string") {
-        feedbackAI = parsed as FeedbackAI;
-      }
-    } else {
-      console.error(`Errore analisi AI consegna workshop: motivo=${esito.motivo}`);
-    }
-  }
-
-  const { data: consegna, error: erroreDb } = await supabase
-    .from("workshop_consegne")
-    .insert({
-      iscrizione_id: iscrizioneId,
-      file_nome: file.name,
-      file_percorso: percorso,
-      file_tipo: file.type,
-      file_dimensione: file.size,
-      feedback_ai: feedbackAI,
-      stato: feedbackAI ? "analizzato" : "caricato",
-    })
-    .select("id, file_nome, file_tipo, file_dimensione, feedback_ai, stato, created_at")
-    .single();
-
-  if (erroreDb) {
-    if (erroreDb.message?.includes("troppe_consegne")) {
-      return erroreDiCortesia("Hai raggiunto il numero massimo di consegne per questo workshop.", 429);
-    }
-    return erroreDiCortesia("Il file è stato caricato ma non è stato possibile salvarne i dati. Riprova.", 500);
-  }
-
-  const { data: signedUrlData } = await supabase.storage.from("workshop-consegne").createSignedUrl(percorso, 3600);
-
-  return NextResponse.json({ consegna, signedUrl: signedUrlData?.signedUrl ?? null });
+// CHIUSA il 2026-08-29. Qui viveva il caricamento file del workshop (motore
+// v1): riceveva un PDF o un'immagine, la metteva su Storage, ne faceva
+// analizzare il contenuto e scriveva una riga in `workshop_consegne` con il
+// feedback.
+//
+// Il punto di ingresso è uscito dalla pagina del ruolo lo stesso giorno,
+// perché tutti e 25 i ruoli hanno il loro elaborato a tappe e due modi di
+// consegnare lo stesso lavoro producevano due giudizi sulla stessa iscrizione.
+// La route però restava raggiungibile da chiunque avesse una sessione e una
+// propria iscrizione: nessun bottone la chiamava, ma una richiesta a mano
+// andava a buon fine — e avrebbe consumato una chiamata a pagamento per
+// scrivere un giudizio su un contenuto che il prodotto non sa più produrre.
+// Un revisore vivo che nessuna pagina chiama è la cosa che fra sei mesi
+// nessuno sa più spiegare, quindi la porta si chiude qui.
+//
+// COSA NON È STATO TOCCATO: la tabella `workshop_consegne`, il bucket
+// `workshop-consegne` e i file già caricati restano — `lib/percorso/stato.ts`
+// li legge ancora, e chi aveva consegnato in v1 non deve retrocedere nel
+// percorso. Anche `components/workshop/ConsegnaUpload.tsx` resta al suo posto.
+//
+// Per riaprirla servono due gesti, non uno: togliere questo handler e
+// rimettere il blocco nella pagina. Il codice originale sta in git, prima di
+// questo commit.
+export async function POST() {
+  return NextResponse.json(
+    { errore: "Il caricamento file non fa più parte del workshop: il lavoro si consegna una tappa alla volta dal progetto online." },
+    { status: 410 },
+  );
 }

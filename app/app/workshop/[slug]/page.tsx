@@ -7,7 +7,6 @@ import { WORKSHOP_ELABORATO } from "@/lib/workshop/elaborato-config";
 import IscrizioneRuolo from "@/components/workshop/IscrizioneRuolo";
 import KitRuolo from "@/components/workshop/KitRuolo";
 import NetworkPeers from "@/components/workshop/NetworkPeers";
-import ConsegnaUpload from "@/components/workshop/ConsegnaUpload";
 import ComeFunziona from "@/components/workshop/ComeFunziona";
 
 export const metadata = { title: "Workshop — KIREO" };
@@ -86,8 +85,6 @@ export default async function WorkshopPage({ params }: { params: Promise<{ slug:
           {WORKSHOP_KIT[ws.slug]?.[ruoloIscritto.slug] && <KitRuolo ruolo={ruoloIscritto.titolo} materiali={WORKSHOP_KIT[ws.slug][ruoloIscritto.slug]} />}
 
           <Peers workshopId={ws.id} supabase={supabase} />
-
-          <ConsegneUpload iscrizioneId={iscrizione.id} workshopTitolo={ws.titolo} ruoloSlug={ruoloIscritto.slug} areaSlug={ruoloIscritto.area_slug} supabase={supabase} />
         </>
       )}
     </div>
@@ -121,31 +118,9 @@ async function Peers({ workshopId, supabase }: { workshopId: string; supabase: A
   return <NetworkPeers workshopId={workshopId} peers={peers} />;
 }
 
-async function ConsegneUpload({
-  iscrizioneId,
-  workshopTitolo,
-  ruoloSlug,
-  areaSlug,
-  supabase,
-}: {
-  iscrizioneId: string;
-  workshopTitolo: string;
-  ruoloSlug: string;
-  areaSlug: string;
-  supabase: Awaited<ReturnType<typeof createClient>>;
-}) {
-  const { data: consegne } = await supabase
-    .from("workshop_consegne")
-    .select("id, file_nome, file_percorso, file_dimensione, feedback_ai, stato, created_at")
-    .eq("iscrizione_id", iscrizioneId)
-    .order("created_at", { ascending: false });
-
-  const consegneConUrl = await Promise.all(
-    (consegne ?? []).map(async (c) => {
-      const { data } = await supabase.storage.from("workshop-consegne").createSignedUrl(c.file_percorso, 3600);
-      return { ...c, signedUrl: data?.signedUrl ?? null };
-    }),
-  );
-
-  return <ConsegnaUpload iscrizioneId={iscrizioneId} workshopTitolo={workshopTitolo} ruoloSlug={ruoloSlug} areaSlug={areaSlug} consegneEsistenti={consegneConUrl} />;
-}
+// Qui c'era il punto di ingresso del CARICAMENTO FILE (motore v1): il blocco
+// che elencava le consegne caricate e mostrava il form di upload. Tolto il
+// 2026-08-29 perché tutti e 25 i ruoli hanno il loro elaborato a tappe, e due
+// modi di consegnare lo stesso lavoro producevano due giudizi sulla stessa
+// iscrizione. Restano intatti la tabella `workshop_consegne`, i file già
+// caricati e il componente `ConsegnaUpload`: rimettere il blocco è una riga.

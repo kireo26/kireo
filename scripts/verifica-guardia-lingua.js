@@ -47,7 +47,7 @@ require.cache[percorsoContatore] = {
   exports: { registraGuardiaLingua: async (ancora) => { registrati.push(ancora); } },
 };
 
-const { chiamaJson } = require("@/lib/ai/chiamaJson");
+const { chiamaJson, estraiJson } = require("@/lib/ai/chiamaJson");
 const { REGOLA_LINGUA_INVARIANTE, trovaAccordi, trovaAccordiInJson } = require("@/lib/lingua/accordoGenere");
 const { REGOLA_REGISTRO, trovaRegistroInJson } = require("@/lib/lingua/registroStudente");
 
@@ -55,6 +55,9 @@ let falliti = 0;
 const ok = (cond, msg) => { if (!cond) { console.error("  ✗ " + msg); falliti++; } else { console.log("  ✓ " + msg); } };
 
 // Client finto: restituisce in ordine i testi passati; `null` = eccezione.
+// Un testo passato come { testo, troncata: true } simula una risposta fermata
+// dal tetto dei token (stop_reason "max_tokens"), che è ciò che l'API manda
+// quando il modello stava ancora scrivendo.
 function clienteFinto(risposte) {
   const visti = [];
   return {
@@ -62,9 +65,15 @@ function clienteFinto(risposte) {
     messages: {
       create: async (opzioni) => {
         visti.push(opzioni);
-        const testo = risposte.shift();
-        if (testo === null || testo === undefined) throw new Error("errore simulato");
-        return { content: [{ type: "text", text: testo }] };
+        const voce = risposte.shift();
+        if (voce === null || voce === undefined) throw new Error("errore simulato");
+        const testo = typeof voce === "string" ? voce : voce.testo;
+        const troncata = typeof voce === "object" && voce.troncata === true;
+        return {
+          content: [{ type: "text", text: testo }],
+          stop_reason: troncata ? "max_tokens" : "end_turn",
+          usage: { output_tokens: troncata ? opzioni.max_tokens : 10 },
+        };
       },
     },
   };
@@ -179,7 +188,26 @@ async function main() {
   esito = await chiamaJson(client, { ...opzioniBase, controlloExtra });
   ok(esito.ok && esito.dati.commento_breve.includes("37.000"), "cifra ancora presente al secondo giro: la guardia NON trattiene — sostituisce il chiamante");
 
-  // ── 8. le tre scansioni non si pestano i piedi ───────────────────────────
+  // ── 8. troncata ≠ estrazione ─────────────────────────────────────────────
+  // Due guasti diversi con due cure diverse: il tetto dei token da alzare, o
+  // un prompt che non produce JSON. Finché erano lo stesso `motivo`, capire
+  // quale fosse voleva dire leggere i log di Vercel e ragionare per indizi.
+  const MEZZO_JSON = '{"punti_forza": ["Hai messo il corso della sera al posto giu';
+  registrati.length = 0;
+  client = clienteFinto([{ testo: MEZZO_JSON, troncata: true }, { testo: MEZZO_JSON, troncata: true }]);
+  esito = await chiamaJson(client, opzioniBase);
+  ok(!esito.ok && esito.motivo === "troncata", "una risposta fermata dal tetto dei token è `troncata`, non `estrazione`");
+
+  client = clienteFinto(["non ho capito, scusa", "nemmeno adesso"]);
+  esito = await chiamaJson(client, opzioniBase);
+  ok(!esito.ok && esito.motivo === "estrazione", "una risposta senza JSON dentro resta `estrazione`");
+
+  // Una risposta troncata non produce mai MEZZA revisione: estraiJson non fa
+  // il parse di un frammento. Il difetto è la latenza, non la corruzione — e
+  // questo controllo è ciò che tiene vera quella frase.
+  ok(estraiJson(MEZZO_JSON) === undefined, "un JSON troncato non viene mai letto a metà");
+
+  // ── 9. le tre scansioni non si pestano i piedi ───────────────────────────
   ok(trovaRegistroInJson({ a: "Hai messo il corso al posto giusto." }).length === 0, "una frase che riporta non viene catturata dal registro");
   ok(trovaAccordiInJson({ a: "Lo studente lo nomina." }).length === 0, "il registro non è affare della guardia sul genere");
 

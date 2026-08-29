@@ -3,28 +3,23 @@ import type { MaterialeWorkshop } from "@/lib/workshop/config";
 const ETICHETTA_TIPO: Record<MaterialeWorkshop["tipo"], string> = {
   link: "Link",
   pdf: "PDF",
-  template: "Template",
   esempio: "Esempio",
-  domanda: "Domanda",
 };
 
 const COLORE_BADGE: Record<MaterialeWorkshop["tipo"], string> = {
   link: "bg-white/10 text-kireo-light/80",
   pdf: "bg-white/10 text-kireo-light/80",
-  template: "bg-white/10 text-kireo-light/80",
   esempio: "bg-kireo-green/15 text-kireo-green-light",
-  domanda: "bg-kireo-orange/15 text-kireo-orange",
 };
 
 export default function KitRuolo({ ruolo, materiali }: { ruolo: string; materiali: MaterialeWorkshop[] }) {
   return (
     <div className="rounded-2xl border border-white/5 bg-kireo-card p-6 sm:p-8">
       <h2 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">Kit materiali — {ruolo}</h2>
-      <p className="mt-1 text-sm text-kireo-muted">Dati, guide e template pensati per il tuo ruolo in questo workshop.</p>
+      <p className="mt-1 text-sm text-kireo-muted">I dati e il metodo del tuo ruolo in questo workshop. Tienili aperti mentre lavori alle tappe.</p>
 
       <ul className="mt-5 space-y-3">
         {materiali.map((materiale, indice) => {
-          const isDomanda = materiale.tipo === "domanda";
           const cliccabile = Boolean(materiale.url);
 
           const contenuto = (
@@ -41,7 +36,7 @@ export default function KitRuolo({ ruolo, materiali }: { ruolo: string; material
             </>
           );
 
-          const classeCard = `rounded-xl border p-4 ${isDomanda ? "border-kireo-orange/30 bg-kireo-orange/5" : "border-white/10"}`;
+          const classeCard = "rounded-xl border border-white/10 p-4";
 
           return (
             <li key={indice}>

@@ -16,9 +16,11 @@
     "test:guardia": "node scripts/verifica-guardia-lingua.js",
     "schede": "node scripts/schede-missioni.js",
     "misura:genere": "node scripts/misura-genere-revisori.js",
+    "misura:peso": "node scripts/misura-peso-per-area.js",
     "censimento": "node scripts/censimento-motore.js",
     "test:cifre": "node scripts/verifica-cifre-citabili.js",
-    "test:cornici": "node scripts/verifica-cornici.js"
+    "test:cornici": "node scripts/verifica-cornici.js",
+    "test:consegna": "node scripts/verifica-consegna-tappa.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.112.5",

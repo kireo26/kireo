@@ -82,8 +82,19 @@ export function sezioneRaggiungeMinimo(sezione: SezioneElaborato, valore: Valore
       return sezione.minRighe ? righe.length >= sezione.minRighe : righe.length > 0;
     }
     case "checklist": {
+      // Una spunta OPPURE una nota scritta. Prima serviva per forza almeno
+      // una spunta, e in una lista di cose che uno METTE IN PIEDI («spunta
+      // ciò che prevedi») questo rendeva indicibile la risposta «nessuna di
+      // queste»: per andare avanti lo studente doveva dichiarare di prevedere
+      // qualcosa che non prevedeva. Una scelta imposta da noi che finisce in
+      // `contenuto`, che il revisore legge come una sua dichiarazione e che
+      // domani, col cross-feed nel profilo, diventerebbe un'affermazione su
+      // di lui che nessuna sua scelta sostiene.
+      // La nota tiene comunque distinto «nessuna, e ti spiego perché» da «non
+      // l'ho compilata», che era la ragione per cui il vuoto secco non basta.
       const v = valore as ValoreChecklist;
-      return Boolean(v?.voci && Object.values(v.voci).some(Boolean));
+      const qualcheSpunta = Boolean(v?.voci && Object.values(v.voci).some(Boolean));
+      return qualcheSpunta || Boolean(v?.nota && v.nota.trim().length > 0);
     }
     case "scelta": {
       const v = valore as ValoreScelta;

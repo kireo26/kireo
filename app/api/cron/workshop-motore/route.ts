@@ -30,6 +30,40 @@ const REVISIONE_VUOTA: RevisioneTappa = {
 // accorcia il denominatore invece di contare 0 su 25.
 const MAX_TENTATIVI_REVISIONE = 3;
 
+// Tetto di token in USCITA per le due chiamate che scrivono testo letto dallo
+// studente. Erano 700 entrambe, ed erano strette: due tappe su sei hanno
+// fallito il PRIMO giro di cron per intero, su due workshop diversi — e una
+// risposta troncata non produce mezza revisione, ma ZERO (estraiJson non trova
+// la graffa di chiusura), quindi un giro buttato e, in produzione dove il cron
+// gira una volta al giorno, un giorno di attesa in più per lo studente.
+//
+// DA DOVE VENGONO I DUE NUMERI. Misurati sulle risposte riuscite osservate:
+// una revisione completa sta sui 1.800-1.900 caratteri (3 punti_forza da ~190,
+// 3 da_migliorare da ~220, domanda ~220, commento ~220, più chiavi e graffe),
+// che in italiano fanno ~525 token — il rapporto ~3,5 caratteri per token
+// torna con la stima indipendente fatta sulla risposta vera. Una revisione
+// verbosa, con gli stessi campi ma metà più lunghi, arriva intorno agli 800.
+// 1200 tiene quel caso con margine. Il FEEDBACK FINALE legge il progetto
+// INTERO, tutte e quattro le tappe: stessa forma, item più ricchi, ~1000 token
+// nel caso verboso.
+//
+// SUL FEEDBACK FINALE IL MARGINE È DELIBERATAMENTE PIÙ LARGO DEL NECESSARIO
+// (2000, non i ~1400 che basterebbero). Non è imprecisione: è il testo che
+// chiude lo stage, si genera UNA volta sola per progetto, e se si tronca tre
+// giri di fila il progetto si chiude con feedback null — un giudizio finale
+// che non si recupera se non rigiocando quattro tappe. Il costo di un tetto
+// largo è zero quando non serve; il costo di uno stretto è quello, ed è già
+// successo una volta (tappa 4 di palestra/salute, 2026-08-30).
+//
+// Un tetto è un LIMITE, non un'allocazione: quello che non viene generato non
+// si paga. Alzarlo costa zero sulle risposte normali e, nel caso peggiore in
+// cui il modello lo riempisse davvero, qualche millesimo di dollaro. Non è
+// invece una diagnosi: se i fallimenti fossero di chiamata (chiave, rate
+// limit, sovraccarico) alzarlo non cambierebbe niente — per questo
+// `chiamaJson` ora distingue il motivo `troncata` e registra i token usati.
+const MAX_TOKEN_REVISIONE = 1200;
+const MAX_TOKEN_FEEDBACK_FINALE = 2000;
+
 // Esito di una generazione AI, gemello dei tre stati del revisore Escape.
 // 'forma_non_valida' = JSON tornato ma di forma inattesa: prima cadeva in un
 // `else` che non c'era, quindi non produceva nulla E non veniva contato.
@@ -127,6 +161,12 @@ export async function GET(request: NextRequest) {
         if (contenuto[sezione.id] !== undefined) contenutoTappa[sezione.id] = contenuto[sezione.id];
       }
 
+      // Calcolata QUI e non più giù prima di `avanza_fase_workshop`: serve
+      // anche al revisore, a cui chiediamo una domanda che apra il passo
+      // successivo — senza saperlo, la direzione se la inventava.
+      const indiceFase = fasi.findIndex((f) => f.id === fase.id);
+      const prossimaFase = fasi[indiceFase + 1] ?? null;
+
       const nomeCliente = WORKSHOP_CLIENTE_NOME[workshop.slug] ?? "il cliente";
       const ctx: CtxTappa = {
         workshopTitolo: workshop.titolo,
@@ -141,13 +181,14 @@ export async function GET(request: NextRequest) {
         // titoli. Senza questa mappa il revisore scriveva «(sezione X)»,
         // copiando il segnaposto dell'esempio invece di nominare la sezione.
         sezioni: fase.sezioni.map((s) => ({ id: s.id, titolo: s.titolo })),
+        prossimaTappa: prossimaFase ? { titolo: prossimaFase.titolo, obiettivo: prossimaFase.obiettivo } : null,
       };
 
       let revisione: RevisioneTappa = REVISIONE_VUOTA;
       let esitoRevisioneStato: EsitoGenerazione = "non_riuscita";
       const esitoRevisione = await chiamaJson(client, {
         model: MODELLO_CLIENTE_WORKSHOP,
-        maxTokens: 700,
+        maxTokens: MAX_TOKEN_REVISIONE,
         system: promptRevisore(ctx),
         user: JSON.stringify(contenutoTappa, null, 2),
       });
@@ -217,7 +258,7 @@ export async function GET(request: NextRequest) {
         esitoFinaleStato = "non_riuscita";
         const esitoFinale = await chiamaJson(client, {
           model: MODELLO_CLIENTE_WORKSHOP,
-          maxTokens: 700,
+          maxTokens: MAX_TOKEN_FEEDBACK_FINALE,
           system: promptFeedbackFinale(ctx, fiduciaDopo),
           user: JSON.stringify(contenuto, null, 2),
         });
@@ -276,9 +317,6 @@ export async function GET(request: NextRequest) {
         .from("workshop_fasi_stato")
         .update({ tentativi_revisione: tentativiPrima + 1, revisione_esito: esitoRevisioneStato })
         .eq("id", riga.id);
-
-      const indiceFase = fasi.findIndex((f) => f.id === fase.id);
-      const prossimaFase = fasi[indiceFase + 1] ?? null;
 
       // Nota: punteggio_area (0-100, il "voto" complessivo del progetto)
       // resta salvato dentro feedback_ai per lo studente, ma NON diventa
@@ -410,7 +448,7 @@ where revisione_esito is not null and revisione_esito &lt;&gt; 'riuscita';</pre>
 <pre>select * from public.revisore_esiti
 where revisore_esito = 'non_riuscito'
   and aggiornato_il &gt; now() - interval '24 hours';</pre>
-<p>Per i workshop, cerca in questa esecuzione del cron le righe di log <code>Errore generazione revisione/feedback ... motivo=...</code>.</p>`;
+<p>Per i workshop, cerca in questa esecuzione del cron le righe di log <code>Errore generazione revisione/feedback ... motivo=...</code>. Il motivo dice cosa fare: <code>troncata</code> = la risposta si è fermata al tetto dei token, si alza il tetto nel chiamante (i log riportano anche quanti token su quanti); <code>chiamata</code> = l'API non ha risposto, si guarda lo <code>status</code> nella riga <code>chiamaJson — errore API</code> lì accanto; <code>estrazione</code> = ha risposto ma senza JSON dentro, ed è l'unico dei tre che riguarda il prompt.</p>`;
     const esitoMail = await inviaEmail(EMAIL_ADMIN, `KIREO — osservabilità (24h): ${totaleFalliti} revisori, ${testSenzaEsito} test senza esito`, html, "Mario");
     if (!esitoMail.ok) console.error(`Alert osservabilità — invio email fallito: ${esitoMail.motivo}`);
   }

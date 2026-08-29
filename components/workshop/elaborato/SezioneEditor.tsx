@@ -228,13 +228,20 @@ function ChecklistInput({
           </li>
         ))}
       </ul>
+      {/* Detto a schermo perché esista: la sezione si considera compilata
+          anche con zero spunte, purché la nota spieghi perché. Senza questa
+          riga la possibilità c'è nel codice e non nella testa di nessuno, e
+          lo studente spunta una voce a caso per poter andare avanti. */}
+      <p className="mt-3 text-xs text-kireo-muted">
+        Puoi anche non spuntare niente: in quel caso scrivi qui sotto perché.
+      </p>
       <textarea
         value={valore.nota ?? ""}
         onChange={(e) => onChange({ ...valore, nota: e.target.value })}
         rows={2}
-        placeholder="Note aggiuntive (facoltativo)…"
+        placeholder="Note, oppure il motivo per cui non hai spuntato niente…"
         disabled={disabled}
-        className={`${INPUT_CLASSI} mt-3 resize-y disabled:opacity-60`}
+        className={`${INPUT_CLASSI} mt-2 resize-y disabled:opacity-60`}
       />
     </div>
   );

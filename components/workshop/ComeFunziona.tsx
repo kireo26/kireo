@@ -1,9 +1,13 @@
+// I cinque passi raccontano il giro VERO: l'elaborato a tappe. Il salvataggio
+// automatico e il tutor su richiesta li dice già il blocco «Il tuo progetto
+// online» dentro la pagina del ruolo: qui non si ripetono, così le due schede
+// non finiscono per dire la stessa cosa in due modi diversi.
 const PASSI = [
   { titolo: "Scegli il tuo ruolo", testo: "coprirai una delle 5 aree del progetto. Un ruolo per persona." },
-  { titolo: "Apri il kit", testo: "dentro trovi una guida, un template da compilare e un esempio già svolto." },
-  { titolo: "Costruisci la tua consegna", testo: "segui il template, non partire dal foglio bianco." },
-  { titolo: "Parla con il cliente", testo: "nella chat portagli i tuoi dati e le tue idee. È esigente: va convinto." },
-  { titolo: "Carica la consegna", testo: "ricevi un feedback automatico e il punteggio sulla tua area." },
+  { titolo: "Conosci il cliente", testo: "ha vincoli precisi e non li molla. Prima di scrivere, chiedigli quello che ti serve." },
+  { titolo: "Lavora a tappe", testo: "quattro consegne, una alla volta. Ogni tappa si costruisce su quella prima." },
+  { titolo: "Fatti dire cosa non torna", testo: "a ogni tappa un tutor legge quello che hai scritto, e il cliente reagisce." },
+  { titolo: "Chiudi il progetto", testo: "all'ultima tappa arriva il giudizio sull'intero lavoro." },
 ];
 
 export default function ComeFunziona() {
@@ -22,7 +26,7 @@ export default function ComeFunziona() {
           </li>
         ))}
       </ol>
-      <p className="mt-4 text-sm text-kireo-muted">Non serve essere esperti: il kit ti guida passo per passo.</p>
+      <p className="mt-4 text-sm text-kireo-muted">Non serve essere esperti: la guida del tuo ruolo ti dà i dati e il metodo.</p>
     </div>
   );
 }

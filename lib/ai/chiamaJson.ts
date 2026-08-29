@@ -23,7 +23,18 @@ import { registraGuardiaLingua } from "@/lib/lingua/contatoreGuardia";
 const ISTRUZIONE_ANTI_POSCRITTO =
   "\n\nRispondi SOLO con l'oggetto JSON richiesto: nessun testo prima della parentesi graffa iniziale, nessun testo dopo la parentesi graffa finale.";
 
-export type EsitoAI = { ok: true; dati: unknown } | { ok: false; motivo: "chiamata" | "estrazione" };
+// `troncata` è un motivo a sé, non un caso di `estrazione`: significa che il
+// modello ha scritto una risposta buona e si è fermato a metà per il tetto di
+// token, quindi la cura è alzare il tetto — mentre `estrazione` significa che
+// ha scritto qualcosa che non contiene JSON, e lì il tetto non c'entra. Prima
+// erano indistinguibili nel log, e per capire quale dei due fosse bisognava
+// andare a leggere i log di Vercel e ragionare per indizi.
+export type EsitoAI = { ok: true; dati: unknown } | { ok: false; motivo: "chiamata" | "estrazione" | "troncata" };
+
+// Sopra questa frazione del tetto una risposta RIUSCITA viene comunque
+// segnalata: è la risposta successiva, un filo più lunga, quella che si
+// troncherà. Un guasto che si annuncia prima di succedere costa un log.
+const SOGLIA_AVVISO_TETTO = 0.85;
 
 // Estrae un oggetto JSON dal testo di un modello. Toglie i fence ```json, poi
 // isola la sottostringa dalla PRIMA `{` all'ULTIMA `}` — così un poscritto in
@@ -47,10 +58,22 @@ export function estraiJson(testo: string): unknown | undefined {
 // trova JSON valido): il secondo fallimento diventa un esito `{ok:false}`.
 //
 // Su questa funzione passano TUTTI i revisori che scrivono testo letto da uno
-// studente (proposta e riflessione di Escape, revisione di tappa e feedback
-// finale del workshop, analisi della consegna): è il punto giusto per la
-// guardia sulla lingua invariante — vedi `chiamaJson` più sotto, che la
-// avvolge.
+// studente. Quelli che una pagina chiama davvero sono TRE:
+//   1. Escape — non-approfondire, proposta, riflessione (lib/escape/scoring.ts,
+//      da app/api/escape/finalizza)
+//   2. revisione di tappa            (app/api/cron/workshop-motore)
+//   3. feedback finale del progetto  (app/api/cron/workshop-motore, ultima tappa)
+//
+// Erano quattro fino al 2026-08-29: il quarto era l'analisi del file caricato
+// (app/api/workshop/consegna), chiusa insieme al caricamento file del workshop.
+// Ne resta un quinto RAGGIUNGIBILE MA ORFANO: il feedback finale in
+// app/api/workshop/elaborato/consegna, che nessun componente chiama più da
+// quando la chiusura del progetto la fa il cron sull'ultima tappa. Sta qui
+// scritto perché non venga contato per errore fra i vivi, e perché la
+// decisione se chiuderlo sia presa apposta invece che dimenticata.
+//
+// È il punto giusto per la guardia sulla lingua invariante — vedi `chiamaJson`
+// più sotto, che la avvolge.
 async function chiamaJsonGrezzo(
   client: Anthropic,
   opzioni: {
@@ -67,6 +90,7 @@ async function chiamaJsonGrezzo(
     const ultimo = tentativo === 1;
 
     let testo: string;
+    let troncata = false;
     try {
       const risposta = await client.messages.create({
         model: opzioni.model,
@@ -75,6 +99,13 @@ async function chiamaJsonGrezzo(
         messages: [{ role: "user", content: opzioni.user }],
       });
       testo = risposta.content[0]?.type === "text" ? risposta.content[0].text : "";
+      troncata = risposta.stop_reason === "max_tokens";
+      const usati = risposta.usage?.output_tokens ?? 0;
+      if (troncata) {
+        console.error(`chiamaJson — risposta TRONCATA dal tetto (tentativo ${tentativo + 1}): ${usati}/${opzioni.maxTokens} token. Alzare il tetto del chiamante.`);
+      } else if (usati >= opzioni.maxTokens * SOGLIA_AVVISO_TETTO) {
+        console.warn(`chiamaJson — risposta vicina al tetto: ${usati}/${opzioni.maxTokens} token. La prossima potrebbe troncarsi.`);
+      }
     } catch (errore) {
       if (errore instanceof Anthropic.APIError) {
         console.error(`chiamaJson — errore API (tentativo ${tentativo + 1}): status=${errore.status} type=${errore.type ?? "sconosciuto"} messaggio=${errore.message}`);
@@ -88,8 +119,8 @@ async function chiamaJsonGrezzo(
     const dati = estraiJson(testo);
     if (dati !== undefined) return { ok: true, dati };
 
-    console.error(`chiamaJson — estrazione JSON fallita (tentativo ${tentativo + 1}). Inizio risposta: ${testo.slice(0, 300)}`);
-    if (ultimo) return { ok: false, motivo: "estrazione" };
+    console.error(`chiamaJson — estrazione JSON fallita (tentativo ${tentativo + 1}), troncata=${troncata}. Inizio risposta: ${testo.slice(0, 300)}`);
+    if (ultimo) return { ok: false, motivo: troncata ? "troncata" : "estrazione" };
   }
   // irraggiungibile: il ramo `ultimo` ritorna sempre.
   return { ok: false, motivo: "chiamata" };
