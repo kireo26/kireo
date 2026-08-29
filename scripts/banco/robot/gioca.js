@@ -212,9 +212,11 @@ async function giocaRuolo({ sessione, workshopSlug, ruoloSlug, consegne, fasi, r
       }
 
       if (giro === 1 && /RAFFREDDAMENTO/i.test(lettura.righe.join(" "))) {
-        // Il robot non può sapere se WORKSHOP_COOLDOWN_MINUTI è impostata:
-        // lo scopre così, e lo dice invece di girare a vuoto per ore.
-        di(`${fase.id}: il cooldown non è ancora passato — se WORKSHOP_COOLDOWN_MINUTI non è impostata su Vercel, qui si aspettano giorni`);
+        // Per un profilo di prova il cooldown non dovrebbe MAI scattare: il
+        // cron lo salta guardando `e_profilo_di_prova`. Se scatta lo stesso,
+        // vuol dire che l'account non è marcato o che la migration del
+        // raffreddamento non è applicata — e va detto, non aspettato.
+        di(`${fase.id}: il cron dice che è in raffreddamento, ma un profilo di prova non dovrebbe averlo. Controlla che l'account sia marcato e che il cron salti il cooldown per i profili di prova.`);
       }
       if (giro < GIRI_CRON_MAX) await attendi(ATTESA_FRA_GIRI_MS);
     }
@@ -233,7 +235,7 @@ async function giocaRuolo({ sessione, workshopSlug, ruoloSlug, consegne, fasi, r
           dove: fase.id,
           perche:
             `dopo ${GIRI_CRON_MAX} giri di cron la tappa è ancora «${ultimo?.stato}» (${ultimo?.tentativi_revisione ?? 0} tentativi). ` +
-            `Se è in raffreddamento, manca WORKSHOP_COOLDOWN_MINUTI su Vercel; se è consegnata con tentativi spesi, il revisore sta fallendo: npm run banco log`,
+            `Se è ancora «consegnata» senza tentativi spesi, il cron non sta saltando il cooldown per questo profilo; se i tentativi ci sono, il revisore sta fallendo: npm run banco log`,
         },
       };
     }
