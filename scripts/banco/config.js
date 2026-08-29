@@ -44,6 +44,13 @@ const CHIAVI = {
     cosa: "L'identificativo del progetto su Vercel.",
     dove: 'Vercel → progetto kireo → Settings → General → Project ID (comincia per "prj_").',
   },
+  // Facoltativa: nessun comando la richiede, serve solo a rendere cliccabile
+  // il link a un deploy fallito. Non è un segreto — sta nell'indirizzo del
+  // pannello — ma sta qui e non nel codice per non cablare un nome di team.
+  vercelTeamSlug: {
+    cosa: "Lo slug del team Vercel, solo per costruire link cliccabili.",
+    dove: "Si legge dall'indirizzo del pannello: vercel.com/<team>/<progetto>/… — per KIREO è «kireo».",
+  },
 };
 
 function esci(messaggio) {

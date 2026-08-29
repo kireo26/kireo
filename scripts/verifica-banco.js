@@ -63,6 +63,41 @@ ok(maxTentativi() !== null, "MAX_TENTATIVI_REVISIONE si legge davvero dal codice
 const senzaMax = testo(200, { errori: 1, revisoriFalliti: 1 }, null);
 ok(/GENERAZIONE È FALLITA/.test(senzaMax) && !/tetto è/.test(senzaMax), "se la costante non si trova, il banco tace sul numero invece di inventarlo");
 
+// ── la copertura dei log: «non posso vederle» ≠ «non ci sono» ─────────────
+// Il caso vero del 30 agosto 2026, numeri compresi: i guasti erano delle 15:15
+// e delle 16:05; alle 17:29 abbiamo ridistribuito per il segreto nuovo; alle
+// 17:50 il banco guardava 240 minuti indietro e diceva «nessuna riga», perché
+// guardava solo il deploy nato 21 minuti prima. L'assenza riportata come un
+// fatto invece che come un limite dello strumento — e su LO strumento con cui
+// si verifica tutto il resto.
+const { finestreDeploy, raccontaCopertura } = require("./banco/finestre");
+const ora = Date.now();
+const min = (n) => n * 60_000;
+
+console.log("");
+const treDeploy = [
+  { uid: "dpl_delle_1729", createdAt: ora - min(21) },
+  { uid: "dpl_delle_1600", createdAt: ora - min(110) },
+  { uid: "dpl_delle_1430", createdAt: ora - min(200) },
+];
+const c240 = finestreDeploy(treDeploy, ora - min(240));
+ok(c240.consultare.length === 3, "una finestra di 240 minuti consulta tutti e tre i deploy, non solo il corrente");
+ok(c240.consultare[0].uid === "dpl_delle_1729", "…a partire dal più recente");
+ok(Math.round(c240.scoperto / 60000) === 40, "…e sa che 40 minuti restano fuori portata");
+ok(/restano SCOPERTI/.test(raccontaCopertura(c240, 240).join("\n")), "…e lo dice, invece di tacere");
+
+const c15 = finestreDeploy(treDeploy, ora - min(15));
+ok(c15.consultare.length === 1 && c15.scoperto === 0, "una finestra dentro la vita del deploy corrente non ha scoperti");
+ok(!/SCOPERTI/.test(raccontaCopertura(c15, 15).join("\n")), "…e allora non allarma per niente");
+
+ok(finestreDeploy([], ora - min(60)).consultare.length === 0, "senza deploy non si consulta niente");
+ok(/non posso vedere niente/.test(raccontaCopertura(finestreDeploy([], ora - min(60)), 60).join("\n")), "…e la frase dice «non posso vedere», non «nessuna riga»");
+
+// Un deploy nato DOPO la fine della finestra non c'entra niente con quelle ore.
+const futuro = finestreDeploy([{ uid: "dpl_dopo", createdAt: ora - min(5) }, { uid: "dpl_prima", createdAt: ora - min(300) }], ora - min(200), ora - min(100));
+ok(futuro.consultare.some((d) => d.uid === "dpl_prima"), "una finestra nel passato consulta il deploy che allora reggeva il traffico");
+ok(!futuro.consultare.some((d) => d.uid === "dpl_dopo"), "…e non quello nato dopo, che di quelle ore non sa niente");
+
 console.log("\n═══════════════════════════════════════════\n");
 if (falliti) { console.error(`✗ ${falliti} controlli falliti.\n`); process.exit(1); }
-console.log("✓ Ogni esito ha la sua frase, e il fallimento non si nasconde dietro un successo.\n");
+console.log("✓ Ogni esito ha la sua frase, il fallimento non si nasconde dietro un successo,\n  e «non posso vederle» non si legge come «non ci sono».\n");
