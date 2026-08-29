@@ -61,10 +61,27 @@ function formaGiusta(sezione, valore) {
       const storta = valore.findIndex((r) => !Array.isArray(r) || r.length !== colonne);
       return storta === -1 ? null : `la riga ${storta + 1} ha ${valore[storta]?.length ?? "?"} celle invece di ${colonne}`;
     }
-    case "checklist":
-      return valore && typeof valore === "object" && !Array.isArray(valore) ? null : "doveva essere { voci, nota }";
-    case "scelta":
-      return valore && typeof valore === "object" && "opzione" in valore ? null : "doveva essere { opzione, motivazione }";
+    case "checklist": {
+      if (!valore || typeof valore !== "object" || Array.isArray(valore)) return "doveva essere { voci, nota }";
+      // Le chiavi di `voci` sono le VOCI ESATTE del config: una voce con una
+      // parola diversa non fa fallire niente, si salva e semplicemente a
+      // schermo non risulta spuntata. Un errore che non si vede è peggio di
+      // uno che si vede.
+      const ammesse = sezione.voci ?? [];
+      const inventata = Object.keys(valore.voci ?? {}).find((v) => !ammesse.includes(v));
+      return inventata ? `la voce «${inventata}» non esiste nella checklist del config` : null;
+    }
+    case "scelta": {
+      if (!valore || typeof valore !== "object" || !("opzione" in valore)) return "doveva essere { opzione, motivazione }";
+      // Stessa cosa: `sezioneRaggiungeMinimo` guarda solo che `opzione` non sia
+      // vuota, quindi un'opzione scritta a modo suo passerebbe il gate e
+      // arriverebbe al revisore come una scelta che il progetto non offre.
+      const opzioni = sezione.opzioni ?? [];
+      if (opzioni.length > 0 && !opzioni.includes(valore.opzione)) {
+        return `l'opzione «${valore.opzione}» non è fra quelle del config (${opzioni.join(" / ")})`;
+      }
+      return null;
+    }
     case "immagine":
       return typeof valore === "string" ? null : "doveva essere un percorso Storage (o essere omessa)";
     default:

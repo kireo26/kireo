@@ -1,0 +1,304 @@
+{
+  "workshop": "enoteca-centocelle",
+
+  "ruoli": {
+    "economia": {
+      "livello": "base",
+      "tappe": {
+        "apertura": {
+          "sezioni": {
+            "costi_apertura": [
+              ["Ristrutturazione e impianti", "24.000"],
+              ["Arredi e scaffalature", "11.000"],
+              ["Cantina refrigerata e attrezzature", "13.500"],
+              ["Licenze, pratiche e consulenze", "3.500"],
+              ["Prima scorta vini", "16.000"],
+              ["Insegna e comunicazione iniziale", "3.000"],
+              ["Cassa, POS e gestionale", "1.500"],
+              ["Totale", "72.500"]
+            ],
+            "margine": "Lascio 7.500 euro fuori dall'investimento, che sono gli 80.000 meno i 72.500 della tabella. Non è un avanzo: è la cassa che serve a pagare affitto, utenze e la persona part-time nei mesi in cui l'enoteca incassa meno di quanto spende. Con costi fissi intorno ai 3.200 al mese, e con un incasso che nei primi mesi copre una parte ma non tutto, quei 7.500 valgono circa otto mesi di differenza. Non ci compro bottiglie e non ci rifaccio l'impianto elettrico: quello resta lì."
+          },
+          "chat": [
+            "Gianni, gli 80.000 sono tutto quello che c'è o è la cifra che si è dato per non sforare?",
+            "Il locale di 60 metri in che stato è? Devo mettere a bilancio una ristrutturazione vera o basta sistemare?",
+            "La prima scorta la vuole larga per far vedere la scelta, o stretta per non immobilizzare i soldi?"
+          ]
+        },
+        "costi_ricavi": {
+          "sezioni": {
+            "costi_fissi": [
+              ["Affitto del locale", "1.400"],
+              ["Utenze (luce, acqua, rifiuti)", "350"],
+              ["Una persona part-time", "1.100"],
+              ["Commercialista e adempimenti", "200"],
+              ["Assicurazione e spese varie", "120"],
+              ["Totale mensile", "3.170"]
+            ],
+            "ricavi": "I ricavi arrivano da tre parti, e pesano diversamente. L'asporto è la base: una persona entra, compra una o due bottiglie, scontrino medio intorno ai 22 euro. La mescita al calice è quella che fa restare la gente e che porta il margine più alto, perché una bottiglia venduta al calice rende più della stessa bottiglia venduta intera: scontrino medio 18 euro fra due calici e qualcosa da mangiare. Il food è il terzo, ed è servizio più che ricavo: taglieri e conserve, 6 euro medi, serve a far restare chi beve. Mettendo insieme le tre cose, lo scontrino medio del negozio sta intorno ai 20 euro. Sul margine: il vino comprato dai produttori si rivende con un ricarico che lascia intorno al 55% lordo, e su quella percentuale ho fatto tutti i conti che seguono."
+          },
+          "chat": [
+            "Gianni, l'affitto del locale quanto è al mese?",
+            "Pensa di stare in negozio tutto il giorno da solo o assumiamo qualcuno per le sere?",
+            "Sulla mescita: vuole farla da subito o prima vediamo come va l'asporto?"
+          ]
+        },
+        "break_even": {
+          "sezioni": {
+            "calcolo_be": "Il conto è questo, e lo faccio con le sue cifre. I costi fissi sono 3.170 euro al mese. Il margine lordo sul venduto è il 55%, cioè su 100 euro incassati 45 se ne vanno per ricomprare la merce e 55 restano. Per coprire i 3.170 di fissi servono quindi 3.170 diviso 0,55, cioè 5.764 euro di incassi al mese: li chiamo 5.800. Con 25 giorni di apertura al mese fanno 232 euro al giorno. Con uno scontrino medio di 20 euro sono 12 clienti al giorno. Dodici persone al giorno è il punto in cui l'enoteca smette di perdere soldi. Non è tanto, ed è la ragione per cui secondo me il progetto sta in piedi — ma va detto che in quei 5.800 non c'è niente per lei: è il pareggio del negozio, non il suo stipendio. Perché ci sia anche quello servono altri 1.500 al mese di margine, cioè circa 8.500 di incassi, che fanno 17 clienti al giorno. In quanti mesi ci si arriva non lo so e non glielo invento: dipende da quanta gente passa davanti a quella saracinesca, e quello si vede solo aprendo."
+            ,
+            "rischio": "Se nei primi mesi incasso il 30% in meno del pareggio, siamo a 4.060 al mese, che con il 55% di margine fanno 2.233 contro 3.170 di fissi: mancano circa 940 euro al mese. Il cuscinetto da 7.500 copre quella differenza per otto mesi, e otto mesi sono abbastanza per capire se il problema è il rodaggio o il progetto. Se dopo tre mesi siamo ancora lì, taglio in quest'ordine: prima le ore della persona part-time, portandole solo sulle sere e sul sabato; poi la comunicazione, che è la voce più facile da rimandare; poi il riassortimento, comprando meno etichette e più volte. Quello che non tocco è l'affitto, che non si può, e la qualità di quello che c'è sugli scaffali — perché se si abbassa quella, chi era entrato non torna e il problema diventa definitivo."
+          },
+          "chat": [
+            "Gianni, quanta gente passa in una giornata davanti al locale? L'ha mai contata?",
+            "Ha bisogno che l'enoteca le dia uno stipendio da subito o può aspettare il primo anno?",
+            "Se dopo sei mesi non girasse, fin dove è disposto ad arrivare prima di fermarsi?"
+          ]
+        },
+        "pitch": {
+          "sezioni": {
+            "sintesi": "Gianni, i conti sono questi e sono asciutti. Per aprire servono 72.500 euro: ristrutturazione e impianti, arredi, cantina refrigerata, licenze, la prima scorta di vini e poco altro. Restano 7.500 dei suoi 80.000, e quelli non li spendo: sono la cassa dei primi mesi. Ogni mese l'enoteca costa 3.170 euro fra affitto, utenze, una persona part-time, commercialista e assicurazione. Con un margine del 55% sul venduto, per non perdere soldi bisogna incassare 5.800 euro al mese: sono 232 euro al giorno, cioè dodici clienti da venti euro. Dodici. Se invece nei primi mesi si incassa il 30% in meno, mancano 940 euro al mese e il cuscinetto li copre per otto mesi. Le dico anche la cosa che non le piacerà: in quei 5.800 non c'è il suo stipendio. Perché ci sia anche quello servono diciassette clienti al giorno invece di dodici. E non le so dire in quanti mesi ci arriviamo, perché quello dipende da quanta gente passa davanti a quella porta, e finché non apre non lo sa nessuno."
+          },
+          "chat": [
+            "Ultimo pezzo, Gianni. Dei numeri che le ho messo giù, ce n'è uno che non le torna?",
+            "Preferisce partire senza la persona part-time e assumerla dopo, o averla da subito?",
+            "Il cuscinetto da 7.500 lo tiene fermo o la tentazione di comprarci vino è troppa?",
+            "C'è una cosa che vuole assolutamente vedere scritta nel documento?"
+          ]
+        }
+      }
+    },
+
+    "giurisprudenza": {
+      "livello": "base",
+      "tappe": {
+        "licenze": {
+          "sezioni": {
+            "quali_licenze": "La distinzione da cui dipende tutto il resto è fra vendere e somministrare. Vendere per asporto vuol dire che il cliente compra la bottiglia chiusa e se la porta via: è commercio al dettaglio di alimenti e bevande, e si apre con una SCIA presentata al Comune tramite lo sportello unico, insieme ai requisiti professionali richiesti per il settore alimentare. Somministrare vuol dire che il cliente beve dentro il locale, seduto o in piedi, magari con qualcosa da mangiare: lì siamo nella somministrazione di alimenti e bevande, che richiede una SCIA diversa e requisiti aggiuntivi, in particolare sui locali — servizi igienici, spazi, destinazione d'uso urbanistica compatibile. Un'enoteca che fa tutte e due le cose, come questa, ha bisogno di entrambi i titoli, e conviene chiederli insieme fin dall'inizio: aggiungere la mescita dopo, quando il locale è già arredato, può voler dire scoprire che i bagni non bastano o che la destinazione d'uso non è quella giusta, e a quel punto si rimette mano a un locale finito."
+            ,
+            "checklist_apertura": {
+              "voci": {
+                "Partita IVA e codice ATECO": true,
+                "SCIA al Comune (SUAP)": true,
+                "Iscrizione Registro Imprese CCIAA": true,
+                "Requisiti igienico-sanitari (ASL/HACCP)": true,
+                "Insegna e autorizzazioni comunali": true
+              },
+              "nota": "L'ordine conta: prima partita IVA e iscrizione, perché la SCIA la presenta un'impresa già esistente; poi la SCIA, che è il passaggio che fa nascere l'attività; il manuale HACCP e la formazione vanno pronti prima dell'apertura, non dopo, perché un controllo può arrivare il primo giorno; l'insegna per ultima, perché dipende dal regolamento comunale e a volte richiede tempi suoi."
+            }
+          },
+          "chat": [
+            "Gianni, oltre a vendere bottiglie vuole che la gente beva un calice lì dentro?",
+            "Il locale che ha in mente com'è accatastato? Era già un negozio alimentare o era altro?",
+            "Ha già i requisiti professionali per il settore alimentare, o li ha da fare?"
+          ]
+        },
+        "forma": {
+          "sezioni": {
+            "scelta_forma": {
+              "opzione": "Ditta individuale",
+              "motivazione": "Un solo titolare, nessun socio, investimento contenuto e voglia di partire in fretta con costi bassi."
+            },
+            "motivazione": "La ditta individuale è la forma che costa meno e si apre in giorni, non in settimane: niente atto notarile, niente capitale, contabilità più semplice e meno adempimenti da pagare ogni anno. Per un'attività che parte con 80.000 euro suoi, senza soci e senza banche, è la scelta che lascia più soldi dentro il negozio invece che dal notaio e dal commercialista. Il rovescio della medaglia va detto chiaro, perché è pesante: con la ditta individuale lei risponde dei debiti dell'impresa con il suo patrimonio personale, casa compresa. Con una società a responsabilità limitata semplificata quel muro esisterebbe, e costerebbe qualche centinaio di euro per costituirla più contabilità e adempimenti più cari ogni anno. Sulle tasse: la ditta individuale paga IRPEF a scaglioni sul reddito del titolare, la SRLS paga IRES sull'utile della società più le imposte su quello che il socio si distribuisce. Con utili piccoli, che è lo scenario dei primi anni, l'IRPEF a scaglioni bassi conviene; se un domani l'enoteca crescesse davvero, il conto si ribalta e la forma si può cambiare. Il punto vero però non sono le tasse, è il rischio: se avesse dei debiti importanti da onorare, sceglierei la SRLS anche costando di più."
+          },
+          "chat": [
+            "Gianni, ha altri beni intestati a lei, tipo la casa dove abita?",
+            "Prevede di prendere qualcuno a lavorare con lei da subito?",
+            "Ha già un commercialista che la segue o va cercato?"
+          ]
+        },
+        "ecommerce": {
+          "sezioni": {
+            "ecommerce_norme": "Vendere vino online non è la stessa cosa che venderlo in negozio, e le differenze sono tre. La prima è che serve un titolo in più: alla SCIA del negozio si aggiunge la comunicazione per il commercio elettronico, sempre al Comune, che segnala che si vende anche a distanza. La seconda riguarda il sito, che diventa un luogo con obblighi propri: informazioni obbligatorie sul venditore, condizioni di vendita, diritto di recesso — con l'avvertenza che per gli alimenti deperibili le regole sul recesso sono diverse e vanno guardate caso per caso — informativa privacy e gestione dei cookie. La terza, ed è quella che si sottovaluta sempre, riguarda l'accisa e la circolazione del prodotto: il vino è un prodotto soggetto ad accisa e il suo trasporto ha regole documentali sue, che diventano complicate quando si spedisce in un altro Paese dell'Unione, dove entrano in gioco anche le regole fiscali del Paese di destinazione. Il mio consiglio è partire con la vendita online solo verso l'Italia, e affidare le spedizioni a un corriere che quel tipo di merce lo tratta già. L'estero si guarda dopo, con il commercialista, perché lì gli errori costano."
+          },
+          "chat": [
+            "Gianni, l'online lo vede come una cosa vera o come una vetrina in più?",
+            "Spedirebbe solo in Italia o si immagina anche fuori?",
+            "Ha idea di quanto le costerebbe far fare il sito, o partiamo da una piattaforma già pronta?"
+          ]
+        },
+        "pitch": {
+          "sezioni": {
+            "sintesi": "Gianni, glielo dico senza parole difficili. Per aprire servono due permessi, non uno: uno per vendere le bottiglie che la gente si porta via, uno per farla bere dentro il locale. Li chiediamo insieme adesso, perché aggiungere il secondo dopo che il negozio è arredato può voler dire scoprire che i bagni non bastano, e a quel punto si rimette mano a un locale finito. I passaggi sono cinque e hanno un ordine: partita IVA e iscrizione alla Camera di Commercio, poi la SCIA al Comune, poi il manuale igienico-sanitario e la formazione — che devono essere pronti prima di aprire, perché un controllo può arrivare il primo giorno — e per ultima l'insegna. Sulla forma: le consiglio la ditta individuale, perché costa poco e si apre in fretta, e con utili piccoli paga anche meno tasse. Ma le devo dire la cosa che conta più delle tasse: con la ditta individuale, se l'attività fa debiti, lei ne risponde con quello che ha, casa compresa. Se questa cosa le toglie il sonno, si fa una società, costa di più e quel muro c'è. Sull'online: si può, serve una comunicazione in più e un sito fatto a norma, ma partirei solo con l'Italia — spedire vino all'estero ha regole fiscali che è meglio guardare con calma e col commercialista."
+          },
+          "chat": [
+            "Ultimo passo, Gianni. Della ditta individuale, la questione del patrimonio la preoccupa?",
+            "Preferisce aprire prima solo l'asporto e aggiungere la mescita dopo, o tutto insieme?",
+            "Quanto tempo ha davanti prima di dover per forza aprire?",
+            "C'è qualcosa che vuole assolutamente scritta nel documento?"
+          ]
+        }
+      }
+    },
+
+    "grafica": {
+      "livello": "base",
+      "tappe": {
+        "nome": {
+          "sezioni": {
+            "proposta_nome": "Tre nomi, tutti e tre romani e tutti e tre pronunciabili da chiunque. Il primo è «Fojetta»: era la misura con cui si vendeva il vino nelle osterie romane, mezzo litro, e dice esattamente due cose — che qui si beve vino sfuso di qualità e che il posto viene da una tradizione, non da una moda. Il secondo è «Centoc'era», che gioca sul nome del quartiere e su un modo di dire, e ha il vantaggio di essere legato a Centocelle in modo esplicito: chi ci abita lo sente suo, chi viene da fuori capisce dov'è. Il terzo è «Il Vino Sfuso», che è il più semplice e il più diretto, e funziona proprio perché non promette niente di più di quello che è. Il mio preferito è il primo, per una ragione pratica oltre che affettiva: è corto, si scrive facile, e su un'insegna sta grande. «Centoc'era» è il più simpatico ma rischia di chiudere fuori chi non è del quartiere, e questo per un'enoteca che vuole anche chi viene da altrove è un limite."
+          },
+          "chat": [
+            "Gianni, c'è un nome che ha già in testa e che devo battere?",
+            "Il locale sta su una strada di passaggio o in una via interna?",
+            "I clienti che immagina sono quelli del quartiere o anche gente che viene apposta?"
+          ]
+        },
+        "logo_palette": {
+          "sezioni": {
+            "concept": "Il logo è la parola «Fojetta» scritta a mano, non con un carattere da computer: una scrittura tonda e un po' irregolare, come quella dei cartelli scritti a pennarello nelle osterie, ma pulita e leggibile. Sotto, molto più piccola, una riga che dice «vini naturali — Centocelle». Nessun disegnino: niente grappoli, niente bicchieri, niente sagome di bottiglia, perché quelli li ha chiunque e non dicono niente. I colori sono tre. Un rosso mattone scuro, che è il colore dei muri di Roma e anche del vino, ed è il colore principale. Un bianco sporco, come la carta da pacco, che è il fondo su cui il rosso respira. E un verde oliva scuro, molto poco usato, solo per i dettagli — perché nel biologico tutti fanno il verde brillante, e usarlo spento è il modo di esserci senza sembrare uguali agli altri."
+          },
+          "chat": [
+            "Gianni, dentro il locale che materiali ci sono? Legno, muri a vista, piastrelle?",
+            "Ha visto delle enoteche in giro che le piacciono come aspetto?",
+            "L'insegna può essere illuminata o il regolamento del Comune lo vieta?"
+          ]
+        },
+        "applicazioni": {
+          "sezioni": {
+            "applicazioni": [
+              ["Insegna esterna", "Solo la parola scritta a mano, in rosso mattone su fondo chiaro, grande. La riga piccola sotto sparisce: da lontano non si legge e sporca"],
+              ["Vetrofania sulla vetrina", "La stessa parola in negativo, bianca sul vetro, più la riga con orari e giorno di chiusura in verde oliva"],
+              ["Etichetta per il vino sfuso", "Etichetta piccola in carta da pacco, parola in rosso, e uno spazio bianco lasciato apposta per scrivere a penna il nome del vino e la data"],
+              ["Profilo social", "Solo l'iniziale, la F scritta a mano, in rosso su fondo chiaro: nel cerchio piccolo la parola intera non si legge"],
+              ["Menù della mescita", "Una pagina sola, carta da pacco, parola in alto e i vini scritti a mano in colonna: si ristampa ogni settimana e costa niente"],
+              ["Scontrino e biglietto da visita", "Parola in nero su bianco, senza colore, perché lì il colore non si stampa bene e non serve"]
+            ]
+          },
+          "chat": [
+            "Gianni, quanto è larga la vetrina? Mi serve per capire quanto grande può essere l'insegna.",
+            "I vini sfusi li vende in bottiglie sue con l'etichetta del negozio?",
+            "Vuole essere sui social o è una cosa che non le interessa?"
+          ]
+        },
+        "pitch": {
+          "sezioni": {
+            "sintesi": "Gianni, l'identità è questa. Il nome è «Fojetta», che era la misura con cui si vendeva il vino nelle osterie romane: dice in una parola che qui si beve bene e che il posto viene da lontano, senza dover spiegare niente a nessuno. Il logo è quella parola scritta a mano, tonda e un po' storta come i cartelli delle osterie, con sotto piccolo «vini naturali — Centocelle». Nessun grappolo, nessun bicchiere: quelli ce li hanno tutti e non dicono niente. I colori sono tre: un rosso mattone che è il colore dei muri di Roma e del vino, un bianco sporco come la carta da pacco, e un verde oliva scuro usato pochissimo, solo per i dettagli — perché nel naturale fanno tutti il verde acceso, e stare spenti è il modo di distinguersi. Sull'insegna resta solo la parola, grande; sui social solo la F, perché nel cerchietto la parola intera non si legge; sulle etichette c'è uno spazio bianco lasciato apposta per scriverci a penna il vino e la data, che è la cosa che fa capire a chi entra che qui il vino lo travasa una persona e non una macchina."
+          },
+          "chat": [
+            "Siamo all'ultimo, Gianni. Dei tre nomi, quale le è rimasto in mente?",
+            "Il rosso mattone le sembra troppo scuro per una vetrina?",
+            "Preferisce un'insegna con la scritta a mano o una più pulita e stampata?",
+            "C'è una cosa che vuole assolutamente nel documento finale?"
+          ]
+        }
+      }
+    },
+
+    "marketing": {
+      "livello": "base",
+      "tappe": {
+        "quartiere": {
+          "sezioni": {
+            "analisi": "Centocelle è un quartiere popolare che negli ultimi anni ha cambiato pelle senza cambiare natura: le famiglie storiche ci sono ancora, e in mezzo si sono infilati studenti, coppie giovani e gente che si è spostata dal centro perché lì gli affitti sono diventati impossibili. Convivono, non si mescolano molto, e questo per un'enoteca conta perché sono due clienti diversi. Il primo cliente è chi ha fra i trenta e i quarantacinque anni, lavora, ha imparato a bere in giro e cerca un posto sotto casa dove non lo trattino da ignorante: è quello che compra la bottiglia da 15-20 euro il venerdì e che torna se si è trovato bene. Il secondo è chi abita qui da sempre e nell'enoteca non entrerebbe mai, perché pensa che sia roba cara e da snob: quello lo si prende solo se davanti alla porta capisce che può entrare anche per una bottiglia da 8 euro, e se chi c'è dentro gli parla come si parla al bar. Il terzo, più piccolo ma redditizio, è chi viene da fuori quartiere apposta perché ha letto di un posto che vende naturali: quelli arrivano il sabato, spendono di più e raccontano in giro."
+          },
+          "chat": [
+            "Gianni, in quella via cosa c'è intorno? Bar, negozi, o è tutta residenziale?",
+            "Il locale è vicino alla metro o bisogna arrivarci apposta?",
+            "Ci sono già altre enoteche in zona o siamo i primi?"
+          ]
+        },
+        "lancio": {
+          "sezioni": {
+            "piano": [
+              ["Le tre settimane prima di aprire", "Vetrina coperta con la carta e sopra una frase scritta a mano: cosa apre, quando, e niente altro. Nessun conto alla rovescia, nessun logo", "Far parlare la strada senza spendere una lira"],
+              ["Settimana di apertura", "Aperto sei giorni, e ogni giorno due vini in assaggio gratis al banco, uno bianco e uno rosso, cambiati ogni giorno", "Far entrare chi passa davanti e non sa cosa sia un vino naturale"],
+              ["Primo mese", "Il giovedì sera si apre un vino importante e si beve al calice a prezzo di costo, con il produttore raccontato in due parole", "Creare un appuntamento fisso e dare un motivo per tornare"],
+              ["Secondo mese", "Accordo con due o tre attività della zona — la pizzeria, il fruttivendolo, il negozio di formaggi — per consigliarsi a vicenda", "Farsi conoscere da chi ha già i clienti che ci servono"],
+              ["Terzo mese", "Prima cena a tema con dieci posti, prenotazione obbligatoria, prezzo fisso", "Trasformare i clienti abituali in persone che portano altre persone"],
+              ["Dal quarto mese in poi", "Il giovedì diventa fisso, si aggiunge un piccolo corso di due serate per chi vuole capirci qualcosa", "Passare dal lancio alla routine, senza spegnere l'interesse"]
+            ]
+          },
+          "chat": [
+            "Gianni, ha una data di apertura in mente o dipende dai lavori?",
+            "Se le dico di regalare qualche assaggio la prima settimana, storce il naso?",
+            "Conosce già qualcuno che ha un'attività in zona e con cui si potrebbe collaborare?"
+          ]
+        },
+        "social": {
+          "sezioni": {
+            "tattiche": "Tre cose, e per ognuna le dico cosa mi aspetto, sapendo che sono aspettative e non promesse. La prima: il giovedì del vino aperto. Costa il prezzo di una bottiglia buona a settimana, cioè venti o trenta euro, e serve a costruire un'abitudine. Se dopo due mesi il giovedì porta dieci persone invece delle tre di un giovedì qualsiasi, ha ripagato il costo molte volte. La seconda: gli scambi con i negozi della zona. Costa zero e funziona lentamente, ma è la cosa che porta il cliente giusto — chi compra formaggio buono compra anche vino buono, e un consiglio dato da una persona vale più di qualunque post. Mi aspetto pochi clienti al mese da questa, ma clienti che tornano. La terza: le foto delle bottiglie che apriamo, fatte col telefono e messe sui social il giorno stesso, senza filtri e con scritto cosa c'è dentro e quanto costa. Non porta gente da sola, ma è quello che fa decidere chi ha già sentito parlare del posto e sta esitando. Su questa terza sono il meno sicuro: i social portano molto meno di quello che si dice, e chi promette il contrario di solito vende consulenze."
+          },
+          "chat": [
+            "Gianni, le va di stare dietro a una pagina social o è una cosa che le pesa?",
+            "Quanto è disposto a spendere al mese per far girare la voce?",
+            "Preferisce che le persone vengano per il vino o per l'atmosfera?"
+          ]
+        },
+        "pitch": {
+          "sezioni": {
+            "sintesi": "Gianni, i clienti sono tre tipi diversi e non si prendono nello stesso modo. C'è chi ha trentacinque anni, lavora, ha imparato a bere in giro e cerca un posto sotto casa: quello compra la bottiglia da quindici euro il venerdì e torna se si è trovato bene. C'è chi abita qui da sempre e non entrerebbe mai perché pensa sia roba da snob: quello lo prendiamo solo se dalla vetrina capisce che c'è anche la bottiglia da otto euro e se dentro gli si parla normale. E c'è chi viene da fuori apposta il sabato, spende di più e ne parla in giro. Il lancio non costa quasi niente: tre settimane di vetrina coperta con una frase scritta a mano, una settimana di assaggi al banco per far entrare chi passa, e poi il giovedì del vino aperto, che diventa l'appuntamento fisso. Dal secondo mese ci si mette d'accordo con la pizzeria e il negozio di formaggi, che costa zero e porta i clienti giusti. Sui social non le prometto niente: servono a far decidere chi sta già esitando, non a portare gente, e chi le dice il contrario le sta vendendo qualcosa. La cosa che porta davvero persone in un quartiere è che chi è entrato una volta ne parli bene."
+          },
+          "chat": [
+            "Ultimo passo, Gianni. Del piano di lancio, cosa le sembra buttato via?",
+            "Il giovedì fisso lo reggerebbe, o dopo un mese le pesa?",
+            "Preferisce prendersi i clienti del quartiere o quelli che vengono da fuori?",
+            "C'è qualcosa che vuole assolutamente scritto nel documento?"
+          ]
+        }
+      }
+    },
+
+    "food": {
+      "livello": "base",
+      "tappe": {
+        "carta_vini": {
+          "sezioni": {
+            "carta": [
+              ["Bianchi laziali — Lazio, uve locali", "9-16 € la bottiglia", "La base per chi entra la prima volta: prezzo accessibile e territorio vicino, si racconta in una frase"],
+              ["Rossi laziali e ciociari", "10-18 €", "Il pane quotidiano dell'enoteca: qui deve esserci scelta vera, almeno dieci etichette"],
+              ["Bianchi macerati (orange)", "16-28 €", "La categoria che spiega cosa sono i naturali. Poche bottiglie ma scelte bene, e sempre una da far assaggiare"],
+              ["Rossi del centro-sud, fuori Lazio", "14-25 €", "Serve a non essere solo un'enoteca di paese: Abruzzo, Campania, Sicilia"],
+              ["Bollicine ancestrali", "15-24 €", "Vendono da sole nel weekend e attirano chi non beve vino fermo"],
+              ["Qualche etichetta alta", "30-55 €", "Tre o quattro bottiglie, non di più: servono a dire che qui si può salire, non a essere vendute tutte le settimane"]
+            ]
+          },
+          "chat": [
+            "Gianni, ha già dei produttori che conosce personalmente?",
+            "Sulla fascia di prezzo: vuole restare popolare o mettere anche qualche bottiglia importante?",
+            "Quante etichette pensa di poterne tenere in 60 metri quadri?"
+          ]
+        },
+        "fornitori": {
+          "sezioni": {
+            "fornitori": "Mi rifornisco su due canali, e servono a cose diverse. Il primo sono i produttori diretti, soprattutto laziali, che si vanno a trovare in cantina: si compra a prezzi migliori, si porta a casa una storia da raccontare al banco, e spesso si ottengono bottiglie che gli altri non hanno. Il costo è il tempo — una giornata per cantina — e il fatto che quasi tutti chiedono un ordine minimo, in genere qualche cartone. Il secondo canale sono i distributori specializzati in vini naturali, che hanno cataloghi larghi, consegnano in pochi giorni e permettono di ordinare poche bottiglie per etichetta: costano di più ma risolvono il riassortimento e permettono di provare senza impegnarsi. Come regola tengo il grosso del magazzino sui produttori diretti e uso il distributore per completare e per le urgenze. Sui prezzi all'ingrosso non le scrivo una tabella, perché variano da cantina a cantina e chi le dà una percentuale fissa se la sta inventando: l'ordine di grandezza è che il prezzo di acquisto sta fra il 40% e il 50% di quello di vendita, e il resto è la trattativa, che dipende da quanto si compra e da quanto si torna."
+          },
+          "chat": [
+            "Gianni, quanto spesso vuole riassortire? Una volta a settimana o meno?",
+            "Ha modo di andare in cantina di persona o sta sempre in negozio?",
+            "Sui pagamenti: i produttori le chiederanno l'anticipo, se lo può permettere?"
+          ]
+        },
+        "food": {
+          "sezioni": {
+            "menu": [
+              ["Tagliere di formaggi laziali, tre tipi", "3,20 €", "9,00 €"],
+              ["Tagliere misto salumi e formaggi", "4,50 €", "12,00 €"],
+              ["Bruschette con alici e burro", "1,60 €", "5,00 €"],
+              ["Ciotola di olive e lupini", "0,70 €", "3,00 €"],
+              ["Conserve del produttore su crostone", "2,10 €", "6,50 €"],
+              ["Zuppa di ceci e castagne (piatto caldo)", "2,40 €", "7,50 €"]
+            ],
+            "piatto_caldo": "Il piatto caldo è una zuppa, e cambia con la stagione: ceci e castagne d'inverno, fagioli e cicoria in primavera. La scelgo perché è l'unica cosa calda che si può fare in 60 metri senza cucina vera: si prepara la mattina in una pentola grande su due fuochi, si tiene in caldo, e si serve in ciotola con un crostone. Non serve cappa professionale, non serve friggitrice, non serve un cuoco. Costa 2,40 di materia prima e si vende a 7,50, e soprattutto è la cosa che fa restare le persone quando fuori fa freddo e che trasforma un calice in una sosta di un'ora."
+          },
+          "chat": [
+            "Gianni, nel locale c'è già un angolo cucina o è tutto da fare?",
+            "Sulle norme igieniche, sa già cosa può preparare sul posto e cosa no?",
+            "Quanto vuole spingere sul cibo? È un servizio per far bere o vuole che porti soldi?"
+          ]
+        },
+        "pitch": {
+          "sezioni": {
+            "sintesi": "Gianni, l'offerta è fatta così. La carta parte dal Lazio, che è la fascia da nove a diciotto euro dove sta il pane quotidiano: lì deve esserci scelta vera, almeno dieci rossi. Poi ci sono i macerati, che sono la categoria che spiega alla gente cosa sono i vini naturali e che va sempre fatta assaggiare, qualche rosso del centro-sud per non essere solo un'enoteca di paese, le bollicine ancestrali che nel weekend vendono da sole, e tre o quattro bottiglie alte — non di più — che servono a dire che qui si può salire. Mi rifornisco andando dai produttori per il grosso, perché si compra meglio e si porta a casa una storia da raccontare al banco, e uso un distributore di naturali per il riassortimento e per provare senza impegnarsi. Sul cibo: taglieri, bruschette, conserve, e una zuppa che cambia con la stagione — l'unica cosa calda che si può fare in sessanta metri senza cucina vera, senza cappa e senza cuoco. Costa due euro e quaranta e si vende a sette e cinquanta, ma il motivo per cui c'è non sono i soldi: è che quando fuori fa freddo trasforma un calice in una sosta di un'ora."
+          },
+          "chat": [
+            "Ultimo pezzo, Gianni. Della carta vini, c'è una fascia che secondo lei non venderà?",
+            "La zuppa la vede come una cosa fattibile o come una rottura di scatole?",
+            "Preferisce meno etichette e più bottiglie per etichetta, o il contrario?",
+            "C'è una cosa che vuole assolutamente vedere scritta nel documento?"
+          ]
+        }
+      }
+    }
+  }
+}
