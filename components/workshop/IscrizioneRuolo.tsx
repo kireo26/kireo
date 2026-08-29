@@ -13,19 +13,26 @@ type Ruolo = {
   descrizione: string | null;
 };
 
-// Un solo studente attivo per ruolo (indice unico parziale lato DB): qui ci
-// si limita a nascondere/disabilitare i ruoli già occupati e a intercettare
-// la violazione dell'indice come "occupato nel frattempo", non un errore.
+// UN RUOLO LO POSSONO FARE PIÙ STUDENTI INSIEME. Fino al 2026-08-30 no: un
+// indice unico su (ruolo_id) lo rendeva esclusivo, e qui c'erano un badge
+// «Occupato» e dei bottoni disabilitati. Quel vincolo nessuno l'aveva deciso —
+// il commento che lo accompagnava diceva di voler chiudere la corsa fra due
+// clic della stessa persona, che è un'altra cosa — e teneva l'intera
+// piattaforma a venticinque studenti. Ogni studente arrivato a questo punto
+// del percorso deve poter cominciare, indipendentemente da cosa fanno gli
+// altri.
+//
+// L'unico vincolo rimasto è una sola iscrizione ATTIVA per studente e
+// workshop: non è un impedimento da mostrare in anticipo (chi è già iscritto
+// non vede nemmeno questa schermata), è la rete contro la doppia richiesta.
 export default function IscrizioneRuolo({
   workshopId,
   studentId,
   ruoli,
-  ruoliOccupati,
 }: {
   workshopId: string;
   studentId: string;
   ruoli: Ruolo[];
-  ruoliOccupati: string[];
 }) {
   const router = useRouter();
   const [ruoloScelto, setRuoloScelto] = useState<string | null>(null);
@@ -45,7 +52,8 @@ export default function IscrizioneRuolo({
       });
       if (error) {
         if (error.code === "23505") {
-          setErrore("Questo ruolo è stato appena preso da un altro studente — oppure la tua iscrizione a questo workshop c'è già.");
+          // Rimasto un solo significato: sei già iscritto a questo workshop.
+          setErrore("Risulti già iscritto a questo workshop. Ricarica la pagina per vedere il tuo ruolo.");
         } else {
           setErrore("Non è stato possibile completare l'iscrizione. Riprova.");
         }
@@ -61,21 +69,19 @@ export default function IscrizioneRuolo({
     <div className="rounded-2xl border border-white/5 bg-kireo-card p-6 sm:p-8">
       <h2 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">Scegli il tuo ruolo</h2>
       <p className="mt-1 text-sm text-kireo-muted">
-        Ogni ruolo copre un&apos;area diversa del progetto. Lavori in autonomia ma puoi confrontarti con chi copre le altre
-        aree.
+        Ogni ruolo copre un&apos;area diversa del progetto. Lavori in autonomia, e puoi confrontarti con chi sta facendo il
+        workshop insieme a te — anche con chi ha scelto il tuo stesso ruolo.
       </p>
 
       <div className="mt-5 space-y-2">
         {ruoli.map((ruolo) => {
-          const occupato = ruoliOccupati.includes(ruolo.id);
           const selezionato = ruoloScelto === ruolo.id;
           return (
             <button
               key={ruolo.id}
               type="button"
-              onClick={() => !occupato && setRuoloScelto(ruolo.id)}
-              disabled={occupato}
-              className={`w-full rounded-xl border px-4 py-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+              onClick={() => setRuoloScelto(ruolo.id)}
+              className={`w-full rounded-xl border px-4 py-3 text-left transition-colors ${
                 selezionato ? "border-kireo-green bg-kireo-green/10" : "border-white/10 hover:border-white/20"
               }`}
             >
@@ -84,11 +90,6 @@ export default function IscrizioneRuolo({
                   <p className="font-heading text-sm font-semibold text-kireo-light">{ruolo.titolo}</p>
                   {ruolo.descrizione && <p className="mt-0.5 text-xs text-kireo-muted">{ruolo.descrizione}</p>}
                 </div>
-                {occupato && (
-                  <span className="flex-none rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-kireo-muted">
-                    Occupato
-                  </span>
-                )}
               </div>
             </button>
           );
