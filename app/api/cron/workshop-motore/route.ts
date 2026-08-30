@@ -17,7 +17,7 @@ export const dynamic = "force-dynamic";
 const EMAIL_ADMIN = "mario.izzo@hotmail.it";
 
 const REVISIONE_VUOTA: RevisioneTappa = {
-  punti_forza: [],
+  cosa_regge: [],
   da_migliorare: [],
   domanda: "",
   commento_breve: "",
@@ -218,15 +218,28 @@ export async function GET(request: NextRequest) {
       });
       if (esitoRevisione.ok) {
         const parsed = esitoRevisione.dati as Record<string, unknown>;
+        // LE DUE CHIAVI, come dalla parte del lettore (`cosaRegge()`): il
+        // prompt della revisione chiede `cosa_regge` dal 2026-08-31, ma una
+        // risposta con la chiave vecchia resta una risposta buona — e questo è
+        // il punto in cui si decide se il lavoro di uno studente esiste o no.
+        //
+        // È QUI CHE LA RINOMINA NON ERA ARRIVATA, ed è costata ogni revisione
+        // di mezza passata: tre tentativi a tappa, poi REVISIONE_VUOTA e la
+        // fiducia a zero su un lavoro giusto. Il compilatore non poteva
+        // vederlo: `parsed` è un Record<string, unknown>, e su un Record
+        // qualunque chiave è legale. Il confine JSON è l'unico posto dove i
+        // tipi smettono di guardare, ed è anche l'unico che decide se una
+        // risposta si salva o si butta.
+        const cosaRegge = parsed.cosa_regge ?? parsed.punti_forza;
         if (
-          Array.isArray(parsed.punti_forza) &&
+          Array.isArray(cosaRegge) &&
           Array.isArray(parsed.da_migliorare) &&
           typeof parsed.domanda === "string" &&
           typeof parsed.commento_breve === "string" &&
           typeof parsed.punteggio_fiducia === "number"
         ) {
           revisione = {
-            punti_forza: parsed.punti_forza as string[],
+            cosa_regge: cosaRegge as string[],
             da_migliorare: parsed.da_migliorare as string[],
             domanda: parsed.domanda,
             commento_breve: parsed.commento_breve,
