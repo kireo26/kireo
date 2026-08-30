@@ -27,7 +27,8 @@
 // dal testo di partenza.
 //
 // COSA NON FA, per la stessa ragione: tutto il resto. «hai capito quanto conta
-// il margine» diventerebbe un frammento; «questo è maturo» e «il contratto è
+// il margine» diventerebbe un frammento; «hai capito che X e che Y» lascerebbe
+// orfano il secondo «che»; «questo è maturo» e «il contratto è
 // saggio» sono giudizi veri, e toglierli meccanicamente vorrebbe dire
 // riscrivere un contenuto invece che una formula. Restano visibili nella
 // misura — la guardia continua a contarli — e restano un problema aperto, di
@@ -64,15 +65,41 @@ export function togliFormulaTesta(testo: string): EsitoRiscrittura {
   const originale = String(testo ?? "");
   let riscritte = 0;
 
-  const finale = originale.replace(FORMULA, (_occorrenza, primaLettera: string, offset: number) => {
+  let saltate = 0;
+
+  const finale = originale.replace(FORMULA, (occorrenza: string, primaLettera: string, offset: number) => {
+    // «Hai capito che X E CHE Y»: togliere la testa lascia orfano il secondo
+    // «che», e il risultato non è sgrammaticato in modo sottile — è
+    // sgrammaticato e basta, dentro la frase che un ragazzo legge per prima.
+    // Trovato su un corpus vero, una volta su cinquantotto: la percentuale che
+    // rende una cosa difficile da immaginare a tavolino e facile da trovare
+    // rileggendo quello che il modello ha davvero scritto.
+    //
+    // Meglio una formula che resta di una frase storta: qui si preferisce non
+    // fare, e il conteggio la fa vedere lo stesso.
+    const dopo = originale.slice(offset + occorrenza.length);
+    const restoDellaFrase = dopo.split(/[.!?…]/)[0];
+    if (/\b(?:e|o|ma|né|oppure)\s+che\b/i.test(restoDellaFrase)) {
+      saltate++;
+      return occorrenza;
+    }
     riscritte++;
     // Se la formula apriva la frase, quello che resta prende la maiuscola: il
     // pezzo dopo «che» comincia sempre in minuscolo.
     const prima = originale.slice(0, offset).trimEnd();
-    const apreFrase = prima === "" || /[.!?:;–—-]$/.test(prima);
+    // SOLO `.` `!` `?` (e l'inizio della stringa) aprono una frase nuova. La
+    // prima stesura ci metteva anche `:` `;` e i trattini, e su un corpus di
+    // 1819 testi veri ha prodotto sei maiuscole sbagliate — «nei fondamentali:
+    // L'insufficienza non deve diventare…». In italiano dopo i due punti si
+    // continua in minuscolo, e quel dettaglio fa sembrare scritto da una
+    // macchina proprio il punto in cui stiamo lavorando perché non lo sembri.
+    const apreFrase = prima === "" || /[.!?…]$/.test(prima);
     return apreFrase ? primaLettera.toUpperCase() : primaLettera;
   });
 
-  const residue = (finale.match(FORMULA_SENZA_CHE) ?? []).length;
+  // Le saltate entrano nel residuo: sono formule rimaste, esattamente come
+  // quelle senza «che». Contarle a parte le renderebbe invisibili nel numero
+  // che leggiamo, che è quello che dice quanto NON copriamo.
+  const residue = (finale.match(FORMULA_SENZA_CHE) ?? []).length + saltate;
   return { testo: finale, riscritte, residue };
 }
