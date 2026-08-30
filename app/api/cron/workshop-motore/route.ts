@@ -391,7 +391,15 @@ export async function GET(request: NextRequest) {
   // "tutto ok": silenzio quando non c'è niente da correggere. Best-effort: un
   // errore di invio non fa fallire il cron.
   // Gli id dei profili di prova, letti una volta sola e usati da tutti e tre i
-  // contatori sotto. Il predicato `e_profilo_di_prova` esiste ed è la sola
+  // contatori sotto.
+  //
+  // IL CRITERIO, per chi verrà a metterci il quarto: quello che descrive gli
+  // STUDENTI si esclude, quello che descrive il MODELLO si separa — la passata
+  // del robot su venticinque ruoli è il campione più grande che avremo, e
+  // buttarlo sarebbe uno spreco. Qui sotto tutti e tre descrivono il modello:
+  // la guardia sulla lingua è già separata, gli altri due sono esclusi solo
+  // perché il banco non gioca ancora né le missioni né i test. È una scelta
+  // che scade, e ognuna delle due righe dice quando. Il predicato `e_profilo_di_prova` esiste ed è la sola
   // definizione, ma da PostgREST non si può usare dentro un filtro: qui si
   // legge la stessa colonna che il predicato legge, e si esclude in memoria.
   // Se la lettura fallisce l'insieme resta vuoto e i numeri tornano quelli di
@@ -415,10 +423,17 @@ export async function GET(request: NextRequest) {
       .eq("revisore_esito", "non_riuscito")
       .gte("aggiornato_il", dayFa);
     if (erroreEscape) console.error("Alert revisore — errore lettura revisore_esiti:", erroreEscape);
-    // Escape descrive gli STUDENTI: i profili di prova si escludono, non si
-    // separano (a differenza della guardia sulla lingua, che descrive il
-    // modello e per cui la passata del robot è il campione più grande che
-    // avremo).
+    // SI ESCLUDE OGGI, MA IL CRITERIO DICE «SEPARA»: questo numero conta
+    // revisori che si sono arresi, quindi descrive il MODELLO, non gli
+    // studenti — la stessa famiglia della guardia sulla lingua. Se ne sta
+    // fuori solo perché il banco le missioni Escape non le gioca: escludere
+    // un insieme vuoto non toglie niente a nessuno.
+    //
+    // IL GIORNO IN CUI IL ROBOT IMPARERÀ A GIOCARE LE MISSIONI, questa riga va
+    // cambiata in una separazione — due contatori, come per la guardia — o
+    // butteremo via il campione migliore proprio quando comincia a esistere.
+    // Serve lo stesso filtro spezzato in due: `revisore_esiti` ha già
+    // `student_id`, quindi non è un meccanismo nuovo, è un `if`.
     escapeFalliti = (righeEscape ?? []).filter((r) => !idDiProva.has(r.student_id)).length;
   } catch (erroreEscape) {
     console.error("Alert revisore — eccezione lettura revisore_esiti:", erroreEscape);
@@ -440,6 +455,10 @@ export async function GET(request: NextRequest) {
       .eq("stato", "completata")
       .gte("started_at", dayFaTest);
     if (erroreTest) console.error("Alert test — errore lettura test_attempt:", erroreTest);
+    // Stessa storia della riga di Escape sopra: un tentativo completato senza
+    // nessuna prova è uno SCORING che non ha prodotto niente — è il motore che
+    // si descrive, non lo studente. Si esclude finché il banco i test non li
+    // gioca; quando li giocherà, qui vanno due numeri e non uno.
     const ids = (completati ?? []).filter((a) => !idDiProva.has(a.student_id)).map((a) => a.id);
     if (ids.length > 0) {
       const { data: conEvidenze } = await supabase.from("evidence").select("test_attempt_id").in("test_attempt_id", ids);
