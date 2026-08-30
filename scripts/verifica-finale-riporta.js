@@ -445,6 +445,16 @@ const MARCHI_PROMPT = /analista di orientamento|Rispondi SOLO|Sei un tutor|Sei u
 // dell'interfaccia, non con chi legge — e restano perché il pattern è LARGO di
 // proposito: stringerlo per non vederle costerebbe le catture vere.
 const WHITELIST_SUPERFICI = new Map([
+  // Testo delle SEZIONI dei workshop (2026-08-31): il «da solo» parla di
+  // Tonino e della gente del quartiere, mai di chi legge. È il caso per cui i
+  // pattern sono larghi e questa lista esiste — e resta una voce con la sua
+  // ragione, non un'eccezione muta.
+  ["Tonino fino a ieri decideva tutto da solo: la cosa più utile che puoi dirgli è cosa smetterà di poter fare da solo.",
+    "il soggetto è Tonino, non chi legge: «decideva da solo» è un fatto sul cliente"],
+  ["Cosa NON può decidere da solo",
+    "intestazione di colonna: il soggetto è la persona nella riga della tabella, non chi legge"],
+  ["Apri in silenzio e lasci che la gente entri da sola",
+    "concorda con «la gente», non con chi legge: invariante per costruzione"],
   [". Questa pagina si aggiorna da sola, torna a trovarci qualche minuto prima.",
     "«da sola» concorda con «la pagina», non con chi legge"],
   ["La signora Colella è qui e sta male adesso. Non possiamo lasciarla lì a urlare da sola per due ore.",
