@@ -13,8 +13,8 @@
 // Un punto d'ingresso solo — `npm run banco <comando>` — perché quattro script
 // sparsi sono quattro cose da ricordare.
 //
-// Sola lettura, tranne `azzera-tentativi`, che sta in un file suo e chiede
-// conferma mostrando la riga che cambia.
+// Sola lettura, tranne i due `azzera-*`, che stanno in file loro e chiedono
+// conferma mostrando cosa cambiano.
 //
 // E tranne `robot`, che è il secondo pezzo: quello scrive eccome — gioca i
 // workshop come uno studente. Per questo si rifiuta di partire se l'account
@@ -26,6 +26,7 @@ const { motore } = require("./motore");
 const { percorso } = require("./percorso");
 const { log, deploy } = require("./vercel");
 const { azzeraTentativi } = require("./azzera");
+const { azzeraPercorsi } = require("./azzera-percorsi");
 const { robot } = require("./robot");
 const { iscrizioni } = require("./iscrizioni");
 const { PERCORSO } = require("./config");
@@ -67,6 +68,13 @@ BANCO DI PROVA — i gesti manuali, fatti dal terminale
       chiede conferma (--vai la salta). Il filtro è una sottostringa:
       «palestra», «enoteca > food».
       Si rifiuta di partire se l'account non è marcato di_prova.
+
+  npm run banco azzera-percorsi [--vai]
+      Riporta i profili DI PROVA a prima della passata: cancella le loro
+      iscrizioni ai workshop, e con quelle elaborati, tappe, chat e
+      consegne. Senza, il banco è monouso — alla seconda passata tutti i
+      ruoli risultano già completati. Mostra cosa cancella e chiede
+      conferma. Non parte su nessun account che non sia di prova.
 
   npm run banco azzera-tentativi <id-iscrizione> <id-fase>
       L'UNICO comando che scrive. Rimette a zero i tentativi di una tappa
@@ -144,6 +152,8 @@ async function main() {
       const filtro = resto.find((a) => !a.startsWith("--"));
       return robot(filtro, { vai: resto.includes("--vai") });
     }
+    case "azzera-percorsi":
+      return azzeraPercorsi({ vai: resto.includes("--vai") });
     case "azzera-tentativi":
       return azzeraTentativi(resto[0], resto[1]);
     case "aiuto-segreto":

@@ -122,7 +122,48 @@ function misura(esiti) {
     .filter((e) => e.atteso)
     .map((e) => ({ etichetta: e.etichetta, nome: e.nome ?? null, ...verificaAtteso(e.atteso, e) }));
 
-  return { testi: testi.length, accordi, registro, esitiRevisione, tentativiTotali, tappeConTentativiExtra, fiducia, fermati, trappole };
+  // Per GENERE DI TESTO, non solo in totale: la prima passata ha mostrato che
+  // il feedback finale è cinque volte più esposto delle revisioni e che la
+  // reazione del cliente non sbaglia mai. Quel numero dice DOVE si lavora — un
+  // prompt invece di quattro — e a mano non lo rifà nessuno.
+  const generi = ["revisione", "reazione del cliente", "feedback finale"];
+  const genereDi = (dove) => generi.find((g) => String(dove).endsWith(g)) ?? "altro";
+  const perGenere = {};
+  for (const g of generi) perGenere[g] = { testi: 0, accordi: 0, certe: 0, registro: 0 };
+  for (const t of testi) {
+    const g = genereDi(t.dove);
+    if (perGenere[g]) perGenere[g].testi++;
+  }
+  for (const a of accordi) {
+    const g = genereDi(a.dove);
+    if (perGenere[g]) { perGenere[g].accordi++; if (a.certa) perGenere[g].certe++; }
+  }
+  for (const r of registro) {
+    const g = genereDi(r.dove);
+    if (perGenere[g]) perGenere[g].registro++;
+  }
+
+  // Quanti TESTI hanno almeno una cattura, non quante catture: è il numero che
+  // dice quante volte la guardia ha chiesto una seconda risposta E la seconda
+  // era ancora sporca. Ogni riga qui è una chiamata a pagamento spesa per
+  // niente, e sul registro la prima passata ne ha contate tante.
+  const testiConAccordo = new Set(accordi.map((a) => a.dove)).size;
+  const testiConRegistro = new Set(registro.map((r) => r.dove)).size;
+
+  return {
+    testi: testi.length,
+    accordi,
+    registro,
+    testiConAccordo,
+    testiConRegistro,
+    perGenere,
+    esitiRevisione,
+    tentativiTotali,
+    tappeConTentativiExtra,
+    fiducia,
+    fermati,
+    trappole,
+  };
 }
 
 function percentuale(parte, tutto) {
@@ -181,13 +222,30 @@ function stampaRapporto(m, righe = console.log) {
   }
   di("");
 
+  di("DOVE SI CONCENTRANO (per genere di testo)");
+  di("  Serve a sapere quale prompt toccare: non tutti sbagliano allo stesso modo.");
+  for (const [g, v] of Object.entries(m.perGenere)) {
+    if (v.testi === 0) continue;
+    di(`  ${g.padEnd(22)} ${String(v.testi).padStart(3)} testi   lingua ${v.accordi} (${v.certe} certe, ${percentuale(v.certe, v.testi)})   registro ${v.registro}`);
+  }
+  di("");
+
   di(`REGISTRO — ${m.registro.length} catture da leggere`);
   if (m.registro.length === 0) di("  Nessuna parola-verdetto e nessuna terza persona.");
   else {
     di("  Stessa avvertenza: «hai capito» dentro un complimento non è un verdetto.");
     di("");
     for (const r of m.registro.slice(0, 12)) di(`  · ${r.dove}\n      ${r.contesto}`);
+    if (m.registro.length > 12) di(`  … e altre ${m.registro.length - 12}, tutte nel rapporto su file.`);
   }
+  di("");
+
+  di("QUANTO CI È COSTATO");
+  di(`  Testi con almeno una cattura — lingua: ${m.testiConAccordo}, registro: ${m.testiConRegistro} (su ${m.testi}).`);
+  di("  Ognuno di questi è una SECONDA chiamata che la guardia ha chiesto e che");
+  di("  non è servita: il testo è arrivato allo studente comunque sporco. Se il");
+  di("  numero del registro è alto, la regola nel prompt non sta prendendo —");
+  di("  chiederla meglio costa una chiamata a testo e non la risolve.");
   di("");
 
   di("REVISORI:");

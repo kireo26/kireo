@@ -171,6 +171,28 @@ const certa = misura([
 ]);
 ok(certa.accordi[0]?.certa === true, "il participio con «essere» in seconda persona è la classe che falsi positivi non ne fa");
 
+
+// ── dove si concentrano, e quanto costano ─────────────────────────────────
+// La prima passata completa ha mostrato che il feedback finale è cinque volte
+// più esposto delle revisioni e che la reazione del cliente non sbaglia mai:
+// quel numero dice quale prompt toccare, e a mano non lo rifà nessuno.
+const perGenere = misura([
+  {
+    etichetta: "w > salute",
+    tappe: [
+      { faseId: "t1", revisione: { commento_breve: "Quando sei arrivato al piano hai tenuto duro." }, reazione: "Il forno cuoce da solo.", esitoRevisione: "riuscita", tentativi: 1 },
+      { faseId: "t2", revisione: { commento_breve: "La tabella regge." }, esitoRevisione: "riuscita", tentativi: 1 },
+    ],
+    feedbackFinale: { messaggio_chiusura: "Hai capito che il margine non è uno spreco, e sei partito da lì." },
+    fiduciaFinale: 70,
+  },
+]);
+ok(perGenere.perGenere["revisione"].testi === 2, "conta i testi per genere: due revisioni");
+ok(perGenere.perGenere["feedback finale"].certe === 1, "e attribuisce la forma accordata al genere di testo giusto");
+ok(perGenere.perGenere["reazione del cliente"].accordi === 1 && perGenere.perGenere["reazione del cliente"].certe === 0, "«da solo» nella reazione resta una cattura da leggere, non una certa");
+ok(perGenere.perGenere["feedback finale"].registro === 1, "il verdetto «hai capito» finisce sul feedback finale, dove è stato scritto");
+ok(perGenere.testiConAccordo === 3 && perGenere.testiConRegistro === 1, "conta i TESTI con almeno una cattura: sono le seconde chiamate che non sono servite");
+
 console.log("\n═══════════════════════════════════════════\n");
 if (falliti) { console.error(`✗ ${falliti} controlli falliti.\n`); process.exit(1); }
 console.log("✓ Il piano dice quanto costa, e la misura dice cosa è successo.\n");
