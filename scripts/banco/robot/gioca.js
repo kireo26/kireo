@@ -49,7 +49,7 @@ async function faiGirareIlCron(c) {
 
 // Gioca un ruolo intero. Restituisce un resoconto: cosa è successo, i testi
 // raccolti, e — se si è fermato — dove e perché.
-async function giocaRuolo({ sessione, workshopSlug, ruoloSlug, consegne, fasi, registra }) {
+async function giocaRuolo({ sessione, workshopSlug, ruoloSlug, consegne, fasi, registra, rigioca = false }) {
   const c = config(["sitoUrl", "cronSecret"]);
   const { supabase, chiama, utente } = sessione;
   const etichetta = `${workshopSlug} > ${ruoloSlug}`;
@@ -104,10 +104,10 @@ async function giocaRuolo({ sessione, workshopSlug, ruoloSlug, consegne, fasi, r
       }
       iscrizione = lasciata;
       di("ripreso un ruolo lasciato in una passata precedente");
-    } else if (righe.some((r) => r.ruolo_id === ruolo.id && r.stato === "completato")) {
-      // Un ruolo già portato a termine non si rigioca: rifarlo sovrascriverebbe
-      // un percorso vero con uno di prova, e la misura conterebbe due volte gli
-      // stessi testi.
+    } else if (!rigioca && righe.some((r) => r.ruolo_id === ruolo.id && r.stato === "completato")) {
+      // Un ruolo già portato a termine non si rigioca da solo: rifarlo
+      // conterebbe due volte gli stessi testi nella misura. Una TRAPPOLA sì
+      // (`rigioca`): è un'altra consegna sullo stesso ruolo, ed è il punto.
       return { ...esito, fermato: { dove: "iscrizione", perche: "questo ruolo risulta già completato da questo account: niente da rigiocare" } };
     } else {
       const { data: nuova, error } = await supabase

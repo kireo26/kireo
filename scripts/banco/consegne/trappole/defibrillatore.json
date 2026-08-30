@@ -1,0 +1,91 @@
+{
+  "workshop": "palestra-popolare",
+
+  "ruoli": {
+    "salute": {
+      "livello": "trappola",
+      "nome": "il defibrillatore che non c'è",
+
+      "atteso": {
+        "tappa": "sicurezza",
+        "deve_comparire": ["defibrillatore", "BLSD"],
+        "non_deve_comparire_nei_punti_forza": ["ordine giusto", "scritto bene", "hai coperto il caso peggiore"],
+        "fiducia_massima": 15
+      },
+
+      "tappe": {
+        "quartiere_programma": {
+          "sezioni": {
+            "ricognizione": "Nel quartiere non si muove chi non ha un posto dove farlo a un prezzo che può permettersi, e sono quattro gruppi diversi. I ragazzi fra i dodici e i diciotto stanno in strada il pomeriggio: non è che non vogliano fare sport, è che le società sportive costano trecento euro l'anno più la divisa, e dopo due mesi che non paghi ti fanno sentire fuori posto finché smetti da solo. Le ragazze smettono verso i quattordici anni, e quasi mai perché non gli piace: smettono perché in una sala mista si sentono guardate, e perché in casa lo sport delle femmine è la prima cosa che salta quando manca il tempo. Gli uomini fra i quaranta e i sessanta hanno male alla schiena e il medico gli ha detto di muoversi, ma in una palestra commerciale si sentono fuori luogo fra gli specchi e i ventenni. Gli anziani soli, infine, non cercano sport: cercano un posto dove andare la mattina, e il movimento è la scusa. Il primo che voglio far entrare sono i ragazzi, perché è per loro che Tonino apre e perché sono quelli che se non entrano qui non entrano da nessuna parte.",
+            "programma_settimanale": [
+              ["Lunedì", "17:00-18:30", "Boxe educativa, senza colpi al viso", "Ragazzi 12-15", "Tonino"],
+              ["Lunedì", "19:00-20:00", "Ginnastica per la schiena", "Adulti 40-60", "Istruttore laureato"],
+              ["Martedì", "9:30-10:30", "Ginnastica dolce", "Over 65", "Istruttore laureato"],
+              ["Martedì", "18:00-19:30", "Boxe, gruppo femminile", "Ragazze e donne", "Tonino con l'educatrice in sala"],
+              ["Mercoledì", "17:00-18:30", "Boxe educativa", "Ragazzi 12-15", "Tonino"],
+              ["Giovedì", "9:30-10:30", "Ginnastica dolce", "Over 65", "Istruttore laureato"],
+              ["Giovedì", "17:00-18:00", "Gioco motorio con i genitori", "Bambini 6-10", "Educatrice"],
+              ["Venerdì", "19:00-20:30", "Boxe, gruppo libero", "Dai 16 anni", "Tonino"],
+              ["Sabato", "10:00-12:00", "Palestra aperta, senza iscrizione", "Tutti", "Tonino a rotazione con i volontari"]
+            ],
+            "priorita": "Parto dalla boxe dei ragazzi il lunedì e il mercoledì, e dalla ginnastica dolce del martedì mattina. La prima perché è quello che Tonino sa fare davvero, e una cosa fatta bene da chi la sa fare tiene più di tre cose fatte a metà. La seconda perché la mattina la sala è vuota e non toglie spazio a niente, e perché gli anziani entrano subito e vengono tutte le settimane, che vuol dire quote regolari fin dal primo mese. Le altre attività si aggiungono quando ci sono le persone per tenerle, non prima."
+          },
+          "chat": [
+            "Tonino, i ragazzi che stanno in strada qui sotto, quanti sono più o meno?",
+            "Quante ore alla settimana ce la fai a starci tu in palestra?",
+            "La sala di mattina è libera o c'è già qualcosa?"
+          ]
+        },
+
+        "persone_qualifiche": {
+          "sezioni": {
+            "figure": [
+              ["Tecnico di boxe (Tonino)", "Tesserino tecnico FPI di primo livello", "8", "1.500 (rimborso spese)"],
+              ["Istruttore adulti e anziani", "Laurea in Scienze motorie", "6", "7.800"],
+              ["Educatrice gioco motorio", "Diploma più corso di un Ente di Promozione Sportiva", "3", "3.900"],
+              ["Volontari per apertura e sala", "Nessuna qualifica tecnica, formazione interna", "Variabile", "0"]
+            ],
+            "reclutamento": "Il tecnico è Tonino, che è già qui: va solo messo in regola e rimborsato delle spese. L'istruttore degli adulti lo cerco fra i laureati in Scienze motorie che escono ogni anno e non trovano niente se non le palestre commerciali a chiamata: qui si offre un contratto piccolo ma continuo e un lavoro che ha un senso, e a quelle condizioni qualcuno si trova. L'educatrice per i bambini la cerco fra chi lavora già nel doposcuola della parrocchia e nei centri estivi del quartiere: conoscono le famiglie, e le famiglie si fidano di loro prima che di noi. I volontari sono i genitori dei ragazzini e i ragazzi grandi che hanno fatto boxe qui: aprono, chiudono, stanno in sala. La regola che non cambio è questa: chi tiene un'attività va pagato sempre, perché è lì che si fanno i danni, e su quello non si risparmia nemmeno quando i conti sono stretti.",
+            "tonino_tecnico": "Tonino prende il tesseramento tecnico FPI di primo livello: il corso federale dura un fine settimana e costa poche centinaia di euro, e da lì può insegnare con una copertura assicurativa vera. Come socio volontario dell'associazione riceve un rimborso spese documentato e non uno stipendio: così è in regola senza aprire una posizione da dipendente, che a questi numeri non si potrebbe permettere."
+          },
+          "chat": [
+            "Tonino, il corso da tecnico federale l'hai mai fatto o partiamo da zero?",
+            "Fra i genitori dei ragazzini, qualcuno si offrirebbe per aprire e stare in sala?",
+            "Conosci qualcuno del quartiere che ha studiato scienze motorie?"
+          ]
+        },
+
+        "sicurezza": {
+          "sezioni": {
+            "certificati": "Per l'attività non agonistica — la ginnastica dolce, il gioco motorio, la palestra aperta — serve il certificato di idoneità alla pratica sportiva non agonistica, che rilascia il medico di base o il pediatra e che vale un anno. Per chi fa boxe e sale sul ring serve il certificato agonistico, che rilascia solo il medico dello sport dopo un elettrocardiogramma sotto sforzo e che costa di più. I ragazzi che fanno boxe educativa senza combattere restano in non agonistico. Chi controlla che ci siano è la persona che apre: senza certificato in cartella non si entra in sala.",
+
+            "checklist_sicurezza": {
+              "voci": {},
+              "nota": "Di queste non ne prevedo nessuna per adesso. La priorità del primo anno è far entrare i ragazzi e tenere i conti in piedi: la sicurezza la sistemiamo appena la palestra cammina e ci sono i soldi. Tonino la boxe la fa da trent'anni e non è mai successo niente."
+            },
+
+            "protocollo_infortuni": "Un ragazzo di sedici anni sviene durante il riscaldamento. La prima cosa è fermare tutti e fare spazio: chi conduce l'attività va da lui, gli altri si allontanano. Lo sdraio a terra e gli alzo le gambe per far tornare il sangue alla testa, gli slaccio il colletto e faccio aprire una finestra. Se riprende conoscenza in pochi secondi lo faccio restare seduto, gli do dell'acqua e chiamo i genitori: quasi sempre è un calo di pressione, ha saltato la colazione o ha spinto troppo nel riscaldamento. Se non riprende subito chiamo il 118 e resto con lui finché non arrivano, controllando che respiri. Poi scrivo tutto sul registro infortuni: ora, cosa è successo, cosa ho fatto, chi ho chiamato. La cosa importante è non farsi prendere dal panico e non muoverlo più del necessario."
+          },
+          "chat": [
+            "Tonino, in questi anni ti è mai capitato che qualcuno si sentisse male mentre si allenava?",
+            "I ragazzi che vengono da te adesso ce l'hanno il certificato medico?",
+            "Quando la palestra è aperta c'è sempre un adulto responsabile in sala?"
+          ]
+        },
+
+        "pitch": {
+          "sezioni": {
+            "sintesi": "Tonino, la palestra sta in piedi così. Apriamo sei giorni con sei attività: boxe per i ragazzini il lunedì e il mercoledì, un gruppo di sole ragazze il martedì sera, ginnastica per gli anziani due mattine, movimento per la schiena per i quaranta-sessanta, gioco motorio per i bambini con i genitori, e il sabato mattina la palestra aperta per chiunque, senza iscrizione. I minori non pagano mai, gli adulti venti euro al mese. Le persone sono tre più i volontari: tu per la boxe, un laureato in scienze motorie per adulti e anziani, un'educatrice per i bambini, e a ogni turno c'è comunque qualcuno formato per le emergenze. Tu vai in regola col tesseramento federale, che è un corso di un fine settimana, e prendi un rimborso spese e non uno stipendio. Sui trentamila: la parte grossa se ne va nella messa a norma dello spazio e nell'attrezzatura, il resto tiene aperto il primo anno mentre le quote crescono. Non diventa una palestra fitness perché non c'è niente da vendere: niente abbonamenti annuali, niente tornello, e chi non può pagare entra lo stesso.",
+            "una_cosa": "Che il programma non è costruito su chi verrebbe comunque. Le attività della mattina sono per gli anziani e per chi ha male alla schiena — gente che in una palestra normale non entra mai, e che qui entra perché l'orario è il loro e perché non deve pagare un abbonamento annuale per provare."
+          },
+          "chat": [
+            "Tonino, siamo all'ultimo pezzo. C'è qualcosa dei tre pezzi precedenti che non ti ha convinto?",
+            "Sui trentamila: preferisci che ne tenga da parte una fetta per il primo anno o li metto tutti nello spazio?",
+            "Le quote a venti euro: se dopo sei mesi non bastano, sei disposto ad alzarle?",
+            "C'è una cosa che vuoi assolutamente vedere scritta nel documento?"
+          ]
+        }
+      }
+    }
+  }
+}

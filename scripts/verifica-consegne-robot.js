@@ -172,7 +172,14 @@ if (!fs.existsSync(DIR)) {
   console.log("\nNessuna cartella scripts/banco/consegne: niente da controllare.\n");
   process.exit(0);
 }
+// Anche le trappole, che stanno in una sottocartella: un `readdirSync` piatto
+// le salterebbe in silenzio, e un file di consegne non controllato è
+// esattamente quello che questo script esiste per impedire.
 const files = fs.readdirSync(DIR).filter((f) => f.endsWith(".json"));
+const dirTrappole = path.join(DIR, "trappole");
+if (fs.existsSync(dirTrappole)) {
+  for (const f of fs.readdirSync(dirTrappole)) if (f.endsWith(".json")) files.push(path.join("trappole", f));
+}
 if (files.length === 0) {
   console.log("\nNessun file di consegne ancora scritto.\n");
   process.exit(0);

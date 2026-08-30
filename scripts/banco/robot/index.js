@@ -49,25 +49,65 @@ const { giocaRuolo } = require("./gioca");
 const { misura, stampaRapporto } = require("./misura");
 
 const DIR_CONSEGNE = path.join(ROOT, "scripts", "banco", "consegne");
+// Le trappole stanno in una cartella loro: un ruolo per file, così ognuna si
+// lancia da sola. Vanno lette esplicitamente — un `readdirSync` piatto sulla
+// cartella padre non le vedrebbe, e il file finirebbe ignorato in silenzio
+// (il modo peggiore di fallire: «nessun ruolo corrisponde» invece di un
+// errore).
+const DIR_TRAPPOLE = path.join(DIR_CONSEGNE, "trappole");
+
+function fileConsegne() {
+  const elenco = [];
+  for (const dir of [DIR_CONSEGNE, DIR_TRAPPOLE]) {
+    if (!fs.existsSync(dir)) continue;
+    for (const f of fs.readdirSync(dir)) if (f.endsWith(".json")) elenco.push(path.join(dir, f));
+  }
+  return elenco;
+}
 
 // Il piano della passata: quali ruoli, e quanto costa. Puro, così il conto si
 // può provare senza toccare la rete (vedi npm run test:robot).
+// UNA TRAPPOLA NON ENTRA NELLA PASSATA COMPLETA, e non è una questione di
+// conti. Gira sullo stesso ruolo di una `base` con una consegna diversa:
+// nella stessa passata sarebbero due iscrizioni sullo stesso workshop per lo
+// stesso account, e la seconda troverebbe la prima già completata. Le trappole
+// si lanciano per nome, una alla volta — `npm run banco robot defibrillatore`
+// — che è anche il modo in cui si vuole rileggerle.
 function costruisciPiano(filtro) {
   const lavori = [];
-  const files = fs.existsSync(DIR_CONSEGNE) ? fs.readdirSync(DIR_CONSEGNE).filter((f) => f.endsWith(".json")) : [];
-  for (const f of files) {
-    const dati = JSON.parse(fs.readFileSync(path.join(DIR_CONSEGNE, f), "utf8"));
+  for (const f of fileConsegne()) {
+    const dati = JSON.parse(fs.readFileSync(f, "utf8"));
     const definizioni = WORKSHOP_ELABORATO[dati.workshop];
     if (!definizioni) continue;
     for (const [ruoloSlug, consegne] of Object.entries(dati.ruoli ?? {})) {
       const def = definizioni[ruoloSlug];
       if (!def) continue;
+      // Una trappola ha un nome suo, e il filtro deve poterla prendere per
+      // quello: «npm run banco robot defibrillatore».
       const etichetta = `${dati.workshop} > ${ruoloSlug}`;
-      if (filtro && !etichetta.toLowerCase().includes(String(filtro).toLowerCase())) continue;
+      // Una trappola si prende SOLO per il suo nome o per il suo file, mai per
+      // il workshop o il ruolo: chi scrive «palestra» vuole i cinque ruoli
+      // base, e trovarsi dentro anche una trappola sarebbe una sorpresa a
+      // pagamento. `defibrillatore` la prende, `palestra` no.
+      const trappola = consegne.livello === "trappola";
+      const cercabile = (trappola ? `${consegne.nome ?? ""} ${path.basename(f, ".json")}` : etichetta).toLowerCase();
+      if (!filtro && trappola) continue;
+      if (filtro && !cercabile.includes(String(filtro).toLowerCase())) continue;
       // 2 chiamate per tappa (revisione + reazione) + la chat minima, e un
       // feedback finale sull'ultima.
       const chiamate = def.fasi.reduce((somma, fase) => somma + 2 + fase.chatMinima + (fase.ultima ? 1 : 0), 0);
-      lavori.push({ workshopSlug: dati.workshop, ruoloSlug, etichetta, consegne, fasi: def.fasi, chiamate, livello: consegne.livello });
+      lavori.push({
+        workshopSlug: dati.workshop,
+        ruoloSlug,
+        etichetta,
+        consegne,
+        fasi: def.fasi,
+        chiamate,
+        livello: consegne.livello,
+        trappola,
+        nome: consegne.nome ?? null,
+        atteso: consegne.atteso ?? null,
+      });
     }
   }
   return {
@@ -95,7 +135,7 @@ async function robot(filtro, opzioni = {}) {
   console.log(`  ~${piano.chiamate} chiamate AI a pagamento`);
   console.log(`  (2 per tappa — revisione e reazione del cliente — più la chat minima,`);
   console.log(`   più un feedback finale per ruolo)\n`);
-  for (const l of piano.lavori) console.log(`  · ${l.etichetta}${l.livello === "trappola" ? "   [trappola]" : ""}`);
+  for (const l of piano.lavori) console.log(`  · ${l.etichetta}${l.livello === "trappola" ? `   [trappola: ${l.nome ?? "senza nome"}]` : ""}`);
   console.log("\n  Il robot gioca come uno studente vero: se un gate lo blocca si ferma");
   console.log("  e lo riporta, invece di aggirarlo.\n");
 
@@ -120,13 +160,17 @@ async function robot(filtro, opzioni = {}) {
         ruoloSlug: lavoro.ruoloSlug,
         consegne: lavoro.consegne,
         fasi: lavoro.fasi,
+        // Una trappola è per definizione un secondo giro sullo stesso ruolo:
+        // il rifiuto «già completato», che protegge la misura dal contare due
+        // volte gli stessi testi, qui non si applica.
+        rigioca: Boolean(lavoro.trappola),
         registra: (t) => console.log(t),
       });
       if (esito.fermato) console.log(`  ✗ fermato a «${esito.fermato.dove}»: ${esito.fermato.perche}`);
-      esiti.push(esito);
+      esiti.push({ ...esito, nome: lavoro.nome, atteso: lavoro.atteso });
     } catch (errore) {
       console.log(`  ✗ eccezione: ${errore.message}`);
-      esiti.push({ etichetta: lavoro.etichetta, tappe: [], fermato: { dove: "?", perche: errore.message } });
+      esiti.push({ etichetta: lavoro.etichetta, nome: lavoro.nome, atteso: lavoro.atteso, tappe: [], fermato: { dove: "?", perche: errore.message } });
     }
   }
 

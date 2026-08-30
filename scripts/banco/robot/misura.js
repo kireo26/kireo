@@ -36,8 +36,34 @@ if (!require.extensions[".ts"]) {
   };
 }
 
-const { trovaAccordiInJson } = require("@/lib/lingua/accordoGenere");
-const { trovaRegistroInJson } = require("@/lib/lingua/registroStudente");
+const { trovaAccordi } = require("@/lib/lingua/accordoGenere");
+const { trovaRegistro } = require("@/lib/lingua/registroStudente");
+const { stringheInJson } = require("@/lib/lingua/scansione");
+const { verificaAtteso } = require("./atteso");
+
+// Una cattura senza la frase intorno non si rilegge: `dove` dice in quale
+// campo sta, non cosa c'era scritto. E qui serve più che altrove, perché i
+// pattern sono LARGHI di proposito — per il tripwire un falso positivo è una
+// voce di whitelist, per la guardia una chiamata in più, ma la misura non ha
+// un umano dentro il ciclo: pubblica un numero. Il primo giro vero, il 31
+// agosto 2026, ha dato 4 catture e 4 falsi positivi («quel signore ci entra da
+// solo», «Tonino da solo», «il defibrillatore parla da solo», «hai capito»
+// dentro un complimento): il tasso pubblicato diceva 33% dove il vero era 0.
+const CONTORNO = 120;
+
+function conContesto(testo, cattura) {
+  const i = String(testo).toLowerCase().indexOf(String(cattura).toLowerCase());
+  if (i < 0) return String(cattura);
+  const da = Math.max(0, i - CONTORNO);
+  const a = Math.min(testo.length, i + cattura.length + CONTORNO);
+  return `${da > 0 ? "…" : ""}${testo.slice(da, i)}»${testo.slice(i, i + cattura.length)}«${testo.slice(i + cattura.length, a)}${a < testo.length ? "…" : ""}`;
+}
+
+// La classe più affidabile: il participio con ESSERE / il riflessivo in seconda
+// persona, che falsi positivi non ne fa. `da sol[oa]` invece resta sempre una
+// cattura DA GUARDARE — la sua percentuale di verità la dice una persona.
+const CERTA = /\b(?:sei|ti sei|se ti sei|quando sei|non sei)\b/;
+const certa = (cattura) => CERTA.test(String(cattura).toLowerCase());
 
 // Ogni testo con la sua provenienza, così una cattura si può andare a rileggere
 // invece di restare un numero.
@@ -59,8 +85,12 @@ function misura(esiti) {
   const accordi = [];
   const registro = [];
   for (const t of testi) {
-    for (const c of trovaAccordiInJson(t.valore)) accordi.push({ dove: t.dove, cattura: c });
-    for (const c of trovaRegistroInJson(t.valore)) registro.push({ dove: t.dove, cattura: c });
+    // Si scende alle singole stringhe invece di passare l'oggetto intero, così
+    // la frase intorno alla cattura è quella vera e non un JSON appiattito.
+    for (const s of stringheInJson(t.valore)) {
+      for (const c of trovaAccordi(s)) accordi.push({ dove: t.dove, cattura: c, contesto: conContesto(s, c), certa: certa(c) });
+      for (const c of trovaRegistro(s)) registro.push({ dove: t.dove, cattura: c, contesto: conContesto(s, c) });
+    }
   }
 
   // Gli esiti dei revisori, contati per come li marca il motore.
@@ -86,7 +116,13 @@ function misura(esiti) {
 
   const fermati = esiti.filter((e) => e.fermato).map((e) => ({ etichetta: e.etichetta, ...e.fermato }));
 
-  return { testi: testi.length, accordi, registro, esitiRevisione, tentativiTotali, tappeConTentativiExtra, fiducia, fermati };
+  // Le trappole: confronto letterale sul testo della revisione, mai un modello
+  // che giudica un modello.
+  const trappole = esiti
+    .filter((e) => e.atteso)
+    .map((e) => ({ etichetta: e.etichetta, nome: e.nome ?? null, ...verificaAtteso(e.atteso, e) }));
+
+  return { testi: testi.length, accordi, registro, esitiRevisione, tentativiTotali, tappeConTentativiExtra, fiducia, fermati, trappole };
 }
 
 function percentuale(parte, tutto) {
@@ -97,6 +133,22 @@ function stampaRapporto(m, righe = console.log) {
   const di = (t = "") => righe(t);
 
   di("\n═══════════ LA MISURA ═══════════\n");
+
+  if (m.trappole && m.trappole.length > 0) {
+    di("TRAPPOLE");
+    for (const t of m.trappole) {
+      const esito = t.colta === true ? "✓ COLTA" : t.colta === false ? "✗ NON COLTA" : "— nessun verdetto";
+      di(`  ${esito}  ${t.nome ?? t.etichetta}  (tappa «${t.tappa}»${Number.isFinite(t.punteggio) ? `, ${t.punteggio} punti` : ""})`);
+      if (t.motivo) di(`      ${t.motivo}`);
+      for (const c of t.controlli ?? []) di(`      ${c.ok ? "✓" : "✗"} ${c.ok ? c.descrizione : c.spiegazione}`);
+    }
+    di("");
+    di("  Confronto letterale sul testo della revisione, mai un modello che giudica");
+    di("  un altro modello. Una trappola NON colta è il risultato più utile che");
+    di("  questo banco possa dare: vuol dire che il revisore ha lasciato passare");
+    di("  esattamente la cosa che gli avevamo chiesto di non lasciar passare.");
+    di("");
+  }
 
   if (m.fermati.length > 0) {
     di(`FERMATI: ${m.fermati.length}`);
@@ -113,21 +165,29 @@ function stampaRapporto(m, righe = console.log) {
   di("  Revisioni di tappa, reazioni del cliente e feedback finali. Sono i testi che");
   di("  uno studente avrebbe letto: su questi passano i pattern, non su un campione.\n");
 
-  di(`LINGUA INVARIANTE: ${m.accordi.length} catture su ${m.testi} testi (${percentuale(m.accordi.length, m.testi)})`);
+  const certe = m.accordi.filter((a) => a.certa).length;
+  di(`LINGUA INVARIANTE — ${m.accordi.length} catture da leggere su ${m.testi} testi`);
   if (m.accordi.length === 0) {
-    di("  Nessuna forma accordata al genere di chi legge. È il numero vero che");
-    di("  sostituisce la stima dell'~8% fatta su una consegna-fixture sola.");
+    di("  Nessuna. I pattern non hanno trovato niente da guardare.");
   } else {
-    for (const a of m.accordi.slice(0, 12)) di(`  · ${a.dove}\n      «${a.cattura}»`);
-    if (m.accordi.length > 12) di(`  … e altre ${m.accordi.length - 12}.`);
-    di("  Sono forme SFUGGITE ALLA GUARDIA: la guardia rilegge e richiede una sola");
-    di("  volta, quindi queste sono l'esposizione residua, non il lavoro fatto.");
+    di("  NON sono ancora un tasso di esposizione: i pattern sono larghi apposta e");
+    di("  una parte di queste sarà legittima («il defibrillatore parla da solo» non");
+    di("  è rivolto a chi legge). Quante lo siano davvero lo dice chi le legge.");
+    di(`  Di queste, ${certe} sono della classe che falsi positivi non ne fa (il`);
+    di("  participio con «essere» in seconda persona): quelle contano comunque.");
+    di("");
+    for (const a of m.accordi.slice(0, 12)) di(`  · ${a.dove}${a.certa ? "   [certa]" : ""}\n      ${a.contesto}`);
+    if (m.accordi.length > 12) di(`  … e altre ${m.accordi.length - 12}, tutte nel rapporto su file.`);
   }
   di("");
 
-  di(`REGISTRO: ${m.registro.length} catture (${percentuale(m.registro.length, m.testi)})`);
+  di(`REGISTRO — ${m.registro.length} catture da leggere`);
   if (m.registro.length === 0) di("  Nessuna parola-verdetto e nessuna terza persona.");
-  else for (const r of m.registro.slice(0, 12)) di(`  · ${r.dove}\n      «${r.cattura}»`);
+  else {
+    di("  Stessa avvertenza: «hai capito» dentro un complimento non è un verdetto.");
+    di("");
+    for (const r of m.registro.slice(0, 12)) di(`  · ${r.dove}\n      ${r.contesto}`);
+  }
   di("");
 
   di("REVISORI:");

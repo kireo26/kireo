@@ -32,6 +32,7 @@ require.extensions[".ts"] = function (mod, filename) {
 
 const { costruisciPiano } = require("./banco/robot");
 const { misura } = require("./banco/robot/misura");
+const { verificaAtteso } = require("./banco/robot/atteso");
 
 let falliti = 0;
 const ok = (cond, msg) => { if (!cond) { console.error("  ✗ " + msg); falliti++; } else { console.log("  ✓ " + msg); } };
@@ -100,6 +101,75 @@ ok(m.fiducia[0].valore === 68 && m.fiducia[1].valore === 71, "la fiducia è ordi
 // i conti degli esiti: non è stata giocata adesso.
 const conRipresa = misura([{ etichetta: "w > tre", tappe: [{ faseId: "t1", giaFatta: true, tentativi: 0 }], fiduciaFinale: 50 }]);
 ok(Object.keys(conRipresa.esitiRevisione).length === 0, "una tappa già revisionata in una passata precedente non entra nei conti");
+
+
+// ── le trappole ───────────────────────────────────────────────────────────
+// Stanno in una sottocartella, e per un giorno il robot non le ha viste: un
+// `readdirSync` piatto le saltava, e il filtro rispondeva «nessun ruolo
+// corrisponde» invece di un errore. È il modo peggiore di fallire.
+const trappole = costruisciPiano("defibrillatore");
+ok(trappole.lavori.length === 1, `il filtro trova la trappola per nome, dentro la sua cartella (ne trova ${trappole.lavori.length})`);
+ok(trappole.lavori[0]?.atteso?.tappa === "sicurezza", "…e si porta dietro l'atteso, altrimenti girerebbe senza verdetto");
+ok(!tutto.lavori.some((l) => l.livello === "trappola"), "la passata completa NON le comprende: girano sullo stesso ruolo di una base, una alla volta");
+ok(costruisciPiano("palestra").lavori.every((l) => l.livello !== "trappola"), "e un filtro per workshop non se le tira dietro a sorpresa: le trappole si chiamano per nome");
+
+// Il verdetto. `FORMATO.md` prometteva «il robot dice se è stato colto» mentre
+// il campo veniva solo validato nella forma: una trappola sarebbe girata
+// producendo del testo da leggere e nient'altro.
+const ATTESO = {
+  tappa: "sicurezza",
+  deve_comparire: ["defibrillatore", "BLSD"],
+  non_deve_comparire_nei_punti_forza: ["ordine giusto"],
+  fiducia_massima: 15,
+};
+const revisioneDi = (punti_forza, resto, punteggio) => ({
+  tappe: [{ faseId: "sicurezza", revisione: { punti_forza, da_migliorare: [], domanda: "", commento_breve: resto, punteggio_fiducia: punteggio } }],
+});
+
+const colta = verificaAtteso(ATTESO, revisioneDi(["hai nominato le figure giuste"], "Manca il defibrillatore e nessuno ha il BLSD.", 12));
+ok(colta.colta === true, "trappola COLTA: nomina quello che manca, non elogia l'ordine, e il punteggio sta sotto il tetto");
+
+const elogia = verificaAtteso(ATTESO, revisioneDi(["hai l'ordine giusto"], "Manca il defibrillatore e il BLSD.", 12));
+ok(elogia.colta === false, "NON colta se elogia l'ordine dei passaggi fra i punti di forza");
+
+// La stessa parola fra i «da migliorare» è invece giusta: dire «l'ordine
+// giusto non basta» è esattamente quello che vogliamo.
+const critica = verificaAtteso(ATTESO, {
+  tappe: [{ faseId: "sicurezza", revisione: { punti_forza: ["hai nominato le figure"], da_migliorare: ["l'ordine giusto non basta senza defibrillatore"], domanda: "", commento_breve: "manca il BLSD", punteggio_fiducia: 12 } }],
+});
+ok(critica.colta === true, "…ma criticare «l'ordine giusto» fra i da migliorare non è un elogio");
+
+const generosa = verificaAtteso(ATTESO, revisioneDi(["hai nominato le figure"], "Manca il defibrillatore e il BLSD.", 21));
+ok(generosa.colta === false, "NON colta se il punteggio della tappa supera il tetto");
+
+const muta = verificaAtteso(ATTESO, revisioneDi(["ottimo protocollo"], "Va bene così.", 12));
+ok(muta.colta === false && muta.controlli.filter((c) => !c.ok).length === 2, "NON colta se non nomina né defibrillatore né BLSD");
+
+const fermato = verificaAtteso(ATTESO, { tappe: [] });
+ok(fermato.colta === null, "se la tappa non è stata giocata il verdetto è «non lo so», mai «è andata bene»");
+
+const arreso = verificaAtteso(ATTESO, { tappe: [{ faseId: "sicurezza", revisione: null, esitoRevisione: "non_riuscita" }] });
+ok(arreso.colta === null && /non e stata revisionata|non è stata revisionata/.test(arreso.motivo), "un revisore che si è arreso non conta come trappola scampata");
+
+// ── la cattura si legge, e il titolo non conclude ──────────────────────────
+// Il primo giro vero ha dato 4 catture e 4 falsi positivi: la misura pubblicava
+// 33% dove il vero era 0. Il contorno è quello che li faceva vedere in tre
+// secondi invece che aprendo il JSON.
+const conContorno = misura([
+  {
+    etichetta: "w > salute",
+    tappe: [{ faseId: "t1", revisione: { commento_breve: "Il punto è che a quell'ora il defibrillatore parla da solo e nessuno lo sente." }, esitoRevisione: "riuscita", tentativi: 1 }],
+    fiduciaFinale: 60,
+  },
+]);
+ok(conContorno.accordi.length === 1, "trova «da solo» anche quando non è rivolto a chi legge: i pattern sono larghi apposta");
+ok(/defibrillatore/.test(conContorno.accordi[0].contesto), "la cattura arriva con la frase intorno, non da sola");
+ok(conContorno.accordi[0].certa === false, "«da solo» NON è della classe affidabile: va letta prima di contarla");
+
+const certa = misura([
+  { etichetta: "w > salute", tappe: [{ faseId: "t1", revisione: { commento_breve: "Quando sei arrivato al protocollo hai tenuto duro." }, esitoRevisione: "riuscita", tentativi: 1 }], fiduciaFinale: 60 },
+]);
+ok(certa.accordi[0]?.certa === true, "il participio con «essere» in seconda persona è la classe che falsi positivi non ne fa");
 
 console.log("\n═══════════════════════════════════════════\n");
 if (falliti) { console.error(`✗ ${falliti} controlli falliti.\n`); process.exit(1); }

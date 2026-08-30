@@ -96,15 +96,50 @@ revisore fallisce sempre.
 
 I tre campi sono tutti facoltativi e si controllano **sul testo della revisione
 di quella tappa**, con un confronto letterale — nessun modello che giudica un
-modello. `fiducia_massima` è il tetto oltre il quale il punteggio è troppo
-generoso per un lavoro con quel buco dentro.
+modello (`scripts/banco/robot/atteso.js`, provato da `npm run test:robot`).
+
+- `deve_comparire` si cerca in **tutta** la revisione;
+- `non_deve_comparire_nei_punti_forza` **solo** fra i punti di forza: dire
+  «l'ordine giusto non basta» fra i *da migliorare* è giusto, è elogiarlo che
+  è il difetto;
+- `fiducia_massima` è il punteggio **di quella tappa** (`punteggio_fiducia`,
+  su 25), non la fiducia totale del progetto.
+
+Se la tappa non viene giocata, o se il revisore si arrende, il verdetto è
+**«non lo so»** e non «è andata bene»: una trappola scampata per un guasto non
+è una trappola colta.
+
+*Nota storica, perché non succeda di nuovo: dal primo giorno questo documento
+prometeva che «il robot dice se è stato colto», e per una settimana `atteso`
+è stato **validato nella forma** ma mai **controllato contro il giro**. Una
+trappola sarebbe girata producendo solo del testo da leggere — cioè la cosa
+per cui non serviva costruirla.*
+
+### Come si lancia una trappola
+
+```
+npm run banco robot defibrillatore
+```
+
+Per **nome**, o per il nome del file — mai per workshop o per ruolo: chi scrive
+`palestra` vuole i cinque ruoli base, e trovarsi dentro anche una trappola
+sarebbe una sorpresa a pagamento. Per lo stesso motivo **le trappole non
+entrano nella passata completa**: girano sullo stesso ruolo di una `base`, e
+nella stessa passata sarebbero due iscrizioni sullo stesso workshop per lo
+stesso account.
+
+Una trappola è l'unico caso in cui il robot rigioca un ruolo che ha già
+completato: è un'altra consegna sullo stesso ruolo, ed è il punto. Costa il
+giro intero (22 chiamate per un ruolo da quattro tappe) anche quando la
+trappola sta nella terza: le tappe sono gated, la terza si apre solo dopo che
+le prime due sono state revisionate.
 
 ---
 
 ## Il vincolo che vale più di tutti
 
 Il robot passa **dalla porta**: sessione vera, le stesse route, gli stessi gate
-(`chatMinima`, `sezioniIncomplete`, il cooldown con l'override, la consegna via
+(`chatMinima`, `sezioniIncomplete`, il raffreddamento — che il cron salta per i profili di prova — la consegna via
 `/api/workshop/elaborato/consegna-tappa`). Mai la service-role, mai le funzioni
 SQL chiamate a mano.
 
