@@ -114,7 +114,12 @@ function misura(esiti) {
     .map((e) => ({ etichetta: e.etichetta, valore: e.fiduciaFinale }))
     .sort((a, b) => a.valore - b.valore);
 
-  const fermati = esiti.filter((e) => e.fermato).map((e) => ({ etichetta: e.etichetta, ...e.fermato }));
+  // Due liste, non una: «fermato da un cancello» si studia, «caduto per un
+  // guasto» si rifà. Nella prima passata stavano insieme sotto «un gate che
+  // morde è un risultato», e due `fetch failed` risultavano risultati.
+  const tuttiFermati = esiti.filter((e) => e.fermato).map((e) => ({ etichetta: e.etichetta, ...e.fermato }));
+  const fermati = tuttiFermati.filter((f) => !f.guasto);
+  const caduti = tuttiFermati.filter((f) => f.guasto);
 
   // Le trappole: confronto letterale sul testo della revisione, mai un modello
   // che giudica un modello.
@@ -162,6 +167,7 @@ function misura(esiti) {
     tappeConTentativiExtra,
     fiducia,
     fermati,
+    caduti,
     trappole,
   };
 }
@@ -191,8 +197,17 @@ function stampaRapporto(m, righe = console.log) {
     di("");
   }
 
+  if (m.caduti && m.caduti.length > 0) {
+    di(`CADUTI PER UN GUASTO: ${m.caduti.length}`);
+    di("  Non sono risultati: sono ruoli persi. La rete, un timeout, un'eccezione.");
+    di("  Il robot riprova già una volta da solo su un errore di rete, quindi se");
+    di("  sono qui hanno fallito due volte. Vanno RIFATTI, non studiati.\n");
+    for (const c of m.caduti) di(`  · ${c.etichetta} — ${c.perche}`);
+    di("");
+  }
+
   if (m.fermati.length > 0) {
-    di(`FERMATI: ${m.fermati.length}`);
+    di(`FERMATI DA UN CANCELLO: ${m.fermati.length}`);
     di("  Un gate che morde è un risultato, non un ostacolo. Questi vanno letti per primi.\n");
     for (const f of m.fermati) {
       di(`  · ${f.etichetta} — a «${f.dove}»`);

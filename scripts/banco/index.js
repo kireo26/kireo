@@ -29,6 +29,7 @@ const { azzeraTentativi } = require("./azzera");
 const { azzeraPercorsi } = require("./azzera-percorsi");
 const { robot } = require("./robot");
 const { iscrizioni } = require("./iscrizioni");
+const { confronta } = require("./confronta");
 const { PERCORSO } = require("./config");
 
 const AIUTO = `
@@ -68,6 +69,12 @@ BANCO DI PROVA — i gesti manuali, fatti dal terminale
       chiede conferma (--vai la salta). Il filtro è una sottostringa:
       «palestra», «enoteca > food».
       Si rifiuta di partire se l'account non è marcato di_prova.
+
+  npm run banco confronta <rapporto-a> <rapporto-b>
+      Due passate a confronto: quanto si muove il punteggio (per ruolo e per
+      tappa), quante coppie di ruoli si INVERTONO, lingua e registro
+      affiancati per genere di testo, e i commit che stanno in mezzo.
+      I rapporti li scrive «npm run banco robot» alla fine di ogni passata.
 
   npm run banco azzera-percorsi [--vai]
       Riporta i profili DI PROVA a prima della passata: cancella le loro
@@ -152,6 +159,8 @@ async function main() {
       const filtro = resto.find((a) => !a.startsWith("--"));
       return robot(filtro, { vai: resto.includes("--vai") });
     }
+    case "confronta":
+      return confronta(resto[0], resto[1]);
     case "azzera-percorsi":
       return azzeraPercorsi({ vai: resto.includes("--vai") });
     case "azzera-tentativi":

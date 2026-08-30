@@ -32,14 +32,31 @@ const attendi = (ms) => new Promise((r) => setTimeout(r, ms));
 const GIRI_CRON_MAX = 12;
 const ATTESA_FRA_GIRI_MS = 20_000;
 
+// Stesso principio di `conUnRitentativo` in sessione.js: un pacchetto perso
+// non è un esito del prodotto.
+async function conUnRitentativo(azione) {
+  try {
+    return await azione();
+  } catch (primo) {
+    await new Promise((r) => setTimeout(r, 3000));
+    try {
+      return await azione();
+    } catch {
+      throw primo;
+    }
+  }
+}
+
 async function faiGirareIlCron(c) {
   // `alert=no`: un giro per tappa, un centinaio in una passata. La mail di
   // osservabilità resta al giro programmato, così una mail continua a
   // significare qualcosa.
-  const risposta = await fetch(`${c.sitoUrl}/api/cron/workshop-motore?alert=no`, {
-    headers: { Authorization: `Bearer ${c.cronSecret}` },
-    redirect: "follow",
-  });
+  const risposta = await conUnRitentativo(() =>
+    fetch(`${c.sitoUrl}/api/cron/workshop-motore?alert=no`, {
+      headers: { Authorization: `Bearer ${c.cronSecret}` },
+      redirect: "follow",
+    }),
+  );
   const testo = await risposta.text();
   let dati = null;
   try {

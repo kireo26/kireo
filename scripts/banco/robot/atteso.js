@@ -44,10 +44,12 @@ function verificaAtteso(atteso, esito) {
   }
 
   const rev = tappa.revisione;
-  const tutta = normalizza(
-    [testoDi(rev.punti_forza), testoDi(rev.da_migliorare), testoDi(rev.domanda), testoDi(rev.commento_breve)].join(" — "),
-  );
-  const forza = normalizza(testoDi(rev.punti_forza));
+  // `cosa_regge` è il nome nuovo di `punti_forza` nella revisione di tappa
+  // (dal 2026-08-31, vedi elaboratoValore.ts): si guardano tutti e due, o una
+  // trappola scritta prima smetterebbe di controllare quello che controllava.
+  const lode = rev.cosa_regge ?? rev.punti_forza;
+  const tutta = normalizza([testoDi(lode), testoDi(rev.da_migliorare), testoDi(rev.domanda), testoDi(rev.commento_breve)].join(" — "));
+  const forza = normalizza(testoDi(lode));
 
   const controlli = [];
 

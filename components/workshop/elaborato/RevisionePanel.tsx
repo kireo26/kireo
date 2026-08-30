@@ -1,4 +1,4 @@
-import type { RevisioneTappa } from "@/lib/workshop/elaboratoValore";
+import { cosaRegge, type RevisioneTappa } from "@/lib/workshop/elaboratoValore";
 
 export default function RevisionePanel({
   revisione,
@@ -21,11 +21,11 @@ export default function RevisionePanel({
       <div className="space-y-3 rounded-2xl border border-white/5 bg-kireo-card p-6 text-sm sm:p-8">
         <p className="text-xs font-semibold uppercase tracking-wide text-kireo-muted">Revisione del tutor · +{revisione.punteggio_fiducia} fiducia</p>
         {revisione.commento_breve && <p className="text-kireo-light/90">{revisione.commento_breve}</p>}
-        {revisione.punti_forza.length > 0 && (
+        {cosaRegge(revisione).length > 0 && (
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-kireo-green-light">Punti di forza</p>
             <ul className="mt-1 list-inside list-disc text-kireo-light/90">
-              {revisione.punti_forza.map((p, i) => (
+              {cosaRegge(revisione).map((p, i) => (
                 <li key={i}>{p}</li>
               ))}
             </ul>

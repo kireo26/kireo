@@ -116,15 +116,29 @@ export function sezioniIncomplete(fase: FaseElaborato, contenuto: Record<string,
 // sull'intero progetto) — forme diverse apposta, non unificate, per
 // restare fedeli ai prompt forniti invece di inventarne una terza forma.
 export type RevisioneTappa = {
-  punti_forza: string[];
+  // Due nomi per lo stesso posto, e non è un ripensamento a metà: dal
+  // 2026-08-31 il revisore di tappa produce `cosa_regge`, il feedback finale
+  // produce ancora `punti_forza`. È una PROVA — l'ipotesi è che un campo che
+  // si chiama «punti di forza» tiri il modello a lodare la PERSONA («hai
+  // capito», «hai riconosciuto») qualunque cosa dica la regola sotto, e
+  // lasciarne uno dei due invariato è quello che rende la prova leggibile:
+  // se cala solo quello cambiato, è il campo; se calano entrambi o nessuno,
+  // l'ipotesi era sbagliata. Le revisioni già scritte hanno la chiave vecchia
+  // e devono continuare a leggersi.
+  cosa_regge?: string[];
+  punti_forza?: string[];
   da_migliorare: string[];
   domanda: string;
   commento_breve: string;
   punteggio_fiducia: number;
 };
 
+// Il posto dove il revisore dice cosa tiene, comunque l'abbia chiamato.
+export const cosaRegge = (r: { cosa_regge?: string[]; punti_forza?: string[] } | null | undefined): string[] =>
+  r?.cosa_regge ?? r?.punti_forza ?? [];
+
 export type FeedbackFinale = {
-  punti_forza: string[];
+  punti_forza: string[]; // invariato di proposito: è il termine di paragone della prova sopra
   da_migliorare: string[];
   messaggio_chiusura: string;
   chiusura_cliente: string;

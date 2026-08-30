@@ -21,6 +21,7 @@
 const fs = require("fs");
 const path = require("path");
 const readline = require("readline");
+const { execSync } = require("child_process");
 const ts = require("typescript");
 const Module = require("module");
 
@@ -117,6 +118,19 @@ function costruisciPiano(filtro) {
   };
 }
 
+// Il commit su cui la passata ha girato. Se git non risponde (una copia senza
+// storia, un albero sporco) si dice, invece di scrivere qualcosa di plausibile.
+function commitCorrente() {
+  try {
+    const sha = execSync("git rev-parse HEAD", { encoding: "utf8", cwd: ROOT }).trim();
+    const titolo = execSync("git log -1 --pretty=%s", { encoding: "utf8", cwd: ROOT }).trim();
+    const sporco = execSync("git status --porcelain", { encoding: "utf8", cwd: ROOT }).trim().length > 0;
+    return { sha, titolo, sporco };
+  } catch {
+    return null;
+  }
+}
+
 function chiediConferma(domanda) {
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
   return new Promise((r) => rl.question(domanda, (a) => { rl.close(); r(a.trim().toLowerCase()); }));
@@ -170,7 +184,18 @@ async function robot(filtro, opzioni = {}) {
       esiti.push({ ...esito, nome: lavoro.nome, atteso: lavoro.atteso });
     } catch (errore) {
       console.log(`  ✗ eccezione: ${errore.message}`);
-      esiti.push({ etichetta: lavoro.etichetta, nome: lavoro.nome, atteso: lavoro.atteso, tappe: [], fermato: { dove: "?", perche: errore.message } });
+      // Un'eccezione NON è un cancello: è un guasto. Marcarla come tale è
+      // quello che tiene le due liste separate nel rapporto — mettere un
+      // `fetch failed` accanto a «la consegna è stata rifiutata» darebbe a un
+      // guasto la dignità di un risultato, che è la cosa che questo banco
+      // esiste per non fare.
+      esiti.push({
+        etichetta: lavoro.etichetta,
+        nome: lavoro.nome,
+        atteso: lavoro.atteso,
+        tappe: [],
+        fermato: { dove: "?", perche: errore.message, guasto: true },
+      });
     }
   }
 
@@ -180,7 +205,24 @@ async function robot(filtro, opzioni = {}) {
   // Il rapporto grezzo su file: i testi si rileggono, e il numero senza il
   // testo accanto non serve a niente.
   const percorso = path.join(ROOT, `banco-robot-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "")}.json`);
-  fs.writeFileSync(percorso, JSON.stringify({ piano: { ruoli: piano.lavori.length, chiamate: piano.chiamate }, esiti, misura: m }, null, 2));
+  fs.writeFileSync(
+    percorso,
+    JSON.stringify(
+      {
+        // Senza questo, fra due mesi si guardano due rapporti e nessuno si
+        // ricorda cosa c'era in mezzo — e allora le misure non si confrontano,
+        // si accostano. `npm run banco confronta` lo usa per elencare i commit
+        // fra una passata e l'altra.
+        commit: commitCorrente(),
+        quando: new Date().toISOString(),
+        piano: { ruoli: piano.lavori.length, chiamate: piano.chiamate },
+        esiti,
+        misura: m,
+      },
+      null,
+      2,
+    ),
+  );
   console.log(`Rapporto completo, con tutti i testi: ${path.basename(percorso)}`);
   console.log("(ignorato da git — è materiale da leggere, non da versionare)\n");
 }

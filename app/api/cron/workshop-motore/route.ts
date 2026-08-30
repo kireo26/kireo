@@ -3,6 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { createServiceRoleClient } from "@/lib/supabase/serviceRole";
 import { chiamaJson } from "@/lib/ai/chiamaJson";
 import { inviaEmail } from "@/lib/email/brevo";
+import { REGOLA_LINGUA_INVARIANTE } from "@/lib/lingua/accordoGenere";
 import { MODELLO_CLIENTE_WORKSHOP, WORKSHOP_CLIENTE_NOME, WORKSHOP_CLIENTE_PROMPTS } from "@/lib/workshop/config";
 import { WORKSHOP_ELABORATO, WORKSHOP_TUTOR_CONTESTO } from "@/lib/workshop/elaborato-config";
 import { serializzaValoreSezione, type FeedbackFinale, type RevisioneTappa, type ValoreSezione } from "@/lib/workshop/elaboratoValore";
@@ -256,7 +257,15 @@ export async function GET(request: NextRequest) {
           const rispostaReazione = await client.messages.create({
             model: MODELLO_CLIENTE_WORKSHOP,
             max_tokens: 300,
-            system: promptCliente,
+            // La REGOLA sulla lingua sì, quella sul REGISTRO no — e la ragione
+            // di prima («il cliente parla di sé in prima persona») era giusta
+            // a metà: parla di sé in prima persona, ma parla ALLO STUDENTE in
+            // seconda. Passata 2 del banco: «te lo sei inventato?», detto da
+            // Gianni. Per chi legge non c'è nessuna differenza fra sentirsi
+            // dare del maschile dal cliente o dal revisore.
+            // Il registro da revisore resta fuori: in bocca a Tonino sarebbe
+            // fuori carattere, e lì la ragione regge ancora.
+            system: promptCliente + REGOLA_LINGUA_INVARIANTE,
             messages: [{ role: "user", content: promptReazioneClienteUser(sintesi, fase.reazioneCliente) }],
           });
           reazioneCliente = rispostaReazione.content[0]?.type === "text" ? rispostaReazione.content[0].text : "";

@@ -41,6 +41,24 @@ function barattolo() {
 // autenticato (per le scritture che nel prodotto fa il browser — iscrizione e
 // salvataggio automatico) e `chiama`, che parla con le route del sito
 // portandosi dietro i cookie.
+// UN solo ritentativo, e solo sulle ECCEZIONI. Un `fetch failed` non è una
+// risposta del prodotto: è l'assenza di una risposta, quindi riprovare non
+// aggira nessun cancello — mentre perdere due ruoli su venticinque in una
+// passata da quattro dollari per un pacchetto perso sì, quello falsa la
+// misura. Un 4xx o un 5xx invece è una risposta, e si riporta com'è.
+async function conUnRitentativo(azione) {
+  try {
+    return await azione();
+  } catch (primo) {
+    await new Promise((r) => setTimeout(r, 3000));
+    try {
+      return await azione();
+    } catch {
+      throw primo; // si riporta la prima, che è quella vera
+    }
+  }
+}
+
 async function apriSessione() {
   const c = config(["sitoUrl", "supabaseUrl", "supabaseAnonKey", "robotEmail", "robotPassword"]);
   const jar = barattolo();
@@ -95,15 +113,17 @@ async function apriSessione() {
   // Le chiamate alle route del sito: le stesse che fa il browser, con i cookie
   // veri. Nessuna intestazione speciale, nessuna scorciatoia.
   async function chiama(percorso, corpo, metodo = "POST") {
-    const risposta = await fetch(`${c.sitoUrl}${percorso}`, {
-      method: metodo,
-      headers: {
-        Cookie: jar.intestazione(),
-        ...(corpo ? { "Content-Type": "application/json" } : {}),
-      },
-      body: corpo ? JSON.stringify(corpo) : undefined,
-      redirect: "follow",
-    });
+    const risposta = await conUnRitentativo(() =>
+      fetch(`${c.sitoUrl}${percorso}`, {
+        method: metodo,
+        headers: {
+          Cookie: jar.intestazione(),
+          ...(corpo ? { "Content-Type": "application/json" } : {}),
+        },
+        body: corpo ? JSON.stringify(corpo) : undefined,
+        redirect: "follow",
+      }),
+    );
     const testo = await risposta.text();
     let dati = null;
     try {

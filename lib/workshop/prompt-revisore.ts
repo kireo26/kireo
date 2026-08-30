@@ -107,7 +107,7 @@ ${regoleComuni(c.clienteNome)}
 
 Rispondi SOLO con JSON valido, niente altro testo, in questo formato:
 {
-  "punti_forza": ["...", "..."],            // 2-3, concreti
+  "cosa_regge": ["...", "..."],             // 2-3, concreti: cosa STA IN PIEDI nella pagina — una scelta, una riga della tabella, un numero che torna. Il soggetto è il lavoro, non chi l'ha fatto: «la tabella tratta il margine come un cuscinetto», non «hai capito che il margine non è uno spreco»
   "da_migliorare": ["...", "..."],          // 2-3, concreti; formulati come cose da riprendere o da portarsi avanti, mai come condizioni per chiudere questa tappa
   "domanda": "...",                          // UNA domanda, agganciata a quanto detto sopra sul passo successivo
   "commento_breve": "...",                   // 1-2 frasi calde di sintesi
