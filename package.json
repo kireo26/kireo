@@ -29,7 +29,8 @@
     "test:robot": "node scripts/verifica-robot.js",
     "test:iscrizione": "node scripts/verifica-iscrizione-corrente.js",
     "test:confronto": "node scripts/verifica-confronto.js",
-    "test:chiavi": "node scripts/verifica-chiavi-json.js"
+    "test:chiavi": "node scripts/verifica-chiavi-json.js",
+    "test:formula": "node scripts/verifica-formula-testa.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.112.5",

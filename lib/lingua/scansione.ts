@@ -18,6 +18,19 @@ export function stringheInJson(valore: unknown): string[] {
   return [];
 }
 
+// Come `stringheInJson`, ma riscrive invece di raccogliere: stessa forma
+// (oggetti, array, qualunque profondità), stesso principio — le CHIAVI non si
+// toccano mai, sono nomi di campo e non lingua. Serve alla sola trasformazione
+// deterministica che facciamo sul testo di un revisore (vedi formulaTesta.ts).
+export function mappaStringheInJson(valore: unknown, f: (s: string) => string): unknown {
+  if (typeof valore === "string") return f(valore);
+  if (Array.isArray(valore)) return valore.map((v) => mappaStringheInJson(v, f));
+  if (valore && typeof valore === "object") {
+    return Object.fromEntries(Object.entries(valore).map(([k, v]) => [k, mappaStringheInJson(v, f)]));
+  }
+  return valore;
+}
+
 // Tutte le occorrenze, non solo la prima: si contano i casi, non i testi.
 //
 // I pattern arrivano da liste diverse e non tutte hanno il flag `g` — quelle del

@@ -216,6 +216,21 @@ ok(
   "il ritentativo vale solo in lettura: su una scrittura è un secondo invio, e il robot non può sapere se la prima è arrivata",
 );
 
+
+// ── la formula e i giudizi sono due problemi ──────────────────────────────
+const dueProblemi = misura([
+  {
+    etichetta: "w > a",
+    tappe: [
+      { faseId: "t1", revisione: { commento_breve: "Hai capito quanto conta il margine." }, esitoRevisione: "riuscita", tentativi: 1 },
+      { faseId: "t2", revisione: { commento_breve: "Questo è lavoro maturo." }, esitoRevisione: "riuscita", tentativi: 1 },
+    ],
+    fiduciaFinale: 60,
+  },
+]);
+ok(dueProblemi.registro.filter((r) => r.formula).length === 1, "la formula sulla testa è marcata come tale");
+ok(dueProblemi.registro.filter((r) => !r.formula).length === 1, "e «maturo» resta un giudizio, che è un altro problema");
+
 console.log("\n═══════════════════════════════════════════\n");
 if (falliti) { console.error(`✗ ${falliti} controlli falliti.\n`); process.exit(1); }
 console.log("✓ Il piano dice quanto costa, e la misura dice cosa è successo.\n");

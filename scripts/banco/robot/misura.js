@@ -37,6 +37,7 @@ if (!require.extensions[".ts"]) {
 }
 
 const { trovaAccordi } = require("@/lib/lingua/accordoGenere");
+const { LESSICO_VERDETTO } = require("@/lib/lingua/registroStudente");
 const { trovaRegistro } = require("@/lib/lingua/registroStudente");
 const { stringheInJson } = require("@/lib/lingua/scansione");
 const { verificaAtteso } = require("./atteso");
@@ -65,6 +66,16 @@ function conContesto(testo, cattura) {
 const CERTA = /\b(?:sei|ti sei|se ti sei|quando sei|non sei)\b/;
 const certa = (cattura) => CERTA.test(String(cattura).toLowerCase());
 
+// DUE PROBLEMI, non uno — e li stiamo contando insieme da quando la misura
+// esiste. «Hai capito» e «hai riconosciuto» sono una FORMULA: letterale,
+// sempre nella stessa posizione, e da oggi tolta in codice quando è seguita da
+// «che» (vedi lib/lingua/formulaTesta.ts) — quello che resta qui è il residuo,
+// le forme senza «che». «Maturo», «saggio», «studente» sono GIUDIZI veri: una
+// dozzina, e toglierli meccanicamente vorrebbe dire riscrivere un contenuto.
+// Sommarli dava un numero solo su cui non si poteva decidere niente.
+const PATTERN_FORMULA = LESSICO_VERDETTO["stato-d'animo"] ?? [];
+const eFormula = (cattura) => PATTERN_FORMULA.some((re) => new RegExp(re.source, "i").test(String(cattura)));
+
 // Ogni testo con la sua provenienza, così una cattura si può andare a rileggere
 // invece di restare un numero.
 function raccogliTesti(esiti) {
@@ -89,7 +100,7 @@ function misura(esiti) {
     // la frase intorno alla cattura è quella vera e non un JSON appiattito.
     for (const s of stringheInJson(t.valore)) {
       for (const c of trovaAccordi(s)) accordi.push({ dove: t.dove, cattura: c, contesto: conContesto(s, c), certa: certa(c) });
-      for (const c of trovaRegistro(s)) registro.push({ dove: t.dove, cattura: c, contesto: conContesto(s, c) });
+      for (const c of trovaRegistro(s)) registro.push({ dove: t.dove, cattura: c, contesto: conContesto(s, c), formula: eFormula(c) });
     }
   }
 
@@ -262,10 +273,17 @@ function stampaRapporto(m, righe = console.log) {
   }
   di("");
 
-  di(`REGISTRO — ${m.registro.length} catture da leggere`);
+  const formule = m.registro.filter((r) => r.formula).length;
+  const giudizi = m.registro.length - formule;
+  di(`REGISTRO — ${m.registro.length} catture da leggere: ${formule} formula, ${giudizi} giudizi`);
   if (m.registro.length === 0) di("  Nessuna parola-verdetto e nessuna terza persona.");
   else {
-    di("  Stessa avvertenza: «hai capito» dentro un complimento non è un verdetto.");
+    di("  Sono DUE problemi. La FORMULA («hai capito», «hai riconosciuto») è tolta in");
+    di("  codice quando la segue «che»: quello che resta qui è il residuo, le forme");
+    di("  che non si riscrivono senza rompere la frase. I GIUDIZI («maturo»,");
+    di("  «saggio», lo studente in terza persona) sono un'altra specie, e sono");
+    di("  ancora un problema di prompt.");
+    di("  Stessa avvertenza di sempre: «hai capito» dentro un complimento va letto.");
     di("");
     for (const r of m.registro.slice(0, 12)) di(`  · ${r.dove}\n      ${r.contesto}`);
     if (m.registro.length > 12) di(`  … e altre ${m.registro.length - 12}, tutte nel rapporto su file.`);

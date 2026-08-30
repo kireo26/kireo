@@ -17,6 +17,8 @@ import Anthropic from "@anthropic-ai/sdk";
 import { REGOLA_LINGUA_INVARIANTE, trovaAccordiInJson } from "@/lib/lingua/accordoGenere";
 import { REGOLA_REGISTRO, trovaRegistroInJson } from "@/lib/lingua/registroStudente";
 import { registraGuardiaLingua } from "@/lib/lingua/contatoreGuardia";
+import { togliFormulaTesta } from "@/lib/lingua/formulaTesta";
+import { mappaStringheInJson } from "@/lib/lingua/scansione";
 
 // Istruzione appesa centralmente a ogni system prompt: riduce il poscritto alla
 // fonte, invece di doverlo togliere a valle in ogni prompt sparso.
@@ -214,6 +216,32 @@ export async function chiamaJson(
     // contatore che si perde a caso è peggio di nessun contatore. Costa una RPC,
     // e non può fallire in modo visibile (è tutta dentro un try/catch).
     await registraGuardiaLingua(ancoraAccordato, opzioni.diProva === true);
+  }
+
+  // ── e qui il registro smette di essere una richiesta ──────────────────────
+  // «Hai capito che X» → «X», in codice, perché tre giri di prompt non l'hanno
+  // spostato di un punto (60%, 60%, 61%) e la terza volta è perfino salito.
+  // Vale per ogni revisore che passa di qui — la reazione del cliente non ci
+  // passa, ed è giusto: Tonino parla in carattere.
+  //
+  // IL NUMERO CHE SI STAMPA È QUELLO PRIMA DELLA RISCRITTURA. Se ci limitassimo
+  // a riscrivere, la misura del banco vedrebbe zero e ci racconterebbe che il
+  // modello ha smesso: non ha smesso, l'abbiamo coperto. `riscritte` dice
+  // quanto copriamo, `residue` quanto resta scoperto — le forme senza «che»,
+  // che non si riscrivono meccanicamente senza rompere la frase.
+  if (risposta.ok) {
+    let riscritte = 0;
+    let residue = 0;
+    const puliti = mappaStringheInJson(risposta.dati, (t) => {
+      const e = togliFormulaTesta(t);
+      riscritte += e.riscritte;
+      residue += e.residue;
+      return e.testo;
+    });
+    if (riscritte > 0 || residue > 0) {
+      console.log(`formulaTesta — riscritte=${riscritte} residue=${residue}${opzioni.diProva ? " (profilo di prova)" : ""}`);
+    }
+    return { ok: true, dati: puliti };
   }
   return risposta;
 }
