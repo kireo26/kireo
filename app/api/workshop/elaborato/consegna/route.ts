@@ -86,7 +86,11 @@ export async function POST(request: NextRequest) {
       const systemPrompt = `Sei un mentor esperto in orientamento professionale per studenti delle scuole superiori italiane (16-19 anni). Stai valutando l'elaborato finale del ruolo "${ruoloIscritto?.titolo ?? ruoloSlug}" nel workshop "${workshopIscritto?.titolo ?? workshopSlug}"${contesto ? `, per un cliente con questi vincoli: ${contesto.vincoli}` : ""}. Ti viene fornito il contenuto delle sezioni compilate dallo studente in formato JSON. Fornisci un feedback strutturato, incoraggiante ma onesto, sul lavoro nel suo insieme. Tono diretto, caldo, mai paternalistico, mai una promessa di risultato garantito. Rispondi SOLO con JSON valido in questo formato, senza altro testo:
 {"punti_forza": ["...", "...", "..."], "aree_miglioramento": ["...", "..."], "domanda_stimolante": "..."}`;
 
+      // Solo per separare il contatore della guardia sulla lingua (vedi
+      // chiamaJson): se la lettura fallisce si conta come produzione.
+      const { data: profiloChiamante } = await supabase.from("profiles").select("di_prova").eq("id", user.id).maybeSingle();
       const esito = await chiamaJson(new Anthropic({ apiKey }), {
+        diProva: profiloChiamante?.di_prova === true,
         model: MODELLO_CLIENTE_WORKSHOP,
         maxTokens: 600,
         system: systemPrompt,

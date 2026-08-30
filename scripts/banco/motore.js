@@ -30,7 +30,11 @@ function maxTentativi() {
 
 async function motore() {
   const c = config(["sitoUrl", "cronSecret"]);
-  const url = `${c.sitoUrl}/api/cron/workshop-motore`;
+  // `alert=no`: la mail di osservabilità parte solo sul giro programmato. Chi
+  // lancia il cron da qui l'esito ce l'ha a schermo ed è davanti al terminale;
+  // una passata del robot ne manderebbe un centinaio, e cento mail rendono
+  // inutile la centounesima.
+  const url = `${c.sitoUrl}/api/cron/workshop-motore?alert=no`;
 
   console.log(`\n→ ${url}`);
 

@@ -15,10 +15,17 @@
 
 import { createServiceRoleClient } from "@/lib/supabase/serviceRole";
 
-export async function registraGuardiaLingua(ancoraAccordato: boolean): Promise<void> {
+// `diProva` è l'unica dimensione che questa riga porta: la tabella non ha (e
+// non deve avere) un riferimento allo studente, quindi il flag non può
+// arrivare per via transitiva — lo passa il chiamante. Senza, ogni riga
+// finisce nel secchio «produzione», che è esattamente com'è andata fino al
+// 2026-08-31: la colonna c'era, la chiave primaria pure, e nessuno la
+// scriveva. Una separazione non scritta è peggio di una non costruita, perché
+// sembra fatta.
+export async function registraGuardiaLingua(ancoraAccordato: boolean, diProva = false): Promise<void> {
   try {
     const supabase = createServiceRoleClient();
-    const { error } = await supabase.rpc("registra_guardia_lingua", { p_ancora_accordato: ancoraAccordato });
+    const { error } = await supabase.rpc("registra_guardia_lingua", { p_ancora_accordato: ancoraAccordato, p_di_prova: diProva });
     if (error) console.error("Guardia lingua — contatore non scritto:", error.message);
   } catch (errore) {
     console.error("Guardia lingua — contatore non scritto (eccezione):", errore);

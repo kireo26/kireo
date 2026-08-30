@@ -33,7 +33,10 @@ const GIRI_CRON_MAX = 12;
 const ATTESA_FRA_GIRI_MS = 20_000;
 
 async function faiGirareIlCron(c) {
-  const risposta = await fetch(`${c.sitoUrl}/api/cron/workshop-motore`, {
+  // `alert=no`: un giro per tappa, un centinaio in una passata. La mail di
+  // osservabilità resta al giro programmato, così una mail continua a
+  // significare qualcosa.
+  const risposta = await fetch(`${c.sitoUrl}/api/cron/workshop-motore?alert=no`, {
     headers: { Authorization: `Bearer ${c.cronSecret}` },
     redirect: "follow",
   });

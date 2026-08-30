@@ -663,8 +663,14 @@ const PROMPT_NON_APPROFONDIRE =
 // Escape, così i tre call-site (non-approfondire, proposta, riflessione)
 // ricevono un EsitoAI tipizzato — un fallimento (chiamata o estrazione) è un
 // esito, non più un null ambiguo che ingoiava la causa.
-function chiamaEscape(anthropic: Anthropic, system: string, user: string, controlloExtra?: (dati: unknown) => string[]): Promise<EsitoAI> {
-  return chiamaJson(anthropic, { model: MODELLO_ESCAPE, maxTokens: 600, system, user, controlloExtra });
+function chiamaEscape(
+  anthropic: Anthropic,
+  system: string,
+  user: string,
+  diProva: boolean,
+  controlloExtra?: (dati: unknown) => string[],
+): Promise<EsitoAI> {
+  return chiamaJson(anthropic, { model: MODELLO_ESCAPE, maxTokens: 600, system, user, controlloExtra, diProva });
 }
 
 // ─────────────────────────────────────────── motore
@@ -672,6 +678,9 @@ export async function calcolaEvidenze(
   mission: EscapeMission,
   risposte: Map<string, Payload>,
   anthropic: Anthropic | null,
+  // Vero se lo studente è un profilo di prova: non cambia il punteggio, separa
+  // il contatore della guardia sulla lingua (vedi chiamaJson).
+  diProva = false,
 ): Promise<{ evidenze: EvidenceInput[]; revisoreEsito: RevisoreEsito | null }> {
   const evidenze: EvidenceInput[] = [];
   const get: LeggiRisposta = (id) => risposte.get(id);
@@ -1018,7 +1027,7 @@ export async function calcolaEvidenze(
           if (!testo || !anthropic) break;
           // Fix B: nessuna dipendenza dal mandato — questo step ora emette qualità
           // di missione (area null), non ha più bisogno di sapere qual è il mandato.
-          const esito = await chiamaEscape(anthropic, PROMPT_NON_APPROFONDIRE, testo, cifreInJson);
+          const esito = await chiamaEscape(anthropic, PROMPT_NON_APPROFONDIRE, testo, diProva, cifreInJson);
           if (esito.ok) {
             const parsed = esito.dati as { consapevolezza?: number; motivazione?: string };
             if (typeof parsed.consapevolezza === "number") {
@@ -1045,7 +1054,7 @@ export async function calcolaEvidenze(
           if (eProposta) revisoreEsito = "non_riuscito";
           break;
         }
-        const esito = await chiamaEscape(anthropic, spec.promptProposta(mission.areeCandidate, { letti }), testo, cifreInJson);
+        const esito = await chiamaEscape(anthropic, spec.promptProposta(mission.areeCandidate, { letti }), testo, diProva, cifreInJson);
         if (!esito.ok) {
           if (eProposta) revisoreEsito = "non_riuscito";
           break;
@@ -1182,7 +1191,7 @@ export async function calcolaEvidenze(
         const p = payload as PayloadTesto | undefined;
         const testo = p?.testo?.trim();
         if (!testo || !anthropic) break;
-        const esito = await chiamaEscape(anthropic, PROMPT_RIFLESSIONE(mission.areeCandidate), testo, cifreInJson);
+        const esito = await chiamaEscape(anthropic, PROMPT_RIFLESSIONE(mission.areeCandidate), testo, diProva, cifreInJson);
         const parsed = esito.ok ? (esito.dati as { aree?: unknown[] }) : null;
         const aree = Array.isArray(parsed?.aree) ? parsed!.aree : [];
         let emesse = 0;

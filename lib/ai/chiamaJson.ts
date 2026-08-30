@@ -175,6 +175,15 @@ export async function chiamaJson(
     // nelle opzioni e non in un parametro a sé perché i chiamanti che non ne
     // hanno bisogno — quasi tutti — non devono nemmeno sapere che esiste.
     controlloExtra?: (dati: unknown) => string[];
+    // Se il testo che stiamo generando è per un PROFILO DI PROVA (il robot del
+    // banco). Non cambia niente nella chiamata: separa il contatore della
+    // guardia, che altrimenti mescola le passate del robot con il tasso vero
+    // sugli studenti. Il 31 agosto 2026 undici interventi e quattro esposizioni
+    // del robot sono finiti nella riga di produzione, e la mail di
+    // osservabilità li ha riportati come «lo studente ha comunque letto».
+    // `chiamaJson` non può saperlo da sé — è trasporto, non conosce il
+    // contesto — quindi glielo dice chi chiama, che lo sa.
+    diProva?: boolean;
   },
 ): Promise<EsitoAI> {
   const conRegola = { ...opzioni, system: opzioni.system + REGOLA_LINGUA_INVARIANTE + REGOLA_REGISTRO };
@@ -204,7 +213,7 @@ export async function chiamaJson(
     // in volo dopo il ritorno della route può non essere mai eseguita, e un
     // contatore che si perde a caso è peggio di nessun contatore. Costa una RPC,
     // e non può fallire in modo visibile (è tutta dentro un try/catch).
-    await registraGuardiaLingua(ancoraAccordato);
+    await registraGuardiaLingua(ancoraAccordato, opzioni.diProva === true);
   }
   return risposta;
 }

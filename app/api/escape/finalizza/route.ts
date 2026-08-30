@@ -70,7 +70,12 @@ export async function POST(request: NextRequest) {
   if (!anthropic) {
     console.error(`Escape Fix E — ANTHROPIC_API_KEY assente: prove aperte NON calcolate. studente=${user.id} missione=${attempt.mission_slug} attempt=${attempt.id}`);
   }
-  const { evidenze, revisoreEsito } = await calcolaEvidenze(mission, risposte, anthropic);
+  // Serve solo a separare il contatore della guardia sulla lingua (vedi
+  // chiamaJson): non cambia niente di quello che lo studente riceve. Se la
+  // lettura fallisce si conta come produzione, che è il comportamento giusto
+  // per chi non sa.
+  const { data: profiloChiamante } = await supabase.from("profiles").select("di_prova").eq("id", user.id).maybeSingle();
+  const { evidenze, revisoreEsito } = await calcolaEvidenze(mission, risposte, anthropic, profiloChiamante?.di_prova === true);
 
   // persiste prove + aggrega profilo (idempotente)
   const { error: erroreRpc } = await supabase.rpc("registra_evidence", {

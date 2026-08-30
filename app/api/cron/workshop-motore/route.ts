@@ -127,7 +127,18 @@ export async function GET(request: NextRequest) {
   // Revisori/feedback che hanno restituito un esito non_riuscito (chiamata o
   // estrazione JSON fallita) in QUESTA esecuzione: alimenta l'alert email in
   // fondo, insieme ai non_riuscito di Escape delle ultime 24h.
+  //
+  // Due contatori, non uno: una passata del robot ne produce quanti ne produce,
+  // e mescolarli col numero di produzione fa arrivare a Mario una mail che
+  // riporta guasti di studenti che non esistono. Il secondo si stampa nella
+  // risposta JSON — chi lancia il robot è davanti al terminale — e non entra
+  // mai nella mail.
   let revisoriFalliti = 0;
+  let revisoriFallitiProva = 0;
+  // Vale per la riga in corso: la assegna il controllo del raffreddamento, che
+  // il predicato lo chiede comunque.
+  let rigaDiProva = false;
+  const segnalaFallito = () => { if (rigaDiProva) revisoriFallitiProva++; else revisoriFalliti++; };
 
   for (const riga of righe ?? []) {
     try {
@@ -149,7 +160,8 @@ export async function GET(request: NextRequest) {
       // `e_profilo_di_prova` è la stessa funzione che usano le misure: una
       // sola definizione del predicato, non due che col tempo divergono.
       const { data: diProva } = await supabase.rpc("e_profilo_di_prova", { p_student_id: iscrizione.student_id });
-      if (diProva !== true) {
+      rigaDiProva = diProva === true;
+      if (!rigaDiProva) {
         const dueDa = new Date(riga.consegnata_at).getTime() + fase.cooldownGiorni * 86_400_000;
         if (Date.now() < dueDa) {
           saltate++;
@@ -197,6 +209,7 @@ export async function GET(request: NextRequest) {
       let revisione: RevisioneTappa = REVISIONE_VUOTA;
       let esitoRevisioneStato: EsitoGenerazione = "non_riuscita";
       const esitoRevisione = await chiamaJson(client, {
+        diProva: rigaDiProva,
         model: MODELLO_CLIENTE_WORKSHOP,
         maxTokens: MAX_TOKEN_REVISIONE,
         system: promptRevisore(ctx),
@@ -223,11 +236,11 @@ export async function GET(request: NextRequest) {
           // Il ramo che prima non esisteva: JSON valido, forma sbagliata →
           // niente revisione, e ora lo si conta come tutti gli altri guasti.
           esitoRevisioneStato = "forma_non_valida";
-          revisoriFalliti++;
+          segnalaFallito();
           console.error(`Revisione di forma non valida (iscrizione ${riga.iscrizione_id}, tappa ${riga.fase_id})`);
         }
       } else {
-        revisoriFalliti++;
+        segnalaFallito();
         console.error(`Errore generazione revisione (iscrizione ${riga.iscrizione_id}, tappa ${riga.fase_id}): motivo=${esitoRevisione.motivo}`);
       }
 
@@ -251,7 +264,7 @@ export async function GET(request: NextRequest) {
           // Contata nell'alert come gli altri guasti AI (prima era solo un
           // console.error). NON blocca l'avanzamento: la reazione del cliente è
           // colore, non punteggio — a differenza della revisione, che è giudizio.
-          revisoriFalliti++;
+          segnalaFallito();
           console.error(`Errore generazione reazione cliente (iscrizione ${riga.iscrizione_id}, tappa ${riga.fase_id}):`, erroreReazione);
         }
       }
@@ -267,6 +280,7 @@ export async function GET(request: NextRequest) {
       if (fase.ultima) {
         esitoFinaleStato = "non_riuscita";
         const esitoFinale = await chiamaJson(client, {
+          diProva: rigaDiProva,
           model: MODELLO_CLIENTE_WORKSHOP,
           maxTokens: MAX_TOKEN_FEEDBACK_FINALE,
           system: promptFeedbackFinale(ctx, fiduciaDopo),
@@ -291,11 +305,11 @@ export async function GET(request: NextRequest) {
             esitoFinaleStato = "riuscita";
           } else {
             esitoFinaleStato = "forma_non_valida";
-            revisoriFalliti++;
+            segnalaFallito();
             console.error(`Feedback finale di forma non valida (iscrizione ${riga.iscrizione_id})`);
           }
         } else {
-          revisoriFalliti++;
+          segnalaFallito();
           console.error(`Errore generazione feedback finale (iscrizione ${riga.iscrizione_id}): motivo=${esitoFinale.motivo}`);
         }
       }
@@ -376,16 +390,36 @@ export async function GET(request: NextRequest) {
   // solo se ce n'è almeno uno — manda una mail all'admin. Nessun riepilogo
   // "tutto ok": silenzio quando non c'è niente da correggere. Best-effort: un
   // errore di invio non fa fallire il cron.
+  // Gli id dei profili di prova, letti una volta sola e usati da tutti e tre i
+  // contatori sotto. Il predicato `e_profilo_di_prova` esiste ed è la sola
+  // definizione, ma da PostgREST non si può usare dentro un filtro: qui si
+  // legge la stessa colonna che il predicato legge, e si esclude in memoria.
+  // Se la lettura fallisce l'insieme resta vuoto e i numeri tornano quelli di
+  // prima — sovrastimati, mai sottostimati: un alert che grida di troppo si
+  // corregge, uno che tace no.
+  const idDiProva = new Set<string>();
+  try {
+    const { data: prova, error: erroreProva } = await supabase.from("profiles").select("id").eq("di_prova", true);
+    if (erroreProva) console.error("Alert — errore lettura profili di prova:", erroreProva);
+    for (const p of prova ?? []) idDiProva.add(p.id);
+  } catch (erroreProva) {
+    console.error("Alert — eccezione lettura profili di prova:", erroreProva);
+  }
+
   let escapeFalliti = 0;
   try {
     const dayFa = new Date(Date.now() - 86_400_000).toISOString();
     const { data: righeEscape, error: erroreEscape } = await supabase
       .from("revisore_esiti")
-      .select("attempt_id")
+      .select("attempt_id, student_id")
       .eq("revisore_esito", "non_riuscito")
       .gte("aggiornato_il", dayFa);
     if (erroreEscape) console.error("Alert revisore — errore lettura revisore_esiti:", erroreEscape);
-    escapeFalliti = righeEscape?.length ?? 0;
+    // Escape descrive gli STUDENTI: i profili di prova si escludono, non si
+    // separano (a differenza della guardia sulla lingua, che descrive il
+    // modello e per cui la passata del robot è il campione più grande che
+    // avremo).
+    escapeFalliti = (righeEscape ?? []).filter((r) => !idDiProva.has(r.student_id)).length;
   } catch (erroreEscape) {
     console.error("Alert revisore — eccezione lettura revisore_esiti:", erroreEscape);
   }
@@ -402,11 +436,11 @@ export async function GET(request: NextRequest) {
     const dayFaTest = new Date(Date.now() - 86_400_000).toISOString();
     const { data: completati, error: erroreTest } = await supabase
       .from("test_attempt")
-      .select("id")
+      .select("id, student_id")
       .eq("stato", "completata")
       .gte("started_at", dayFaTest);
     if (erroreTest) console.error("Alert test — errore lettura test_attempt:", erroreTest);
-    const ids = (completati ?? []).map((a) => a.id);
+    const ids = (completati ?? []).filter((a) => !idDiProva.has(a.student_id)).map((a) => a.id);
     if (ids.length > 0) {
       const { data: conEvidenze } = await supabase.from("evidence").select("test_attempt_id").in("test_attempt_id", ids);
       const conEv = new Set((conEvidenze ?? []).map((e) => e.test_attempt_id));
@@ -424,30 +458,57 @@ export async function GET(request: NextRequest) {
   // (~8% su 24 chiamate) con il tasso vero della produzione. Se la tabella non
   // esiste ancora (migrazione non applicata) si resta a zero, in silenzio.
   let guardiaInterventi = 0, guardiaAncoraAccordato = 0;
+  let guardiaInterventiProva = 0, guardiaAncoraAccordatoProva = 0;
   try {
     const dayFaGuardia = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
     const { data: righeGuardia, error: erroreGuardia } = await supabase
       .from("guardia_lingua_giorno")
-      .select("interventi, ancora_accordato")
+      .select("interventi, ancora_accordato, di_prova")
       .gte("giorno", dayFaGuardia);
     if (erroreGuardia) console.error("Alert guardia lingua — errore lettura:", erroreGuardia);
+    // SI SEPARA, non si esclude: i due numeri rispondono a due domande. Quello
+    // di produzione dice il tasso vero sui testi degli studenti; quello di
+    // prova dice com'è andata la passata del robot, su venticinque ruoli in un
+    // colpo — il campione più grande che avremo. Sommarli, com'è successo fino
+    // al 2026-08-31, fa leggere gli undici interventi del robot come una
+    // statistica sugli studenti.
     for (const r of righeGuardia ?? []) {
-      guardiaInterventi += r.interventi ?? 0;
-      guardiaAncoraAccordato += r.ancora_accordato ?? 0;
+      if (r.di_prova) {
+        guardiaInterventiProva += r.interventi ?? 0;
+        guardiaAncoraAccordatoProva += r.ancora_accordato ?? 0;
+      } else {
+        guardiaInterventi += r.interventi ?? 0;
+        guardiaAncoraAccordato += r.ancora_accordato ?? 0;
+      }
     }
   } catch (erroreGuardia) {
     console.error("Alert guardia lingua — eccezione lettura:", erroreGuardia);
   }
 
   const totaleFalliti = revisoriFalliti + escapeFalliti;
-  if (totaleFalliti > 0 || testSenzaEsito > 0 || guardiaAncoraAccordato > 0) {
+  // La mail parte SOLO sul giro programmato. Il robot del banco lancia un giro
+  // per tappa — un centinaio in una passata completa — e cento mail rendono
+  // inutile la centounesima: chi le riceve deve poter continuare a fidarsi che
+  // una mail significhi qualcosa. Chi lancia il cron a mano il suo esito ce
+  // l'ha già, nella risposta JSON, ed è davanti al terminale.
+  //
+  // È il chiamante a dichiararsi (`?alert=no`) invece del `x-vercel-cron`:
+  // quell'header non è nel contratto pubblico di Vercel, e un alert che tace
+  // perché una piattaforma ha cambiato un'intestazione è il guasto peggiore
+  // che questa route possa avere. Il default resta «manda».
+  const alertRichiesto = new URL(request.url).searchParams.get("alert") !== "no";
+  if (alertRichiesto && (totaleFalliti > 0 || testSenzaEsito > 0 || guardiaAncoraAccordato > 0)) {
     const html = `<p>Nelle ultime 24 ore, segnali di osservabilità da controllare:</p>
 <ul>
   <li>Escape — proposte finali non lette dal revisore (24h): <strong>${escapeFalliti}</strong></li>
   <li>Workshop — tentativi AI falliti (questa esecuzione del cron): <strong>${revisoriFalliti}</strong></li>
   <li>Test attitudinali — tentativi completati senza nessuna prova in evidence (24h): <strong>${testSenzaEsito}</strong></li>
   <li>Lingua — la guardia è intervenuta <strong>${guardiaInterventi}</strong> volte (24h); in <strong>${guardiaAncoraAccordato}</strong> lo studente ha comunque letto una forma accordata al genere</li>
-</ul>
+</ul>${
+      guardiaInterventiProva > 0
+        ? `<p>Fuori dal conto qui sopra, dai <strong>profili di prova</strong> (il robot del banco, non studenti): ${guardiaInterventiProva} interventi della guardia, ${guardiaAncoraAccordatoProva} testi ancora accordati. Sono su testi veri generati dagli stessi revisori, quindi dicono qualcosa sul modello — ma non sono un tasso di produzione e non vanno letti come tale.</p>`
+        : ""
+    }
 <p>I guasti AI sono chiamate fallite, estrazioni JSON fallite o risposte di forma inattesa. Sui workshop si contano i <strong>tentativi</strong>, non le tappe: una tappa che fallisce viene ritentata fino a ${MAX_TENTATIVI_REVISIONE} giri di cron, quindi lo stesso guasto può comparire per più giorni di fila — è persistenza, non moltiplicazione. Le «revisioni non riuscite» dei workshop si trovano con:</p>
 <pre>select iscrizione_id, fase_id, tentativi_revisione, revisione_esito
 from public.workshop_fasi_stato
@@ -463,5 +524,18 @@ where revisore_esito = 'non_riuscito'
     if (!esitoMail.ok) console.error(`Alert osservabilità — invio email fallito: ${esitoMail.motivo}`);
   }
 
-  return NextResponse.json({ processate, saltate, errori, revisoriFalliti, escapeFalliti, testSenzaEsito, guardiaInterventi, guardiaAncoraAccordato });
+  return NextResponse.json({
+    processate,
+    saltate,
+    errori,
+    revisoriFalliti,
+    revisoriFallitiProva,
+    escapeFalliti,
+    testSenzaEsito,
+    guardiaInterventi,
+    guardiaAncoraAccordato,
+    guardiaInterventiProva,
+    guardiaAncoraAccordatoProva,
+    alertInviato: alertRichiesto,
+  });
 }
