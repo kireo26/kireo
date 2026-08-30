@@ -6,6 +6,7 @@ import { WORKSHOP_CLIENTE_NOME, WORKSHOP_CLIENTE_APERTURA, WORKSHOP_CLIENTE_HINT
 import ChatCliente from "@/components/workshop/ChatCliente";
 import ComeParlareConCliente from "@/components/workshop/ComeParlareConCliente";
 import { getStatoChatTappa } from "@/lib/workshop/chatTappa";
+import { getIscrizioniWorkshop, scegliIscrizione, STATI_APRIBILI } from "@/lib/workshop/iscrizioneCorrente";
 
 export const metadata = { title: "Parla con il cliente — KIREO" };
 
@@ -17,15 +18,10 @@ export default async function ClienteWorkshopPage({ params }: { params: Promise<
   const { data: ws } = await supabase.from("workshop").select("id, slug, titolo").eq("slug", slug).eq("attivo", true).maybeSingle();
   if (!ws) notFound();
 
-  const { data: iscrizione } = await supabase
-    .from("workshop_iscrizioni")
-    .select("id, workshop_ruoli(slug)")
-    .eq("workshop_id", ws.id)
-    .eq("student_id", contesto.userId)
-    .maybeSingle();
+  const iscrizione = scegliIscrizione(await getIscrizioniWorkshop(supabase, ws.id, contesto.userId), STATI_APRIBILI);
   if (!iscrizione) redirect(`/app/workshop/${slug}`);
 
-  const ruolo = Array.isArray(iscrizione.workshop_ruoli) ? iscrizione.workshop_ruoli[0] : iscrizione.workshop_ruoli;
+  const ruolo = iscrizione.workshop_ruoli;
 
   const [{ data: storico }, statoChat] = await Promise.all([
     supabase

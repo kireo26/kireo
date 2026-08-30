@@ -6,6 +6,7 @@ import { WORKSHOP_ELABORATO } from "@/lib/workshop/elaborato-config";
 import { WORKSHOP_CLIENTE_NOME } from "@/lib/workshop/config";
 import type { FaseStatoRiga, FeedbackFinale, ValoreSezione } from "@/lib/workshop/elaboratoValore";
 import ElaboratoEditor from "@/components/workshop/elaborato/ElaboratoEditor";
+import { getIscrizioniWorkshop, scegliIscrizione, STATI_APRIBILI } from "@/lib/workshop/iscrizioneCorrente";
 
 export const metadata = { title: "Il tuo progetto — KIREO" };
 
@@ -17,15 +18,13 @@ export default async function ProgettoWorkshopPage({ params }: { params: Promise
   const { data: ws } = await supabase.from("workshop").select("id, slug, titolo").eq("slug", slug).eq("attivo", true).maybeSingle();
   if (!ws) notFound();
 
-  const { data: iscrizione } = await supabase
-    .from("workshop_iscrizioni")
-    .select("id, created_at, workshop_ruoli(slug, titolo, area_slug)")
-    .eq("workshop_id", ws.id)
-    .eq("student_id", contesto.userId)
-    .maybeSingle();
+  // Una riga sola non è più garantita da nessun vincolo: chi lascia un ruolo e
+  // ne prende un altro ne ha diverse. La scelta è una regola sola, condivisa
+  // con le altre due pagine.
+  const iscrizione = scegliIscrizione(await getIscrizioniWorkshop(supabase, ws.id, contesto.userId), STATI_APRIBILI);
   if (!iscrizione) redirect(`/app/workshop/${slug}`);
 
-  const ruoloIscritto = Array.isArray(iscrizione.workshop_ruoli) ? iscrizione.workshop_ruoli[0] : iscrizione.workshop_ruoli;
+  const ruoloIscritto = iscrizione.workshop_ruoli;
   const elaboratoConfig = ruoloIscritto ? WORKSHOP_ELABORATO[slug]?.[ruoloIscritto.slug] : undefined;
   if (!ruoloIscritto || !elaboratoConfig) redirect(`/app/workshop/${slug}`);
 

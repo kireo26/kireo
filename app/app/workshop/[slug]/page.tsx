@@ -10,6 +10,7 @@ import NetworkPeers from "@/components/workshop/NetworkPeers";
 import ComeFunziona from "@/components/workshop/ComeFunziona";
 import RitiroIscrizione from "@/components/workshop/RitiroIscrizione";
 import IscrizioneLasciata from "@/components/workshop/IscrizioneLasciata";
+import { getIscrizioniWorkshop, scegliIscrizione, STATI_APRIBILI } from "@/lib/workshop/iscrizioneCorrente";
 
 export const metadata = { title: "Workshop — KIREO" };
 
@@ -27,23 +28,15 @@ export default async function WorkshopPage({ params }: { params: Promise<{ slug:
   if (!ws) notFound();
 
   // Non più una riga sola per studente e workshop: chi lascia un ruolo e ne
-  // prende un altro ne ha diverse, di cui al massimo una attiva. Si guarda
-  // quella; se non c'è, l'ultima lasciata — per poterla riprendere.
-  const { data: iscrizioni } = await supabase
-    .from("workshop_iscrizioni")
-    .select("id, ruolo_id, stato, created_at, workshop_ruoli(id, slug, titolo, area_slug, descrizione)")
-    .eq("workshop_id", ws.id)
-    .eq("student_id", contesto.userId)
-    .order("created_at", { ascending: false });
+  // prende un altro ne ha diverse. La regola di scelta è condivisa con la
+  // pagina del progetto e con quella del cliente — qui in più si guarda
+  // l'ultima lasciata, per poterla riprendere.
+  const righe = await getIscrizioniWorkshop(supabase, ws.id, contesto.userId);
+  const iscrizione = scegliIscrizione(righe, STATI_APRIBILI);
+  const lasciata = iscrizione ? null : scegliIscrizione(righe, ["ritirato"]);
 
-  const righe = iscrizioni ?? [];
-  const iscrizione = righe.find((r) => r.stato === "attivo") ?? righe.find((r) => r.stato === "completato") ?? null;
-  const lasciata = iscrizione ? null : (righe.find((r) => r.stato === "ritirato") ?? null);
-
-  const ruoloDi = (r: (typeof righe)[number] | null) =>
-    r ? (Array.isArray(r.workshop_ruoli) ? r.workshop_ruoli[0] : r.workshop_ruoli) : null;
-  const ruoloIscritto = ruoloDi(iscrizione);
-  const ruoloLasciato = ruoloDi(lasciata);
+  const ruoloIscritto = iscrizione?.workshop_ruoli ?? null;
+  const ruoloLasciato = lasciata?.workshop_ruoli ?? null;
 
   return (
     <div className="space-y-8">

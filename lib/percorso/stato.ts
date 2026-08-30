@@ -370,9 +370,17 @@ async function contaMissioniCompletate(supabase: SupabaseClient, studentId: stri
   }
 }
 
-// Quanti WORKSHOP lo studente ha consegnato. L'unità è l'ISCRIZIONE — una
-// persona iscritta a un progetto — non la riga: si contano gli `iscrizione_id`
-// DISTINTI che hanno almeno una consegna, su uno qualunque dei due motori.
+// Quanti WORKSHOP lo studente ha consegnato. L'unità è il WORKSHOP: si contano
+// i progetti DISTINTI in cui almeno una consegna esiste, su uno qualunque dei
+// due motori.
+//
+// L'unità è cambiata due volte, e la seconda per una ragione nuova. Prima era
+// la riga, e sbagliava per eccesso (sotto). Poi è diventata l'iscrizione, che
+// era giusto finché uno studente poteva avere una sola iscrizione per
+// workshop. Dal 2026-08-30 non è più così — si può lasciare un ruolo e
+// prenderne un altro, o finirne uno e ricominciare — quindi due ruoli dello
+// stesso progetto contavano due workshop. Il nome della funzione dice
+// «workshop»: adesso conta quelli.
 //
 // Sommare le righe dava tre risposte sbagliate, tutte nella stessa direzione:
 // `workshop_consegne` non ha un unique su `iscrizione_id` (l'indice è
@@ -390,20 +398,30 @@ async function contaWorkshopConsegnati(supabase: SupabaseClient, studentId: stri
   try {
     const { data: iscrizioni, error } = await supabase
       .from("workshop_iscrizioni")
-      .select("id")
+      .select("id, workshop_id")
       .eq("student_id", studentId);
     if (error || !iscrizioni || iscrizioni.length === 0) return 0;
-    const ids = iscrizioni.map((i) => i.id);
+
+    // Nessun filtro sullo stato: un'iscrizione lasciata o completata con una
+    // consegna dentro resta un workshop consegnato — è successo davvero.
+    const workshopDi = new Map<string, string>(iscrizioni.map((i) => [i.id, i.workshop_id]));
+    const ids = [...workshopDi.keys()];
 
     const [v1, v2] = await Promise.all([
       supabase.from("workshop_consegne").select("iscrizione_id").in("iscrizione_id", ids),
       supabase.from("workshop_elaborati").select("iscrizione_id").in("iscrizione_id", ids).eq("stato", "consegnato"),
     ]);
 
-    const consegnate = new Set<string>();
-    for (const riga of v1.error ? [] : (v1.data ?? [])) consegnate.add(riga.iscrizione_id);
-    for (const riga of v2.error ? [] : (v2.data ?? [])) consegnate.add(riga.iscrizione_id);
-    return consegnate.size;
+    const workshopConsegnati = new Set<string>();
+    for (const riga of v1.error ? [] : (v1.data ?? [])) {
+      const w = workshopDi.get(riga.iscrizione_id);
+      if (w) workshopConsegnati.add(w);
+    }
+    for (const riga of v2.error ? [] : (v2.data ?? [])) {
+      const w = workshopDi.get(riga.iscrizione_id);
+      if (w) workshopConsegnati.add(w);
+    }
+    return workshopConsegnati.size;
   } catch {
     return 0;
   }
