@@ -193,6 +193,29 @@ ok(perGenere.perGenere["reazione del cliente"].accordi === 1 && perGenere.perGen
 ok(perGenere.perGenere["feedback finale"].registro === 1, "il verdetto «hai capito» finisce sul feedback finale, dove è stato scritto");
 ok(perGenere.testiConAccordo === 3 && perGenere.testiConRegistro === 1, "conta i TESTI con almeno una cattura: sono le seconde chiamate che non sono servite");
 
+
+// ── le tre liste ──────────────────────────────────────────────────────────
+// Un fermato prodotto dal robot non è un cancello che morde. Il 2026-08-31 un
+// ritentativo sulle scritture ha fatto arrivare un quinto messaggio al
+// cliente, e il 429 che ne è seguito è finito nella lista che leggiamo per
+// prima — quella da cui ricaviamo i difetti veri del prodotto.
+const treListe = misura([
+  { etichetta: "w > a", tappe: [], fermato: { dove: "pitch", perche: "la consegna è stata rifiutata (400)", gate: true } },
+  { etichetta: "w > b", tappe: [], fermato: { dove: "?", perche: "fetch failed", guasto: true } },
+  { etichetta: "w > c", tappe: [], fermato: { dove: "pitch", perche: "la chat ha risposto 429", doppio: true } },
+]);
+ok(treListe.fermati.length === 1 && treListe.fermati[0].etichetta === "w > a", "il cancello resta nella lista dei cancelli");
+ok(treListe.caduti.length === 1 && treListe.caduti[0].etichetta === "w > b", "il guasto di rete resta nella lista dei guasti");
+ok(treListe.respinti.length === 1 && treListe.respinti[0].etichetta === "w > c", "e la richiesta doppia sta in una lista sua: il difetto è del banco, non del prodotto");
+ok(!treListe.fermati.some((f) => f.doppio) && !treListe.caduti.some((f) => f.doppio), "una richiesta doppia non compare anche nelle altre due: sporcherebbe l'unica lista che leggiamo per prima");
+
+// La riga che ha reso possibile il difetto: il ritentativo su una scrittura.
+const sessione = fs.readFileSync(path.join(ROOT, "scripts", "banco", "robot", "sessione.js"), "utf8");
+ok(
+  /metodo === "GET" \? await conUnRitentativo/.test(sessione),
+  "il ritentativo vale solo in lettura: su una scrittura è un secondo invio, e il robot non può sapere se la prima è arrivata",
+);
+
 console.log("\n═══════════════════════════════════════════\n");
 if (falliti) { console.error(`✗ ${falliti} controlli falliti.\n`); process.exit(1); }
 console.log("✓ Il piano dice quanto costa, e la misura dice cosa è successo.\n");

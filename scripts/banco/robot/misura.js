@@ -118,8 +118,15 @@ function misura(esiti) {
   // guasto» si rifà. Nella prima passata stavano insieme sotto «un gate che
   // morde è un risultato», e due `fetch failed` risultavano risultati.
   const tuttiFermati = esiti.filter((e) => e.fermato).map((e) => ({ etichetta: e.etichetta, ...e.fermato }));
-  const fermati = tuttiFermati.filter((f) => !f.guasto);
-  const caduti = tuttiFermati.filter((f) => f.guasto);
+  // TRE liste, non due: «fermato da un cancello» si studia, «caduto per un
+  // guasto» si rifà, «respinto per una richiesta doppia» si corregge QUI, nel
+  // banco. La terza è nata il 2026-08-31, quando un ritentativo sulle
+  // scritture ha fatto arrivare un quinto messaggio al cliente e il 429 che ne
+  // è seguito è finito fra i cancelli — dove sembrava un verdetto del
+  // prodotto. Un fermato prodotto dal robot non è un cancello che morde.
+  const respinti = tuttiFermati.filter((f) => f.doppio);
+  const fermati = tuttiFermati.filter((f) => !f.guasto && !f.doppio);
+  const caduti = tuttiFermati.filter((f) => f.guasto && !f.doppio);
 
   // Le trappole: confronto letterale sul testo della revisione, mai un modello
   // che giudica un modello.
@@ -168,6 +175,7 @@ function misura(esiti) {
     fiducia,
     fermati,
     caduti,
+    respinti,
     trappole,
   };
 }
@@ -194,6 +202,15 @@ function stampaRapporto(m, righe = console.log) {
     di("  un altro modello. Una trappola NON colta è il risultato più utile che");
     di("  questo banco possa dare: vuol dire che il revisore ha lasciato passare");
     di("  esattamente la cosa che gli avevamo chiesto di non lasciar passare.");
+    di("");
+  }
+
+  if (m.respinti && m.respinti.length > 0) {
+    di(`RESPINTI PER UNA RICHIESTA DOPPIA: ${m.respinti.length}`);
+    di("  Non sono cancelli e non sono guasti del prodotto: è il banco che ha");
+    di("  bussato due volte, e il prodotto ha risposto giustamente di no. Il");
+    di("  difetto sta qui dentro, non là fuori.\n");
+    for (const r of m.respinti) di(`  · ${r.etichetta} — a «${r.dove}»: ${r.perche}`);
     di("");
   }
 

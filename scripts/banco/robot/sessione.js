@@ -41,11 +41,33 @@ function barattolo() {
 // autenticato (per le scritture che nel prodotto fa il browser — iscrizione e
 // salvataggio automatico) e `chiama`, che parla con le route del sito
 // portandosi dietro i cookie.
-// UN solo ritentativo, e solo sulle ECCEZIONI. Un `fetch failed` non è una
-// risposta del prodotto: è l'assenza di una risposta, quindi riprovare non
-// aggira nessun cancello — mentre perdere due ruoli su venticinque in una
-// passata da quattro dollari per un pacchetto perso sì, quello falsa la
-// misura. Un 4xx o un 5xx invece è una risposta, e si riporta com'è.
+// UN solo ritentativo, e a due condizioni: solo sulle ECCEZIONI, e solo in
+// LETTURA.
+//
+// Sulle eccezioni perché un `fetch failed` non è una risposta del prodotto, è
+// l'assenza di una risposta: riprovare non aggira nessun cancello. Un 4xx o un
+// 5xx invece è una risposta, e si riporta com'è.
+//
+// SOLO IN LETTURA, e questa metà è arrivata dopo, il 2026-08-31, pagando. Il
+// ritentativo era su ogni POST, e un ritentativo su una scrittura È UN SECONDO
+// INVIO: il robot non può sapere se la prima è arrivata. Sul quarto messaggio
+// al cliente — quello che raggiunge la chat minima e fa scattare la chiusura
+// deterministica — la risposta si è persa per strada, il ritentativo l'ha
+// rimandato, e il server ha giustamente detto «per questa tappa hai già
+// parlato abbastanza». In tabella sono rimasti TREDICI messaggi dove il minimo
+// ne voleva dodici: l'impronta di un invio in più.
+//
+// L'ironia, che è la parte da non perdere: il ritentativo era nato quella
+// mattina per togliere i `fetch failed` dalla lista dei guasti, e invece li ha
+// SPOSTATI nella lista dei cancelli — quella preziosa, quella da cui ricaviamo
+// i difetti veri del prodotto. Ha peggiorato la cosa che doveva migliorare, e
+// l'ha fatto rendendo il sintomo irriconoscibile: un `fetch failed` si legge
+// per quello che è, un 429 sembra un verdetto.
+//
+// La regola generale: un ritentativo è sicuro solo dove ripetere non è un
+// atto. Se a valle qualcosa CONTA le azioni — un tetto, un minimo, una
+// chiusura — il ritentativo non ripara il guasto: lo traveste da
+// comportamento del prodotto.
 async function conUnRitentativo(azione) {
   try {
     return await azione();
@@ -113,7 +135,7 @@ async function apriSessione() {
   // Le chiamate alle route del sito: le stesse che fa il browser, con i cookie
   // veri. Nessuna intestazione speciale, nessuna scorciatoia.
   async function chiama(percorso, corpo, metodo = "POST") {
-    const risposta = await conUnRitentativo(() =>
+    const invia = () =>
       fetch(`${c.sitoUrl}${percorso}`, {
         method: metodo,
         headers: {
@@ -122,8 +144,9 @@ async function apriSessione() {
         },
         body: corpo ? JSON.stringify(corpo) : undefined,
         redirect: "follow",
-      }),
-    );
+      });
+    // Solo GET: rileggere una pagina due volte non cambia niente al mondo.
+    const risposta = metodo === "GET" ? await conUnRitentativo(invia) : await invia();
     const testo = await risposta.text();
     let dati = null;
     try {

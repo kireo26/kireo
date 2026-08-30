@@ -219,7 +219,20 @@ async function giocaRuolo({ sessione, workshopSlug, ruoloSlug, consegne, fasi, r
       for (let i = 0; i < daMandare; i++) {
         const r = await chiama("/api/workshop/cliente-chat", { iscrizioneId: iscrizione.id, messaggio: consegnaTappa.chat[i] });
         if (r.status >= 400) {
-          return { ...esito, fermato: { dove: fase.id, perche: `la chat ha risposto ${r.status}: ${r.dati?.errore ?? r.testo.slice(0, 120)}` } };
+          // Un 429 sulla chat non è un cancello che ha morso uno studente: è
+          // il robot che ha bussato due volte. Il robot manda ESATTAMENTE i
+          // messaggi che mancano al minimo, quindi non può superarlo da solo —
+          // se la porta si chiude, l'invio in più viene dal trasporto. Va in
+          // una lista sua: metterlo fra i cancelli sporcherebbe l'unica lista
+          // da cui ricaviamo i difetti veri del prodotto.
+          return {
+            ...esito,
+            fermato: {
+              dove: fase.id,
+              perche: `la chat ha risposto ${r.status}: ${r.dati?.errore ?? r.testo.slice(0, 120)}`,
+              doppio: r.status === 429,
+            },
+          };
         }
         resoconto.messaggi++;
       }
@@ -239,6 +252,11 @@ async function giocaRuolo({ sessione, workshopSlug, ruoloSlug, consegne, fasi, r
           fermato: {
             dove: fase.id,
             perche: `la consegna è stata rifiutata (${r.status}): ${r.dati?.errore ?? r.testo.slice(0, 200)}`,
+            // `fase_non_aperta` vuol dire che la tappa risulta già consegnata:
+            // è la stessa firma del doppio invio, su un'altra scrittura.
+            // Verificato leggendo consegna_fase_workshop, non dedotto: la
+            // funzione alza quell'eccezione quando non trova una riga 'aperta'.
+            doppio: /fase_non_aperta/.test(`${r.dati?.errore ?? ""}${r.testo}`),
             gate: true,
             dettaglio: r.dati,
           },
