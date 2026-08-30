@@ -131,11 +131,16 @@ ok(Object.keys(pulita).includes("hai_capito_che"), "le CHIAVI non si toccano: so
 // questa parte gira solo dove ce ne sono. Quando non ce ne sono LO DICE: un
 // controllo che salta in silenzio è quello che ci ha già ingannati due volte
 // questa settimana.
+// TUTTI, non gli ultimi due. «Gli ultimi due» ordinava per NOME, cioè per
+// data, e la sera del 2026-08-31 ha pescato una passata completa più il giro
+// di una trappola — che di testi ne ha nove. Milleecinque pezzi invece dei
+// millleottocento disponibili, e nessuno se ne sarebbe accorto guardando il
+// numero. Un corpus si prende tutto: non costa niente, e una soglia sulla
+// taglia sarebbe un'altra cifra scelta a occhio da spiegare.
 const rapporti = fs
   .readdirSync(ROOT)
   .filter((f) => /^banco-robot-.*\.json$/.test(f))
-  .sort()
-  .slice(-2);
+  .sort();
 
 console.log("");
 if (rapporti.length === 0) {
@@ -180,10 +185,15 @@ if (rapporti.length === 0) {
     if (CHE_COORDINATO.test(r.testo)) daLeggere.push(r.testo);
   }
 
-  console.log(`  Corpus: ${pezzi.length} pezzi di testo veri da ${rapporti.length} rapporto/i.`);
+  console.log(`  Corpus: ${pezzi.length} pezzi di testo veri da ${rapporti.length} rapporti (tutti quelli presenti).`);
   console.log(`  ${cambiati} riscritti · ${riscritteTot} formule tolte · ${residueTot} residue\n`);
   ok(maiuscoleNuove.length === 0, `nessuna maiuscola nuova dopo «:» o «;»${maiuscoleNuove.length ? `\n      ${maiuscoleNuove.slice(0, 3).join("\n      ")}` : ""}`);
-  if (daLeggere.length > 0) {
+  // Anche quando è pulita LO DICE: senza questa riga chi legge non distingue
+  // «ha girato e non ha trovato niente» da «non ha girato», ed è la stessa
+  // specie di silenzio che abbiamo appena tolto da tre altri posti.
+  if (daLeggere.length === 0) {
+    console.log("  ✓ nessun «e che» da leggere: nessuna riscrittura ha lasciato una coordinata sospesa");
+  } else {
     console.log(`  da leggere: ${daLeggere.length} risultati contengono «e che» — legittimo se sta in un'altra frase:`);
     for (const d of daLeggere.slice(0, 3)) console.log(`      ${d.slice(0, 160)}`);
   }
