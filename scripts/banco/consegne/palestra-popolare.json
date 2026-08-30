@@ -1,6 +1,5 @@
 {
   "workshop": "palestra-popolare",
-
   "ruoli": {
     "salute": {
       "livello": "base",
@@ -9,15 +8,69 @@
           "sezioni": {
             "ricognizione": "Nel quartiere non si muove chi non ha un posto dove farlo a un prezzo che può permettersi, e sono quattro gruppi diversi. I ragazzi fra i dodici e i diciotto stanno in strada il pomeriggio: non è che non vogliano fare sport, è che le società sportive costano trecento euro l'anno più la divisa, e dopo due mesi che non paghi ti fanno sentire fuori posto finché smetti da solo. Le ragazze smettono verso i quattordici anni, e quasi mai perché non gli piace: smettono perché in una sala mista si sentono guardate, e perché in casa lo sport delle femmine è la prima cosa che salta quando manca il tempo. Gli uomini fra i quaranta e i sessanta hanno male alla schiena e il medico gli ha detto di muoversi, ma in una palestra commerciale si sentono fuori luogo fra gli specchi e i ventenni. Gli anziani soli, infine, non cercano sport: cercano un posto dove andare la mattina, e il movimento è la scusa. Il primo che voglio far entrare sono i ragazzi, perché è per loro che Tonino apre e perché sono quelli che se non entrano qui non entrano da nessuna parte.",
             "programma_settimanale": [
-              ["Lunedì", "17:00-18:30", "Boxe educativa, senza colpi al viso", "Ragazzi 12-15", "Tonino"],
-              ["Lunedì", "19:00-20:00", "Ginnastica per la schiena", "Adulti 40-60", "Istruttore laureato"],
-              ["Martedì", "9:30-10:30", "Ginnastica dolce", "Over 65", "Istruttore laureato"],
-              ["Martedì", "18:00-19:30", "Boxe, gruppo femminile", "Ragazze e donne", "Tonino con l'educatrice in sala"],
-              ["Mercoledì", "17:00-18:30", "Boxe educativa", "Ragazzi 12-15", "Tonino"],
-              ["Giovedì", "9:30-10:30", "Ginnastica dolce", "Over 65", "Istruttore laureato"],
-              ["Giovedì", "17:00-18:00", "Gioco motorio con i genitori", "Bambini 6-10", "Educatrice"],
-              ["Venerdì", "19:00-20:30", "Boxe, gruppo libero", "Dai 16 anni", "Tonino"],
-              ["Sabato", "10:00-12:00", "Palestra aperta, senza iscrizione", "Tutti", "Tonino a rotazione con i volontari"]
+              [
+                "Lunedì",
+                "17:00-18:30",
+                "Boxe educativa, senza colpi al viso",
+                "Ragazzi 12-15",
+                "Tonino"
+              ],
+              [
+                "Lunedì",
+                "19:00-20:00",
+                "Ginnastica per la schiena",
+                "Adulti 40-60",
+                "Istruttore laureato"
+              ],
+              [
+                "Martedì",
+                "9:30-10:30",
+                "Ginnastica dolce",
+                "Over 65",
+                "Istruttore laureato"
+              ],
+              [
+                "Martedì",
+                "18:00-19:30",
+                "Boxe, gruppo femminile",
+                "Ragazze e donne",
+                "Tonino con l'educatrice in sala"
+              ],
+              [
+                "Mercoledì",
+                "17:00-18:30",
+                "Boxe educativa",
+                "Ragazzi 12-15",
+                "Tonino"
+              ],
+              [
+                "Giovedì",
+                "9:30-10:30",
+                "Ginnastica dolce",
+                "Over 65",
+                "Istruttore laureato"
+              ],
+              [
+                "Giovedì",
+                "17:00-18:00",
+                "Gioco motorio con i genitori",
+                "Bambini 6-10",
+                "Educatrice"
+              ],
+              [
+                "Venerdì",
+                "19:00-20:30",
+                "Boxe, gruppo libero",
+                "Dai 16 anni",
+                "Tonino"
+              ],
+              [
+                "Sabato",
+                "10:00-12:00",
+                "Palestra aperta, senza iscrizione",
+                "Tutti",
+                "Tonino a rotazione con i volontari"
+              ]
             ],
             "priorita": "Parto dalla boxe dei ragazzi il lunedì e il mercoledì, e dalla ginnastica dolce del martedì mattina. La prima perché è quello che Tonino sa fare davvero, e una cosa fatta bene da chi la sa fare tiene più di tre cose fatte a metà. La seconda perché la mattina la sala è vuota e non toglie spazio a niente, e perché gli anziani entrano subito e vengono tutte le settimane, che vuol dire quote regolari fin dal primo mese. Le altre attività si aggiungono quando ci sono le persone per tenerle, non prima."
           },
@@ -30,11 +83,36 @@
         "persone_qualifiche": {
           "sezioni": {
             "figure": [
-              ["Tecnico di boxe (Tonino)", "Tesserino tecnico FPI di primo livello", "8", "1.500 (rimborso spese)"],
-              ["Istruttore adulti e anziani", "Laurea in Scienze motorie", "6", "7.800"],
-              ["Educatrice gioco motorio", "Diploma più corso di un Ente di Promozione Sportiva", "3", "3.900"],
-              ["Operatore BLSD a rotazione", "Certificazione BLSD-D valida", "A copertura dei turni", "600 (corso per 4 persone)"],
-              ["Volontari per apertura e sala", "Nessuna qualifica tecnica, formazione interna", "Variabile", "0"]
+              [
+                "Tecnico di boxe (Tonino)",
+                "Tesserino tecnico FPI di primo livello",
+                "8",
+                "1.500 (rimborso spese)"
+              ],
+              [
+                "Istruttore adulti e anziani",
+                "Laurea in Scienze motorie",
+                "6",
+                "7.800"
+              ],
+              [
+                "Educatrice gioco motorio",
+                "Diploma più corso di un Ente di Promozione Sportiva",
+                "3",
+                "3.900"
+              ],
+              [
+                "Operatore BLSD a rotazione",
+                "Certificazione BLSD-D valida",
+                "A copertura dei turni",
+                "600 (corso per 4 persone)"
+              ],
+              [
+                "Volontari per apertura e sala",
+                "Nessuna qualifica tecnica, formazione interna",
+                "Variabile",
+                "0"
+              ]
             ],
             "reclutamento": "Il tecnico è Tonino, che è già qui: va solo messo in regola e rimborsato delle spese. L'istruttore degli adulti lo cerco fra i laureati in Scienze motorie che escono ogni anno e non trovano niente se non le palestre commerciali a chiamata: qui si offre un contratto piccolo ma continuo e un lavoro che ha un senso, e a quelle condizioni qualcuno si trova. L'educatrice per i bambini la cerco fra chi lavora già nel doposcuola della parrocchia e nei centri estivi del quartiere: conoscono le famiglie, e le famiglie si fidano di loro prima che di noi. I volontari sono i genitori dei ragazzini e i ragazzi grandi che hanno fatto boxe qui: aprono, chiudono, stanno in sala. La regola che non cambio è questa: chi tiene un'attività e chi ha una responsabilità sanitaria va pagato sempre, perché è lì che si fanno i danni, e su quello non si risparmia nemmeno quando i conti sono stretti.",
             "tonino_tecnico": "Tonino prende il tesseramento tecnico FPI di primo livello: il corso federale dura un fine settimana e costa poche centinaia di euro, e da lì può insegnare con una copertura assicurativa vera. Come socio volontario dell'associazione riceve un rimborso spese documentato e non uno stipendio: così è in regola senza aprire una posizione da dipendente, che a questi numeri non si potrebbe permettere."
@@ -80,23 +158,47 @@
         }
       }
     },
-
     "economia": {
       "livello": "base",
       "tappe": {
         "i_conti": {
           "sezioni": {
             "costi_annuali": [
-              ["Affitto del capannone", "7.200"],
-              ["Utenze (luce, acqua, riscaldamento)", "2.400"],
-              ["Compensi degli istruttori", "13.800"],
-              ["Pulizie", "1.800"],
-              ["Manutenzione e ricambio attrezzatura", "1.500"],
-              ["Assicurazione, tesseramenti e affiliazione", "1.200"],
-              ["Commercialista e adempimenti", "900"],
-              ["Totale annuo", "28.800"]
+              [
+                "Affitto del capannone",
+                "7.200"
+              ],
+              [
+                "Utenze (luce, acqua, riscaldamento)",
+                "2.400"
+              ],
+              [
+                "Compensi degli istruttori",
+                "13.800"
+              ],
+              [
+                "Pulizie",
+                "1.800"
+              ],
+              [
+                "Manutenzione e ricambio attrezzatura",
+                "1.500"
+              ],
+              [
+                "Assicurazione, tesseramenti e affiliazione",
+                "1.200"
+              ],
+              [
+                "Commercialista e adempimenti",
+                "900"
+              ],
+              [
+                "Totale annuo",
+                "28.800"
+              ]
             ],
-            "voce_pesante": "Il costo più grosso sono gli istruttori: 13.800 su 28.800, cioè quasi la metà di tutto. E non è una voce che si taglia, perché è esattamente quella su cui non si deve risparmiare — chi tiene un'attività con dei ragazzi deve essere pagato e in regola. Quello che si può fare è tenerla sotto controllo in due modi: partire con poche attività e aggiungerne solo quando ci sono le persone che le pagano, e usare i volontari per tutto quello che non richiede una qualifica — aprire, chiudere, stare in sala, accompagnare. Il volontario non sostituisce l'istruttore: gli toglie di dosso le ore in cui non sta insegnando."
+            "voce_pesante": "Il costo più grosso sono gli istruttori: 13.800 su 28.800, cioè quasi la metà di tutto. E non è una voce che si taglia, perché è esattamente quella su cui non si deve risparmiare — chi tiene un'attività con dei ragazzi deve essere pagato e in regola. Quello che si può fare è tenerla sotto controllo in due modi: partire con poche attività e aggiungerne solo quando ci sono le persone che le pagano, e usare i volontari per tutto quello che non richiede una qualifica — aprire, chiudere, stare in sala, accompagnare. Il volontario non sostituisce l'istruttore: gli toglie di dosso le ore in cui non sta insegnando.",
+            "provenienza_numeri": "L'affitto e le utenze sono i numeri veri della palestra: li ha dati Tonino, che li paga da anni. Il costo dell'istruttore laureato l'ho stimato io partendo da sei ore a settimana e da un compenso orario che ho letto negli annunci per le palestre della zona: è la voce su cui posso sbagliare di più, e va verificata con chi assumeremo davvero prima di scriverla in un bando. L'assicurazione l'ho chiesta a un'agenzia per una polizza di associazione sportiva con cinquanta tesserati, e mi hanno dato una forbice: ho messo il numero alto."
           },
           "chat": [
             "Tonino, l'affitto del capannone quanto è al mese?",
@@ -106,13 +208,25 @@
         },
         "il_pareggio": {
           "sezioni": {
-            "calcolo": "I costi sono 28.800 euro l'anno. I minori non pagano, quindi tutte le quote vengono dagli adulti. A venti euro al mese sono 240 euro l'anno a socio, e 28.800 diviso 240 fa 120 soci adulti paganti. Centoventi adulti che pagano tutti i mesi, in questo quartiere e al primo anno, non ci sono: sarebbe un numero da palestra commerciale avviata, e noi apriamo da zero con una sala e un ring. Quindi il pareggio con le sole quote non è realistico, e dirlo adesso è meglio che scoprirlo a marzo. Il conto vero è un altro: se le entrate diverse dalle quote portano intorno ai 16.000 euro — e nella prossima tappa spiego da dove — restano 12.700 da coprire con le quote, cioè 53 soci adulti. Cinquantatré è un numero che si guarda in faccia: sono quattro gruppi da tredici persone, ed è una cosa che in due anni si può fare."
-            ,
+            "calcolo": "I costi sono 28.800 euro l'anno. I minori non pagano, quindi tutte le quote vengono dagli adulti. A venti euro al mese sono 240 euro l'anno a socio, e 28.800 diviso 240 fa 120 soci adulti paganti. Centoventi adulti che pagano tutti i mesi, in questo quartiere e al primo anno, non ci sono: sarebbe un numero da palestra commerciale avviata, e noi apriamo da zero con una sala e un ring. Quindi il pareggio con le sole quote non è realistico, e dirlo adesso è meglio che scoprirlo a marzo. Il conto vero è un altro: se le entrate diverse dalle quote portano intorno ai 16.000 euro — e nella prossima tappa spiego da dove — restano 12.700 da coprire con le quote, cioè 53 soci adulti. Cinquantatré è un numero che si guarda in faccia: sono quattro gruppi da tredici persone, ed è una cosa che in due anni si può fare.",
             "quote": [
-              ["15 €/mese (180 €/anno)", "160 soci con le sole quote", "No: 160 adulti paganti qui non ci sono, nemmeno fra tre anni"],
-              ["20 €/mese (240 €/anno)", "120 soci con le sole quote, 53 con il mix di entrate", "Sì con il mix, no senza. È la quota che tiene insieme accessibilità e conti"],
-              ["25 €/mese (300 €/anno)", "96 soci con le sole quote, 42 con il mix", "Il numero è più facile, ma cinque euro in più al mese cominciano a tagliare fuori proprio chi vogliamo dentro"]
-            ]
+              [
+                "15 €/mese (180 €/anno)",
+                "160 soci con le sole quote",
+                "No: 160 adulti paganti qui non ci sono, nemmeno fra tre anni"
+              ],
+              [
+                "20 €/mese (240 €/anno)",
+                "120 soci con le sole quote, 53 con il mix di entrate",
+                "Sì con il mix, no senza. È la quota che tiene insieme accessibilità e conti"
+              ],
+              [
+                "25 €/mese (300 €/anno)",
+                "96 soci con le sole quote, 42 con il mix",
+                "Il numero è più facile, ma cinque euro in più al mese cominciano a tagliare fuori proprio chi vogliamo dentro"
+              ]
+            ],
+            "se_ne_trovi_meta": "Se dopo sei mesi ho la metà degli adulti paganti, la prima cosa che non faccio è alzare la quota: venti euro sono già il tetto per il quartiere, e alzandoli perderei anche quelli che ci sono. La seconda cosa che non faccio è toccare la gratuità per i minori, perché è il motivo per cui la palestra esiste. Quello che faccio è togliere l'attività che costa di più e rende di meno, che è la ginnastica per adulti del lunedì sera: è tenuta dall'istruttore pagato, ha pochi iscritti, e chiuderla mi ridà quasi il buco. Poi sposto la palestra aperta del sabato dai volontari a un turno solo, la mattina, così Tonino ha un pomeriggio libero per andare a parlare con le scuole. Il pareggio non lo raggiungo col miracolo delle iscrizioni: lo raggiungo facendo meno cose."
           },
           "chat": [
             "Tonino, quanti adulti conosci che verrebbero a pagare venti euro al mese?",
@@ -123,13 +237,37 @@
         "le_entrate": {
           "sezioni": {
             "entrate_alternative": [
-              ["Bandi per lo sport sociale e la povertà educativa", "8.000", "Essere una ASD affiliata e iscritta al registro, e saper rendicontare. Importi e scadenze cambiano ogni edizione: si legge il bando dell'anno"],
-              ["Convenzione col Comune per attività nelle scuole", "4.500", "Istruttori qualificati e assicurazione; si passa da un avviso pubblico o da un affidamento diretto sotto soglia"],
-              ["Cinque per mille e donazioni", "1.200", "Iscrizione una volta sola, poi arriva ogni anno. Serve chiedere il codice ai soci, che è la parte che ci si dimentica"],
-              ["Uso della sala da parte di altre associazioni nelle fasce vuote", "2.400", "Solo nelle ore morte, con un accordo scritto e l'assicurazione loro"],
-              ["Tornei e cene sociali autofinanziate", "1.500", "Costa lavoro dei volontari e rende poco, ma tiene insieme il gruppo e fa conoscere il posto"]
+              [
+                "Bandi per lo sport sociale e la povertà educativa",
+                "8.000",
+                "Essere una ASD affiliata e iscritta al registro, e saper rendicontare. Importi e scadenze cambiano ogni edizione: si legge il bando dell'anno"
+              ],
+              [
+                "Convenzione col Comune per attività nelle scuole",
+                "4.500",
+                "Istruttori qualificati e assicurazione; si passa da un avviso pubblico o da un affidamento diretto sotto soglia"
+              ],
+              [
+                "Cinque per mille e donazioni",
+                "1.200",
+                "Iscrizione una volta sola, poi arriva ogni anno. Serve chiedere il codice ai soci, che è la parte che ci si dimentica"
+              ],
+              [
+                "Uso della sala da parte di altre associazioni nelle fasce vuote",
+                "2.400",
+                "Solo nelle ore morte, con un accordo scritto e l'assicurazione loro"
+              ],
+              [
+                "Tornei e cene sociali autofinanziate",
+                "1.500",
+                "Costa lavoro dei volontari e rende poco, ma tiene insieme il gruppo e fa conoscere il posto"
+              ]
             ],
-            "investimento": "I 30.000 li spendo così: 12.000 per la messa a norma e gli impianti, 8.500 per l'attrezzatura di boxe e la sala, 3.500 per la pavimentazione, 1.800 per il defibrillatore e il corso BLSD per quattro persone, 2.000 fra insegna e spogliatoi. Sono 27.800, e restano 2.200 che non spendo: servono a coprire i primi mesi in cui si paga l'affitto e non entra ancora niente. Sull'ordine: prima quello che serve per aprire in regola, poi quello che si vede."
+            "investimento": "I 30.000 li spendo così: 12.000 per la messa a norma e gli impianti, 8.500 per l'attrezzatura di boxe e la sala, 3.500 per la pavimentazione, 1.800 per il defibrillatore e il corso BLSD per quattro persone, 2.000 fra insegna e spogliatoi. Sono 27.800, e restano 2.200 che non spendo: servono a coprire i primi mesi in cui si paga l'affitto e non entra ancora niente. Sull'ordine: prima quello che serve per aprire in regola, poi quello che si vede.",
+            "su_cosa_scommetti": {
+              "opzione": "Le quote degli adulti",
+              "motivazione": "È l'unica entrata che non dipende da qualcuno che deve dirci di sì, e arriva ogni mese invece che una volta all'anno."
+            }
           },
           "chat": [
             "Tonino, hai mai chiesto un contributo pubblico o è la prima volta?",
@@ -139,7 +277,8 @@
         },
         "pitch": {
           "sezioni": {
-            "sintesi": "Tonino, i conti sono questi e te li dico secchi. La palestra costa 28.800 euro l'anno, e quasi la metà — 13.800 — sono gli istruttori: è la voce più grossa ed è quella che non si tocca, perché chi lavora coi ragazzi va pagato e in regola. Se dovessimo coprire tutto con le quote degli adulti a venti euro al mese, servirebbero 120 soci paganti. Centoventi qui non ci sono, e te lo dico adesso invece di fartelo scoprire a marzo. Il conto che funziona è un altro: bandi, una convenzione col Comune per le attività nelle scuole, il cinque per mille, la sala prestata nelle ore vuote e qualche torneo portano intorno ai 16.000 euro l'anno. Restano 12.700 da fare con le quote, cioè 53 soci adulti — quattro gruppi da tredici persone. Quello è un numero che si guarda in faccia. Dei 30.000 ne spendo 27.800 fra messa a norma, attrezzatura, pavimento, defibrillatore e insegna, e 2.200 li tengo per i mesi in cui si paga l'affitto e non entra niente. Una cosa non te la posso promettere: che i bandi arrivino il primo anno. Se non arrivano, i 16.000 diventano 6.000 e i soci necessari tornano a novanta."
+            "sintesi": "Tonino, i conti sono questi e te li dico secchi. La palestra costa 28.800 euro l'anno, e quasi la metà — 13.800 — sono gli istruttori: è la voce più grossa ed è quella che non si tocca, perché chi lavora coi ragazzi va pagato e in regola. Se dovessimo coprire tutto con le quote degli adulti a venti euro al mese, servirebbero 120 soci paganti. Centoventi qui non ci sono, e te lo dico adesso invece di fartelo scoprire a marzo. Il conto che funziona è un altro: bandi, una convenzione col Comune per le attività nelle scuole, il cinque per mille, la sala prestata nelle ore vuote e qualche torneo portano intorno ai 16.000 euro l'anno. Restano 12.700 da fare con le quote, cioè 53 soci adulti — quattro gruppi da tredici persone. Quello è un numero che si guarda in faccia. Dei 30.000 ne spendo 27.800 fra messa a norma, attrezzatura, pavimento, defibrillatore e insegna, e 2.200 li tengo per i mesi in cui si paga l'affitto e non entra niente. Una cosa non te la posso promettere: che i bandi arrivino il primo anno. Se non arrivano, i 16.000 diventano 6.000 e i soci necessari tornano a novanta.",
+            "il_numero": "Venti euro al mese, per un adulto. È il numero che glielo fa dire, perché è l'unico che può controllare da solo: non dipende da un bando, non dipende dal Comune, e se sbaglio i conti su tutto il resto quello resta vero. Tonino sa quanto costa una pizza nel quartiere: venti euro al mese lo capisce senza che glieli spieghi."
           },
           "chat": [
             "Ultimo pezzo, Tonino. Del conto che ti ho fatto, cosa non ti torna?",
@@ -150,13 +289,35 @@
         }
       }
     },
-
     "educazione": {
       "livello": "base",
       "tappe": {
         "a_chi_perche": {
           "sezioni": {
-            "destinatari_bisogno": "I ragazzi a cui questa palestra serve sono quelli fra i dodici e i diciotto anni che stanno lasciando la scuola o che ci vanno senza esserci. In Italia la dispersione scolastica è intorno al 9,8%, ma al Sud sale al 12,4%, e in quartieri come questo il numero vero è più alto di quello provinciale: è una media che nasconde le concentrazioni. Dietro quel numero però non c'è un problema di intelligenza, c'è la povertà educativa — che vuol dire non avere accesso alle cose che fanno crescere fuori dalla scuola: uno sport, uno strumento, un posto dove qualcuno ti aspetti il martedì. Un ragazzo che non ha nessun appuntamento fisso nella settimana, e nessun adulto che si accorga se non si presenta, è un ragazzo che quando la scuola diventa difficile non ha niente che lo tenga agganciato. La boxe qui funziona per una ragione precisa che vale la pena dire: è uno sport dove si comincia da zero senza essere già bravi, dove non si viene messi in panchina, e dove chi ha fama di essere il peggiore della classe può essere il migliore della sala. È l'unico posto della sua settimana dove la reputazione si può ricostruire da capo."
+            "destinatari_bisogno": "I ragazzi a cui questa palestra serve sono quelli fra i dodici e i diciotto anni che stanno lasciando la scuola o che ci vanno senza esserci. In Italia la dispersione scolastica è intorno al 9,8%, ma al Sud sale al 12,4%, e in quartieri come questo il numero vero è più alto di quello provinciale: è una media che nasconde le concentrazioni. Dietro quel numero però non c'è un problema di intelligenza, c'è la povertà educativa — che vuol dire non avere accesso alle cose che fanno crescere fuori dalla scuola: uno sport, uno strumento, un posto dove qualcuno ti aspetti il martedì. Un ragazzo che non ha nessun appuntamento fisso nella settimana, e nessun adulto che si accorga se non si presenta, è un ragazzo che quando la scuola diventa difficile non ha niente che lo tenga agganciato. La boxe qui funziona per una ragione precisa che vale la pena dire: è uno sport dove si comincia da zero senza essere già bravi, dove non si viene messi in panchina, e dove chi ha fama di essere il peggiore della classe può essere il migliore della sala. È l'unico posto della sua settimana dove la reputazione si può ricostruire da capo.",
+            "chi_non_entra": [
+              [
+                "Ragazzi 12-15 delle medie",
+                "Trecento euro l'anno più la divisa, e dopo due mesi che non paghi ti fanno sentire fuori posto finché smetti",
+                "Non pagano niente, e nessuno tiene il conto di chi ha pagato e chi no"
+              ],
+              [
+                "Ragazze dai 14 in su",
+                "In una sala mista si sentono guardate, e in casa lo sport delle femmine è la prima cosa che salta",
+                "Un turno di sole ragazze il martedì sera, con un'educatrice in sala oltre a Tonino"
+              ],
+              [
+                "Ragazzi che hanno già smesso una volta",
+                "Sono tornati a casa dopo una brutta esperienza in una società sportiva e non ci riprovano",
+                "Si entra a metà anno, senza iscrizione e senza recuperare niente: si comincia da dove si è"
+              ],
+              [
+                "Ragazzi seguiti dai servizi sociali",
+                "Nessuno li accompagna, e le attività per loro sono sempre altrove, mai sotto casa",
+                "La palestra è a duecento metri, e l'educatrice del quartiere li conosce già per nome"
+              ]
+            ],
+            "da_chi_parti": "Parto dai ragazzi delle medie, quelli fra i dodici e i quindici. Non perché siano i più in difficoltà — quelli seguiti dai servizi lo sono di più — ma perché sono gli unici per cui la palestra di Tonino, così com'è oggi, basta già: c'è lui che sa insegnare boxe, c'è la sala, e c'è l'orario del pomeriggio che oggi è vuoto. Per le ragazze serve un'educatrice, per i ragazzi dei servizi serve un accordo con il Comune: sono cose che arrivano dopo. Comincio da dove non devo aspettare nessuno."
           },
           "chat": [
             "Tonino, dei ragazzi che girano qui sotto, quanti secondo te hanno mollato la scuola?",
@@ -167,12 +328,39 @@
         "attivita": {
           "sezioni": {
             "attivita": [
-              ["Doposcuola due pomeriggi, prima dell'allenamento", "I compiti si fanno qui, con due volontari, e chi ha finito va in sala. Non è un premio: è l'ordine della giornata", "Volontari del quartiere e studenti universitari in tirocinio"],
-              ["La regola del pagellino", "Chi ha un'insufficienza continua ad allenarsi, ma passa due pomeriggi a settimana al doposcuola invece di uno", "Le famiglie, che firmano il patto all'iscrizione, e i professori di riferimento"],
-              ["Torneo interno a fine anno, con le famiglie invitate", "Un traguardo visibile che si prepara per mesi, e un'occasione in cui i genitori vedono il figlio in una luce diversa", "Tutta l'associazione, e la scuola media che presta la palestra grande"],
-              ["Accompagnamento individuale per i casi difficili", "Un adulto di riferimento che parla col ragazzo, con la famiglia e con la scuola quando le cose si mettono male", "Educatrice, in raccordo con i servizi sociali del municipio"]
+              [
+                "Doposcuola due pomeriggi, prima dell'allenamento",
+                "I compiti si fanno qui, con due volontari, e chi ha finito va in sala. Non è un premio: è l'ordine della giornata",
+                "Volontari del quartiere e studenti universitari in tirocinio"
+              ],
+              [
+                "La regola del pagellino",
+                "Chi ha un'insufficienza continua ad allenarsi, ma passa due pomeriggi a settimana al doposcuola invece di uno",
+                "Le famiglie, che firmano il patto all'iscrizione, e i professori di riferimento"
+              ],
+              [
+                "Torneo interno a fine anno, con le famiglie invitate",
+                "Un traguardo visibile che si prepara per mesi, e un'occasione in cui i genitori vedono il figlio in una luce diversa",
+                "Tutta l'associazione, e la scuola media che presta la palestra grande"
+              ],
+              [
+                "Accompagnamento individuale per i casi difficili",
+                "Un adulto di riferimento che parla col ragazzo, con la famiglia e con la scuola quando le cose si mettono male",
+                "Educatrice, in raccordo con i servizi sociali del municipio"
+              ]
             ],
-            "regola": "La regola del pagellino non è una punizione ed è importante che non lo diventi: chi ha un'insufficienza non viene escluso dall'allenamento, che sarebbe togliergli l'unica cosa che funziona. Viene aggiunto un pomeriggio di doposcuola, e chi lo fa continua ad allenarsi normalmente. La differenza è tutta lì: la scuola non è la condizione per stare in palestra, la palestra è il posto dove qualcuno si accorge di come va la scuola. Il patto lo firmano i ragazzi e i genitori all'iscrizione, così è chiaro dall'inizio e non sembra una cosa inventata a dicembre."
+            "regola": "La regola del pagellino non è una punizione ed è importante che non lo diventi: chi ha un'insufficienza non viene escluso dall'allenamento, che sarebbe togliergli l'unica cosa che funziona. Viene aggiunto un pomeriggio di doposcuola, e chi lo fa continua ad allenarsi normalmente. La differenza è tutta lì: la scuola non è la condizione per stare in palestra, la palestra è il posto dove qualcuno si accorge di come va la scuola. Il patto lo firmano i ragazzi e i genitori all'iscrizione, così è chiaro dall'inizio e non sembra una cosa inventata a dicembre.",
+            "checklist_educativa": {
+              "voci": {
+                "Un adulto responsabile a ogni attività, sempre lo stesso": true,
+                "Il consenso scritto delle famiglie per i minori": true,
+                "Uno spazio dove si può parlare senza essere sentiti da tutti": true,
+                "Qualcuno formato a cui girare un caso che va oltre lo sport": true,
+                "Un momento fisso in cui gli adulti si parlano di come vanno i ragazzi": false,
+                "Una regola scritta su cosa succede se un ragazzo esagera": true
+              },
+              "nota": "Il momento fisso fra adulti non lo prevedo il primo anno, e non è una dimenticanza. Gli adulti stabili sono due — Tonino e l'educatrice — e si vedono ogni pomeriggio in sala: mettere una riunione settimanale a calendario adesso vorrebbe dire ufficializzare una cosa che già succede da sola. Diventa necessario quando gli adulti saranno quattro o cinque e non si incroceranno più tutti i giorni: allora sì, e sarà mezz'ora il venerdì. Lo scrivo perché non voglio che sembri che me ne sono scordato."
+            }
           },
           "chat": [
             "Tonino, se dico ai ragazzi che devono fare i compiti prima di allenarsi, secondo te scappano?",
@@ -184,11 +372,24 @@
           "sezioni": {
             "alleati": "La scuola media del quartiere è l'alleato principale, e non per i volantini: sono i professori che sanno quali sono i ragazzi a rischio, e una segnalazione da loro vale più di qualunque pubblicità. Con loro serve un accordo scritto, perché altrimenti resta un rapporto fra persone che finisce quando la persona cambia scuola. I servizi sociali del municipio hanno i casi più difficili e hanno anche i fondi: sono il partner che serve per i bandi sulla povertà educativa, dove un'associazione da sola difficilmente entra. La parrocchia e le cooperative che già fanno doposcuola in zona sono alleate e non concorrenti, e il modo di dimostrarglielo è mandare loro i ragazzi che hanno bisogno di studiare più che di allenarsi. Le famiglie sono l'alleato più difficile e il più importante: molte non verranno alle riunioni e non risponderanno ai messaggi, e l'unico modo che funziona è che qualcuno le chiami al telefono, una per una, quando il figlio non si presenta per due volte di fila.",
             "indicatori": [
-              ["Ragazzi che continuano dopo sei mesi", "Iscritti a settembre che sono ancora in sala a marzo, contati per nome"],
-              ["Presenze al doposcuola", "Registro delle presenze, confrontato mese per mese"],
-              ["Ragazzi che hanno recuperato le insufficienze", "Colloquio con la scuola a fine quadrimestre, per chi ha firmato il patto"],
-              ["Chi ha smesso di venire e non l'ha detto", "Assenze consecutive superiori a due settimane senza avviso: si contano e si telefona, non si cancellano dall'elenco"]
-            ]
+              [
+                "Ragazzi che continuano dopo sei mesi",
+                "Iscritti a settembre che sono ancora in sala a marzo, contati per nome"
+              ],
+              [
+                "Presenze al doposcuola",
+                "Registro delle presenze, confrontato mese per mese"
+              ],
+              [
+                "Ragazzi che hanno recuperato le insufficienze",
+                "Colloquio con la scuola a fine quadrimestre, per chi ha firmato il patto"
+              ],
+              [
+                "Chi ha smesso di venire e non l'ha detto",
+                "Assenze consecutive superiori a due settimane senza avviso: si contano e si telefona, non si cancellano dall'elenco"
+              ]
+            ],
+            "chi_sta_mollando": "Il primo che se ne accorge è chi tiene il registro delle presenze, che è il volontario che apre. Alla seconda assenza di fila mette il nome su un foglio in bacheca, e questo basta perché anche Tonino lo veda. Chi chiama è l'educatrice, non Tonino: non perché Tonino non sia capace, ma perché un ragazzo di quindici anni a cui telefona il maestro di boxe sente un rimprovero, mentre a chi lo chiama l'educatrice può dire che gli è successa una cosa. Si chiama entro tre giorni, non dopo due settimane, e non si chiede perché non è venuto: si dice che si sono accorti che mancava. Se non risponde, dopo altri tre giorni si prova con un genitore, e insieme si capisce se il problema è la scuola, la famiglia o la palestra. Se il problema è la palestra lo dobbiamo sapere noi. Se non torna dopo un mese, si avvisa la scuola tramite il referente che abbiamo nell'istituto, perché quel ragazzo probabilmente sta sparendo anche da lì e noi siamo quelli che se ne sono accorti per primi. Quello che non facciamo è cancellarlo dall'elenco: il posto resta suo fino a fine anno."
           },
           "chat": [
             "Tonino, alla scuola media qui vicino conosci qualcuno?",
@@ -198,7 +399,8 @@
         },
         "pitch": {
           "sezioni": {
-            "sintesi": "Tonino, questa palestra serve ai ragazzi che stanno mollando la scuola, e non perché siano meno intelligenti degli altri: perché non hanno nessun appuntamento fisso nella settimana e nessun adulto che si accorga se non si presentano. Al Sud la dispersione scolastica sta al 12,4% contro il 9,8% nazionale, e in un quartiere come questo il numero vero è più alto. La boxe funziona con loro per una ragione precisa: è uno sport dove si comincia da zero senza essere già bravi, dove nessuno ti mette in panchina, e dove uno che a scuola ha fama di essere il peggiore può essere il migliore della sala. Quindi non facciamo solo allenamento: due pomeriggi si fanno i compiti qui prima di andare in sala, con due volontari. E c'è il patto del pagellino, che i ragazzi e i genitori firmano all'iscrizione: chi ha un'insufficienza non viene escluso dall'allenamento — che sarebbe togliergli l'unica cosa che gli funziona — ma fa un pomeriggio di doposcuola in più. Gli alleati sono la scuola media, che sa chi sono i ragazzi a rischio, e i servizi sociali, che hanno i casi difficili e i fondi. E per capire se funziona guardo quattro numeri, di cui uno scomodo: quanti smettono di venire senza dirlo. Quelli si contano e si chiamano al telefono, uno per uno, non si cancellano dall'elenco."
+            "sintesi": "Tonino, questa palestra serve ai ragazzi che stanno mollando la scuola, e non perché siano meno intelligenti degli altri: perché non hanno nessun appuntamento fisso nella settimana e nessun adulto che si accorga se non si presentano. Al Sud la dispersione scolastica sta al 12,4% contro il 9,8% nazionale, e in un quartiere come questo il numero vero è più alto. La boxe funziona con loro per una ragione precisa: è uno sport dove si comincia da zero senza essere già bravi, dove nessuno ti mette in panchina, e dove uno che a scuola ha fama di essere il peggiore può essere il migliore della sala. Quindi non facciamo solo allenamento: due pomeriggi si fanno i compiti qui prima di andare in sala, con due volontari. E c'è il patto del pagellino, che i ragazzi e i genitori firmano all'iscrizione: chi ha un'insufficienza non viene escluso dall'allenamento — che sarebbe togliergli l'unica cosa che gli funziona — ma fa un pomeriggio di doposcuola in più. Gli alleati sono la scuola media, che sa chi sono i ragazzi a rischio, e i servizi sociali, che hanno i casi difficili e i fondi. E per capire se funziona guardo quattro numeri, di cui uno scomodo: quanti smettono di venire senza dirlo. Quelli si contano e si chiamano al telefono, uno per uno, non si cancellano dall'elenco.",
+            "una_cosa": "Che il pomeriggio in palestra resta il tuo: la boxe la insegni tu, come l'hai sempre insegnata. Tutto il resto — il foglio delle presenze, la telefonata a chi manca, il rapporto con la scuola — lo fa l'educatrice. Tu non diventi un professore: diventi uno che, quando un ragazzo sparisce, ha qualcuno accanto che se ne occupa."
           },
           "chat": [
             "Ultimo pezzo, Tonino. Il patto del pagellino ti sembra una cosa che i ragazzi accettano?",
@@ -209,13 +411,38 @@
         }
       }
     },
-
     "spazio": {
       "livello": "base",
       "tappe": {
         "la_pianta": {
           "sezioni": {
-            "pianta_descrizione": "Il capannone lo divido in cinque parti. La sala grande, 120 metri quadri, è il cuore: ci sta il ring al centro, i sacchi lungo una parete e lo spazio libero per la ginnastica a corpo libero quando il ring non si usa. Non la divido con pareti, perché una sala unica permette di fare due attività insieme e perché dividere costa. Spogliatoi e bagni, 30 metri: due spogliatoi separati, uno dei quali con il bagno accessibile senza barriere, che non è un optional ma un obbligo di legge. Un ufficio piccolo da 12 metri, che serve da segreteria, da posto dove tenere i certificati sotto chiave e da stanza dove parlare con una famiglia senza farlo in mezzo alla gente. Un ripostiglio da 10 metri per attrezzatura e materiale delle pulizie. E un ingresso da 15 metri con qualche sedia, la bacheca e il defibrillatore appeso al muro dove si vede: è il primo spazio che si attraversa, e serve che un genitore che accompagna il figlio abbia dove sedersi invece di restare in piedi sulla porta."
+            "pianta_descrizione": "Il capannone lo divido in cinque parti. La sala grande, 120 metri quadri, è il cuore: ci sta il ring al centro, i sacchi lungo una parete e lo spazio libero per la ginnastica a corpo libero quando il ring non si usa. Non la divido con pareti, perché una sala unica permette di fare due attività insieme e perché dividere costa. Spogliatoi e bagni, 30 metri: due spogliatoi separati, uno dei quali con il bagno accessibile senza barriere, che non è un optional ma un obbligo di legge. Un ufficio piccolo da 12 metri, che serve da segreteria, da posto dove tenere i certificati sotto chiave e da stanza dove parlare con una famiglia senza farlo in mezzo alla gente. Un ripostiglio da 10 metri per attrezzatura e materiale delle pulizie. E un ingresso da 15 metri con qualche sedia, la bacheca e il defibrillatore appeso al muro dove si vede: è il primo spazio che si attraversa, e serve che un genitore che accompagna il figlio abbia dove sedersi invece di restare in piedi sulla porta.",
+            "zone_uso": [
+              [
+                "Sala grande con il ring",
+                "Boxe, ginnastica per adulti e anziani, gioco motorio per i bambini",
+                "25 in allenamento, 40 se seduti a bordo ring",
+                "Pavimento che non scivoli e non spacchi le ginocchia, e un ricambio d'aria vero: con venti ragazzi che tirano d'inverno le finestre non bastano"
+              ],
+              [
+                "Spogliatoi",
+                "Cambiarsi e lavarsi, due spazi separati",
+                "8 per volta ciascuno",
+                "Acqua calda che regge due turni di fila, e armadietti che si chiudono: se sparisce un telefono la prima volta, la seconda volta non torna nessuno"
+              ],
+              [
+                "Stanza piccola sul retro",
+                "Ufficio, colloqui con le famiglie, angolo dove un ragazzo può stare da parte",
+                "4",
+                "Una porta che si chiude. Senza quella è un ripostiglio con dentro una scrivania"
+              ],
+              [
+                "Ingresso e corridoio",
+                "Attesa dei genitori, bacheca, registro delle presenze",
+                "10 in piedi",
+                "Deve restare libero: è anche la via di uscita, e oggi ci sono i sacchi appoggiati contro il muro"
+              ]
+            ]
           },
           "chat": [
             "Tonino, il capannone quanti metri quadri fa in tutto?",
@@ -226,14 +453,47 @@
         "preventivo": {
           "sezioni": {
             "preventivo": [
-              ["Fase 1 — quello che serve per aprire in regola", "Impianto elettrico a norma con certificazione, uscite e segnaletica antincendio, estintori, bagno accessibile senza barriere", "9.500"],
-              ["Fase 1 — sicurezza sanitaria", "Defibrillatore, cassetta di primo soccorso, corso BLSD per quattro persone", "1.800"],
-              ["Fase 2 — la sala", "Pavimentazione antitrauma, ring usato ricondizionato, sei sacchi, guantoni e protezioni", "8.500"],
-              ["Fase 2 — spogliatoi", "Panche, armadietti, sistemazione delle docce esistenti", "3.500"],
-              ["Fase 3 — quello che si vede", "Insegna esterna, tinteggiatura, sedie e bacheca dell'ingresso, ufficio", "2.500"],
-              ["Fase 3 — riscaldamento della sala", "Due generatori d'aria calda, da valutare dopo il primo inverno", "2.000"],
-              ["Totale", "Fasi 1 e 2 subito, fase 3 quando i conti lo permettono", "27.800"]
-            ]
+              [
+                "Fase 1 — quello che serve per aprire in regola",
+                "Impianto elettrico a norma con certificazione, uscite e segnaletica antincendio, estintori, bagno accessibile senza barriere",
+                "9.500"
+              ],
+              [
+                "Fase 1 — sicurezza sanitaria",
+                "Defibrillatore, cassetta di primo soccorso, corso BLSD per quattro persone",
+                "1.800"
+              ],
+              [
+                "Fase 2 — la sala",
+                "Pavimentazione antitrauma, ring usato ricondizionato, sei sacchi, guantoni e protezioni",
+                "8.500"
+              ],
+              [
+                "Fase 2 — spogliatoi",
+                "Panche, armadietti, sistemazione delle docce esistenti",
+                "3.500"
+              ],
+              [
+                "Fase 3 — quello che si vede",
+                "Insegna esterna, tinteggiatura, sedie e bacheca dell'ingresso, ufficio",
+                "2.500"
+              ],
+              [
+                "Fase 3 — riscaldamento della sala",
+                "Due generatori d'aria calda, da valutare dopo il primo inverno",
+                "2.000"
+              ],
+              [
+                "Totale",
+                "Fasi 1 e 2 subito, fase 3 quando i conti lo permettono",
+                "27.800"
+              ]
+            ],
+            "primo_lotto": "Col primo lotto apriamo la sala grande e uno spogliatoio. Vuol dire boxe per i ragazzi il lunedì e il mercoledì pomeriggio, ginnastica dolce per gli anziani due mattine, e la palestra aperta il sabato mattina: quattro giorni su sei, cinquanta persone circa. Non apriamo il gruppo femminile del martedì sera, perché con uno spogliatoio solo non ha senso, e non apriamo il gioco motorio dei bambini, che ha bisogno della stanza sul retro per i genitori che aspettano. Quelle due arrivano col secondo lotto, che conto di fare entro l'anno con le quote e il primo bando.",
+            "se_sfora": {
+              "opzione": "Il pavimento sportivo nuovo",
+              "motivazione": "È l'unica delle cinque che si può rimandare senza impedire l'apertura: si tiene quello che c'è, si mettono i tappetini dove si cade, e si rifà con il secondo lotto."
+            }
           },
           "chat": [
             "Tonino, l'impianto elettrico del capannone di che anno è?",
@@ -252,7 +512,8 @@
               },
               "nota": "Tutte e quattro stanno nella fase 1 del preventivo, prima di qualunque cosa si veda: un capannone che diventa una palestra cambia destinazione d'uso, e senza quel passaggio non si apre nemmeno con il ring montato."
             },
-            "norme_note": "Chi firma non è l'associazione: sono i tecnici. Il cambio di destinazione d'uso lo firma un tecnico abilitato — geometra, architetto o ingegnere — che presenta la pratica al Comune; gli impianti li certifica l'installatore con la dichiarazione di conformità, che è il documento che poi il Comune chiede. Per un locale sotto le cento persone di capienza le procedure antincendio sono più semplici e in genere non serve la commissione di vigilanza, ma la soglia e le condizioni vanno verificate al Comune prima di decidere quanta gente far entrare, non dopo. Il consiglio è di fissare per iscritto la capienza massima e di rispettarla, perché è il numero da cui dipende tutto il resto."
+            "norme_note": "Chi firma non è l'associazione: sono i tecnici. Il cambio di destinazione d'uso lo firma un tecnico abilitato — geometra, architetto o ingegnere — che presenta la pratica al Comune; gli impianti li certifica l'installatore con la dichiarazione di conformità, che è il documento che poi il Comune chiede. Per un locale sotto le cento persone di capienza le procedure antincendio sono più semplici e in genere non serve la commissione di vigilanza, ma la soglia e le condizioni vanno verificate al Comune prima di decidere quanta gente far entrare, non dopo. Il consiglio è di fissare per iscritto la capienza massima e di rispettarla, perché è il numero da cui dipende tutto il resto.",
+            "sopralluogo": "Arriva il tecnico dei vigili del fuoco per la pratica antincendio e trova due sacchi da boxe appoggiati contro la porta sul retro, che è l'uscita di sicurezza. Chi risponde è chi ha aperto quel giorno, ed è Tonino: non manda avanti un volontario, perché il responsabile dell'attività è lui e deve essere lui a farsi dire le cose. Nell'immediato i sacchi si spostano, e questo prende due minuti; il problema non è quello. Il problema è che ci erano finiti, e nessuno se n'era accorto per tre giorni. Quello che avremmo dovuto avere in piedi è un controllo di apertura: chi apre fa un giro di trenta secondi e guarda tre cose — che le due uscite siano libere, che l'estintore sia al suo posto con la data buona, che non ci sia acqua per terra. Si firma sullo stesso registro delle presenze, una riga al giorno. Non serve un consulente: serve che sia il gesto di sempre di chi gira la chiave. E la scadenza degli estintori la mette in calendario la stessa persona che tiene i certificati medici, perché è già l'unica che guarda le date."
           },
           "chat": [
             "Tonino, il capannone com'è accatastato? Era un magazzino, un'officina?",
@@ -262,7 +523,8 @@
         },
         "pitch": {
           "sezioni": {
-            "sintesi": "Tonino, lo spazio funziona così. La sala grande resta una sola, 120 metri, con il ring al centro e i sacchi lungo la parete: non la divido, perché una sala unica permette di fare due cose insieme e perché dividere costa. Poi spogliatoi e bagni, di cui uno accessibile senza barriere — che non è un optional, è legge — un ufficio piccolo dove tenere i certificati sotto chiave e dove parlare con una famiglia senza farlo in mezzo alla gente, un ripostiglio, e un ingresso con le sedie e il defibrillatore appeso dove si vede. I lavori li faccio in tre fasi, e l'ordine conta. La prima è tutto quello che serve per aprire in regola: impianto elettrico certificato, uscite e antincendio, bagno accessibile, e la sicurezza sanitaria — 11.300 euro che non si rimandano, perché senza quelli non si apre nemmeno con il ring montato. La seconda è la sala e gli spogliatoi, 12.000. La terza è quello che si vede — insegna, tinteggiatura, riscaldamento — 4.500, e si fa quando i conti lo permettono. In tutto 27.800 sui trentamila. Una cosa la devo verificare al Comune prima che tu decida quanta gente far entrare: la capienza massima, perché sotto le cento persone le pratiche antincendio sono più semplici, e quel numero cambia il costo di tutto."
+            "sintesi": "Tonino, lo spazio funziona così. La sala grande resta una sola, 120 metri, con il ring al centro e i sacchi lungo la parete: non la divido, perché una sala unica permette di fare due cose insieme e perché dividere costa. Poi spogliatoi e bagni, di cui uno accessibile senza barriere — che non è un optional, è legge — un ufficio piccolo dove tenere i certificati sotto chiave e dove parlare con una famiglia senza farlo in mezzo alla gente, un ripostiglio, e un ingresso con le sedie e il defibrillatore appeso dove si vede. I lavori li faccio in tre fasi, e l'ordine conta. La prima è tutto quello che serve per aprire in regola: impianto elettrico certificato, uscite e antincendio, bagno accessibile, e la sicurezza sanitaria — 11.300 euro che non si rimandano, perché senza quelli non si apre nemmeno con il ring montato. La seconda è la sala e gli spogliatoi, 12.000. La terza è quello che si vede — insegna, tinteggiatura, riscaldamento — 4.500, e si fa quando i conti lo permettono. In tutto 27.800 sui trentamila. Una cosa la devo verificare al Comune prima che tu decida quanta gente far entrare: la capienza massima, perché sotto le cento persone le pratiche antincendio sono più semplici, e quel numero cambia il costo di tutto.",
+            "cosa_tranquillizza": "Gli tolgo la paura di aprire e sentirsi dire che non può. Il primo lotto è fatto apposta per arrivare all'agibilità: quando finiscono quei lavori la palestra è a norma per la capienza che abbiamo dichiarato, e le carte sono già state chieste durante i lavori, non dopo. Rimanere a metà lavori invece può succedere, e non gli prometto di no: gli dico solo che a metà lavori la palestra è comunque aperta."
           },
           "chat": [
             "Ultimo pezzo, Tonino. Delle tre fasi, ce n'è una che vorresti anticipare?",
@@ -273,7 +535,6 @@
         }
       }
     },
-
     "legale": {
       "livello": "base",
       "tappe": {
@@ -283,7 +544,29 @@
               "opzione": "ASD — Associazione Sportiva Dilettantistica",
               "motivazione": "È la forma dello sport dilettantistico: dà accesso al registro delle attività sportive, ai tesseramenti assicurativi e ai bandi sportivi, senza costi di costituzione alti."
             },
-            "adempimenti": "Per aprire: atto costitutivo e statuto conformi a quanto richiede la normativa sullo sport dilettantistico, registrati; codice fiscale; affiliazione a una federazione o a un ente di promozione sportiva riconosciuto, che è quello che permette i tesseramenti e le coperture assicurative; iscrizione al registro nazionale delle attività sportive dilettantistiche, che è la condizione per i benefici fiscali e per moltissimi bandi. Per restare in regola: il libro dei soci tenuto davvero e aggiornato, le assemblee convocate e verbalizzate — che è la cosa che quasi nessuno fa e che è la prima che chiedono in un controllo — il rendiconto annuale approvato dai soci, il rinnovo dei tesseramenti ogni anno, e la comunicazione dei rapporti di lavoro sportivo secondo le regole della riforma. La forma associativa comporta che decide l'assemblea dei soci: Tonino sarà presidente, ma non è il proprietario, e questa è una cosa da dirgli chiaramente adesso e non fra due anni."
+            "adempimenti": "Per aprire: atto costitutivo e statuto conformi a quanto richiede la normativa sullo sport dilettantistico, registrati; codice fiscale; affiliazione a una federazione o a un ente di promozione sportiva riconosciuto, che è quello che permette i tesseramenti e le coperture assicurative; iscrizione al registro nazionale delle attività sportive dilettantistiche, che è la condizione per i benefici fiscali e per moltissimi bandi. Per restare in regola: il libro dei soci tenuto davvero e aggiornato, le assemblee convocate e verbalizzate — che è la cosa che quasi nessuno fa e che è la prima che chiedono in un controllo — il rendiconto annuale approvato dai soci, il rinnovo dei tesseramenti ogni anno, e la comunicazione dei rapporti di lavoro sportivo secondo le regole della riforma. La forma associativa comporta che decide l'assemblea dei soci: Tonino sarà presidente, ma non è il proprietario, e questa è una cosa da dirgli chiaramente adesso e non fra due anni.",
+            "chi_decide": [
+              [
+                "L'assemblea dei soci",
+                "Approva il bilancio, elegge il consiglio, cambia lo statuto, decide le quote",
+                "—"
+              ],
+              [
+                "Il consiglio direttivo",
+                "La programmazione dell'anno, le spese ordinarie, l'ammissione di nuovi soci",
+                "Non può cambiare lo statuto né vendere o impegnare beni dell'associazione"
+              ],
+              [
+                "Il presidente (Tonino)",
+                "Rappresenta l'associazione, firma i contratti che il consiglio ha deciso, gestisce il quotidiano",
+                "Non può assumere o licenziare un istruttore da solo, non può prendere un impegno di spesa grosso senza il consiglio, non può decidere le quote"
+              ],
+              [
+                "Il tesoriere",
+                "Tiene i conti, prepara il rendiconto, controlla le entrate e le uscite",
+                "Non può fare pagamenti che il consiglio non ha approvato"
+              ]
+            ]
           },
           "chat": [
             "Tonino, quante persone ci sono con te che possono essere soci fondatori?",
@@ -294,11 +577,43 @@
         "bandi": {
           "sezioni": {
             "bandi": [
-              ["Bandi «Sport e periferie» e simili, per impianti e attrezzature in aree svantaggiate", "Da 20.000 a 100.000 € a seconda dell'edizione", "Pubblicati periodicamente, con finestre di poche settimane", "Associazione affiliata e iscritta al registro, disponibilità dell'impianto con un titolo lungo, spesso il Comune come partner. Importi, scadenze e requisiti cambiano a ogni edizione e vanno letti sul bando dell'anno: quello che scrivo qui è l'ordine di grandezza"],
-              ["Bandi delle fondazioni bancarie contro la povertà educativa", "Da 15.000 a 60.000 € su progetti pluriennali", "In genere una finestra l'anno", "Ente del terzo settore, partenariato con una scuola o con i servizi sociali, cofinanziamento intorno al 20%. Sono i bandi giusti per la parte educativa, non per la palestra in sé"],
-              ["Contributi comunali e municipali per lo sport di quartiere", "Cifre più piccole, da 2.000 a 10.000 €", "Bandi annuali del Comune o del Municipio", "Sede nel territorio, attività aperta ai residenti, rendicontazione delle spese. Più facili e più veloci: utili per le spese correnti"],
-              ["Cinque per mille e raccolta fra i soci", "Da poche centinaia a qualche migliaio di euro l'anno", "Iscrizione una volta, poi arriva ogni anno", "Iscrizione al registro. Non è un bando ma è l'unica entrata che si ripete e che non va rendicontata a nessuno"]
-            ]
+              [
+                "Bandi «Sport e periferie» e simili, per impianti e attrezzature in aree svantaggiate",
+                "Da 20.000 a 100.000 € a seconda dell'edizione",
+                "Pubblicati periodicamente, con finestre di poche settimane",
+                "Associazione affiliata e iscritta al registro, disponibilità dell'impianto con un titolo lungo, spesso il Comune come partner. Importi, scadenze e requisiti cambiano a ogni edizione e vanno letti sul bando dell'anno: quello che scrivo qui è l'ordine di grandezza"
+              ],
+              [
+                "Bandi delle fondazioni bancarie contro la povertà educativa",
+                "Da 15.000 a 60.000 € su progetti pluriennali",
+                "In genere una finestra l'anno",
+                "Ente del terzo settore, partenariato con una scuola o con i servizi sociali, cofinanziamento intorno al 20%. Sono i bandi giusti per la parte educativa, non per la palestra in sé"
+              ],
+              [
+                "Contributi comunali e municipali per lo sport di quartiere",
+                "Cifre più piccole, da 2.000 a 10.000 €",
+                "Bandi annuali del Comune o del Municipio",
+                "Sede nel territorio, attività aperta ai residenti, rendicontazione delle spese. Più facili e più veloci: utili per le spese correnti"
+              ],
+              [
+                "Cinque per mille e raccolta fra i soci",
+                "Da poche centinaia a qualche migliaio di euro l'anno",
+                "Iscrizione una volta, poi arriva ogni anno",
+                "Iscrizione al registro. Non è un bando ma è l'unica entrata che si ripete e che non va rendicontata a nessuno"
+              ]
+            ],
+            "prima_di_presentare": {
+              "voci": {
+                "Uno statuto registrato": true,
+                "Il codice fiscale dell'associazione": true,
+                "Un conto corrente intestato all'associazione, non a una persona": true,
+                "L'iscrizione ai registri che il bando richiede": false,
+                "Un bilancio o un rendiconto dell'anno precedente": false,
+                "Almeno un partner che firmi con voi": true
+              },
+              "nota": "Le due caselle vuote sono le due che ci escludono dai bandi più grossi, e vale la pena che Tonino lo sappia adesso. L'iscrizione al registro nazionale delle associazioni sportive arriva dopo l'affiliazione alla federazione, e fra corso, domanda e attesa siamo sui tre-quattro mesi. Il rendiconto dell'anno precedente non ce l'avremo prima di essere aperti da un anno intero: è il vincolo più duro, perché quasi tutti i bandi lo chiedono e nessuno lo può accelerare. Vuol dire che il primo anno ci giochiamo i bandi piccoli, quelli comunali e di fondazione locale che chiedono meno carte, e i bandi veri li prepariamo per il secondo."
+            },
+            "bando_scartato": "Scarto il bando regionale per l'impiantistica sportiva, anche se a leggere il titolo sembra fatto per noi. Due motivi. Il primo è che finanzia i lavori su impianti di proprietà pubblica o di proprietà dell'ente che presenta: la palestra di Tonino è in affitto da un privato, e questo ci mette fuori già dal requisito di partecipazione. Il secondo è che rimborsa a lavori finiti: bisogna anticipare tutto e aspettare la rendicontazione, e noi con trentamila euro non possiamo anticipare centomila. Ci avrei perso tre settimane a scrivere la domanda per scoprirlo alla firma."
           },
           "chat": [
             "Tonino, il capannone è in affitto? Per i bandi serve un contratto lungo",
@@ -317,7 +632,8 @@
                 "Autorizzazioni di pubblica sicurezza per gli eventi aperti": true
               },
               "nota": "L'ultima serve solo per il torneo di fine anno con le famiglie invitate, non per l'attività ordinaria: è la voce che ci si dimentica perché nove mesi su dodici non serve, e poi si scopre due settimane prima dell'evento."
-            }
+            },
+            "arriva_controllo": "Arriva l'ispettorato del lavoro e chiede chi sono le persone in sala. Tonino è tesserato tecnico della federazione ed è socio volontario dell'associazione: prende un rimborso spese documentato, e mostriamo le ricevute e il registro dei rimborsi. L'istruttore degli adulti ha un contratto di collaborazione sportiva con l'associazione, ed è quello per cui abbiamo le carte più in ordine, perché l'abbiamo fatto fare al consulente. L'educatrice del gioco motorio ha lo stesso tipo di contratto, con meno ore. I genitori che aprono e chiudono sono soci volontari e non toccano l'attività tecnica: hanno solo le chiavi. Poi c'è una persona la cui posizione non saprei spiegare, e preferisco scriverlo adesso: il ragazzo di vent'anni che ha fatto boxe qui da bambino e il sabato mattina sta in sala con i più piccoli. Non è tesserato tecnico, non ha un contratto, non prende niente, e non è nemmeno socio perché nessuno gli ha fatto firmare la domanda. Se un ispettore chiede a che titolo sta lì, non ho una risposta. La cosa da fare non è nasconderlo: è farlo diventare socio volontario prima di aprire, e mandarlo al primo corso da tecnico che passa."
           },
           "chat": [
             "Tonino, l'istruttore laureato quante ore alla settimana farebbe?",
@@ -327,7 +643,8 @@
         },
         "pitch": {
           "sezioni": {
-            "sintesi": "Tonino, te lo dico senza paroloni. La forma è l'associazione sportiva dilettantistica: è quella dello sport di base, costa poco da aprire, e ti dà due cose che servono — il tesseramento con l'assicurazione per i ragazzi, e l'accesso ai bandi sportivi. Per aprire servono statuto e atto costitutivo, il codice fiscale, l'affiliazione a un ente sportivo e l'iscrizione al registro nazionale. Per restare in regola servono cose noiose che quasi nessuno fa e che sono le prime che chiedono in un controllo: il libro dei soci aggiornato, le assemblee convocate e messe a verbale, e il rendiconto approvato ogni anno. E c'è una cosa che ti devo dire adesso e non fra due anni: in un'associazione sarai presidente, ma non sei il proprietario — le decisioni le prende l'assemblea dei soci. Sui bandi: quelli per gli impianti sportivi nelle periferie sono i più grossi, quelli delle fondazioni sulla povertà educativa servono per la parte con i ragazzi, quelli del Municipio sono piccoli ma veloci, e il cinque per mille è poco ma torna ogni anno. Importi e scadenze non te li scrivo come certi perché cambiano a ogni edizione. Sugli istruttori: la riforma dello sport ha cambiato le regole, ma sotto una certa soglia di compenso annuo il carico resta leggero, ed è la fascia dove stanno i nostri. Chi è volontario però resta volontario: rimborsi di spese documentate e basta, perché mescolare le due cose è il modo più veloce per prendersi una contestazione."
+            "sintesi": "Tonino, te lo dico senza paroloni. La forma è l'associazione sportiva dilettantistica: è quella dello sport di base, costa poco da aprire, e ti dà due cose che servono — il tesseramento con l'assicurazione per i ragazzi, e l'accesso ai bandi sportivi. Per aprire servono statuto e atto costitutivo, il codice fiscale, l'affiliazione a un ente sportivo e l'iscrizione al registro nazionale. Per restare in regola servono cose noiose che quasi nessuno fa e che sono le prime che chiedono in un controllo: il libro dei soci aggiornato, le assemblee convocate e messe a verbale, e il rendiconto approvato ogni anno. E c'è una cosa che ti devo dire adesso e non fra due anni: in un'associazione sarai presidente, ma non sei il proprietario — le decisioni le prende l'assemblea dei soci. Sui bandi: quelli per gli impianti sportivi nelle periferie sono i più grossi, quelli delle fondazioni sulla povertà educativa servono per la parte con i ragazzi, quelli del Municipio sono piccoli ma veloci, e il cinque per mille è poco ma torna ogni anno. Importi e scadenze non te li scrivo come certi perché cambiano a ogni edizione. Sugli istruttori: la riforma dello sport ha cambiato le regole, ma sotto una certa soglia di compenso annuo il carico resta leggero, ed è la fascia dove stanno i nostri. Chi è volontario però resta volontario: rimborsi di spese documentate e basta, perché mescolare le due cose è il modo più veloce per prendersi una contestazione.",
+            "toglie_paura": "Che le domande dei bandi non le scrivi tu. Le scrive chi ha il rendiconto in mano — il consulente per la parte contabile e la scuola partner per la parte progettuale — e tu firmi. Quello che devi fare tu è una cosa sola: dire di sì o di no a quello che ti mettono davanti, che è la stessa cosa che fai adesso quando arriva una fattura."
           },
           "chat": [
             "Ultimo passo, Tonino. La storia dell'assemblea che decide ti crea problemi?",
