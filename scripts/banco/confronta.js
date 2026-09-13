@@ -49,6 +49,11 @@ function scarti(a, b) {
   const assoluti = delta.map((x) => Math.abs(x.d));
   return {
     coppie: comuni.length,
+    // Quanti restano fuori dal confronto. `coppie` da solo dice cosa si è
+    // guardato, non cosa manca — e un numero che tace su ciò che non ha visto
+    // si legge come se avesse visto tutto.
+    soloA: [...a.keys()].filter((k) => !b.has(k)).length,
+    soloB: [...b.keys()].filter((k) => !a.has(k)).length,
     medio: assoluti.length ? assoluti.reduce((s, x) => s + x, 0) / assoluti.length : 0,
     massimo: assoluti.length ? Math.max(...assoluti) : 0,
     almeno3: assoluti.filter((x) => x >= 3).length,
@@ -152,6 +157,9 @@ function confronta(fileA, fileB) {
 
   console.log("\n─── STABILITÀ DEL PUNTEGGIO\n");
   console.log(`  per RUOLO   ${sRuoli.coppie} confrontabili   scarto medio ${sRuoli.medio.toFixed(2)} su 100   massimo ${sRuoli.massimo}`);
+  if (sRuoli.soloA || sRuoli.soloB) {
+    console.log(`              (fuori dal confronto: ${sRuoli.soloA} solo nella prima, ${sRuoli.soloB} solo nella seconda)`);
+  }
   console.log(`              |Δ| ≥ 3: ${sRuoli.almeno3}   |Δ| ≥ 5: ${sRuoli.almeno5}`);
   console.log(`  per TAPPA   ${sTappe.coppie} confrontabili   scarto medio ${sTappe.medio.toFixed(2)} su 25   massimo ${sTappe.massimo}`);
   console.log("");

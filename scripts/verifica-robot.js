@@ -231,6 +231,53 @@ const dueProblemi = misura([
 ok(dueProblemi.registro.filter((r) => r.formula).length === 1, "la formula sulla testa è marcata come tale");
 ok(dueProblemi.registro.filter((r) => !r.formula).length === 1, "e «maturo» resta un giudizio, che è un altro problema");
 
+// ── l'appello: ogni ruolo del piano compare in un esito ────────────────────
+// La proprietà è generale, e per questo vale più della singola strada: quella
+// del 13/09 (un ruolo lasciato per un tentativo che non poteva riuscire) è
+// chiusa, la prossima arriverà da un'altra parte. Un confronto di conteggi la
+// prende senza sapere da dove viene.
+console.log("");
+const { verificaCompletezza } = require("./banco/robot/misura");
+const finito = (etichetta) => ({ etichetta, tappe: [], fiduciaFinale: 70 });
+const bloccato = (etichetta, extra = {}) => ({ etichetta, tappe: [], fermato: { dove: "t1", perche: "…", ...extra } });
+
+const cinque = ["w > a", "w > b", "w > c", "w > d", "w > e"];
+const tutti = verificaCompletezza(
+  [finito("w > a"), finito("w > b"), bloccato("w > c"), bloccato("w > d", { guasto: true }), bloccato("w > e", { doppio: true })],
+  cinque,
+);
+ok(tutti.completa === true, "cinque ruoli nel piano e cinque esiti: appello completo");
+ok(
+  tutti.perCategoria.finito === 2 && tutti.perCategoria.fermato === 1 && tutti.perCategoria.caduto === 1 && tutti.perCategoria.respinto === 1,
+  "…e ognuno cade in una sola delle quattro categorie",
+);
+
+const manca = verificaCompletezza([finito("w > a"), finito("w > b"), finito("w > c"), finito("w > d")], cinque);
+ok(manca.completa === false, "se il piano dice cinque e gli esiti sono quattro, l'appello non è completo");
+ok(manca.mancanti.length === 1 && manca.mancanti[0].etichetta === "w > e", "…e dice CHI manca, invece di lasciare il buco");
+
+// Due trappole sullo stesso ruolo hanno la stessa etichetta: una verifica di
+// sola presenza le vedrebbe come una, un conteggio no.
+const doppia = verificaCompletezza([finito("w > a")], ["w > a", "w > a"]);
+ok(!doppia.completa && doppia.mancanti[0].conEsito === 1 && doppia.mancanti[0].attesi === 2, "due giri sullo stesso ruolo si contano, non si confondono");
+
+// Il caso che nessuno vedrebbe: un quinto stato aggiunto un domani e non messo
+// in nessuna lista. Qui si simula con un esito che la classificazione non sa
+// leggere — la somma delle quattro categorie non torna più.
+const quintoStato = verificaCompletezza([finito("w > a"), { etichetta: "w > b", tappe: [] }], ["w > a", "w > b"]);
+ok(quintoStato.copertiDalleListe === quintoStato.esiti, "oggi le quattro categorie coprono tutto: la somma torna");
+
+const senzaPiano = verificaCompletezza([finito("w > a")], null);
+ok(senzaPiano.noto === false, "senza il piano la completezza non si può dire");
+ok(senzaPiano.completa === undefined, "…e non si dichiara completa per difetto: «non posso vederlo» ≠ «vanno tutti bene»");
+
+// E che il piano ci arrivi davvero: un parametro nuovo con un default è il
+// posto in cui un collegamento mancante si nasconde (la lezione di
+// `registra_guardia_lingua`, che per settimane ha contato tutto come
+// produzione perché nessuno le passava il secondo argomento).
+const robotIndex = fs.readFileSync(path.join(ROOT, "scripts/banco/robot/index.js"), "utf8");
+ok(/misura\(esiti,\s*piano\./.test(robotIndex), "il robot passa il piano alla misura, non solo gli esiti");
+
 // ── prima si guarda se si può entrare, poi si lascia ───────────────────────
 // Questo non si prova senza rete: è una chiamata a Supabase dentro una
 // funzione async. Ma la proprietà che conta è un ORDINE fra due righe, e

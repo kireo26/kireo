@@ -202,7 +202,13 @@ async function robot(filtro) {
     }
   }
 
-  const m = misura(esiti);
+  // Il piano passa alla misura perché possa fare l'APPELLO: ogni ruolo che
+  // doveva essere giocato deve comparire in un esito. Senza questo argomento
+  // la misura non può sapere chi manca — e dichiara di non poterlo dire invece
+  // di tacere. `npm run test:robot` verifica che questa riga lo passi davvero:
+  // un parametro nuovo con un default è esattamente il posto in cui un
+  // collegamento mancante si nasconde.
+  const m = misura(esiti, piano.lavori.map((l) => l.etichetta));
   stampaRapporto(m);
 
   // Il rapporto grezzo su file: i testi si rileggono, e il numero senza il

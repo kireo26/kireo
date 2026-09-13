@@ -90,7 +90,81 @@ function raccogliTesti(esiti) {
   return testi;
 }
 
-function misura(esiti) {
+// In quale delle quattro categorie cade un ruolo giocato. La precedenza è
+// quella delle tre liste storiche (doppio > guasto > cancello) più «finito»,
+// che prima non era una lista perché non serviva a nessuno — e infatti il buco
+// stava lì: un ruolo che non finisce e non entra in nessuna lista sparisce.
+function categoriaEsito(e) {
+  if (!e.fermato) return "finito";
+  if (e.fermato.doppio) return "respinto";
+  if (e.fermato.guasto) return "caduto";
+  return "fermato";
+}
+
+// OGNI RUOLO DEL PIANO DEVE COMPARIRE IN UN ESITO — uno dei quattro, per tutti.
+//
+// Perché un confronto di CONTEGGI e non una riga in più nel log: il 13/09 il
+// robot ha lasciato un ruolo attivo per un tentativo che non poteva riuscire,
+// e quella transizione non compariva da nessuna parte perché formalmente non
+// era successo niente. Quella strada è chiusa; **la prossima arriverà da
+// un'altra parte**, e un conteggio la prende senza sapere da dove viene.
+//
+// Due domande distinte, e servono tutte e due:
+//   · il piano diceva cinque e gli esiti sono quattro? (chi manca all'appello)
+//   · le quattro liste coprono tutti gli esiti? (un quinto stato aggiunto un
+//     domani e non messo in nessuna lista sparirebbe esattamente così)
+function verificaCompletezza(esiti, attesi) {
+  const categorie = esiti.map(categoriaEsito);
+  const conta = (c) => categorie.filter((x) => x === c).length;
+  const perCategoria = {
+    finito: conta("finito"),
+    fermato: conta("fermato"),
+    caduto: conta("caduto"),
+    respinto: conta("respinto"),
+  };
+  const somma = Object.values(perCategoria).reduce((a, b) => a + b, 0);
+
+  // Senza il piano non si può dire niente: si dichiara, non si tace. È la
+  // stessa regola di «non posso vederle» invece di «non ci sono».
+  if (!Array.isArray(attesi)) {
+    return { noto: false, perCategoria, esiti: esiti.length, copertiDalleListe: somma };
+  }
+
+  const conteggia = (elenco) => {
+    const m = new Map();
+    for (const x of elenco) m.set(x, (m.get(x) ?? 0) + 1);
+    return m;
+  };
+  // Si contano le etichette invece di cercarle: due trappole sullo stesso
+  // ruolo hanno la stessa etichetta, e una verifica di sola presenza le
+  // vedrebbe come una.
+  const voluti = conteggia(attesi);
+  const avuti = conteggia(esiti.map((e) => e.etichetta));
+
+  const mancanti = [];
+  for (const [etichetta, n] of voluti) {
+    const m = avuti.get(etichetta) ?? 0;
+    if (m < n) mancanti.push({ etichetta, attesi: n, conEsito: m });
+  }
+  const inPiu = [];
+  for (const [etichetta, m] of avuti) {
+    const n = voluti.get(etichetta) ?? 0;
+    if (m > n) inPiu.push({ etichetta, attesi: n, conEsito: m });
+  }
+
+  return {
+    noto: true,
+    attesi: attesi.length,
+    esiti: esiti.length,
+    perCategoria,
+    copertiDalleListe: somma,
+    mancanti,
+    inPiu,
+    completa: mancanti.length === 0 && inPiu.length === 0 && somma === esiti.length,
+  };
+}
+
+function misura(esiti, attesi = null) {
   const testi = raccogliTesti(esiti);
 
   const accordi = [];
@@ -174,6 +248,7 @@ function misura(esiti) {
   const testiConRegistro = new Set(registro.map((r) => r.dove)).size;
 
   return {
+    completezza: verificaCompletezza(esiti, attesi),
     testi: testi.length,
     accordi,
     registro,
@@ -199,6 +274,53 @@ function stampaRapporto(m, righe = console.log) {
   const di = (t = "") => righe(t);
 
   di("\n═══════════ LA MISURA ═══════════\n");
+
+  // L'APPELLO, per primo. Non è una misura sui testi: è la domanda se il
+  // rapporto che segue parla di tutti o solo di quelli che si sono fatti
+  // vedere. Se il piano diceva cinque e gli esiti sono quattro, il quinto è
+  // sparito senza lasciare traccia in nessuna delle tre liste — e quello è il
+  // modo in cui un difetto resta invisibile per settimane.
+  const c = m.completezza;
+  if (c) {
+    const q = c.perCategoria;
+    // «1 fermati» si legge come una svista, e una svista in una riga di
+    // riepilogo fa dubitare del riepilogo.
+    const n = (quanti, uno, molti) => `${quanti} ${quanti === 1 ? uno : molti}`;
+    const dettaglio = [
+      n(q.finito, "finito", "finiti"),
+      n(q.fermato, "fermato", "fermati"),
+      n(q.caduto, "caduto", "caduti"),
+      n(q.respinto, "respinto", "respinti"),
+    ].join(", ");
+    if (!c.noto) {
+      di("APPELLO — non verificabile");
+      di(`  ${c.esiti} ruoli giocati (${dettaglio}), ma il piano non è arrivato fin qui.`);
+      di("  Non vuol dire «tutti presenti»: vuol dire che non si è potuto controllare.");
+      di("");
+    } else if (c.completa) {
+      di(`APPELLO: ${c.attesi} ruoli nel piano, ${c.attesi} con un esito — ${dettaglio}`);
+      di("");
+    } else {
+      di(`APPELLO INCOMPLETO — ${c.attesi} ruoli nel piano, ${c.esiti} con un esito`);
+      di(`  (${dettaglio})\n`);
+      for (const x of c.mancanti) {
+        di(`  · ${x.etichetta} — nessun esito${x.attesi > 1 ? ` (${x.conEsito} su ${x.attesi})` : ""}`);
+      }
+      for (const x of c.inPiu) {
+        di(`  · ${x.etichetta} — ${x.conEsito} esiti dove il piano ne prevedeva ${x.attesi}`);
+      }
+      if (c.copertiDalleListe !== c.esiti) {
+        di(`  · ${c.esiti - c.copertiDalleListe} esiti non cadono in nessuna delle quattro categorie`);
+        di("    (è il caso che si vedrebbe se qualcuno aggiungesse un quinto stato");
+        di("     senza metterlo in una lista: sparirebbe esattamente così)");
+      }
+      di("");
+      di("  Un ruolo che non compare in nessuna lista non è «andato bene»: è un buco.");
+      di("  Il robot può essersi fermato prima di riportare — e in quel caso può aver");
+      di("  già cambiato qualcosa: guarda `npm run banco iscrizioni` prima di rilanciare.");
+      di("");
+    }
+  }
 
   if (m.trappole && m.trappole.length > 0) {
     di("TRAPPOLE");
@@ -331,4 +453,4 @@ function stampaRapporto(m, righe = console.log) {
   di("pericoloso, quello del protocollo senza defibrillatore.\n");
 }
 
-module.exports = { misura, stampaRapporto, raccogliTesti };
+module.exports = { misura, stampaRapporto, raccogliTesti, verificaCompletezza, categoriaEsito };
