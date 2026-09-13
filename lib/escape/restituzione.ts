@@ -10,8 +10,24 @@
 
 import type { LeggiRisposta, Mandato, PayloadAlloca, PayloadAssegna, PayloadAssegnaPersone, PayloadLavori, PayloadScarta, PayloadSeleziona, StepAllocaBudget, StepPianificaLavori, StepSelezionaInformazioni } from "./tipi";
 import { getMissione, mandatoScelto, materialiLetti } from "./config";
+import { AREE } from "@/data/aree";
 
 export type AreaTop = { slug: string; nome: string; status: "emergente" | "confermata" | "da_verificare" };
+
+// «dalle parti dell'edilizia, dell'energia e dei beni culturali».
+// L'ORDINE non è casuale ed è quello giusto: `areeToccate` è un Set riempito
+// scorrendo i materiali nell'ordine in cui li ha aperti, quindi le prime tre
+// nominate sono le prime tre che ha guardato. Oltre le tre si dice «e altre»:
+// una frase che ne elenca sei è un elenco, non una frase.
+// Uno slug che non fosse fra le 18 aree viene semplicemente saltato — mai un
+// «undefined» in mezzo a un testo che legge un ragazzo.
+function elencoAree(slugs: string[]): string {
+  const forme = slugs.map((s) => AREE.find((a) => a.slug === s)?.dalleParti).filter((f): f is string => Boolean(f));
+  if (forme.length === 0) return "in giro";
+  const primi = forme.slice(0, 3);
+  const coda = forme.length > 3 ? `${primi.join(", ")} e altre` : primi.length > 1 ? `${primi.slice(0, -1).join(", ")} e ${primi[primi.length - 1]}` : primi[0];
+  return `dalle parti ${coda}`;
+}
 
 export type Restituzione = {
   costruito: string | null;
@@ -322,9 +338,20 @@ export function costruisciRestituzione(slug: string, get: LeggiRisposta, areeTop
     // più caldo, lo studente capirebbe di aver preso «quello buono» e sarebbe
     // di nuovo un giudizio. Riportano solo dove ha speso gli approfondimenti.
     if (dentroMandato === selezionati.length) {
+      // Questo numero lo studente lo può rifare: sono i clic che ha fatto.
       metodo = `I ${selezionati.length} approfondimenti che hai speso erano tutti dentro il campo del tuo mandato.`;
     } else if (areeToccate.size >= 4) {
-      metodo = `Hai distribuito gli approfondimenti su ${areeToccate.size} aree diverse prima di impegnarti.`;
+      // QUI IL NUMERO È USCITO, e la ragione vale per ogni frase che conta
+      // qualcosa a uno studente. Prima diceva «su N aree diverse», dove N non
+      // sono i materiali aperti ma i tag d'area che quei materiali si portano
+      // dietro — e quei tag non li vede mai nessuno: il 38% dei dossier ne ha
+      // più di uno, quindi chi ne apre quattro può leggere «su 5 aree» e non
+      // avere nessun modo di arrivarci. Un numero che il lettore non può
+      // rifare, quando lo trova sbagliato, rende discutibile tutto il resto
+      // del blocco — comprese le parti vere.
+      // Si nominano le aree invece di contarle: la larghezza, che era il senso
+      // della frase, resta; da contare non resta niente.
+      metodo = `Prima di impegnarti hai guardato ${elencoAree([...areeToccate])}.`;
     } else {
       metodo = "Hai speso qualche approfondimento dentro il campo del tuo mandato e qualcuno fuori.";
     }

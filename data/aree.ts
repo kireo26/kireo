@@ -5,6 +5,12 @@
 export type Area = {
   slug: string;
   nome: string;
+  // Il nome dell'area come lo si direbbe parlando, gia' con la preposizione:
+  // serve dove il nome ufficiale andrebbe DENTRO una frase e non sopra un
+  // riquadro ("hai guardato dalle parti dell'edilizia"), perche' li' una «&»
+  // si inciampa a leggerla. Obbligatorio: cosi' un'area nuova non puo'
+  // entrare senza la sua forma, e nessuna frase resta a meta'.
+  dalleParti: string;
   icona: string; // monogramma breve mostrato nel badge circolare
   descrizioneBreve: string; // una riga, usata nel mega-menu
   descrizioneEstesa: string; // 3-4 frasi, usata nell'hero della pagina area
@@ -15,6 +21,7 @@ export const AREE: Area[] = [
   {
     slug: "informatica-digitale",
     nome: "Informatica & Digitale",
+    dalleParti: "dell'informatica",
     icona: "{ }",
     descrizioneBreve: "Sviluppo, dati, cybersecurity, AI: i mestieri che costruiscono il mondo digitale.",
     descrizioneEstesa:
@@ -30,6 +37,7 @@ export const AREE: Area[] = [
   {
     slug: "salute-professioni-sanitarie",
     nome: "Salute & Professioni sanitarie",
+    dalleParti: "della sanità",
     icona: "+",
     descrizioneBreve: "Medicina, infermieristica, professioni sanitarie e del benessere.",
     descrizioneEstesa:
@@ -45,6 +53,7 @@ export const AREE: Area[] = [
   {
     slug: "ristorazione-turismo",
     nome: "Ristorazione & Turismo",
+    dalleParti: "della ristorazione",
     icona: "RT",
     descrizioneBreve: "Cucina, ospitalità, accoglienza e valorizzazione del territorio.",
     descrizioneEstesa:
@@ -60,6 +69,7 @@ export const AREE: Area[] = [
   {
     slug: "meccanica-meccatronica",
     nome: "Meccanica & Meccatronica",
+    dalleParti: "della meccanica",
     icona: "MM",
     descrizioneBreve: "Progettare, costruire e automatizzare: dall'officina all'industria 4.0.",
     descrizioneEstesa:
@@ -75,6 +85,7 @@ export const AREE: Area[] = [
   {
     slug: "agrifood-ambiente",
     nome: "Agri-food & Ambiente",
+    dalleParti: "dell'agroalimentare",
     icona: "AF",
     descrizioneBreve: "Agricoltura innovativa, filiera alimentare e tutela dell'ambiente.",
     descrizioneEstesa:
@@ -90,6 +101,7 @@ export const AREE: Area[] = [
   {
     slug: "arte-design-moda",
     nome: "Arte, Design & Moda",
+    dalleParti: "del design",
     icona: "AD",
     descrizioneBreve: "Creatività applicata: design, moda, arti visive e artigianato d'eccellenza.",
     descrizioneEstesa:
@@ -105,6 +117,7 @@ export const AREE: Area[] = [
   {
     slug: "musica-spettacolo",
     nome: "Musica & Spettacolo",
+    dalleParti: "della musica",
     icona: "MS",
     descrizioneBreve: "Palco, produzione, audiovisivo: le professioni della scena e dietro le quinte.",
     descrizioneEstesa:
@@ -120,6 +133,7 @@ export const AREE: Area[] = [
   {
     slug: "energia-sostenibilita",
     nome: "Energia & Sostenibilità",
+    dalleParti: "dell'energia",
     icona: "EN",
     descrizioneBreve: "Rinnovabili, efficienza, transizione ecologica: l'energia di domani.",
     descrizioneEstesa:
@@ -135,6 +149,7 @@ export const AREE: Area[] = [
   {
     slug: "edilizia-architettura",
     nome: "Edilizia & Architettura",
+    dalleParti: "dell'edilizia",
     icona: "EA",
     descrizioneBreve: "Progettare e costruire spazi: dal cantiere alla rigenerazione urbana.",
     descrizioneEstesa:
@@ -150,6 +165,7 @@ export const AREE: Area[] = [
   {
     slug: "economia-management",
     nome: "Economia & Management",
+    dalleParti: "dell'economia",
     icona: "EM",
     descrizioneBreve: "Impresa, finanza, marketing e gestione: i numeri che muovono le idee.",
     descrizioneEstesa:
@@ -165,6 +181,7 @@ export const AREE: Area[] = [
   {
     slug: "giurisprudenza-pa",
     nome: "Giurisprudenza & PA",
+    dalleParti: "del diritto",
     icona: "GP",
     descrizioneBreve: "Diritto, giustizia e pubblica amministrazione: le regole della convivenza.",
     descrizioneEstesa:
@@ -180,6 +197,7 @@ export const AREE: Area[] = [
   {
     slug: "mobilita-sostenibile",
     nome: "Mobilità Sostenibile",
+    dalleParti: "della mobilità",
     icona: "MB",
     descrizioneBreve: "Trasporti, logistica e nuova mobilità: muovere persone e merci, meglio.",
     descrizioneEstesa:
@@ -195,6 +213,7 @@ export const AREE: Area[] = [
   {
     slug: "scienze-educazione",
     nome: "Scienze dell'Educazione",
+    dalleParti: "dell'educazione",
     icona: "SE",
     descrizioneBreve: "Insegnare, educare, accompagnare la crescita: le professioni della formazione.",
     descrizioneEstesa:
@@ -210,6 +229,7 @@ export const AREE: Area[] = [
   {
     slug: "comunicazione-media",
     nome: "Comunicazione & Media",
+    dalleParti: "della comunicazione",
     icona: "CM",
     descrizioneBreve: "Giornalismo, social, contenuti: raccontare il mondo con tutti i linguaggi.",
     descrizioneEstesa:
@@ -225,6 +245,7 @@ export const AREE: Area[] = [
   {
     slug: "scienze-ricerca",
     nome: "Scienze & Ricerca",
+    dalleParti: "della ricerca",
     icona: "SR",
     descrizioneBreve: "Fisica, chimica, biologia, matematica: capire il mondo per cambiarlo.",
     descrizioneEstesa:
@@ -240,6 +261,7 @@ export const AREE: Area[] = [
   {
     slug: "sicurezza-difesa",
     nome: "Sicurezza & Difesa",
+    dalleParti: "della sicurezza",
     icona: "SD",
     descrizioneBreve: "Forze armate, forze dell'ordine, protezione civile e sicurezza.",
     descrizioneEstesa:
@@ -255,6 +277,7 @@ export const AREE: Area[] = [
   {
     slug: "lingue-relazioni-internazionali",
     nome: "Lingue & Relazioni Internazionali",
+    dalleParti: "delle lingue",
     icona: "LI",
     descrizioneBreve: "Traduzione, interpretariato, mediazione culturale e carriere internazionali: le lingue come professione.",
     descrizioneEstesa:
@@ -270,6 +293,7 @@ export const AREE: Area[] = [
   {
     slug: "studi-umanistici-beni-culturali",
     nome: "Studi Umanistici & Beni Culturali",
+    dalleParti: "dei beni culturali",
     icona: "SU",
     descrizioneBreve: "Lettere, filosofia, storia, archeologia, musei ed editoria: la cultura che diventa mestiere.",
     descrizioneEstesa:
