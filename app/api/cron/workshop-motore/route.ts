@@ -6,8 +6,21 @@ import { inviaEmail } from "@/lib/email/brevo";
 import { REGOLA_LINGUA_INVARIANTE } from "@/lib/lingua/accordoGenere";
 import { MODELLO_CLIENTE_WORKSHOP, WORKSHOP_CLIENTE_NOME, WORKSHOP_CLIENTE_PROMPTS } from "@/lib/workshop/config";
 import { WORKSHOP_ELABORATO, WORKSHOP_TUTOR_CONTESTO } from "@/lib/workshop/elaborato-config";
-import { serializzaValoreSezione, type FeedbackFinale, type RevisioneTappa, type ValoreSezione } from "@/lib/workshop/elaboratoValore";
-import { promptRevisore, promptReazioneClienteUser, promptFeedbackFinale, type CtxTappa } from "@/lib/workshop/prompt-revisore";
+import { raggruppaDomandePerTappa } from "@/lib/workshop/chatTappa";
+import {
+  leggiModoDiLavorare,
+  serializzaValoreSezione,
+  type FeedbackFinale,
+  type RevisioneTappa,
+  type ValoreSezione,
+} from "@/lib/workshop/elaboratoValore";
+import {
+  promptRevisore,
+  promptReazioneClienteUser,
+  promptFeedbackFinale,
+  promptModoDiLavorare,
+  type CtxTappa,
+} from "@/lib/workshop/prompt-revisore";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -64,6 +77,11 @@ const MAX_TENTATIVI_REVISIONE = 3;
 // `chiamaJson` ora distingue il motivo `troncata` e registra i token usati.
 const MAX_TOKEN_REVISIONE = 1200;
 const MAX_TOKEN_FEEDBACK_FINALE = 2000;
+// Il blocco sul modo di lavorare: tre parti brevi, di cui due possono essere
+// vuote. Più stretto degli altri due perché ha meno da scrivere — e comunque
+// un tetto è un limite, non un'allocazione: quello che non viene generato non
+// si paga.
+const MAX_TOKEN_MODO_DI_LAVORARE = 900;
 
 // Esito di una generazione AI, gemello dei tre stati del revisore Escape.
 // 'forma_non_valida' = JSON tornato ma di forma inattesa: prima cadeva in un
@@ -314,7 +332,7 @@ export async function GET(request: NextRequest) {
         // parola (vedi `conDomande` in promptFeedbackFinale).
         const { data: righeChat, error: erroreChat } = await supabase
           .from("workshop_chat_cliente")
-          .select("contenuto")
+          .select("contenuto, created_at")
           .eq("iscrizione_id", riga.iscrizione_id)
           .eq("mittente", "studente")
           .order("created_at", { ascending: true });
@@ -358,6 +376,54 @@ export async function GET(request: NextRequest) {
         } else {
           segnalaFallito();
           console.error(`Errore generazione feedback finale (iscrizione ${riga.iscrizione_id}): motivo=${esitoFinale.motivo}`);
+        }
+
+        // ── IL BLOCCO SUL MODO DI LAVORARE ────────────────────────────────
+        // Chiamata a sé, con un contratto opposto a quello del feedback
+        // finale: questa PUÒ non dire niente, e il silenzio è un esito giusto
+        // (vedi promptModoDiLavorare). Riceve solo le domande, mai il progetto.
+        //
+        // NON è mai un motivo di ritentativo: se fallisce, il progetto si
+        // chiude col feedback finale che ha, e il blocco semplicemente non
+        // compare. Contarlo fra i guasti che fanno ripetere la tappa
+        // rischierebbe di far rigenerare un feedback finale già buono.
+        if (feedbackFinale && domande.length > 0) {
+          try {
+            const { data: righeFasi, error: erroreFasi } = await supabase
+              .from("workshop_fasi_stato")
+              .select("fase_id, aperta_at")
+              .eq("iscrizione_id", riga.iscrizione_id);
+            if (erroreFasi) {
+              console.error(`Errore lettura tappe per il blocco modo di lavorare (iscrizione ${riga.iscrizione_id}):`, erroreFasi);
+            }
+            const tappe = fasi.map((f) => ({
+              titolo: f.titolo,
+              apertaAt: (righeFasi ?? []).find((r) => r.fase_id === f.id)?.aperta_at ?? null,
+            }));
+            const conTappa = raggruppaDomandePerTappa(
+              (righeChat ?? [])
+                .filter((m) => (m.contenuto as string).trim().length > 0)
+                .map((m) => ({ testo: m.contenuto as string, createdAt: m.created_at as string })),
+              tappe,
+            );
+
+            const esitoModo = await chiamaJson(client, {
+              diProva: rigaDiProva,
+              model: MODELLO_CLIENTE_WORKSHOP,
+              maxTokens: MAX_TOKEN_MODO_DI_LAVORARE,
+              system: promptModoDiLavorare(ctx, conTappa),
+              user: "Scrivi il blocco per questo studente.",
+            });
+            if (esitoModo.ok) {
+              const modo = leggiModoDiLavorare(esitoModo.dati);
+              if (modo) feedbackFinale.modo_di_lavorare = modo;
+              else console.error(`Blocco modo di lavorare di forma non valida (iscrizione ${riga.iscrizione_id})`);
+            } else {
+              console.error(`Errore generazione blocco modo di lavorare (iscrizione ${riga.iscrizione_id}): motivo=${esitoModo.motivo}`);
+            }
+          } catch (erroreModo) {
+            console.error(`Errore blocco modo di lavorare (iscrizione ${riga.iscrizione_id}):`, erroreModo);
+          }
         }
       }
 

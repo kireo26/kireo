@@ -35,6 +35,7 @@
     "test:log5xx": "node scripts/verifica-log-5xx.js",
     "test:chat": "node scripts/verifica-chat-tappa.js",
     "test:motore": "node scripts/verifica-motore-cron.js",
+    "test:modo": "node scripts/verifica-modo-di-lavorare.js",
     "test": "node scripts/tutti-i-test.js",
     "test:news": "node scripts/verifica-news.js"
   },

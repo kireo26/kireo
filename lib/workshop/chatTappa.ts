@@ -103,3 +103,31 @@ export async function getStatoChatTappa(
   const raggiuntoTetto = faseId !== null && inviati >= tetto;
   return { faseId, inviati, minimo, tetto, raggiuntoMinimo, raggiuntoTetto, chiusa: raggiuntoMinimo || raggiuntoTetto };
 }
+
+// Le domande dello studente, ognuna con la tappa in cui è stata fatta.
+//
+// Serve al blocco sul modo di lavorare: «due domande sui soldi, tutte e due
+// nell'ultima tappa» è un numero che chi legge può ricontare, e senza la tappa
+// quella frase non si può dire. Non c'è una colonna `fase_id` su
+// `workshop_chat_cliente` — la tappa si ricava dalle date, esattamente come
+// fa il conteggio qui sopra.
+//
+// `tappa` è `null` quando NON si sa: una domanda anteriore all'apertura della
+// prima tappa, o righe di stato mai inizializzate. Non si inventa una tappa
+// plausibile — l'unica cosa che il blocco può contare è quello che è vero.
+// L'ordine cronologico dell'ingresso si conserva.
+export function raggruppaDomandePerTappa(
+  domande: { testo: string; createdAt: string }[],
+  tappe: { titolo: string; apertaAt: string | null }[],
+): { tappa: string | null; testo: string }[] {
+  const aperte = tappe
+    .filter((t): t is { titolo: string; apertaAt: string } => t.apertaAt !== null)
+    .map((t) => ({ titolo: t.titolo, quando: new Date(t.apertaAt).getTime() }))
+    .sort((a, b) => a.quando - b.quando);
+  return domande.map((d) => {
+    const quando = new Date(d.createdAt).getTime();
+    let tappa: string | null = null;
+    for (const a of aperte) if (a.quando <= quando) tappa = a.titolo;
+    return { tappa, testo: d.testo };
+  });
+}

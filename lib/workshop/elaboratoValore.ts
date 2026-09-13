@@ -137,13 +137,70 @@ export type RevisioneTappa = {
 export const cosaRegge = (r: { cosa_regge?: string[]; punti_forza?: string[] } | null | undefined): string[] =>
   r?.cosa_regge ?? r?.punti_forza ?? [];
 
+// ─────────────────────── IL BLOCCO SUL MODO DI LAVORARE
+// Quello che si vede di come ha lavorato, e dove quel modo di fare si usa.
+// Il materiale sono le DOMANDE che ha fatto al cliente lungo il percorso —
+// l'unico testo che uno studente scrive senza sapere di essere valutato.
+//
+// LA REGOLA, una sola: il blocco AFFERMA AZIONI, non afferma mai il MOTIVO di
+// un'azione. «Nella tappa 2 hai chiesto X» si può rileggere; «hai chiesto X
+// perché volevi Y» no, e il 13/09 il modello l'ha inventato su una domanda che
+// era stata messa lì per costruzione perché non avesse nessuna intenzione
+// dietro («non è una domanda random: è il vincolo che dà forma a tutto»).
+//
+// Sta in un oggetto suo, prodotto da una CHIAMATA SEPARATA, per una ragione
+// che non è di ordine: il feedback finale ha un campo che gli vieta il
+// silenzio per come è scritto il prompt (due segnaposto in `punti_forza` si
+// leggono come «almeno due»), e questo blocco deve poter non dire niente.
+// Chiedere le due cose nello stesso JSON è chiedere due contratti opposti
+// nella stessa risposta.
+export type ModoDiLavorare = {
+  // Può essere VUOTO: è il silenzio, ed è un esito legittimo. Ogni voce porta
+  // dentro di sé una citazione letterale di una domanda dello studente.
+  quello_che_si_vede: string[];
+  // Dove quel modo di fare si usa: un'affermazione sul MESTIERE, mai
+  // un'etichetta sulla persona. Vuoto se `quello_che_si_vede` è vuoto.
+  dove_porta: string[];
+  // Sempre presente: quando gli altri due sono vuoti, è qui che sta il perché.
+  cosa_non_si_vede_ancora: string;
+};
+
 export type FeedbackFinale = {
   punti_forza: string[]; // invariato di proposito: è il termine di paragone della prova sopra
   da_migliorare: string[];
   messaggio_chiusura: string;
   chiusura_cliente: string;
   punteggio_area: number;
+  // Facoltativo: i progetti chiusi prima del 13/09 non ce l'hanno, e un
+  // fallimento della sua chiamata lascia il resto del feedback intatto.
+  modo_di_lavorare?: ModoDiLavorare;
 };
+
+// Legge il blocco dalla risposta del modello, o dice di no.
+//
+// Il caso da NON lasciar passare è l'ultimo: `dove_porta` pieno con
+// `quello_che_si_vede` vuoto è il blocco che afferma una direzione senza
+// niente sotto — cioè esattamente l'invenzione che il blocco esiste per non
+// fare, nella sua forma più difficile da riconoscere leggendo.
+export function leggiModoDiLavorare(parsed: unknown): ModoDiLavorare | null {
+  if (!parsed || typeof parsed !== "object") return null;
+  const o = parsed as Record<string, unknown>;
+  const visto = o.quello_che_si_vede;
+  const porta = o.dove_porta;
+  if (!Array.isArray(visto) || !Array.isArray(porta)) return null;
+  if (visto.some((v) => typeof v !== "string") || porta.some((v) => typeof v !== "string")) return null;
+  // Il silenzio è un esito, quindi va SPIEGATO: senza questo campo un blocco
+  // vuoto arriverebbe allo studente come una schermata senza niente.
+  if (typeof o.cosa_non_si_vede_ancora !== "string" || o.cosa_non_si_vede_ancora.trim() === "") return null;
+  const pulitoVisto = (visto as string[]).filter((v) => v.trim() !== "");
+  const pulitoPorta = (porta as string[]).filter((v) => v.trim() !== "");
+  if (pulitoVisto.length === 0 && pulitoPorta.length > 0) return null;
+  return {
+    quello_che_si_vede: pulitoVisto,
+    dove_porta: pulitoPorta,
+    cosa_non_si_vede_ancora: o.cosa_non_si_vede_ancora,
+  };
+}
 
 export type StatoTappa = "bloccata" | "aperta" | "consegnata" | "revisionata";
 
