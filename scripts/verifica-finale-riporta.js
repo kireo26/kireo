@@ -453,6 +453,8 @@ const WHITELIST_SUPERFICI = new Map([
     "il soggetto è Tonino, non chi legge: «decideva da solo» è un fatto sul cliente"],
   ["Cosa NON può decidere da solo",
     "intestazione di colonna: il soggetto è la persona nella riga della tabella, non chi legge"],
+  ["Renzo non è un tecnico e non vuole diventarlo. Qual è la cosa che NON deve imparare, perché il sistema la fa da sola? E qual è l'unica che invece deve imparare per forza?",
+    "«la fa da sola» concorda con «la cosa», non con chi legge"],
   ["Apri in silenzio e lasci che la gente entri da sola",
     "concorda con «la gente», non con chi legge: invariante per costruzione"],
   [". Questa pagina si aggiorna da sola, torna a trovarci qualche minuto prima.",
