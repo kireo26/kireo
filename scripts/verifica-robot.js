@@ -278,6 +278,55 @@ ok(senzaPiano.completa === undefined, "…e non si dichiara completa per difetto
 const robotIndex = fs.readFileSync(path.join(ROOT, "scripts/banco/robot/index.js"), "utf8");
 ok(/misura\(esiti,\s*piano\./.test(robotIndex), "il robot passa il piano alla misura, non solo gli esiti");
 
+// ── lo stato che non dovrebbe esistere ─────────────────────────────────────
+// `sconosciuto` stava in fondo a una riga di percentuali, in mezzo ai numeri
+// che dicono quanto bene sono andati i revisori, dove si legge come rumore. Il
+// 13/09 quell'1 (5.0%) era una tappa AVANZATA senza esito registrato:
+// indistinguibile da una riuscita, e invisibile alla query che cerca i guasti.
+console.log("");
+const senzaEsito = misura([
+  {
+    etichetta: "enoteca-centocelle > marketing",
+    iscrizioneId: "abc-123",
+    fiduciaFinale: 64,
+    tappe: [
+      { faseId: "quartiere", esitoRevisione: null, tentativi: 0, revisione: { commento_breve: "La tabella regge." } },
+      { faseId: "persone", esitoRevisione: "riuscita", tentativi: 1, revisione: { commento_breve: "Bene." } },
+    ],
+  },
+]);
+ok(senzaEsito.avanzateSenzaEsito.length === 1, "una tappa avanzata senza esito ha una lista sua, non una voce in una riga di percentuali");
+ok(senzaEsito.avanzateSenzaEsito[0].faseId === "quartiere", "…che dice QUALE tappa");
+ok(senzaEsito.avanzateSenzaEsito[0].iscrizioneId === "abc-123", "…e su quale iscrizione: senza quelle due cose non si va a guardare niente");
+ok(senzaEsito.esitiRevisione.sconosciuto === 1, "resta contata anche fra gli esiti: i conti delle tappe giocate devono tornare");
+
+// La differenza che la distingue del tutto: una tappa mai revisionata ha
+// `revisione` null ed è già fra i fermati, col suo perché. Metterla anche qui
+// vorrebbe dire chiamare «stato che non dovrebbe esistere» una cosa normale.
+const maiRevisionata = misura([
+  {
+    etichetta: "w > a",
+    iscrizioneId: "def-456",
+    tappe: [{ faseId: "pitch", esitoRevisione: null, tentativi: 0, revisione: null }],
+    fermato: { dove: "pitch", perche: "dopo 6 giri di cron la tappa è ancora «consegnata»" },
+  },
+]);
+ok(maiRevisionata.avanzateSenzaEsito.length === 0, "una tappa MAI revisionata non entra in quella lista: è già fra i fermati, col suo perché");
+ok(maiRevisionata.fermati.length === 1, "…e ci resta");
+
+// La riga deve arrivare a schermo, e in alto: una lista che nessuno stampa è
+// una lista che non esiste.
+const { stampaRapporto } = require("./banco/robot/misura");
+const righe = [];
+stampaRapporto(senzaEsito, (t = "") => righe.push(t));
+const testo = righe.join("\n");
+ok(/UNA TAPPA È AVANZATA SENZA UN ESITO REGISTRATO: 1/.test(testo), "il rapporto la stampa con il suo nome");
+ok(/quartiere.*abc-123/.test(testo), "…nominando la tappa e l'iscrizione");
+ok(
+  testo.indexOf("UNA TAPPA È AVANZATA") < testo.indexOf("REVISORI:"),
+  "e la stampa PRIMA della tabella dei revisori: non è un revisore andato male, è una tappa senza verdetto",
+);
+
 // ── prima si guarda se si può entrare, poi si lascia ───────────────────────
 // Questo non si prova senza rete: è una chiamata a Supabase dentro una
 // funzione async. Ma la proprietà che conta è un ORDINE fra due righe, e

@@ -372,10 +372,18 @@ export async function GET(request: NextRequest) {
 
       if (esitoPeggiore !== "riuscita" && tentativiPrima + 1 < MAX_TENTATIVI_REVISIONE) {
         // Non si avanza: la tappa resta 'consegnata' e il prossimo giro ritenta.
-        await supabase
+        // Se il contatore non si alza, la tappa ritenta all'infinito senza mai
+        // arrendersi: va detto, anche se qui non c'è niente da interrompere.
+        const { error: erroreContatore } = await supabase
           .from("workshop_fasi_stato")
           .update({ tentativi_revisione: tentativiPrima + 1 })
           .eq("id", riga.id);
+        if (erroreContatore) {
+          console.error(
+            `Errore aggiornamento tentativi_revisione (iscrizione ${riga.iscrizione_id}, tappa ${riga.fase_id}):`,
+            erroreContatore.message ?? erroreContatore,
+          );
+        }
         errori++;
         continue;
       }
@@ -384,10 +392,31 @@ export async function GET(request: NextRequest) {
       // una riga marcata ma ancora 'consegnata' → il giro dopo la vede al
       // massimo dei tentativi e si arrende di nuovo (si auto-ripara), invece di
       // lasciare una tappa avanzata con esito NULL indistinguibile da una riuscita.
-      await supabase
+      //
+      // SE LA MARCATURA NON ATTERRA, LA TAPPA NON AVANZA. Il commento qui sopra
+      // dichiarava questa proprietà dal primo giorno, e fra le due scritture non
+      // c'era niente che la rendesse vera: l'esito dell'update era scartato, e
+      // l'avanzamento partiva comunque. Il 13/09 `marketing > quartiere` è finito
+      // esattamente lì — `revisionata`, `revisione_esito` null, zero tentativi —
+      // cioè nello stato che il commento diceva di voler evitare. È il caso
+      // peggiore di tutti, perché una tappa avanzata con esito null è
+      // indistinguibile da una riuscita: la query che cerca i guasti
+      // (`revisione_esito is not null and revisione_esito <> 'riuscita'`) non la
+      // vede, e lo studente ha un punteggio che nessuno sa più da dove venga.
+      // Meglio una tappa che resta ferma e ritenta il giorno dopo.
+      const { error: erroreMarcatura } = await supabase
         .from("workshop_fasi_stato")
         .update({ tentativi_revisione: tentativiPrima + 1, revisione_esito: esitoRevisioneStato })
         .eq("id", riga.id);
+
+      if (erroreMarcatura) {
+        console.error(
+          `Errore marcatura revisione_esito (iscrizione ${riga.iscrizione_id}, tappa ${riga.fase_id}): la tappa NON avanza`,
+          erroreMarcatura.message ?? erroreMarcatura,
+        );
+        errori++;
+        continue;
+      }
 
       // Nota: punteggio_area (0-100, il "voto" complessivo del progetto)
       // resta salvato dentro feedback_ai per lo studente, ma NON diventa

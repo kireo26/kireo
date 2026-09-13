@@ -179,7 +179,21 @@ function misura(esiti, attesi = null) {
   }
 
   // Gli esiti dei revisori, contati per come li marca il motore.
+  //
+  // E UNA LISTA A PARTE per il caso che non dovrebbe esistere: una tappa che è
+  // AVANZATA (la revisione c'è, quindi il motore è arrivato in fondo) ma senza
+  // un esito registrato. Il 13/09 `marketing > quartiere` è finito così, e nel
+  // rapporto compariva come `sconosciuto 1 (5.0%)` in fondo a una riga di
+  // percentuali — dove si legge come rumore. È il nome di uno stato che non
+  // dovrebbe esistere, e merita una riga sua: se non altro perché è così che
+  // l'abbiamo trovato.
+  //
+  // Il discrimine è la revisione, non un campo nuovo: una tappa mai revisionata
+  // ha `revisione` null ed è già nella lista dei fermati con il suo perché;
+  // questa ce l'ha. Ricavarlo dai dati già raccolti vuol dire anche che i
+  // rapporti salvati prima di oggi si rileggono senza perdere il caso.
   const esitiRevisione = {};
+  const avanzateSenzaEsito = [];
   let tentativiTotali = 0;
   let tappeConTentativiExtra = 0;
   for (const e of esiti) {
@@ -189,6 +203,14 @@ function misura(esiti, attesi = null) {
       esitiRevisione[k] = (esitiRevisione[k] ?? 0) + 1;
       tentativiTotali += t.tentativi || 0;
       if ((t.tentativi || 0) > 1) tappeConTentativiExtra++;
+      if (!t.esitoRevisione && t.revisione) {
+        avanzateSenzaEsito.push({
+          etichetta: e.etichetta,
+          iscrizioneId: e.iscrizioneId ?? null,
+          faseId: t.faseId,
+          tentativi: t.tentativi || 0,
+        });
+      }
     }
   }
 
@@ -256,6 +278,7 @@ function misura(esiti, attesi = null) {
     testiConRegistro,
     perGenere,
     esitiRevisione,
+    avanzateSenzaEsito,
     tentativiTotali,
     tappeConTentativiExtra,
     fiducia,
@@ -335,6 +358,29 @@ function stampaRapporto(m, righe = console.log) {
     di("  un altro modello. Una trappola NON colta è il risultato più utile che");
     di("  questo banco possa dare: vuol dire che il revisore ha lasciato passare");
     di("  esattamente la cosa che gli avevamo chiesto di non lasciar passare.");
+    di("");
+  }
+
+  // Lo stato che non dovrebbe esistere. Sta qui in alto e non in fondo alla
+  // riga delle percentuali dei revisori, dove il 13/09 si è letto come rumore:
+  // `sconosciuto 1 (5.0%)`, in mezzo a numeri che raccontano quanto bene sono
+  // andati i revisori. Non è un revisore andato male — è una tappa che è
+  // avanzata senza che nessuno abbia registrato com'è andata.
+  if (m.avanzateSenzaEsito && m.avanzateSenzaEsito.length > 0) {
+    di(`UNA TAPPA È AVANZATA SENZA UN ESITO REGISTRATO: ${m.avanzateSenzaEsito.length}`);
+    di("  La tappa risulta «revisionata» — la revisione c'è, quindi il motore è");
+    di("  arrivato in fondo — ma `revisione_esito` è null. È il caso peggiore di");
+    di("  tutti, perché è INDISTINGUIBILE da una riuscita: la query che cerca i");
+    di("  guasti (`revisione_esito is not null and revisione_esito <> 'riuscita'`)");
+    di("  non la vede, e lo studente ha un punteggio che nessuno sa da dove venga.\n");
+    for (const a of m.avanzateSenzaEsito) {
+      di(`  · ${a.etichetta} — tappa «${a.faseId}», iscrizione ${a.iscrizioneId ?? "(non riportata)"}`);
+      di(`      ${a.tentativi} tentativi registrati`);
+    }
+    di("");
+    di("  Da guardare per prima cosa: `npm run banco -- log 240`, e la marcatura");
+    di("  di `revisione_esito` nel cron (che se non atterra deve fermare la tappa,");
+    di("  non lasciarla avanzare muta).");
     di("");
   }
 
@@ -426,6 +472,11 @@ function stampaRapporto(m, righe = console.log) {
   const totRev = Object.values(m.esitiRevisione).reduce((a, b) => a + b, 0);
   for (const [k, v] of Object.entries(m.esitiRevisione).sort((a, b) => b[1] - a[1])) {
     di(`  ${String(k).padEnd(18)} ${v}  (${percentuale(v, totRev)})`);
+  }
+  if (m.esitiRevisione.sconosciuto) {
+    di("  «sconosciuto» NON è un giudizio del revisore: è una tappa senza esito");
+    di("  registrato — o mai revisionata (sta fra i fermati, col suo perché), o");
+    di("  avanzata lo stesso (sta in cima al rapporto, con la riga sua).");
   }
   di(`  Tappe che hanno avuto bisogno di più di un giro: ${m.tappeConTentativiExtra}`);
   if (m.tappeConTentativiExtra > 0) {
