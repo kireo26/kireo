@@ -5,11 +5,21 @@
 export type Area = {
   slug: string;
   nome: string;
-  // Il nome dell'area come lo si direbbe parlando, gia' con la preposizione:
+  // Il nome dell'area come lo si direbbe parlando, già con la preposizione:
   // serve dove il nome ufficiale andrebbe DENTRO una frase e non sopra un
-  // riquadro ("hai guardato dalle parti dell'edilizia"), perche' li' una «&»
-  // si inciampa a leggerla. Obbligatorio: cosi' un'area nuova non puo'
-  // entrare senza la sua forma, e nessuna frase resta a meta'.
+  // riquadro («hai guardato dalle parti dell'architettura»), perché lì una «&»
+  // si inciampa a leggerla. Obbligatorio: così un'area nuova non può entrare
+  // senza la sua forma, e nessuna frase resta a metà.
+  //
+  // IL CRITERIO per scriverne una, che non è quello che verrebbe da usare:
+  // non l'elemento centrale dell'area, ma **la parola che un ragazzo userebbe
+  // parlando di sé**. Sono due cose diverse più spesso di quanto sembri, e
+  // quando divergono vince la seconda. Le due che l'hanno fissato: «edilizia»
+  // è la metà giusta del nome ma nessuno dice «mi butto sull'edilizia» —
+  // dicono «mi piacerebbe fare architettura»; e «agroalimentare» è una parola
+  // da ministero, mentre delle due metà di quell'area quella che attira a
+  // diciassette anni è l'ambiente. Dove una metà attira e l'altra no, si
+  // nomina quella che attira.
   dalleParti: string;
   icona: string; // monogramma breve mostrato nel badge circolare
   descrizioneBreve: string; // una riga, usata nel mega-menu
@@ -85,7 +95,7 @@ export const AREE: Area[] = [
   {
     slug: "agrifood-ambiente",
     nome: "Agri-food & Ambiente",
-    dalleParti: "dell'agroalimentare",
+    dalleParti: "dell'ambiente",
     icona: "AF",
     descrizioneBreve: "Agricoltura innovativa, filiera alimentare e tutela dell'ambiente.",
     descrizioneEstesa:
@@ -149,7 +159,7 @@ export const AREE: Area[] = [
   {
     slug: "edilizia-architettura",
     nome: "Edilizia & Architettura",
-    dalleParti: "dell'edilizia",
+    dalleParti: "dell'architettura",
     icona: "EA",
     descrizioneBreve: "Progettare e costruire spazi: dal cantiere alla rigenerazione urbana.",
     descrizioneEstesa:

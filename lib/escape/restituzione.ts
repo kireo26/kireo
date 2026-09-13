@@ -14,7 +14,7 @@ import { AREE } from "@/data/aree";
 
 export type AreaTop = { slug: string; nome: string; status: "emergente" | "confermata" | "da_verificare" };
 
-// «dalle parti dell'edilizia, dell'energia e dei beni culturali».
+// «dalle parti dell'architettura, dell'energia e dei beni culturali».
 // L'ORDINE non è casuale ed è quello giusto: `areeToccate` è un Set riempito
 // scorrendo i materiali nell'ordine in cui li ha aperti, quindi le prime tre
 // nominate sono le prime tre che ha guardato. Oltre le tre si dice «e altre»:
