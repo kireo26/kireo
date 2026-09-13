@@ -8,7 +8,7 @@ import {
   chiusuraCliente,
   REGOLE_CONVERSAZIONE_CLIENTE,
 } from "@/lib/workshop/config";
-import { getStatoChatTappa } from "@/lib/workshop/chatTappa";
+import { getStatoChatTappa, esitoDelProssimoMessaggio } from "@/lib/workshop/chatTappa";
 
 export const runtime = "nodejs";
 
@@ -86,10 +86,10 @@ export async function POST(request: NextRequest) {
   // era una regola del prompt: non funzionava — provata dal vivo, il cliente
   // continuava a fare domande oltre il minimo. Ciò che possiamo imporre nel
   // codice non si chiede a un modello.
-  const raggiungeMinimo = stato.minimo > 0 && stato.inviati + 1 >= stato.minimo;
-  // Il tetto resta la rete per i casi senza minimo (nessuna tappa aperta): lì
-  // la chiusura arriva senza risposta AI, come prima.
-  const raggiungeTetto = stato.inviati + 1 >= stato.tetto;
+  // La regola sta in `chatTappa.ts`, dove sta anche il conteggio: qui era
+  // riscritta a mano e la seconda copia si era dimenticata che il tetto è PER
+  // TAPPA — quindi lo applicava anche a un conteggio per iscrizione.
+  const { raggiungeMinimo, raggiungeTetto } = esitoDelProssimoMessaggio(stato);
 
   const systemPrompt = promptBase + REGOLE_CONVERSAZIONE_CLIENTE;
 
@@ -111,9 +111,13 @@ export async function POST(request: NextRequest) {
     return erroreDiCortesia("Non è stato possibile inviare il messaggio. Riprova.", 500);
   }
 
-  // Tetto raggiunto senza minimo (nessuna tappa aperta): la chiusura è la
+  // Tetto della TAPPA raggiunto senza che scatti il minimo: la chiusura è la
   // nostra, non dell'AI. Registrata comunque come turno "cliente" per non
   // lasciare due "user" consecutivi nella history.
+  // Con i minimi di oggi (3/3/3/4, tetto 10) è una rete che non si tocca: ci
+  // arriverebbe solo una tappa senza minimo. Prima ci arrivava anche chi era
+  // semplicemente alla quarta tappa, perché il tetto veniva confrontato con un
+  // conteggio per iscrizione.
   if (raggiungeTetto && !raggiungeMinimo) {
     const chiusura = chiusuraCliente(workshopSlug);
     const { error: erroreChiusura } = await supabase.rpc("invia_risposta_cliente_workshop", {

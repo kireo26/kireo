@@ -32,7 +32,8 @@
     "test:chiavi": "node scripts/verifica-chiavi-json.js",
     "test:formula": "node scripts/verifica-formula-testa.js",
     "test:focus": "node scripts/verifica-focus-sezioni.js",
-    "test:log5xx": "node scripts/verifica-log-5xx.js"
+    "test:log5xx": "node scripts/verifica-log-5xx.js",
+    "test:chat": "node scripts/verifica-chat-tappa.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.112.5",

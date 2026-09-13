@@ -186,9 +186,14 @@ for (const [nome, percorso] of [
 // Due ruoli fermati da un 500 erano finiti sotto «un gate che morde è un
 // risultato»: dare a un guasto la dignità di un risultato è la cosa che
 // questo banco esiste per non fare.
-const { e5xx } = require("./banco/robot/sessione");
+const { e5xx, eGuasto } = require("./banco/robot/sessione");
 ok(!e5xx(400) && !e5xx(429) && !e5xx(499), "un 4xx resta un cancello: è il prodotto che dice no");
 ok(e5xx(500) && e5xx(503), "un 5xx è un guasto nostro: va coi caduti, che si rifanno");
+// E non tutti i «no» sono uguali: un 403 su un gate è un risultato, un 401 è
+// il banco che ha perso le credenziali a metà passata.
+ok(!eGuasto(400) && !eGuasto(403) && !eGuasto(429), "403 e 429 restano cancelli: il prodotto ha detto no a chi era chi diceva di essere");
+ok(eGuasto(401), "un 401 no: è il chiamante che non è più chi diceva di essere, e va coi guasti del banco");
+ok(eGuasto(500) && eGuasto(503), "…insieme ai 5xx");
 
 console.log("\n═══════════════════════════════════════════\n");
 if (falliti) { console.error(`✗ ${falliti} controlli falliti.\n`); process.exit(1); }

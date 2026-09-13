@@ -23,7 +23,7 @@
 
 const { config } = require("../config");
 const { interpreta } = require("../motore");
-const { e5xx } = require("./sessione");
+const { eGuasto } = require("./sessione");
 
 const attendi = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -175,7 +175,7 @@ async function giocaRuolo({ sessione, workshopSlug, ruoloSlug, consegne, fasi, r
   if (pagina.status >= 400) {
     return {
       ...esito,
-      fermato: { dove: "apertura", perche: `la pagina del progetto ha risposto ${pagina.status}`, guasto: e5xx(pagina.status) },
+      fermato: { dove: "apertura", perche: `la pagina del progetto ha risposto ${pagina.status}`, guasto: eGuasto(pagina.status) },
     };
   }
 
@@ -257,7 +257,7 @@ async function giocaRuolo({ sessione, workshopSlug, ruoloSlug, consegne, fasi, r
               dove: fase.id,
               perche: `la chat ha risposto ${r.status}: ${r.dati?.errore ?? r.testo.slice(0, 120)}`,
               doppio: r.status === 429,
-              guasto: e5xx(r.status),
+              guasto: eGuasto(r.status),
             },
           };
         }
@@ -284,7 +284,7 @@ async function giocaRuolo({ sessione, workshopSlug, ruoloSlug, consegne, fasi, r
             // Verificato leggendo consegna_fase_workshop, non dedotto: la
             // funzione alza quell'eccezione quando non trova una riga 'aperta'.
             doppio: /fase_non_aperta/.test(`${r.dati?.errore ?? ""}${r.testo}`),
-            guasto: e5xx(r.status),
+            guasto: eGuasto(r.status),
             gate: true,
             dettaglio: r.dati,
           },

@@ -53,6 +53,9 @@ function barattolo() {
 // rompe: è un guasto, come un `fetch failed`, e va con i caduti. Due ruoli
 // fermati da un 500 erano finiti sotto «un gate che morde è un risultato»,
 // che è di nuovo dare a un guasto la dignità di un risultato.
+// E NEMMENO TUTTI I 4xx STANNO INSIEME (stessa sera): un 403 su un gate è un
+// risultato, un 401 no — quello dice che il CHIAMANTE non è più chi diceva di
+// essere, cioè che il banco ha perso le credenziali. Vedi `eGuasto` in fondo.
 //
 // SOLO IN LETTURA, e questa metà è arrivata dopo, il 2026-08-31, pagando. Il
 // ritentativo era su ogni POST, e un ritentativo su una scrittura È UN SECONDO
@@ -171,4 +174,18 @@ async function apriSessione() {
 // cancelli, che si studia.
 const e5xx = (status) => status >= 500;
 
-module.exports = { apriSessione, e5xx };
+// E NON TUTTI I «NO» SONO UGUALI. Un 403 su un gate è un risultato — il
+// prodotto ha detto no a qualcuno che era chi diceva di essere. Un 401 è
+// un'altra cosa: è il CHIAMANTE che non è più chi diceva di essere, cioè il
+// banco che ha perso le credenziali a metà passata. Il 13/09 `enoteca >
+// grafica` è caduto così (e `food`, giocato dopo, è andato a buon fine —
+// quindi non è nemmeno una scadenza secca del token), ed è finito sotto
+// «FERMATI DA UN CANCELLO», la lista che si legge per prima proprio perché lì
+// un blocco è un risultato. Riempirla di cose che non lo sono è il modo di
+// renderla inutile.
+const eGuastoDelBanco = (status) => status === 401;
+
+// Le due insieme: quello che NON va fra i cancelli.
+const eGuasto = (status) => e5xx(status) || eGuastoDelBanco(status);
+
+module.exports = { apriSessione, e5xx, eGuastoDelBanco, eGuasto };

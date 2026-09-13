@@ -36,13 +36,26 @@ export default async function ProgettoWorkshopPage({ params }: { params: Promise
   // tappa 1 come aperta e le altre come bloccate (idempotente, non fa
   // nulla se richiamata di nuovo).
   if (!fasiStatoEsistenti || fasiStatoEsistenti.length === 0) {
-    await supabase.rpc("inizializza_fasi_workshop", {
+    const { error: erroreInit } = await supabase.rpc("inizializza_fasi_workshop", {
       p_iscrizione_id: iscrizione.id,
       p_fase_ids: elaboratoConfig.fasi.map((f) => f.id),
     });
+    // L'errore era scartato: `await` senza guardare cosa tornava. Il 13/09
+    // `enoteca > marketing` è risultato iscritto con ZERO righe in
+    // `workshop_fasi_stato` — per uno studente è una pagina che non si apre,
+    // senza un errore da nessuna parte. È la terza scrittura muta trovata in
+    // un giorno: quando una scrittura non dice se è riuscita, il difetto che
+    // ne segue non ha un posto dove essere cercato.
+    if (erroreInit) {
+      console.error(`Errore inizializza_fasi_workshop (iscrizione ${iscrizione.id}):`, erroreInit.message ?? erroreInit);
+    }
   }
 
-  const { data: fasiStatoRighe } = await supabase.from("workshop_fasi_stato").select(COLONNE_FASI_STATO).eq("iscrizione_id", iscrizione.id);
+  const { data: fasiStatoRighe, error: erroreFasi } = await supabase
+    .from("workshop_fasi_stato")
+    .select(COLONNE_FASI_STATO)
+    .eq("iscrizione_id", iscrizione.id);
+  if (erroreFasi) console.error(`Errore lettura workshop_fasi_stato (iscrizione ${iscrizione.id}):`, erroreFasi.message ?? erroreFasi);
 
   const fasiStato: FaseStatoRiga[] = (fasiStatoRighe ?? []).map((r) => ({
     faseId: r.fase_id,
@@ -61,6 +74,28 @@ export default async function ProgettoWorkshopPage({ params }: { params: Promise
     .select("contenuto, stato, fiducia, feedback_ai")
     .eq("iscrizione_id", iscrizione.id)
     .maybeSingle();
+
+  // Zero tappe vuol dire che l'inizializzazione non è andata: renderizzare
+  // comunque l'editor dà una pagina che non si apre e non dice perché — che è
+  // esattamente com'è apparso il difetto del 13/09. Meglio uno stato onesto e
+  // una strada per uscirne.
+  if (fasiStato.length === 0) {
+    return (
+      <div className="space-y-6">
+        <Link href={`/app/workshop/${slug}`} className="text-xs text-kireo-muted hover:text-kireo-light">
+          ← {ws.titolo}
+        </Link>
+        <div className="rounded-xl border border-kireo-orange/40 bg-kireo-card p-5">
+          <h1 className="py-1 font-heading text-xl font-bold leading-[1.25] text-kireo-light">Il tuo progetto non si è aperto</h1>
+          <p className="mt-2 text-sm text-kireo-muted">
+            Le tappe del tuo percorso non risultano ancora create. Non è una cosa che hai sbagliato: ricarica fra qualche
+            istante e, se resta così, scrivici da <Link href="/contatti" className="text-kireo-green-light underline">Contatti</Link> —
+            il lavoro che avessi già fatto resta dov&apos;è.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const tappaAperta = fasiStato.find((f) => f.stato === "aperta");
   let messaggiTappaCorrente = 0;
