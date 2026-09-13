@@ -44,8 +44,9 @@ require.extensions[".ts"] = function (mod, filename) {
 };
 
 const { promptModoDiLavorare } = require("@/lib/workshop/prompt-revisore");
-const { leggiModoDiLavorare } = require("@/lib/workshop/elaboratoValore");
+const { leggiModoDiLavorare, modoDiLavorareVuoto } = require("@/lib/workshop/elaboratoValore");
 const { raggruppaDomandePerTappa } = require("@/lib/workshop/chatTappa");
+const { trovaAccordi } = require("@/lib/lingua/accordoGenere");
 
 let falliti = 0;
 const ok = (cond, msg) => { if (!cond) { console.error("  ✗ " + msg); falliti++; } else { console.log("  ✓ " + msg); } };
@@ -72,8 +73,8 @@ const CHIEDE = [
   ["i numeri solo dove si possono ricontare", "chi legge può ricontare"],
   ["il mestiere, non l'etichetta sulla persona", "PARLA DEL MESTIERE, MAI DELLA PERSONA"],
   ["i mestieri con le parole di un ragazzo", "non con i nomi di un ordinamento didattico"],
-  ["può tacere, ed è un esito", 'lascia "quello_che_si_vede" e "dove_porta" VUOTI'],
-  ["il silenzio va spiegato", "non è un giudizio"],
+  ["può tacere, ed è un esito", "rispondi con tutti e tre i campi VUOTI"],
+  ["e tacendo non gli si chiede nessun testo", "non ti viene chiesto nessun testo"],
   ["nessun punteggio", "NON DARE NESSUN PUNTEGGIO"],
 ];
 for (const [nome, frase] of CHIEDE) ok(p.includes(frase), nome);
@@ -100,14 +101,13 @@ ok(senzaTappa.includes("NON dire in quale tappa"), "e al modello è detto di non
 // spazio per costruire uno schema che non c'è.
 ok(p.includes("NON ricevi il progetto consegnato"), "il blocco non riceve il progetto e lo sa");
 
-// La regola di casa sugli esempi: si descrive la FORMA, non se ne consegna un
-// esemplare — una frase compiuta dentro un prompt viene ricopiata, e nel
-// ricopiarla si rompe. La frase di Mario sul silenzio è il modello della
-// forma; qui dentro NON deve esserci.
-ok(
-  !p.includes("erano sparse su cose diverse") && !p.includes("Dopo il secondo workshop"),
-  "nessun esemplare di frase da ricopiare: del silenzio è descritta la forma",
-);
+// Il testo del silenzio è scritto una volta nel pannello e NON si genera: al
+// modello non si dice più nemmeno come comporlo. Ogni riga su come scrivere
+// una cosa è una riga che invita a scriverla — e il silenzio è per definizione
+// il caso in cui non ha niente da dire.
+for (const spia of ["non è un giudizio", "Dopo il prossimo", "poche", "ci sarà più da guardare"]) {
+  ok(!p.includes(spia), `del silenzio non gli si detta il testo («${spia}»)`);
+}
 
 // ── 2) il feedback finale non fa più il mestiere sulla persona ──────────────
 console.log("\n─── il feedback finale, dopo");
@@ -125,9 +125,16 @@ console.log("\n─── il lettore della risposta");
 const pieno = { quello_che_si_vede: ["Nella tappa 1 hai chiesto «…»"], dove_porta: ["Chi fa l'educatore in un doposcuola…"], cosa_non_si_vede_ancora: "Queste domande non dicono ancora…" };
 ok(leggiModoDiLavorare(pieno) !== null, "un blocco completo si legge");
 
-const silenzio = { quello_che_si_vede: [], dove_porta: [], cosa_non_si_vede_ancora: "Non emerge ancora un modo tuo…" };
-const letto = leggiModoDiLavorare(silenzio);
-ok(letto !== null && letto.quello_che_si_vede.length === 0, "IL SILENZIO È UN ESITO VALIDO: due liste vuote passano");
+// IL SILENZIO: tutti e tre i campi vuoti. Non gli si chiede nessun testo,
+// quindi il lettore non deve pretenderne uno — altrimenti la risposta giusta
+// verrebbe buttata e il modello imparerebbe a riempire per essere accettato.
+const letto = leggiModoDiLavorare({ quello_che_si_vede: [], dove_porta: [], cosa_non_si_vede_ancora: "" });
+ok(letto !== null && letto.quello_che_si_vede.length === 0, "IL SILENZIO È UN ESITO VALIDO: tutti e tre i campi vuoti passano");
+ok(
+  leggiModoDiLavorare({ quello_che_si_vede: [], dove_porta: [] }) !== null,
+  "e passa anche se il campo del testo manca del tutto",
+);
+ok(letto !== null && modoDiLavorareVuoto(letto), "e il pannello lo riconosce come silenzio");
 
 // LA PROPRIETÀ CHE CONTA: una direzione affermata senza niente sotto.
 ok(
@@ -140,9 +147,9 @@ ok(
 );
 ok(
   leggiModoDiLavorare({ quello_che_si_vede: ["…"], dove_porta: [], cosa_non_si_vede_ancora: "" }) === null,
-  "un silenzio senza spiegazione è rifiutato: sarebbe una schermata con niente sotto un titolo",
+  "con qualcosa da vedere, «cosa non si vede ancora» è invece richiesto: è un'affermazione specifica",
 );
-ok(leggiModoDiLavorare({ quello_che_si_vede: ["…"], dove_porta: [] }) === null, "manca «cosa non si vede ancora»: rifiutato");
+ok(leggiModoDiLavorare({ quello_che_si_vede: ["…"], dove_porta: [] }) === null, "e se manca del tutto è rifiutato");
 ok(leggiModoDiLavorare({ quello_che_si_vede: "una stringa", dove_porta: [], cosa_non_si_vede_ancora: "…" }) === null, "una stringa al posto di una lista: rifiutato");
 ok(leggiModoDiLavorare(null) === null && leggiModoDiLavorare("{}") === null, "niente e una stringa: rifiutati senza eccezioni");
 
@@ -166,6 +173,39 @@ ok(grup[2].tappa === "Tappa 2", "una domanda all'istante dell'apertura appartien
 ok(grup[3].tappa === "Tappa 2", "e non scivola su una tappa mai aperta");
 ok(grup.map((g) => g.testo).join("|") === CHAT.map((c) => c.testo).join("|"), "l'ordine cronologico si conserva");
 ok(raggruppaDomandePerTappa(CHAT, []).every((g) => g.tappa === null), "senza righe di stato nessuna domanda riceve una tappa");
+
+// ── 5) il testo del silenzio, che è scritto a mano ──────────────────────────
+// È l'unico testo di questo blocco che non passa dal modello, quindi non passa
+// nemmeno dalla guardia sulla lingua: qui il setaccio va messo a mano, con gli
+// STESSI pattern del prodotto (`lib/lingua/accordoGenere.ts`, un posto solo).
+console.log("\n─── il testo del silenzio");
+const PANNELLO = fs.readFileSync(path.join(ROOT, "components/workshop/elaborato/FeedbackFinalePanel.tsx"), "utf8");
+const blocco = PANNELLO.split("const TESTO_SILENZIO = [")[1]?.split("];")[0] ?? "";
+ok(blocco.trim().length > 0, "il testo del silenzio esiste come costante nel pannello");
+
+const accordi = trovaAccordi(blocco);
+ok(accordi.length === 0, `nessuna forma accordata col genere di chi legge${accordi.length ? ` — ${accordi.join(", ")}` : ""}`);
+
+// L'ordine delle tre battute è la parte che conta: non c'è segnale → non è un
+// giudizio e il lavoro è salvo → torna dopo il prossimo. Chi ha lavorato
+// quattro settimane deve arrivare alla seconda prima di digerire la prima.
+//
+// Si misura DENTRO la costante, non nel file: stanno in una lista sola proprio
+// perché l'ordine del dato sia l'ordine di lettura. (La prima stesura di
+// questo controllo guardava le posizioni nel sorgente e dava rosso su un testo
+// giusto, perché una battuta stava nel JSX e le altre due nella costante.)
+const iNiente = blocco.indexOf("niente da dirti");
+const iGiudizio = blocco.indexOf("Non è un giudizio sul lavoro che hai consegnato");
+const iDopo = blocco.indexOf("Dopo il prossimo ci sarà più da guardare");
+ok(iNiente !== -1 && iGiudizio !== -1 && iDopo !== -1, "le tre battute ci sono tutte");
+ok(iNiente < iGiudizio && iGiudizio < iDopo, "e stanno in quest'ordine: non c'è segnale → non è un giudizio → torna dopo");
+// La prima battuta è anche la PRIMA VOCE della lista, non solo la prima in
+// ordine: è quella che il pannello rende in grassetto (indice 0). Senza questa
+// riga si poteva scambiare la battuta 1 con la 2 lasciando l'ordine formale
+// intatto — buco trovato da una controprova che non scattava.
+const voci = blocco.split("\n").map((r) => r.trim()).filter((r) => r.startsWith('"'));
+ok(voci.length === 3, `la lista ha esattamente tre voci (qui: ${voci.length})`);
+ok(voci[0]?.includes("niente da dirti"), "la prima voce è l'apertura, quella che va in grassetto");
 
 console.log("\n═══════════════════════════════════════════\n");
 if (falliti) { console.error(`✗ ${falliti} controlli falliti.\n`); process.exit(1); }

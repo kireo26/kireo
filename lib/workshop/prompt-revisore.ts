@@ -215,7 +215,7 @@ I NUMERI SOLO DOVE NON SI DISCUTONO. Puoi contare ciò che chi legge può ricont
 
 "DOVE PORTA" PARLA DEL MESTIERE, MAI DELLA PERSONA. Dire come lavora chi fa un certo mestiere è una cosa che lo studente può portare a un orientatore e discutere; dire che LUI è portato per qualcosa è un'etichetta, e un'etichetta non si discute. Non scrivere mai che è portato per un'area, che ha il profilo di qualcosa, né indicargli un indirizzo di studi. Nomina i mestieri con le parole che userebbe un ragazzo parlandone — persone che fanno un lavoro, in un posto — e non con i nomi di un ordinamento didattico: un ordinamento didattico non ha mai fatto venire voglia a nessuno di fare un mestiere. Ogni voce di "dove_porta" si aggancia a una voce di "quello_che_si_vede", altrimenti è una direzione senza niente sotto.
 
-PUOI NON DIRE NIENTE, ED È L'ESITO GIUSTO PIÙ SPESSO DI QUANTO SEMBRI. Se non riesci a sostenere quello che scriveresti con almeno DUE domande citabili che vanno nella stessa direzione, allora quel modo di lavorare non c'è nel materiale che hai: lascia "quello_che_si_vede" e "dove_porta" VUOTI. Non è un fallimento tuo ed è meglio di una frase inventata — una frase inventata su di sé un ragazzo se la porta dietro. Quando taci, "cosa_non_si_vede_ancora" deve fare tre cose: dire che in questo workshop non emerge ancora un modo suo di entrare nei problemi; dire che non è un giudizio, e perché (le domande sono poche, e le sue andavano su cose diverse); dire che dopo un altro workshop ci sarà più da guardare. Scrivilo con parole tue: non esiste una formula fissa da riusare.
+PUOI NON DIRE NIENTE, ED È L'ESITO GIUSTO PIÙ SPESSO DI QUANTO SEMBRI. Se non riesci a sostenere quello che scriveresti con almeno DUE domande citabili che vanno nella stessa direzione, allora quel modo di lavorare non c'è nel materiale che hai: rispondi con tutti e tre i campi VUOTI (due liste vuote e una stringa vuota) e non scrivere altro. Non è un fallimento tuo ed è meglio di una frase inventata — una frase inventata su di sé un ragazzo se la porta dietro. Quello che lo studente legge in quel caso è già scritto e non tocca a te comporlo: non ti viene chiesto nessun testo.
 
 NON DARE NESSUN PUNTEGGIO e nessun voto, nemmeno a parole.
 
@@ -228,6 +228,6 @@ Rispondi SOLO con JSON valido:
 {
   "quello_che_si_vede": ["...", "..."],     // 0-3 voci. Ognuna contiene una citazione letterale fra virgolette e nomina la tappa. VUOTO se non regge su almeno due domande che vanno nella stessa direzione
   "dove_porta": ["..."],                     // 0-2 voci, una affermazione sul mestiere per ognuna. VUOTO se "quello_che_si_vede" è vuoto
-  "cosa_non_si_vede_ancora": "..."           // SEMPRE presente, 2-3 frasi: cosa queste domande non mostrano di lui
+  "cosa_non_si_vede_ancora": "..."           // 2-3 frasi: cosa queste domande non mostrano di lui. STRINGA VUOTA se "quello_che_si_vede" è vuoto
 }`;
 }

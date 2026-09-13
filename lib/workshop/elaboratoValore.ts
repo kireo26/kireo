@@ -155,15 +155,21 @@ export const cosaRegge = (r: { cosa_regge?: string[]; punti_forza?: string[] } |
 // Chiedere le due cose nello stesso JSON è chiedere due contratti opposti
 // nella stessa risposta.
 export type ModoDiLavorare = {
-  // Può essere VUOTO: è il silenzio, ed è un esito legittimo. Ogni voce porta
-  // dentro di sé una citazione letterale di una domanda dello studente.
+  // VUOTO È IL SILENZIO, e il silenzio è un esito legittimo — anzi è quello
+  // giusto più spesso di quanto sembri. Ogni voce porta dentro di sé una
+  // citazione letterale di una domanda dello studente.
   quello_che_si_vede: string[];
   // Dove quel modo di fare si usa: un'affermazione sul MESTIERE, mai
   // un'etichetta sulla persona. Vuoto se `quello_che_si_vede` è vuoto.
   dove_porta: string[];
-  // Sempre presente: quando gli altri due sono vuoti, è qui che sta il perché.
+  // Cosa quelle domande NON mostrano di lui. Richiesto solo quando c'è
+  // qualcosa da vedere: nel silenzio resta vuoto di proposito, perché il testo
+  // del silenzio è scritto una volta nel pannello e non si genera (vedi sotto).
   cosa_non_si_vede_ancora: string;
 };
+
+// Il blocco non ha niente da dire.
+export const modoDiLavorareVuoto = (m: ModoDiLavorare): boolean => m.quello_che_si_vede.length === 0;
 
 export type FeedbackFinale = {
   punti_forza: string[]; // invariato di proposito: è il termine di paragone della prova sopra
@@ -189,16 +195,20 @@ export function leggiModoDiLavorare(parsed: unknown): ModoDiLavorare | null {
   const porta = o.dove_porta;
   if (!Array.isArray(visto) || !Array.isArray(porta)) return null;
   if (visto.some((v) => typeof v !== "string") || porta.some((v) => typeof v !== "string")) return null;
-  // Il silenzio è un esito, quindi va SPIEGATO: senza questo campo un blocco
-  // vuoto arriverebbe allo studente come una schermata senza niente.
-  if (typeof o.cosa_non_si_vede_ancora !== "string" || o.cosa_non_si_vede_ancora.trim() === "") return null;
   const pulitoVisto = (visto as string[]).filter((v) => v.trim() !== "");
   const pulitoPorta = (porta as string[]).filter((v) => v.trim() !== "");
   if (pulitoVisto.length === 0 && pulitoPorta.length > 0) return null;
+  // Richiesto solo quando c'è qualcosa da vedere: «cosa non si vede ancora»
+  // accanto a una cosa vista è un'affermazione specifica, che solo il modello
+  // può scrivere. Nel silenzio no — lì il motivo è sempre lo stesso (poche
+  // domande, andate su cose diverse), quindi non c'è niente da personalizzare
+  // e chiederglielo lo metterebbe proprio nella condizione in cui riempie.
+  const non_visto = typeof o.cosa_non_si_vede_ancora === "string" ? o.cosa_non_si_vede_ancora : "";
+  if (pulitoVisto.length > 0 && non_visto.trim() === "") return null;
   return {
     quello_che_si_vede: pulitoVisto,
     dove_porta: pulitoPorta,
-    cosa_non_si_vede_ancora: o.cosa_non_si_vede_ancora,
+    cosa_non_si_vede_ancora: non_visto,
   };
 }
 
