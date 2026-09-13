@@ -161,7 +161,7 @@
       "atteso": {
         "dove": "feedback_finale",
         "la_proprieta": "Con domande senza filo, il finale non deve affermare che dallo studente emerge un modo ricorrente di entrare nei problemi. Deve poter dire che non emerge niente.",
-        "rosso_atteso": "il blocco non può ancora tacere: punti_forza è un array obbligatorio di 2-3 elementi, quindi il silenzio non è un esito rappresentabile e il modello riempie. Il giorno che diventa verde, la proprietà è arrivata — o il controllo ha smesso di guardare dove guardava.",
+        "rosso_atteso": "il 13/09 questa trappola è diventata verde sull'elenco aggregato e il modello ha comunque inventato un'intenzione su UNA domanda sola («non è una domanda random») — quella che Mario aveva messo lì per costruzione perché non ne avesse nessuna. Finché quel comportamento c'è, un verde su questo file è un verde parziale: l'attesa rossa resta, e la riga ★ deve continuare a comparire.",
         "non_deve_affermare_uno_schema": [
           "un modo tuo",
           "il tuo modo di",
@@ -177,7 +177,16 @@
           "tutte e tredici",
           "nessuna domanda"
         ],
-        "nota_sul_controllo": "L'elenco è un controllo parziale e lessicale, come la guardia del registro: prende le forme piu frequenti, non tutte. Il giudizio vero si da leggendo. Oggi questa trappola e ROSSA per costruzione — punti_forza e un array obbligatorio di 2-3 elementi, quindi il silenzio non e un esito rappresentabile e il modello riempie. Diventa verde quando il blocco nuovo puo tacere.",
+        "non_deve_attribuire_intenzioni": [
+          "non è una domanda random",
+          "non è un caso",
+          "non a caso",
+          "non è casuale",
+          "non per caso",
+          "deliberatamente",
+          "hai scelto di chiedere"
+        ],
+        "nota_sul_controllo": "L'elenco è un controllo parziale e lessicale, come la guardia del registro: prende le forme più frequenti, non tutte, e prende quelle aggregate — un'intenzione attribuita a UNA singola domanda gli passa sotto. Il giudizio vero si dà leggendo. Questa trappola è nata ROSSA per costruzione: non perché il codice vieti il silenzio — `Array.isArray([])` è vero, un punti_forza vuoto passa il validatore — ma perché il prompt non ha mai detto al modello che può non dire niente. Diventa verde davvero quando il blocco, davanti a domande senza filo, sceglie di tacere: non quando smette di usare queste tredici parole.",
         "confronto": "scripts/banco/consegne/palestra-popolare.json > ruoli.salute — stesse identiche sezioni, cambiate solo le tredici domande."
       }
     }

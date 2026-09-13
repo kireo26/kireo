@@ -519,10 +519,28 @@ function stampaRapporto(m, righe = console.log) {
     for (const f of m.fiducia) di(`  ${String(f.valore).padStart(3)}/100  ${f.etichetta}`);
     const min = m.fiducia[0].valore;
     const max = m.fiducia[m.fiducia.length - 1].valore;
-    di(`  Estremi: ${min} — ${max}.`);
-    if (max - min < 10) {
-      di("  ⚠  Una forbice così stretta su ruoli diversi non è un merito: vuol dire che");
-      di("     il punteggio non sta distinguendo niente. Va guardata la rubrica.");
+
+    // L'AVVISO PARLA DELLA RUBRICA, quindi ha bisogno di abbastanza ruoli per
+    // poterlo dire. Su una passata da un ruolo solo scattava lo stesso —
+    // «76—76» non è una forbice stretta, è un valore unico — e su due non
+    // significa niente: lo scarto noto fra due passate sullo stesso identico
+    // lavoro è 2,5-3,1 punti per ruolo, quindi con due numeri qualunque
+    // distanza sta dentro il rumore. Stessa specie di ogni altro controllo che
+    // conclude su quello che non può vedere.
+    const MIN_RUOLI_FORBICE = 3;
+    if (m.fiducia.length === 1) {
+      di("  Un ruolo solo: non c'è nessuna forbice da leggere.");
+    } else {
+      di(`  Estremi: ${min} — ${max}.`);
+      if (max - min < 10) {
+        if (m.fiducia.length >= MIN_RUOLI_FORBICE) {
+          di("  ⚠  Una forbice così stretta su ruoli diversi non è un merito: vuol dire che");
+          di("     il punteggio non sta distinguendo niente. Va guardata la rubrica.");
+        } else {
+          di(`  (${m.fiducia.length} ruoli sono pochi per dire se la rubrica distingue: serve`);
+          di("   una passata più larga. Non vuol dire che vada bene, vuol dire che non si vede.)");
+        }
+      }
     }
   }
 

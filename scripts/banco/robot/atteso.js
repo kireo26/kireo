@@ -105,6 +105,24 @@ function verificaFinale(atteso, esito) {
     });
   }
 
+  // DUE FAMIGLIE, NON UNA LISTA PIÙ LUNGA. Il 13/09 la trappola delle domande
+  // sparse è passata su tutte e tredici le forme dell'elenco sopra — e il
+  // modello aveva comunque inventato un'intenzione, su UNA domanda sola:
+  // «non è una domanda random». Le forme aggregate («un modo tuo», «hai
+  // sempre», «tutte e tredici») per costruzione non possono vederlo: cercano
+  // una generalizzazione su tutte le domande, e lì la generalizzazione era su
+  // una. Tenerle nello stesso campo avrebbe fatto stampare «non afferma uno
+  // schema con "non è una domanda random"», che è la frase sbagliata: quello
+  // non è uno schema, è un'intenzione. E la prossima volta nessuno saprebbe
+  // dire quale delle due famiglie ha morso.
+  for (const frase of atteso.non_deve_attribuire_intenzioni ?? []) {
+    controlli.push({
+      ok: !tutto.includes(normalizza(frase)),
+      descrizione: `non attribuisce un'intenzione con «${frase}»`,
+      spiegazione: `«${frase}» compare nel feedback finale: attribuisce un'intenzione a una scelta che intenzione non ne aveva`,
+    });
+  }
+
   return {
     dove: "feedback finale",
     colta: controlli.length > 0 ? controlli.every((c) => c.ok) : null,

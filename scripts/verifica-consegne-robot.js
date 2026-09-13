@@ -181,6 +181,7 @@ function validaFile(rel) {
         (a.deve_comparire ?? []).length +
         (a.non_deve_comparire_nei_punti_forza ?? []).length +
         (a.non_deve_affermare_uno_schema ?? []).length +
+        (a.non_deve_attribuire_intenzioni ?? []).length +
         (typeof a.fiducia_massima === "number" ? 1 : 0);
       ok(condizioni > 0, `${ruoloSlug}: l'atteso contiene almeno una condizione da controllare`);
 

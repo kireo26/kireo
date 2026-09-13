@@ -189,6 +189,31 @@ ok(altrove.colta === false, "la frase conta in qualunque campo del finale, non s
 const senzaFinale = verificaAtteso(ATTESO_FINALE, { tappe: [], feedbackFinale: null });
 ok(senzaFinale.colta === null, "se il finale non è stato generato il verdetto è «non lo so», mai «è andata bene»");
 
+// ── la seconda famiglia: un'intenzione su UNA sola azione ──────────────────
+// Il 13/09 la trappola è passata su tutte e tredici le forme aggregate, e il
+// modello aveva comunque inventato un'intenzione su una domanda sola («non è
+// una domanda random» — proprio quella messa lì perché non ne avesse). Le due
+// famiglie restano in due campi: «non afferma uno schema con "non è una
+// domanda random"» sarebbe la frase sbagliata, e la prossima volta nessuno
+// saprebbe dire quale delle due ha morso.
+const ATTESO_DUE_FAMIGLIE = {
+  dove: "feedback_finale",
+  non_deve_affermare_uno_schema: ["un modo tuo"],
+  non_deve_attribuire_intenzioni: ["non è una domanda random"],
+};
+const intenzioneSingola = verificaAtteso(ATTESO_DUE_FAMIGLIE, conFinale({
+  punti_forza: ["La domanda sull'orario arriva alla fine: non è una domanda random, è il vincolo che dà forma al resto."],
+}));
+ok(intenzioneSingola.colta === false, "NON colta se attribuisce un'intenzione a una domanda sola, anche senza affermare nessuno schema");
+ok(
+  intenzioneSingola.controlli.some((c) => !c.ok && /attribuisce un'intenzione/.test(c.spiegazione)),
+  "…e lo dice come attribuzione di intenzione, non come schema: sono due famiglie diverse",
+);
+ok(
+  intenzioneSingola.controlli.filter((c) => c.ok).length === 1,
+  "l'elenco aggregato resta verde su quello stesso testo: da solo non poteva vederlo",
+);
+
 // ── l'attesa rossa ────────────────────────────────────────────────────────
 // Una trappola può chiedere una proprietà che il prodotto non ha ancora: sta
 // nella suite per renderla visibile PRIMA che si costruisca la cosa che
@@ -239,6 +264,26 @@ const certa = misura([
   { etichetta: "w > salute", tappe: [{ faseId: "t1", revisione: { commento_breve: "Quando sei arrivato al protocollo hai tenuto duro." }, esitoRevisione: "riuscita", tentativi: 1 }], fiduciaFinale: 60 },
 ]);
 ok(certa.accordi[0]?.certa === true, "il participio con «essere» in seconda persona è la classe che falsi positivi non ne fa");
+
+// ── la forbice ha bisogno di ruoli per essere una forbice ─────────────────
+// Su una passata da un ruolo solo l'avviso scattava lo stesso: «76—76» non è
+// una forbice stretta, è un valore unico. E l'avviso parla della RUBRICA,
+// quindi ha bisogno di abbastanza ruoli per poterlo dire.
+console.log("");
+const conFiducia = (valori) => {
+  const righe = [];
+  stampaRapporto(misura(valori.map((v, i) => ({ etichetta: `w > r${i}`, tappe: [], fiduciaFinale: v }))), (t = "") => righe.push(t));
+  return righe.join("\n");
+};
+const soloUno = conFiducia([76]);
+ok(!/forbice così stretta/.test(soloUno), "un ruolo solo NON fa scattare l'avviso sulla rubrica");
+ok(/non c'è nessuna forbice da leggere/.test(soloUno), "…e non stampa nemmeno «Estremi: 76 — 76», che si legge come un intervallo");
+const dueRuoli = conFiducia([74, 76]);
+ok(!/forbice così stretta/.test(dueRuoli), "due ruoli nemmeno: due punti di distanza stanno dentro il rumore noto fra due passate");
+ok(/pochi per dire se la rubrica distingue/.test(dueRuoli), "…ma lo DICE, invece di tacere: il silenzio si leggerebbe come «va bene»");
+const treRuoli = conFiducia([74, 75, 76]);
+ok(/forbice così stretta/.test(treRuoli), "da tre ruoli in su l'avviso scatta");
+ok(!/forbice così stretta/.test(conFiducia([55, 65, 75])), "…e non scatta quando la forbice è larga davvero");
 
 
 // ── dove si concentrano, e quanto costano ─────────────────────────────────

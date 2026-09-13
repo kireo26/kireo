@@ -125,12 +125,31 @@ niente punteggio, quindi né `tappa` né `fiducia_massima`:
 }
 ```
 
-`deve_comparire` vale anche qui, con lo stesso significato. La differenza è
-`non_deve_affermare_uno_schema`, che si cerca in **tutte** le stringhe del
-finale e non solo nei punti di forza — la proprietà è «il finale non lo
-afferma», non «non lo afferma lì». Si guardano tutte le stringhe invece dei
-campi nominati uno per uno apposta: `punti_forza` è già diventato `cosa_regge`
-una volta, e un controllo ancorato ai nomi smetterebbe di guardare senza dirlo.
+`deve_comparire` vale anche qui, con lo stesso significato. Le altre due
+si cercano in **tutte** le stringhe del finale e non solo nei punti di forza —
+la proprietà è «il finale non lo afferma», non «non lo afferma lì». Si guardano
+tutte le stringhe invece dei campi nominati uno per uno apposta: `punti_forza`
+è già diventato `cosa_regge` una volta, e un controllo ancorato ai nomi
+smetterebbe di guardare senza dirlo.
+
+**E sono DUE famiglie, non una lista più lunga:**
+
+| campo | cosa cerca | esempio |
+|---|---|---|
+| `non_deve_affermare_uno_schema` | una generalizzazione su TUTTE le azioni | «un modo tuo», «hai sempre», «tutte e tredici» |
+| `non_deve_attribuire_intenzioni` | un'intenzione su UNA sola azione | «non è una domanda random», «non a caso» |
+
+Il 13/09 la trappola delle domande sparse è passata su tutte e tredici le forme
+aggregate — e il modello aveva comunque inventato un'intenzione, su una domanda
+sola: *«non è una domanda random: è il vincolo che dà forma a tutto il resto»*,
+detto della domanda che era stata messa lì **per costruzione perché non ne
+avesse nessuna**. Le forme aggregate non potevano vederlo: cercano una
+generalizzazione su tutte le domande, e lì la generalizzazione era su una.
+
+Tenerle nello stesso campo avrebbe fatto stampare «non afferma uno schema con
+"non è una domanda random"», che è la frase sbagliata — quello non è uno
+schema — e alla prossima passata nessuno avrebbe saputo dire quale delle due
+famiglie aveva morso.
 
 #### `atteso.rosso_atteso` — una trappola può essere rossa DI PROPOSITO
 
