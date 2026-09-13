@@ -53,7 +53,7 @@ function conferma(domanda) {
 
 const uno = (v) => (Array.isArray(v) ? v[0] : v);
 
-async function azzeraPercorsi(opzioni = {}) {
+async function azzeraPercorsi() {
   const c = config(["supabaseUrl", "supabaseServiceRoleKey"]);
 
   const profili = await chiedi(c, "profiles?select=id,nome,cognome&di_prova=is.true");
@@ -89,12 +89,13 @@ async function azzeraPercorsi(opzioni = {}) {
   console.log("  e il profilo stesso, che serve alla passata dopo.");
   console.log("");
 
-  if (!opzioni.vai) {
-    const risposta = await conferma("Cancello? (scrivi «cancella») ");
-    if (risposta !== "cancella") {
-      console.log("Annullato: niente è stato toccato.\n");
-      return;
-    }
+  // LA CONFERMA NON SI SALTA, e non c'è un flag per farlo — vedi il commento
+  // gemello in robot/index.js. Questo è l'unico comando del banco che
+  // cancella: fra i due l'asimmetria giusta è chiedere sempre.
+  const risposta = await conferma("Cancello? (scrivi «cancella») ");
+  if (risposta !== "cancella") {
+    console.log("Annullato: niente è stato toccato.\n");
+    return;
   }
 
   const cancellate = await chiedi(c, `workshop_iscrizioni?id=in.(${iscrizioni.map((i) => i.id).join(",")})&select=id`, { method: "DELETE" });

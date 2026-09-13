@@ -1,4 +1,4 @@
-// `npm run banco robot [filtro] [--vai]` — il secondo pezzo del banco.
+// `npm run banco robot [filtro]` — il secondo pezzo del banco.
 //
 // Gioca i workshop come uno studente, dall'iscrizione al feedback finale, e
 // alla fine misura i testi che i revisori hanno scritto.
@@ -136,7 +136,7 @@ function chiediConferma(domanda) {
   return new Promise((r) => rl.question(domanda, (a) => { rl.close(); r(a.trim().toLowerCase()); }));
 }
 
-async function robot(filtro, opzioni = {}) {
+async function robot(filtro) {
   const piano = costruisciPiano(filtro);
 
   if (piano.lavori.length === 0) {
@@ -153,12 +153,15 @@ async function robot(filtro, opzioni = {}) {
   console.log("\n  Il robot gioca come uno studente vero: se un gate lo blocca si ferma");
   console.log("  e lo riporta, invece di aggirarlo.\n");
 
-  if (!opzioni.vai) {
-    const risposta = await chiediConferma("Procedo? (scrivi «si») ");
-    if (risposta !== "si" && risposta !== "sì") {
-      console.log("Annullato: nessuna chiamata fatta.\n");
-      return;
-    }
+  // LA CONFERMA NON SI SALTA, e non c'è un flag per farlo. Ce n'era uno,
+  // `--vai`, che per via di npm non è mai arrivato fin qui: in settimane
+  // nessuno l'ha reclamato, quindi nessuno lo usava. Questo comando è l'unico
+  // del banco che spende — farlo funzionare adesso sarebbe stato aggiungere
+  // una scorciatoia che nessuno aveva chiesto proprio al comando che costa.
+  const risposta = await chiediConferma("Procedo? (scrivi «si») ");
+  if (risposta !== "si" && risposta !== "sì") {
+    console.log("Annullato: nessuna chiamata fatta.\n");
+    return;
   }
 
   const sessione = await apriSessione();

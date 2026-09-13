@@ -162,7 +162,25 @@ ok(!flag("tutto", ["log", "30"]), "…e senza non si accende da solo");
 process.env.npm_config_tutto = "true";
 ok(flag("tutto", ["log", "30"]), "il flag che npm si è mangiato si rilegge da dove l'ha messo");
 delete process.env.npm_config_tutto;
-ok(!flag("vai", ["robot", "palestra"]), "un flag diverso non si accende per sbaglio");
+ok(!flag("tutto", ["robot", "palestra"]), "un flag diverso non si accende per sbaglio");
+
+// ── le due conferme non si saltano ─────────────────────────────────────────
+// `--vai` è esistito, non è mai arrivato fin qui (npm se lo mangiava) e in
+// settimane nessuno l'ha reclamato: era un flag che nessuno usava. Farlo
+// funzionare avrebbe aggiunto una scorciatoia mai chiesta all'unico comando
+// che spende e all'unico che cancella. Questo controllo serve perché non
+// rientri dalla finestra: una conferma dietro un `if` è una conferma che un
+// giorno qualcuno spegne.
+const fsBanco = require("fs");
+const pathBanco = require("path");
+for (const [nome, percorso] of [
+  ["robot", "scripts/banco/robot/index.js"],
+  ["azzera-percorsi", "scripts/banco/azzera-percorsi.js"],
+]) {
+  const sorgente = fsBanco.readFileSync(pathBanco.join(__dirname, "..", percorso), "utf8");
+  ok(!/opzioni\.vai|\.vai\b/.test(sorgente), `${nome}: nessuna scorciatoia che salti la conferma`);
+  ok(/await (chiediConferma|conferma)\(/.test(sorgente), `${nome}: la conferma si chiede, e non dietro una condizione`);
+}
 
 // ── un 5xx è un guasto, non un cancello ────────────────────────────────────
 // Due ruoli fermati da un 500 erano finiti sotto «un gate che morde è un

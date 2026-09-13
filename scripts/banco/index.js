@@ -64,11 +64,12 @@ BANCO DI PROVA — i gesti manuali, fatti dal terminale
       fare quanti vogliono — quindi è un'informazione, non una scarsità.
       Segnala le iscrizioni che dicono «in corso» su un progetto già chiuso.
 
-  npm run banco -- robot [filtro] [--vai]
+  npm run banco robot [filtro]
       IL SECONDO PEZZO: gioca i workshop come uno studente — iscrizione,
       sezioni, chat col cliente, consegna, cron — e alla fine misura i
       testi che i revisori hanno scritto. Dice quanto sta per spendere e
-      chiede conferma (--vai la salta). Il filtro è una sottostringa:
+      chiede sempre conferma: è l'unico comando che spende, e non c'è un
+      modo per saltarla. Il filtro è una sottostringa:
       «palestra», «enoteca > food».
       Si rifiuta di partire se l'account non è marcato di_prova.
 
@@ -78,12 +79,13 @@ BANCO DI PROVA — i gesti manuali, fatti dal terminale
       affiancati per genere di testo, e i commit che stanno in mezzo.
       I rapporti li scrive «npm run banco robot» alla fine di ogni passata.
 
-  npm run banco -- azzera-percorsi [--vai]
+  npm run banco azzera-percorsi
       Riporta i profili DI PROVA a prima della passata: cancella le loro
       iscrizioni ai workshop, e con quelle elaborati, tappe, chat e
       consegne. Senza, il banco è monouso — alla seconda passata tutti i
-      ruoli risultano già completati. Mostra cosa cancella e chiede
-      conferma. Non parte su nessun account che non sia di prova.
+      ruoli risultano già completati. Mostra cosa cancella e chiede sempre
+      conferma, senza modo di saltarla: è l'unico comando che cancella.
+      Non parte su nessun account che non sia di prova.
 
   npm run banco azzera-tentativi <id-iscrizione> <id-fase>
       L'UNICO comando che scrive. Rimette a zero i tentativi di una tappa
@@ -141,6 +143,15 @@ file locale, non c'è più ragione che sia comodo da digitare.
 
 async function main() {
   const [comando, ...resto] = process.argv.slice(2);
+
+  // `--vai` è esistito e non è mai arrivato fin qui (npm se lo mangiava). Ora
+  // non c'è più: chi lo scrive per abitudine se lo sente dire, invece di
+  // vedere la conferma e non capire perché. Ignorarlo in silenzio sarebbe di
+  // nuovo uno strumento che indica una porta e non la apre.
+  if (flag("vai", resto)) {
+    console.log("\nNota: «--vai» non esiste più. La conferma si chiede sempre su robot e");
+    console.log("azzera-percorsi — sono l'unico comando che spende e l'unico che cancella.\n");
+  }
   switch (comando) {
     case "motore":
       return motore();
@@ -159,12 +170,12 @@ async function main() {
       return iscrizioni();
     case "robot": {
       const filtro = resto.find((a) => !a.startsWith("--"));
-      return robot(filtro, { vai: flag("vai", resto) });
+      return robot(filtro);
     }
     case "confronta":
       return confronta(resto[0], resto[1]);
     case "azzera-percorsi":
-      return azzeraPercorsi({ vai: flag("vai", resto) });
+      return azzeraPercorsi();
     case "azzera-tentativi":
       return azzeraTentativi(resto[0], resto[1]);
     case "aiuto-segreto":
