@@ -101,6 +101,10 @@ const ESENTI = new Map([
     "È il robot che gioca, non un conteggio: legge le PROPRIE righe per sapere a che punto è il suo percorso. Escludere i profili di prova qui vorrebbe dire escludere se stesso.",
   ],
   [
+    "scripts/verifica-motore-cron.js",
+    "Non tocca nessun database: legge il SORGENTE del cron e cerca una guardia fra due righe. `workshop_fasi_stato` ci compare perché è il nome nella query che sta controllando, non perché la interroghi — è un controllo lessicale scambiato per una misura da un altro controllo lessicale.",
+  ],
+  [
     "scripts/diagnostica-percorso.sql",
     "Da valutare insieme al primo giro del robot: alcune di queste viste contano quanti studenti hanno fatto cosa, e lì il filtro va messo; altre servono a controllare il robot stesso. Finché il robot non esiste, il file non è ancora stato deciso.",
   ],

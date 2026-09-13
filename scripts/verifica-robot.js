@@ -151,6 +151,75 @@ ok(fermato.colta === null, "se la tappa non è stata giocata il verdetto è «no
 const arreso = verificaAtteso(ATTESO, { tappe: [{ faseId: "sicurezza", revisione: null, esitoRevisione: "non_riuscita" }] });
 ok(arreso.colta === null && /non e stata revisionata|non è stata revisionata/.test(arreso.motivo), "un revisore che si è arreso non conta come trappola scampata");
 
+// ── una trappola sul FEEDBACK FINALE ──────────────────────────────────────
+// L'oggetto non è una tappa: niente rubrica, niente punteggio. E si guarda in
+// tutte le stringhe del finale invece che nei campi nominati uno per uno —
+// `punti_forza` è già diventato `cosa_regge` una volta, e un controllo
+// ancorato ai nomi smetterebbe di guardare senza dirlo.
+console.log("");
+const { statoTrappola } = require("./banco/robot/atteso");
+const { stampaRapporto } = require("./banco/robot/misura");
+const ATTESO_FINALE = {
+  dove: "feedback_finale",
+  non_deve_affermare_uno_schema: ["un modo tuo", "hai sempre", "un filo"],
+};
+const conFinale = (finale) => ({ tappe: [{ faseId: "pitch", revisione: { commento_breve: "ok" } }], feedbackFinale: finale });
+
+const inventa = verificaAtteso(ATTESO_FINALE, conFinale({
+  punti_forza: ["Le domande mostrano un modo tuo di entrare nei problemi."],
+  messaggio_chiusura: "Bel lavoro.",
+}));
+ok(inventa.colta === false, "NON colta se il finale afferma uno schema che nelle domande non c'è");
+ok(inventa.dove === "feedback finale", "…e dice che l'oggetto è il feedback finale, non una tappa");
+
+const tace = verificaAtteso(ATTESO_FINALE, conFinale({
+  punti_forza: ["La tabella delle figure regge."],
+  messaggio_chiusura: "Dalle domande non emerge una direzione sola.",
+}));
+ok(tace.colta === true, "colta se il finale non afferma nessuno schema");
+
+// La stessa frase dentro un campo che non c'entra deve contare lo stesso: la
+// proprietà è «il finale non lo afferma», non «non lo afferma nei punti forza».
+const altrove = verificaAtteso(ATTESO_FINALE, conFinale({
+  punti_forza: ["La tabella regge."],
+  chiusura_cliente: "Si vede che hai sempre un'idea in testa.",
+}));
+ok(altrove.colta === false, "la frase conta in qualunque campo del finale, non solo nei punti di forza");
+
+const senzaFinale = verificaAtteso(ATTESO_FINALE, { tappe: [], feedbackFinale: null });
+ok(senzaFinale.colta === null, "se il finale non è stato generato il verdetto è «non lo so», mai «è andata bene»");
+
+// ── l'attesa rossa ────────────────────────────────────────────────────────
+// Una trappola può chiedere una proprietà che il prodotto non ha ancora: sta
+// nella suite per renderla visibile PRIMA che si costruisca la cosa che
+// dovrebbe averla. Rossa non è un allarme; VERDE è la notizia.
+console.log("");
+ok(statoTrappola(false, null) === "non_colta", "senza attesa rossa, un fallimento resta un fallimento");
+ok(statoTrappola(true, null) === "colta", "…e un successo un successo");
+ok(statoTrappola(false, "il blocco non può ancora tacere") === "rossa_come_previsto", "con l'attesa rossa, il rosso è previsto e non è un allarme");
+ok(statoTrappola(true, "il blocco non può ancora tacere") === "diventata_verde", "e il VERDE è la notizia: la proprietà è arrivata, o il controllo non guarda più");
+ok(statoTrappola(null, "il blocco non può ancora tacere") === "nessun_verdetto", "un giro senza verdetto non diventa «rossa come previsto»: non si è visto niente");
+
+const rossaPrevista = verificaAtteso(
+  { ...ATTESO_FINALE, rosso_atteso: "il blocco non può ancora tacere" },
+  conFinale({ punti_forza: ["Emerge un modo tuo di lavorare."] }),
+);
+ok(rossaPrevista.stato === "rossa_come_previsto" && rossaPrevista.rossoAtteso, "lo stato e il motivo arrivano insieme al verdetto: chi stampa non deve ricordarsene");
+
+// E che il rapporto li stampi per davvero, con il motivo accanto.
+const rapporto = [];
+stampaRapporto(misura([{ etichetta: "w > salute", nome: "le tredici domande sparse", tappe: [], fiduciaFinale: 60, atteso: { ...ATTESO_FINALE, rosso_atteso: "il blocco non può ancora tacere" }, feedbackFinale: { punti_forza: ["Emerge un modo tuo."] } }]), (t = "") => rapporto.push(t));
+const testoTrappole = rapporto.join("\n");
+ok(/rossa, come previsto/.test(testoTrappole), "il rapporto la marca «rossa, come previsto» invece che come un guasto");
+ok(/attesa rossa: il blocco non può ancora tacere/.test(testoTrappole), "…col motivo accanto: «rossa e basta» si legge come un guasto");
+ok(!/tappa «undefined»/.test(testoTrappole), "e non dice «tappa «undefined»»: l'oggetto è il finale");
+
+const rapportoVerde = [];
+stampaRapporto(misura([{ etichetta: "w > salute", nome: "le tredici domande sparse", tappe: [], fiduciaFinale: 60, atteso: { ...ATTESO_FINALE, rosso_atteso: "il blocco non può ancora tacere" }, feedbackFinale: { punti_forza: ["La tabella regge."] } }]), (t = "") => rapportoVerde.push(t));
+const testoVerde = rapportoVerde.join("\n");
+ok(/È DIVENTATA VERDE/.test(testoVerde), "quando passa, il rapporto lo dice in testa: è la notizia");
+ok(/lessicale, quindi parziale/.test(testoVerde), "…senza esultare: un controllo lessicale che passa non è una prova, si legge");
+
 // ── la cattura si legge, e il titolo non conclude ──────────────────────────
 // Il primo giro vero ha dato 4 catture e 4 falsi positivi: la misura pubblicava
 // 33% dove il vero era 0. Il contorno è quello che li faceva vedere in tre
@@ -316,7 +385,6 @@ ok(maiRevisionata.fermati.length === 1, "…e ci resta");
 
 // La riga deve arrivare a schermo, e in alto: una lista che nessuno stampa è
 // una lista che non esiste.
-const { stampaRapporto } = require("./banco/robot/misura");
 const righe = [];
 stampaRapporto(senzaEsito, (t = "") => righe.push(t));
 const testo = righe.join("\n");

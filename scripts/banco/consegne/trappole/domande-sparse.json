@@ -1,0 +1,185 @@
+{
+  "workshop": "palestra-popolare",
+  "ruoli": {
+    "salute": {
+      "livello": "trappola",
+      "tappe": {
+        "quartiere_programma": {
+          "sezioni": {
+            "ricognizione": "Nel quartiere non si muove chi non ha un posto dove farlo a un prezzo che può permettersi, e sono quattro gruppi diversi. I ragazzi fra i dodici e i diciotto stanno in strada il pomeriggio: non è che non vogliano fare sport, è che le società sportive costano trecento euro l'anno più la divisa, e dopo due mesi che non paghi ti fanno sentire fuori posto finché smetti da solo. Le ragazze smettono verso i quattordici anni, e quasi mai perché non gli piace: smettono perché in una sala mista si sentono guardate, e perché in casa lo sport delle femmine è la prima cosa che salta quando manca il tempo. Gli uomini fra i quaranta e i sessanta hanno male alla schiena e il medico gli ha detto di muoversi, ma in una palestra commerciale si sentono fuori luogo fra gli specchi e i ventenni. Gli anziani soli, infine, non cercano sport: cercano un posto dove andare la mattina, e il movimento è la scusa. Il primo che voglio far entrare sono i ragazzi, perché è per loro che Tonino apre e perché sono quelli che se non entrano qui non entrano da nessuna parte.",
+            "programma_settimanale": [
+              [
+                "Lunedì",
+                "17:00-18:30",
+                "Boxe educativa, senza colpi al viso",
+                "Ragazzi 12-15",
+                "Tonino"
+              ],
+              [
+                "Lunedì",
+                "19:00-20:00",
+                "Ginnastica per la schiena",
+                "Adulti 40-60",
+                "Istruttore laureato"
+              ],
+              [
+                "Martedì",
+                "9:30-10:30",
+                "Ginnastica dolce",
+                "Over 65",
+                "Istruttore laureato"
+              ],
+              [
+                "Martedì",
+                "18:00-19:30",
+                "Boxe, gruppo femminile",
+                "Ragazze e donne",
+                "Tonino con l'educatrice in sala"
+              ],
+              [
+                "Mercoledì",
+                "17:00-18:30",
+                "Boxe educativa",
+                "Ragazzi 12-15",
+                "Tonino"
+              ],
+              [
+                "Giovedì",
+                "9:30-10:30",
+                "Ginnastica dolce",
+                "Over 65",
+                "Istruttore laureato"
+              ],
+              [
+                "Giovedì",
+                "17:00-18:00",
+                "Gioco motorio con i genitori",
+                "Bambini 6-10",
+                "Educatrice"
+              ],
+              [
+                "Venerdì",
+                "19:00-20:30",
+                "Boxe, gruppo libero",
+                "Dai 16 anni",
+                "Tonino"
+              ],
+              [
+                "Sabato",
+                "10:00-12:00",
+                "Palestra aperta, senza iscrizione",
+                "Tutti",
+                "Tonino a rotazione con i volontari"
+              ]
+            ],
+            "priorita": "Parto dalla boxe dei ragazzi il lunedì e il mercoledì, e dalla ginnastica dolce del martedì mattina. La prima perché è quello che Tonino sa fare davvero, e una cosa fatta bene da chi la sa fare tiene più di tre cose fatte a metà. La seconda perché la mattina la sala è vuota e non toglie spazio a niente, e perché gli anziani entrano subito e vengono tutte le settimane, che vuol dire quote regolari fin dal primo mese. Le altre attività si aggiungono quando ci sono le persone per tenerle, non prima."
+          },
+          "chat": [
+            "Tonino, il riscaldamento d'inverno quanto ti viene al mese?",
+            "In sala che attrezzi ci sono già, oltre al ring?",
+            "Fra i ragazzi che vengono adesso, c'è qualcuno che poi ha smesso?"
+          ]
+        },
+        "persone_qualifiche": {
+          "sezioni": {
+            "figure": [
+              [
+                "Tecnico di boxe (Tonino)",
+                "Tesserino tecnico FPI di primo livello",
+                "8",
+                "1.500 (rimborso spese)"
+              ],
+              [
+                "Istruttore adulti e anziani",
+                "Laurea in Scienze motorie",
+                "6",
+                "7.800"
+              ],
+              [
+                "Educatrice gioco motorio",
+                "Diploma più corso di un Ente di Promozione Sportiva",
+                "3",
+                "3.900"
+              ],
+              [
+                "Operatore BLSD a rotazione",
+                "Certificazione BLSD-D valida",
+                "A copertura dei turni",
+                "600 (corso per 4 persone)"
+              ],
+              [
+                "Volontari per apertura e sala",
+                "Nessuna qualifica tecnica, formazione interna",
+                "Variabile",
+                "0"
+              ]
+            ],
+            "reclutamento": "Il tecnico è Tonino, che è già qui: va solo messo in regola e rimborsato delle spese. L'istruttore degli adulti lo cerco fra i laureati in Scienze motorie che escono ogni anno e non trovano niente se non le palestre commerciali a chiamata: qui si offre un contratto piccolo ma continuo e un lavoro che ha un senso, e a quelle condizioni qualcuno si trova. L'educatrice per i bambini la cerco fra chi lavora già nel doposcuola della parrocchia e nei centri estivi del quartiere: conoscono le famiglie, e le famiglie si fidano di loro prima che di noi. I volontari sono i genitori dei ragazzini e i ragazzi grandi che hanno fatto boxe qui: aprono, chiudono, stanno in sala. La regola che non cambio è questa: chi tiene un'attività e chi ha una responsabilità sanitaria va pagato sempre, perché è lì che si fanno i danni, e su quello non si risparmia nemmeno quando i conti sono stretti.",
+            "tonino_tecnico": "Tonino prende il tesseramento tecnico FPI di primo livello: il corso federale dura un fine settimana e costa poche centinaia di euro, e da lì può insegnare con una copertura assicurativa vera. Come socio volontario dell'associazione riceve un rimborso spese documentato e non uno stipendio: così è in regola senza aprire una posizione da dipendente, che a questi numeri non si potrebbe permettere."
+          },
+          "chat": [
+            "Il pavimento della sala è quello originale o l'hai rifatto?",
+            "Quanto tempo prima bisogna iscriversi a un corso da tecnico federale?",
+            "L'assicurazione per chi si allena la fa la federazione o si prende a parte?"
+          ]
+        },
+        "sicurezza": {
+          "sezioni": {
+            "certificati": "Per l'attività non agonistica — la ginnastica dolce, il gioco motorio, la palestra aperta — serve il certificato di idoneità alla pratica sportiva non agonistica, che rilascia il medico di base o il pediatra e che vale un anno. Per chi fa boxe e sale sul ring serve il certificato agonistico, che rilascia solo il medico dello sport dopo un elettrocardiogramma sotto sforzo e che costa di più. I ragazzi che fanno boxe educativa senza combattere restano in non agonistico. Chi controlla che ci siano è la persona che apre: senza certificato in cartella non si entra in sala, e questa regola vale anche per chi viene da anni.",
+            "checklist_sicurezza": {
+              "voci": {
+                "Certificato medico per tutti i tesserati": true,
+                "Defibrillatore (DAE) in sala, segnalato": true,
+                "Almeno un operatore BLSD a ogni turno": true,
+                "Cassetta di primo soccorso e numeri di emergenza": true,
+                "Registro infortuni": true
+              },
+              "nota": "Il defibrillatore e la formazione BLSD sono a budget nell'investimento iniziale: 1.800 euro fra apparecchio e corso per quattro persone. Non è una voce che si rimanda al secondo anno, perché la palestra aperta del sabato è il momento in cui entra gente che non conosciamo e in cui siamo più esposti."
+            },
+            "protocollo_infortuni": "Un ragazzo di sedici anni perde conoscenza durante il riscaldamento. La prima cosa è fermare tutti e fare spazio: chi conduce va da lui, gli altri si allontanano e uno va a prendere il defibrillatore, senza aspettare di sapere se serve. Lo sdraio a terra e controllo due cose sole: se risponde e se respira normalmente. Se respira ed è solo svenuto, gli alzo le gambe, gli slaccio il colletto, faccio aprire una finestra, e quando riprende lo tengo seduto, gli do acqua e chiamo i genitori. Se non risponde e non respira, o respira in modo strano e rumoroso, quello è un arresto cardiaco fino a prova contraria: chiamo il 118 con il vivavoce, comincio le compressioni sul torace, e appena il defibrillatore arriva lo accendo e faccio quello che dice la voce, che guida passo per passo anche chi non l'ha mai usato. Non mi fermo finché non arriva il 118. In una palestra di boxe, con un ragazzo che perde coscienza, quello è il caso che uccide, e i minuti che contano sono i primi tre o quattro. Alla fine, comunque sia andata, scrivo tutto sul registro infortuni: ora, cosa è successo, cosa ho fatto, chi ho chiamato."
+          },
+          "chat": [
+            "La cassetta del pronto soccorso dove la tieni?",
+            "Gli spogliatoi quanti sono, uno o due?",
+            "Se uno si iscrive a novembre paga tutto l'anno o solo i mesi che restano?"
+          ]
+        },
+        "pitch": {
+          "sezioni": {
+            "sintesi": "Tonino, la palestra sta in piedi così. Apriamo sei giorni con sei attività: boxe per i ragazzini il lunedì e il mercoledì, un gruppo di sole ragazze il martedì sera, ginnastica per gli anziani due mattine, movimento per la schiena per i quaranta-sessanta, gioco motorio per i bambini con i genitori, e il sabato mattina la palestra aperta per chiunque, senza iscrizione. I minori non pagano mai, gli adulti venti euro al mese. Le persone sono quattro più i volontari: tu per la boxe, un laureato in scienze motorie per adulti e anziani, un'educatrice per i bambini, e una persona col brevetto per le emergenze presente a ogni turno — quello non è un dettaglio ed è a budget, defibrillatore compreso, 1.800 euro fra apparecchio e corso per quattro persone. Tu vai in regola col tesseramento federale, che è un corso di un fine settimana, e prendi un rimborso spese e non uno stipendio. Sui trentamila: la parte grossa se ne va nella messa a norma dello spazio e nell'attrezzatura. Non diventa una palestra fitness perché non c'è niente da vendere: niente abbonamenti annuali, niente tornello, e chi non può pagare entra lo stesso. Quello che non so ancora è quanti adulti paganti troveremo il primo anno, e da quel numero dipende tutto il resto.",
+            "una_cosa": "Che il programma non è costruito su chi verrebbe comunque. Le attività della mattina sono per gli anziani e per chi ha male alla schiena — gente che in una palestra normale non entra mai, e che qui entra perché l'orario è il loro e perché non deve pagare un abbonamento annuale per provare."
+          },
+          "chat": [
+            "Tonino, siamo all'ultimo pezzo. Quante ore al giorno riesci a stare aperto?",
+            "C'è un medico di famiglia in zona con cui hai già parlato?",
+            "Il regolamento interno bisogna appenderlo o basta farlo firmare all'iscrizione?",
+            "C'è una cosa che vuoi assolutamente vedere scritta nel documento?"
+          ]
+        }
+      },
+      "nome": "le tredici domande sparse",
+      "atteso": {
+        "dove": "feedback_finale",
+        "la_proprieta": "Con domande senza filo, il finale non deve affermare che dallo studente emerge un modo ricorrente di entrare nei problemi. Deve poter dire che non emerge niente.",
+        "rosso_atteso": "il blocco non può ancora tacere: punti_forza è un array obbligatorio di 2-3 elementi, quindi il silenzio non è un esito rappresentabile e il modello riempie. Il giorno che diventa verde, la proprietà è arrivata — o il controllo ha smesso di guardare dove guardava.",
+        "non_deve_affermare_uno_schema": [
+          "un modo tuo",
+          "il tuo modo di",
+          "il tuo approccio",
+          "hai sempre",
+          "ogni volta",
+          "sistematicamente",
+          "costantemente",
+          "in modo coerente",
+          "una costante",
+          "un filo",
+          "parti sempre da",
+          "tutte e tredici",
+          "nessuna domanda"
+        ],
+        "nota_sul_controllo": "L'elenco è un controllo parziale e lessicale, come la guardia del registro: prende le forme piu frequenti, non tutte. Il giudizio vero si da leggendo. Oggi questa trappola e ROSSA per costruzione — punti_forza e un array obbligatorio di 2-3 elementi, quindi il silenzio non e un esito rappresentabile e il modello riempie. Diventa verde quando il blocco nuovo puo tacere.",
+        "confronto": "scripts/banco/consegne/palestra-popolare.json > ruoli.salute — stesse identiche sezioni, cambiate solo le tredici domande."
+      }
+    }
+  }
+}

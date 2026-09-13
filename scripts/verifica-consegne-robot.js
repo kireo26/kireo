@@ -161,7 +161,39 @@ function validaFile(rel) {
     if (livello === "trappola") {
       const a = ruolo.atteso ?? {};
       ok(Boolean(ruolo.nome), `${ruoloSlug}: la trappola ha un nome`);
-      ok(Boolean(a.tappa) && attese.includes(a.tappa), `${ruoloSlug}: «atteso.tappa» punta a una tappa che esiste`);
+
+      // `dove` assente vuol dire «tappa»: le trappole scritte prima valgono
+      // ancora. Un valore inventato va detto qui e non scoperto dal robot a
+      // metà giro — cadrebbe nel ramo della tappa e fallirebbe su un `tappa`
+      // che quel file non ha nessuna ragione di avere.
+      const dove = a.dove ?? "tappa";
+      ok(["tappa", "feedback_finale"].includes(dove), `${ruoloSlug}: «atteso.dove» è "tappa" o "feedback_finale" (qui: «${dove}»)`);
+
+      if (dove === "tappa") {
+        ok(Boolean(a.tappa) && attese.includes(a.tappa), `${ruoloSlug}: «atteso.tappa» punta a una tappa che esiste`);
+      } else {
+        ok(!a.tappa, `${ruoloSlug}: una trappola sul feedback finale non nomina una tappa`);
+      }
+
+      // Una trappola SENZA condizioni gira, costa, e restituisce «non lo so»:
+      // è la forma peggiore di fallimento, perché sembra che sia andata bene.
+      const condizioni =
+        (a.deve_comparire ?? []).length +
+        (a.non_deve_comparire_nei_punti_forza ?? []).length +
+        (a.non_deve_affermare_uno_schema ?? []).length +
+        (typeof a.fiducia_massima === "number" ? 1 : 0);
+      ok(condizioni > 0, `${ruoloSlug}: l'atteso contiene almeno una condizione da controllare`);
+
+      // L'attesa rossa è una dichiarazione, quindi va scritta: «rossa e basta»
+      // in un rapporto si legge come un guasto, e un guasto che non è un
+      // guasto è il modo di far smettere di leggere i rapporti.
+      if (a.rosso_atteso !== undefined) {
+        ok(
+          typeof a.rosso_atteso === "string" && a.rosso_atteso.trim().length > 10,
+          `${ruoloSlug}: «atteso.rosso_atteso» dice PERCHÉ ci si aspetta il rosso`,
+        );
+        nota(`${ruoloSlug}: trappola attesa ROSSA — ${a.rosso_atteso}`);
+      }
     }
   }
 }

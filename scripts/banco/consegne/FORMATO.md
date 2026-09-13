@@ -109,6 +109,60 @@ Se la tappa non viene giocata, o se il revisore si arrende, il verdetto è
 **«non lo so»** e non «è andata bene»: una trappola scampata per un guasto non
 è una trappola colta.
 
+#### `atteso.dove` — la tappa, o il feedback finale
+
+`dove` assente vuol dire `"tappa"`: le trappole scritte prima valgono ancora.
+L'altro valore è `"feedback_finale"`, che **non è una tappa** — niente rubrica,
+niente punteggio, quindi né `tappa` né `fiducia_massima`:
+
+```jsonc
+"atteso": {
+  "dove": "feedback_finale",
+  "la_proprieta": "Con domande senza filo, il finale non deve affermare che
+                   dallo studente emerge un modo ricorrente di entrare nei
+                   problemi. Deve poter dire che non emerge niente.",
+  "non_deve_affermare_uno_schema": ["un modo tuo", "hai sempre", "un filo"]
+}
+```
+
+`deve_comparire` vale anche qui, con lo stesso significato. La differenza è
+`non_deve_affermare_uno_schema`, che si cerca in **tutte** le stringhe del
+finale e non solo nei punti di forza — la proprietà è «il finale non lo
+afferma», non «non lo afferma lì». Si guardano tutte le stringhe invece dei
+campi nominati uno per uno apposta: `punti_forza` è già diventato `cosa_regge`
+una volta, e un controllo ancorato ai nomi smetterebbe di guardare senza dirlo.
+
+#### `atteso.rosso_atteso` — una trappola può essere rossa DI PROPOSITO
+
+Una trappola può chiedere una proprietà che il prodotto **non ha ancora**, e
+stare nella suite per renderla visibile *prima* che si costruisca la cosa che
+dovrebbe averla. Un test che nasce verde su un comportamento mai scritto non
+prova niente.
+
+```jsonc
+"rosso_atteso": "il blocco non può ancora tacere: punti_forza è un array
+                 obbligatorio di 2-3 elementi, quindi il silenzio non è un
+                 esito rappresentabile e il modello riempie."
+```
+
+Il campo cambia come si legge il rapporto, non cosa si controlla:
+
+| | senza `rosso_atteso` | con |
+|---|---|---|
+| controlli falliti | `✗ NON COLTA` — l'allarme | `✗ rossa, come previsto` + il motivo |
+| controlli passati | `✓ COLTA` | `★ È DIVENTATA VERDE` — **la notizia** |
+
+Il quarto caso è quello per cui il campo esiste. Quando una trappola attesa
+rossa passa, il rapporto lo dice in testa e **senza esultare**: il controllo è
+lessicale, quindi parziale, e un modello che dice la stessa cosa con altre
+parole lo passa. O la proprietà è arrivata, o il controllo ha smesso di
+guardare dove guardava — le due cose si distinguono solo **leggendo**.
+
+*E il motivo è obbligatorio se il campo c'è: «rossa e basta» in un rapporto si
+legge come un guasto, e un guasto che non è un guasto è il modo di far smettere
+di leggere i rapporti. Una trappola tenuta fuori dalla suite perché fallisce è
+una trappola che nessuno rimette dentro.*
+
 *Nota storica, perché non succeda di nuovo: dal primo giorno questo documento
 prometeva che «il robot dice se è stato colto», e per una settimana `atteso`
 è stato **validato nella forma** ma mai **controllato contro il giro**. Una

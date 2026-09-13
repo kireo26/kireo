@@ -26,15 +26,100 @@ const normalizza = (t) =>
 
 const testoDi = (v) => (Array.isArray(v) ? v.join(" — ") : typeof v === "string" ? v : JSON.stringify(v ?? ""));
 
+// Tutte le stringhe di un oggetto, a qualunque profondità. Esiste già in
+// `lib/lingua/scansione.ts` e NON si riusa qui di proposito: quel file è
+// TypeScript, e importarlo obbligherebbe ogni chiamante di atteso.js a
+// installare prima lo shim del loader. Quattro righe di traversata non hanno
+// una regola dentro da far divergere; una condizione di verdetto sì, e infatti
+// quella sta in un posto solo.
+function tutteLeStringhe(v, dentro = []) {
+  if (typeof v === "string") dentro.push(v);
+  else if (Array.isArray(v)) for (const x of v) tutteLeStringhe(x, dentro);
+  else if (v && typeof v === "object") for (const x of Object.values(v)) tutteLeStringhe(x, dentro);
+  return dentro;
+}
+
 // esito = il resoconto di giocaRuolo. Restituisce sempre un oggetto, anche
 // quando non c'è niente da controllare: «non lo so» non è «è andata bene».
+//
+// DUE OGGETTI POSSIBILI, decisi da `atteso.dove`. La prima trappola guardava la
+// revisione di UNA TAPPA (il defibrillatore); la seconda guarda il FEEDBACK
+// FINALE, che non è una tappa e non ha né punteggio né rubrica. `dove` assente
+// vuol dire «tappa», così le trappole scritte prima continuano a valere.
 function verificaAtteso(atteso, esito) {
   if (!atteso) return null;
+  const verdetto = atteso.dove === "feedback_finale" ? verificaFinale(atteso, esito) : verificaTappa(atteso, esito);
+  // L'attesa rossa in un punto solo: chi stampa non deve ricordarsene.
+  return { ...verdetto, rossoAtteso: atteso.rosso_atteso ?? null, stato: statoTrappola(verdetto.colta, atteso.rosso_atteso) };
+}
 
+// I quattro stati, e quello che conta è il quarto.
+//
+// Una trappola può essere ROSSA DI PROPOSITO: chiede una proprietà che il
+// prodotto non ha ancora, e sta nella suite per rendere visibile quella
+// mancanza PRIMA che si costruisca la cosa che dovrebbe averla. Un test che
+// nasce verde su un comportamento mai scritto non prova niente.
+//
+// Quindi non è un allarme finché resta rossa — ma il giorno che diventa verde
+// è la notizia, e va detta: o la proprietà è arrivata, o il controllo (che è
+// lessicale, quindi parziale) ha smesso di guardare dove guardava. Le due cose
+// si distinguono solo leggendo, e il rapporto lo dice invece di esultare.
+function statoTrappola(colta, rossoAtteso) {
+  if (colta === null || colta === undefined) return "nessun_verdetto";
+  if (!rossoAtteso) return colta ? "colta" : "non_colta";
+  return colta ? "diventata_verde" : "rossa_come_previsto";
+}
+
+// ── il feedback finale ────────────────────────────────────────────────────
+// Si guarda in TUTTE le stringhe del finale, non nei campi nominati uno per
+// uno: `punti_forza` è già rinominato `cosa_regge` nella revisione di tappa, e
+// un controllo ancorato ai nomi dei campi smetterebbe di guardare senza dirlo —
+// che è esattamente il difetto costato mezza passata il 31 agosto.
+function verificaFinale(atteso, esito) {
+  const finale = esito.feedbackFinale;
+  if (!finale) {
+    return {
+      dove: "feedback finale",
+      colta: null,
+      motivo: "il feedback finale non è stato generato: il robot non è arrivato in fondo, o il revisore si è arreso",
+      controlli: [],
+    };
+  }
+
+  const tutto = normalizza(tutteLeStringhe(finale).join(" — "));
+  const controlli = [];
+
+  for (const termine of atteso.deve_comparire ?? []) {
+    controlli.push({
+      ok: tutto.includes(normalizza(termine)),
+      descrizione: `nomina «${termine}»`,
+      spiegazione: `il feedback finale non nomina mai «${termine}»`,
+    });
+  }
+
+  for (const frase of atteso.non_deve_affermare_uno_schema ?? []) {
+    controlli.push({
+      ok: !tutto.includes(normalizza(frase)),
+      descrizione: `non afferma uno schema con «${frase}»`,
+      spiegazione: `«${frase}» compare nel feedback finale: afferma uno schema che nelle domande non c'è`,
+    });
+  }
+
+  return {
+    dove: "feedback finale",
+    colta: controlli.length > 0 ? controlli.every((c) => c.ok) : null,
+    motivo: controlli.length === 0 ? "l'atteso non contiene nessuna condizione da controllare" : null,
+    controlli,
+  };
+}
+
+// ── la revisione di una tappa ─────────────────────────────────────────────
+function verificaTappa(atteso, esito) {
   const tappa = (esito.tappe ?? []).find((t) => t.faseId === atteso.tappa);
   if (!tappa || !tappa.revisione) {
     return {
       tappa: atteso.tappa,
+      dove: `tappa «${atteso.tappa}»`,
       colta: null,
       motivo: tappa
         ? `la tappa «${atteso.tappa}» non è stata revisionata (${tappa.esitoRevisione ?? "nessun esito"}): non c'è niente su cui dare un verdetto`
@@ -80,6 +165,7 @@ function verificaAtteso(atteso, esito) {
 
   return {
     tappa: atteso.tappa,
+    dove: `tappa «${atteso.tappa}»`,
     colta: controlli.length > 0 ? controlli.every((c) => c.ok) : null,
     motivo: controlli.length === 0 ? "l'atteso non contiene nessuna condizione da controllare" : null,
     punteggio: Number(rev.punteggio_fiducia),
@@ -87,4 +173,4 @@ function verificaAtteso(atteso, esito) {
   };
 }
 
-module.exports = { verificaAtteso };
+module.exports = { verificaAtteso, statoTrappola };

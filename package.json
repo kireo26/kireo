@@ -34,7 +34,8 @@
     "test:focus": "node scripts/verifica-focus-sezioni.js",
     "test:log5xx": "node scripts/verifica-log-5xx.js",
     "test:chat": "node scripts/verifica-chat-tappa.js",
-    "test:motore": "node scripts/verifica-motore-cron.js"
+    "test:motore": "node scripts/verifica-motore-cron.js",
+    "test": "node scripts/tutti-i-test.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.112.5",

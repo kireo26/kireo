@@ -347,17 +347,46 @@ function stampaRapporto(m, righe = console.log) {
 
   if (m.trappole && m.trappole.length > 0) {
     di("TRAPPOLE");
+    const ETICHETTA = {
+      colta: "✓ COLTA",
+      non_colta: "✗ NON COLTA",
+      rossa_come_previsto: "✗ rossa, come previsto",
+      diventata_verde: "★ È DIVENTATA VERDE",
+      nessun_verdetto: "— nessun verdetto",
+    };
     for (const t of m.trappole) {
-      const esito = t.colta === true ? "✓ COLTA" : t.colta === false ? "✗ NON COLTA" : "— nessun verdetto";
-      di(`  ${esito}  ${t.nome ?? t.etichetta}  (tappa «${t.tappa}»${Number.isFinite(t.punteggio) ? `, ${t.punteggio} punti` : ""})`);
+      const stato = t.stato ?? "nessun_verdetto";
+      di(`  ${ETICHETTA[stato] ?? stato}  ${t.nome ?? t.etichetta}  (${t.dove ?? "?"}${Number.isFinite(t.punteggio) ? `, ${t.punteggio} punti` : ""})`);
       if (t.motivo) di(`      ${t.motivo}`);
+      if (stato === "rossa_come_previsto") di(`      attesa rossa: ${t.rossoAtteso}`);
       for (const c of t.controlli ?? []) di(`      ${c.ok ? "✓" : "✗"} ${c.ok ? c.descrizione : c.spiegazione}`);
     }
     di("");
-    di("  Confronto letterale sul testo della revisione, mai un modello che giudica");
-    di("  un altro modello. Una trappola NON colta è il risultato più utile che");
-    di("  questo banco possa dare: vuol dire che il revisore ha lasciato passare");
+
+    // Una trappola ROSSA DI PROPOSITO che diventa verde è la notizia del
+    // rapporto, e va detta senza esultare: il controllo è lessicale, quindi
+    // parziale, e un modello che dice la stessa cosa con altre parole lo passa.
+    const nuoveVerdi = m.trappole.filter((t) => t.stato === "diventata_verde");
+    if (nuoveVerdi.length > 0) {
+      for (const t of nuoveVerdi) {
+        di(`  ★ «${t.nome ?? t.etichetta}» era attesa ROSSA e adesso passa.`);
+        di(`      ci si aspettava: ${t.rossoAtteso}`);
+      }
+      di("  O la proprietà è arrivata, o il controllo ha smesso di guardare dove");
+      di("  guardava — è lessicale, quindi parziale. Le due cose si distinguono");
+      di("  solo LEGGENDO il testo. Prima di togliere l'attesa rossa dal file,");
+      di("  leggilo.");
+      di("");
+    }
+
+    di("  Confronto letterale sul testo, mai un modello che giudica un altro");
+    di("  modello. Una trappola NON colta è il risultato più utile che questo");
+    di("  banco possa dare: vuol dire che il revisore ha lasciato passare");
     di("  esattamente la cosa che gli avevamo chiesto di non lasciar passare.");
+    di("  «Rossa come previsto» è un'altra cosa: chiede una proprietà che il");
+    di("  prodotto non ha ancora, e sta qui apposta per renderla visibile prima");
+    di("  che si costruisca la cosa che dovrebbe averla. Una trappola che sta");
+    di("  fuori dalla suite perché fallisce è una trappola che nessuno rimette.");
     di("");
   }
 
