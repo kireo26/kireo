@@ -23,6 +23,7 @@
 
 const { config } = require("../config");
 const { interpreta } = require("../motore");
+const { e5xx } = require("./sessione");
 
 const attendi = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -150,7 +151,10 @@ async function giocaRuolo({ sessione, workshopSlug, ruoloSlug, consegne, fasi, r
   // passa anche dalle guardie della pagina, che sono parte della porta.
   const pagina = await chiama(`/app/workshop/${workshopSlug}/progetto`, null, "GET");
   if (pagina.status >= 400) {
-    return { ...esito, fermato: { dove: "apertura", perche: `la pagina del progetto ha risposto ${pagina.status}` } };
+    return {
+      ...esito,
+      fermato: { dove: "apertura", perche: `la pagina del progetto ha risposto ${pagina.status}`, guasto: e5xx(pagina.status) },
+    };
   }
 
   // ── 3. le tappe, una alla volta ──────────────────────────────────────────
@@ -231,6 +235,7 @@ async function giocaRuolo({ sessione, workshopSlug, ruoloSlug, consegne, fasi, r
               dove: fase.id,
               perche: `la chat ha risposto ${r.status}: ${r.dati?.errore ?? r.testo.slice(0, 120)}`,
               doppio: r.status === 429,
+              guasto: e5xx(r.status),
             },
           };
         }
@@ -257,6 +262,7 @@ async function giocaRuolo({ sessione, workshopSlug, ruoloSlug, consegne, fasi, r
             // Verificato leggendo consegna_fase_workshop, non dedotto: la
             // funzione alza quell'eccezione quando non trova una riga 'aperta'.
             doppio: /fase_non_aperta/.test(`${r.dati?.errore ?? ""}${r.testo}`),
+            guasto: e5xx(r.status),
             gate: true,
             dettaglio: r.dati,
           },

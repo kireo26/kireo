@@ -103,6 +103,11 @@ export async function POST(request: NextRequest) {
     if (erroreInvio.message?.includes("troppi_messaggi_chat_cliente")) {
       return erroreDiCortesia("Hai raggiunto il numero massimo di messaggi con il cliente per questo workshop.", 429);
     }
+    // Il 500 era l'UNICO errore muto di questo file (gli altri sette punti
+    // loggano), ed è quello che il 13/09 ha fermato due ruoli del robot
+    // lasciando nei log di Vercel 447 righe e nessuna traccia. Il messaggio
+    // della RPC è l'unica cosa che dice perché il database ha rifiutato.
+    console.error("Errore invia_messaggio_chat_cliente:", erroreInvio.message ?? erroreInvio);
     return erroreDiCortesia("Non è stato possibile inviare il messaggio. Riprova.", 500);
   }
 

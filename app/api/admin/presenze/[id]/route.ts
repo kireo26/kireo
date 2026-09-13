@@ -29,6 +29,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
   const { data: righe, error } = await supabase.rpc("esporta_presenze_admin", { p_evento_id: id });
   if (error) {
+    console.error("Errore esporta_presenze_admin:", error.message ?? error);
     return NextResponse.json({ errore: "Non è stato possibile generare l'export." }, { status: 500 });
   }
 

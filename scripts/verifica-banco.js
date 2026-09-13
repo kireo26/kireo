@@ -150,6 +150,28 @@ const senzaReady = finestreDeploy(
 ).consultare.map((d) => d.uid);
 ok(!senzaReady.includes("dpl_vecchio"), "senza `ready` sul successore il buco resta invisibile: limite noto, non sicurezza promessa");
 
+// ── i flag arrivano davvero ────────────────────────────────────────────────
+// Il banco stampava «npm run banco log 30 --tutto», e quel comando non mostra
+// tutte le righe: npm si mangia le opzioni prima di passarle allo script. Uno
+// strumento che indica una porta deve aprirla, quindi il flag si legge da
+// tutte e due le parti — dagli argomenti e da dove npm lo mette.
+console.log("");
+const { flag } = require("./banco/config");
+ok(flag("tutto", ["log", "30", "--tutto"]), "il flag scritto dopo «--» arriva dagli argomenti");
+ok(!flag("tutto", ["log", "30"]), "…e senza non si accende da solo");
+process.env.npm_config_tutto = "true";
+ok(flag("tutto", ["log", "30"]), "il flag che npm si è mangiato si rilegge da dove l'ha messo");
+delete process.env.npm_config_tutto;
+ok(!flag("vai", ["robot", "palestra"]), "un flag diverso non si accende per sbaglio");
+
+// ── un 5xx è un guasto, non un cancello ────────────────────────────────────
+// Due ruoli fermati da un 500 erano finiti sotto «un gate che morde è un
+// risultato»: dare a un guasto la dignità di un risultato è la cosa che
+// questo banco esiste per non fare.
+const { e5xx } = require("./banco/robot/sessione");
+ok(!e5xx(400) && !e5xx(429) && !e5xx(499), "un 4xx resta un cancello: è il prodotto che dice no");
+ok(e5xx(500) && e5xx(503), "un 5xx è un guasto nostro: va coi caduti, che si rifanno");
+
 console.log("\n═══════════════════════════════════════════\n");
 if (falliti) { console.error(`✗ ${falliti} controlli falliti.\n`); process.exit(1); }
 console.log("✓ Ogni esito ha la sua frase, il fallimento non si nasconde dietro un successo,\n  e «non posso vederle» non si legge come «non ci sono».\n");

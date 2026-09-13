@@ -48,6 +48,12 @@ function barattolo() {
 // l'assenza di una risposta: riprovare non aggira nessun cancello. Un 4xx o un
 // 5xx invece è una risposta, e si riporta com'è.
 //
+// MA NON NELLA STESSA LISTA, e questa parte è del 13/09. Un 4xx è il prodotto
+// che dice no — un cancello, la cosa preziosa. Un 5xx è il prodotto che si
+// rompe: è un guasto, come un `fetch failed`, e va con i caduti. Due ruoli
+// fermati da un 500 erano finiti sotto «un gate che morde è un risultato»,
+// che è di nuovo dare a un guasto la dignità di un risultato.
+//
 // SOLO IN LETTURA, e questa metà è arrivata dopo, il 2026-08-31, pagando. Il
 // ritentativo era su ogni POST, e un ritentativo su una scrittura È UN SECONDO
 // INVIO: il robot non può sapere se la prima è arrivata. Sul quarto messaggio
@@ -160,4 +166,9 @@ async function apriSessione() {
   return { supabase, chiama, utente: data.user, profilo, sitoUrl: c.sitoUrl };
 }
 
-module.exports = { apriSessione };
+// Un 5xx è un guasto nostro, non una porta chiusa in faccia allo studente:
+// chi lo riceve va nella lista dei caduti, che si rifà, non in quella dei
+// cancelli, che si studia.
+const e5xx = (status) => status >= 500;
+
+module.exports = { apriSessione, e5xx };

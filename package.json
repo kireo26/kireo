@@ -31,7 +31,8 @@
     "test:confronto": "node scripts/verifica-confronto.js",
     "test:chiavi": "node scripts/verifica-chiavi-json.js",
     "test:formula": "node scripts/verifica-formula-testa.js",
-    "test:focus": "node scripts/verifica-focus-sezioni.js"
+    "test:focus": "node scripts/verifica-focus-sezioni.js",
+    "test:log5xx": "node scripts/verifica-log-5xx.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.112.5",

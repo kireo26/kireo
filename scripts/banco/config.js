@@ -113,4 +113,20 @@ function config(chiaviRichieste) {
   return dati;
 }
 
-module.exports = { config, CHIAVI, PERCORSO, esci };
+// I FLAG NON ARRIVANO, SE NON SI SA COME CHIEDERLI. `npm run banco log 30
+// --tutto` — il comando che il banco stesso suggeriva — non mostra tutte le
+// righe: npm si mangia le opzioni che cominciano con `--` e allo script
+// arrivano solo `log 30`. Chi lo copiava vedeva di nuovo l'output filtrato e
+// concludeva che non c'era altro da vedere. Stessa cosa per `--vai`: la
+// conferma si è sempre presentata lo stesso.
+// [verificato, non dedotto] npm però le conserva come variabili d'ambiente
+// (`npm_config_tutto=true`), quindi il flag si può leggere da tutte e due le
+// parti: chi scrive `npm run banco -- log 30 --tutto` e chi lo scrive senza
+// `--` ottengono la stessa cosa, che è l'unico comportamento difendibile per
+// uno strumento che quel comando lo stampa da sé.
+function flag(nome, argv) {
+  return argv.includes(`--${nome}`) || process.env[`npm_config_${nome}`] === "true";
+}
+
+module.exports = { config, CHIAVI, PERCORSO, esci, flag };
+

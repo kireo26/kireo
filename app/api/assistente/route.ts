@@ -96,6 +96,7 @@ export async function POST(request: NextRequest) {
           429,
         );
       }
+      console.error("Errore insert assistente_conversazioni:", erroreConversazione.message ?? erroreConversazione);
       return erroreDiCortesia("Non è stato possibile avviare una nuova conversazione. Riprova più tardi.", 500);
     }
   }

@@ -83,6 +83,7 @@ export async function POST(request: NextRequest) {
     if (erroreConsegna.message?.includes("fase_non_aperta")) {
       return erroreDiCortesia("Questa tappa non è (più) aperta.", 400);
     }
+    console.error("Errore consegna_fase_workshop:", erroreConsegna.message ?? erroreConsegna);
     return erroreDiCortesia("Non è stato possibile consegnare la tappa. Riprova.", 500);
   }
 

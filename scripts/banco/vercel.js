@@ -121,10 +121,15 @@ async function log(minuti = 60, opzioni = {}) {
       console.log("  che Vercel ha già scartato i log (la conservazione dei log di runtime è di");
       console.log("  poche ore). Quello che non è stato letto in tempo non si recupera.");
     } else {
-      console.log(`  ${totaleRighe} righe lette, nessuna di errore dei revisori.`);
-      console.log("  Questa sì è una buona notizia: il traffico c'è stato e nessun revisore ha");
-      console.log("  fallito. Per vedere tutte le righe e non solo quelle filtrate:");
-      console.log(`      npm run banco log ${minuti} --tutto`);
+      console.log(`  ${totaleRighe} righe lette, nessuna passata dal filtro degli errori.`);
+      // NON «nessun revisore ha fallito»: questo comando sa solo cosa è stato
+      // SCRITTO. Il 13/09 due ruoli si sono fermati su un 500 che non
+      // registrava niente, e qui sarebbe comparsa la buona notizia. Il filtro
+      // vede i guasti che parlano; quelli muti li prende `npm run test:log5xx`.
+      console.log("  Vuol dire che il traffico c'è stato e nessuno ha scritto un errore di");
+      console.log("  quelli che il filtro conosce — non che non sia successo niente.");
+      console.log("  Per vedere tutte le righe e non solo quelle filtrate:");
+      console.log(`      npm run banco -- log ${minuti} --tutto`);
     }
     console.log("");
     return;

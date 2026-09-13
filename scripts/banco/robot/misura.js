@@ -227,9 +227,11 @@ function stampaRapporto(m, righe = console.log) {
 
   if (m.caduti && m.caduti.length > 0) {
     di(`CADUTI PER UN GUASTO: ${m.caduti.length}`);
-    di("  Non sono risultati: sono ruoli persi. La rete, un timeout, un'eccezione.");
+    di("  Non sono risultati: sono ruoli persi. La rete, un timeout, un'eccezione,");
+    di("  o un 5xx — che è il prodotto che si rompe, non il prodotto che dice no.");
     di("  Il robot riprova già una volta da solo su un errore di rete, quindi se");
-    di("  sono qui hanno fallito due volte. Vanno RIFATTI, non studiati.\n");
+    di("  sono qui hanno fallito due volte. Vanno RIFATTI, non studiati.");
+    di("  Su un 5xx guarda PRIMA i log: `npm run banco -- log 30`.\n");
     for (const c of m.caduti) di(`  · ${c.etichetta} — ${c.perche}`);
     di("");
   }

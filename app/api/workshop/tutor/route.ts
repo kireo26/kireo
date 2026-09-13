@@ -96,6 +96,7 @@ export async function POST(request: NextRequest) {
     if (erroreLog.message?.includes("troppe_richieste_tutor_oggi")) {
       return erroreDiCortesia("Hai raggiunto il numero massimo di richieste al tutor per oggi. Riprova domani!", 429);
     }
+    console.error("Errore insert workshop_tutor_log:", erroreLog.message ?? erroreLog);
     return erroreDiCortesia("Non è stato possibile contattare il tutor. Riprova.", 500);
   }
 

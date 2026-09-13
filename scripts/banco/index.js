@@ -30,7 +30,7 @@ const { azzeraPercorsi } = require("./azzera-percorsi");
 const { robot } = require("./robot");
 const { iscrizioni } = require("./iscrizioni");
 const { confronta } = require("./confronta");
-const { PERCORSO } = require("./config");
+const { PERCORSO, flag } = require("./config");
 
 const AIUTO = `
 BANCO DI PROVA — i gesti manuali, fatti dal terminale
@@ -45,12 +45,14 @@ BANCO DI PROVA — i gesti manuali, fatti dal terminale
       tentativi spesi, esito della revisione, fiducia accumulata.
       Il filtro è una sottostringa (slug del workshop, del ruolo, o id).
 
-  npm run banco log [minuti] [dpl_...] [--tutto]
+  npm run banco -- log [minuti] [dpl_...] [--tutto]
       Le righe di errore dei revisori dai log di produzione (default: 60
       minuti), più cosa fare per ciascun motivo. Consulta TUTTI i deploy che
       coprono la finestra — dopo un redeploy le righe del guasto stanno sul
       deploy di prima — e dice sempre cosa ha potuto guardare e cosa no.
-      Con --tutto mostra ogni riga, non solo quelle filtrate.
+      Con --tutto mostra ogni riga, non solo quelle filtrate. Il «--» dopo
+      «banco» serve a npm per non mangiarsi i flag (funziona anche senza:
+      il banco li rilegge da npm, ma con «--» funziona ovunque).
 
   npm run banco deploy
       Aspetta che il deploy di produzione sia READY, invece di ricaricare
@@ -62,7 +64,7 @@ BANCO DI PROVA — i gesti manuali, fatti dal terminale
       fare quanti vogliono — quindi è un'informazione, non una scarsità.
       Segnala le iscrizioni che dicono «in corso» su un progetto già chiuso.
 
-  npm run banco robot [filtro] [--vai]
+  npm run banco -- robot [filtro] [--vai]
       IL SECONDO PEZZO: gioca i workshop come uno studente — iscrizione,
       sezioni, chat col cliente, consegna, cron — e alla fine misura i
       testi che i revisori hanno scritto. Dice quanto sta per spendere e
@@ -76,7 +78,7 @@ BANCO DI PROVA — i gesti manuali, fatti dal terminale
       affiancati per genere di testo, e i commit che stanno in mezzo.
       I rapporti li scrive «npm run banco robot» alla fine di ogni passata.
 
-  npm run banco azzera-percorsi [--vai]
+  npm run banco -- azzera-percorsi [--vai]
       Riporta i profili DI PROVA a prima della passata: cancella le loro
       iscrizioni ai workshop, e con quelle elaborati, tappe, chat e
       consegne. Senza, il banco è monouso — alla seconda passata tutti i
@@ -149,7 +151,7 @@ async function main() {
       // comodità, non l'unico modo di vedere cosa è successo.
       const minuti = resto.find((a) => /^\d+$/.test(a));
       const deployId = resto.find((a) => a.startsWith("dpl_"));
-      return log(minuti ? Number(minuti) : 60, { tutto: resto.includes("--tutto"), deployId });
+      return log(minuti ? Number(minuti) : 60, { tutto: flag("tutto", resto), deployId });
     }
     case "deploy":
       return deploy(true);
@@ -157,12 +159,12 @@ async function main() {
       return iscrizioni();
     case "robot": {
       const filtro = resto.find((a) => !a.startsWith("--"));
-      return robot(filtro, { vai: resto.includes("--vai") });
+      return robot(filtro, { vai: flag("vai", resto) });
     }
     case "confronta":
       return confronta(resto[0], resto[1]);
     case "azzera-percorsi":
-      return azzeraPercorsi({ vai: resto.includes("--vai") });
+      return azzeraPercorsi({ vai: flag("vai", resto) });
     case "azzera-tentativi":
       return azzeraTentativi(resto[0], resto[1]);
     case "aiuto-segreto":
