@@ -457,6 +457,8 @@ const WHITELIST_SUPERFICI = new Map([
     "concorda con «la gente», non con chi legge: invariante per costruzione"],
   [". Questa pagina si aggiorna da sola, torna a trovarci qualche minuto prima.",
     "«da sola» concorda con «la pagina», non con chi legge"],
+  ["Ricarica la pagina: a volte si sistema da solo. Se dopo due o tre volte è ancora così, scrivici da",
+    "«si sistema da solo» è il problema, non chi legge (schermata del progetto che non si apre)"],
   ["La signora Colella è qui e sta male adesso. Non possiamo lasciarla lì a urlare da sola per due ore.",
     "«da sola» è la signora Colella, un personaggio della missione"],
   ["Nadia esce alle 11:00 (commissione). Paolo è l'unico che parla arabo. Sofia è in formazione: non può gestire un colloquio da sola, può affiancare. Cioè dalle 11 in poi restano due persone, di cui una non autonoma.",

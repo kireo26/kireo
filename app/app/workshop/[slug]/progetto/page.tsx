@@ -86,12 +86,23 @@ export default async function ProgettoWorkshopPage({ params }: { params: Promise
           ← {ws.titolo}
         </Link>
         <div className="rounded-xl border border-kireo-orange/40 bg-kireo-card p-5">
+          {/* Testo di Mario. Frasi corte e separate: chi legge ha appena
+              cliccato su qualcosa che non si è aperto, e in quel momento cerca
+              due informazioni, non un paragrafo.
+              LA CONDIZIONE D'USCITA È LA PARTE DA NON TOGLIERE: «fra qualche
+              istante» non dice quando smettere, e se la scrittura è fallita non
+              si sistemerà mai — un ragazzo ricarica dieci volte prima di
+              arrendersi. Dopo due o tre, scrive. */}
           <h1 className="py-1 font-heading text-xl font-bold leading-[1.25] text-kireo-light">Il tuo progetto non si è aperto</h1>
-          <p className="mt-2 text-sm text-kireo-muted">
-            Le tappe del tuo percorso non risultano ancora create. Non è una cosa che hai sbagliato: ricarica fra qualche
-            istante e, se resta così, scrivici da <Link href="/contatti" className="text-kireo-green-light underline">Contatti</Link> —
-            il lavoro che avessi già fatto resta dov&apos;è.
+          <p className="mt-3 text-sm text-kireo-muted">Le tappe del tuo percorso non ci sono ancora. Non hai sbagliato niente.</p>
+          <p className="mt-3 text-sm text-kireo-muted">
+            Ricarica la pagina: a volte si sistema da solo. Se dopo due o tre volte è ancora così, scrivici da{" "}
+            <Link href="/contatti" className="text-kireo-green-light underline">
+              Contatti
+            </Link>
+            .
           </p>
+          <p className="mt-3 text-sm text-kireo-muted">Quello che avevi già scritto è al sicuro.</p>
         </div>
       </div>
     );
