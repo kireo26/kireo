@@ -104,12 +104,36 @@ async function giocaRuolo({ sessione, workshopSlug, ruoloSlug, consegne, fasi, r
     iscrizione = inCorso;
     di("già iscritto a questo ruolo (riprende da dove era)");
   } else {
+    // PRIMA SI GUARDA SE SI PUÒ ENTRARE, POI SI LASCIA QUELLO CHE SI HA IN
+    // MANO. L'ordine inverso è costato un ruolo il 13/09: `legale` era attivo,
+    // il robot l'ha lasciato, e solo dopo ha scoperto che `salute` risultava
+    // già completato e si è fermato — una transizione di stato fatta per un
+    // tentativo che non poteva riuscire. Quella volta è finita bene perché
+    // `legale` è stato ripreso più avanti nella stessa passata, ma se la
+    // passata si interrompe fra i due momenti (un Ctrl+C, un guasto, il
+    // container che muore) resta un ruolo `ritirato` che nessuno ha voluto —
+    // e nel rapporto non compare, perché formalmente non è successo niente.
+    // `righe` è già in mano: non è una query in più, è solo l'ordine.
+    const lasciata = righe.find((r) => r.ruolo_id === ruolo.id && r.stato === "ritirato");
+    const giaCompletato = righe.some((r) => r.ruolo_id === ruolo.id && r.stato === "completato");
+    // Una lasciata da riprendere vince su una completata: sono due righe
+    // diverse e la prima è ancora giocabile (l'ordine di queste due condizioni
+    // era già così prima dello spostamento, e va tenuto).
+    if (!lasciata && !rigioca && giaCompletato) {
+      // Un ruolo già portato a termine non si rigioca da solo: rifarlo
+      // conterebbe due volte gli stessi testi nella misura. Una TRAPPOLA sì
+      // (`rigioca`): è un'altra consegna sullo stesso ruolo, ed è il punto.
+      return { ...esito, fermato: { dove: "iscrizione", perche: "questo ruolo risulta già completato da questo account: niente da rigiocare" } };
+    }
+
     if (inCorso) {
       // Un altro ruolo di questo stesso workshop è ancora in corso: il robot
       // gioca un ruolo alla volta con un account solo, quindi deve lasciarlo
       // prima. Lo fa con il gesto del prodotto (la stessa funzione che chiama
       // il bottone «Lascia il workshop»), e lo DICE: una transizione di stato
-      // fatta in silenzio è una cosa che poi nessuno sa spiegare.
+      // fatta in silenzio è una cosa che poi nessuno sa spiegare. Il commento
+      // resta giusto, ma non bastava: il problema non era che tacesse, era
+      // che la facesse per niente.
       const { error: erroreLascia } = await supabase.rpc("ritira_iscrizione_workshop", { p_iscrizione_id: inCorso.id });
       if (erroreLascia) {
         return { ...esito, fermato: { dove: "iscrizione", perche: `non è stato possibile lasciare il ruolo precedente: ${erroreLascia.message}` } };
@@ -117,7 +141,6 @@ async function giocaRuolo({ sessione, workshopSlug, ruoloSlug, consegne, fasi, r
       di("lasciato il ruolo precedente di questo workshop (il suo lavoro resta)");
     }
 
-    const lasciata = righe.find((r) => r.ruolo_id === ruolo.id && r.stato === "ritirato");
     if (lasciata) {
       const { error: erroreRiprendi } = await supabase.rpc("riprendi_iscrizione_workshop", { p_iscrizione_id: lasciata.id });
       if (erroreRiprendi) {
@@ -125,12 +148,11 @@ async function giocaRuolo({ sessione, workshopSlug, ruoloSlug, consegne, fasi, r
       }
       iscrizione = lasciata;
       di("ripreso un ruolo lasciato in una passata precedente");
-    } else if (!rigioca && righe.some((r) => r.ruolo_id === ruolo.id && r.stato === "completato")) {
-      // Un ruolo già portato a termine non si rigioca da solo: rifarlo
-      // conterebbe due volte gli stessi testi nella misura. Una TRAPPOLA sì
-      // (`rigioca`): è un'altra consegna sullo stesso ruolo, ed è il punto.
-      return { ...esito, fermato: { dove: "iscrizione", perche: "questo ruolo risulta già completato da questo account: niente da rigiocare" } };
     } else {
+      // Qui si arriva solo se il ruolo è libero: il caso «già completato» è
+      // stato chiuso sopra, prima di toccare qualunque stato. Lasciarne una
+      // copia anche qui sarebbe la seconda di due condizioni identiche in due
+      // punti — quelle divergono, è solo questione di quando.
       const { data: nuova, error } = await supabase
         .from("workshop_iscrizioni")
         .insert({ workshop_id: ws.id, ruolo_id: ruolo.id, student_id: utente.id })

@@ -231,6 +231,29 @@ const dueProblemi = misura([
 ok(dueProblemi.registro.filter((r) => r.formula).length === 1, "la formula sulla testa è marcata come tale");
 ok(dueProblemi.registro.filter((r) => !r.formula).length === 1, "e «maturo» resta un giudizio, che è un altro problema");
 
+// ── prima si guarda se si può entrare, poi si lascia ───────────────────────
+// Questo non si prova senza rete: è una chiamata a Supabase dentro una
+// funzione async. Ma la proprietà che conta è un ORDINE fra due righe, e
+// quello si legge. Il 13/09 il robot ha lasciato un ruolo attivo e SOLO DOPO
+// ha scoperto che quello nuovo era già completato: uno stato cambiato per un
+// tentativo che non poteva riuscire, e invisibile nel rapporto perché
+// formalmente non era successo niente. Se una passata si interrompe fra i due
+// momenti, quel ruolo resta lasciato senza che nessuno l'abbia voluto.
+console.log("");
+const gioca = fs.readFileSync(path.join(ROOT, "scripts/banco/robot/gioca.js"), "utf8");
+const iSiFerma = gioca.indexOf("niente da rigiocare");
+// Si ancora alla CHIAMATA, non al nome della funzione: quel nome compare
+// anche nell'elenco dei gesti in testa al file, e la prima stesura di questo
+// controllo trovava quello — dava rosso su un codice giusto, che è il modo
+// più sicuro di farsi disattivare.
+const iLascia = gioca.indexOf('supabase.rpc("ritira_iscrizione_workshop"');
+ok(iSiFerma !== -1 && iLascia !== -1, "il robot sa fermarsi su un ruolo completato e sa lasciarne uno");
+ok(iSiFerma < iLascia, "e si ferma PRIMA di lasciare: non cambia uno stato per un tentativo che non può riuscire");
+ok(
+  gioca.split("niente da rigiocare").length - 1 === 1,
+  "la condizione «già completato» sta in un punto solo: due copie divergono",
+);
+
 console.log("\n═══════════════════════════════════════════\n");
 if (falliti) { console.error(`✗ ${falliti} controlli falliti.\n`); process.exit(1); }
 console.log("✓ Il piano dice quanto costa, e la misura dice cosa è successo.\n");
