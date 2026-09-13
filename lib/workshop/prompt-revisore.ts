@@ -130,9 +130,27 @@ Non fare elenchi, non fare il professore: parla come al bar.`;
 // ─────────────────────────────────────────── 3) FEEDBACK FINALE (ultima tappa)
 // Output: SOLO JSON. Il cron/route lo salva come feedback complessivo e usa
 // punteggio_area per activity_log (workshop_pcto). fiduciaTotale è la barra finale.
-export function promptFeedbackFinale(c: CtxTappa, fiduciaTotale: number): string {
+// `conDomande`: se nel messaggio user arrivano anche le domande che lo studente
+// ha fatto al cliente lungo il percorso. Il parametro esiste perché la lettura
+// della chat può fallire o tornare vuota, e in quel caso il prompt NON deve
+// nominare un materiale che non c'è: senza domande torna, parola per parola,
+// il prompt che c'era prima.
+//
+// PERCHÉ LE DOMANDE ARRIVANO QUI. A questo prompt chiediamo da sempre di
+// «valorizzare la crescita lungo il percorso», e gli passavamo solo il
+// `contenuto`: cioè il risultato finale, in cui un percorso non si vede. Un
+// modello a cui manca un fatto non si ferma, riempie — e riempiva nell'unico
+// modo disponibile a chi non ha fatti, in astratto, con frasi che vanno bene
+// per chiunque («hai imparato a guardare come funziona una cosa nella
+// pratica»). Le tredici domande sono il materiale che mancava, ed è anche
+// l'unico testo che lo studente scrive senza sapere di essere valutato.
+export function promptFeedbackFinale(c: CtxTappa, fiduciaTotale: number, conDomande: boolean): string {
   return `Sei un tutor di orientamento per studenti di 16-19 anni. Lo studente ha completato tutto il workshop "${c.workshopTitolo}" nel ruolo "${c.ruoloTitolo}". La fiducia accumulata con ${c.clienteNome} lungo il percorso è ${fiduciaTotale}/100.
-Dai un feedback COMPLESSIVO sul progetto, basandoti su ciò che ha consegnato (te lo passo come messaggio).
+${
+  conDomande
+    ? `Dai un feedback COMPLESSIVO sul progetto. Nel messaggio ricevi DUE cose: in "progetto_consegnato" c'è il documento, cioè la consegna; in "domande_al_cliente" ci sono, in ordine, le domande che lo studente ha fatto a ${c.clienteNome} lungo il percorso. Le domande NON sono consegna: sono la traccia di come ha lavorato, e non vanno valutate come se fossero un elaborato.`
+    : `Dai un feedback COMPLESSIVO sul progetto, basandoti su ciò che ha consegnato (te lo passo come messaggio).`
+}
 
 Sei l'unico che legge TUTTE le tappe insieme: guarda anche se quello che dice in una tappa regge con quello che ha scritto nelle altre. Una contraddizione fra due tappe è la cosa più utile che puoi trovare, perché nessun altro può vederla.
 

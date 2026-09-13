@@ -301,12 +301,37 @@ export async function GET(request: NextRequest) {
       let esitoFinaleStato: EsitoGenerazione = "riuscita";
       if (fase.ultima) {
         esitoFinaleStato = "non_riuscita";
+
+        // LE DOMANDE FATTE AL CLIENTE, che fin qui non leggeva nessuno.
+        // Solo quelle dello studente: le risposte del cliente le ha scritte un
+        // modello e non dicono niente su di lui. Il tetto è noto e stretto —
+        // la tabella ne ammette 60 per iscrizione (~30 dello studente) da
+        // 2000 caratteri, quindi il caso peggiore è qualche migliaio di token
+        // in ingresso su UNA chiamata per progetto.
+        //
+        // Un guasto qui NON ferma il feedback finale: è materiale, non
+        // giudizio, e il prompt senza domande è quello di prima parola per
+        // parola (vedi `conDomande` in promptFeedbackFinale).
+        const { data: righeChat, error: erroreChat } = await supabase
+          .from("workshop_chat_cliente")
+          .select("contenuto")
+          .eq("iscrizione_id", riga.iscrizione_id)
+          .eq("mittente", "studente")
+          .order("created_at", { ascending: true });
+        if (erroreChat) {
+          console.error(`Errore lettura chat per il feedback finale (iscrizione ${riga.iscrizione_id}):`, erroreChat);
+        }
+        const domande = (righeChat ?? []).map((m) => m.contenuto as string).filter((t) => t.trim().length > 0);
+
         const esitoFinale = await chiamaJson(client, {
           diProva: rigaDiProva,
           model: MODELLO_CLIENTE_WORKSHOP,
           maxTokens: MAX_TOKEN_FEEDBACK_FINALE,
-          system: promptFeedbackFinale(ctx, fiduciaDopo),
-          user: JSON.stringify(contenuto, null, 2),
+          system: promptFeedbackFinale(ctx, fiduciaDopo, domande.length > 0),
+          user:
+            domande.length > 0
+              ? JSON.stringify({ progetto_consegnato: contenuto, domande_al_cliente: domande }, null, 2)
+              : JSON.stringify(contenuto, null, 2),
         });
         if (esitoFinale.ok) {
           const parsed = esitoFinale.dati as Record<string, unknown>;
