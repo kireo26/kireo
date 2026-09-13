@@ -195,6 +195,74 @@ ok(!eGuasto(400) && !eGuasto(403) && !eGuasto(429), "403 e 429 restano cancelli:
 ok(eGuasto(401), "un 401 no: è il chiamante che non è più chi diceva di essere, e va coi guasti del banco");
 ok(eGuasto(500) && eGuasto(503), "…insieme ai 5xx");
 
+// ── la produzione sta servendo questo commit? ─────────────────────────────
+// Il banco aveva già i due dati — il commit locale finisce nel rapporto, lo
+// stato dei deploy lo sa `banco deploy` — e non li confrontava mai. Tre passate
+// del 13/09 hanno misurato il codice in aria e scritto sopra il commit di qui.
+console.log("");
+const { allineamento, stessoCommit } = require("./banco/allineamento");
+const SHA_QUI = "1111111111111111111111111111111111111111";
+const SHA_LA = "2222222222222222222222222222222222222222";
+const qui = { sha: SHA_QUI, titolo: "il commit di qui", sporco: false };
+const dep = (uid, sha, stato, minutiFa) => ({ uid, readyState: stato, createdAt: ora - min(minutiFa), meta: sha ? { githubCommitSha: sha } : {} });
+const esitoDi = (deploys, locale = qui, perche = null) => allineamento({ locale, deploys, perche });
+const righeDi = (...args) => esitoDi(...args).righe.join("\n");
+
+ok(esitoDi([dep("dpl_ok", SHA_QUI, "READY", 30)]).esito === "allineato", "stesso commit in aria e qui → si parte");
+
+const disallineato = esitoDi([dep("dpl_vecchio", SHA_LA, "READY", 30)]);
+ok(disallineato.esito === "disallineato", "in aria c'è un altro commit → non si parte");
+ok(/1111111111/.test(disallineato.righe.join("\n")) && /2222222222/.test(disallineato.righe.join("\n")), "…e si vedono tutti e due, non solo il verdetto");
+
+// Il caso che ha fatto cadere due ruoli su cinque: Vercel spegne le vecchie
+// funzioni mentre accende le nuove, e una richiesta in volo non trova nessuno.
+const inVolo = esitoDi([dep("dpl_nuovo", SHA_QUI, "BUILDING", 1), dep("dpl_serve", SHA_QUI, "READY", 30)]);
+ok(inVolo.esito === "in-volo", "un deploy in costruzione ferma la passata, anche se il commit coincide");
+ok(/npm run banco deploy/.test(inVolo.righe.join("\n")), "…e dice come aspettarlo, invece di lasciare fermi e basta");
+
+// E non grida su cose giuste: un deploy fallito o annullato dopo quello che
+// serve non toglie niente a chi sta servendo. Una guardia che blocca a torto
+// è una guardia che qualcuno disattiva.
+ok(esitoDi([dep("dpl_fallito", SHA_LA, "ERROR", 1), dep("dpl_serve", SHA_QUI, "READY", 30)]).esito === "allineato", "un deploy ERROR più recente non blocca: a servire è ancora l'altro");
+ok(esitoDi([dep("dpl_annullato", SHA_LA, "CANCELED", 1), dep("dpl_serve", SHA_QUI, "READY", 30)]).esito === "allineato", "né uno CANCELED");
+ok(esitoDi([dep("dpl_residuo", SHA_LA, "QUEUED", 90), dep("dpl_serve", SHA_QUI, "READY", 30)]).esito === "allineato", "né un residuo in coda più vecchio di chi serve");
+
+// I tre casi in cui non si sa. Nessuno dei tre blocca: sarebbero difetti dello
+// strumento, non del prodotto, e su questo comando c'è già una conferma umana.
+// Ma si dicono — «non posso verificare» non deve leggersi come un via libera.
+ok(esitoDi(null, qui, "il token non risponde").esito === "incerto", "senza lo stato dei deploy non si blocca: si dichiara di non poter verificare");
+ok(/il token non risponde/.test(righeDi(null, qui, "il token non risponde")), "…e si dice perché, invece di un ⚠ muto");
+ok(esitoDi([dep("dpl_senza_sha", null, "READY", 30)]).esito === "incerto", "un deploy che non porta il commit da cui è nato non è confrontabile");
+ok(esitoDi([dep("dpl_ok", SHA_QUI, "READY", 30)], null).esito === "incerto", "se git non risponde qui, non si sa cosa confrontare");
+ok(esitoDi([dep("dpl_fallito", SHA_QUI, "ERROR", 5)]).esito === "incerto", "se nessun deploy ha mai servito, non si sa cosa c'è in aria");
+
+// L'albero sporco NON blocca — potrebbe essere un appunto o uno script — ma le
+// modifiche non committate in aria non ci sono, quindi la passata non le prova.
+const sporco = esitoDi([dep("dpl_ok", SHA_QUI, "READY", 30)], { ...qui, sporco: true });
+ok(sporco.esito === "allineato", "un albero sporco non ferma la passata");
+ok(/non le prova/.test(sporco.righe.join("\n")), "…ma dice che quelle modifiche non sono sotto prova");
+
+ok(stessoCommit(SHA_QUI, SHA_QUI.slice(0, 7)), "uno sha abbreviato è lo stesso commit: l'API a volte accorcia");
+ok(!stessoCommit(SHA_QUI, SHA_LA), "due commit diversi restano diversi");
+ok(!stessoCommit(SHA_QUI, "11"), "…e due caratteri non bastano a dichiarare un'uguaglianza");
+
+// IL COLLEGAMENTO, che è il posto in cui una guardia nuova si perde: la
+// funzione può essere giusta e non essere chiamata da nessuno. È già successo
+// in questo progetto con `registra_guardia_lingua`, che per settimane ha
+// contato tutto come produzione perché nessuno le passava il secondo argomento.
+const sorgenteRobot = fsBanco.readFileSync(pathBanco.join(__dirname, "banco", "robot", "index.js"), "utf8");
+ok(/allineamento\(\{/.test(sorgenteRobot), "il robot chiama davvero la guardia");
+ok(/statoProduzione\(\)/.test(sorgenteRobot), "…con lo stato vero della produzione, non con una lista vuota");
+// Fra il riconoscimento del blocco e la conferma ci deve essere un `return`:
+// stampare un ✗ e proseguire sarebbe la forma peggiore, un avvertimento che non
+// avverte. La prima stesura di questo controllo guardava fino ad `apriSessione`
+// e passava lo stesso senza il return, perché nel mezzo trovava quello della
+// conferma annullata: un controllo tarato largo dà un verde che non vuol dire
+// niente, e si scopre solo provando a romperlo.
+const daBloccoAConferma = sorgenteRobot.slice(sorgenteRobot.indexOf('=== "in-volo"'), sorgenteRobot.indexOf("await chiediConferma"));
+ok(daBloccoAConferma.length > 0 && /\n\s*return;/.test(daBloccoAConferma), "…e quando blocca esce, invece di stampare e proseguire");
+ok(sorgenteRobot.indexOf("allineamento({") < sorgenteRobot.indexOf("await chiediConferma"), "…e lo fa PRIMA della conferma: chi conferma deve già saperlo");
+
 console.log("\n═══════════════════════════════════════════\n");
 if (falliti) { console.error(`✗ ${falliti} controlli falliti.\n`); process.exit(1); }
 console.log("✓ Ogni esito ha la sua frase, il fallimento non si nasconde dietro un successo,\n  e «non posso vederle» non si legge come «non ci sono».\n");

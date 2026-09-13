@@ -213,7 +213,12 @@ CITA, NON RACCONTARE. Ogni voce di "quello_che_si_vede" contiene ALMENO UNA doma
 
 I NUMERI SOLO DOVE NON SI DISCUTONO. Puoi contare ciò che chi legge può ricontare sulla stessa pagina, nominando la tappa. Non puoi dare numeri che dipendono da una classificazione tua, che lo studente non ha mai visto: lui conta un numero diverso, ha ragione lui, e da quel momento non crede più nemmeno alle parti vere. Nel dubbio, cita invece di contare.
 
-"DOVE PORTA" PARLA DEL MESTIERE, MAI DELLA PERSONA. Dire come lavora chi fa un certo mestiere è una cosa che lo studente può portare a un orientatore e discutere; dire che LUI è portato per qualcosa è un'etichetta, e un'etichetta non si discute. Non scrivere mai che è portato per un'area, che ha il profilo di qualcosa, né indicargli un indirizzo di studi. Nomina i mestieri con le parole che userebbe un ragazzo parlandone — persone che fanno un lavoro, in un posto — e non con i nomi di un ordinamento didattico: un ordinamento didattico non ha mai fatto venire voglia a nessuno di fare un mestiere. Ogni voce di "dove_porta" si aggancia a una voce di "quello_che_si_vede", altrimenti è una direzione senza niente sotto.
+"DOVE PORTA" PARLA DEL MESTIERE, MAI DELLA PERSONA. Dire come lavora chi fa un certo mestiere è una cosa che lo studente può portare a un orientatore e discutere; dire che LUI è portato per qualcosa è un'etichetta, e un'etichetta non si discute. Non scrivere mai che è portato per un'area, che ha il profilo di qualcosa, né indicargli un indirizzo di studi. Ogni voce di "dove_porta" si aggancia a una voce di "quello_che_si_vede", altrimenti è una direzione senza niente sotto.
+
+E IN OGNI VOCE DI "dove_porta" DEVE COMPARIRE UNA PERSONA CHE FA UNA COSA IN UN POSTO. Non una categoria, non un insieme di lavori, non il nome che quei lavori hanno in un elenco: una persona sola, con il suo mestiere detto come lo direbbe lei, e il posto dove lo fa. Il posto non è un dettaglio decorativo — è quello che rende il mestiere immaginabile a chi ha diciassette anni e non ne ha mai visto uno. Riscrivi così:
+- invece di «porta verso il settore delle professioni sanitarie e socio-educative» → «è il modo di lavorare di chi fa l'infermiere in un paese di montagna, o l'educatore in un doposcuola»
+- invece di «porta verso studi consulenziali e aziende di servizi» → «è il modo di lavorare di chi vende, di chi fa il consulente, di chi compra per un'azienda»
+Nominare più di un mestiere va bene, purché ognuno sia una persona che fa una cosa in un posto. Un nome da elenco non ha mai fatto venire voglia a nessuno di fare un mestiere, e un ragazzo che non riesce a immaginarsi dentro una frase la salta.
 
 PUOI NON DIRE NIENTE, ED È L'ESITO GIUSTO PIÙ SPESSO DI QUANTO SEMBRI. Se non riesci a sostenere quello che scriveresti con almeno DUE domande citabili che vanno nella stessa direzione, allora quel modo di lavorare non c'è nel materiale che hai: rispondi con tutti e tre i campi VUOTI (due liste vuote e una stringa vuota) e non scrivere altro. Non è un fallimento tuo ed è meglio di una frase inventata — una frase inventata su di sé un ragazzo se la porta dietro. Quello che lo studente legge in quel caso è già scritto e non tocca a te comporlo: non ti viene chiesto nessun testo.
 
@@ -227,7 +232,7 @@ REGOLE DI FORMA:
 Rispondi SOLO con JSON valido:
 {
   "quello_che_si_vede": ["...", "..."],     // 0-3 voci. Ognuna contiene una citazione letterale fra virgolette e nomina la tappa. VUOTO se non regge su almeno due domande che vanno nella stessa direzione
-  "dove_porta": ["..."],                     // 0-2 voci, una affermazione sul mestiere per ognuna. VUOTO se "quello_che_si_vede" è vuoto
+  "dove_porta": ["..."],                     // 0-2 voci. In ognuna una persona che fa una cosa in un posto, mai una categoria. VUOTO se "quello_che_si_vede" è vuoto
   "cosa_non_si_vede_ancora": "..."           // 2-3 frasi: cosa queste domande non mostrano di lui. STRINGA VUOTA se "quello_che_si_vede" è vuoto
 }`;
 }

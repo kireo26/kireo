@@ -97,6 +97,38 @@ ok(m.tappeConTentativiExtra === 2, "conta le tappe che hanno avuto bisogno di pi
 ok(m.fermati.length === 1 && m.fermati[0].gate === true, "un gate che morde resta marcato come tale, non come un errore qualunque");
 ok(m.fiducia[0].valore === 68 && m.fiducia[1].valore === 71, "la fiducia è ordinata dal più basso: si guarda chi sta peggio");
 
+// ── «dove porta»: una persona, non una categoria ──────────────────────────
+// La prima passata del blocco ha dato «il settore delle professioni sanitarie
+// e socio-educative» — la voce di chi archivia. La regola nel prompt è stata
+// riscritta in forma operativa; questo conta se ha preso, e resta una MISURA:
+// un filtro nel codice renderebbe il numero invisibile, che è la lezione della
+// formula «hai capito» (si stampa quello PRIMA della riscrittura, altrimenti
+// la misura vede zero e racconta che il modello ha smesso).
+const conDovePorta = misura([
+  {
+    etichetta: "w > uno",
+    tappe: [],
+    feedbackFinale: {
+      modo_di_lavorare: {
+        quello_che_si_vede: ["…"],
+        dove_porta: [
+          "Porta verso il settore delle professioni sanitarie e socio-educative.",
+          "È il modo di lavorare di chi fa l'infermiere in un paese di montagna.",
+        ],
+        cosa_non_si_vede_ancora: "…",
+      },
+    },
+  },
+]);
+ok(conDovePorta.dovePorta.length === 2, "guarda le voci del blocco, non tutte le stringhe del feedback finale");
+ok(conDovePorta.dovePortaConContenitore.length === 1, "prende la voce che nomina una categoria e lascia stare l'altra");
+ok(
+  conDovePorta.dovePortaConContenitore[0].contenitori.some((c) => /settore/i.test(c)),
+  "…e dice QUALE parola l'ha fatta cadere, così chi legge può dire se è un falso positivo",
+);
+ok(/infermiere/.test(conDovePorta.dovePorta[1].voce), "la voce buona resta nel rapporto con il suo testo: il posto un pattern non lo vede");
+ok(misura([{ etichetta: "w > due", tappe: [] }]).dovePorta.length === 0, "senza feedback finale non si inventa niente da contare");
+
 // Una tappa già fatta (ripresa di una passata interrotta) non deve inquinare
 // i conti degli esiti: non è stata giocata adesso.
 const conRipresa = misura([{ etichetta: "w > tre", tappe: [{ faseId: "t1", giaFatta: true, tentativi: 0 }], fiduciaFinale: 50 }]);

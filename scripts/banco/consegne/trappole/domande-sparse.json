@@ -75,9 +75,9 @@
             "priorita": "Parto dalla boxe dei ragazzi il lunedì e il mercoledì, e dalla ginnastica dolce del martedì mattina. La prima perché è quello che Tonino sa fare davvero, e una cosa fatta bene da chi la sa fare tiene più di tre cose fatte a metà. La seconda perché la mattina la sala è vuota e non toglie spazio a niente, e perché gli anziani entrano subito e vengono tutte le settimane, che vuol dire quote regolari fin dal primo mese. Le altre attività si aggiungono quando ci sono le persone per tenerle, non prima."
           },
           "chat": [
-            "Tonino, il riscaldamento d'inverno quanto ti viene al mese?",
-            "In sala che attrezzi ci sono già, oltre al ring?",
-            "Fra i ragazzi che vengono adesso, c'è qualcuno che poi ha smesso?"
+            "Tonino, ti è mai capitato che qualcuno venisse una volta sola e poi sparisse?",
+            "Più o meno, quanto ti costa tenere aperto un mese?",
+            "Secondo te il quartiere una palestra così la vuole, o è una cosa che vogliamo noi?"
           ]
         },
         "persone_qualifiche": {
@@ -118,9 +118,9 @@
             "tonino_tecnico": "Tonino prende il tesseramento tecnico FPI di primo livello: il corso federale dura un fine settimana e costa poche centinaia di euro, e da lì può insegnare con una copertura assicurativa vera. Come socio volontario dell'associazione riceve un rimborso spese documentato e non uno stipendio: così è in regola senza aprire una posizione da dipendente, che a questi numeri non si potrebbe permettere."
           },
           "chat": [
-            "Il pavimento della sala è quello originale o l'hai rifatto?",
-            "Quanto tempo prima bisogna iscriversi a un corso da tecnico federale?",
-            "L'assicurazione per chi si allena la fa la federazione o si prende a parte?"
+            "Se dovessi scegliere, preferisci uno che sa allenare o uno che sa stare con i ragazzi?",
+            "Oggi, quando arriva uno nuovo, cosa gli fai fare prima di farlo salire sul ring?",
+            "Con la scuola media qui sotto ci hai mai parlato?"
           ]
         },
         "sicurezza": {
@@ -139,9 +139,9 @@
             "protocollo_infortuni": "Un ragazzo di sedici anni perde conoscenza durante il riscaldamento. La prima cosa è fermare tutti e fare spazio: chi conduce va da lui, gli altri si allontanano e uno va a prendere il defibrillatore, senza aspettare di sapere se serve. Lo sdraio a terra e controllo due cose sole: se risponde e se respira normalmente. Se respira ed è solo svenuto, gli alzo le gambe, gli slaccio il colletto, faccio aprire una finestra, e quando riprende lo tengo seduto, gli do acqua e chiamo i genitori. Se non risponde e non respira, o respira in modo strano e rumoroso, quello è un arresto cardiaco fino a prova contraria: chiamo il 118 con il vivavoce, comincio le compressioni sul torace, e appena il defibrillatore arriva lo accendo e faccio quello che dice la voce, che guida passo per passo anche chi non l'ha mai usato. Non mi fermo finché non arriva il 118. In una palestra di boxe, con un ragazzo che perde coscienza, quello è il caso che uccide, e i minuti che contano sono i primi tre o quattro. Alla fine, comunque sia andata, scrivo tutto sul registro infortuni: ora, cosa è successo, cosa ho fatto, chi ho chiamato."
           },
           "chat": [
-            "La cassetta del pronto soccorso dove la tieni?",
-            "Gli spogliatoi quanti sono, uno o due?",
-            "Se uno si iscrive a novembre paga tutto l'anno o solo i mesi che restano?"
+            "Se un giorno non ci fosse nessuno col BLSD, tu apriresti lo stesso?",
+            "L'estintore in sala di che anno è?",
+            "Fra due anni, come te la immagini questa sala?"
           ]
         },
         "pitch": {
@@ -150,9 +150,9 @@
             "una_cosa": "Che il programma non è costruito su chi verrebbe comunque. Le attività della mattina sono per gli anziani e per chi ha male alla schiena — gente che in una palestra normale non entra mai, e che qui entra perché l'orario è il loro e perché non deve pagare un abbonamento annuale per provare."
           },
           "chat": [
-            "Tonino, siamo all'ultimo pezzo. Quante ore al giorno riesci a stare aperto?",
-            "C'è un medico di famiglia in zona con cui hai già parlato?",
-            "Il regolamento interno bisogna appenderlo o basta farlo firmare all'iscrizione?",
+            "C'è qualcosa nel budget che non si può toccare per nessun motivo?",
+            "Ho capito bene che il sabato vuoi tenerlo libero senza iscrizione?",
+            "Il cortile davanti si può usare, o è del Comune e serve un permesso?",
             "C'è una cosa che vuoi assolutamente vedere scritta nel documento?"
           ]
         }
@@ -160,7 +160,7 @@
       "nome": "le tredici domande sparse",
       "atteso": {
         "dove": "feedback_finale",
-        "la_proprieta": "Con domande senza filo, il finale non deve affermare che dallo studente emerge un modo ricorrente di entrare nei problemi. Deve poter dire che non emerge niente.",
+        "la_proprieta": "Con domande che non condividono né l'argomento né la forma, il finale non deve affermare che dallo studente emerge un modo ricorrente di entrare nei problemi. Deve poter dire che non emerge niente.",
         "rosso_atteso": "il 13/09 questa trappola è diventata verde sull'elenco aggregato e il modello ha comunque inventato un'intenzione su UNA domanda sola («non è una domanda random») — quella che Mario aveva messo lì per costruzione perché non ne avesse nessuna. Finché quel comportamento c'è, un verde su questo file è un verde parziale: l'attesa rossa resta, e la riga ★ deve continuare a comparire.",
         "non_deve_affermare_uno_schema": [
           "un modo tuo",
@@ -184,9 +184,12 @@
           "non è casuale",
           "non per caso",
           "deliberatamente",
-          "hai scelto di chiedere"
+          "hai scelto di chiedere",
+          "hai voluto",
+          "il tuo intento"
         ],
-        "nota_sul_controllo": "L'elenco è un controllo parziale e lessicale, come la guardia del registro: prende le forme più frequenti, non tutte, e prende quelle aggregate — un'intenzione attribuita a UNA singola domanda gli passa sotto. Il giudizio vero si dà leggendo. Questa trappola è nata ROSSA per costruzione: non perché il codice vieti il silenzio — `Array.isArray([])` è vero, un punti_forza vuoto passa il validatore — ma perché il prompt non ha mai detto al modello che può non dire niente. Diventa verde davvero quando il blocco, davanti a domande senza filo, sceglie di tacere: non quando smette di usare queste tredici parole. Dal 13/09 il blocco esiste ed è una chiamata a sé («Come hai lavorato», dentro feedback_ai come `modo_di_lavorare`): il controllo lo legge senza modifiche perché scorre TUTTE le stringhe del finale, ricorsivamente. Quindi da questa passata in poi il verdetto riguarda anche lui, ed è la prima volta che la trappola ha davanti una cosa costruita per rispondere alla sua domanda.",
+        "nota_sul_controllo": "L'elenco è un controllo parziale e lessicale, come la guardia del registro: prende le forme più frequenti, non tutte, e prende quelle aggregate — un'intenzione attribuita a UNA singola domanda gli passa sotto. Il giudizio vero si dà leggendo. Questa trappola è nata ROSSA per costruzione: non perché il codice vieti il silenzio — Array.isArray([]) è vero, un punti_forza vuoto passa il validatore — ma perché il prompt non ha mai detto al modello che può non dire niente. Diventa verde davvero quando il blocco, davanti a domande senza filo, sceglie di tacere: non quando smette di usare queste parole. Dal 13/09 il blocco esiste ed è una chiamata a sé («Come hai lavorato», dentro feedback_ai come `modo_di_lavorare`): il controllo lo legge senza modifiche perché scorre TUTTE le stringhe del finale, ricorsivamente. Quindi da questa passata in poi il verdetto riguarda anche lui, ed è la prima volta che la trappola ha davanti una cosa costruita per rispondere alla sua domanda.",
+        "storia": "Prima versione (13/09 mattina): tredici domande bilanciate per argomento — due per tema. Il blocco nuovo ci ha letto uno schema VERO: sette domande su tredici erano sull'edificio e sulle sue regole, due sole sulle persone. Il difetto era nella consegna, non nel prodotto: variava l'argomento, non la FORMA — erano tutte domande d'inventario (quanto costa, dov'è, quante sono). Questa versione varia tutte e due: nessuna coppia condivide né l'argomento né il modo di chiedere.",
         "confronto": "scripts/banco/consegne/palestra-popolare.json > ruoli.salute — stesse identiche sezioni, cambiate solo le tredici domande."
       }
     }

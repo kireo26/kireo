@@ -72,12 +72,23 @@ const CHIEDE = [
   ["cita, non raccontare", "con le parole ESATTE dello studente"],
   ["i numeri solo dove si possono ricontare", "chi legge può ricontare"],
   ["il mestiere, non l'etichetta sulla persona", "PARLA DEL MESTIERE, MAI DELLA PERSONA"],
-  ["i mestieri con le parole di un ragazzo", "non con i nomi di un ordinamento didattico"],
+  ["una persona che fa una cosa in un posto", "DEVE COMPARIRE UNA PERSONA CHE FA UNA COSA IN UN POSTO"],
+  ["e non il nome che quei lavori hanno in un elenco", "non il nome che quei lavori hanno in un elenco"],
   ["può tacere, ed è un esito", "rispondi con tutti e tre i campi VUOTI"],
   ["e tacendo non gli si chiede nessun testo", "non ti viene chiesto nessun testo"],
   ["nessun punteggio", "NON DARE NESSUN PUNTEGGIO"],
 ];
 for (const [nome, frase] of CHIEDE) ok(p.includes(frase), nome);
+
+// La regola sul modo di nominare i mestieri era già lì dalla prima stesura — e
+// la prima passata ha comunque dato «il settore delle professioni sanitarie e
+// socio-educative». Era una regola vera scritta in mezzo a un paragrafo denso,
+// e valeva quanto un'intenzione: adesso è un requisito in forma POSITIVA con
+// due riscritture svolte accanto, che è la forma che in questo progetto ha
+// funzionato (le sostituzioni concrete del feedback finale) contro quella che
+// non ha funzionato (il principio astratto ripetuto tre volte al registro).
+ok(/invece di «[^»]+» → «[^»]+»/.test(p), "la regola porta una riscrittura svolta, non solo un divieto");
+ok(p.includes("in un paese di montagna"), "…e l'esempio nomina un posto, che è la metà che rende il mestiere immaginabile");
 
 // Il criterio del silenzio è una soglia, non un'impressione: la stessa già in
 // uso nel caso D del finale di Escape (una scelta sola vale 0,333, due volte

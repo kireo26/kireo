@@ -16,15 +16,21 @@
 
 /* eslint-disable @typescript-eslint/no-require-imports -- script Node CommonJS di utilità */
 
-const { config } = require("./config");
+const { config, configFacoltativa } = require("./config");
 const { finestreDeploy, raccontaCopertura, durata } = require("./finestre");
 
-async function api(c, percorso) {
+// `morbido` esiste per un chiamante solo: la guardia di allineamento del robot,
+// che gira PRIMA che la passata parta. Lì un token senza permessi non deve
+// terminare il processo — deve diventare un «non posso verificare» che chi
+// conferma legge. Per tutti gli altri comandi l'uscita secca resta giusta:
+// senza quella risposta non c'è niente da stampare.
+async function api(c, percorso, { morbido = false } = {}) {
   const risposta = await fetch(`https://api.vercel.com${percorso}`, {
     headers: { Authorization: `Bearer ${c.vercelToken}` },
   });
   if (!risposta.ok) {
     const testo = await risposta.text();
+    if (morbido) throw new Error(`Vercel ha risposto ${risposta.status} su ${percorso.split("?")[0]}`);
     console.error(`\n✗ Vercel ha risposto ${risposta.status} su ${percorso.split("?")[0]}:`);
     console.error("  " + testo.slice(0, 400));
     if (risposta.status === 403) {
@@ -39,9 +45,22 @@ async function api(c, percorso) {
 // Se ne chiedono più del necessario: alcuni verranno scartati perché non hanno
 // mai servito (ERROR, CANCELED, BUILDING, QUEUED), e chiederne pochi
 // significherebbe restringere in silenzio la finestra coperta.
-async function deployProduzione(c, quanti = 30) {
-  const dati = await api(c, `/v6/deployments?projectId=${c.vercelProjectId}&target=production&limit=${quanti}`);
+async function deployProduzione(c, quanti = 30, opzioni = {}) {
+  const dati = await api(c, `/v6/deployments?projectId=${c.vercelProjectId}&target=production&limit=${quanti}`, opzioni);
   return dati.deployments ?? [];
+}
+
+// Lo stato della produzione per la guardia del robot: non fallisce mai, dice
+// perché quando non sa. Chiede pochi deploy — servono il più recente che ha
+// servito e quelli eventualmente in volo sopra di lui, non una cronologia.
+async function statoProduzione() {
+  const dati = configFacoltativa(["vercelToken", "vercelProjectId"]);
+  if (!dati) return { deploys: null, perche: "in .banco.local.json mancano vercelToken e/o vercelProjectId" };
+  try {
+    return { deploys: await deployProduzione(dati, 10, { morbido: true }), perche: null };
+  } catch (errore) {
+    return { deploys: null, perche: errore.message };
+  }
 }
 
 // L'indirizzo di un deploy è vercel.com/<team>/<progetto>/<uid>: due segmenti
@@ -205,4 +224,4 @@ async function deploy(attendi = true) {
   }
 }
 
-module.exports = { log, deploy };
+module.exports = { log, deploy, statoProduzione };

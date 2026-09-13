@@ -113,6 +113,23 @@ function config(chiaviRichieste) {
   return dati;
 }
 
+// Come `config`, ma per chi può fare a meno di quelle chiavi: restituisce null
+// invece di terminare il processo. Serve alla guardia di allineamento del
+// robot, che senza token Vercel deve poter dire «non posso verificare» e
+// lasciar decidere chi conferma — non impedire una passata per una chiave che
+// a giocare non serve.
+function configFacoltativa(chiaviRichieste) {
+  if (!fs.existsSync(PERCORSO)) return null;
+  let dati;
+  try {
+    dati = JSON.parse(fs.readFileSync(PERCORSO, "utf8"));
+  } catch {
+    return null;
+  }
+  if (chiaviRichieste.some((k) => !dati[k] || String(dati[k]).trim() === "")) return null;
+  return dati;
+}
+
 // I FLAG NON ARRIVANO, SE NON SI SA COME CHIEDERLI. `npm run banco log 30
 // --tutto` — il comando che il banco stesso suggeriva — non mostra tutte le
 // righe: npm si mangia le opzioni che cominciano con `--` e allo script
@@ -128,5 +145,5 @@ function flag(nome, argv) {
   return argv.includes(`--${nome}`) || process.env[`npm_config_${nome}`] === "true";
 }
 
-module.exports = { config, CHIAVI, PERCORSO, esci, flag };
+module.exports = { config, configFacoltativa, CHIAVI, PERCORSO, esci, flag };
 

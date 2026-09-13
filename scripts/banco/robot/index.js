@@ -48,6 +48,8 @@ const { WORKSHOP_ELABORATO } = require("@/lib/workshop/elaborato-config");
 const { apriSessione } = require("./sessione");
 const { giocaRuolo } = require("./gioca");
 const { misura, stampaRapporto } = require("./misura");
+const { allineamento } = require("../allineamento");
+const { statoProduzione } = require("../vercel");
 
 const DIR_CONSEGNE = path.join(ROOT, "scripts", "banco", "consegne");
 // Le trappole stanno in una cartella loro: un ruolo per file, così ognuna si
@@ -153,6 +155,25 @@ async function robot(filtro) {
   console.log("\n  Il robot gioca come uno studente vero: se un gate lo blocca si ferma");
   console.log("  e lo riporta, invece di aggirarlo.\n");
 
+  // LA GUARDIA DI ALLINEAMENTO, prima della conferma e prima di qualunque
+  // spesa. Il robot gioca contro il SITO, ma il rapporto porta il commit di
+  // QUESTA cartella: se i due non coincidono, la passata attribuisce i suoi
+  // numeri a un codice che non ha mai eseguito. Tre passate della giornata del
+  // 13/09 sono finite così, e in due casi il sintomo è stato un 500 che non era
+  // del prodotto ma della funzione spenta mentre ne saliva un'altra.
+  const locale = commitCorrente();
+  const { deploys, perche } = await statoProduzione();
+  const stato = allineamento({ locale, deploys, perche });
+  for (const riga of stato.righe) console.log("  " + riga);
+  console.log("");
+  if (stato.esito === "in-volo" || stato.esito === "disallineato") {
+    // Nessun flag per passare oltre, per lo stesso motivo per cui non c'è per
+    // la conferma: una scorciatoia su una guardia che costa quattro dollari a
+    // ignorarla è una scorciatoia che qualcuno prende di fretta.
+    console.log("  Non parto: sarebbe una passata che misura un codice e ne nomina un altro.\n");
+    return;
+  }
+
   // LA CONFERMA NON SI SALTA, e non c'è un flag per farlo. Ce n'era uno,
   // `--vai`, che per via di npm non è mai arrivato fin qui: in settimane
   // nessuno l'ha reclamato, quindi nessuno lo usava. Questo comando è l'unico
@@ -222,7 +243,7 @@ async function robot(filtro) {
         // ricorda cosa c'era in mezzo — e allora le misure non si confrontano,
         // si accostano. `npm run banco confronta` lo usa per elencare i commit
         // fra una passata e l'altra.
-        commit: commitCorrente(),
+        commit: locale,
         quando: new Date().toISOString(),
         piano: { ruoli: piano.lavori.length, chiamate: piano.chiamate },
         esiti,

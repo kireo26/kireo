@@ -76,6 +76,41 @@ const certa = (cattura) => CERTA.test(String(cattura).toLowerCase());
 const PATTERN_FORMULA = LESSICO_VERDETTO["stato-d'animo"] ?? [];
 const eFormula = (cattura) => PATTERN_FORMULA.some((re) => new RegExp(re.source, "i").test(String(cattura)));
 
+// LE PAROLE-CONTENITORE, in «dove_porta» e solo lì.
+//
+// Quel campo deve nominare una persona che fa una cosa in un posto: «chi fa
+// l'infermiere in un paese di montagna». La prima passata del blocco ha invece
+// dato «il settore delle professioni sanitarie e socio-educative» — la voce di
+// chi archivia, che non ha mai fatto venire voglia a nessuno di fare un
+// mestiere, e dentro la quale un ragazzo non riesce a immaginarsi.
+//
+// È UNA MISURA, NON UNA GUARDIA, e la differenza è deliberata: la regola nel
+// prompt è appena stata riscritta in forma operativa, e questo numero serve a
+// dire se ha preso. Un filtro nel codice la renderebbe invisibile — è la
+// lezione della formula «hai capito», dove il numero pubblicato è quello PRIMA
+// della riscrittura, altrimenti la misura vede zero e racconta che il modello
+// ha smesso.
+//
+// Larga di proposito, come tutti i pattern del banco: «professioni» prende
+// anche usi legittimi. Si conta la VOCE, non le occorrenze, e la si stampa con
+// il testo accanto — quanto sia vera lo dice una persona.
+const CONTENITORI = [
+  /\bsettor[ei]\b/i,
+  /\bcompart[oi]\b/i,
+  /\bambit[oi]\b/i,
+  /\bfigur[ae] professional[ei]\b/i,
+  /\bprofil[oi] professional[ei]\b/i,
+  /\bprofessioni\b/i,
+  /\bmondo del(?:la|lo|l')?\b/i,
+  /\baziende di servizi\b/i,
+  /\bstud[io]o? consulenzial[ei]\b/i,
+  /\brealtà aziendal[ei]\b/i,
+];
+
+function contenitoriIn(voce) {
+  return CONTENITORI.map((re) => String(voce).match(re)?.[0]).filter(Boolean);
+}
+
 // Ogni testo con la sua provenienza, così una cattura si può andare a rileggere
 // invece di restare un numero.
 function raccogliTesti(esiti) {
@@ -269,6 +304,19 @@ function misura(esiti, attesi = null) {
   const testiConAccordo = new Set(accordi.map((a) => a.dove)).size;
   const testiConRegistro = new Set(registro.map((r) => r.dove)).size;
 
+  // «dove porta»: quante voci sono state scritte, e quante nominano una
+  // categoria invece di una persona. Si guardano le voci del blocco, non tutte
+  // le stringhe del feedback finale: altrove «settore» può essere legittimo,
+  // qui è precisamente la cosa che non va.
+  const dovePorta = [];
+  for (const e of esiti) {
+    for (const voce of e.feedbackFinale?.modo_di_lavorare?.dove_porta ?? []) {
+      const trovate = contenitoriIn(voce);
+      dovePorta.push({ dove: `${e.etichetta} / dove porta`, voce: String(voce), contenitori: trovate });
+    }
+  }
+  const dovePortaConContenitore = dovePorta.filter((v) => v.contenitori.length > 0);
+
   return {
     completezza: verificaCompletezza(esiti, attesi),
     testi: testi.length,
@@ -276,6 +324,8 @@ function misura(esiti, attesi = null) {
     registro,
     testiConAccordo,
     testiConRegistro,
+    dovePorta,
+    dovePortaConContenitore,
     perGenere,
     esitiRevisione,
     avanzateSenzaEsito,
@@ -488,6 +538,25 @@ function stampaRapporto(m, righe = console.log) {
     if (m.registro.length > 12) di(`  … e altre ${m.registro.length - 12}, tutte nel rapporto su file.`);
   }
   di("");
+
+  // «Dove porta» ha una riga sua perché è l'unico campo del prodotto in cui una
+  // parola-contenitore è di per sé il difetto: altrove «settore» può starci.
+  if (m.dovePorta && m.dovePorta.length > 0) {
+    const sporche = m.dovePortaConContenitore ?? [];
+    di(`DOVE PORTA — ${sporche.length} voci su ${m.dovePorta.length} nominano una categoria invece di una persona`);
+    if (sporche.length === 0) {
+      di("  Nessuna parola-contenitore. Da leggere lo stesso: la regola chiede una");
+      di("  persona che fa una cosa IN UN POSTO, e il posto un pattern non lo vede.");
+    } else {
+      di("  La regola chiede una persona che fa una cosa in un posto — «chi fa");
+      di("  l'infermiere in un paese di montagna» — non il nome che quei lavori hanno");
+      di("  in un elenco. Larga di proposito: «professioni» prende anche usi buoni.");
+      di("");
+      for (const v of sporche.slice(0, 8)) di(`  · ${v.dove}   [${v.contenitori.join(", ")}]\n      ${v.voce}`);
+      if (sporche.length > 8) di(`  … e altre ${sporche.length - 8}, tutte nel rapporto su file.`);
+    }
+    di("");
+  }
 
   di("QUANTO CI È COSTATO");
   di(`  Testi con almeno una cattura — lingua: ${m.testiConAccordo}, registro: ${m.testiConRegistro} (su ${m.testi}).`);
