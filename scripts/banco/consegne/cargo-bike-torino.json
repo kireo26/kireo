@@ -1,6 +1,5 @@
 {
   "workshop": "cargo-bike-torino",
-
   "ruoli": {
     "economia": {
       "livello": "base",
@@ -8,12 +7,36 @@
         "confronto": {
           "sezioni": {
             "confronto_costi": [
-              ["Acquisto del mezzo", "22.000 € (usato recente)", "7.500 € (elettrica con cassone)"],
-              ["Carburante / energia", "3.800 €/anno", "180 €/anno di elettricità"],
-              ["Assicurazione e bollo", "1.250 €/anno", "150 €/anno"],
-              ["Manutenzione ordinaria", "1.400 €/anno", "600 €/anno"],
-              ["Permessi ZTL e multe", "1.100 €/anno", "0 €"],
-              ["Soste e parcheggi", "700 €/anno", "0 €"]
+              [
+                "Acquisto del mezzo",
+                "22.000 € (usato recente)",
+                "7.500 € (elettrica con cassone)"
+              ],
+              [
+                "Carburante / energia",
+                "3.800 €/anno",
+                "180 €/anno di elettricità"
+              ],
+              [
+                "Assicurazione e bollo",
+                "1.250 €/anno",
+                "150 €/anno"
+              ],
+              [
+                "Manutenzione ordinaria",
+                "1.400 €/anno",
+                "600 €/anno"
+              ],
+              [
+                "Permessi ZTL e multe",
+                "1.100 €/anno",
+                "0 €"
+              ],
+              [
+                "Soste e parcheggi",
+                "700 €/anno",
+                "0 €"
+              ]
             ],
             "voce_chiave": "La voce dove la cargo bike cambia davvero le cose non è il carburante, che pure si vede subito: è il costo di stare in centro. Fra permesso ZTL, multe prese perché il furgone resta in doppia fila mentre il ragazzo sale ai piani, e soste a pagamento, il furgone si mangia quasi duemila euro l'anno solo per poter essere dove deve consegnare. La cargo bike quel costo non ce l'ha per niente, e in più non perde i dieci minuti a giro che il furgone perde per trovare posto."
           },
@@ -26,12 +49,36 @@
         "investimento": {
           "sezioni": {
             "investimento": [
-              ["Cargo bike elettriche con cassone", "4", "30.000"],
-              ["Batterie di scorta", "4", "3.200"],
-              ["Colonnine di ricarica in magazzino", "2", "1.800"],
-              ["Attrezzatura e box di carico", "4 kit", "2.400"],
-              ["Formazione dei rider e sicurezza", "5 persone", "1.500"],
-              ["Contratto di manutenzione primo anno", "1", "2.400"]
+              [
+                "Cargo bike elettriche con cassone",
+                "4",
+                "30.000"
+              ],
+              [
+                "Batterie di scorta",
+                "4",
+                "3.200"
+              ],
+              [
+                "Colonnine di ricarica in magazzino",
+                "2",
+                "1.800"
+              ],
+              [
+                "Attrezzatura e box di carico",
+                "4 kit",
+                "2.400"
+              ],
+              [
+                "Formazione dei rider e sicurezza",
+                "5 persone",
+                "1.500"
+              ],
+              [
+                "Contratto di manutenzione primo anno",
+                "1",
+                "2.400"
+              ]
             ],
             "budget": "Il totale è 41.300 €, quindi restano 18.700 € dei 60.000 che hai messo sul piatto. Quel margine non lo spendo, e non è prudenza generica: le quattro cargo bike sostituiscono due furgoni su tre, e il primo anno serve tenere da parte i soldi per due cose che non si possono prevedere adesso — un mezzo fermo più a lungo del previsto, e la possibilità che i giri vadano riorganizzati dopo i primi mesi. Se a fine anno il margine è ancora lì, quello diventa la quinta cargo bike."
           },
@@ -64,7 +111,6 @@
         }
       }
     },
-
     "mobilita": {
       "livello": "base",
       "tappe": {
@@ -81,10 +127,26 @@
         "copertura": {
           "sezioni": {
             "zone": [
-              ["Centro storico e Quadrilatero", "1,2 km dal nano-hub di Porta Palazzo", "28"],
-              ["San Salvario e Crocetta", "1,8 km dal nano-hub di San Salvario", "24"],
-              ["Vanchiglia e Aurora", "2,5 km dal magazzino", "18"],
-              ["Borgo Po e collina bassa", "3 km dal magazzino, con dislivello", "12"]
+              [
+                "Centro storico e Quadrilatero",
+                "1,2 km dal nano-hub di Porta Palazzo",
+                "28"
+              ],
+              [
+                "San Salvario e Crocetta",
+                "1,8 km dal nano-hub di San Salvario",
+                "24"
+              ],
+              [
+                "Vanchiglia e Aurora",
+                "2,5 km dal magazzino",
+                "18"
+              ],
+              [
+                "Borgo Po e collina bassa",
+                "3 km dal magazzino, con dislivello",
+                "12"
+              ]
             ]
           },
           "chat": [
@@ -116,17 +178,33 @@
         }
       }
     },
-
     "tecnica": {
       "livello": "base",
       "tappe": {
         "modelli": {
           "sezioni": {
             "modelli": [
-              ["Cargo bike a tre ruote con cassone anteriore", "180 kg di carico, cassone da 1.100 litri", "60-70 km con una batteria", "7.500 €"],
-              ["Cargo bike a due ruote lunga (longtail)", "100 kg di carico, borse laterali", "70-80 km con una batteria", "5.200 €"],
-              ["Cargo bike a tre ruote con box chiuso e refrigerato", "150 kg, box chiuso a chiave", "55-65 km", "9.800 €"]
-            ]
+              [
+                "Cargo bike a tre ruote con cassone anteriore",
+                "180 kg di carico, cassone da 1.100 litri",
+                "60-70 km con una batteria",
+                "7.500 €"
+              ],
+              [
+                "Cargo bike a due ruote lunga (longtail)",
+                "100 kg di carico, borse laterali",
+                "70-80 km con una batteria",
+                "5.200 €"
+              ],
+              [
+                "Cargo bike a tre ruote con box chiuso e refrigerato",
+                "150 kg, box chiuso a chiave",
+                "55-65 km",
+                "9.800 €"
+              ]
+            ],
+            "a_cosa_serve_quale": "I due lavori non chiedono la stessa bici. Per i negozi del centro va la Urban Arrow Cargo XL: cassone da 240 litri, tanti colli piccoli e fermate ogni duecento metri, dove conta più scendere e risalire in fretta che portare tanto. Per l'e-commerce prenderei la Bullitt con il cassone lungo: meno fermate, carichi più ingombranti, e la ruota posteriore regge meglio il peso concentrato. Con due mezzi uguali uno dei due lavori lo faresti male, e sarebbe sempre lo stesso.",
+            "il_carico_vero": "I tre scatoloni da 40×60×40 fanno 96 litri l'uno di ingombro reale, non 96 di volume utile: impilati male ne mangiano 150 in tre. Restano 90 litri per trentuno colli piccoli, che a tre-quattro litri l'uno fanno fra 93 e 124. Non ci stanno. In una bici da 240 litri quel giovedì entra circa l'ottanta per cento del giro. Le strade sono due: due giri con rientro in hub verso le undici, oppure i tre scatoloni sul furgone che resta e tutto il resto in bici. Sceglierei la seconda, perché il secondo giro costa un'ora di rider e il furgone quel giorno è fermo comunque. Il numero dei litri per collo l'ho stimato io: Renzo non li ha mai misurati, e gliel'ho chiesto."
           },
           "chat": [
             "Renzo, qual è il pacco più pesante che ti capita in una settimana normale?",
@@ -136,7 +214,28 @@
         },
         "batterie": {
           "sezioni": {
-            "batterie": "Una giornata di lavoro in centro sono fra i 45 e i 60 km, con i saliscendi e le partenze da fermo che consumano più della strada piana. Le batterie da 60-70 km dichiarati reggono, ma dichiarato e reale non sono la stessa cosa: con il cassone pieno e il freddo di gennaio si perde facilmente un quarto dell'autonomia. Quindi ogni bici ha la sua batteria più una di scorta, e la scorta non sta in magazzino: sta al nano-hub, dove il rider passa comunque fra un giro e l'altro. Il cambio è un gesto da due minuti. Le batterie scariche tornano al magazzino la sera con il furgone che rientra e si ricaricano di notte, quando l'elettricità costa meno. Due colonnine bastano per otto batterie, perché la ricarica completa sono quattro ore e la notte ne ha otto."
+            "batterie": "Una giornata di lavoro in centro sono fra i 45 e i 60 km, con i saliscendi e le partenze da fermo che consumano più della strada piana. Le batterie da 60-70 km dichiarati reggono, ma dichiarato e reale non sono la stessa cosa: con il cassone pieno e il freddo di gennaio si perde facilmente un quarto dell'autonomia. Quindi ogni bici ha la sua batteria più una di scorta, e la scorta non sta in magazzino: sta al nano-hub, dove il rider passa comunque fra un giro e l'altro. Il cambio è un gesto da due minuti. Le batterie scariche tornano al magazzino la sera con il furgone che rientra e si ricaricano di notte, quando l'elettricità costa meno. Due colonnine bastano per otto batterie, perché la ricarica completa sono quattro ore e la notte ne ha otto.",
+            "ricarica": [
+              [
+                "Notte, 20:00–06:00",
+                "Hub di via Ormea",
+                "4 (due prese doppie)",
+                "6 ore a piena carica"
+              ],
+              [
+                "Pausa pranzo, 13:00–14:00",
+                "Hub di via Ormea",
+                "2",
+                "recupera circa il 25%"
+              ],
+              [
+                "Cambio batteria al volo",
+                "Furgone d'appoggio",
+                "1 alla volta",
+                "5 minuti"
+              ]
+            ],
+            "la_batteria_che_muore": "Alle 15 con il 9% restano fra i sei e gli otto chilometri in piano, e corso Vittorio verso l'hub è tutta pianura: ci arriva. Ma i nove colli no. Il rider chiama l'hub, che guarda dove sono le altre tre bici: se una è in zona e ha finito il giro, si passano i colli e li chiude lei. Se non c'è nessuno, parte il furgone con una batteria carica, si fa il cambio in strada in cinque minuti e il giro riprende. Il cliente delle 15:30 slitta di venti minuti nel primo caso e di quaranta nel secondo, e in tutti e due gli viene mandato un messaggio prima che se ne accorga lui. Quello che non facciamo è farlo pedalare fino a zero: sotto il 15% il rider chiama, non aspetta."
           },
           "chat": [
             "Renzo, in magazzino c'è una presa industriale o solo prese normali?",
@@ -146,7 +245,9 @@
         },
         "manutenzione": {
           "sezioni": {
-            "manutenzione": "La manutenzione ordinaria è ogni 1.500 km circa: freni, catena, gomme, controllo del motore. Con 50 km al giorno vuol dire ogni sei settimane per bici, quindi un passaggio in officina ogni dieci giorni contando tutta la flotta. Ho messo a budget un contratto con un'officina di Torino che le ritira e le riporta, perché un rider che porta la bici in officina è un rider che non consegna. Per la pioggia non serve un piano speciale: le cargo bike lavorano, i rider hanno l'attrezzatura, e la merce sta nel cassone chiuso. Il piano serve per il ghiaccio, che a Torino sono cinque o sei giorni l'anno: quei giorni le consegne del centro le fa il furgone che hai tenuto, con un giro più lungo e più lento. Sulle salite di Borgo Po il motore assiste fino a 25 km/h e regge, ma il carico va tenuto sotto i 120 kg: sopra quella soglia si fatica e la batteria cala in fretta. Quando una bici è ferma, le sue consegne si dividono fra le altre tre: è per questo che nessuna zona è caricata al massimo."
+            "manutenzione": "La manutenzione ordinaria è ogni 1.500 km circa: freni, catena, gomme, controllo del motore. Con 50 km al giorno vuol dire ogni sei settimane per bici, quindi un passaggio in officina ogni dieci giorni contando tutta la flotta. Ho messo a budget un contratto con un'officina di Torino che le ritira e le riporta, perché un rider che porta la bici in officina è un rider che non consegna. Per la pioggia non serve un piano speciale: le cargo bike lavorano, i rider hanno l'attrezzatura, e la merce sta nel cassone chiuso. Il piano serve per il ghiaccio, che a Torino sono cinque o sei giorni l'anno: quei giorni le consegne del centro le fa il furgone che hai tenuto, con un giro più lungo e più lento. Sulle salite di Borgo Po il motore assiste fino a 25 km/h e regge, ma il carico va tenuto sotto i 120 kg: sopra quella soglia si fatica e la batteria cala in fretta. Quando una bici è ferma, le sue consegne si dividono fra le altre tre: è per questo che nessuna zona è caricata al massimo.",
+            "chi_ripara": "Officina esterna, non un meccanico dentro. A Torino ce ne sono due che lavorano su cargo elettriche, e una è a un chilometro dall'hub. Un contratto di manutenzione programmata costa sull'ordine dei 1.400 euro all'anno per quattro mezzi — è un preventivo che ho chiesto, non un listino. Il numero che conta però è un altro: per un guasto ordinario rimettono in strada in ventiquattro ore, ma su un motore o un controller dipende dal ricambio, e lì siamo fra i tre e i dieci giorni. Un meccanico interno accorcerebbe i tempi ma costa uno stipendio, e con quattro bici non si giustifica.",
+            "il_fermo": "Metto dodici giorni all'anno per bici: sei di manutenzione programmata e sei di guasti. È una stima mia, costruita sul contratto dell'officina più un margine, e Renzo non ha dati suoi perché le bici non le ha ancora. Con quattro mezzi vuol dire che in media una è ferma per quarantotto giorni sparsi nell'anno, cioè quasi un giorno su cinque c'è qualcuno che manca. Il mercoledì del caso: il giro lo fa il furgone che resta. Ma è una risposta che regge una volta ogni tanto, non come sistema — se il furgone diventa la riserva fissa, allora nella flotta ci sono tre bici e mezzo, non quattro, e i conti dell'analista vanno rifatti su quel numero."
           },
           "chat": [
             "Renzo, hai un meccanico di fiducia in zona o cerchiamo un'officina apposta?",
@@ -156,7 +257,8 @@
         },
         "pitch": {
           "sezioni": {
-            "sintesi": "Renzo, la flotta regge tutti i giorni e ti dico perché. Prendo tre cargo bike a tre ruote con cassone, che portano 180 chili, e una longtail più leggera per i giri sparsi. Ogni bici ha una batteria in più che sta al nano-hub, dove il rider passa comunque fra un giro e l'altro: il cambio sono due minuti, non un rientro. Di notte si ricarica tutto in magazzino, quando la corrente costa meno. La manutenzione è un contratto con un'officina che le ritira e le riporta, perché un ragazzo che porta la bici dal meccanico è un ragazzo che non consegna. La pioggia non ferma niente, il ghiaccio sì: quei cinque o sei giorni l'anno il centro lo fa il furgone che hai tenuto. E le zone non sono caricate al massimo apposta, così quando una bici è ferma le altre tre assorbono senza che nessun cliente se ne accorga. Quello che non so è come si comportano le batterie al secondo inverno: quello lo dirà l'uso."
+            "sintesi": "Renzo, la flotta regge tutti i giorni e ti dico perché. Prendo tre cargo bike a tre ruote con cassone, che portano 180 chili, e una longtail più leggera per i giri sparsi. Ogni bici ha una batteria in più che sta al nano-hub, dove il rider passa comunque fra un giro e l'altro: il cambio sono due minuti, non un rientro. Di notte si ricarica tutto in magazzino, quando la corrente costa meno. La manutenzione è un contratto con un'officina che le ritira e le riporta, perché un ragazzo che porta la bici dal meccanico è un ragazzo che non consegna. La pioggia non ferma niente, il ghiaccio sì: quei cinque o sei giorni l'anno il centro lo fa il furgone che hai tenuto. E le zone non sono caricate al massimo apposta, così quando una bici è ferma le altre tre assorbono senza che nessun cliente se ne accorga. Quello che non so è come si comportano le batterie al secondo inverno: quello lo dirà l'uso.",
+            "cosa_tranquillizza": "La paura è che un mezzo fermo diventi un cliente perso. La cosa che gli tolgo è questa: nessun giro dipende da una bici sola. Con quattro mezzi e il furgone che resta, il giorno peggiore che ho messo nero su bianco — una bici ferma per un ricambio che tarda — si copre spostando il giro, e lo copre in giornata. Non gli prometto che non si rompe niente: gli dico che dodici giorni di fermo per bici sono già dentro il conto, e che il servizio regge lo stesso."
           },
           "chat": [
             "Siamo all'ultimo, Renzo. Dei mezzi che ho scelto, ce n'è uno che non ti piace?",
@@ -167,7 +269,6 @@
         }
       }
     },
-
     "digitale": {
       "livello": "base",
       "tappe": {
@@ -184,11 +285,31 @@
         "sistema": {
           "sezioni": {
             "strumenti": [
-              ["Registro dei pacchi e stato consegna", "Un foglio condiviso su Google Sheets, con una vista per rider", "0 €"],
-              ["Giri del giorno sul telefono", "Lo stesso foglio in versione mobile, aggiornato in tempo reale", "0 €"],
-              ["Prova di consegna con foto e firma", "Un modulo Google Form collegato al foglio", "0 €"],
-              ["Avviso al destinatario", "Messaggi WhatsApp inviati dal telefono aziendale", "0 €"],
-              ["Spazio e backup dei dati", "Google Workspace base, 5 utenti", "36 €/mese"]
+              [
+                "Registro dei pacchi e stato consegna",
+                "Un foglio condiviso su Google Sheets, con una vista per rider",
+                "0 €"
+              ],
+              [
+                "Giri del giorno sul telefono",
+                "Lo stesso foglio in versione mobile, aggiornato in tempo reale",
+                "0 €"
+              ],
+              [
+                "Prova di consegna con foto e firma",
+                "Un modulo Google Form collegato al foglio",
+                "0 €"
+              ],
+              [
+                "Avviso al destinatario",
+                "Messaggi WhatsApp inviati dal telefono aziendale",
+                "0 €"
+              ],
+              [
+                "Spazio e backup dei dati",
+                "Google Workspace base, 5 utenti",
+                "36 €/mese"
+              ]
             ]
           },
           "chat": [
@@ -220,7 +341,6 @@
         }
       }
     },
-
     "sostenibilita": {
       "livello": "base",
       "tappe": {
@@ -237,9 +357,21 @@
         "bandi": {
           "sezioni": {
             "bandi": [
-              ["Incentivi comunali per la logistica sostenibile in ZTL", "Fino a 2.000 € per mezzo, secondo il bando dell'anno", "Impresa con sede in città, mezzo elettrico immatricolato o registrato, impegno a operare in ZTL — importi e finestre cambiano ogni anno, da verificare sul sito del Comune"],
-              ["Contributi regionali per il rinnovo del parco mezzi delle micro-imprese", "Percentuale sulla spesa, di solito fra il 30% e il 50%", "Micro o piccola impresa, spesa minima, rendicontazione a fine progetto — la Regione apre gli sportelli a finestre, va seguito il bollettino"],
-              ["Credito d'imposta su beni strumentali nuovi", "Percentuale sul valore del bene, cumulabile con i contributi locali salvo divieto espresso", "Fattura con la dicitura di legge, bene nuovo e strumentale all'attività, verifica preventiva con il commercialista"]
+              [
+                "Incentivi comunali per la logistica sostenibile in ZTL",
+                "Fino a 2.000 € per mezzo, secondo il bando dell'anno",
+                "Impresa con sede in città, mezzo elettrico immatricolato o registrato, impegno a operare in ZTL — importi e finestre cambiano ogni anno, da verificare sul sito del Comune"
+              ],
+              [
+                "Contributi regionali per il rinnovo del parco mezzi delle micro-imprese",
+                "Percentuale sulla spesa, di solito fra il 30% e il 50%",
+                "Micro o piccola impresa, spesa minima, rendicontazione a fine progetto — la Regione apre gli sportelli a finestre, va seguito il bollettino"
+              ],
+              [
+                "Credito d'imposta su beni strumentali nuovi",
+                "Percentuale sul valore del bene, cumulabile con i contributi locali salvo divieto espresso",
+                "Fattura con la dicitura di legge, bene nuovo e strumentale all'attività, verifica preventiva con il commercialista"
+              ]
             ]
           },
           "chat": [

@@ -2245,6 +2245,27 @@ export const WORKSHOP_ELABORATO: Record<string, Record<string, Elaborato>> = {
               colonne: ["Modello", "Capacità", "Autonomia", "Prezzo"],
               minRighe: 2,
             },
+            {
+              id: "a_cosa_serve_quale",
+              titolo: "Quale bici per quale lavoro",
+              tipo: "testo",
+              prompt:
+                "Renzo fa due lavori diversi: i pacchi dell'e-commerce e le consegne ai negozi del centro. Quale dei modelli che hai messo in tabella va bene per quale, e perché?",
+              hint: "Un carico sono tanti colli piccoli da fermate brevi, l'altro sono poche consegne grosse. Non è detto che serva lo stesso mezzo.",
+              minCaratteri: 250,
+            },
+            {
+              // LA SEZIONE SCOMODA DELLA TAPPA: non chiede «come gestisci i
+              // volumi» — mette davanti un giovedì con 34 colli e tre
+              // scatoloni, e a quel punto una risposta vaga si vede.
+              id: "il_carico_vero",
+              titolo: "Il giovedì mattina",
+              tipo: "testo_lungo",
+              prompt:
+                "Un giovedì mattina Renzo ha 34 colli per i negozi del centro. Tre sono scatoloni da 40×60×40 cm, gli altri stanno in una mano. Entrano in una delle bici che hai scelto? Fai il conto in litri, e di' cosa fai con quello che non entra.",
+              hint: "Una cargo da 240 litri non è 240 litri utili: i colli non si incastrano come i mattoni. Se non ci stanno tutti, dirlo non è una sconfitta — è un secondo giro o un mezzo diverso.",
+              minCaratteri: 350,
+            },
           ],
           reazioneCliente:
             "Renzo vuole capirci: «Quante ne servono e di che tipo? Non voglio comprà biciclette da passeggio, devono reggere i pacchi veri». Apre di fatto la tappa su batterie e ricarica.",
@@ -2253,6 +2274,9 @@ export const WORKSHOP_ELABORATO: Record<string, Record<string, Elaborato>> = {
             "La capacità di carico regge i volumi?",
             "I prezzi sono coerenti col budget?",
             "La scelta è motivata sul tipo di merce?",
+            "La scelta del modello è legata al tipo di consegna, non generica?",
+            "Il conto dei litri è fatto davvero, e le ipotesi sono dichiarate?",
+            "Se il carico non ci sta, lo dice invece di aggirarlo?",
           ],
         },
         {
@@ -2272,6 +2296,29 @@ export const WORKSHOP_ELABORATO: Record<string, Record<string, Elaborato>> = {
               hint: "Batteria extra, ricarica in hub durante le pause, rotazione. Le salite di Torino consumano di più.",
               minCaratteri: 300,
             },
+            {
+              id: "ricarica",
+              titolo: "Dove e quando si ricarica",
+              tipo: "tabella",
+              prompt: "Metti giù il piano di ricarica di una giornata normale: in quali momenti, in che posto, quante bici alla volta.",
+              hint: "La notte in hub non basta se le salite si mangiano l'autonomia. Guarda anche la pausa pranzo, e conta le prese che ci sono davvero.",
+              colonne: ["Quando", "Dove", "Quante bici insieme", "Quanto dura"],
+              minRighe: 3,
+            },
+            {
+              // LA SEZIONE SCOMODA. La paura che Renzo dice a voce nella
+              // `reazioneCliente` qui sotto — «e quando la batteria è scarica
+              // a metà giornata?» — fino a oggi apriva la tappa dopo e non
+              // chiedeva niente a nessuno. Adesso è una scena con un'ora, una
+              // via, nove colli e un cliente che aspetta.
+              id: "la_batteria_che_muore",
+              titolo: "Le tre del pomeriggio",
+              tipo: "testo_lungo",
+              prompt:
+                "Sono le tre del pomeriggio. Un rider è in corso Vittorio con nove colli ancora da consegnare e la batteria segna il 9%. Cosa succede, passo per passo?",
+              hint: "Chi chiama chi, chi porta cosa, e quanto tempo perde il cliente che aspettava alle 15:30. Se la risposta è «torna in hub», di' quanto ci mette e cosa succede ai nove colli.",
+              minCaratteri: 350,
+            },
           ],
           reazioneCliente:
             "Renzo pensa al peggio: «E quando la batteria è scarica a metà giornata? Mica posso lasciare i pacchi per strada». Apre di fatto la tappa su manutenzione e meteo.",
@@ -2280,6 +2327,9 @@ export const WORKSHOP_ELABORATO: Record<string, Record<string, Elaborato>> = {
             "Prevede batterie di scorta o ricarica in hub?",
             "Tiene conto del consumo maggiore in salita?",
             "È pratica e a costi ragionevoli?",
+            "Il piano di ricarica sta dentro una giornata vera, con le prese che ci sono?",
+            "Nel caso della batteria scarica c'è una catena di persone, non un'intenzione?",
+            "Dice cosa perde il cliente, o lo salta?",
           ],
         },
         {
@@ -2299,6 +2349,28 @@ export const WORKSHOP_ELABORATO: Record<string, Record<string, Elaborato>> = {
               hint: "Manutenzione programmata, un mezzo di riserva o il furgone rimasto per i giorni difficili, motore adatto ai dislivelli.",
               minCaratteri: 300,
             },
+            {
+              id: "chi_ripara",
+              titolo: "Chi le aggiusta",
+              tipo: "testo",
+              prompt:
+                "Chi fa la manutenzione: qualcuno dentro, un'officina fuori, o l'assistenza di chi te le ha vendute? Quanto costa all'anno e in quanto tempo rimettono in strada una bici ferma.",
+              hint: "Un meccanico interno costa uno stipendio; un'officina fuori costa meno ma ha i suoi tempi. Il numero che conta non è il prezzo del pezzo: sono i giorni.",
+              minCaratteri: 250,
+            },
+            {
+              // LA SEZIONE SCOMODA. Chiede un numero che lo studente non può
+              // sapere (i giorni di fermo) e poi una scena che non si può
+              // chiudere con un principio: martedì si rompe, giovedì arriva
+              // il pezzo, e mercoledì qualcuno quel giro lo deve fare.
+              id: "il_fermo",
+              titolo: "I giorni in cui non gira",
+              tipo: "testo_lungo",
+              prompt:
+                "Quanti giorni all'anno una cargo bike sta ferma — manutenzione, guasti, ricambi che non arrivano? Metti un numero. Poi: una si ferma martedì mattina e il pezzo arriva giovedì. Chi fa il suo giro mercoledì?",
+              hint: "Il numero non lo sai con certezza e va bene: di' da dove lo tiri fuori. Sul mercoledì, Renzo un furgone ce l'ha ancora — ma se la risposta è sempre quella, allora la flotta non è quella che hai scritto in tabella.",
+              minCaratteri: 300,
+            },
           ],
           reazioneCliente:
             "Renzo mette il dito nella piaga: «A Torino piove e ci stanno le salite. Con la pioggia i tuoi rider che fanno, si fermano?». Apre di fatto la tappa del pitch.",
@@ -2307,6 +2379,9 @@ export const WORKSHOP_ELABORATO: Record<string, Record<string, Elaborato>> = {
             "C'è un piano per pioggia e giorni difficili (furgone di riserva)?",
             "Tiene conto delle salite di Torino nella scelta dei mezzi?",
             "Il servizio regge anche nei casi peggiori?",
+            "Il numero dei giorni di fermo c'è, e dice da dove viene?",
+            "La copertura del mercoledì è una persona e un mezzo, non un principio?",
+            "Se la riserva è sempre il furgone, lo riconosce invece di nasconderlo?",
           ],
         },
         {
@@ -2327,6 +2402,15 @@ export const WORKSHOP_ELABORATO: Record<string, Record<string, Elaborato>> = {
               hint: "Renzo teme i fermi: mostragli che hai pensato a tutto, pioggia e salite comprese.",
               minCaratteri: 400,
             },
+            {
+              id: "cosa_tranquillizza",
+              titolo: "La cosa che gli togli dalla testa",
+              tipo: "testo",
+              prompt:
+                "Renzo ha una paura sola: che i mezzi si fermino e i clienti se ne vadano. Qual è la cosa che gli togli dalla testa, e con quale fatto?",
+              hint: "Una sola, la più grossa. E un fatto che hai scritto tu in una delle tappe, non una rassicurazione.",
+              minCaratteri: 200,
+            },
           ],
           reazioneCliente:
             "Renzo valuta se può fidarsi dei mezzi ogni giorno: se sì, ci sta; se no, dice cosa lo preoccupa. Chiusura del percorso.",
@@ -2335,6 +2419,7 @@ export const WORKSHOP_ELABORATO: Record<string, Record<string, Elaborato>> = {
             "Dà affidabilità quotidiana?",
             "È realistica per Torino?",
             "È coerente con le tappe precedenti?",
+            "La rassicurazione poggia su un fatto scritto nelle tappe, o è una promessa?",
           ],
         },
       ],
