@@ -263,6 +263,27 @@ const daBloccoAConferma = sorgenteRobot.slice(sorgenteRobot.indexOf('=== "in-vol
 ok(daBloccoAConferma.length > 0 && /\n\s*return;/.test(daBloccoAConferma), "…e quando blocca esce, invece di stampare e proseguire");
 ok(sorgenteRobot.indexOf("allineamento({") < sorgenteRobot.indexOf("await chiediConferma"), "…e lo fa PRIMA della conferma: chi conferma deve già saperlo");
 
+// E PRIMA ANCHE DEL PIANO VUOTO. Il 14/09 `banco robot senza-autore` ha detto
+// «Nessun ruolo corrisponde» mentre questa cartella era indietro rispetto alla
+// produzione, e la guardia — che c'era, e funzionava — è rimasta muta perché
+// stava dopo quell'uscita. Un controllo giusto messo dopo il punto in cui
+// serviva: la stessa forma del ritentativo sulle scritture e dell'ordine dei
+// gesti del robot. «Nessun ruolo corrisponde» è il sintomo in cui un
+// disallineamento è la spiegazione più probabile, quindi la guardia parla lì
+// per prima.
+const iChiesta = sorgenteRobot.indexOf("await verificaAllineamento()");
+const iPianoVuoto = sorgenteRobot.indexOf("piano.lavori.length === 0");
+// Cercato DOPO l'uscita, non dall'inizio: la frase compare anche nel commento
+// che racconta il difetto, e un indice che cade lì dentro produrrebbe una
+// finestra vuota — cioè un rosso su un codice giusto.
+const iMessaggioFiltro = sorgenteRobot.indexOf("Nessun ruolo corrisponde a", iPianoVuoto);
+ok(iChiesta > 0 && iPianoVuoto > 0 && iChiesta < iPianoVuoto, "la guardia si chiede PRIMA dell'uscita per piano vuoto");
+const daPianoVuotoAMessaggio = sorgenteRobot.slice(iPianoVuoto, iMessaggioFiltro);
+ok(
+  iMessaggioFiltro > iPianoVuoto && /stato\.righe/.test(daPianoVuotoAMessaggio),
+  "…e parla prima del messaggio del filtro, invece di lasciarlo solo a spiegare un disallineamento",
+);
+
 console.log("\n═══════════════════════════════════════════\n");
 if (falliti) { console.error(`✗ ${falliti} controlli falliti.\n`); process.exit(1); }
 console.log("✓ Ogni esito ha la sua frase, il fallimento non si nasconde dietro un successo,\n  e «non posso vederle» non si legge come «non ci sono».\n");

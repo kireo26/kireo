@@ -71,7 +71,10 @@ function allineamento({ locale, deploys, perche = null }) {
       righe: [
         `⚠  Non posso verificare che la produzione stia servendo questo commit.`,
         `   ${perche ?? "lo stato dei deploy non è leggibile"}`,
-        `   La passata parte lo stesso, ma se il rapporto dirà un commit diverso da quello`,
+        // Detto senza dare per scontato che una passata stia partendo: queste
+        // righe si stampano anche quando il piano è vuoto, e lì «la passata
+        // parte lo stesso» sarebbe una frase falsa nel punto in cui si legge.
+        `   Questo non ferma niente, ma se il rapporto dirà un commit diverso da quello`,
         `   che il sito sta eseguendo, i numeri non valgono.`,
       ],
     };

@@ -126,10 +126,18 @@ const { promptFeedbackFinale } = require("@/lib/workshop/prompt-revisore");
 const finale = promptFeedbackFinale(
   { ...CTX, tappaTitolo: "Tappa 4", tappaObiettivo: "…", clienteVincoli: "…", revisioneFocus: ["…"], fiduciaMax: 25, sezioni: [{ id: "a", titolo: "A" }], prossimaTappa: null },
   71,
-  true,
 );
 ok(finale.includes("Tu giudichi il PROGETTO"), "al feedback finale è detto che il suo oggetto è il progetto");
 ok(finale.includes('non «sei portato per»'), "e che non mette etichette sulla persona");
+
+// I DUE MESTIERI NON SI SOVRAPPONGONO PIÙ, e la separazione ha due lati.
+// Lato compito: «la crescita lungo il percorso» era chiesta al feedback finale,
+// ed è il mestiere di questo blocco — chiederla a tutti e due significa che
+// quello senza il materiale la scrive in astratto. Lato materiale: le domande
+// le riceve solo il blocco, o lo studente le rilegge due volte nella stessa
+// pagina.
+ok(!finale.includes("crescita lungo il percorso"), "la crescita lungo il percorso non è più chiesta al feedback finale");
+ok(p.includes("domande") && !finale.includes("domande"), "le domande le riceve il blocco, non il feedback finale");
 
 // ── 3) il lettore della risposta ────────────────────────────────────────────
 console.log("\n─── il lettore della risposta");

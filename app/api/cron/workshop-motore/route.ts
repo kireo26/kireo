@@ -320,16 +320,22 @@ export async function GET(request: NextRequest) {
       if (fase.ultima) {
         esitoFinaleStato = "non_riuscita";
 
-        // LE DOMANDE FATTE AL CLIENTE, che fin qui non leggeva nessuno.
+        // LE DOMANDE FATTE AL CLIENTE, e vanno a UN LETTORE SOLO: il blocco sul
+        // modo di lavorare, più sotto. Al feedback finale sono arrivate per due
+        // giorni e ne sono uscite il 14/09 — vedi promptFeedbackFinale per il
+        // perché: il suo prompt chiedeva «la crescita lungo il percorso», che è
+        // il mestiere di quel blocco, e due lettori dello stesso materiale
+        // facevano leggere allo studente le sue domande due volte nella stessa
+        // pagina.
+        //
         // Solo quelle dello studente: le risposte del cliente le ha scritte un
         // modello e non dicono niente su di lui. Il tetto è noto e stretto —
         // la tabella ne ammette 60 per iscrizione (~30 dello studente) da
         // 2000 caratteri, quindi il caso peggiore è qualche migliaio di token
         // in ingresso su UNA chiamata per progetto.
         //
-        // Un guasto qui NON ferma il feedback finale: è materiale, non
-        // giudizio, e il prompt senza domande è quello di prima parola per
-        // parola (vedi `conDomande` in promptFeedbackFinale).
+        // Un guasto qui NON ferma il feedback finale: è materiale del blocco,
+        // non del giudizio, e il blocco semplicemente non compare.
         const { data: righeChat, error: erroreChat } = await supabase
           .from("workshop_chat_cliente")
           .select("contenuto, created_at")
@@ -345,11 +351,8 @@ export async function GET(request: NextRequest) {
           diProva: rigaDiProva,
           model: MODELLO_CLIENTE_WORKSHOP,
           maxTokens: MAX_TOKEN_FEEDBACK_FINALE,
-          system: promptFeedbackFinale(ctx, fiduciaDopo, domande.length > 0),
-          user:
-            domande.length > 0
-              ? JSON.stringify({ progetto_consegnato: contenuto, domande_al_cliente: domande }, null, 2)
-              : JSON.stringify(contenuto, null, 2),
+          system: promptFeedbackFinale(ctx, fiduciaDopo),
+          user: JSON.stringify(contenuto, null, 2),
         });
         if (esitoFinale.ok) {
           const parsed = esitoFinale.dati as Record<string, unknown>;

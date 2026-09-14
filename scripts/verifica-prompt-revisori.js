@@ -73,7 +73,7 @@ const CONDIVISE = [
 console.log("\n═══ I due revisori dicono le stesse regole ═══\n");
 
 const tappa = promptRevisore(CTX);
-const finale = promptFeedbackFinale(CTX, 71, true);
+const finale = promptFeedbackFinale(CTX, 71);
 
 for (const [nome, frase] of CONDIVISE) {
   const inTappa = tappa.includes(frase);
@@ -90,34 +90,28 @@ ok(finale.includes("SOLO le parole di Tonino"), "la chiusura del cliente contien
 const ultima = promptRevisore({ ...CTX, prossimaTappa: null });
 ok(ultima.includes("IL PASSO SUCCESSIVO NON C'È"), "sull'ultima tappa è detto esplicitamente che un passo successivo non c'è");
 
-// ── LE DOMANDE AL CLIENTE, e il ramo in cui non ci sono ──────────────────────
-// Il commento su `conDomande` dichiara una proprietà: senza domande il prompt
-// è quello di prima. Una proprietà dichiarata in un commento è un test che non
-// c'è ancora — questo è quel test. Serve perché la lettura della chat può
-// fallire, e un prompt che nomina un materiale assente è peggio di uno che non
-// lo nomina affatto: il modello andrebbe a cercare domande che non ha.
-const senzaDomande = promptFeedbackFinale(CTX, 71, false);
+// ── IL FEEDBACK FINALE HA UN MATERIALE SOLO ──────────────────────────────────
+// Per due giorni ha ricevuto anche le domande al cliente, e il 14/09 ne è
+// uscito INSIEME alla riga che gliele faceva desiderare — «valorizza la crescita
+// lungo il percorso», che è il mestiere del blocco «come hai lavorato».
+// Togliere il materiale lasciando l'istruzione sarebbe stato curare la fame
+// togliendo il piatto: il modello avrebbe riscritto in astratto quello che non
+// poteva più leggere, che è esattamente il difetto di agosto.
+//
+// Quindi le due metà si sorvegliano insieme: se una rientra senza l'altra,
+// questo test lo dice.
 ok(
-  senzaDomande.includes("basandoti su ciò che ha consegnato (te lo passo come messaggio)"),
-  "senza domande torna la frase di prima, parola per parola",
+  finale.includes("basandoti su ciò che ha consegnato (te lo passo come messaggio)"),
+  "il feedback finale dichiara il suo unico materiale: quello che lo studente ha consegnato",
 );
 ok(
-  !senzaDomande.includes("domande_al_cliente") && !senzaDomande.includes("progetto_consegnato"),
-  "senza domande il prompt non nomina un materiale che non riceverà",
+  !finale.includes("domande_al_cliente") && !finale.includes("progetto_consegnato"),
+  "e non nomina nessuna seconda parte del messaggio, che non riceve",
 );
+ok(!finale.includes("domande"), "le domande al cliente non compaiono mai nel prompt del feedback finale");
 ok(
-  finale.includes("progetto_consegnato") && finale.includes("domande_al_cliente"),
-  "con le domande il prompt nomina tutte e due le parti del messaggio",
-);
-ok(
-  finale.includes("Le domande NON sono consegna"),
-  "le domande sono dichiarate materiale, non elaborato da valutare",
-);
-// Il mestiere resta quello di prima: le domande sono il materiale che gli
-// mancava per farlo, non un mestiere nuovo.
-ok(
-  finale.includes("Valorizza la crescita lungo il percorso") && senzaDomande.includes("Valorizza la crescita lungo il percorso"),
-  "il compito sulla crescita è lo stesso nei due rami: cambia il materiale, non la consegna",
+  !finale.includes("Valorizza la crescita lungo il percorso"),
+  "e non gli si chiede più la crescita lungo il percorso: è il mestiere del blocco, che ha il materiale per farlo",
 );
 
 // Nessun esempio copiabile: una frase compiuta dentro il prompt viene

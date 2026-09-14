@@ -133,6 +133,16 @@ function commitCorrente() {
   }
 }
 
+// Il verdetto della guardia, chiesto una volta sola. Porta con sé il commit
+// locale perché è lo stesso valore che finisce nel rapporto: due letture di
+// `git rev-parse` a distanza di un'ora sono due valori che possono divergere,
+// e il rapporto deve nominare quello che la guardia ha controllato.
+async function verificaAllineamento() {
+  const locale = commitCorrente();
+  const { deploys, perche } = await statoProduzione();
+  return { ...allineamento({ locale, deploys, perche }), locale };
+}
+
 function chiediConferma(domanda) {
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
   return new Promise((r) => rl.question(domanda, (a) => { rl.close(); r(a.trim().toLowerCase()); }));
@@ -141,8 +151,31 @@ function chiediConferma(domanda) {
 async function robot(filtro) {
   const piano = costruisciPiano(filtro);
 
+  // LA GUARDIA SI CHIEDE PRIMA DEL PIANO, e si stampa in due posti diversi.
+  // Il 14/09 `banco robot senza-autore` ha risposto «Nessun ruolo corrisponde»
+  // mentre questa cartella era indietro rispetto alla produzione: il file della
+  // trappola esisteva, ma non in quel commit. La guardia c'era già e non ha
+  // parlato, perché stava DOPO l'uscita per piano vuoto — un controllo giusto,
+  // messo dopo il punto in cui serviva, che è la forma ricorrente dei difetti
+  // di questi giorni.
+  //
+  // «Nessun ruolo corrisponde» è precisamente il sintomo in cui un
+  // disallineamento è la spiegazione più probabile, quindi lì la guardia parla
+  // per prima. E parla anche quando è tutto allineato: dire «sei allineato»
+  // chiude l'ipotesi, e chi legge sa che il nome è sbagliato davvero.
+  const stato = await verificaAllineamento();
+
   if (piano.lavori.length === 0) {
-    console.log(filtro ? `\nNessun ruolo corrisponde a «${filtro}».\n` : "\nNessun file di consegne in scripts/banco/consegne.\n");
+    console.log("");
+    for (const riga of stato.righe) console.log("  " + riga);
+    console.log(filtro ? `\nNessun ruolo corrisponde a «${filtro}».` : "\nNessun file di consegne in scripts/banco/consegne.");
+    // La riga che unisce i due fatti, perché separati non dicono niente: è
+    // esattamente la deduzione che il 14/09 ha dovuto fare una persona.
+    if (filtro && (stato.esito === "disallineato" || stato.esito === "in-volo")) {
+      console.log(`Con questa cartella non allineata, un nome che non si trova di solito è un file`);
+      console.log(`che in questo commit non c'è ancora. Allinea e riprova prima di cercarlo altrove.`);
+    }
+    console.log("");
     return;
   }
 
@@ -156,14 +189,12 @@ async function robot(filtro) {
   console.log("  e lo riporta, invece di aggirarlo.\n");
 
   // LA GUARDIA DI ALLINEAMENTO, prima della conferma e prima di qualunque
-  // spesa. Il robot gioca contro il SITO, ma il rapporto porta il commit di
-  // QUESTA cartella: se i due non coincidono, la passata attribuisce i suoi
-  // numeri a un codice che non ha mai eseguito. Tre passate della giornata del
-  // 13/09 sono finite così, e in due casi il sintomo è stato un 500 che non era
-  // del prodotto ma della funzione spenta mentre ne saliva un'altra.
-  const locale = commitCorrente();
-  const { deploys, perche } = await statoProduzione();
-  const stato = allineamento({ locale, deploys, perche });
+  // spesa (chiesta sopra, vedi il commento lì). Il robot gioca contro il SITO,
+  // ma il rapporto porta il commit di QUESTA cartella: se i due non
+  // coincidono, la passata attribuisce i suoi numeri a un codice che non ha
+  // mai eseguito. Tre passate della giornata del 13/09 sono finite così, e in
+  // due casi il sintomo è stato un 500 che non era del prodotto ma della
+  // funzione spenta mentre ne saliva un'altra.
   for (const riga of stato.righe) console.log("  " + riga);
   console.log("");
   if (stato.esito === "in-volo" || stato.esito === "disallineato") {
@@ -243,7 +274,7 @@ async function robot(filtro) {
         // ricorda cosa c'era in mezzo — e allora le misure non si confrontano,
         // si accostano. `npm run banco confronta` lo usa per elencare i commit
         // fra una passata e l'altra.
-        commit: locale,
+        commit: stato.locale,
         quando: new Date().toISOString(),
         piano: { ruoli: piano.lavori.length, chiamate: piano.chiamate },
         esiti,

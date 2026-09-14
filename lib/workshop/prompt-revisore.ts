@@ -130,27 +130,28 @@ Non fare elenchi, non fare il professore: parla come al bar.`;
 // ─────────────────────────────────────────── 3) FEEDBACK FINALE (ultima tappa)
 // Output: SOLO JSON. Il cron/route lo salva come feedback complessivo e usa
 // punteggio_area per activity_log (workshop_pcto). fiduciaTotale è la barra finale.
-// `conDomande`: se nel messaggio user arrivano anche le domande che lo studente
-// ha fatto al cliente lungo il percorso. Il parametro esiste perché la lettura
-// della chat può fallire o tornare vuota, e in quel caso il prompt NON deve
-// nominare un materiale che non c'è: senza domande torna, parola per parola,
-// il prompt che c'era prima.
+// PERCHÉ NON RICEVE LE DOMANDE, E PERCHÉ LA RIGA SULLA CRESCITA È USCITA.
+// Per due giorni a questo prompt sono arrivate anche le domande che lo studente
+// aveva fatto al cliente, perché gli si chiedeva di «valorizzare la crescita
+// lungo il percorso» e gli si passava solo il risultato finale — un modello a
+// cui manca un fatto non si ferma, riempie. Ma la fame era l'istruzione, non la
+// mancanza del materiale: «la crescita lungo il percorso» è il mestiere che è
+// stato spostato nel blocco «come hai lavorato», e chiedergliela qui la fa
+// tornare in astratto la prima volta che le domande mancano. Quindi è uscita
+// prima la riga, e poi il materiale — togliere il materiale lasciando
+// l'istruzione sarebbe stato curare la fame togliendo il piatto.
 //
-// PERCHÉ LE DOMANDE ARRIVANO QUI. A questo prompt chiediamo da sempre di
-// «valorizzare la crescita lungo il percorso», e gli passavamo solo il
-// `contenuto`: cioè il risultato finale, in cui un percorso non si vede. Un
-// modello a cui manca un fatto non si ferma, riempie — e riempiva nell'unico
-// modo disponibile a chi non ha fatti, in astratto, con frasi che vanno bene
-// per chiunque («hai imparato a guardare come funziona una cosa nella
-// pratica»). Le tredici domande sono il materiale che mancava, ed è anche
-// l'unico testo che lo studente scrive senza sapere di essere valutato.
-export function promptFeedbackFinale(c: CtxTappa, fiduciaTotale: number, conDomande: boolean): string {
+// La seconda ragione è di lettura: se il finale e il blocco citano tutti e due
+// le domande dello studente, lui legge lo stesso materiale due volte nella
+// stessa pagina.
+//
+// E l'obiezione «ma è l'unico che legge tutte le tappe insieme» non regge sui
+// dati: in due giorni di passate, zero contraddizioni domanda↔sezione trovate
+// correttamente. Le incoerenze vere che ha preso erano sezione contro sezione,
+// e quelle le vede dal solo `contenuto` — la riga sotto resta, il materiale no.
+export function promptFeedbackFinale(c: CtxTappa, fiduciaTotale: number): string {
   return `Sei un tutor di orientamento per studenti di 16-19 anni. Lo studente ha completato tutto il workshop "${c.workshopTitolo}" nel ruolo "${c.ruoloTitolo}". La fiducia accumulata con ${c.clienteNome} lungo il percorso è ${fiduciaTotale}/100.
-${
-  conDomande
-    ? `Dai un feedback COMPLESSIVO sul progetto. Nel messaggio ricevi DUE cose: in "progetto_consegnato" c'è il documento, cioè la consegna; in "domande_al_cliente" ci sono, in ordine, le domande che lo studente ha fatto a ${c.clienteNome} lungo il percorso. Le domande NON sono consegna: sono la traccia di come ha lavorato, e non vanno valutate come se fossero un elaborato.`
-    : `Dai un feedback COMPLESSIVO sul progetto, basandoti su ciò che ha consegnato (te lo passo come messaggio).`
-}
+Dai un feedback COMPLESSIVO sul progetto, basandoti su ciò che ha consegnato (te lo passo come messaggio).
 
 Sei l'unico che legge TUTTE le tappe insieme: guarda anche se quello che dice in una tappa regge con quello che ha scritto nelle altre. Una contraddizione fra due tappe è la cosa più utile che puoi trovare, perché nessun altro può vederla.
 
@@ -158,7 +159,6 @@ ${comeSiVerifica("il progetto")}
 
 REGOLE (rispettale tutte):
 ${regoleComuni(c.clienteNome)}
-- Valorizza la crescita lungo il percorso, non solo il risultato finale.
 - Tu giudichi il PROGETTO. Dove il modo di lavorare di questo studente si usa nella vita — quale mestiere gli somiglia, in quale direzione potrebbe andare — lo dice un altro blocco, che ha davanti un materiale che tu non hai. Quindi qui niente frasi sulla persona e nessuna etichetta addosso a lei: non «sei portato per», non «hai il profilo di», non un'area di studi indicata come la sua. Parla di quello che c'è nelle pagine che hai letto.
 
 Rispondi SOLO con JSON valido:
