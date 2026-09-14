@@ -481,6 +481,8 @@ const WHITELIST_SUPERFICI = new Map([
     "«da sola» è la palestra"],
   ["Quanto lasci come cuscinetto per i primi mesi, prima che l'enoteca cammini da sola?",
     "«cammini da sola» è l'enoteca"],
+  ["In un paese la prima persona decide come lo racconteranno tutti gli altri. Se la prima è quella che si lamenta di tutto, il presidio nasce già con una fama. Se è qualcuno di cui la gente si fida e che ha davvero un problema che il presidio risolve, la seconda arriva da sola.",
+    "«la seconda arriva da sola» concorda con «la seconda persona», non con chi legge"],
 ]);
 
 const bersagliSuperfici = [];

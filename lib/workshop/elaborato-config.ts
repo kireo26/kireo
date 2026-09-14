@@ -2939,6 +2939,15 @@ export const WORKSHOP_ELABORATO: Record<string, Record<string, Elaborato>> = {
               hint: "Meglio pochi servizi che funzionano bene per gli anziani cronici, che tutto insieme.",
               minCaratteri: 200,
             },
+            {
+              id: "chi_non_serviamo",
+              titolo: "Quelli che restano fuori",
+              tipo: "testo_lungo",
+              prompt:
+                "Dei 3.200 assistiti di Anna, chi il presidio non aiuta? Fai l'elenco, e poi prendi una di queste persone e racconta dove deve andare, con che mezzo, e quanto ci mette.",
+              hint: "Un presidio di comunità non fa radiologia, non fa il pronto soccorso, non fa gli specialisti. Chi ha bisogno di quelle cose scende a valle — e scendere a valle da quassù, d'inverno, non è una riga in un elenco.",
+              minCaratteri: 350,
+            },
           ],
           reazioneCliente:
             "Anna ragiona da medico, con un caso vero: «Ho una signora di 82 anni con lo scompenso cardiaco. Per lei, in concreto, come funzionerebbe?». Apre di fatto la tappa sulle figure.",
@@ -2947,6 +2956,7 @@ export const WORKSHOP_ELABORATO: Record<string, Record<string, Elaborato>> = {
             "Sono adatti a una popolazione anziana con cronicità?",
             "Le priorità di apertura sono motivate?",
             "Reggono a un caso reale come la paziente con scompenso?",
+            "L'elenco di chi resta fuori c'è, e per almeno uno racconta il viaggio vero?",
           ],
         },
         {
@@ -2975,6 +2985,15 @@ export const WORKSHOP_ELABORATO: Record<string, Record<string, Elaborato>> = {
               hint: "Anna ci pensava ma non sa come inquadrarlo: visite a domicilio, monitoraggio cronici, ponte col medico.",
               minCaratteri: 200,
             },
+            {
+              id: "chi_le_trovi_quassu",
+              titolo: "E chi la trova, questa persona?",
+              tipo: "testo_lungo",
+              prompt:
+                "Anna te lo chiede: «belle figure, ma chi le trovo quassù?». Prendi la figura più difficile da trovare fra quelle che hai messo in tabella. Dove la cerchi, cosa le offri per venire, e — soprattutto — cosa fa il presidio nei mesi in cui non l'hai ancora trovata?",
+              hint: "Un contratto part-time in un paese di montagna compete con un ospedale in città. Le leve che hai sono poche e vanno dette: l'alloggio, l'orario, il fatto che qui uno conta di più. E se apri senza quella persona, va scritto cosa non si fa.",
+              minCaratteri: 350,
+            },
           ],
           reazioneCliente:
             "Anna conosce la realtà del posto: «Belle figure, ma chi le trovo quassù? I giovani se ne vanno, e chi resta ha già mille cose da fare». Apre di fatto la tappa sui percorsi di cura.",
@@ -2983,6 +3002,8 @@ export const WORKSHOP_ELABORATO: Record<string, Record<string, Elaborato>> = {
             "Il ruolo dell'infermiere di comunità è ben definito?",
             "La copertura oraria è sostenibile?",
             "Tiene conto della difficoltà a reperire personale in area interna?",
+            "Dice cosa il presidio NON fa nei mesi senza quella persona?",
+            "Le leve per attrarla sono concrete, non generiche?",
           ],
         },
         {
@@ -3003,6 +3024,23 @@ export const WORKSHOP_ELABORATO: Record<string, Record<string, Elaborato>> = {
               hint: "La telemedicina affianca, non sostituisce. Anna: \"niente consulto solo via video\".",
               minCaratteri: 350,
             },
+            {
+              id: "il_trasporto",
+              titolo: "Chi porta chi",
+              tipo: "testo",
+              prompt: "Quando una persona deve scendere a valle — per un esame, uno specialista, un ricovero — chi la porta? Con che mezzo, chi lo paga, e in quanto tempo.",
+              hint: "Quassù metà degli anziani non guida più. Ci sono il volontariato, la Croce Rossa, i figli che lavorano in città, il pulmino comunale che fa due corse al giorno. Non è un dettaglio organizzativo: è la ragione per cui la gente rinuncia a curarsi.",
+              minCaratteri: 250,
+            },
+            {
+              id: "il_mese_della_signora",
+              titolo: "Ottantadue anni, scompenso",
+              tipo: "testo_lungo",
+              prompt:
+                "Anna ti ha nominato una sua paziente: una signora di 82 anni con lo scompenso cardiaco. Racconta il suo mese dentro il tuo presidio — quando ci viene, chi la vede, cosa le si misura, quando si chiama Anna, cosa succede se una settimana non si presenta. E di' in quale punto di quel mese il tuo percorso non copre niente.",
+              hint: "Lo scompenso si controlla con cose semplici e frequenti: il peso ogni mattina, le gambe gonfie, il fiato. Il problema non è la tecnologia: è chi se ne accorge il giovedì, e chi chiama chi il venerdì.",
+              minCaratteri: 400,
+            },
           ],
           reazioneCliente:
             "Anna mette il paletto che le sta più a cuore: «Va bene la tecnologia, ma la relazione col medico resta al centro. Io i miei pazienti li guardo in faccia». Apre di fatto la tappa del pitch.",
@@ -3011,6 +3049,9 @@ export const WORKSHOP_ELABORATO: Record<string, Record<string, Elaborato>> = {
             "La tecnologia affianca senza sostituire la relazione umana?",
             "C'è attenzione alla prevenzione, non solo alla cura?",
             "Rispetta il vincolo \"niente consulto solo via video\"?",
+            "Il mese è raccontato con i giorni e le persone, non a grandi linee?",
+            "Nomina il punto in cui il percorso non copre niente?",
+            "Il trasporto ha un mezzo, un pagatore e un tempo?",
           ],
         },
         {
@@ -3031,6 +3072,14 @@ export const WORKSHOP_ELABORATO: Record<string, Record<string, Elaborato>> = {
               hint: "Anna parla da medico, non da manager: concretezza, casi reali, relazione umana.",
               minCaratteri: 400,
             },
+            {
+              id: "cosa_cambia_per_anna",
+              titolo: "Cosa cambia per lei",
+              tipo: "testo",
+              prompt: "Anna fa il medico da vent'anni in questo paese. Cosa cambia nella SUA giornata — non in quella dei pazienti? E cosa le chiedi di fare che oggi non fa?",
+              hint: "Lei ha detto una cosa sola con chiarezza: «io i miei pazienti li guardo in faccia». Se il tuo presidio le toglie quello, non lo vuole, e ha ragione lei. Se glielo lascia e le toglie altro, dille cosa.",
+              minCaratteri: 250,
+            },
           ],
           reazioneCliente:
             "Anna valuta se il presidio aiuta davvero i suoi pazienti senza snaturare il suo modo di fare il medico: se sì, ci crede; se no, dice cosa la lascia perplessa. Chiusura del percorso.",
@@ -3039,6 +3088,7 @@ export const WORKSHOP_ELABORATO: Record<string, Record<string, Elaborato>> = {
             "È centrata sui bisogni reali degli anziani?",
             "Mantiene la relazione umana al centro?",
             "È coerente con le tappe precedenti?",
+            "C'è anche cosa le si CHIEDE, non solo cosa le si toglie?",
           ],
         },
       ],
@@ -3064,6 +3114,23 @@ export const WORKSHOP_ELABORATO: Record<string, Record<string, Elaborato>> = {
               hint: "Piattaforma Nazionale Telemedicina. Per anziani cronici il telemonitoraggio (pressione, glicemia) è spesso il più utile.",
               minCaratteri: 300,
             },
+            {
+              id: "cosa_non_attivo",
+              titolo: "Quello che non accendo",
+              tipo: "testo",
+              prompt: "Quali servizi di telemedicina hai deciso di NON attivare il primo anno, e perché.",
+              hint: "La televisita con lo specialista, il fascicolo condiviso, l'app per prenotare: sono cose che esistono e che qui, il primo anno, forse non servono a nessuno. Dire cosa rimandi è una scelta di progetto.",
+              minCaratteri: 250,
+            },
+            {
+              id: "quando_smette_di_misurare",
+              titolo: "La terza settimana",
+              tipo: "testo_lungo",
+              prompt:
+                "Una signora che si misura la pressione ogni mattina smette di farlo dopo tre settimane. Il sistema se ne accorge? Dopo quanti giorni? Chi la chiama, e cosa le dice?",
+              hint: "Non è un caso raro: è il modo normale in cui finiscono i programmi di telemonitoraggio. Se la risposta è «se ne accorge l'infermiere quando guarda», di' quando guarda e cosa succede se quella settimana è in ferie.",
+              minCaratteri: 350,
+            },
           ],
           reazioneCliente:
             "Anna pone subito il suo limite: «Niente app complicate, mi raccomando. I miei pazienti hanno 75, 80 anni, il telefonino lo usano a malapena». Apre di fatto la tappa sulla connettività.",
@@ -3072,6 +3139,9 @@ export const WORKSHOP_ELABORATO: Record<string, Record<string, Elaborato>> = {
             "La scelta dei servizi è adatta a pazienti molto anziani?",
             "Parte da ciò che è davvero utile per i cronici?",
             "Evita soluzioni troppo complesse da usare?",
+            "C'è una persona che chiama, o solo una notifica automatica?",
+            "Dice dopo quanti giorni scatta l'avviso?",
+            "Le funzioni rimandate hanno una ragione?",
           ],
         },
         {
@@ -3091,6 +3161,24 @@ export const WORKSHOP_ELABORATO: Record<string, Record<string, Elaborato>> = {
               hint: "Connessione al presidio come punto forte, dispositivi che salvano e inviano dopo, alternative (SMS, telefono).",
               minCaratteri: 300,
             },
+            {
+              id: "dove_non_prende",
+              titolo: "Le frazioni alte",
+              tipo: "tabella",
+              prompt: "Metti giù i posti del territorio dove la rete è un problema, e per ognuno cosa si usa al posto della connessione.",
+              hint: "Anna le conosce, le frazioni alte: chiediglielo invece di immaginarle. E «cosa si usa lì» può essere il telefono fisso, un giro dell'infermiere, o il dato che si porta giù a mano.",
+              colonne: ["Dove", "Che segnale c'è", "Cosa si usa lì"],
+              minRighe: 3,
+            },
+            {
+              id: "il_dato_che_arriva_tardi",
+              titolo: "Tre giorni in una volta",
+              tipo: "testo_lungo",
+              prompt:
+                "Il dispositivo era offline e martedì arrivano tutti insieme tre giorni di misurazioni. Anna li legge martedì. Cosa ci fa con dei dati di sabato — e cosa sarebbe servito fare sabato, che non è stato fatto?",
+              hint: "«Salva e invia dopo» è la soluzione che si legge dappertutto e funziona per la contabilità, non per uno scompenso. Se il dato serve il giorno stesso, allora dove non c'è segnale il telemonitoraggio non è telemonitoraggio: è un'altra cosa, e va chiamata con il suo nome.",
+              minCaratteri: 350,
+            },
           ],
           reazioneCliente:
             "Anna conosce il territorio: «Quassù il segnale non c'è ovunque. Nelle frazioni alte a volte non prende neanche il telefono. Come la mettiamo?». Apre di fatto la tappa sul supporto.",
@@ -3099,6 +3187,8 @@ export const WORKSHOP_ELABORATO: Record<string, Record<string, Elaborato>> = {
             "Propone soluzioni realistiche (presidio come hub, invio differito)?",
             "Ha un piano B dove il segnale manca?",
             "Non dà per scontato che la rete ci sia sempre?",
+            "Distingue un sistema di allarme da un diario clinico, e li chiama con nomi diversi?",
+            "La mappa del segnale viene da Anna o è immaginata?",
           ],
         },
         {
@@ -3119,6 +3209,23 @@ export const WORKSHOP_ELABORATO: Record<string, Record<string, Elaborato>> = {
               colonne: ["Tecnologia", "Chi installa/insegna", "Chi ripara"],
               minRighe: 3,
             },
+            {
+              id: "quanto_tempo_ci_vuole",
+              titolo: "Quante ore, e chi le paga",
+              tipo: "testo",
+              prompt: "Insegnare a una persona di ottant'anni a usare un misuratore che manda i dati: quante volte bisogna tornare, per quanto tempo, e chi paga quelle ore?",
+              hint: "Non è una volta sola: è la prima volta, poi un controllo dopo una settimana, poi quando cambia il telefono al figlio. Quelle ore stanno nel tempo di qualcuno che già ne ha poco.",
+              minCaratteri: 250,
+            },
+            {
+              id: "la_settimana_senza",
+              titolo: "Si rompe di giovedì",
+              tipo: "testo_lungo",
+              prompt:
+                "Il misuratore della signora si rompe un giovedì. Il tecnico più vicino sta a valle e sale una volta a settimana. Cosa succede da giovedì al mercoledì dopo?",
+              hint: "Anna te l'ha già chiesto con parole sue: «chi lo ripara quando si rompe, che qui il tecnico non arriva in giornata?». Le strade sono poche — un pezzo di scorta al presidio, si torna alla carta, o per una settimana quella persona non è seguita. Ognuna ha un costo, e una di queste è quella vera.",
+              minCaratteri: 350,
+            },
           ],
           reazioneCliente:
             "Anna fa le domande di sempre, quelle giuste: «Chi glielo installa? Chi glielo insegna? E chi lo ripara quando si rompe, che qui il tecnico non arriva in giornata?». Apre di fatto la tappa del pitch.",
@@ -3127,6 +3234,8 @@ export const WORKSHOP_ELABORATO: Record<string, Record<string, Elaborato>> = {
             "Il supporto è realistico per un borgo isolato?",
             "Coinvolge figure vicine ai pazienti (infermiere, familiari)?",
             "Evita che la tecnologia resti in un cassetto?",
+            "Dice quanto dura il buco, non solo chi ripara?",
+            "Le ore di formazione hanno un numero e un pagatore?",
           ],
         },
         {
@@ -3148,6 +3257,14 @@ export const WORKSHOP_ELABORATO: Record<string, Record<string, Elaborato>> = {
               hint: "Semplicità, connessione risolta, supporto umano vicino: sono le sue tre preoccupazioni.",
               minCaratteri: 400,
             },
+            {
+              id: "su_quanti_funziona",
+              titolo: "Su quanti dei suoi",
+              tipo: "testo",
+              prompt: "Anna ha 3.200 assistiti e teme che i suoi pazienti non la usino. Su quanti pensi davvero che funzionerà il primo anno? Metti un numero, di' da dove viene, e di' cosa offri agli altri.",
+              hint: "Un numero piccolo detto con onestà vale più di una promessa larga. E «agli altri» non è una risposta di ripiego: gli altri sono la maggioranza, e qualcosa gli va offerto lo stesso.",
+              minCaratteri: 250,
+            },
           ],
           reazioneCliente:
             "Anna valuta se i suoi pazienti la useranno davvero: se è convinta, ci sta; se no, dice cosa non la convince. Chiusura del percorso.",
@@ -3156,6 +3273,7 @@ export const WORKSHOP_ELABORATO: Record<string, Record<string, Elaborato>> = {
             "È credibile per pazienti molto anziani?",
             "Risolve segnale e assistenza?",
             "È coerente con le tappe precedenti?",
+            "Il numero è costruito con un ragionamento, e c'è qualcosa anche per gli altri?",
           ],
         },
       ],
@@ -3182,6 +3300,23 @@ export const WORKSHOP_ELABORATO: Record<string, Record<string, Elaborato>> = {
               colonne: ["Fondo", "Per cosa", "Note/scadenza"],
               minRighe: 2,
             },
+            {
+              id: "una_tantum_o_no",
+              titolo: "Quali finiscono e quali no",
+              tipo: "testo",
+              prompt: "Dei fondi che hai messo in tabella, quali sono una tantum e quali sono risorse che tornano ogni anno? Dillo per ognuno.",
+              hint: "Il PNRR compra i muri e le macchine una volta sola. Gli stipendi non li compra nessun fondo straordinario, e sono la spesa che torna ogni mese. Sono due categorie e non vanno mescolate in una colonna sola.",
+              minCaratteri: 250,
+            },
+            {
+              id: "il_requisito_che_non_abbiamo",
+              titolo: "La riga che ci esclude",
+              tipo: "testo_lungo",
+              prompt:
+                "Prendi il fondo più grosso che hai messo in tabella e vai a cercare il requisito che il presidio oggi NON ha. Qual è, scritto com'è scritto nel bando? E cosa bisogna fare per averlo, in quanto tempo?",
+              hint: "Quasi tutti i bandi chiedono qualcosa che oggi non c'è: una forma giuridica, un numero minimo di ore di apertura, un accreditamento, un immobile già a norma. Se hai guardato il bando lo trovi in dieci minuti. Se non l'hai guardato, si vede.",
+              minCaratteri: 350,
+            },
           ],
           reazioneCliente:
             "Anna ha già la preoccupazione di fondo: «Va bene i fondi PNRR, ma quando finiscono nel 2026? Non voglio aprire con i soldi di oggi e chiudere dopodomani». Apre di fatto la tappa sui requisiti.",
@@ -3190,6 +3325,8 @@ export const WORKSHOP_ELABORATO: Record<string, Record<string, Elaborato>> = {
             "Sono indicati importi e condizioni?",
             "Sono accessibili a un piccolo presidio di comunità?",
             "Distingue fondi una tantum da risorse strutturali?",
+            "Il requisito mancante è citato com'è scritto, non riassunto?",
+            "Separa i fondi una tantum da quelli ricorrenti, uno per uno?",
           ],
         },
         {
@@ -3209,6 +3346,24 @@ export const WORKSHOP_ELABORATO: Record<string, Record<string, Elaborato>> = {
               hint: "Il Comune offre in comodato gratuito un ex ambulatorio da ristrutturare: come lo si formalizza?",
               minCaratteri: 300,
             },
+            {
+              id: "chi_firma_cosa",
+              titolo: "Chi mette la firma",
+              tipo: "tabella",
+              prompt: "Per ogni passaggio formale: chi firma, e chi è responsabile se poi c'è un problema.",
+              hint: "Il comodato lo firma il Comune con qualcuno: quel qualcuno deve esistere prima. E la responsabilità sanitaria non è la stessa cosa della responsabilità sull'immobile — Anna deve sapere quale delle due si prende.",
+              colonne: ["Atto", "Chi lo firma", "Chi risponde se qualcosa va storto"],
+              minRighe: 4,
+            },
+            {
+              id: "quante_ore_di_anna",
+              titolo: "Le ore che le mangiamo",
+              tipo: "testo_lungo",
+              prompt:
+                "Anna te l'ha detto: «la burocrazia mi mangia il tempo che dovrei dare ai pazienti». Metti in fila le carte con i tempi veri, e di' quante ore del suo tempo costano dalla prima firma all'apertura. Se sono più di dieci, di' chi le fa al posto suo.",
+              hint: "Non tutte le carte hanno bisogno di lei: alcune le può fare il Comune, altre un'associazione, altre un consulente. Quelle che hanno bisogno di lei sono le firme e le cose che solo un medico può dichiarare. Separale.",
+              minCaratteri: 350,
+            },
           ],
           reazioneCliente:
             "Anna teme la trafila: «Quante carte e permessi servono? Io il medico lo so fare, ma la burocrazia mi mangia il tempo che dovrei dare ai pazienti». Apre di fatto la tappa sulla sostenibilità.",
@@ -3217,6 +3372,8 @@ export const WORKSHOP_ELABORATO: Record<string, Record<string, Elaborato>> = {
             "Gestisce correttamente il comodato dell'immobile comunale?",
             "La sequenza degli adempimenti è chiara?",
             "È spiegato in modo comprensibile a un medico, non a un giurista?",
+            "Separa le ore che servono Anna da quelle delegabili, con un numero?",
+            "Nomina chi le fa al posto suo, o dice che oggi non c'è nessuno?",
           ],
         },
         {
@@ -3236,6 +3393,24 @@ export const WORKSHOP_ELABORATO: Record<string, Record<string, Elaborato>> = {
               hint: "Convenzioni con ASL, fondi ordinari del SSN, integrazione coi servizi esistenti: non solo soldi straordinari.",
               minCaratteri: 350,
             },
+            {
+              id: "chi_paga_cosa_dopo",
+              titolo: "Riga per riga, dopo il 2026",
+              tipo: "tabella",
+              prompt: "Elenca le spese che il presidio ha ogni anno e, per ognuna, da dove arrivano i soldi quando i fondi straordinari sono finiti.",
+              hint: "L'infermiere, le utenze, la manutenzione dei dispositivi, il materiale sanitario. Se una riga non ha un pagatore, lasciala senza e dillo: una riga vuota in tabella vale più di un nome messo per riempire.",
+              colonne: ["Voce di spesa", "Quanto all'anno", "Chi la paga dopo il PNRR"],
+              minRighe: 4,
+            },
+            {
+              id: "chi_lo_dice_alla_gente",
+              titolo: "L'autunno del 2027",
+              tipo: "testo_lungo",
+              prompt:
+                "È l'autunno del 2027. I fondi straordinari sono finiti e la convenzione con l'ASL non è ancora firmata. Cosa chiude per primo, cosa resta, e chi lo dice alla gente del paese?",
+              hint: "Anna ha detto una cosa sola con chiarezza: «non voglio illudere la gente e poi chiudere». Questa sezione è quella dove si vede se l'hai ascoltata. E la domanda su chi lo dice non è retorica: in un paese di poche centinaia di persone, chi porta una brutta notizia ci resta attaccato per anni.",
+              minCaratteri: 400,
+            },
           ],
           reazioneCliente:
             "Anna torna sul suo timore più grande: «Il progetto deve reggere anche quando i fondi finiscono. Non voglio illudere la gente e poi chiudere». Apre di fatto la tappa del pitch.",
@@ -3244,6 +3419,9 @@ export const WORKSHOP_ELABORATO: Record<string, Record<string, Elaborato>> = {
             "Individua risorse ordinarie o convenzioni credibili?",
             "Affronta davvero il \"dopo PNRR\"?",
             "Evita di dipendere solo da fondi a termine?",
+            "Dice cosa chiude per primo e in che ordine, o resta sul generico?",
+            "Nomina chi comunica, con una ragione?",
+            "Le righe senza pagatore restano vuote invece di essere riempite?",
           ],
         },
         {
@@ -3264,6 +3442,14 @@ export const WORKSHOP_ELABORATO: Record<string, Record<string, Elaborato>> = {
               hint: "Anna vuole rassicurazioni sul lungo periodo, non solo sull'apertura. Parlale chiaro.",
               minCaratteri: 400,
             },
+            {
+              id: "per_quanti_anni",
+              titolo: "Cosa le garantisco, e per quanto",
+              tipo: "testo",
+              prompt: "Cosa puoi garantire ad Anna, e per quanti anni? E cosa invece non puoi garantirle affatto?",
+              hint: "«Il presidio è sostenibile» non è una garanzia: è un augurio. Una garanzia ha un numero di anni attaccato e una fonte di soldi con un nome. La seconda metà della domanda conta più della prima.",
+              minCaratteri: 250,
+            },
           ],
           reazioneCliente:
             "Anna valuta se il presidio reggerà negli anni: se è convinta, ci sta; se no, dice cosa ancora la preoccupa. Chiusura del percorso.",
@@ -3272,6 +3458,8 @@ export const WORKSHOP_ELABORATO: Record<string, Record<string, Elaborato>> = {
             "Rassicura sul dopo-PNRR?",
             "È chiara per chi non è del settore legale?",
             "È coerente con le tappe precedenti?",
+            "Ogni garanzia ha un numero di anni e una fonte con un nome?",
+            "C'è anche quello che NON si può garantire?",
           ],
         },
       ],
@@ -3297,6 +3485,23 @@ export const WORKSHOP_ELABORATO: Record<string, Record<string, Elaborato>> = {
               hint: "La fiducia passa da chi già conoscono: il medico, l'infermiere, il parroco, i familiari.",
               minCaratteri: 300,
             },
+            {
+              id: "di_chi_si_fidano_gia",
+              titolo: "Di chi si fidano oggi",
+              tipo: "testo",
+              prompt: "Nel paese, di chi si fida già la gente — e per quale motivo preciso. Almeno tre persone o luoghi.",
+              hint: "Non «le istituzioni»: una persona con un ruolo. Il farmacista che ti conosce dal nome, il parroco, l'ex maestra, quello del bar. La fiducia in un paese ha nomi e cognomi, e si è costruita facendo qualcosa per qualcuno.",
+              minCaratteri: 250,
+            },
+            {
+              id: "la_fiducia_di_chi",
+              titolo: "Di chi è la fiducia che stai spendendo",
+              tipo: "testo_lungo",
+              prompt:
+                "La fiducia che il presidio userà per partire non è sua: è di Anna. Se il presidio delude qualcuno — un dato letto in ritardo, un appuntamento saltato, una promessa non mantenuta — chi ci rimette? E cosa metti in piedi perché non ci rimetta lei?",
+              hint: "Anna te l'ha detta con le sue parole: «la gente si fida di me perché mi conosce da trent'anni». Quella è una cosa che si consuma. Se il presidio brucia il credito di Anna, non brucia un progetto: brucia il medico del paese, e lì ci resta.",
+              minCaratteri: 350,
+            },
           ],
           reazioneCliente:
             "Anna conosce la sua gente: «Qui la gente si fida di me perché mi conosce da trent'anni, mica di un'app o di un manifesto». Apre di fatto la tappa sugli alleati.",
@@ -3305,6 +3510,9 @@ export const WORKSHOP_ELABORATO: Record<string, Record<string, Elaborato>> = {
             "Le leve proposte sono adatte agli anziani (non social/manifesti astratti)?",
             "Valorizza il ruolo del medico e delle figure note?",
             "È realistico per un piccolo borgo?",
+            "Riconosce che la fiducia spesa è di Anna e non del presidio?",
+            "Le contromisure sono azioni concrete, non buoni propositi?",
+            "Le persone di cui ci si fida hanno un ruolo e una ragione?",
           ],
         },
         {
@@ -3325,6 +3533,23 @@ export const WORKSHOP_ELABORATO: Record<string, Record<string, Elaborato>> = {
               colonne: ["Alleato", "Cosa può fare"],
               minRighe: 3,
             },
+            {
+              id: "cosa_ci_guadagnano",
+              titolo: "Perché dovrebbero",
+              tipo: "testo",
+              prompt: "Per i due alleati su cui conti di più: perché dovrebbero dire di sì? Cosa ci guadagnano, anche se non sono soldi.",
+              hint: "La farmacia ci guadagna gente che entra. Il parroco ci guadagna che la sua parrocchia serve a qualcosa di concreto. Un'associazione di anziani ci guadagna un motivo per esistere. Se per qualcuno non trovi la risposta, quello non è un alleato: è uno a cui stai chiedendo un favore.",
+              minCaratteri: 250,
+            },
+            {
+              id: "se_a_marzo_si_stufa",
+              titolo: "A marzo si stufa",
+              tipo: "testo_lungo",
+              prompt:
+                "Prendi l'alleato su cui il tuo piano conta di più. Quante ore al mese gli stai chiedendo, e chi gliele paga? E se a marzo si stufa, cosa salta del tuo piano?",
+              hint: "Anna l'ha detto precisamente: «come li coinvolgo senza scaricargli addosso il lavoro?». Un alleato che fa una cosa gratis la fa per tre mesi. Se il piano regge solo finché qualcuno è entusiasta, non è un piano: è una fortuna.",
+              minCaratteri: 350,
+            },
           ],
           reazioneCliente:
             "Anna pensa a chi può dare una mano: «La farmacia del paese e il parroco li conoscono tutti. Ma come li coinvolgo senza scaricargli addosso il lavoro?». Apre di fatto la tappa sul piano.",
@@ -3333,6 +3558,9 @@ export const WORKSHOP_ELABORATO: Record<string, Record<string, Elaborato>> = {
             "Ogni alleato ha un ruolo concreto?",
             "Il coinvolgimento è sostenibile per loro?",
             "Sfrutta la fiducia che questi soggetti già hanno?",
+            "Le ore chieste a un alleato hanno un numero?",
+            "Dice cosa salta se quell'alleato si ferma?",
+            "Per ogni alleato c'è un guadagno vero, o è un favore?",
           ],
         },
         {
@@ -3352,6 +3580,24 @@ export const WORKSHOP_ELABORATO: Record<string, Record<string, Elaborato>> = {
               hint: "Passaparola tramite il medico, giornate aperte, spiegazioni faccia a faccia, coinvolgimento dei familiari.",
               minCaratteri: 300,
             },
+            {
+              id: "i_primi_tre_mesi",
+              titolo: "Cosa succede, settimana per settimana",
+              tipo: "tabella",
+              prompt: "I primi tre mesi, messi in fila: cosa succede, quando, chi lo fa, e quante persone raggiunge ogni cosa.",
+              hint: "L'ultima colonna è quella che smonta le buone intenzioni: una giornata aperta in piazza raggiunge quaranta persone, una chiacchierata in farmacia ne raggiunge due — ma le due si ricordano cosa gli hai detto.",
+              colonne: ["Quando", "Cosa si fa", "Chi lo fa", "Quante persone si vedono"],
+              minRighe: 5,
+            },
+            {
+              id: "quella_che_dice_di_no",
+              titolo: "Settantotto anni, e dice no",
+              tipo: "testo_lungo",
+              prompt:
+                "Una signora di settantotto anni ti dice: «io da trent'anni vado dalla dottoressa e mi fa bene così, questa roba qui non la voglio». Cosa le rispondi? E cosa fai se dice no lo stesso?",
+              hint: "La seconda domanda è quella vera. Se la risposta è «insisto», di' chi insiste e quante volte. Se è «la lascio stare», di' cosa le resta — perché una persona che dice no al presidio non smette di avere ottant'anni e la pressione alta.",
+              minCaratteri: 350,
+            },
           ],
           reazioneCliente:
             "Anna è concreta: «Va bene farlo conoscere, ma poi la gente ci deve venire davvero. Come li convinco a fidarsi di una visita col computer?». Apre di fatto la tappa del pitch.",
@@ -3360,6 +3606,9 @@ export const WORKSHOP_ELABORATO: Record<string, Record<string, Elaborato>> = {
             "Punta sul faccia a faccia e sul passaparola, non sul digitale astratto?",
             "Coinvolge i familiari e gli alleati?",
             "Porta davvero le persone a usare il presidio?",
+            "Accetta un no invece di trattarlo come un ostacolo da superare?",
+            "Dice cosa resta a chi rifiuta?",
+            "Nella tabella le azioni che raggiungono più gente sono anche quelle che convincono di più, o lo riconosce?",
           ],
         },
         {
@@ -3380,6 +3629,14 @@ export const WORKSHOP_ELABORATO: Record<string, Record<string, Elaborato>> = {
               hint: "Anna crede nelle relazioni: mostra che la comunicazione parte da chi la gente già conosce.",
               minCaratteri: 400,
             },
+            {
+              id: "la_prima_persona",
+              titolo: "La prima che entra",
+              tipo: "testo",
+              prompt: "Chi è la prima persona che deve venire al presidio, con nome e situazione? E perché proprio lei e non un'altra.",
+              hint: "In un paese la prima persona decide come lo racconteranno tutti gli altri. Se la prima è quella che si lamenta di tutto, il presidio nasce già con una fama. Se è qualcuno di cui la gente si fida e che ha davvero un problema che il presidio risolve, la seconda arriva da sola.",
+              minCaratteri: 250,
+            },
           ],
           reazioneCliente:
             "Anna valuta se la gente si fiderà e userà il presidio: se sì, ci crede; se no, dice cosa non la convince. Chiusura del percorso.",
@@ -3388,6 +3645,7 @@ export const WORKSHOP_ELABORATO: Record<string, Record<string, Elaborato>> = {
             "È radicata nelle relazioni reali del territorio?",
             "Porta davvero le persone a usarlo?",
             "È coerente con le tappe precedenti?",
+            "La scelta della prima persona è motivata su come si racconterà in paese?",
           ],
         },
       ],
@@ -3413,6 +3671,24 @@ export const WORKSHOP_ELABORATO: Record<string, Record<string, Elaborato>> = {
               hint: "Prevalenza cronicità negli over 65, indicatori demografici delle aree interne, distanza dall'ospedale.",
               minCaratteri: 300,
             },
+            {
+              id: "chi_ce_li_ha_questi_dati",
+              titolo: "Chi ce li ha",
+              tipo: "tabella",
+              prompt: "Per ogni dato che hai usato: chi lo possiede, e si può ottenere davvero o è solo citabile?",
+              hint: "Alcuni sono pubblici e si scaricano. Altri li ha l'ASL e bisogna chiederli, con i tempi che ha l'ASL. Altri li ha solo Anna, in testa o su una cartella di carta. E alcuni non esistono e basta: scriverlo è meglio che stimarli.",
+              colonne: ["Dato", "Chi ce l'ha", "Si può avere?"],
+              minRighe: 4,
+            },
+            {
+              id: "cosa_anna_non_puo_sapere",
+              titolo: "Una cosa che lei non può sapere",
+              tipo: "testo_lungo",
+              prompt:
+                "Anna te l'ha chiesto: «che mi dicono i tuoi dati che io già non sappia?». Trova UNA cosa sola che i dati dicono e che lei, che conosce i pazienti a uno a uno, non può sapere. E di' perché non può saperla.",
+              hint: "Un medico vede chi entra nel suo studio. Quello che non vede sono quelli che non entrano — e non li vede proprio perché non entrano. Cercala da quella parte, o dalla parte del confronto con un territorio simile, che lei non ha modo di fare.",
+              minCaratteri: 350,
+            },
           ],
           reazioneCliente:
             "Anna, che i pazienti li conosce a uno a uno, sfida i numeri: «I miei assistiti li conosco per nome. Che mi dicono i tuoi dati che io già non sappia?». Apre di fatto la tappa sugli indicatori.",
@@ -3421,6 +3697,8 @@ export const WORKSHOP_ELABORATO: Record<string, Record<string, Elaborato>> = {
             "Coglie i bisogni tipici di un'area interna anziana?",
             "Aggiunge qualcosa alla conoscenza diretta del medico?",
             "È utile a decidere quali servizi attivare?",
+            "È UNA cosa sola, con la ragione per cui un medico non può arrivarci?",
+            "I dati che non si possono ottenere sono dichiarati come tali?",
           ],
         },
         {
@@ -3441,6 +3719,23 @@ export const WORKSHOP_ELABORATO: Record<string, Record<string, Elaborato>> = {
               colonne: ["Indicatore", "Come lo misuro"],
               minRighe: 3,
             },
+            {
+              id: "quanto_costa_misurare",
+              titolo: "Quanto costa contarli",
+              tipo: "testo",
+              prompt: "Per gli indicatori che hai messo in tabella: quanti minuti a settimana costano, e a chi?",
+              hint: "Ogni numero che finisce in un report l'ha scritto qualcuno a mano, quasi sempre l'infermiere a fine turno. Un indicatore che costa dieci minuti al giorno costa quaranta ore l'anno: quelle ore vanno tolte a qualcosa.",
+              minCaratteri: 250,
+            },
+            {
+              id: "quello_che_fa_scena",
+              titolo: "Quello che non metto",
+              tipo: "testo_lungo",
+              prompt:
+                "Prendi un indicatore che fa bella figura in un report e che tu non metteresti. Qual è, perché fa scena, e cosa nasconde?",
+              hint: "Anna te l'ha detto: «misuriamo le cose che contano per i malati, non quelle che fanno scena». «Numero di accessi al presidio» sale anche se le persone tornano tre volte perché la prima non è servita. «Pazienti arruolati nel telemonitoraggio» sale anche se metà ha smesso a marzo. Un numero che sale sempre è un numero che non misura niente.",
+              minCaratteri: 350,
+            },
           ],
           reazioneCliente:
             "Anna vuole cose vere, non numeri per far bella figura: «Va bene misurare, ma misuriamo le cose che contano per i malati, non quelle che fanno scena nei report». Apre di fatto la tappa sul valore.",
@@ -3449,6 +3744,8 @@ export const WORKSHOP_ELABORATO: Record<string, Record<string, Elaborato>> = {
             "Misurano esiti di salute, non solo attività?",
             "Sono sostenibili da raccogliere per un piccolo presidio?",
             "Evitano gli indicatori \"di facciata\"?",
+            "Nomina un indicatore cattivo e ne spiega il meccanismo?",
+            "Il costo di raccolta è in minuti e ha un nome accanto?",
           ],
         },
         {
@@ -3468,6 +3765,23 @@ export const WORKSHOP_ELABORATO: Record<string, Record<string, Elaborato>> = {
               hint: "Collega gli esiti al risparmio per il sistema (meno ricoveri, meno accessi impropri): è ciò che convince chi paga.",
               minCaratteri: 300,
             },
+            {
+              id: "a_chi_lo_mostri",
+              titolo: "Chi lo legge davvero",
+              tipo: "testo",
+              prompt: "Chi sono le persone che leggeranno questi numeri, e cosa cerca ognuna? Almeno tre.",
+              hint: "Il direttore di distretto cerca se il presidio gli toglie o gli aggiunge lavoro. Chi tiene i conti in Regione cerca soldi risparmiati. Il Sindaco cerca di poter dire ai suoi che ha fatto una cosa. Sono tre documenti diversi, o uno solo che parla a tutti e tre?",
+              minCaratteri: 250,
+            },
+            {
+              id: "se_i_numeri_non_tornano",
+              titolo: "E se non sono buoni",
+              tipo: "testo_lungo",
+              prompt:
+                "È passato un anno. Gli accessi al pronto soccorso NON sono calati, e i numeri che avevi promesso non ci sono. Cosa mostri, e cosa dici?",
+              hint: "Le strade sono tre e sono tutte praticate: si cambia indicatore e si mostra quello che è andato bene; si dice che un anno è poco; oppure si dice quello che è successo e si prova a capire perché. Solo l'ultima lascia il presidio in piedi la seconda volta.",
+              minCaratteri: 400,
+            },
           ],
           reazioneCliente:
             "Anna pensa al futuro del presidio: «Tra un anno, quando dovrò chiedere di andare avanti, cosa gli faccio vedere per non farmelo chiudere?». Apre di fatto la tappa del pitch.",
@@ -3476,6 +3790,9 @@ export const WORKSHOP_ELABORATO: Record<string, Record<string, Elaborato>> = {
             "È un argomento credibile per ASL/finanziatori?",
             "Usa i dati raccolti nelle tappe precedenti?",
             "Aiuta davvero a difendere il rifinanziamento?",
+            "Mostra i numeri veri compresi quelli che non tornano, e all'inizio?",
+            "Dice perché non cambia indicatore?",
+            "I tre lettori hanno interessi diversi e riconosciuti?",
           ],
         },
         {
@@ -3496,6 +3813,14 @@ export const WORKSHOP_ELABORATO: Record<string, Record<string, Elaborato>> = {
               hint: "Anna diffida dei numeri fini a sé stessi: mostra che servono ai pazienti e a difendere il presidio.",
               minCaratteri: 400,
             },
+            {
+              id: "cosa_porta_in_asl",
+              titolo: "Quello che si porta in tasca",
+              tipo: "testo",
+              prompt: "Anna entra all'ASL per chiedere di andare avanti. Qual è l'unica cosa che deve avere in mente, e perché quella e non un'altra?",
+              hint: "Un numero che si ricorda, o una storia di una persona con nome e cognome. Tutti e due possono funzionare e non funzionano allo stesso modo: uno regge davanti a chi fa i conti, l'altro davanti a chi decide. Scegli, e di' perché hai scelto quello.",
+              minCaratteri: 250,
+            },
           ],
           reazioneCliente:
             "Anna valuta se i dati raccontano una storia vera e utile: se sì, ci crede; se no, dice cosa non la convince. Chiusura del percorso.",
@@ -3504,6 +3829,7 @@ export const WORKSHOP_ELABORATO: Record<string, Record<string, Elaborato>> = {
             "I dati servono ai pazienti, non alla scena?",
             "Aiuta a difendere il presidio nel tempo?",
             "È coerente con le tappe precedenti?",
+            "Sceglie UNA cosa e motiva la scelta contro l'alternativa?",
           ],
         },
       ],
