@@ -218,6 +218,32 @@ const altrove = verificaAtteso(ATTESO_FINALE, conFinale({
 }));
 ok(altrove.colta === false, "la frase conta in qualunque campo del finale, non solo nei punti di forza");
 
+// DOVE sta, e cosa c'era scritto. Il caso vero del 14/09: la trappola è
+// diventata rossa su «ogni volta» e il rapporto diceva solo «compare nel
+// feedback finale» — ma il finale ha cinque campi, e sapere che la frase stava
+// in `messaggio_chiusura` e non nel blocco nuovo È la diagnosi. Senza, Mario ha
+// dovuto aprire il JSON: la stessa lezione già pagata sulla misura della lingua.
+const vero = verificaAtteso(
+  { dove: "feedback_finale", non_deve_affermare_uno_schema: ["ogni volta"] },
+  conFinale({
+    modo_di_lavorare: { quello_che_si_vede: ["Nella tappa 1 hai chiesto «quanti ragazzi ci sono in strada?»"] },
+    messaggio_chiusura: "Ogni volta che hai chiesto, hai chiarito un pezzo di quello che avresti scritto dopo.",
+  }),
+);
+const rilievo = vero.controlli.find((c) => !c.ok)?.spiegazione ?? "";
+ok(/messaggio_chiusura/.test(rilievo), "una cattura dice in QUALE campo sta, non solo «nel feedback finale»");
+ok(/hai chiarito un pezzo/.test(rilievo), "…e porta la frase, che è quello che si legge per decidere se è un falso positivo");
+ok(!/modo_di_lavorare/.test(rilievo), "…e non accusa il campo sbagliato: lì la frase non c'è");
+
+// Unire le stringhe con un separatore crea confini artificiali: «regge ogni»
+// + «volta che» non è una frase che qualcuno ha scritto. Si cerca dentro ogni
+// stringa, mai a cavallo di due.
+const aCavallo = verificaAtteso(
+  { dove: "feedback_finale", non_deve_affermare_uno_schema: ["ogni volta"] },
+  conFinale({ punti_forza: ["La tabella regge ogni"], da_migliorare: ["volta che i numeri cambiano, rifalla"] }),
+);
+ok(aCavallo.colta === true, "un termine a cavallo di due campi non è una cattura: nessuno l'ha scritto così");
+
 const senzaFinale = verificaAtteso(ATTESO_FINALE, { tappe: [], feedbackFinale: null });
 ok(senzaFinale.colta === null, "se il finale non è stato generato il verdetto è «non lo so», mai «è andata bene»");
 

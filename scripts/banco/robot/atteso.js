@@ -26,17 +26,38 @@ const normalizza = (t) =>
 
 const testoDi = (v) => (Array.isArray(v) ? v.join(" — ") : typeof v === "string" ? v : JSON.stringify(v ?? ""));
 
-// Tutte le stringhe di un oggetto, a qualunque profondità. Esiste già in
-// `lib/lingua/scansione.ts` e NON si riusa qui di proposito: quel file è
-// TypeScript, e importarlo obbligherebbe ogni chiamante di atteso.js a
-// installare prima lo shim del loader. Quattro righe di traversata non hanno
-// una regola dentro da far divergere; una condizione di verdetto sì, e infatti
-// quella sta in un posto solo.
-function tutteLeStringhe(v, dentro = []) {
-  if (typeof v === "string") dentro.push(v);
-  else if (Array.isArray(v)) for (const x of v) tutteLeStringhe(x, dentro);
-  else if (v && typeof v === "object") for (const x of Object.values(v)) tutteLeStringhe(x, dentro);
+// Tutte le stringhe di un oggetto CON IL PERCORSO in cui stanno, a qualunque
+// profondità. Esiste una traversata simile in `lib/lingua/scansione.ts` e NON
+// si riusa qui di proposito: quel file è TypeScript, e importarlo obbligherebbe
+// ogni chiamante di atteso.js a installare prima lo shim del loader. Quattro
+// righe di traversata non hanno una regola dentro da far divergere; una
+// condizione di verdetto sì, e infatti quella sta in un posto solo.
+//
+// IL PERCORSO NON È UN ORNAMENTO. Il 14/09 la trappola delle domande sparse è
+// diventata rossa su una parola sola, e il rapporto diceva «"ogni volta"
+// compare nel feedback finale» — vero e inutilizzabile: il feedback finale ha
+// cinque campi, e la differenza fra «l'ha detto il blocco nuovo» e «l'ha detto
+// il messaggio di chiusura» è tutta la diagnosi. Mario ha dovuto aprire il JSON
+// per trovarla. È la stessa lezione già pagata sulla misura della lingua —
+// «una cattura senza la frase intorno non si rilegge» — e questo strumento non
+// ce l'aveva.
+function stringheConPercorso(v, percorso = "", dentro = []) {
+  if (typeof v === "string") dentro.push({ percorso: percorso || "(radice)", testo: v });
+  else if (Array.isArray(v)) v.forEach((x, i) => stringheConPercorso(x, `${percorso}[${i}]`, dentro));
+  else if (v && typeof v === "object")
+    for (const [k, x] of Object.entries(v)) stringheConPercorso(x, percorso ? `${percorso}.${k}` : k, dentro);
   return dentro;
+}
+
+// Dove compare un termine, e cosa c'era scritto. Cerca STRINGA PER STRINGA
+// invece che su tutto il testo unito: unire con un separatore crea confini
+// artificiali dove un termine può comparire a cavallo di due campi che non
+// c'entrano niente l'uno con l'altro — una cattura che non esiste in nessuna
+// frase vera. I campi del finale sono di due o tre frasi, quindi si stampa il
+// campo intero: nessun ritaglio da allineare, e chi legge vede la frase.
+function doveCompare(stringhe, termine) {
+  const t = normalizza(termine);
+  return stringhe.find((s) => normalizza(s.testo).includes(t)) ?? null;
 }
 
 // esito = il resoconto di giocaRuolo. Restituisce sempre un oggetto, anche
@@ -86,22 +107,23 @@ function verificaFinale(atteso, esito) {
     };
   }
 
-  const tutto = normalizza(tutteLeStringhe(finale).join(" — "));
+  const stringhe = stringheConPercorso(finale);
   const controlli = [];
 
   for (const termine of atteso.deve_comparire ?? []) {
     controlli.push({
-      ok: tutto.includes(normalizza(termine)),
+      ok: doveCompare(stringhe, termine) !== null,
       descrizione: `nomina «${termine}»`,
       spiegazione: `il feedback finale non nomina mai «${termine}»`,
     });
   }
 
   for (const frase of atteso.non_deve_affermare_uno_schema ?? []) {
+    const dove = doveCompare(stringhe, frase);
     controlli.push({
-      ok: !tutto.includes(normalizza(frase)),
+      ok: dove === null,
       descrizione: `non afferma uno schema con «${frase}»`,
-      spiegazione: `«${frase}» compare nel feedback finale: afferma uno schema che nelle domande non c'è`,
+      spiegazione: `«${frase}» afferma uno schema che nelle domande non c'è — in ${dove?.percorso}:\n          ${dove?.testo}`,
     });
   }
 
@@ -116,10 +138,11 @@ function verificaFinale(atteso, esito) {
   // non è uno schema, è un'intenzione. E la prossima volta nessuno saprebbe
   // dire quale delle due famiglie ha morso.
   for (const frase of atteso.non_deve_attribuire_intenzioni ?? []) {
+    const dove = doveCompare(stringhe, frase);
     controlli.push({
-      ok: !tutto.includes(normalizza(frase)),
+      ok: dove === null,
       descrizione: `non attribuisce un'intenzione con «${frase}»`,
-      spiegazione: `«${frase}» compare nel feedback finale: attribuisce un'intenzione a una scelta che intenzione non ne aveva`,
+      spiegazione: `«${frase}» attribuisce un'intenzione a una scelta che intenzione non ne aveva — in ${dove?.percorso}:\n          ${dove?.testo}`,
     });
   }
 
