@@ -74,6 +74,9 @@ const CHIEDE = [
   ["il mestiere, non l'etichetta sulla persona", "PARLA DEL MESTIERE, MAI DELLA PERSONA"],
   ["una persona che fa una cosa in un posto", "DEVE COMPARIRE UNA PERSONA CHE FA UNA COSA IN UN POSTO"],
   ["e non il nome che quei lavori hanno in un elenco", "non il nome che quei lavori hanno in un elenco"],
+  ["l'assenza resta dentro il perimetro del ruolo", "RESTA DENTRO IL PERIMETRO DEL SUO RUOLO"],
+  ["…e il perimetro sono le tappe che ha già davanti", "le tappe che vedi fra parentesi quadre"],
+  ["…e gli altri ruoli non si nominano", "Non nominare mai gli altri ruoli"],
   ["può tacere, ed è un esito", "rispondi con tutti e tre i campi VUOTI"],
   ["e tacendo non gli si chiede nessun testo", "non ti viene chiesto nessun testo"],
   ["nessun punteggio", "NON DARE NESSUN PUNTEGGIO"],
@@ -89,6 +92,23 @@ for (const [nome, frase] of CHIEDE) ok(p.includes(frase), nome);
 // non ha funzionato (il principio astratto ripetuto tre volte al registro).
 ok(/invece di «[^»]+» → «[^»]+»/.test(p), "la regola porta una riscrittura svolta, non solo un divieto");
 ok(p.includes("in un paese di montagna"), "…e l'esempio nomina un posto, che è la metà che rende il mestiere immaginabile");
+
+// IL PERIMETRO. Il blocco riceve le domande e il ruolo, e NON sa che quel
+// progetto è diviso fra altri ruoli che guardano altro: a `presidio > normativa`
+// — che aveva fatto benissimo fondi e autorizzazioni — ha scritto che non aveva
+// chiesto quali fossero le malattie frequenti nel territorio, cioè la tappa 1
+// del ruolo `dati`. È ingiusto in un modo che uno studente nota.
+//
+// La cura è ancorata al MATERIALE e non a una nozione sul contesto: le tappe
+// sono già stampate accanto a ogni domanda, quindi il perimetro è una cosa che
+// il modello ha davanti, non una che deve credere sulla parola. Gli altri ruoli
+// restano innominabili di proposito — il momento in cui sa che esistono è il
+// momento in cui li nomina, e a un ragazzo non serve sapere cosa stavano
+// facendo gli altri.
+ok(
+  /invece di «non hai chiesto[^»]+»[^→]+→ «[^»]+»/.test(p),
+  "…e anche il perimetro porta una riscrittura svolta, non solo il principio",
+);
 
 // Il criterio del silenzio è una soglia, non un'impressione: la stessa già in
 // uso nel caso D del finale di Escape (una scelta sola vale 0,333, due volte

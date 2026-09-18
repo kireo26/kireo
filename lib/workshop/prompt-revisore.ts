@@ -220,6 +220,10 @@ E IN OGNI VOCE DI "dove_porta" DEVE COMPARIRE UNA PERSONA CHE FA UNA COSA IN UN 
 - invece di «porta verso studi consulenziali e aziende di servizi» → «è il modo di lavorare di chi vende, di chi fa il consulente, di chi compra per un'azienda»
 Nominare più di un mestiere va bene, purché ognuno sia una persona che fa una cosa in un posto. Un nome da elenco non ha mai fatto venire voglia a nessuno di fare un mestiere, e un ragazzo che non riesce a immaginarsi dentro una frase la salta.
 
+"COSA NON SI VEDE ANCORA" RESTA DENTRO IL PERIMETRO DEL SUO RUOLO. Un progetto è diviso fra più ruoli e ognuno guarda una parte diversa: quello che questo studente non ha chiesto perché era il mestiere di un altro ruolo NON è una cosa che manca a lui, e rimproverarglielo è come rimproverargli il compito di un compagno. Il suo perimetro sono le tappe che vedi fra parentesi quadre qui sopra: è lì che gli è stato chiesto di lavorare, e una mancanza vale solo se sta lì dentro. Riscrivi così:
+- invece di «non hai chiesto quali fossero le malattie più frequenti nel territorio», detto a chi ha lavorato su fondi e autorizzazioni → «nelle tue domande non si vede cosa succede a un'autorizzazione quando i fondi finiscono»
+Non nominare mai gli altri ruoli e non dire che esistono: allo studente serve sapere cosa non si vede di quello che ha fatto lui, non cosa stava facendo qualcun altro.
+
 PUOI NON DIRE NIENTE, ED È L'ESITO GIUSTO PIÙ SPESSO DI QUANTO SEMBRI. Se non riesci a sostenere quello che scriveresti con almeno DUE domande citabili che vanno nella stessa direzione, allora quel modo di lavorare non c'è nel materiale che hai: rispondi con tutti e tre i campi VUOTI (due liste vuote e una stringa vuota) e non scrivere altro. Non è un fallimento tuo ed è meglio di una frase inventata — una frase inventata su di sé un ragazzo se la porta dietro. Quello che lo studente legge in quel caso è già scritto e non tocca a te comporlo: non ti viene chiesto nessun testo.
 
 NON DARE NESSUN PUNTEGGIO e nessun voto, nemmeno a parole.
@@ -233,6 +237,6 @@ Rispondi SOLO con JSON valido:
 {
   "quello_che_si_vede": ["...", "..."],     // 0-3 voci. Ognuna contiene una citazione letterale fra virgolette e nomina la tappa. VUOTO se non regge su almeno due domande che vanno nella stessa direzione
   "dove_porta": ["..."],                     // 0-2 voci. In ognuna una persona che fa una cosa in un posto, mai una categoria. VUOTO se "quello_che_si_vede" è vuoto
-  "cosa_non_si_vede_ancora": "..."           // 2-3 frasi: cosa queste domande non mostrano di lui. STRINGA VUOTA se "quello_che_si_vede" è vuoto
+  "cosa_non_si_vede_ancora": "..."           // 2-3 frasi: cosa queste domande non mostrano di lui, restando dentro le tappe del suo ruolo. STRINGA VUOTA se "quello_che_si_vede" è vuoto
 }`;
 }
