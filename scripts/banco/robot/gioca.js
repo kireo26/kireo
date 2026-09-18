@@ -74,7 +74,16 @@ async function giocaRuolo({ sessione, workshopSlug, ruoloSlug, consegne, fasi, r
   const c = config(["sitoUrl", "cronSecret"]);
   const { supabase, chiama, utente } = sessione;
   const etichetta = `${workshopSlug} > ${ruoloSlug}`;
-  const esito = { etichetta, workshopSlug, ruoloSlug, tappe: [], fermato: null, fiduciaFinale: null, feedbackFinale: null };
+  const esito = {
+    etichetta,
+    workshopSlug,
+    ruoloSlug,
+    tappe: [],
+    fermato: null,
+    fiduciaFinale: null,
+    feedbackFinale: null,
+    letturaFinaleFallita: null,
+  };
 
   const di = (t) => registra(`  ${t}`);
 
@@ -301,7 +310,7 @@ async function giocaRuolo({ sessione, workshopSlug, ruoloSlug, consegne, fasi, r
 
       const { data: dopo } = await supabase
         .from("workshop_fasi_stato")
-        .select("stato, revisione, reazione_cliente, revisione_esito, tentativi_revisione")
+        .select("stato, revisione, reazione_cliente, revisione_esito, finale_esito, tentativi_revisione")
         .eq("iscrizione_id", iscrizione.id)
         .eq("fase_id", fase.id)
         .maybeSingle();
@@ -311,6 +320,11 @@ async function giocaRuolo({ sessione, workshopSlug, ruoloSlug, consegne, fasi, r
         resoconto.revisione = dopo.revisione;
         resoconto.reazione = dopo.reazione_cliente;
         resoconto.esitoRevisione = dopo.revisione_esito;
+        // Sull'ultima tappa dice se il FEEDBACK FINALE si è arreso: è l'altra
+        // metà della resa, e senza questa colonna una pagina di chiusura
+        // mancante non aveva nessun posto dove essere scritta. NULL sulle altre
+        // tappe vuol dire «non dovuto», non «andato bene».
+        resoconto.esitoFinale = dopo.finale_esito ?? null;
         resoconto.tentativi = Number(dopo.tentativi_revisione) || 0;
         di(`${fase.id}: revisionata (${resoconto.esitoRevisione}, ${resoconto.tentativi} tentativi)`);
         break;
@@ -349,7 +363,7 @@ async function giocaRuolo({ sessione, workshopSlug, ruoloSlug, consegne, fasi, r
   }
 
   // ── 4. la chiusura del progetto ──────────────────────────────────────────
-  const { data: finale } = await supabase
+  const { data: finale, error: erroreFinale } = await supabase
     .from("workshop_elaborati")
     .select("stato, fiducia, feedback_ai")
     .eq("iscrizione_id", iscrizione.id)
@@ -357,6 +371,11 @@ async function giocaRuolo({ sessione, workshopSlug, ruoloSlug, consegne, fasi, r
   esito.fiduciaFinale = finale?.fiducia ?? null;
   esito.feedbackFinale = finale?.feedback_ai ?? null;
   esito.chiuso = finale?.stato === "consegnato";
+  // «Non ho potuto leggere» non è «non c'è»: senza questo, una lettura fallita
+  // arriverebbe alla misura identica a una pagina finale mancante, e il
+  // rapporto direbbe una cosa sbagliata con la faccia di un fatto.
+  esito.letturaFinaleFallita = erroreFinale ? (erroreFinale.message ?? String(erroreFinale)) : null;
+  if (erroreFinale) di(`lettura di workshop_elaborati fallita: ${esito.letturaFinaleFallita}`);
   di(`fiducia ${esito.fiduciaFinale}/100${esito.chiuso ? ", progetto chiuso" : ", progetto NON chiuso"}`);
 
   return esito;

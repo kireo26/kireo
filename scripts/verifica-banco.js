@@ -284,6 +284,53 @@ ok(
   "…e parla prima del messaggio del filtro, invece di lasciarlo solo a spiegare un disallineamento",
 );
 
+// ── il filtro dei log conosce le righe che il cron scrive davvero ──────────
+// Il 18/09 `npm run banco log` ha detto «nessuna passata dal filtro» mentre una
+// tappa si era arresa: le quattro voci di INTERESSANTI erano tutte sulla
+// generazione AI, e una scrittura che non atterra passava senza essere vista.
+//
+// È una proprietà FRA DUE FILE — le stringhe le scrive il cron, il filtro vive
+// nel banco — quindi si può controllare solo da qui, e senza rete.
+console.log("");
+const { INTERESSANTI } = require("./banco/vercel");
+const sorgenteCron = fsBanco.readFileSync(
+  pathBanco.join(__dirname, "..", "app/api/cron/workshop-motore/route.ts"),
+  "utf8",
+);
+
+// Il primo argomento di ogni `console.error`, fino alla prima interpolazione:
+// se il prefisso passa il filtro, la riga intera passa.
+const RE_ERRORE = /console\.error\(\s*(?:"([^"]*)"|`([\s\S]*?)(?:\$\{|`))/g;
+const scritte = [...sorgenteCron.matchAll(RE_ERRORE)].map((m) => (m[1] ?? m[2]).trim()).filter(Boolean);
+
+// In quale direzione sbaglia questo estrattore quando sbaglia: se ne perde una,
+// il test passa e nessuno lo sa — la risposta comoda. Quindi si confronta con
+// quante ce ne sono davvero, e se le due cifre divergono è l'estrattore a
+// doversi spiegare, non il filtro.
+const quanteErrore = (sorgenteCron.match(/console\.error\(/g) ?? []).length;
+ok(
+  scritte.length === quanteErrore,
+  `l'estrattore vede tutte le righe di errore del cron (${scritte.length} su ${quanteErrore})`,
+);
+
+const cieche = scritte.filter((s) => !INTERESSANTI.some((p) => p.test(s)));
+ok(
+  cieche.length === 0,
+  cieche.length === 0
+    ? `il filtro dei log riconosce tutte e ${scritte.length} le righe di errore del cron`
+    : `il filtro non vedrebbe ${cieche.length} righe che il cron scrive: ${cieche.slice(0, 3).map((s) => `«${s}»`).join(", ")}`,
+);
+
+// La controprova: col filtro del 18/09 — quattro voci, tutte sulla generazione —
+// le righe delle scritture restavano invisibili. Se questa non fosse rossa,
+// quella sopra non starebbe controllando niente.
+const FILTRO_VECCHIO = [/chiamaJson —/, /Errore generazione/, /forma non valida/i, /Alert osservabilità/];
+const MARCATURA = "Errore marcatura revisione_esito (iscrizione ";
+ok(
+  !FILTRO_VECCHIO.some((p) => p.test(MARCATURA)) && INTERESSANTI.some((p) => p.test(MARCATURA)),
+  "…e col filtro di prima quella della marcatura non si vedeva: è la riga del guasto del 18/09",
+);
+
 console.log("\n═══════════════════════════════════════════\n");
 if (falliti) { console.error(`✗ ${falliti} controlli falliti.\n`); process.exit(1); }
 console.log("✓ Ogni esito ha la sua frase, il fallimento non si nasconde dietro un successo,\n  e «non posso vederle» non si legge come «non ci sono».\n");

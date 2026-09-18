@@ -125,15 +125,39 @@ function raccogliTesti(esiti) {
   return testi;
 }
 
-// In quale delle quattro categorie cade un ruolo giocato. La precedenza è
-// quella delle tre liste storiche (doppio > guasto > cancello) più «finito»,
-// che prima non era una lista perché non serviva a nessuno — e infatti il buco
-// stava lì: un ruolo che non finisce e non entra in nessuna lista sparisce.
+// In quale delle CINQUE categorie cade un ruolo giocato. La precedenza è quella
+// delle tre liste storiche (doppio > guasto > cancello) più le due che
+// riguardano chi è arrivato in fondo — e tutte e due sono nate da un buco:
+// «finito» perché un ruolo che non finisce e non entra in nessuna lista
+// sparisce, «senza_finale» perché uno che finisce SENZA la sua pagina di
+// chiusura contava come finito.
+//
+// Il 18/09 `scuola-musica-napoli > spazio` ha chiuso il progetto con
+// `feedback_ai` vuoto: il rapporto ha contato «5 finiti» e, più sotto, «feedback
+// finale 4 testi». Tutte e due vere, e nessuna delle due diceva che a uno
+// studente mancava la pagina che legge alla fine — perché i due numeri non si
+// parlano. Un'assenza non è una statistica.
+//
+// Una lettura FALLITA cade qui dentro e non fra i finiti: non sappiamo che ci
+// sia, quindi non lo si dà per buono. La riga sotto dice quale dei due è.
 function categoriaEsito(e) {
-  if (!e.fermato) return "finito";
-  if (e.fermato.doppio) return "respinto";
-  if (e.fermato.guasto) return "caduto";
-  return "fermato";
+  if (e.fermato) {
+    if (e.fermato.doppio) return "respinto";
+    if (e.fermato.guasto) return "caduto";
+    return "fermato";
+  }
+  return e.feedbackFinale && !e.letturaFinaleFallita ? "finito" : "senza_finale";
+}
+
+// Perché manca, detto con quello che sappiamo e non con quello che supponiamo:
+// `finale_esito` sull'ultima tappa è la resa scritta dal cron (dal 18/09), e
+// quando non c'è nemmeno quella lo si dice invece di inventare una causa.
+function perchePagina(e) {
+  if (e.letturaFinaleFallita) return `non ho potuto leggerla: ${e.letturaFinaleFallita}`;
+  const ultima = [...(e.tappe ?? [])].reverse().find((t) => t.esitoFinale);
+  if (ultima) return `il feedback finale si è arreso (${ultima.esitoFinale}) dopo i tentativi del cron`;
+  if (!e.chiuso) return "il progetto non risulta chiuso: l'ultima tappa non è arrivata in fondo";
+  return "il progetto è chiuso ma `feedback_ai` è vuoto, e la riga della tappa non dice perché";
 }
 
 // OGNI RUOLO DEL PIANO DEVE COMPARIRE IN UN ESITO — uno dei quattro, per tutti.
@@ -153,16 +177,23 @@ function verificaCompletezza(esiti, attesi) {
   const conta = (c) => categorie.filter((x) => x === c).length;
   const perCategoria = {
     finito: conta("finito"),
+    senza_finale: conta("senza_finale"),
     fermato: conta("fermato"),
     caduto: conta("caduto"),
     respinto: conta("respinto"),
   };
   const somma = Object.values(perCategoria).reduce((a, b) => a + b, 0);
+  // Fuori dal ramo del piano di proposito: una pagina finale mancante è un
+  // fatto sul ruolo giocato, non sull'appello — si sa anche quando il piano non
+  // è arrivato fin qui.
+  const senzaFinale = esiti
+    .filter((e) => categoriaEsito(e) === "senza_finale")
+    .map((e) => ({ etichetta: e.etichetta, perche: perchePagina(e) }));
 
   // Senza il piano non si può dire niente: si dichiara, non si tace. È la
   // stessa regola di «non posso vederle» invece di «non ci sono».
   if (!Array.isArray(attesi)) {
-    return { noto: false, perCategoria, esiti: esiti.length, copertiDalleListe: somma };
+    return { noto: false, perCategoria, esiti: esiti.length, copertiDalleListe: somma, senzaFinale };
   }
 
   const conteggia = (elenco) => {
@@ -195,6 +226,7 @@ function verificaCompletezza(esiti, attesi) {
     copertiDalleListe: somma,
     mancanti,
     inPiu,
+    senzaFinale,
     completa: mancanti.length === 0 && inPiu.length === 0 && somma === esiti.length,
   };
 }
@@ -361,6 +393,9 @@ function stampaRapporto(m, righe = console.log) {
     const n = (quanti, uno, molti) => `${quanti} ${quanti === 1 ? uno : molti}`;
     const dettaglio = [
       n(q.finito, "finito", "finiti"),
+      // Mai «0 senza pagina finale»: una riga che dice zero ogni volta smette
+      // di essere letta, e questa serve proprio le volte in cui non è zero.
+      ...(q.senza_finale > 0 ? [`${q.senza_finale} senza pagina finale`] : []),
       n(q.fermato, "fermato", "fermati"),
       n(q.caduto, "caduto", "caduti"),
       n(q.respinto, "respinto", "respinti"),
@@ -391,6 +426,23 @@ function stampaRapporto(m, righe = console.log) {
       di("  Un ruolo che non compare in nessuna lista non è «andato bene»: è un buco.");
       di("  Il robot può essersi fermato prima di riportare — e in quel caso può aver");
       di("  già cambiato qualcosa: guarda `npm run banco iscrizioni` prima di rilanciare.");
+      di("");
+    }
+
+    // FUORI dal ramo dell'appello incompleto, e non è un dettaglio di stampa:
+    // un ruolo senza pagina finale ha comunque il suo esito, quindi l'appello è
+    // COMPLETO e questo blocco non comparirebbe mai. È esattamente il modo in
+    // cui il 18/09 «5 finiti» e «feedback finale 4 testi» sono convissuti nello
+    // stesso rapporto senza che nessuno dei due dicesse la cosa.
+    if (c.senzaFinale && c.senzaFinale.length > 0) {
+      const quanti = c.senzaFinale.length;
+      di(`SENZA PAGINA FINALE — ${quanti === 1 ? "1 ruolo" : `${quanti} ruoli`}`);
+      for (const x of c.senzaFinale) di(`  · ${x.etichetta} — ${x.perche}`);
+      di("");
+      di("  Non è un buco del rapporto: è la pagina che lo studente apre alla fine del");
+      di("  progetto, e non c'è. Il percorso è arrivato in fondo lo stesso, quindi non");
+      di("  lo dice nessun altro numero — i testi contati più sotto sono quelli che");
+      di("  esistono, non quelli che dovevano esserci.");
       di("");
     }
   }

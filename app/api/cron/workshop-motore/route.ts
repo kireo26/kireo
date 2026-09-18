@@ -107,7 +107,11 @@ export async function GET(request: NextRequest) {
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    console.error("ANTHROPIC_API_KEY non configurata: il motore workshop non può generare revisione/reazione.");
+    // «Errore» in testa non è cerimonia: è la convenzione su cui è tarato il
+    // filtro di `npm run banco log` (vedi scripts/banco/vercel.js). Questa riga
+    // ferma l'INTERO cron, ed era l'unica del file che il filtro non avrebbe
+    // mostrato — trovata da `npm run test:banco`, non da qualcuno che rileggeva.
+    console.error("Errore: ANTHROPIC_API_KEY non configurata, il motore workshop non può generare revisione/reazione.");
     return NextResponse.json({ errore: "Chiave Anthropic non configurata." }, { status: 503 });
   }
 
@@ -439,6 +443,20 @@ export async function GET(request: NextRequest) {
       const esitoPeggiore: EsitoGenerazione =
         esitoRevisioneStato !== "riuscita" ? esitoRevisioneStato : esitoFinaleStato;
 
+      // L'ESITO DEL FINALE VA SCRITTO A PARTE, e solo dove il finale era dovuto.
+      //
+      // `esitoPeggiore` guarda DUE esiti, la marcatura ne scriveva UNO: quando a
+      // fallire era il feedback finale, sulla riga finiva 'riuscita' — l'esito
+      // della revisione, che era andata benissimo — e la query dei guasti non
+      // poteva vederlo per costruzione. Il 18/09 `scuola-musica-napoli > spazio`
+      // è arrivato in fondo senza la sua pagina di chiusura e nessuno strumento
+      // lo diceva.
+      //
+      // `null` quando la tappa non è l'ultima: lì non c'era niente da generare,
+      // e scrivere 'riuscita' sarebbe la stessa bugia in piccolo — NULL vuol
+      // dire NON DOVUTO, non «andato bene».
+      const esitoFinaleDaMarcare: EsitoGenerazione | null = fase.ultima ? esitoFinaleStato : null;
+
       if (esitoPeggiore !== "riuscita" && tentativiPrima + 1 < MAX_TENTATIVI_REVISIONE) {
         // Non si avanza: la tappa resta 'consegnata' e il prossimo giro ritenta.
         // Se il contatore non si alza, la tappa ritenta all'infinito senza mai
@@ -475,7 +493,11 @@ export async function GET(request: NextRequest) {
       // Meglio una tappa che resta ferma e ritenta il giorno dopo.
       const { error: erroreMarcatura } = await supabase
         .from("workshop_fasi_stato")
-        .update({ tentativi_revisione: tentativiPrima + 1, revisione_esito: esitoRevisioneStato })
+        .update({
+          tentativi_revisione: tentativiPrima + 1,
+          revisione_esito: esitoRevisioneStato,
+          finale_esito: esitoFinaleDaMarcare,
+        })
         .eq("id", riga.id);
 
       if (erroreMarcatura) {
@@ -673,10 +695,14 @@ export async function GET(request: NextRequest) {
         ? `<p>Fuori dal conto qui sopra, dai <strong>profili di prova</strong> (il robot del banco, non studenti): ${guardiaInterventiProva} interventi della guardia, ${guardiaAncoraAccordatoProva} testi ancora accordati. Sono su testi veri generati dagli stessi revisori, quindi dicono qualcosa sul modello — ma non sono un tasso di produzione e non vanno letti come tale.</p>`
         : ""
     }
-<p>I guasti AI sono chiamate fallite, estrazioni JSON fallite o risposte di forma inattesa. Sui workshop si contano i <strong>tentativi</strong>, non le tappe: una tappa che fallisce viene ritentata fino a ${MAX_TENTATIVI_REVISIONE} giri di cron, quindi lo stesso guasto può comparire per più giorni di fila — è persistenza, non moltiplicazione. Le «revisioni non riuscite» dei workshop si trovano con:</p>
-<pre>select iscrizione_id, fase_id, tentativi_revisione, revisione_esito
+<p>I guasti AI sono chiamate fallite, estrazioni JSON fallite o risposte di forma inattesa. Sui workshop si contano i <strong>tentativi</strong>, non le tappe: una tappa che fallisce viene ritentata fino a ${MAX_TENTATIVI_REVISIONE} giri di cron, quindi lo stesso guasto può comparire per più giorni di fila — è persistenza, non moltiplicazione. Le rese dei workshop si trovano con:</p>
+<pre>select iscrizione_id, fase_id, tentativi_revisione, revisione_esito, finale_esito
 from public.workshop_fasi_stato
-where revisione_esito is not null and revisione_esito &lt;&gt; 'riuscita';</pre>
+where (revisione_esito is not null and revisione_esito &lt;&gt; 'riuscita')
+   or (finale_esito   is not null and finale_esito   &lt;&gt; 'riuscita');</pre>
+<p>Le due colonne dicono <strong>cosa</strong> si è arreso, e si riparano in modi diversi: <code>revisione_esito</code> è il giudizio di quella tappa, <code>finale_esito</code> è la pagina di chiusura dell'intero progetto (esiste solo sull'ultima tappa: altrove è NULL perché non era dovuta, non perché sia andata bene). Un progetto chiuso senza la sua pagina finale si trova anche dall'altro capo, ed è il modo di ritrovare quelli precedenti al 18/09:</p>
+<pre>select iscrizione_id from public.workshop_elaborati
+where stato = 'consegnato' and feedback_ai is null;</pre>
 <p>I «test senza esito» sono tentativi finiti a cui lo scoring non ha prodotto righe: raro e spesso legittimo, ma se il numero cresce va guardato — potrebbe essere uno scoring che torna vuoto per un bug.</p>
 <p>La riga sulla <strong>lingua</strong> non è un guasto: il primo numero è lavoro che la guardia ha fatto (una chiamata in più, testo poi corretto), il secondo è l'unico che conta davvero — quante volte la seconda risposta è tornata comunque accordata, o è fallita e si è spedita la prima. La guardia non trattiene mai un feedback per una questione di grammatica. Il tasso di intervento dice se la regola scritta nei prompt sta funzionando: la stima di partenza, misurata su una consegna-fixture, era ~8%.</p>
 <p>Per i dettagli Escape, interroga la vista <code>revisore_esiti</code>:</p>

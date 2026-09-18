@@ -52,6 +52,11 @@ async function azzeraTentativi(iscrizioneId, faseId) {
   console.log(`  stato       ${r.stato}   (NON cambia)`);
   console.log(`  tentativi   ${r.tentativi_revisione}  →  0`);
   console.log(`  esito       ${r.revisione_esito ?? "null"}  →  null`);
+  // Anche `finale_esito`, e non per simmetria: se resta la resa di prima, la
+  // tappa riparte con tutti i tentativi ma la query dei guasti continua a
+  // vederla come arresa — un azzeramento che non azzera tutto è peggio di uno
+  // che non si fa.
+  console.log(`  esito finale ${r.finale_esito ?? "null"}  →  null`);
   console.log("\nLa revisione già salvata, la fiducia e lo stato della tappa restano come sono.");
 
   const risposta1 = await chiediConferma("\nProcedo? (scrivi «si») ");
@@ -63,7 +68,7 @@ async function azzeraTentativi(iscrizioneId, faseId) {
   const patch = await fetch(`${c.supabaseUrl}/rest/v1/workshop_fasi_stato?${filtro}`, {
     method: "PATCH",
     headers: intestazioni,
-    body: JSON.stringify({ tentativi_revisione: 0, revisione_esito: null }),
+    body: JSON.stringify({ tentativi_revisione: 0, revisione_esito: null, finale_esito: null }),
   });
   if (!patch.ok) {
     console.error(`\n✗ Scrittura fallita (${patch.status}): ${(await patch.text()).slice(0, 300)}\n`);
