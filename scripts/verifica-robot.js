@@ -410,7 +410,9 @@ ok(dueProblemi.registro.filter((r) => !r.formula).length === 1, "e «maturo» re
 // prende senza sapere da dove viene.
 console.log("");
 const { verificaCompletezza } = require("./banco/robot/misura");
-const finito = (etichetta) => ({ etichetta, tappe: [], fiduciaFinale: 70 });
+// `feedbackFinale` dentro il fixture di «finito» non è un dettaglio: dal 18/09
+// un ruolo che arriva in fondo SENZA la sua pagina di chiusura non è finito.
+const finito = (etichetta) => ({ etichetta, tappe: [], fiduciaFinale: 70, feedbackFinale: { punti_forza: ["…"] }, chiuso: true });
 const bloccato = (etichetta, extra = {}) => ({ etichetta, tappe: [], fermato: { dove: "t1", perche: "…", ...extra } });
 
 const cinque = ["w > a", "w > b", "w > c", "w > d", "w > e"];
@@ -421,7 +423,7 @@ const tutti = verificaCompletezza(
 ok(tutti.completa === true, "cinque ruoli nel piano e cinque esiti: appello completo");
 ok(
   tutti.perCategoria.finito === 2 && tutti.perCategoria.fermato === 1 && tutti.perCategoria.caduto === 1 && tutti.perCategoria.respinto === 1,
-  "…e ognuno cade in una sola delle quattro categorie",
+  "…e ognuno cade in una sola delle cinque categorie",
 );
 
 const manca = verificaCompletezza([finito("w > a"), finito("w > b"), finito("w > c"), finito("w > d")], cinque);
@@ -437,11 +439,49 @@ ok(!doppia.completa && doppia.mancanti[0].conEsito === 1 && doppia.mancanti[0].a
 // in nessuna lista. Qui si simula con un esito che la classificazione non sa
 // leggere — la somma delle quattro categorie non torna più.
 const quintoStato = verificaCompletezza([finito("w > a"), { etichetta: "w > b", tappe: [] }], ["w > a", "w > b"]);
-ok(quintoStato.copertiDalleListe === quintoStato.esiti, "oggi le quattro categorie coprono tutto: la somma torna");
+ok(quintoStato.copertiDalleListe === quintoStato.esiti, "oggi le cinque categorie coprono tutto: la somma torna");
 
 const senzaPiano = verificaCompletezza([finito("w > a")], null);
 ok(senzaPiano.noto === false, "senza il piano la completezza non si può dire");
 ok(senzaPiano.completa === undefined, "…e non si dichiara completa per difetto: «non posso vederlo» ≠ «vanno tutti bene»");
+
+// ── il ruolo che finisce senza la sua pagina finale ────────────────────────
+// Il 18/09 `scuola-musica-napoli > spazio` ha chiuso il progetto con
+// `feedback_ai` vuoto, e il rapporto ha detto «5 finiti» — vero al livello del
+// ruolo — mentre venti righe più sotto contava «feedback finale: 4 testi».
+// Nessuno dei due numeri diceva che a uno studente mancava la pagina che legge
+// alla fine, perché non si parlano: un'assenza non è una statistica.
+console.log("");
+const senzaPagina = { etichetta: "w > e", tappe: [{ faseId: "t4", esitoFinale: "non_riuscita" }], chiuso: true, feedbackFinale: null };
+const conBuco = verificaCompletezza([finito("w > a"), senzaPagina], ["w > a", "w > e"]);
+ok(conBuco.perCategoria.senza_finale === 1, "un ruolo arrivato in fondo senza feedback finale non conta fra i finiti");
+ok(conBuco.perCategoria.finito === 1, "…e quello che ce l'ha resta finito");
+ok(conBuco.copertiDalleListe === conBuco.esiti, "…e la somma delle cinque categorie copre comunque tutti gli esiti");
+ok(conBuco.senzaFinale.length === 1 && conBuco.senzaFinale[0]?.etichetta === "w > e", "…e il rapporto sa DIRE quale ruolo");
+ok(/non_riuscita/.test(conBuco.senzaFinale[0]?.perche ?? ""), "…e perché, leggendo `finale_esito` invece di supporlo");
+
+// Una lettura fallita non è un'assenza: se si finisse fra i finiti, il rapporto
+// darebbe per buona una pagina che non ha mai visto — la risposta comoda.
+const nonLetto = { etichetta: "w > f", tappe: [], chiuso: true, feedbackFinale: null, letturaFinaleFallita: "connessione interrotta" };
+const conLetturaRotta = verificaCompletezza([nonLetto], ["w > f"]);
+ok(conLetturaRotta.perCategoria.senza_finale === 1, "una lettura fallita non si conta come «finito»");
+ok(/non ho potuto leggerla/.test(conLetturaRotta.senzaFinale[0]?.perche ?? ""), "…e si dichiara per quello che è, invece di dire che manca");
+
+// Anche senza piano il buco si vede: è un fatto sul ruolo giocato, non
+// sull'appello — e l'appello è COMPLETO lo stesso (l'esito c'è), che è
+// esattamente il motivo per cui prima non lo diceva nessuno.
+ok(verificaCompletezza([senzaPagina], null).senzaFinale.length === 1, "il buco si vede anche quando il piano non è arrivato fin qui");
+ok(conBuco.completa === true, "l'appello resta completo: il ruolo un esito ce l'ha — per questo serviva una categoria a sé");
+
+// E che la misura passi la cosa fino al rapporto stampato.
+const righeStampate = [];
+require("./banco/robot/misura").stampaRapporto(misura([finito("w > a"), senzaPagina], ["w > a", "w > e"]), (t) =>
+  righeStampate.push(t),
+);
+const stampato = righeStampate.join("\n");
+ok(/SENZA PAGINA FINALE/.test(stampato), "il rapporto stampa il blocco, non solo il conteggio");
+ok(/w > e/.test(stampato), "…col nome del ruolo");
+ok(/senza pagina finale/.test(stampato), "…e la riga dell'appello lo dice già lì, dove si legge per prima");
 
 // E che il piano ci arrivi davvero: un parametro nuovo con un default è il
 // posto in cui un collegamento mancante si nasconde (la lezione di

@@ -51,7 +51,7 @@ async function percorso(filtro) {
   const c = config(["supabaseUrl", "supabaseServiceRoleKey"]);
 
   const select =
-    "select=id,iscrizione_id,fase_id,stato,consegnata_at,revisionata_at,tentativi_revisione,revisione_esito," +
+    "select=id,iscrizione_id,fase_id,stato,consegnata_at,revisionata_at,tentativi_revisione,revisione_esito,finale_esito," +
     "workshop_iscrizioni(student_id,workshop(slug,titolo),workshop_ruoli(slug,titolo))" +
     "&order=iscrizione_id,aperta_at";
 
@@ -89,6 +89,11 @@ async function percorso(filtro) {
       if (r.stato === "revisionata") parti.push(`revisionata ${quantoFa(r.revisionata_at)}`);
       if (r.tentativi_revisione) parti.push(`tentativi ${r.tentativi_revisione}`);
       if (r.revisione_esito && r.revisione_esito !== "riuscita") parti.push(`ESITO ${r.revisione_esito}`);
+      // Distinto, perché sono due guasti diversi: una revisione mancante è una
+      // tappa da rigiocare, un finale mancante è la pagina di chiusura
+      // dell'intero progetto. NULL su una tappa non ultima vuol dire «non
+      // dovuto», quindi non si stampa niente.
+      if (r.finale_esito && r.finale_esito !== "riuscita") parti.push(`FINALE ${r.finale_esito}`);
       console.log("    " + parti.join("  "));
     }
 

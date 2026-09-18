@@ -76,7 +76,25 @@ function linkDeploy(c, deploy) {
 // ── log ────────────────────────────────────────────────────────────────────
 // Le righe che il nostro codice scrive quando qualcosa non va. Cercare per
 // queste stringhe è cercare per causa, non per orario.
-const INTERESSANTI = [/chiamaJson —/, /Errore generazione/, /forma non valida/i, /Alert osservabilità/];
+//
+// CONOSCEVA I GUASTI DELL'AI E NON QUELLI DELLE SCRITTURE: fino al 18/09 le
+// quattro voci erano `chiamaJson`, `Errore generazione`, `forma non valida`,
+// `Alert osservabilità` — tutte e quattro sulla generazione. Una scrittura che
+// non atterra («Errore marcatura revisione_esito», «Errore avanzamento tappa»,
+// «Errore aggiornamento tentativi_revisione») passava dal filtro senza essere
+// vista, ed è precisamente la famiglia che nel cron ferma una tappa.
+//
+// Da qui in poi si cerca la FAMIGLIA, non le singole stringhe: ogni riga che il
+// nostro codice scrive quando qualcosa non va comincia per «Errore» o per
+// «Alert». Un elenco di stringhe è un elenco da aggiornare, e questo difetto
+// nasce da due liste che nessuno aggiorna insieme.
+//
+// Largo di proposito, e nella direzione giusta: qui a leggere c'è una persona,
+// quindi un filtro che include troppo costa qualche riga in più da scorrere,
+// mentre uno che include troppo poco costa un guasto che non si vede. È la
+// regola della direzione dell'errore applicata a uno strumento con un umano
+// dentro il ciclo — il contrario di come si tarano i pattern del tripwire.
+const INTERESSANTI = [/chiamaJson —/, /forma non valida/i, /\bErrore\b/i, /\bAlert\b/];
 
 async function eventiDi(c, uid, daMs) {
   const righe = await api(c, `/v3/deployments/${uid}/events?since=${daMs}&limit=1000&builds=0`);
@@ -224,4 +242,7 @@ async function deploy(attendi = true) {
   }
 }
 
-module.exports = { log, deploy, statoProduzione };
+// `INTERESSANTI` è esportato per una ragione sola: `npm run test:banco` lo
+// confronta con le righe che il cron scrive davvero. È l'unica parte di questo
+// file provabile senza rete, ed è quella che il 18/09 era cieca.
+module.exports = { log, deploy, statoProduzione, INTERESSANTI };

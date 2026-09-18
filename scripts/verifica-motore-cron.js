@@ -41,6 +41,29 @@ const RE_MARCATURA =
 
 const ANCORA_AVANZA = 'supabase.rpc("avanza_fase_workshop"';
 
+// LA SECONDA PROPRIETÀ, dal guasto del 18/09: una resa deve lasciare scritto
+// COSA si è arreso. La resa guarda due esiti (`esitoPeggiore`), la marcatura ne
+// scriveva uno — quando falliva il feedback finale, sulla riga finiva
+// 'riuscita', l'esito della revisione, e la query dei guasti non poteva vederlo.
+//
+// Due metà, e servono tutte e due: che `finale_esito` sia scritto, e che il
+// valore scritto sia NULL dove il finale non era dovuto. Scriverlo sempre
+// varrebbe 'riuscita' su ogni tappa non ultima — la stessa bugia in piccolo.
+function marcaAncheIlFinale(sorgente) {
+  const m = sorgente.match(/\.update\(\{[^}]*finale_esito:\s*([A-Za-z_$][\w$]*)[^}]*\}\)/);
+  if (!m) return { ok: false, perche: "la marcatura non scrive `finale_esito`: una resa del feedback finale resta indistinguibile da una riuscita" };
+
+  const nome = m[1];
+  const dichiarazione = new RegExp(`(?:const|let)\\s+${nome}\\b[^;]*\\bfase\\.ultima\\b[^;]*:\\s*null`);
+  if (!dichiarazione.test(sorgente)) {
+    return {
+      ok: false,
+      perche: `\`${nome}\` è scritto su ogni tappa: senza il ternario su \`fase.ultima\` vale 'riuscita' anche dove il finale non era dovuto`,
+    };
+  }
+  return { ok: true };
+}
+
 // La proprietà, isolata: fra la scrittura e l'azione ci deve stare una guardia
 // sull'errore che INTERROMPE. Un `console.error` da solo non basta — dice che
 // è successo, non impedisce che succeda il resto.
@@ -103,6 +126,25 @@ ok(guardiaTraLeDue(SCRITTURA_MUTA).ok === false, "diventa rosso sul codice di st
 ok(guardiaTraLeDue(SOLO_LOG).ok === false, "…e anche su una guardia che LOGGA ma non interrompe");
 ok(guardiaTraLeDue(COMPLETA).ok === true, "…e verde quando l'errore è raccolto, guardato e interrompe");
 
+// Le tre stesure della marcatura: quella del 18/09 (un esito solo), quella che
+// scrive il secondo esito ma sempre, e quella giusta.
+const UN_ESITO_SOLO = `
+        .update({ tentativi_revisione: t + 1, revisione_esito: esitoRevisioneStato })
+`;
+const FINALE_SEMPRE = `
+      let esitoFinaleStato: EsitoGenerazione = "riuscita";
+        .update({ tentativi_revisione: t + 1, revisione_esito: esitoRevisioneStato, finale_esito: esitoFinaleStato })
+`;
+const FINALE_GIUSTO = `
+      const esitoFinaleDaMarcare: EsitoGenerazione | null = fase.ultima ? esitoFinaleStato : null;
+        .update({ tentativi_revisione: t + 1, revisione_esito: esitoRevisioneStato, finale_esito: esitoFinaleDaMarcare })
+`;
+
+console.log("");
+ok(marcaAncheIlFinale(UN_ESITO_SOLO).ok === false, "diventa rosso sulla marcatura del 18/09: un esito scritto dove se ne guardano due");
+ok(marcaAncheIlFinale(FINALE_SEMPRE).ok === false, "…e anche su un `finale_esito` scritto su OGNI tappa, non solo dove era dovuto");
+ok(marcaAncheIlFinale(FINALE_GIUSTO).ok === true, "…e verde quando il valore è null dove il feedback finale non c'era da generare");
+
 // ── il file vero ──────────────────────────────────────────────────────────
 console.log("");
 const sorgente = fs.readFileSync(FILE, "utf8");
@@ -121,6 +163,17 @@ ok(RE_CONTATORE.test(sorgente), "anche l'aggiornamento del contatore dei tentati
 // aggiunta un domani senza guardia rientrerebbe dalla finestra.
 const quante = (sorgente.match(/\.from\("workshop_fasi_stato"\)\s*\n\s*\.update\(/g) ?? []).length;
 ok(quante === 2, `le scritture su workshop_fasi_stato nel cron sono due, entrambe guardate (ne trova ${quante})`);
+
+const finale = marcaAncheIlFinale(sorgente);
+ok(finale.ok, finale.ok ? "nel cron: la resa scrive anche quale delle due generazioni si è arresa" : `nel cron: ${finale.perche}`);
+
+// E che la query dell'alert dica la stessa cosa della riga: è il testo che una
+// persona copia-incolla quando cerca i guasti, e se resta indietro manda a
+// guardare un posto solo dei due.
+ok(
+  /finale_esito\s+is not null and finale_esito\s+&lt;&gt; 'riuscita'/.test(sorgente),
+  "la query dei guasti nell'alert cerca anche le rese del feedback finale",
+);
 
 console.log("\n═══════════════════════════════════════════\n");
 if (falliti) { console.error(`✗ ${falliti} controlli falliti.\n`); process.exit(1); }
