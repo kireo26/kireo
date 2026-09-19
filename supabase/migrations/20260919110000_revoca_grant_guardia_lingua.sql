@@ -1,0 +1,43 @@
+-- Il contatore della guardia sulla lingua lo chiama solo la service-role.
+--
+-- PERCHÉ ESISTE QUESTA MIGRAZIONE, invece di una riga corretta in quella di
+-- prima. Il 19/09, rivedendo `registra_guasto` prima di applicarla, Mario ha
+-- fermato un `grant execute … to authenticated, service_role` su una funzione
+-- il cui unico chiamante usa il client service-role. Cercando gli altri casi
+-- è venuto fuori che `registra_guasto` quel grant lo aveva **copiato da qui**:
+-- `registra_guardia_lingua` è il modello su cui è stata costruita, commento
+-- compreso — e il commento diceva «le route girano nella sessione dello
+-- studente», vero della ROUTE e falso del CLIENT.
+--
+-- COSA CAMBIA DAVVERO. `authenticated` è il ruolo di CHIUNQUE sia collegato:
+-- con quel grant, qualunque studente poteva chiamare la funzione e alzare i
+-- due contatori. Non si espone niente — la funzione non legge, e la tabella
+-- non è leggibile da lì — ma si può **far mentire una misura**: e quei due
+-- numeri sono esattamente quelli che diciamo di guardare per sapere quante
+-- volte la guardia sulla lingua è intervenuta e quante volte non è bastata.
+-- Una misura falsificabile da chi ha interesse a falsificarla è peggio di una
+-- misura che non c'è, perché nessuno va a ricontrollare un numero tranquillo.
+--
+-- Non è una vulnerabilità e non c'è nessuna prova che sia successo: è un
+-- permesso che nessuno usa, tolto perché non serve. La regola, che vale anche
+-- per la prossima: **quello che si concede si concede a chi chiama, e chi
+-- chiama si guarda nel codice, non nell'intenzione.** Da oggi lo verifica
+-- `npm run test:grant`, che legge i chiamanti dal TypeScript e i grant da
+-- qui, e confronta le due liste invece di fidarsi di una tabella scritta a
+-- mano (che sarebbe la terza lista da aggiornare).
+--
+-- Se un giorno servisse un chiamante con il client della richiesta — cioè la
+-- sessione dello studente, non la service-role — il grant si rimette insieme
+-- alla ragione, e il test smette di essere rosso. Fino ad allora non c'è.
+
+revoke execute on function public.registra_guardia_lingua(boolean, boolean) from authenticated;
+
+-- Nota sull'ordine: questa migrazione presuppone `20260830100000`, che ha
+-- droppato l'overload a un parametro e creato quello a due. Applicandole in
+-- ordine di timestamp — l'unico modo in cui si applicano — la funzione qui
+-- esiste sempre. Su una replica locale ricostruita da zero vale lo stesso.
+--
+-- E una cosa che NON serve fare: non c'è niente da revocare sull'overload a un
+-- parametro, perché non esiste più (`drop function` in 20260830100000). Se un
+-- giorno un controllo dicesse il contrario, quello che è cambiato è il drop,
+-- non questa riga.

@@ -82,9 +82,24 @@ create policy guasti_select_admin on public.guasti
   using (public.current_ruolo() = 'admin');
 
 -- ── la funzione ────────────────────────────────────────────────────────────
--- SECURITY DEFINER perché la chiamano due contesti diversi, come per la
--- guardia della lingua: il cron con la service-role, e le route che girano
--- nella sessione dello studente (finale Escape, consegne workshop).
+-- CHI PUÒ CHIAMARLA: solo `service_role`, e nessun altro.
+--
+-- Il chiamante è sempre `lib/guasti/registra.ts`, che usa il client
+-- service-role — dal cron, dal finale di Escape e dalle consegne workshop.
+-- Le ultime due girano dentro la sessione di uno studente, ma la SESSIONE non
+-- è il CLIENT: la riga la scrive comunque la service-role. La prima stesura
+-- di questo commento confondeva le due cose e concedeva l'esecuzione anche ad
+-- `authenticated` — un grant che nessun chiamante usa e che avrebbe lasciato a
+-- qualunque studente collegato la possibilità di scrivere righe arbitrarie
+-- qui. Non esporrebbe niente (in lettura si arriva solo da admin), ma
+-- **farebbe mentire la diagnostica**, che è precisamente la cosa che questa
+-- tabella esiste per impedire.
+--
+-- SECURITY DEFINER resta, e non è ridondante per abitudine: la tabella non ha
+-- NESSUNA policy di insert, quindi la scrittura non deve dipendere dalla RLS
+-- di chi chiama. Oggi `service_role` la RLS la scavalca comunque; domani, se
+-- un ruolo diverso ricevesse il grant, la funzione continuerebbe a essere
+-- corretta invece di cominciare a fallire in silenzio.
 create or replace function public.registra_guasto(
   p_processo text,
   p_specie text,
@@ -119,7 +134,7 @@ comment on function public.registra_guasto(text, text, text, text, uuid, text, b
   'Scrive una riga di guasto. Chiamata da lib/guasti/registra.ts, sempre best-effort: se fallisce, il flusso che la invoca prosegue lo stesso.';
 
 revoke all on function public.registra_guasto(text, text, text, text, uuid, text, boolean) from public;
-grant execute on function public.registra_guasto(text, text, text, text, uuid, text, boolean) to authenticated, service_role;
+grant execute on function public.registra_guasto(text, text, text, text, uuid, text, boolean) to service_role;
 
 -- ── QUELLO CHE QUESTA TABELLA NON RISOLVE, e va saputo prima di fidarsene ───
 -- Se il codice NON PARTE, nessuna riga viene scritta: un crash a freddo, un

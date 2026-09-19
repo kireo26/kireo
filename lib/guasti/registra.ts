@@ -12,6 +12,16 @@
 // girano nella sessione dello studente. Far passare un client attraverso la
 // firma costringerebbe ogni punto di chiamata a occuparsi di una tabella che
 // non lo riguarda.
+//
+// CONSEGUENZA SUL DATABASE, e va tenuta insieme a questa riga: siccome QUI il
+// client è sempre la service-role, `registra_guasto` è concessa a
+// `service_role` e a nessun altro. La sessione dello studente esiste nella
+// route, non in questa chiamata — sono due cose diverse, e confonderle
+// lascerebbe a chiunque sia collegato la possibilità di scrivere righe finte
+// nella tabella che serve a sapere cosa si è rotto. Se un giorno servisse un
+// chiamante con il client della richiesta, il grant va cambiato di
+// conseguenza: `npm run test:grant` diventa rosso finché le due cose non
+// tornano a dire la stessa cosa.
 
 import { createServiceRoleClient } from "@/lib/supabase/serviceRole";
 
