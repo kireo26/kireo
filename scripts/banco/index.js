@@ -84,6 +84,17 @@ BANCO DI PROVA — i gesti manuali, fatti dal terminale
       «palestra», «enoteca > food».
       Si rifiuta di partire se l'account non è marcato di_prova.
 
+  npm run banco studente
+      LA PASSATA DALL'INIZIO ALLA FINE: i tre test attitudinali e poi la
+      missione che ne esce. È il pezzo che mancava — fino a oggi il banco
+      sapeva giocare solo i workshop, cioè l'ultimo gradino del percorso.
+      I test non fanno nessuna chiamata AI, la missione ne fa tre: due o
+      tre centesimi in tutto. La missione è FISSATA nel banco e confrontata
+      con quella che il prodotto suggerisce: se divergono lo dice, invece
+      di seguire il suggerimento e giocare una missione per cui i testi
+      scritti non sono risposte.
+      Chiede conferma e non parte su un account non di_prova, come robot.
+
   npm run banco confronta <rapporto-a> <rapporto-b>
       Due passate a confronto: quanto si muove il punteggio (per ruolo e per
       tappa), quante coppie di ruoli si INVERTONO, lingua e registro
@@ -184,6 +195,13 @@ async function main() {
     case "robot": {
       const filtro = resto.find((a) => !a.startsWith("--"));
       return robot(filtro);
+    }
+    case "studente": {
+      // Caricato qui e non in testa: tira dentro il TypeScript del prodotto
+      // (i test, le missioni), e non c'è ragione di compilarlo per chi scrive
+      // «npm run banco motore».
+      const { studente } = require("./studente");
+      return studente();
     }
     case "confronta":
       return confronta(resto[0], resto[1]);

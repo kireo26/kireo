@@ -22,27 +22,11 @@ const fs = require("fs");
 const path = require("path");
 const readline = require("readline");
 const { execSync } = require("child_process");
-const ts = require("typescript");
-const Module = require("module");
-
-const ROOT = path.join(__dirname, "..", "..", "..");
-const origResolve = Module._resolveFilename;
-Module._resolveFilename = function (request, parent, ...rest) {
-  if (request.startsWith("@/")) {
-    const p = path.join(ROOT, request.slice(2));
-    for (const ext of [".ts", ".tsx", ".js"]) if (fs.existsSync(p + ext)) return origResolve.call(this, p + ext, parent, ...rest);
-  }
-  return origResolve.call(this, request, parent, ...rest);
-};
-if (!require.extensions[".ts"]) {
-  require.extensions[".ts"] = function (mod, filename) {
-    const out = ts.transpileModule(fs.readFileSync(filename, "utf8"), {
-      compilerOptions: { module: "commonjs", target: "es2019", esModuleInterop: true },
-      fileName: filename,
-    });
-    return mod._compile(out.outputText, filename);
-  };
-}
+// Leggere il TypeScript del prodotto (le fasi dei workshop) sta in un file
+// suo: lo usa anche `banco studente`, e due copie di un registratore di
+// estensioni divergono come qualunque altra coppia.
+const { abilitaTypeScript, ROOT } = require("../ts");
+abilitaTypeScript();
 
 const { WORKSHOP_ELABORATO } = require("@/lib/workshop/elaborato-config");
 const { apriSessione } = require("./sessione");

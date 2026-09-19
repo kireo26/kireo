@@ -101,6 +101,14 @@ const ESENTI = new Map([
     "È il robot che gioca, non un conteggio: legge le PROPRIE righe per sapere a che punto è il suo percorso. Escludere i profili di prova qui vorrebbe dire escludere se stesso.",
   ],
   [
+    "scripts/banco/robot/giocaTest.js",
+    "Stessa specie di gioca.js, con una ragione strutturale in più: qui il client è quello di SESSIONE (chiave anon + login dello studente), quindi la RLS lo tiene già dentro le proprie righe — un filtro sui profili di prova non escluderebbe nessuno, perché non c'è nessun altro da escludere.",
+  ],
+  [
+    "scripts/banco/robot/giocaMissione.js",
+    "Come giocaTest.js: il robot gioca la sua missione con il client di sessione, e le righe che legge (mission_attempt, step_response, evidence) sono già solo le sue per RLS. Non conta niente su nessuno.",
+  ],
+  [
     "scripts/verifica-motore-cron.js",
     "Non tocca nessun database: legge il SORGENTE del cron e cerca una guardia fra due righe. `workshop_fasi_stato` ci compare perché è il nome nella query che sta controllando, non perché la interroghi — è un controllo lessicale scambiato per una misura da un altro controllo lessicale.",
   ],
