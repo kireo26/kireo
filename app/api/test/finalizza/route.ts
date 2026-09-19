@@ -86,10 +86,20 @@ export async function POST(request: NextRequest) {
       },
       `Errore test/finalizza — nessuna prova: il tentativo NON viene completato. studente=${user.id} test=${attempt.test_slug} attempt=${attempt.id} righe=${salvate}`,
     );
+    // LA CLAUSOLA «è un problema nostro, non un giudizio» sta solo sul secondo
+    // messaggio, ed è la stessa che il prodotto dice già sul feedback finale
+    // dei workshop e sulla missione senza prove: tre posti che affrontano lo
+    // stesso caso devono dire la stessa cosa. Sul primo NON ci va, perché lì
+    // non si è rotto niente di nostro — non risulta nessuna risposta salvata,
+    // e la cosa da fare è riprendere il test.
+    //
+    // E QUI «riprova» resta, a differenza della missione: rifinalizzare un
+    // test è deterministico e non costa niente. È la stessa asimmetria scritta
+    // in escape/finalizza, guardata dall'altro lato.
     return erroreDiCortesia(
       salvate === 0
         ? "Non risulta nessuna risposta salvata per questo test: riprendilo e riprova."
-        : "Non è stato possibile calcolare l'esito di questo test. Il tentativo resta aperto: riprova fra poco.",
+        : "Non è stato possibile calcolare l'esito di questo test: è un problema nostro, non un giudizio su quello che hai fatto. Il tentativo resta aperto: riprova fra poco.",
       salvate === 0 ? 400 : 500,
     );
   }

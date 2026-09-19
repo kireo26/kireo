@@ -115,8 +115,16 @@ export async function POST(request: NextRequest) {
       },
       `Errore escape/finalizza — nessuna prova: la missione NON viene completata. studente=${user.id} missione=${attempt.mission_slug} attempt=${attempt.id}`,
     );
+    // LA CLAUSOLA «è un problema nostro, non un giudizio» non è un
+    // addolcimento: è quello che il prodotto dice GIÀ nella stessa situazione
+    // sul feedback finale dei workshop (components/workshop/elaborato/
+    // ElaboratoEditor.tsx) e sulla revisione di una tappa. Due posti che
+    // affrontano lo stesso caso e dicono cose diverse sono la malattia di
+    // casa; qui la frase è la stessa, adattata solo dove il contesto lo
+    // impone — «quello che hai fatto» invece di «il tuo lavoro», perché una
+    // partita non è un elaborato.
     return erroreDiCortesia(
-      "Non siamo riusciti a ricavare niente da questa partita, e non vogliamo chiuderla dicendo il contrario. Il tentativo resta aperto: lo abbiamo segnalato, e ci guardiamo noi.",
+      "Non siamo riusciti a ricavare niente da questa partita: è un problema nostro, non un giudizio su quello che hai fatto. Il tentativo resta aperto — lo abbiamo segnalato, e ci guardiamo noi.",
       500,
     );
   }
@@ -130,6 +138,18 @@ export async function POST(request: NextRequest) {
     // Qui la missione è finita e il profilo NON si è aggiornato: è la classe
     // di guasto che si vede solo mesi dopo, quando qualcuno si chiede perché
     // un'area non è mai salita.
+    //
+    // «RIPROVA» RESTA, ed è deliberato: la regola del ramo qui sopra vieta il
+    // ritentativo AUTOMATICO, non quello di una persona. Qui il guasto è
+    // transitorio (rete, database), quindi un secondo tentativo può davvero
+    // riuscire, e chi lo fa è lo studente.
+    //
+    // DA FARE QUANDO SI PASSA DI QUI: dopo due tentativi falliti smettere di
+    // proporlo. Oggi il messaggio invita a riprovare all'infinito, e ogni giro
+    // ricalcola gli step aperti — fino a tre chiamate AI a vuoto. Serve un
+    // conteggio dei fallimenti per tentativo, che oggi non esiste da nessuna
+    // parte (le righe in `guasti` ci sono, ma non sono pensate per essere
+    // lette dalla route mentre risponde).
     await segnalaGuasto(
       { processo: PROCESSO, specie: "esito_missione", motivo: "registra_evidence", dettaglio: erroreRpc, diProva },
       "Escape — errore registra_evidence:",
