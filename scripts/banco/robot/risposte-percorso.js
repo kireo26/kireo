@@ -129,6 +129,13 @@ function scegliT3(item) {
 // 67/67/33/33/22; T3 la fa vincere 3 incontri su 3; `missionePerArea` sceglie
 // dove l'area è più centrale, e `sportello-insieme` è l'unica che la mette
 // all'indice 0.
+//
+// MA NON È T1 A DECIDERE, e leggendo le due righe qui sopra verrebbe da
+// crederlo: il punteggio di T1 serve solo a far entrare salute fra le cinque
+// candidate di T3 — dopo, a vincere gli incontri è la PREFERENZA del robot,
+// anche partendo quarta. Misurato in `scripts/verifica-percorso-robot.js` §2,
+// dove sta il ragionamento per esteso: togliendo tre dei cinque item di T1 che
+// nominano salute la missione non cambia; serve toglierli tutti e cinque.
 const MISSIONE_FISSATA = "sportello-insieme";
 
 // I cinque gettoni, nell'ordine in cui hanno senso. Ognuno ha una ragione che
