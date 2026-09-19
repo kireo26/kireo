@@ -133,7 +133,20 @@ $$;
 comment on function public.registra_guasto(text, text, text, text, uuid, text, boolean) is
   'Scrive una riga di guasto. Chiamata da lib/guasti/registra.ts, sempre best-effort: se fallisce, il flusso che la invoca prosegue lo stesso.';
 
-revoke all on function public.registra_guasto(text, text, text, text, uuid, text, boolean) from public;
+-- I DUE RUOLI SI NOMINANO, e non è pedanteria: `from public` NON BASTA.
+-- [verificato da Mario sul DB live, 19/09] Con il solo `revoke … from public`,
+-- questa stessa funzione risultava eseguibile da `anon` e `authenticated`.
+-- Quei permessi non arrivano da PUBLIC: li concedono i DEFAULT PRIVILEGES di
+-- Supabase, che danno EXECUTE esplicitamente a quei due ruoli su OGNI funzione
+-- nuova dello schema `public`. Un `revoke` da PUBLIC non tocca un grant
+-- esplicito a un ruolo — sono due cose diverse, e la prima sembra coprire la
+-- seconda.
+--
+-- È la forma di difetto che ci insegue: una riga che DICHIARA di chiudere una
+-- porta e ne chiude un'altra. E qui era peggio del solito, perché il `revoke`
+-- scritto sopra il `grant` si legge come la riga che mette tutto a posto.
+revoke all on function public.registra_guasto(text, text, text, text, uuid, text, boolean)
+  from public, anon, authenticated;
 grant execute on function public.registra_guasto(text, text, text, text, uuid, text, boolean) to service_role;
 
 -- ── QUELLO CHE QUESTA TABELLA NON RISOLVE, e va saputo prima di fidarsene ───

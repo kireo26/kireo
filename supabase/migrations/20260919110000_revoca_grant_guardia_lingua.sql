@@ -29,8 +29,23 @@
 -- Se un giorno servisse un chiamante con il client della richiesta — cioè la
 -- sessione dello studente, non la service-role — il grant si rimette insieme
 -- alla ragione, e il test smette di essere rosso. Fino ad allora non c'è.
+--
+-- LA FORMA DEL REVOKE, e perché nomina i ruoli invece di PUBLIC.
+-- [verificato da Mario sul DB live, 19/09] Un `revoke … from public` NON toglie
+-- niente ad `anon` e `authenticated`: quei permessi non arrivano da PUBLIC, li
+-- concedono i DEFAULT PRIVILEGES di Supabase, che danno EXECUTE esplicitamente
+-- a quei due ruoli su ogni funzione nuova dello schema `public`. Revocare da
+-- PUBLIC e revocare da un ruolo sono due gesti diversi, e il primo sembra
+-- coprire il secondo. Quindi i ruoli si nominano.
+--
+-- Conseguenza pratica che vale oltre queste due righe: **una funzione nuova
+-- nasce eseguibile da chiunque sia collegato, e anche da chi non lo è.** Non
+-- per un difetto nostro — è il default della piattaforma — ma vuol dire che
+-- «non l'ho concessa a nessuno» non è mai una frase vera qui dentro.
 
-revoke execute on function public.registra_guardia_lingua(boolean, boolean) from authenticated;
+revoke all on function public.registra_guardia_lingua(boolean, boolean)
+  from public, anon, authenticated;
+grant execute on function public.registra_guardia_lingua(boolean, boolean) to service_role;
 
 -- Nota sull'ordine: questa migrazione presuppone `20260830100000`, che ha
 -- droppato l'overload a un parametro e creato quello a due. Applicandole in
