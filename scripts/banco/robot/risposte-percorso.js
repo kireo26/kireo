@@ -44,21 +44,29 @@
 // «no» non sporca il profilo. Quelle due righe sono le uniche dove scegliere
 // a caso farebbe danno: se un giorno il robot dovesse avere un'area portante
 // diversa, vanno riguardate per prime.
+//
+// LA FORMA È UN PAYLOAD, non l'id dell'opzione. Il 19/09 queste quattordici
+// righe erano stringhe nude (`i1: "i1d"`): il robot le ha salvate così, la
+// route legge `payload.opzioneId`, e non ne ha vista nessuna — zero prove,
+// profilo vuoto, e T3 fermo due test più tardi. Il controllo era verde perché
+// passava le risposte allo scoring GIÀ SVOLTE, cioè saltava esattamente il
+// pezzo rotto; oggi le attraversa con `evidenzeDaRighe`, la stessa lettura
+// della route.
 const T1_RISPOSTE = {
-  i1: "i1d", // agrifood-ambiente — l'orto verticale
-  i2: "i2a", // salute — la molecola
-  i3: "i3d", // scienze-ricerca — il dato che non torna
-  i4: "i4a", // NEGATIVO su economia-management
-  i5: "i5b", // salute — chi assiste in riabilitazione
-  i6: "i6b", // forzata → comunicazione-media (scienze-ricerca prende −1)
-  i7: "i7c", // comunicazione-media
-  i8: "i8b", // salute
-  i9: "i9b", // agrifood-ambiente
-  i10: "i10b", // lingue-relazioni-internazionali
-  i11: "i11c", // NEGATIVO su meccanica-meccatronica
-  i12: "i12b", // forzata → salute (edilizia prende −1)
-  i13: "i13c", // informatica-digitale
-  i14: "i14c", // salute
+  i1: { opzioneId: "i1d" }, // agrifood-ambiente — l'orto verticale
+  i2: { opzioneId: "i2a" }, // salute — la molecola
+  i3: { opzioneId: "i3d" }, // scienze-ricerca — il dato che non torna
+  i4: { opzioneId: "i4a" }, // NEGATIVO su economia-management
+  i5: { opzioneId: "i5b" }, // salute — chi assiste in riabilitazione
+  i6: { opzioneId: "i6b" }, // forzata → comunicazione-media (scienze-ricerca prende −1)
+  i7: { opzioneId: "i7c" }, // comunicazione-media
+  i8: { opzioneId: "i8b" }, // salute
+  i9: { opzioneId: "i9b" }, // agrifood-ambiente
+  i10: { opzioneId: "i10b" }, // lingue-relazioni-internazionali
+  i11: { opzioneId: "i11c" }, // NEGATIVO su meccanica-meccatronica
+  i12: { opzioneId: "i12b" }, // forzata → salute (edilizia prende −1)
+  i13: { opzioneId: "i13c" }, // informatica-digitale
+  i14: { opzioneId: "i14c" }, // salute
 };
 
 // ══════════════════════════════════════════════════════ T2 «Come ti muovi»

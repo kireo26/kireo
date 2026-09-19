@@ -44,6 +44,7 @@ const ORDINE = [
   "modo_di_lavorare",
   "reazione_cliente",
   "prove_missione",
+  "prove_test",
   "feedback_elaborato",
   "alert_email",
 ];
@@ -65,6 +66,7 @@ const COSA_VUOL_DIRE = {
   modo_di_lavorare: "il blocco «come hai lavorato» non è arrivato",
   reazione_cliente: "il cliente non ha reagito alla consegna",
   prove_missione: "il revisore della proposta non ha prodotto prove",
+  prove_test: "il test non ha prodotto nessuna prova: il profilo resta vuoto, e se ne accorge T3",
   feedback_elaborato: "il feedback della consegna (v1) non è arrivato",
   alert_email: "l'email di osservabilità non è partita: i guasti di quel giorno non li ha visti nessuno",
 };

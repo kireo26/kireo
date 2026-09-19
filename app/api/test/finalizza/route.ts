@@ -1,13 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getTest, SLUG_T3 } from "@/lib/test/config";
-import { calcolaEvidenzeTest, calcolaEvidenzeT2, calcolaEvidenzeT3 } from "@/lib/test/scoring";
-import { T3_FROZEN_ITEM_ID, type CandidateCongelate } from "@/lib/test/assembla-t3";
+import { evidenzeDaRighe } from "@/lib/test/payload";
+import { T3_FROZEN_ITEM_ID } from "@/lib/test/assembla-t3";
+import { segnalaGuasto } from "@/lib/guasti/registra";
 
 export const runtime = "nodejs";
 
+// Il nome con cui questo processo si presenta nella tabella dei guasti.
+const PROCESSO = "test/finalizza";
+
 function erroreDiCortesia(testo: string, status: number) {
   return NextResponse.json({ errore: testo }, { status });
+}
+
+// Lo passa il chiamante, mai dedotto dalla tabella dei guasti: è il robot del
+// banco o uno studente vero? Stessa lettura di /api/escape/finalizza.
+async function eDiProva(supabase: Awaited<ReturnType<typeof createClient>>, userId: string): Promise<boolean> {
+  const { data } = await supabase.from("profiles").select("di_prova").eq("id", userId).maybeSingle();
+  return data?.di_prova === true;
 }
 
 // Finalizza un test attitudinale: legge le risposte AUTOREVOLI dal DB (mai
@@ -42,32 +52,46 @@ export async function POST(request: NextRequest) {
 
   // risposte autorevoli dal DB
   const { data: righe } = await supabase.from("test_response").select("item_id, payload").eq("attempt_id", attempt.id);
-  const test = getTest(attempt.test_slug);
 
-  // scoring deterministico → prove (gestisce negativi, scelte forzate e assi/aree
-  // sotto zero, che semplicemente non generano prove). T1 misura le aree, T2 gli assi.
-  let evidenze;
-  if (attempt.test_slug === SLUG_T3) {
-    // T3: riassembla dagli item congelati (mai rilette da area_signal) + risposte.
-    const frozen = (righe ?? []).find((r) => r.item_id === T3_FROZEN_ITEM_ID);
-    const congelate = (frozen?.payload as CandidateCongelate | undefined) ?? { candidate: [], asseDominante: null };
-    const risposte = new Map<string, { opzioneId?: string }>();
-    for (const r of righe ?? []) {
-      if (r.item_id === T3_FROZEN_ITEM_ID) continue;
-      risposte.set(r.item_id, (r.payload as { opzioneId?: string }) ?? {});
-    }
-    evidenze = calcolaEvidenzeT3(congelate, attempt.id, risposte).evidenze;
-  } else if (test?.misura === "assi") {
-    const risposte = new Map<string, { opzioneId?: string; ordine?: string[]; allocazioni?: Record<string, number>; valore?: number }>();
-    for (const r of righe ?? []) risposte.set(r.item_id, (r.payload as { opzioneId?: string; ordine?: string[]; allocazioni?: Record<string, number>; valore?: number }) ?? {});
-    evidenze = calcolaEvidenzeT2(attempt.test_slug, risposte);
-  } else {
-    const risposte = new Map<string, string>();
-    for (const r of righe ?? []) {
-      const opzioneId = (r.payload as { opzioneId?: string })?.opzioneId;
-      if (opzioneId) risposte.set(r.item_id, opzioneId);
-    }
-    evidenze = calcolaEvidenzeTest(attempt.test_slug, risposte);
+  // Scoring deterministico → prove (gestisce negativi, scelte forzate e
+  // assi/aree sotto zero, che semplicemente non generano prove). La lettura
+  // del payload vive in `lib/test/payload.ts`, non qui: è il pezzo che il
+  // banco deve poter attraversare con le risposte vere del robot.
+  const evidenze = evidenzeDaRighe(attempt.test_slug, attempt.id, righe ?? []);
+
+  // UN TEST CHE NON PRODUCE NESSUNA PROVA NON È UN TEST COMPLETATO.
+  //
+  // Prima di qui la RPC veniva chiamata con l'array vuoto: nessun errore,
+  // nessuna riga in `evidence`, e il tentativo marcato `completata`. Il
+  // profilo restava vuoto e il primo ad accorgersene era T3, due test più
+  // tardi, dicendo che le aree candidate erano meno di tre — a quel punto
+  // senza niente, da nessuna parte, che dicesse perché. È la specie del
+  // feedback finale del 18/09: un lavoro che non c'è, dichiarato riuscito.
+  //
+  // I DUE MOTIVI SI DISTINGUONO, perché si riparano in modi diversi: nessuna
+  // riga salvata è una scrittura che non è arrivata (client, RLS, rete);
+  // righe presenti e zero prove è lo scoring che non le ha riconosciute —
+  // una forma di payload che non sa leggere, o un item id che non esiste più
+  // nel config. Il secondo è quello che è successo davvero.
+  if (evidenze.length === 0) {
+    const salvate = (righe ?? []).filter((r) => r.item_id !== T3_FROZEN_ITEM_ID).length;
+    const diProva = await eDiProva(supabase, user.id);
+    await segnalaGuasto(
+      {
+        processo: PROCESSO,
+        specie: "prove_test",
+        motivo: salvate === 0 ? "nessuna risposta salvata" : "risposte presenti, nessuna prova",
+        dettaglio: `test=${attempt.test_slug} attempt=${attempt.id} righe=${salvate}`,
+        diProva,
+      },
+      `Errore test/finalizza — nessuna prova: il tentativo NON viene completato. studente=${user.id} test=${attempt.test_slug} attempt=${attempt.id} righe=${salvate}`,
+    );
+    return erroreDiCortesia(
+      salvate === 0
+        ? "Non risulta nessuna risposta salvata per questo test: riprendilo e riprova."
+        : "Non è stato possibile calcolare l'esito di questo test. Il tentativo resta aperto: riprova fra poco.",
+      salvate === 0 ? 400 : 500,
+    );
   }
 
   const { error: erroreRpc } = await supabase.rpc("registra_evidenze_test", {
@@ -75,7 +99,19 @@ export async function POST(request: NextRequest) {
     p_evidenze: evidenze,
   });
   if (erroreRpc) {
-    console.error("Test — errore registra_evidenze_test:", erroreRpc);
+    // Le prove c'erano e non sono arrivate: il profilo non si è mosso, e
+    // questa è la classe di guasto che si vede mesi dopo, quando qualcuno si
+    // chiede perché un'area non è mai salita.
+    await segnalaGuasto(
+      {
+        processo: PROCESSO,
+        specie: "prove_test",
+        motivo: "registra_evidenze_test",
+        dettaglio: erroreRpc,
+        diProva: await eDiProva(supabase, user.id),
+      },
+      `Errore test/finalizza — registra_evidenze_test: test=${attempt.test_slug} attempt=${attempt.id}`,
+    );
     return erroreDiCortesia("Non è stato possibile salvare l'esito del test. Riprova.", 500);
   }
 

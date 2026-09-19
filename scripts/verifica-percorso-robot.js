@@ -22,6 +22,15 @@
 // diventano risposte a domande diverse: questo controllo lo dice prima che
 // qualcuno spenda una passata per scoprirlo.
 //
+// E LE RISPOSTE SI ATTRAVERSANO COME LE ATTRAVERSA LA ROUTE. Fino al 19/09
+// questo file passava allo scoring la mappa delle risposte GIÀ SVOLTA —
+// `new Map(Object.entries(T1_RISPOSTE))` — cioè la forma che la route produce
+// DOPO aver letto il payload: provava il pezzo dopo quello rotto, e infatti
+// era verde mentre in produzione T1 non registrava niente. Ora le risposte
+// passano da `evidenzeDaRighe` (lib/test/payload.ts), la stessa lettura della
+// route, nella stessa forma in cui il robot le salva: `{item_id, payload}`.
+// Una copia riscritta qui sarebbe una copia che diverge.
+//
 // Nessun DB e nessuna AI: lo scoring dei test è deterministico e la missione
 // si costruisce dal config. Gira in mezzo secondo.
 //
@@ -33,7 +42,8 @@ const { abilitaTypeScript } = require("./banco/ts");
 abilitaTypeScript();
 
 const { SLUG_T1, SLUG_T2, missionePerArea } = require("@/lib/test/config");
-const { calcolaEvidenzeTest, calcolaEvidenzeT2, calcolaEvidenzeT3 } = require("@/lib/test/scoring");
+const { calcolaEvidenzeT3 } = require("@/lib/test/scoring");
+const { evidenzeDaRighe } = require("@/lib/test/payload");
 const { selezionaCandidate, assemblaT3 } = require("@/lib/test/assembla-t3");
 const { getTest } = require("@/lib/test/config");
 const { getMissione, stepDellaMissione } = require("@/lib/escape/config");
@@ -59,8 +69,17 @@ const t2 = getTest(SLUG_T2);
 ok(Boolean(t1 && t2), "i due test esistono nel config");
 
 let t1Sane = true;
-for (const [itemId, opzId] of Object.entries(R.T1_RISPOSTE)) {
+for (const [itemId, payload] of Object.entries(R.T1_RISPOSTE)) {
   const item = t1.items.find((i) => i.id === itemId);
+  // LA FORMA PRIMA DEL CONTENUTO: un `{opzioneId}`, non l'id nudo. È il
+  // difetto del 19/09, e un id valido dentro una forma sbagliata resta
+  // invisibile a tutto il resto del file.
+  const opzId = payload?.opzioneId;
+  if (typeof opzId !== "string") {
+    console.error(`      item «${itemId}»: la risposta non è un payload {opzioneId} (${JSON.stringify(payload)})`);
+    t1Sane = false;
+    continue;
+  }
   if (!item || !item.opzioni.some((o) => o.id === opzId)) {
     console.error(`      item «${itemId}» / opzione «${opzId}» non esiste`);
     t1Sane = false;
@@ -97,12 +116,17 @@ ok(likert.length > 0 && likert.every((v) => v > 1 && v < 5), `le Likert stanno l
 // ── 2) La derivazione: la missione si rifà, non si crede ─────────────────────
 console.log("\n2) La missione fissata è quella che il prodotto suggerirebbe");
 
-const ev1 = calcolaEvidenzeTest(SLUG_T1, new Map(Object.entries(R.T1_RISPOSTE)));
+// DALLE RIGHE, come le legge la route: `{item_id, payload}` esattamente nella
+// forma in cui il robot le salva su `test_response`.
+const righeDa = (risposte) => Object.entries(risposte).map(([item_id, payload]) => ({ item_id, payload }));
+const ev1 = evidenzeDaRighe(SLUG_T1, "attempt-di-prova", righeDa(R.T1_RISPOSTE));
+ok(ev1.length > 0, `le risposte di T1, lette come le legge la route, producono ${ev1.length} prove (zero = profilo vuoto, e T3 non parte)`);
 // `area_signal.interest_score` è round(100 × media pesata). Con la sola fonte
 // T1 c'è una prova per area, quindi la media coincide col valore.
 const segnali = ev1.map((e) => ({ area_slug: e.area_slug, interest_score: Math.round(100 * e.valore) }));
 const candidate = selezionaCandidate(segnali);
-const ev2 = calcolaEvidenzeT2(SLUG_T2, new Map(Object.entries(R.T2_RISPOSTE)));
+const ev2 = evidenzeDaRighe(SLUG_T2, "attempt-di-prova", righeDa(R.T2_RISPOSTE));
+ok(ev2.length > 0, `e quelle di T2 ne producono ${ev2.length}`);
 const assiOrdinati = [...ev2].sort((a, b) => b.valore - a.valore);
 const asseDominante = assiOrdinati[0]?.asse ?? null;
 const congelate = { candidate, asseDominante };

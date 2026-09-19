@@ -47,6 +47,8 @@ export type SpecieGuasto =
   // — artefatti di Escape
   | "prove_missione" // le prove aperte del revisore della proposta
   | "esito_missione" // la persistenza di prove/esito del tentativo
+  // — artefatti dei test attitudinali
+  | "prove_test" // le prove del test: senza, il profilo resta vuoto
   // — artefatti del workshop fuori dal cron
   | "feedback_elaborato" // il feedback finale della route consegna (v1)
   | "consegna_progetto" // la scrittura della consegna stessa
