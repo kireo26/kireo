@@ -101,6 +101,10 @@ const ESENTI = new Map([
     "Stessa specie di verifica-completamento-ritiro.sql: crea il proprio studente finto e i propri tentativi dentro una transazione, prova sei proprietà e fa ROLLBACK. Non conta niente su nessuno, e le righe che tocca non esistono dopo.",
   ],
   [
+    "scripts/verifica-missione-senza-prove.sql",
+    "La gemella del file qui sopra, per le missioni: stesso studente finto dentro una transazione, stesse sei proprietà, stesso ROLLBACK.",
+  ],
+  [
     "scripts/banco/robot/gioca.js",
     "È il robot che gioca, non un conteggio: legge le PROPRIE righe per sapere a che punto è il suo percorso. Escludere i profili di prova qui vorrebbe dire escludere se stesso.",
   ],

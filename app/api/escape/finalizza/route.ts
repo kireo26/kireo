@@ -88,6 +88,39 @@ export async function POST(request: NextRequest) {
   }
   const { evidenze, revisoreEsito } = await calcolaEvidenze(mission, risposte, anthropic, diProva);
 
+  // UNA MISSIONE CHE NON HA PRODOTTO NIENTE NON SI COMPLETA — e qui, a
+  // differenza dei test, NESSUN RITENTATIVO AUTOMATICO. È la differenza fra le
+  // due che si dimentica per prima: rifinalizzare un test non costa niente
+  // (lo scoring è deterministico), rifinalizzare una missione costa fino a tre
+  // chiamate AI, perché gli step aperti vengono ricalcolati da capo. Quindi il
+  // tentativo resta aperto e a riaprirlo dev'essere una persona: non il
+  // client, non un cron, non un testo che dice «riprova fra poco».
+  //
+  // Per questo il messaggio qui sotto NON invita a riprovare, e quella scelta
+  // di testo è parte della regola, non una rifinitura. La guardia gemella in
+  // `registra_evidence` (20260919140000) tiene comunque l'invariante per
+  // qualunque chiamante; questo ramo esiste perché il guasto abbia un nome e
+  // perché lo studente legga una frase onesta invece di un errore di sistema.
+  //
+  // LE CHIAMATE SONO GIÀ STATE PAGATE quando arriviamo qui: la riga in
+  // `guasti` serve anche a dire che sono state spese per niente.
+  if (evidenze.length === 0) {
+    await segnalaGuasto(
+      {
+        processo: PROCESSO,
+        specie: "esito_missione",
+        motivo: "nessuna prova",
+        dettaglio: `missione=${attempt.mission_slug} attempt=${attempt.id} passi=${righe?.length ?? 0} revisore=${revisoreEsito ?? "—"}`,
+        diProva,
+      },
+      `Errore escape/finalizza — nessuna prova: la missione NON viene completata. studente=${user.id} missione=${attempt.mission_slug} attempt=${attempt.id}`,
+    );
+    return erroreDiCortesia(
+      "Non siamo riusciti a ricavare niente da questa partita, e non vogliamo chiuderla dicendo il contrario. Il tentativo resta aperto: lo abbiamo segnalato, e ci guardiamo noi.",
+      500,
+    );
+  }
+
   // persiste prove + aggrega profilo (idempotente)
   const { error: erroreRpc } = await supabase.rpc("registra_evidence", {
     p_attempt_id: attempt.id,
