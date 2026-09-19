@@ -7,6 +7,7 @@ import { REGOLA_LINGUA_INVARIANTE } from "@/lib/lingua/accordoGenere";
 import { MODELLO_CLIENTE_WORKSHOP, WORKSHOP_CLIENTE_NOME, WORKSHOP_CLIENTE_PROMPTS } from "@/lib/workshop/config";
 import { WORKSHOP_ELABORATO, WORKSHOP_TUTOR_CONTESTO } from "@/lib/workshop/elaborato-config";
 import { raggruppaDomandePerTappa } from "@/lib/workshop/chatTappa";
+import { segnalaGuasto, type Guasto } from "@/lib/guasti/registra";
 import {
   leggiModoDiLavorare,
   serializzaValoreSezione,
@@ -24,6 +25,9 @@ import {
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+// Il nome con cui questo processo si presenta nella tabella dei guasti.
+const PROCESSO = "cron/workshop-motore";
 
 // Destinatario dell'alert guasti-revisore. Usata solo per identificare Mario
 // (l'admin del progetto), mai passata a servizi non correlati.
@@ -111,7 +115,13 @@ export async function GET(request: NextRequest) {
     // filtro di `npm run banco log` (vedi scripts/banco/vercel.js). Questa riga
     // ferma l'INTERO cron, ed era l'unica del file che il filtro non avrebbe
     // mostrato — trovata da `npm run test:banco`, non da qualcuno che rileggeva.
-    console.error("Errore: ANTHROPIC_API_KEY non configurata, il motore workshop non può generare revisione/reazione.");
+    //
+    // `di_prova` resta falso: qui non c'è nessuna riga, quindi non c'è nessuno
+    // a cui attribuirlo — e il cron fermo riguarda tutti.
+    await segnalaGuasto(
+      { processo: PROCESSO, specie: "configurazione", motivo: "ANTHROPIC_API_KEY assente" },
+      "Errore: ANTHROPIC_API_KEY non configurata, il motore workshop non può generare revisione/reazione.",
+    );
     return NextResponse.json({ errore: "Chiave Anthropic non configurata." }, { status: 503 });
   }
 
@@ -140,7 +150,12 @@ export async function GET(request: NextRequest) {
     .eq("stato", "consegnata");
 
   if (erroreSelect) {
-    console.error("Errore lettura tappe consegnate:", erroreSelect);
+    // Questa lettura è quella che dà da lavorare al cron: se cade, nessuna
+    // tappa avanza e nessuna delle righe sotto arriva mai a scriversi.
+    await segnalaGuasto(
+      { processo: PROCESSO, specie: "lettura_coda", dettaglio: erroreSelect },
+      "Errore lettura tappe consegnate:",
+    );
     return NextResponse.json({ errore: "Errore di lettura." }, { status: 500 });
   }
 
@@ -164,6 +179,16 @@ export async function GET(request: NextRequest) {
   const segnalaFallito = () => { if (rigaDiProva) revisoriFallitiProva++; else revisoriFalliti++; };
 
   for (const riga of righe ?? []) {
+    // Stampa e REGISTRA, riempiendo da sé i campi che valgono per questa riga.
+    // Il contatore della mail (`segnalaFallito`) resta a parte: quello dice
+    // QUANTI, questo dice QUALI — e la mail arriva una volta al giorno, mentre
+    // la tabella regge finché serve.
+    const guasto = (g: Omit<Guasto, "processo" | "diProva" | "iscrizioneId" | "faseId">, messaggio: string) =>
+      segnalaGuasto(
+        { ...g, processo: PROCESSO, iscrizioneId: riga.iscrizione_id, faseId: riga.fase_id, diProva: rigaDiProva },
+        messaggio,
+      );
+
     try {
       const iscrizione = Array.isArray(riga.workshop_iscrizioni) ? riga.workshop_iscrizioni[0] : riga.workshop_iscrizioni;
       const workshop = iscrizione ? (Array.isArray(iscrizione.workshop) ? iscrizione.workshop[0] : iscrizione.workshop) : null;
@@ -273,11 +298,17 @@ export async function GET(request: NextRequest) {
           // niente revisione, e ora lo si conta come tutti gli altri guasti.
           esitoRevisioneStato = "forma_non_valida";
           segnalaFallito();
-          console.error(`Revisione di forma non valida (iscrizione ${riga.iscrizione_id}, tappa ${riga.fase_id})`);
+          await guasto(
+            { specie: "revisione", motivo: "forma_non_valida" },
+            `Revisione di forma non valida (iscrizione ${riga.iscrizione_id}, tappa ${riga.fase_id})`,
+          );
         }
       } else {
         segnalaFallito();
-        console.error(`Errore generazione revisione (iscrizione ${riga.iscrizione_id}, tappa ${riga.fase_id}): motivo=${esitoRevisione.motivo}`);
+        await guasto(
+          { specie: "revisione", motivo: esitoRevisione.motivo },
+          `Errore generazione revisione (iscrizione ${riga.iscrizione_id}, tappa ${riga.fase_id}): motivo=${esitoRevisione.motivo}`,
+        );
       }
 
       const fiduciaDopo = Math.max(0, Math.min(100, fiduciaPrima + revisione.punteggio_fiducia));
@@ -309,7 +340,10 @@ export async function GET(request: NextRequest) {
           // console.error). NON blocca l'avanzamento: la reazione del cliente è
           // colore, non punteggio — a differenza della revisione, che è giudizio.
           segnalaFallito();
-          console.error(`Errore generazione reazione cliente (iscrizione ${riga.iscrizione_id}, tappa ${riga.fase_id}):`, erroreReazione);
+          await guasto(
+            { specie: "reazione_cliente", dettaglio: erroreReazione },
+            `Errore generazione reazione cliente (iscrizione ${riga.iscrizione_id}, tappa ${riga.fase_id}):`,
+          );
         }
       }
 
@@ -347,7 +381,12 @@ export async function GET(request: NextRequest) {
           .eq("mittente", "studente")
           .order("created_at", { ascending: true });
         if (erroreChat) {
-          console.error(`Errore lettura chat per il feedback finale (iscrizione ${riga.iscrizione_id}):`, erroreChat);
+          // La chat è il materiale del blocco «come hai lavorato», l'unico che
+          // la legge: se non arriva, è quel blocco a non esserci.
+          await guasto(
+            { specie: "modo_di_lavorare", motivo: "lettura_chat", dettaglio: erroreChat },
+            `Errore lettura chat per il blocco modo di lavorare (iscrizione ${riga.iscrizione_id}):`,
+          );
         }
         const domande = (righeChat ?? []).map((m) => m.contenuto as string).filter((t) => t.trim().length > 0);
 
@@ -378,11 +417,17 @@ export async function GET(request: NextRequest) {
           } else {
             esitoFinaleStato = "forma_non_valida";
             segnalaFallito();
-            console.error(`Feedback finale di forma non valida (iscrizione ${riga.iscrizione_id})`);
+            await guasto(
+              { specie: "feedback_finale", motivo: "forma_non_valida" },
+              `Feedback finale di forma non valida (iscrizione ${riga.iscrizione_id})`,
+            );
           }
         } else {
           segnalaFallito();
-          console.error(`Errore generazione feedback finale (iscrizione ${riga.iscrizione_id}): motivo=${esitoFinale.motivo}`);
+          await guasto(
+            { specie: "feedback_finale", motivo: esitoFinale.motivo },
+            `Errore generazione feedback finale (iscrizione ${riga.iscrizione_id}): motivo=${esitoFinale.motivo}`,
+          );
         }
 
         // ── IL BLOCCO SUL MODO DI LAVORARE ────────────────────────────────
@@ -401,7 +446,10 @@ export async function GET(request: NextRequest) {
               .select("fase_id, aperta_at")
               .eq("iscrizione_id", riga.iscrizione_id);
             if (erroreFasi) {
-              console.error(`Errore lettura tappe per il blocco modo di lavorare (iscrizione ${riga.iscrizione_id}):`, erroreFasi);
+              await guasto(
+                { specie: "modo_di_lavorare", motivo: "lettura_tappe", dettaglio: erroreFasi },
+                `Errore lettura tappe per il blocco modo di lavorare (iscrizione ${riga.iscrizione_id}):`,
+              );
             }
             const tappe = fasi.map((f) => ({
               titolo: f.titolo,
@@ -424,12 +472,22 @@ export async function GET(request: NextRequest) {
             if (esitoModo.ok) {
               const modo = leggiModoDiLavorare(esitoModo.dati);
               if (modo) feedbackFinale.modo_di_lavorare = modo;
-              else console.error(`Blocco modo di lavorare di forma non valida (iscrizione ${riga.iscrizione_id})`);
+              else
+                await guasto(
+                  { specie: "modo_di_lavorare", motivo: "forma_non_valida" },
+                  `Blocco modo di lavorare di forma non valida (iscrizione ${riga.iscrizione_id})`,
+                );
             } else {
-              console.error(`Errore generazione blocco modo di lavorare (iscrizione ${riga.iscrizione_id}): motivo=${esitoModo.motivo}`);
+              await guasto(
+                { specie: "modo_di_lavorare", motivo: esitoModo.motivo },
+                `Errore generazione blocco modo di lavorare (iscrizione ${riga.iscrizione_id}): motivo=${esitoModo.motivo}`,
+              );
             }
           } catch (erroreModo) {
-            console.error(`Errore blocco modo di lavorare (iscrizione ${riga.iscrizione_id}):`, erroreModo);
+            await guasto(
+              { specie: "modo_di_lavorare", motivo: "eccezione", dettaglio: erroreModo },
+              `Errore blocco modo di lavorare (iscrizione ${riga.iscrizione_id}):`,
+            );
           }
         }
       }
@@ -466,9 +524,9 @@ export async function GET(request: NextRequest) {
           .update({ tentativi_revisione: tentativiPrima + 1 })
           .eq("id", riga.id);
         if (erroreContatore) {
-          console.error(
+          await guasto(
+            { specie: "scrittura_tentativi", dettaglio: erroreContatore },
             `Errore aggiornamento tentativi_revisione (iscrizione ${riga.iscrizione_id}, tappa ${riga.fase_id}):`,
-            erroreContatore.message ?? erroreContatore,
           );
         }
         errori++;
@@ -501,9 +559,9 @@ export async function GET(request: NextRequest) {
         .eq("id", riga.id);
 
       if (erroreMarcatura) {
-        console.error(
+        await guasto(
+          { specie: "scrittura_marcatura", dettaglio: erroreMarcatura },
           `Errore marcatura revisione_esito (iscrizione ${riga.iscrizione_id}, tappa ${riga.fase_id}): la tappa NON avanza`,
-          erroreMarcatura.message ?? erroreMarcatura,
         );
         errori++;
         continue;
@@ -528,7 +586,10 @@ export async function GET(request: NextRequest) {
       });
 
       if (erroreAvanza) {
-        console.error(`Errore avanzamento tappa (iscrizione ${riga.iscrizione_id}, tappa ${riga.fase_id}):`, erroreAvanza);
+        await guasto(
+          { specie: "scrittura_avanzamento", dettaglio: erroreAvanza },
+          `Errore avanzamento tappa (iscrizione ${riga.iscrizione_id}, tappa ${riga.fase_id}):`,
+        );
         errori++;
         continue;
       }
@@ -539,12 +600,18 @@ export async function GET(request: NextRequest) {
       }
       const { error: erroreNotifica } = await supabase.from("notifiche_studenti").insert(notifiche);
       if (erroreNotifica) {
-        console.error(`Errore inserimento notifiche (iscrizione ${riga.iscrizione_id}):`, erroreNotifica);
+        await guasto(
+          { specie: "scrittura_notifiche", dettaglio: erroreNotifica },
+          `Errore inserimento notifiche (iscrizione ${riga.iscrizione_id}):`,
+        );
       }
 
       processate++;
     } catch (erroreRiga) {
-      console.error("Errore elaborazione riga workshop_fasi_stato:", erroreRiga);
+      await guasto(
+        { specie: "eccezione_riga", dettaglio: erroreRiga },
+        "Errore elaborazione riga workshop_fasi_stato:",
+      );
       errori++;
     }
   }
@@ -709,9 +776,23 @@ where stato = 'consegnato' and feedback_ai is null;</pre>
 <pre>select * from public.revisore_esiti
 where revisore_esito = 'non_riuscito'
   and aggiornato_il &gt; now() - interval '24 hours';</pre>
-<p>Per i workshop, cerca in questa esecuzione del cron le righe di log <code>Errore generazione revisione/feedback ... motivo=...</code>. Il motivo dice cosa fare: <code>troncata</code> = la risposta si è fermata al tetto dei token, si alza il tetto nel chiamante (i log riportano anche quanti token su quanti); <code>chiamata</code> = l'API non ha risposto, si guarda lo <code>status</code> nella riga <code>chiamaJson — errore API</code> lì accanto; <code>estrazione</code> = ha risposto ma senza JSON dentro, ed è l'unico dei tre che riguarda il prompt.</p>`;
+<p>Per i workshop <strong>non si cercano più i log</strong>: dal 19/09 il motore scrive i propri guasti in <code>public.guasti</code>, una riga per ogni cosa che non è successa per qualcuno. I log di runtime di un fornitore durano poche ore, e il gesto con cui si ripara un guasto (il redeploy) è anche quello che cancella la prova.</p>
+<pre>select avvenuto_il, specie, motivo, iscrizione_id, fase_id, dettaglio
+from public.guasti
+where avvenuto_il &gt; now() - interval '24 hours' and not di_prova
+order by avvenuto_il desc;</pre>
+<p><code>specie</code> dice <strong>cosa non è arrivato</strong> — <code>revisione</code>, <code>feedback_finale</code>, <code>modo_di_lavorare</code>, <code>reazione_cliente</code>, le <code>scrittura_*</code> — e <code>motivo</code> dice cosa fare: <code>troncata</code> = la risposta si è fermata al tetto dei token, si alza il tetto nel chiamante; <code>chiamata</code> = l'API non ha risposto; <code>estrazione</code> = ha risposto ma senza JSON dentro, ed è l'unico dei tre che riguarda il prompt; <code>forma_non_valida</code> = JSON buono con i campi sbagliati, cioè prompt e validatore disallineati.</p>
+<p>Una cosa che quella tabella <strong>non</strong> sa dire: se il codice non parte affatto, nessuna riga viene scritta — e una tabella vuota si legge come «tutto bene» proprio quando va peggio. Per quella classe il guardiano resta <code>npm run test:log5xx</code>.</p>`;
     const esitoMail = await inviaEmail(EMAIL_ADMIN, `KIREO — osservabilità (24h): ${totaleFalliti} revisori, ${testSenzaEsito} test senza esito`, html, "Mario");
-    if (!esitoMail.ok) console.error(`Alert osservabilità — invio email fallito: ${esitoMail.motivo}`);
+    // L'UNICO guasto diagnostico che si registra, e la ragione è che nasconde
+    // tutti gli altri: se la mail non parte, di quella giornata non si sa più
+    // niente — a meno che non resti scritto qui, che è il posto dove si va a
+    // guardare cosa si è rotto.
+    if (!esitoMail.ok)
+      await segnalaGuasto(
+        { processo: PROCESSO, specie: "alert_email", motivo: esitoMail.motivo },
+        `Alert osservabilità — invio email fallito: ${esitoMail.motivo}`,
+      );
   }
 
   return NextResponse.json({

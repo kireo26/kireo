@@ -4,8 +4,12 @@ import { createClient } from "@/lib/supabase/server";
 import { accessoreDaMappa, getMissione, mandatoScelto } from "@/lib/escape/config";
 import { calcolaEvidenze } from "@/lib/escape/scoring";
 import type { Payload, PayloadAlloca, PayloadLavori } from "@/lib/escape/tipi";
+import { segnalaGuasto } from "@/lib/guasti/registra";
 
 export const runtime = "nodejs";
+
+// Il nome con cui questo processo si presenta nella tabella dei guasti.
+const PROCESSO = "escape/finalizza";
 
 function erroreDiCortesia(testo: string, status: number) {
   return NextResponse.json({ errore: testo }, { status });
@@ -67,15 +71,22 @@ export async function POST(request: NextRequest) {
   // studente/missione/causa. (Il caso in cui la chiave c'è ma la chiamata FALLISCE
   // è già loggato in chiamaHaikuJson.) È un guasto di configurazione, non dello
   // studente: la missione si completa comunque, con le sole prove strutturate.
-  if (!anthropic) {
-    console.error(`Escape Fix E — ANTHROPIC_API_KEY assente: prove aperte NON calcolate. studente=${user.id} missione=${attempt.mission_slug} attempt=${attempt.id}`);
-  }
-  // Serve solo a separare il contatore della guardia sulla lingua (vedi
-  // chiamaJson): non cambia niente di quello che lo studente riceve. Se la
-  // lettura fallisce si conta come produzione, che è il comportamento giusto
-  // per chi non sa.
+  // Serve a separare il contatore della guardia sulla lingua (vedi chiamaJson)
+  // e le righe di `guasti`: non cambia niente di quello che lo studente riceve.
+  // Se la lettura fallisce si conta come produzione, che è il comportamento
+  // giusto per chi non sa. Sta QUI sopra, e non più sotto la chiamata al
+  // motore, perché anche il guasto di configurazione deve sapere se sta
+  // parlando del robot del banco o di uno studente vero.
   const { data: profiloChiamante } = await supabase.from("profiles").select("di_prova").eq("id", user.id).maybeSingle();
-  const { evidenze, revisoreEsito } = await calcolaEvidenze(mission, risposte, anthropic, profiloChiamante?.di_prova === true);
+  const diProva = profiloChiamante?.di_prova === true;
+
+  if (!anthropic) {
+    await segnalaGuasto(
+      { processo: PROCESSO, specie: "prove_missione", motivo: "ANTHROPIC_API_KEY assente", diProva },
+      `Escape Fix E — ANTHROPIC_API_KEY assente: prove aperte NON calcolate. studente=${user.id} missione=${attempt.mission_slug} attempt=${attempt.id}`,
+    );
+  }
+  const { evidenze, revisoreEsito } = await calcolaEvidenze(mission, risposte, anthropic, diProva);
 
   // persiste prove + aggrega profilo (idempotente)
   const { error: erroreRpc } = await supabase.rpc("registra_evidence", {
@@ -83,7 +94,13 @@ export async function POST(request: NextRequest) {
     p_evidenze: evidenze,
   });
   if (erroreRpc) {
-    console.error("Escape — errore registra_evidence:", erroreRpc);
+    // Qui la missione è finita e il profilo NON si è aggiornato: è la classe
+    // di guasto che si vede solo mesi dopo, quando qualcuno si chiede perché
+    // un'area non è mai salita.
+    await segnalaGuasto(
+      { processo: PROCESSO, specie: "esito_missione", motivo: "registra_evidence", dettaglio: erroreRpc, diProva },
+      "Escape — errore registra_evidence:",
+    );
     return erroreDiCortesia("Non è stato possibile salvare l'esito della missione. Riprova.", 500);
   }
 
@@ -95,7 +112,11 @@ export async function POST(request: NextRequest) {
   // interrogabili (vista revisore_esiti) invece di sparire nei log. Scrittura
   // best-effort: un errore qui non deve far fallire una missione già salvata.
   const { error: erroreEsito } = await supabase.from("mission_attempt").update({ revisore_esito: revisoreEsito }).eq("id", attempt.id);
-  if (erroreEsito) console.error("Escape — errore scrittura revisore_esito:", erroreEsito);
+  if (erroreEsito)
+    await segnalaGuasto(
+      { processo: PROCESSO, specie: "esito_missione", motivo: "revisore_esito", dettaglio: erroreEsito, diProva },
+      "Escape — errore scrittura revisore_esito:",
+    );
 
   // diario (dalla riflessione) + portfolio (dalla proposta) — idempotenti:
   // cancella eventuali righe di un finalize precedente per questo attempt.

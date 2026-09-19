@@ -2,10 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/lib/supabase/server";
 import { chiamaJson } from "@/lib/ai/chiamaJson";
+import { segnalaGuasto } from "@/lib/guasti/registra";
 import { MODELLO_CLIENTE_WORKSHOP } from "@/lib/workshop/config";
 import { WORKSHOP_ELABORATO, WORKSHOP_TUTOR_CONTESTO } from "@/lib/workshop/elaborato-config";
 
 export const runtime = "nodejs";
+
+// Il nome con cui questo processo si presenta nella tabella dei guasti.
+const PROCESSO = "workshop/elaborato/consegna";
 
 function erroreDiCortesia(testo: string, status: number) {
   return NextResponse.json({ errore: testo }, { status });
@@ -79,6 +83,11 @@ export async function POST(request: NextRequest) {
   }
 
   let feedback: FeedbackFinale | null = null;
+  // Dichiarato qui e non dentro il try: lo legge il ramo AI, ma lo vogliono
+  // anche i guasti che stanno fuori da quel blocco. Se non si arriva a
+  // leggerlo resta falso, cioè «produzione» — il comportamento giusto per chi
+  // non sa.
+  let diProva = false;
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (apiKey) {
     try {
@@ -89,8 +98,9 @@ export async function POST(request: NextRequest) {
       // Solo per separare il contatore della guardia sulla lingua (vedi
       // chiamaJson): se la lettura fallisce si conta come produzione.
       const { data: profiloChiamante } = await supabase.from("profiles").select("di_prova").eq("id", user.id).maybeSingle();
+      diProva = profiloChiamante?.di_prova === true;
       const esito = await chiamaJson(new Anthropic({ apiKey }), {
-        diProva: profiloChiamante?.di_prova === true,
+        diProva,
         model: MODELLO_CLIENTE_WORKSHOP,
         maxTokens: 600,
         system: systemPrompt,
@@ -102,10 +112,16 @@ export async function POST(request: NextRequest) {
           feedback = parsed as FeedbackFinale;
         }
       } else {
-        console.error(`Errore analisi AI elaborato finale workshop: motivo=${esito.motivo}`);
+        await segnalaGuasto(
+          { processo: PROCESSO, specie: "feedback_elaborato", motivo: esito.motivo, iscrizioneId, diProva },
+          `Errore analisi AI elaborato finale workshop: motivo=${esito.motivo}`,
+        );
       }
     } catch (errore) {
-      console.error("Errore inatteso nel feedback finale workshop:", errore);
+      await segnalaGuasto(
+        { processo: PROCESSO, specie: "feedback_elaborato", motivo: "eccezione", dettaglio: errore, iscrizioneId },
+        "Errore inatteso nel feedback finale workshop:",
+      );
     }
   }
 
@@ -114,7 +130,10 @@ export async function POST(request: NextRequest) {
     p_feedback: feedback,
   });
   if (erroreConsegna) {
-    console.error("Errore nella consegna del progetto workshop:", erroreConsegna);
+    await segnalaGuasto(
+      { processo: PROCESSO, specie: "consegna_progetto", dettaglio: erroreConsegna, iscrizioneId },
+      "Errore nella consegna del progetto workshop:",
+    );
     return erroreDiCortesia("Non è stato possibile registrare la consegna. Riprova.", 500);
   }
 

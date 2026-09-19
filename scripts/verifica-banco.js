@@ -331,6 +331,60 @@ ok(
   "…e col filtro di prima quella della marcatura non si vedeva: è la riga del guasto del 18/09",
 );
 
+// ── `banco guasti`: due liste che nessuno aggiorna insieme ─────────────────
+// L'insieme chiuso delle specie sta nel tipo TypeScript (lib/guasti/registra.ts),
+// dove un nome inventato lo ferma il compilatore. Le GLOSSE — cosa vuol dire
+// quella specie per chi legge — stanno nel banco, che TypeScript non guarda.
+// Sono esattamente due liste in due file diversi: la malattia di casa.
+//
+// Una specie senza glossa non sparisce dal rapporto (viene stampata lo stesso,
+// in fondo), quindi questo non è un controllo che protegge da una cecità: è un
+// controllo che protegge da un NOME. Aggiungere una specie vuol dire aver
+// deciso che quel guasto si ripara in un modo suo — e se nessuno sa dire cosa
+// non è successo per qualcuno, il nome nuovo non aiuta nessuno a capirlo.
+console.log("\n── banco guasti: le specie e cosa vogliono dire\n");
+
+const { COSA_VUOL_DIRE, leggiGuasti } = require("./banco/guasti");
+const sorgenteSpecie = fsBanco.readFileSync(pathBanco.join(__dirname, "..", "lib", "guasti", "registra.ts"), "utf8");
+const blocco = sorgenteSpecie.slice(
+  sorgenteSpecie.indexOf("export type SpecieGuasto"),
+  sorgenteSpecie.indexOf("export type Guasto"),
+);
+const specie = [...blocco.matchAll(/\|\s*"([a-z_]+)"/g)].map((m) => m[1]);
+
+// L'estrattore si sorveglia da sé, come quello delle righe di errore: se
+// smettesse di vedere le specie, questo controllo passerebbe vuoto e nessuno
+// lo saprebbe. Sotto la decina vuol dire che ha smesso di leggere, non che il
+// tipo si è svuotato.
+ok(specie.length >= 10, `l'estrattore legge le specie dal tipo TypeScript (${specie.length})`);
+
+const senzaGlossa = specie.filter((s) => !COSA_VUOL_DIRE[s]);
+ok(
+  senzaGlossa.length === 0,
+  senzaGlossa.length === 0
+    ? `ogni specie di guasto dice cosa NON è successo per qualcuno (${specie.length})`
+    : `${senzaGlossa.length} specie senza glossa nel banco: ${senzaGlossa.join(", ")}`,
+);
+
+const glosseOrfane = Object.keys(COSA_VUOL_DIRE).filter((s) => !specie.includes(s));
+ok(
+  glosseOrfane.length === 0,
+  glosseOrfane.length === 0
+    ? "…e non ne restano di scomparse dal tipo"
+    : `glosse per specie che non esistono più: ${glosseOrfane.join(", ")}`,
+);
+
+// Controprova sull'estrattore: una specie inventata deve risultare senza
+// glossa. Senza questa, «zero mancanti» starebbe dicendo solo che la lista
+// letta era vuota.
+ok(!COSA_VUOL_DIRE["specie_inventata_per_la_controprova"], "…e una specie nuova risulterebbe senza glossa");
+
+// La proprietà che il comando deve avere sempre: `leggiGuasti` non termina il
+// processo e non lancia — restituisce una delle due risposte. Un lettore che
+// esce dal processo non si può usare dentro il rapporto del robot, e uno che
+// lancia farebbe fallire una passata da quattro dollari per una tabella.
+ok(typeof leggiGuasti === "function", "il lettore dei guasti è riusabile fuori dal comando (rapporto del robot)");
+
 console.log("\n═══════════════════════════════════════════\n");
 if (falliti) { console.error(`✗ ${falliti} controlli falliti.\n`); process.exit(1); }
 console.log("✓ Ogni esito ha la sua frase, il fallimento non si nasconde dietro un successo,\n  e «non posso vederle» non si legge come «non ci sono».\n");

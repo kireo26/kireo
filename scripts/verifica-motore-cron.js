@@ -175,6 +175,74 @@ ok(
   "la query dei guasti nell'alert cerca anche le rese del feedback finale",
 );
 
+// ── nessun guasto resta solo in un console.error ───────────────────────────
+// Dal 19/09 il motore scrive i propri guasti in `public.guasti`, e la
+// proprietà che tiene quella tabella viva nel tempo è una sola: **ogni
+// `console.error` del motore o passa da `segnalaGuasto`, o è dichiarato qui
+// sotto come solo diagnostico, con il motivo scritto accanto.**
+//
+// È la stessa forma della guardia sul filtro dei log (`npm run test:banco`):
+// là si confronta il filtro con le righe che il cron scrive davvero, qui si
+// confronta la tabella con le righe che il cron scrive davvero. Senza, la
+// tabella invecchia come è invecchiato il filtro — un ramo d'errore nuovo, e
+// nessuno se ne accorge finché non manca una consegna a qualcuno.
+console.log("");
+
+// Ognuna di queste NON è «una cosa che non è successa per qualcuno»: sono
+// letture che servono a comporre i NUMERI della mail di osservabilità. Se
+// cadono, la mail riporta un conteggio sbagliato — va saputo, ma non è un
+// guasto di prodotto e non va nella tabella dei guasti.
+//
+// L'unica eccezione, e sta nel codice non qui, è l'invio della mail stessa:
+// quello SI registra, perché è il guasto che nasconde tutti gli altri.
+const SOLO_DIAGNOSTICI = [
+  ["Alert — errore lettura profili di prova:", "serve solo a separare i numeri del robot da quelli veri nella mail"],
+  ["Alert — eccezione lettura profili di prova:", "idem, per il ramo eccezione"],
+  ["Alert revisore — errore lettura revisore_esiti:", "conteggio per la mail, non un artefatto mancante"],
+  ["Alert revisore — eccezione lettura revisore_esiti:", "idem, per il ramo eccezione"],
+  ["Alert test — errore lettura test_attempt:", "conteggio per la mail"],
+  ["Alert test — eccezione conteggio senza esito:", "idem, per il ramo eccezione"],
+  ["Alert guardia lingua — errore lettura:", "conteggio per la mail"],
+  ["Alert guardia lingua — eccezione lettura:", "idem, per il ramo eccezione"],
+];
+
+// Il primo argomento di ogni `console.error`, fino alla prima interpolazione.
+const RE_ERRORE = /console\.error\(\s*(?:"([^"]*)"|`([\s\S]*?)(?:\$\{|`))/g;
+const scritte = [...sorgente.matchAll(RE_ERRORE)].map((m) => (m[1] ?? m[2]).trim()).filter(Boolean);
+
+// In quale direzione sbaglia l'estrattore quando sbaglia: se ne perde una, il
+// test passa e nessuno lo sa — la risposta comoda. Quindi si confronta con
+// quante ce ne sono davvero.
+const quanteErrore = (sorgente.match(/console\.error\(/g) ?? []).length;
+ok(scritte.length === quanteErrore, `l'estrattore vede tutte le righe di errore del cron (${scritte.length} su ${quanteErrore})`);
+
+const dichiarati = new Set(SOLO_DIAGNOSTICI.map(([t]) => t));
+const nonDichiarati = scritte.filter((s) => !dichiarati.has(s));
+ok(
+  nonDichiarati.length === 0,
+  nonDichiarati.length === 0
+    ? `ogni console.error rimasto nel cron è dichiarato diagnostico (${scritte.length}); gli altri guasti passano da segnalaGuasto`
+    : `${nonDichiarati.length} console.error non registrano e non sono dichiarati diagnostici: ${nonDichiarati.slice(0, 3).map((s) => `«${s}»`).join(", ")}`,
+);
+
+// Una lista che nessuno pota è una lista che smette di dire qualcosa: una voce
+// che non esiste più nel file va tolta, non lasciata a fare volume.
+const stantii = SOLO_DIAGNOSTICI.filter(([t]) => !sorgente.includes(t)).map(([t]) => t);
+ok(stantii.length === 0, stantii.length === 0 ? "…e la lista non contiene voci scomparse dal codice" : `voci stantie da togliere: ${stantii.join(", ")}`);
+
+// E che i guasti si registrino davvero, invece di essere solo stampati: il
+// motore ha un helper per riga (`guasto`) più le chiamate dirette fuori dal
+// ciclo, dove una riga non c'è.
+ok(/await segnalaGuasto\(/.test(sorgente), "il cron chiama segnalaGuasto");
+ok(/const guasto = \(/.test(sorgente) && (sorgente.match(/await guasto\(/g) ?? []).length >= 10, "…e dentro il ciclo passa dall'helper che riempie iscrizione, tappa e di_prova");
+
+// Controprova: il codice di ieri — un console.error nuovo e non dichiarato —
+// deve essere rosso. Se non lo fosse, il controllo sopra non starebbe
+// guardando niente.
+const CODICE_DI_IERI = `console.error("Errore avanzamento tappa (iscrizione x):", e);`;
+const scritteIeri = [...CODICE_DI_IERI.matchAll(RE_ERRORE)].map((m) => (m[1] ?? m[2]).trim());
+ok(scritteIeri.length === 1 && !dichiarati.has(scritteIeri[0]), "…e diventa rosso su un console.error nuovo che non registra niente");
+
 console.log("\n═══════════════════════════════════════════\n");
 if (falliti) { console.error(`✗ ${falliti} controlli falliti.\n`); process.exit(1); }
-console.log("✓ Nessuna tappa avanza su una marcatura che non si sa se è atterrata.\n");
+console.log("✓ Nessuna tappa avanza su una marcatura che non si sa se è atterrata,\n  e nessun guasto noto resta solo in un log che scade.\n");

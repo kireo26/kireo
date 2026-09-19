@@ -561,6 +561,37 @@ ok(
   "la condizione «già completato» sta in un punto solo: due copie divergono",
 );
 
+// ── il rapporto legge anche i guasti, e dice quale delle due cose sta dicendo ──
+// La misura sa cosa il robot ha OTTENUTO; la tabella dei guasti sa cosa il
+// motore sa di NON aver fatto. Sono due metà, e il 18/09 abbiamo letto solo la
+// prima: «5 finiti» era vero al livello del ruolo mentre una pagina finale era
+// vuota.
+//
+// La proprietà è DOPPIA, e la seconda metà è quella che conta: non basta che
+// il rapporto legga i guasti, deve distinguere «zero» da «non ho guardato».
+// Un rapporto che scrive `guasti: []` quando non è riuscito a leggere dice una
+// buona notizia al posto di un'assenza di notizie — ed è precisamente la
+// cecità che questa tabella esiste per chiudere, ricreata un piano più in su.
+console.log("");
+const indice = fs.readFileSync(path.join(ROOT, "scripts/banco/robot/index.js"), "utf8");
+ok(indice.includes("leggiGuasti({"), "il rapporto del robot legge anche i guasti registrati dal motore");
+ok(
+  /NON HO GUARDATO/.test(indice) && /zero\./.test(indice),
+  "…e distingue «zero guasti» da «non ho guardato»: due risposte diverse",
+);
+// La finestra si prende PRIMA del primo ruolo: presa dopo, i guasti del primo
+// ruolo resterebbero fuori dalla lettura senza che niente lo dica.
+const iFinestra = indice.indexOf("const inizioPassata");
+const iPrimoRuolo = indice.indexOf("for (const lavoro of piano.lavori)");
+ok(
+  iFinestra !== -1 && iPrimoRuolo !== -1 && iFinestra < iPrimoRuolo,
+  "…e la finestra comincia prima del primo ruolo, non dopo",
+);
+ok(
+  /guasti: visti\.visto/.test(indice),
+  "…e nel file finisce la risposta intera, non solo le righe: fra due mesi la differenza serve ancora",
+);
+
 console.log("\n═══════════════════════════════════════════\n");
 if (falliti) { console.error(`✗ ${falliti} controlli falliti.\n`); process.exit(1); }
-console.log("✓ Il piano dice quanto costa, e la misura dice cosa è successo.\n");
+console.log("✓ Il piano dice quanto costa, la misura dice cosa è successo,\n  e i guasti dicono cosa non è successo — o che non si è potuto guardare.\n");

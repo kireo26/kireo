@@ -10,7 +10,22 @@
 // LA REGOLA, e il confine. Un 4xx è una risposta al chiamante: dice che la
 // richiesta era sbagliata, e può tacere. Un 5xx dice che ci siamo rotti NOI, e
 // chi legge il log è l'unico che può ripararlo. Quindi: nessun ritorno con
-// stato 5xx senza un `console.error` nel ramo che lo produce.
+// stato 5xx senza una traccia nel ramo che lo produce.
+//
+// UNA TRACCIA, NON PER FORZA UN `console.error` SCRITTO LÌ. Dal 19/09 i guasti
+// del motore passano da `segnalaGuasto` (lib/guasti/registra.ts), che stampa E
+// registra in un gesto solo — quindi nei rami convertiti la riga letterale non
+// c'è più, ed è una cosa MIGLIORE, non una che manca. Questo controllo
+// accetta anche quella forma, e NON è un allentamento per una ragione sola:
+// `segnalaGuasto` stampa sempre, come prima istruzione, incondizionatamente.
+// Quella premessa non si dà per buona — si verifica qui sotto a ogni giro
+// (`ok(stampaSempre)`), perché il giorno in cui qualcuno mettesse quel
+// `console.error` dietro un `if`, questo controllo starebbe accettando dei
+// rami muti senza che nessuno lo sappia.
+//
+// E RESTA LUI il guardiano della classe che la tabella dei guasti NON copre:
+// il codice che non parte non scrive nessuna riga in nessuna tabella. La
+// tabella non sostituisce questo controllo e non deve sembrare che lo faccia.
 //
 // COSA GUARDA. Solo i route handler sotto `app/` — sono gli unici punti che
 // scelgono uno stato HTTP. Il ramo è delimitato guardando l'indentazione: si
@@ -38,6 +53,29 @@ function routeHandlers(dir, out = []) {
 }
 
 const indentDi = (riga) => riga.length - riga.trimStart().length;
+
+// Le forme che lasciano una traccia. `segnalaGuasto(` e l'helper `guasto(` che
+// il cron costruisce per riga (che chiama il primo) valgono quanto un
+// `console.error`, e in più scrivono la riga in tabella — a patto che
+// `segnalaGuasto` stampi sempre, che è la premessa verificata sotto.
+const LASCIA_TRACCIA = /console\.error|\bsegnalaGuasto\s*\(|\bawait guasto\s*\(/;
+
+// LA PREMESSA, verificata invece che assunta. Se `segnalaGuasto` smettesse di
+// stampare — o lo facesse dietro una condizione — accettare quella forma
+// renderebbe questo controllo cieco proprio sui rami che ha appena imparato a
+// leggere. Si cerca il `console.error` come PRIMA istruzione del corpo, non da
+// qualche parte nel file.
+const SORGENTE_SEGNALA = fs.readFileSync(path.join(ROOT, "lib", "guasti", "registra.ts"), "utf8");
+const CORPO_SEGNALA = SORGENTE_SEGNALA.slice(SORGENTE_SEGNALA.indexOf("export async function segnalaGuasto"));
+const stampaSempre = /^export async function segnalaGuasto[^{]*\{\s*\n\s*console\.error\(/.test(CORPO_SEGNALA);
+if (!stampaSempre) {
+  console.error(
+    "\n✗ `segnalaGuasto` non stampa più come prima istruzione.\n" +
+      "  Questo controllo la accetta al posto di un console.error PERCHÉ stampa sempre:\n" +
+      "  senza quella premessa starebbe dando il via libera a rami muti.\n",
+  );
+  process.exit(1);
+}
 
 // Una riga che costruisce una risposta con stato 5xx: `{ status: 503 }` oppure
 // un helper chiamato con lo stato come ultimo argomento (`..., 500)`).
@@ -82,7 +120,7 @@ function ramo(righe, inizio) {
 function provaRamo(nome, sorgente, deveTrovareIlLog) {
   const righe = sorgente.split("\n");
   const i = righe.findIndex((r) => RIGA_5XX.test(r));
-  const trovato = /console\.error/.test(ramo(righe, inizioStatement(righe, i)));
+  const trovato = LASCIA_TRACCIA.test(ramo(righe, inizioStatement(righe, i)));
   if (trovato !== deveTrovareIlLog) {
     console.error(`  ✗ taratura del ramo: ${nome}`);
     return 1;
@@ -107,9 +145,27 @@ const LOG_IN_UN_BLOCCO_PRIMA = [
   "    return erroreDiCortesia('...', 503);",
 ].join("\n");
 
+const SEGNALA_INVECE_DEL_LOG = [
+  "  } catch (errore) {",
+  "    await segnalaGuasto({ specie: 'revisione' }, 'Errore generazione:');",
+  "    return erroreDiCortesia('...', 500);",
+].join("\n");
+
+// Il nome che NON deve bastare: `registraGuasto` scrive la riga ma non stampa
+// niente. Accettarlo renderebbe muti nei log i rami che lo usano — e la riga
+// in tabella non copre la classe che questo controllo esiste per prendere,
+// cioè il codice che non arriva nemmeno a scriverla.
+const SOLO_REGISTRA = [
+  "  } catch (errore) {",
+  "    await registraGuasto({ specie: 'revisione' });",
+  "    return erroreDiCortesia('...', 500);",
+].join("\n");
+
 let tarature = 0;
 tarature += provaRamo("un log dentro un ramo che ritorna prima non copre il 5xx dopo", LOG_DI_UN_ALTRO_RAMO, false);
 tarature += provaRamo("un log in un blocco senza return resta dello stesso ramo", LOG_IN_UN_BLOCCO_PRIMA, true);
+tarature += provaRamo("`segnalaGuasto` vale quanto un console.error: stampa e in più registra", SEGNALA_INVECE_DEL_LOG, true);
+tarature += provaRamo("`registraGuasto` da solo NON basta: scrive la riga ma non stampa", SOLO_REGISTRA, false);
 if (tarature) {
   console.error("\n✗ Il controllo non sa più distinguere i rami: va ritarato prima di fidarsene.\n");
   process.exit(1);
@@ -136,8 +192,8 @@ for (const percorso of file) {
 
     controllati++;
     const testo = ramo(righe, inizio);
-    if (!/console\.error/.test(testo)) {
-      console.error(`  ✗ ${rel}:${i + 1} — ${stato} senza console.error nel ramo`);
+    if (!LASCIA_TRACCIA.test(testo)) {
+      console.error(`  ✗ ${rel}:${i + 1} — ${stato} senza traccia nel ramo`);
       muti++;
     }
   }
@@ -158,4 +214,4 @@ if (controllati === 0) {
   console.error("✗ Nessun ritorno 5xx trovato: il controllo sta guardando nel posto sbagliato.\n");
   process.exit(1);
 }
-console.log("✓ Ogni 5xx lascia una riga nei log.\n");
+console.log("✓ Ogni 5xx lascia una traccia: una riga nei log, e nel motore anche in tabella.\n");

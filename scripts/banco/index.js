@@ -29,6 +29,7 @@ const { azzeraTentativi } = require("./azzera");
 const { azzeraPercorsi } = require("./azzera-percorsi");
 const { robot } = require("./robot");
 const { iscrizioni } = require("./iscrizioni");
+const { guasti } = require("./guasti");
 const { confronta } = require("./confronta");
 const { PERCORSO, flag } = require("./config");
 
@@ -45,11 +46,21 @@ BANCO DI PROVA — i gesti manuali, fatti dal terminale
       tentativi spesi, esito della revisione, fiducia accumulata.
       Il filtro è una sottostringa (slug del workshop, del ruolo, o id).
 
+  npm run banco guasti [ore]
+      QUELLO CHE IL MOTORE SA DI NON AVER FATTO (default: ultime 24 ore).
+      Una tabella nostra, che resta: per ogni cosa che non è successa per
+      qualcuno, una riga che dice QUANDO, DOVE, e soprattutto COSA non è
+      arrivato — una revisione mancante è una tappa da rigiocare, un
+      feedback finale mancante è la pagina di chiusura di un progetto.
+      Dice sempre se sta rispondendo «zero guasti» o «non ho guardato».
+      Non è «banco log»: quello legge la build su Vercel, e dura poche ore.
+
   npm run banco -- log [minuti] [dpl_...] [--tutto]
-      Le righe di errore dei revisori dai log di produzione (default: 60
-      minuti), più cosa fare per ciascun motivo. Consulta TUTTI i deploy che
-      coprono la finestra — dopo un redeploy le righe del guasto stanno sul
-      deploy di prima — e dice sempre cosa ha potuto guardare e cosa no.
+      GLI EVENTI DEL DEPLOY su Vercel — in pratica, la build (default: 60
+      minuti). Consulta TUTTI i deploy che coprono la finestra — dopo un
+      redeploy le righe stanno su quello di prima — e dice sempre cosa ha
+      potuto guardare e cosa no. NON è il posto dove si cercano i guasti del
+      motore: quelli stanno in «banco guasti».
       Con --tutto mostra ogni riga, non solo quelle filtrate. Il «--» dopo
       «banco» serve a npm per non mangiarsi i flag (funziona anche senza:
       il banco li rilegge da npm, ma con «--» funziona ovunque).
@@ -164,6 +175,8 @@ async function main() {
       const deployId = resto.find((a) => a.startsWith("dpl_"));
       return log(minuti ? Number(minuti) : 60, { tutto: flag("tutto", resto), deployId });
     }
+    case "guasti":
+      return guasti(resto[0]);
     case "deploy":
       return deploy(true);
     case "iscrizioni":

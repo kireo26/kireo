@@ -50,6 +50,7 @@ const { giocaRuolo } = require("./gioca");
 const { misura, stampaRapporto } = require("./misura");
 const { allineamento } = require("../allineamento");
 const { statoProduzione } = require("../vercel");
+const { leggiGuasti, perSpecie } = require("../guasti");
 
 const DIR_CONSEGNE = path.join(ROOT, "scripts", "banco", "consegne");
 // Le trappole stanno in una cartella loro: un ruolo per file, così ognuna si
@@ -219,6 +220,12 @@ async function robot(filtro) {
   const sessione = await apriSessione();
   console.log(`\n✓ sessione aperta come ${sessione.profilo.nome ?? sessione.utente.email} (profilo di prova)\n`);
 
+  // L'istante da cui leggere i guasti, alla fine. Si prende QUI e non dopo:
+  // un guasto che capita al primo ruolo deve entrare nella finestra come
+  // quello che capita all'ultimo. Un secondo indietro per non perdere una riga
+  // scritta nello stesso istante in cui la sessione si apre.
+  const inizioPassata = new Date(Date.now() - 1000).toISOString();
+
   const esiti = [];
   for (const lavoro of piano.lavori) {
     console.log(`── ${lavoro.etichetta}`);
@@ -263,6 +270,31 @@ async function robot(filtro) {
   const m = misura(esiti, piano.lavori.map((l) => l.etichetta));
   stampaRapporto(m);
 
+  // I GUASTI DELLA PASSATA, letti dalla tabella nostra e non dai log del
+  // fornitore. Qui il robot legge l'altra metà di quello che è successo: la
+  // misura sa cosa ha OTTENUTO, questa riga sa cosa il motore sa di NON aver
+  // fatto — e i due insiemi non coincidono, perché un guasto può capitare su
+  // una tappa che il robot ha comunque visto avanzare al giro dopo.
+  //
+  // Dice sempre quale delle due risposte sta dando: «zero guasti» e «non ho
+  // guardato» sono cose diverse, e un silenzio che non dichiara quale dei due
+  // sia è la risposta comoda.
+  const visti = await leggiGuasti({ daIso: inizioPassata });
+  console.log("── guasti registrati durante la passata");
+  if (!visti.visto) {
+    console.log(`   ⚠  NON HO GUARDATO: ${visti.perche}`);
+    console.log("      Non vuol dire zero: vuol dire che non sono riuscito a leggere.");
+  } else if (visti.righe.length === 0) {
+    console.log("   ✓ zero. Ho guardato, e il motore non ha registrato niente.");
+    console.log("      (resta fuori la classe che non lascia righe: il codice che non parte)");
+  } else {
+    for (const g of perSpecie(visti.righe)) {
+      console.log(`   · ${g.specie}: ${g.produzione + g.prova}`);
+    }
+    console.log("      Per esteso, con motivo e dettaglio:  npm run banco guasti");
+  }
+  console.log("");
+
   // Il rapporto grezzo su file: i testi si rileggono, e il numero senza il
   // testo accanto non serve a niente.
   const percorso = path.join(ROOT, `banco-robot-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "")}.json`);
@@ -279,6 +311,11 @@ async function robot(filtro) {
         piano: { ruoli: piano.lavori.length, chiamate: piano.chiamate },
         esiti,
         misura: m,
+        // Nel file finisce la RISPOSTA INTERA, non solo le righe: chi rilegge
+        // questo rapporto fra due mesi deve poter distinguere una passata
+        // senza guasti da una in cui non si è potuto guardare. `guasti: []`
+        // da solo direbbe la prima anche quando era la seconda.
+        guasti: visti.visto ? { visto: true, righe: visti.righe } : { visto: false, perche: visti.perche },
       },
       null,
       2,

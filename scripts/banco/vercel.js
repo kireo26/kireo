@@ -74,8 +74,24 @@ function linkDeploy(c, deploy) {
 }
 
 // ── log ────────────────────────────────────────────────────────────────────
-// Le righe che il nostro codice scrive quando qualcosa non va. Cercare per
-// queste stringhe è cercare per causa, non per orario.
+// COSA LEGGE DAVVERO, ed è il motivo per cui il testo a schermo dice «build».
+// Nella passata del 18/09 questo comando ha letto 298 righe di build e ZERO di
+// runtime [verificato, non dedotto: è il numero uscito a schermo]. Il filtro
+// qui sotto è stato riparato lo stesso giorno, ma un filtro tarato bene su
+// righe che non arrivano non serve a niente — e la sorgente non è stata
+// verificata, perché dal sandbox la rete verso vercel.com è chiusa. Scrivere
+// un secondo pezzo di codice non provato dentro uno strumento diagnostico è
+// esattamente il modo in cui si costruisce la prossima cecità.
+//
+// Quindi questo comando dichiara quello che sa fare — gli eventi del DEPLOY —
+// e i guasti del motore si leggono da un'altra parte: `npm run banco guasti`,
+// che legge una tabella nostra e non dipende né dal fornitore né dalla sua
+// conservazione di poche ore. I due non devono poter essere scambiati l'uno
+// per l'altro, quindi lo dicono tutti e due, in testa, ogni volta.
+//
+// Il filtro resta, e resta tarato sulla famiglia: le righe che il nostro
+// codice scrive quando qualcosa non va. Cercare per queste stringhe è cercare
+// per causa, non per orario.
 //
 // CONOSCEVA I GUASTI DELL'AI E NON QUELLI DELLE SCRITTURE: fino al 18/09 le
 // quattro voci erano `chiamaJson`, `Errore generazione`, `forma non valida`,
@@ -106,6 +122,10 @@ async function log(minuti = 60, opzioni = {}) {
   const da = Date.now() - minuti * 60_000;
 
   console.log("");
+  console.log("EVENTI DEL DEPLOY su Vercel — in pratica, la build.");
+  console.log("  I guasti del motore NON si leggono qui: `npm run banco guasti`. Quella è una");
+  console.log("  tabella nostra e resta; questa sorgente dura poche ore e dipende dal fornitore.");
+  console.log("");
 
   let daConsultare;
   let copertura = null;
@@ -129,7 +149,7 @@ async function log(minuti = 60, opzioni = {}) {
     }
   }
 
-  console.log(`\nRighe negli ultimi ${minuti} minuti:\n`);
+  console.log(`\nRighe del deploy negli ultimi ${minuti} minuti:\n`);
 
   const tenute = [];
   let totaleRighe = 0;
@@ -153,10 +173,11 @@ async function log(minuti = 60, opzioni = {}) {
     if (totaleRighe === 0) {
       // La distinzione che conta: nessuna riga DEL TUTTO non è «nessun errore»,
       // è «non c'è stato traffico, oppure i log sono già stati scartati».
-      console.log("  Nessuna riga di log, di nessun tipo, in questa finestra.");
+      console.log("  Nessuna riga, di nessun tipo, in questa finestra.");
       console.log("  Non vuol dire «tutto a posto»: vuol dire che non c'è stato traffico, oppure");
-      console.log("  che Vercel ha già scartato i log (la conservazione dei log di runtime è di");
-      console.log("  poche ore). Quello che non è stato letto in tempo non si recupera.");
+      console.log("  che Vercel ha già scartato le righe (la conservazione è di poche ore).");
+      console.log("  Quello che non è stato letto in tempo non si recupera — ed è la ragione per");
+      console.log("  cui i guasti ce li scriviamo noi:  npm run banco guasti");
     } else {
       console.log(`  ${totaleRighe} righe lette, nessuna passata dal filtro degli errori.`);
       // NON «nessun revisore ha fallito»: questo comando sa solo cosa è stato
@@ -165,6 +186,9 @@ async function log(minuti = 60, opzioni = {}) {
       // vede i guasti che parlano; quelli muti li prende `npm run test:log5xx`.
       console.log("  Vuol dire che il traffico c'è stato e nessuno ha scritto un errore di");
       console.log("  quelli che il filtro conosce — non che non sia successo niente.");
+      console.log("  E soprattutto: questa è la BUILD. Se quello che cerchi è una tappa che non");
+      console.log("  è avanzata o un testo che non è arrivato, non è qui che si vede:");
+      console.log("      npm run banco guasti");
       console.log("  Per vedere tutte le righe e non solo quelle filtrate:");
       console.log(`      npm run banco -- log ${minuti} --tutto`);
     }
