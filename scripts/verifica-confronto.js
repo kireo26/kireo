@@ -15,7 +15,7 @@
 
 /* eslint-disable @typescript-eslint/no-require-imports -- script Node CommonJS di utilità */
 
-const { punteggi, scarti, inversioni, affiancaGeneri } = require("./banco/confronta");
+const { punteggi, scarti, inversioni, affiancaGeneri, pulizia } = require("./banco/confronta");
 
 let falliti = 0;
 const ok = (cond, msg) => { if (!cond) { console.error("  ✗ " + msg); falliti++; } else { console.log("  ✓ " + msg); } };
@@ -95,6 +95,29 @@ ok(fin.a.certe === 5 && fin.b.certe === 2, "e tiene i due valori distinti: è co
 const solo = affiancaGeneri(ga, { misura: { perGenere: { revisione: { testi: 1, accordi: 0, certe: 0, registro: 0 } } } });
 ok(solo.length === 2 && solo.find((r) => r.genere === "feedback finale").b.testi === 0, "un genere assente da una passata vale zero, non fa saltare la riga");
 
+// ── le due passate erano pulite? ───────────────────────────────────────────
+// La domanda viene PRIMA dei numeri. Una passata ripresa gioca meno di quello
+// che dice: una tappa trovata già revisionata non porta i suoi testi nel
+// rapporto, una trovata già consegnata porta una revisione scritta su un
+// lavoro che ha salvato un'altra passata. Sono due cose che spostano i numeri
+// qui sopra senza che il prodotto sia cambiato.
+console.log("");
+const conRiprese = {
+  esiti: [
+    { etichetta: "w > uno", tappe: [{ faseId: "t1", ripresa: null }, { faseId: "t2", ripresa: { trovata: "consegnata" } }] },
+  ],
+};
+const p = pulizia(conRiprese, "dopo");
+ok(p.nome === "dopo" && p.tappe.length === 1, "il confronto sa dire quale delle due passate non era pulita");
+ok(p.noto === true, "…e che lo sa, invece di dedurlo dal silenzio");
+
+const pulitaDavvero = pulizia({ esiti: [{ etichetta: "w > uno", tappe: [{ faseId: "t1", ripresa: null }] }] }, "prima");
+ok(pulitaDavvero.tappe.length === 0 && pulitaDavvero.noto === true, "una passata giocata da zero non fa comparire nessun avviso");
+
+// Un rapporto vecchio non ha il campo, e quell'assenza non è «era pulita».
+const vecchia = pulizia({ esiti: [{ etichetta: "w > uno", tappe: [{ faseId: "t1" }] }] }, "prima");
+ok(vecchia.noto === false && vecchia.tappe.length === 0, "un rapporto di prima dichiara di non poterlo dire: è la stessa regola di «non posso vederle»");
+
 console.log("\n═══════════════════════════════════════════\n");
 if (falliti) { console.error(`✗ ${falliti} controlli falliti.\n`); process.exit(1); }
-console.log("✓ Le due passate si confrontano, e l'inversione sa cosa fare di un pari merito.\n");
+console.log("✓ Le due passate si confrontano, l'inversione sa cosa fare di un pari merito,\n  e si sa se erano pulite.\n");

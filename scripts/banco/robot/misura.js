@@ -41,6 +41,7 @@ const { LESSICO_VERDETTO } = require("@/lib/lingua/registroStudente");
 const { trovaRegistro } = require("@/lib/lingua/registroStudente");
 const { stringheInJson } = require("@/lib/lingua/scansione");
 const { verificaAtteso } = require("./atteso");
+const { riprese, descriviRipresa } = require("../riprese");
 
 // Una cattura senza la frase intorno non si rilegge: `dove` dice in quale
 // campo sta, non cosa c'era scritto. E qui serve più che altrove, perché i
@@ -351,6 +352,10 @@ function misura(esiti, attesi = null) {
 
   return {
     completezza: verificaCompletezza(esiti, attesi),
+    // Quali tappe NON sono state giocate da zero. Non è un difetto — riprendere
+    // invece di rifare è la cosa giusta — ma qualifica tutto il resto del
+    // rapporto, e soprattutto qualsiasi confronto con un'altra passata.
+    riprese: riprese(esiti),
     testi: testi.length,
     accordi,
     registro,
@@ -445,6 +450,26 @@ function stampaRapporto(m, righe = console.log) {
       di("  esistono, non quelli che dovevano esserci.");
       di("");
     }
+  }
+
+  // QUESTA PASSATA È PULITA? Sta qui in alto perché qualifica tutto quello che
+  // segue: i punteggi, i testi contati, la lingua. Una passata ripresa non è
+  // identica a una pulita — e il banco esiste per confrontarle.
+  const rip = m.riprese;
+  if (rip && rip.tappe.length > 0) {
+    di(`RIPRESE DA UNA PASSATA PRECEDENTE: ${rip.tappe.length === 1 ? "1 tappa" : `${rip.tappe.length} tappe`} su ${rip.ruoli === 1 ? "1 ruolo" : `${rip.ruoli} ruoli`}`);
+    di("  Non è un guasto: il robot ha fatto la cosa giusta, ha ripreso invece di");
+    di("  rifare. Ma questa passata NON è pulita, e se entra in un confronto senza");
+    di("  che si sappia, la differenza si legge come un cambiamento del prodotto.\n");
+    for (const t of rip.tappe) di(`  · ${t.etichetta} — tappa «${t.faseId}»: ${descriviRipresa(t)}`);
+    di("");
+  } else if (rip && !rip.noto && rip.tappeViste > 0) {
+    // «Non ho guardato» non è «non ce n'erano»: un rapporto scritto prima che
+    // il banco registrasse le riprese non ha il campo, e tacere qui direbbe
+    // che la passata era pulita.
+    di("RIPRESE: non lo so");
+    di("  Questi esiti sono stati scritti prima che il banco registrasse le riprese.");
+    di("  Non vuol dire che la passata fosse pulita: vuol dire che non si può dire.\n");
   }
 
   if (m.trappole && m.trappole.length > 0) {

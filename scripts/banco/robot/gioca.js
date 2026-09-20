@@ -191,7 +191,11 @@ async function giocaRuolo({ sessione, workshopSlug, ruoloSlug, consegne, fasi, r
   // ── 3. le tappe, una alla volta ──────────────────────────────────────────
   for (const fase of fasi) {
     const consegnaTappa = consegne.tappe?.[fase.id];
-    const resoconto = { faseId: fase.id, messaggi: 0, revisione: null, reazione: null, esitoRevisione: null, tentativi: 0 };
+    // `ripresa: null` c'è SEMPRE, anche su una tappa giocata da zero: è la
+    // presenza della chiave a dire che questa passata sapeva guardare. Senza,
+    // un rapporto vecchio (dove il campo non esiste) sarebbe indistinguibile da
+    // uno pulito, e «non ho guardato» si leggerebbe come «non ce n'erano».
+    const resoconto = { faseId: fase.id, messaggi: 0, revisione: null, reazione: null, esitoRevisione: null, tentativi: 0, ripresa: null };
 
     if (!consegnaTappa) {
       esito.tappe.push(resoconto);
@@ -210,13 +214,22 @@ async function giocaRuolo({ sessione, workshopSlug, ruoloSlug, consegne, fasi, r
       return { ...esito, fermato: { dove: fase.id, perche: "la tappa non risulta inizializzata" } };
     }
     if (stato.stato === "revisionata") {
-      di(`${fase.id}: già revisionata, si salta`);
+      di(`${fase.id}: già revisionata in una passata precedente, si salta`);
       resoconto.giaFatta = true;
+      resoconto.ripresa = { trovata: "revisionata" };
       esito.tappe.push(resoconto);
       continue;
     }
     if (stato.stato === "bloccata") {
       return { ...esito, fermato: { dove: fase.id, perche: "la tappa è ancora bloccata: la precedente non è stata revisionata" } };
+    }
+
+    if (stato.stato === "consegnata") {
+      // Non c'è niente da fare qui, ma va DETTO: da questa riga in poi il
+      // robot aspetta soltanto la revisione, e il lavoro su cui gira lo ha
+      // scritto un'altra passata.
+      resoconto.ripresa = { trovata: "consegnata" };
+      di(`${fase.id}: già consegnata in una passata precedente — qui si fa solo la revisione`);
     }
 
     // ── compilazione: l'upsert che fa il salvataggio automatico ────────────
@@ -226,6 +239,13 @@ async function giocaRuolo({ sessione, workshopSlug, ruoloSlug, consegne, fasi, r
         .select("contenuto")
         .eq("iscrizione_id", iscrizione.id)
         .maybeSingle();
+      // Si guarda PRIMA dell'upsert, che è l'unico momento in cui si può:
+      // subito dopo le sezioni ci sono comunque, e non si saprebbe più se ce
+      // le ha messe questa passata o quella di prima.
+      const sezioni = Object.entries(consegnaTappa.sezioni ?? {});
+      const sezioniGia =
+        sezioni.length > 0 &&
+        sezioni.every(([k, v]) => JSON.stringify(elaborato?.contenuto?.[k]) === JSON.stringify(v));
       const contenuto = { ...(elaborato?.contenuto ?? {}), ...consegnaTappa.sezioni };
 
       const { error: erroreSalva } = await supabase
@@ -243,6 +263,19 @@ async function giocaRuolo({ sessione, workshopSlug, ruoloSlug, consegne, fasi, r
         .eq("iscrizione_id", iscrizione.id)
         .eq("mittente", "studente")
         .gte("created_at", stato.aperta_at);
+
+      // QUELLO CHE C'ERA GIÀ, detto una volta sola e con i due pezzi insieme.
+      // Il 19/09 la mancanza della riga «messaggi al cliente» su una tappa
+      // ripresa si è letta come «la chat non è stata fatta» — mentre voleva
+      // dire l'opposto: ce n'erano già abbastanza, quindi non c'era niente da
+      // mandare. Un'assenza non dice da sola quale delle due cose sia.
+      if (sezioniGia || (giaMandati ?? 0) > 0) {
+        resoconto.ripresa = { trovata: "aperta", sezioniGia, chatGia: giaMandati ?? 0 };
+        const pezzi = [];
+        if (sezioniGia) pezzi.push("le sezioni erano già salvate");
+        if ((giaMandati ?? 0) > 0) pezzi.push(`${giaMandati} messaggi al cliente c'erano già`);
+        di(`${fase.id}: ripresa — ${pezzi.join(", ")}`);
+      }
 
       const daMandare = Math.max(0, fase.chatMinima - (giaMandati ?? 0));
       if (daMandare > (consegnaTappa.chat?.length ?? 0)) {

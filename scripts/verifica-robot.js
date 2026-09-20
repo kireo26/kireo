@@ -31,8 +31,14 @@ require.extensions[".ts"] = function (mod, filename) {
 };
 
 const { costruisciPiano } = require("./banco/robot");
-const { misura } = require("./banco/robot/misura");
+const { misura, stampaRapporto } = require("./banco/robot/misura");
 const { verificaAtteso } = require("./banco/robot/atteso");
+
+// Il sorgente del robot, letto una volta sola: più controlli lo guardano (le
+// proprietà che vivono in un ORDINE fra due righe non si provano senza rete,
+// ma si leggono), e due letture con due nomi diversi sono due cose che
+// divergono.
+const gioca = fs.readFileSync(path.join(ROOT, "scripts/banco/robot/gioca.js"), "utf8");
 
 let falliti = 0;
 const ok = (cond, msg) => { if (!cond) { console.error("  ✗ " + msg); falliti++; } else { console.log("  ✓ " + msg); } };
@@ -134,6 +140,71 @@ ok(misura([{ etichetta: "w > due", tappe: [] }]).dovePorta.length === 0, "senza 
 const conRipresa = misura([{ etichetta: "w > tre", tappe: [{ faseId: "t1", giaFatta: true, tentativi: 0 }], fiduciaFinale: 50 }]);
 ok(Object.keys(conRipresa.esitiRevisione).length === 0, "una tappa già revisionata in una passata precedente non entra nei conti");
 
+// ── quali tappe sono state RIPRESE ────────────────────────────────────────
+// Il 19/09 `palestra > legale` è caduto su un `fetch failed` a metà della
+// tappa `forma`; alla ripresa nel log non compariva nessuna riga «messaggi al
+// cliente» per quella tappa, e l'assenza si è letta come «la chat non è stata
+// fatta» — mentre voleva dire l'opposto (ce n'erano già abbastanza, non c'era
+// niente da mandare). Il rapporto non lo diceva, e una passata ripresa che
+// entra in un confronto senza che si sappia fa leggere la differenza come un
+// cambiamento del prodotto.
+console.log("");
+const { riprese, descriviRipresa } = require("./banco/riprese");
+
+const pulita = riprese([{ etichetta: "w > a", tappe: [{ faseId: "t1", ripresa: null }, { faseId: "t2", ripresa: null }] }]);
+ok(pulita.noto === true && pulita.tappe.length === 0, "una passata giocata da zero è pulita, e si sa che lo è");
+
+const mista = riprese([
+  {
+    etichetta: "w > a",
+    tappe: [
+      { faseId: "t1", ripresa: { trovata: "revisionata" } },
+      { faseId: "t2", ripresa: { trovata: "consegnata" } },
+      { faseId: "t3", ripresa: { trovata: "aperta", sezioniGia: true, chatGia: 3 } },
+      { faseId: "t4", ripresa: null },
+    ],
+  },
+]);
+ok(mista.tappe.length === 3 && mista.ruoli === 1, "elenca le tappe riprese e su quanti ruoli stanno");
+ok(mista.tappe[0].etichetta === "w > a" && mista.tappe[0].faseId === "t1", "…nominando il ruolo e la tappa, non solo il conto");
+ok(/non l'ha toccata/.test(descriviRipresa(mista.tappe[0])), "«revisionata» vuol dire che i suoi testi non sono in questo rapporto");
+ok(/solo la revisione/.test(descriviRipresa(mista.tappe[1])), "«consegnata» vuol dire che la revisione gira su un lavoro salvato altrove");
+ok(/3 messaggi/.test(descriviRipresa(mista.tappe[2])), "«aperta» dice quanto c'era già: è il caso che il 19/09 non si vedeva");
+
+// LA PROPRIETÀ CHE CONTA PIÙ DELLE ALTRE: un rapporto vecchio non ha il campo,
+// e l'assenza del campo NON è «nessuna ripresa».
+const vecchio = riprese([{ etichetta: "w > a", tappe: [{ faseId: "t1" }, { faseId: "t2" }] }]);
+ok(vecchio.noto === false && vecchio.tappe.length === 0, "un rapporto scritto prima di oggi dichiara di non poterlo dire");
+const mezzo = riprese([{ etichetta: "w > a", tappe: [{ faseId: "t1", ripresa: null }, { faseId: "t2" }] }]);
+ok(mezzo.noto === false, "…e basta una tappa senza il campo: fallisce verso «non lo so», non verso «era pulita»");
+
+// E che arrivi a schermo, in cima: un elenco che nessuno stampa non esiste.
+const righeRipresa = [];
+stampaRapporto(misura([{ etichetta: "w > a", fiduciaFinale: 60, tappe: [{ faseId: "t2", ripresa: { trovata: "consegnata" }, esitoRevisione: "riuscita", tentativi: 1, revisione: { commento_breve: "ok" } }] }]), (t = "") => righeRipresa.push(t));
+const testoRipresa = righeRipresa.join("\n");
+ok(/RIPRESE DA UNA PASSATA PRECEDENTE: 1 tappa/.test(testoRipresa), "il rapporto stampa le riprese con il loro conto");
+ok(/w > a — tappa «t2»/.test(testoRipresa), "…nominando ruolo e tappa");
+ok(testoRipresa.indexOf("RIPRESE DA UNA") < testoRipresa.indexOf("TESTI RACCOLTI"), "…e prima dei numeri, che è quello che qualifica");
+
+const righeVecchio = [];
+stampaRapporto(misura([{ etichetta: "w > a", fiduciaFinale: 60, tappe: [{ faseId: "t1", esitoRevisione: "riuscita", tentativi: 1 }] }]), (t = "") => righeVecchio.push(t));
+ok(/RIPRESE: non lo so/.test(righeVecchio.join("\n")), "su esiti senza il campo il rapporto dichiara di non saperlo, invece di tacere");
+
+const righePulite = [];
+stampaRapporto(misura([{ etichetta: "w > a", fiduciaFinale: 60, tappe: [{ faseId: "t1", ripresa: null, esitoRevisione: "riuscita", tentativi: 1 }] }]), (t = "") => righePulite.push(t));
+ok(!/RIPRESE/.test(righePulite.join("\n")), "e su una passata pulita non stampa niente: una riga che dice zero ogni volta smette di essere letta");
+
+// I TRE PUNTI IN CUI IL CAMPO SI SCRIVE. Non si provano senza rete (sono
+// chiamate a Supabase dentro una funzione async), ma se uno dei tre smettesse
+// di scriverlo la passata direbbe «pulita» proprio nel caso in cui non lo è.
+ok(/ripresa = \{ trovata: "revisionata" \}/.test(gioca), "il robot marca la tappa trovata già revisionata");
+ok(/ripresa = \{ trovata: "consegnata" \}/.test(gioca), "…quella trovata già consegnata");
+ok(/ripresa = \{ trovata: "aperta", sezioniGia, chatGia/.test(gioca), "…e quella aperta con del lavoro già dentro");
+ok(/resoconto = \{[^}]*ripresa: null/.test(gioca), "e il campo c'è SEMPRE: è la sua presenza a dire che questa passata sapeva guardare");
+// `sezioniGia` si calcola prima dell'upsert: dopo, le sezioni ci sono comunque
+// e non si saprebbe più chi ce le ha messe.
+ok(gioca.indexOf("const sezioniGia") < gioca.indexOf(".upsert({ iscrizione_id"), "…e le sezioni già salvate si guardano PRIMA di salvarle");
+
 
 // ── le trappole ───────────────────────────────────────────────────────────
 // Stanno in una sottocartella, e per un giorno il robot non le ha viste: un
@@ -190,7 +261,6 @@ ok(arreso.colta === null && /non e stata revisionata|non è stata revisionata/.t
 // ancorato ai nomi smetterebbe di guardare senza dirlo.
 console.log("");
 const { statoTrappola } = require("./banco/robot/atteso");
-const { stampaRapporto } = require("./banco/robot/misura");
 const ATTESO_FINALE = {
   dove: "feedback_finale",
   non_deve_affermare_uno_schema: ["un modo tuo", "hai sempre", "un filo"],
@@ -547,7 +617,6 @@ ok(
 // formalmente non era successo niente. Se una passata si interrompe fra i due
 // momenti, quel ruolo resta lasciato senza che nessuno l'abbia voluto.
 console.log("");
-const gioca = fs.readFileSync(path.join(ROOT, "scripts/banco/robot/gioca.js"), "utf8");
 const iSiFerma = gioca.indexOf("niente da rigiocare");
 // Si ancora alla CHIAMATA, non al nome della funzione: quel nome compare
 // anche nell'elenco dei gesti in testa al file, e la prima stesura di questo

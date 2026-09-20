@@ -25,6 +25,11 @@
 const fs = require("fs");
 const path = require("path");
 const { execSync } = require("child_process");
+// La stessa funzione che usa la misura, non una seconda copia: due definizioni
+// di «ripresa» divergono al primo che ne tocca una. Sta in un file suo e non
+// dentro `misura.js` apposta — quel modulo tira dentro il transpilatore
+// TypeScript per leggere il prodotto, e il confronto non deve dipenderne.
+const { riprese, descriviRipresa } = require("./riprese");
 
 // ── le quantità, pure: si provano senza file (npm run test:confronto) ───────
 
@@ -108,6 +113,18 @@ function cheCosaCera(rapporto, percorso) {
   return `sconosciuto (rapporto scritto prima che il banco lo registrasse — ${path.basename(percorso)})`;
 }
 
+// LE DUE PASSATE ERANO PULITE? È la domanda che viene PRIMA dei numeri, e per
+// mesi non se la faceva nessuno. Una passata ripresa gioca meno di quello che
+// dice: una tappa trovata già revisionata non porta i suoi testi in questo
+// rapporto, e una trovata già consegnata porta una revisione scritta su un
+// lavoro che ha salvato un'altra passata. Le due cose spostano i numeri che
+// questo comando confronta — e senza questa riga si leggerebbero come un
+// cambiamento del prodotto.
+function pulizia(rapporto, nome) {
+  const r = riprese(rapporto.esiti ?? []);
+  return { nome, ...r };
+}
+
 function commitFra(a, b) {
   if (!a?.sha || !b?.sha || a.sha === b.sha) return null;
   try {
@@ -155,6 +172,28 @@ function confronta(fileA, fileB) {
     console.log("\n  Cosa è cambiato in mezzo: non ricostruibile (uno dei due rapporti non porta il commit).");
   }
 
+  // Prima dei numeri, non dopo: se una delle due passate non è pulita, i
+  // numeri qui sotto si leggono diversamente.
+  const pulA = pulizia(a, "prima");
+  const pulB = pulizia(b, "dopo");
+  const sporche = [pulA, pulB].filter((p) => p.tappe.length > 0);
+  const ignote = [pulA, pulB].filter((p) => !p.noto && p.tappeViste > 0);
+  if (sporche.length > 0 || ignote.length > 0) {
+    console.log("\n─── ATTENZIONE: NON SONO DUE PASSATE PULITE\n");
+    for (const p of sporche) {
+      console.log(`  ${p.nome}: ${p.tappe.length === 1 ? "1 tappa ripresa" : `${p.tappe.length} tappe riprese`} da una passata precedente`);
+      for (const t of p.tappe) console.log(`    · ${t.etichetta} / ${t.faseId} — ${descriviRipresa(t)}`);
+    }
+    for (const p of ignote) {
+      console.log(`  ${p.nome}: non si sa — scritta prima che il banco registrasse le riprese.`);
+      console.log("    Non vuol dire pulita: vuol dire che non si può dire.");
+    }
+    console.log("");
+    console.log("  Una tappa ripresa sposta i numeri qui sotto senza che il prodotto sia");
+    console.log("  cambiato: se era già revisionata i suoi testi non sono in questo rapporto,");
+    console.log("  se era già consegnata la revisione gira su un lavoro salvato altrove.");
+  }
+
   console.log("\n─── STABILITÀ DEL PUNTEGGIO\n");
   console.log(`  per RUOLO   ${sRuoli.coppie} confrontabili   scarto medio ${sRuoli.medio.toFixed(2)} su 100   massimo ${sRuoli.massimo}`);
   if (sRuoli.soloA || sRuoli.soloB) {
@@ -192,4 +231,4 @@ function confronta(fileA, fileB) {
   console.log("è più utile di un'altra lo decide chi la legge.\n");
 }
 
-module.exports = { confronta, punteggi, scarti, inversioni, affiancaGeneri };
+module.exports = { confronta, punteggi, scarti, inversioni, affiancaGeneri, pulizia };
