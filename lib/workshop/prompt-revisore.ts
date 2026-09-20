@@ -77,6 +77,60 @@ function regoleComuni(clienteNome: string): string {
 - Italiano semplice (lo studente ha 16-19 anni).`;
 }
 
+// ─────────────────────────────── LA SCALA DEL PUNTEGGIO DI TAPPA
+// Fino al 20/09 il campo `punteggio_fiducia` aveva come unica descrizione
+// «intero da 0 a 25, quanto ha convinto Tonino in questa tappa»: nessuna
+// rubrica, cioè da nessuna parte era scritto cosa fosse un 5, un 15 o un 25.
+// Il risultato, contato su 486 punteggi di tappa e 119 ruoli chiusi in
+// archivio: mai sotto 8, mai sopra 22, e l'84% dentro QUATTRO valori (16, 17,
+// 18, 19); la fiducia di progetto sta fra 55 e 76 su una scala di 100. Non è il
+// revisore che sbaglia — non gli abbiamo mai detto cosa misura, e a un modello
+// che deve dare un numero senza ancore, in cornice positiva, esce sempre la
+// parte alta di mezzo.
+//
+// LE ANCORE SONO SCRITTE SU COSE CHE STANNO NEL TESTO — una cifra con la sua
+// provenienza, una scelta con il suo prezzo accanto, una contraddizione con una
+// tappa precedente — così ogni fascia si può difendere citando una frase.
+// E I TETTI CONTANO PIÙ DELLE FASCE: senza, un modello che deve scegliere fra
+// cinque fasce sceglie ancora quella di mezzo.
+//
+// PERCHÉ I CONFINI SI CALCOLANO invece di essere scritti a mano. Oggi tutte e
+// 100 le tappe dei 25 ruoli hanno `fiduciaMax` 25 [verificato sul config, non
+// dedotto], ma il campo è parametrico: con le fasce scritte a mano, il giorno
+// in cui una tappa valesse 20 il prompt direbbe «18-22» su un massimo di 20 —
+// una frase che dichiara una cosa diversa da quella vera, e nessuno andrebbe a
+// rileggerla. A 25 questi rapporti riproducono esattamente le fasce decise
+// (0-5, 6-11, 12-17, 18-22, 23-25), e `npm run test:prompt` lo verifica.
+function scalaFiducia(max: number) {
+  return {
+    max,
+    a: Math.round(max * 0.2), // 5 su 25 — fine della fascia «non c'è abbastanza per giudicare»
+    b: Math.round(max * 0.44), // 11 — fine di «vero e generale»
+    c: Math.round(max * 0.68), // 17 — fine di «lavoro vero con un buco preciso»
+    d: Math.round(max * 0.88), // 22 — fine di «regge, e si vede dove»
+  };
+}
+
+// Il blocco che dice al revisore cosa sta misurando. Sta nel prompt della sola
+// revisione di tappa: il feedback finale ha un altro numero (`punteggio_area`,
+// 0-100 per l'area di orientamento) e un'altra scala, e copiargli queste fasce
+// sarebbe la seconda definizione della stessa cosa su una grandezza diversa.
+function bloccoPunteggio(c: CtxTappa): string {
+  const s = scalaFiducia(c.fiduciaMax);
+  return `IL PUNTEGGIO DI QUESTA TAPPA (0-${s.max}) misura quanto il lavoro consegnato REGGE, non quanto è scritto bene.
+- 0-${s.a} — non c'è abbastanza per giudicare. Le sezioni sono compilate ma non contengono niente di specifico: nessuna cifra, nessuna persona, nessun luogo, nessun orario. Frasi che varrebbero per qualunque progetto di qualunque città.
+- ${s.a + 1}-${s.b} — dice cose vere e generali. Nomina i problemi giusti e non scende mai su un caso: nessun numero con una provenienza, e la sezione più difficile della tappa è riempita con un principio invece che con una scelta.
+- ${s.b + 1}-${s.c} — lavoro vero con un buco preciso. C'è almeno un numero con la sua provenienza e almeno una scelta concreta. Ma o la sezione più difficile evita il costo — risponde senza che la risposta costi niente a nessuno — oppure un numero non regge con quello che lo studente ha scritto nelle tappe precedenti.
+- ${s.c + 1}-${s.d} — regge, e si vede dove. I numeri hanno una provenienza dichiarata, la sezione difficile contiene una scelta con il suo prezzo accanto, e niente qui contraddice le tappe di prima.
+- ${s.d + 1}-${s.max} — regge e si corregge. Tutto quello sopra, più almeno un punto in cui lo studente ammette un limite o corregge una cosa che aveva detto prima, e lo fa con un dato — non con una formula di modestia ("andrà verificato", "servirebbe approfondire").
+
+COME SI SCEGLIE IL NUMERO (questa parte conta più delle fasce):
+- Il punteggio deve essere difendibile con una citazione. Se non sai indicare la frase della consegna che lo mette in quella fascia, la fascia è quella sotto.
+- Una tappa in cui la sezione più difficile non costa niente non può superare ${s.c}, per quanto sia scritto bene il resto.
+- Una consegna senza nessuna cifra e senza nessun caso concreto non può superare ${s.b}, anche se nomina tutti i problemi giusti.
+- ${s.c} non è un valore di cortesia: sta lì solo se la consegna ha davvero quello che dice la fascia ${s.b + 1}-${s.c}.`;
+}
+
 // ─────────────────────────────────────────── 1) REVISIONE DELLA TAPPA
 // Output: SOLO JSON valido nel formato indicato. Il cron lo salva in
 // workshop_fasi_stato.revisione e somma punteggio_fiducia a workshop_elaborati.fiducia.
@@ -102,6 +156,8 @@ ${c.revisioneFocus.map((r, i) => `${i + 1}. ${r}`).join("\n")}
 
 ${comeSiVerifica("questa rubrica")}
 
+${bloccoPunteggio(c)}
+
 REGOLE (rispettale tutte):
 ${regoleComuni(c.clienteNome)}
 
@@ -111,7 +167,7 @@ Rispondi SOLO con JSON valido, niente altro testo, in questo formato:
   "da_migliorare": ["...", "..."],          // 2-3, concreti; formulati come cose da riprendere o da portarsi avanti, mai come condizioni per chiudere questa tappa
   "domanda": "...",                          // UNA domanda, agganciata a quanto detto sopra sul passo successivo
   "commento_breve": "...",                   // 1-2 frasi calde di sintesi
-  "punteggio_fiducia": 0                      // intero da 0 a ${c.fiduciaMax}, quanto ha convinto ${c.clienteNome} in questa tappa
+  "punteggio_fiducia": 0                      // intero da 0 a ${c.fiduciaMax}, secondo le fasce e i tetti scritti sopra — non un'impressione su quanto ha convinto ${c.clienteNome}
 }`;
 }
 

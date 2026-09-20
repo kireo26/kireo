@@ -114,6 +114,42 @@ ok(
   "e non gli si chiede più la crescita lungo il percorso: è il mestiere del blocco, che ha il materiale per farlo",
 );
 
+// ── LA SCALA DEL PUNTEGGIO DI TAPPA ──────────────────────────────────────────
+// Fino al 20/09 il campo `punteggio_fiducia` non aveva nessuna rubrica: «intero
+// da 0 a 25, quanto ha convinto Tonino» e basta. Su 486 punteggi in archivio il
+// revisore ha usato solo 8-22, con l'84% dentro quattro valori. Queste
+// asserzioni difendono le due cose che possono tornare indietro da sole: che le
+// fasce spariscano, e che i TETTI spariscano lasciando le fasce — che è il caso
+// peggiore, perché il prompt sembrerebbe ancora a posto mentre il modello
+// tornerebbe a scegliere quella di mezzo.
+const FASCE = ["0-5", "6-11", "12-17", "18-22", "23-25"];
+for (const f of FASCE) ok(tappa.includes(`- ${f} —`), `la fascia ${f} è descritta nel prompt della revisione`);
+
+ok(tappa.includes("misura quanto il lavoro consegnato REGGE, non quanto è scritto bene"), "il punteggio dichiara cosa misura");
+ok(tappa.includes("deve essere difendibile con una citazione"), "tetto 1: senza una frase da citare, la fascia è quella sotto");
+ok(tappa.includes("non costa niente non può superare 17"), "tetto 2: la sezione difficile che non costa niente ferma a 17");
+ok(tappa.includes("senza nessuna cifra e senza nessun caso concreto non può superare 11"), "tetto 3: senza cifre e senza casi si resta sotto 12");
+ok(tappa.includes("17 non è un valore di cortesia"), "e il valore di mezzo è dichiarato non-di-cortesia");
+
+// Il commento sul campo non deve più descrivere il punteggio per conto suo:
+// erano due posti che dicono cosa misura, e uno dei due sarebbe quello vecchio.
+ok(
+  tappa.includes("secondo le fasce e i tetti scritti sopra"),
+  "il commento del campo rimanda alla scala invece di dare una seconda definizione",
+);
+
+// I confini si CALCOLANO da fiduciaMax. Oggi vale 25 per tutte e 100 le tappe,
+// ma il campo è parametrico: scritte a mano, le fasce direbbero «18-22» su un
+// massimo di 20 senza che nessuno se ne accorga.
+const venti = promptRevisore({ ...CTX, fiduciaMax: 20 });
+ok(venti.includes("IL PUNTEGGIO DI QUESTA TAPPA (0-20)"), "con fiduciaMax 20 la scala si annuncia su 20");
+ok(venti.includes("- 19-20 —"), "…e l'ultima fascia arriva esattamente al massimo");
+ok(!venti.includes("23-25") && !venti.includes("18-22"), "…e nessuna fascia scritta per il 25 sopravvive a un massimo diverso");
+
+// Il feedback finale ha un ALTRO numero (punteggio_area, 0-100): queste fasce
+// lì sarebbero la stessa definizione applicata a una grandezza diversa.
+ok(!finale.includes("IL PUNTEGGIO DI QUESTA TAPPA"), "la scala di tappa non è finita nel feedback finale, che misura un'altra cosa");
+
 // Nessun esempio copiabile: una frase compiuta dentro il prompt viene
 // ricopiata, non imitata — e nel ricopiarla si rompe.
 ok(!tappa.includes("puoi colmarlo tornando su"), "nel prompt non è tornato un esempio di frase da riusare");

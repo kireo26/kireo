@@ -262,6 +262,10 @@ function misura(esiti, attesi = null) {
   // rapporti salvati prima di oggi si rileggono senza perdere il caso.
   const esitiRevisione = {};
   const avanzateSenzaEsito = [];
+  // I punteggi di TAPPA di questa passata. Le tappe `giaFatta` restano fuori
+  // apposta: la loro revisione l'ha scritta un'altra passata, con un altro
+  // prompt, e mescolarle è il modo di rendere illeggibile un confronto.
+  const punteggiTappa = [];
   let tentativiTotali = 0;
   let tappeConTentativiExtra = 0;
   for (const e of esiti) {
@@ -269,6 +273,8 @@ function misura(esiti, attesi = null) {
       if (t.giaFatta) continue;
       const k = t.esitoRevisione ?? "sconosciuto";
       esitiRevisione[k] = (esitiRevisione[k] ?? 0) + 1;
+      const p = Number(t.revisione?.punteggio_fiducia);
+      if (Number.isFinite(p)) punteggiTappa.push(p);
       tentativiTotali += t.tentativi || 0;
       if ((t.tentativi || 0) > 1) tappeConTentativiExtra++;
       if (!t.esitoRevisione && t.revisione) {
@@ -281,6 +287,12 @@ function misura(esiti, attesi = null) {
       }
     }
   }
+
+  // La distribuzione dei punteggi di tappa. La forbice sui TOTALI (sotto) dice
+  // se due ruoli diversi finiscono lontani; questa dice se la scala viene usata
+  // per intero — che è la stessa domanda un piano più in basso, e con dieci
+  // volte i dati.
+  const punteggi = distribuzionePunteggi(punteggiTappa);
 
   // La fiducia per ruolo: un ruolo che dà sempre il minimo o sempre il massimo
   // ha un problema di rubrica, non di studente.
@@ -368,6 +380,7 @@ function misura(esiti, attesi = null) {
     avanzateSenzaEsito,
     tentativiTotali,
     tappeConTentativiExtra,
+    punteggi,
     fiducia,
     fermati,
     caduti,
@@ -378,6 +391,44 @@ function misura(esiti, attesi = null) {
 
 function percentuale(parte, tutto) {
   return tutto === 0 ? "—" : `${((parte / tutto) * 100).toFixed(1)}%`;
+}
+
+// ── LA SCALA DEL PUNTEGGIO DI TAPPA, e il metro per leggerla ─────────────────
+// LA LINEA DI BASE, misurata sull'archivio PRIMA che il prompt del revisore
+// avesse una rubrica (fino al 20/09 il campo `punteggio_fiducia` era descritto
+// solo come «intero da 0 a 25, quanto ha convinto il cliente»): 486 punteggi di
+// tappa su 119 ruoli chiusi, mai sotto 8, mai sopra 22, e l'84% dentro QUATTRO
+// valori — 16, 17, 18, 19.
+const BANDA_BASE = [16, 19];
+const BASE = { punteggi: 486, ruoli: 119, min: 8, max: 22, quotaDentro: 84 };
+
+// IL METRO, scritto PRIMA della passata che deve leggerlo (Mario, 20/09): la
+// rubrica ha funzionato se i punteggi usano almeno otto valori distinti E
+// almeno il 20% cade fuori dai quattro valori della linea di base. Sta qui e
+// non in testa a chi legge perché un criterio deciso dopo aver visto i numeri
+// non è un criterio: è una lettura.
+const METRO = { distinti: 8, fuoriBanda: 20 };
+
+// Sotto un workshop intero la distribuzione non dice niente — il metro è stato
+// scritto per una passata da 5 ruoli, cioè 20 tappe.
+const MIN_TAPPE_DISTRIBUZIONE = 20;
+
+// Pura: `npm run test:banco` la prova senza rete.
+function distribuzionePunteggi(valori) {
+  if (valori.length === 0) return null;
+  const conteggio = new Map();
+  for (const v of valori) conteggio.set(v, (conteggio.get(v) ?? 0) + 1);
+  const per = [...conteggio.entries()].sort((a, b) => a[0] - b[0]).map(([valore, n]) => ({ valore, n }));
+  const dentroBanda = valori.filter((v) => v >= BANDA_BASE[0] && v <= BANDA_BASE[1]).length;
+  return {
+    totale: valori.length,
+    distinti: conteggio.size,
+    min: per[0].valore,
+    max: per[per.length - 1].valore,
+    per,
+    dentroBanda,
+    fuoriBanda: valori.length - dentroBanda,
+  };
 }
 
 function stampaRapporto(m, righe = console.log) {
@@ -660,6 +711,37 @@ function stampaRapporto(m, righe = console.log) {
   }
   di("");
 
+  // LA DISTRIBUZIONE DEI PUNTEGGI DI TAPPA. Non conclude: stampa i due numeri
+  // del metro accanto alla linea di base e lascia la lettura a chi legge — un
+  // titolo che concludesse al posto suo sarebbe la stessa cosa contro cui la
+  // riga «catture da leggere» è stata scritta.
+  if (m.punteggi) {
+    const d = m.punteggi;
+    const quotaFuori = (d.fuoriBanda / d.totale) * 100;
+    di("PUNTEGGIO DI TAPPA — quanta scala viene usata:");
+    for (const { valore, n } of d.per) di(`  ${String(valore).padStart(3)}  ${"█".repeat(Math.min(n, 40))} ${n}`);
+    di(`  ${d.totale} punteggi, ${d.distinti} valori distinti, da ${d.min} a ${d.max}.`);
+    di(`  Fuori dai quattro valori ${BANDA_BASE[0]}-${BANDA_BASE[1]}: ${d.fuoriBanda} (${quotaFuori.toFixed(1)}%).`);
+    if (d.totale < MIN_TAPPE_DISTRIBUZIONE) {
+      di(`  (${d.totale} tappe sono poche per leggere una distribuzione: il metro qui sotto`);
+      di("   è stato scritto per un workshop intero. Non vuol dire che vada bene,");
+      di("   vuol dire che non si vede.)");
+    } else {
+      di(`  Linea di base, PRIMA che il punteggio avesse una rubrica: ${BASE.punteggi} punteggi su`);
+      di(`  ${BASE.ruoli} ruoli, mai sotto ${BASE.min} e mai sopra ${BASE.max}, ${BASE.quotaDentro}% dentro ${BANDA_BASE[0]}-${BANDA_BASE[1]}.`);
+      di(`  Il metro scritto prima: almeno ${METRO.distinti} valori distinti E almeno ${METRO.fuoriBanda}% fuori dalla banda.`);
+      const q1 = d.distinti >= METRO.distinti ? "sì" : "no";
+      const q2 = quotaFuori >= METRO.fuoriBanda ? "sì" : "no";
+      di(`  Qui: valori distinti ${d.distinti} → ${q1};  fuori dalla banda ${quotaFuori.toFixed(1)}% → ${q2}.`);
+      if (q1 === "no" && q2 === "no") {
+        di("  Se la distribuzione resta com'era, la rubrica non era la causa — e la strada");
+        di("  successiva non è scrivere ancore migliori: è che il modello non distingue su");
+        di("  questa scala, e allora il numero va tolto o sostituito con qualcosa di verificabile.");
+      }
+    }
+    di("");
+  }
+
   if (m.fiducia.length > 0) {
     di("FIDUCIA PER RUOLO (dal più basso):");
     for (const f of m.fiducia) di(`  ${String(f.valore).padStart(3)}/100  ${f.etichetta}`);
@@ -697,4 +779,4 @@ function stampaRapporto(m, righe = console.log) {
   di("pericoloso, quello del protocollo senza defibrillatore.\n");
 }
 
-module.exports = { misura, stampaRapporto, raccogliTesti, verificaCompletezza, categoriaEsito };
+module.exports = { misura, stampaRapporto, raccogliTesti, verificaCompletezza, categoriaEsito, distribuzionePunteggi };

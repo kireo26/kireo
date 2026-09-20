@@ -385,6 +385,46 @@ ok(!COSA_VUOL_DIRE["specie_inventata_per_la_controprova"], "…e una specie nuov
 // lancia farebbe fallire una passata da quattro dollari per una tabella.
 ok(typeof leggiGuasti === "function", "il lettore dei guasti è riusabile fuori dal comando (rapporto del robot)");
 
+// ── la distribuzione dei punteggi di tappa ────────────────────────────────
+// Il 20/09 il punteggio di tappa ha avuto per la prima volta una rubrica, dopo
+// che l'archivio aveva mostrato 486 punteggi tutti dentro 8-22 e l'84% dentro
+// quattro valori. Il metro per dire se ha funzionato è stato scritto PRIMA
+// della passata che deve leggerlo, e questo conta il contabile al posto di una
+// persona: cento numeri non si contano a mano, e un conteggio meccanico su
+// numeri che ha prodotto il modello non può pendere dalla parte che speriamo.
+console.log("\n── la distribuzione dei punteggi di tappa\n");
+
+const { distribuzionePunteggi } = require("./banco/robot/misura");
+
+ok(distribuzionePunteggi([]) === null, "nessun punteggio → null, non una distribuzione vuota da leggere come «tutto in un valore»");
+
+const concentrata = distribuzionePunteggi([16, 17, 17, 18, 18, 18, 19, 16, 17, 12]);
+ok(concentrata.totale === 10 && concentrata.distinti === 5, "conta i valori distinti, non le occorrenze");
+ok(concentrata.min === 12 && concentrata.max === 19, "e gli estremi veri");
+ok(concentrata.fuoriBanda === 1 && concentrata.dentroBanda === 9, "la banda della linea di base (16-19) è chiusa a destra e a sinistra");
+
+// L'ordine non dipende da quello in cui i punteggi arrivano: il rapporto
+// stampa una distribuzione, e una distribuzione fuori ordine non si legge.
+ok(
+  distribuzionePunteggi([19, 8, 14, 8]).per.map((p) => `${p.valore}x${p.n}`).join(" ") === "8x2 14x1 19x1",
+  "…e le voci escono in ordine di valore, con il loro conteggio",
+);
+
+// La proprietà che conta davvero: le tappe RIPRESE (già revisionate in una
+// passata precedente) non entrano. La loro revisione l'ha scritta un altro
+// prompt, e mescolarla a questa passata è il modo di rendere illeggibile
+// proprio il confronto per cui la distribuzione esiste.
+const sorgenteMisura = fsBanco.readFileSync(pathBanco.join(__dirname, "banco", "robot", "misura.js"), "utf8");
+const dentroIlLoop = sorgenteMisura.slice(
+  sorgenteMisura.indexOf("for (const t of e.tappe) {"),
+  sorgenteMisura.indexOf("const punteggi = distribuzionePunteggi"),
+);
+ok(
+  dentroIlLoop.includes("if (t.giaFatta) continue;") &&
+    dentroIlLoop.indexOf("if (t.giaFatta) continue;") < dentroIlLoop.indexOf("punteggiTappa.push"),
+  "i punteggi si raccolgono DOPO il salto delle tappe riprese, non prima",
+);
+
 console.log("\n═══════════════════════════════════════════\n");
 if (falliti) { console.error(`✗ ${falliti} controlli falliti.\n`); process.exit(1); }
 console.log("✓ Ogni esito ha la sua frase, il fallimento non si nasconde dietro un successo,\n  e «non posso vederle» non si legge come «non ci sono».\n");
