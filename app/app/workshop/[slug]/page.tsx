@@ -5,6 +5,8 @@ import { getAppContext } from "@/lib/app/studentContext";
 import { WORKSHOP_KIT } from "@/lib/workshop/config";
 import { WORKSHOP_ELABORATO } from "@/lib/workshop/elaborato-config";
 import IscrizioneRuolo from "@/components/workshop/IscrizioneRuolo";
+import PassoMancante from "@/components/app/PassoMancante";
+import { cancelloWorkshop } from "@/lib/percorso/cancelli";
 import KitRuolo from "@/components/workshop/KitRuolo";
 import NetworkPeers from "@/components/workshop/NetworkPeers";
 import ComeFunziona from "@/components/workshop/ComeFunziona";
@@ -35,6 +37,13 @@ export default async function WorkshopPage({ params }: { params: Promise<{ slug:
   const iscrizione = scegliIscrizione(righe, STATI_APRIBILI);
   const lasciata = iscrizione ? null : scegliIscrizione(righe, ["ritirato"]);
 
+  // Il cancello del workshop: il rifiuto vero lo fa la policy di
+  // `workshop_iscrizioni` (migrazione 20260920100000), questo dice PERCHÉ.
+  // Chi ha già lasciato un'iscrizione lo trova APERTO — `e_gia_entrato_in_un_workshop()`
+  // guarda le righe, non il loro stato — quindi `IscrizioneLasciata` continua
+  // a comparire a chi deve ripartire da dove aveva lasciato.
+  const cancello = await cancelloWorkshop(supabase);
+
   const ruoloIscritto = iscrizione?.workshop_ruoli ?? null;
   const ruoloLasciato = lasciata?.workshop_ruoli ?? null;
 
@@ -49,7 +58,9 @@ export default async function WorkshopPage({ params }: { params: Promise<{ slug:
         {ws.descrizione && <p className="mt-3 text-kireo-light/90">{ws.descrizione}</p>}
       </div>
 
-      {!iscrizione && (
+      {!iscrizione && !cancello.aperto && <PassoMancante cancello={cancello} titolo="Prima una missione" />}
+
+      {!iscrizione && cancello.aperto && (
         <>
           {lasciata && ruoloLasciato ? (
             <IscrizioneLasciata iscrizioneId={lasciata.id} ruoloTitolo={ruoloLasciato.titolo} />

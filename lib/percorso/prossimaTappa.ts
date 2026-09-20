@@ -3,11 +3,27 @@ import { getAreaBySlug } from "@/data/aree";
 import { SLUG_T1, SLUG_T2, SLUG_T3 } from "@/lib/test/config";
 import { caricaContestoPercorso } from "./stato";
 
-// Il PASSO SUCCESSIVO CONSIGLIATO del percorso studente. CONSIGLIA, non impone:
-// nessun gate, tutto resta aperto — la card indica solo la prossima cosa
-// suggerita. Percorso: guida → seconda guida → T1 → T2 → T3 → missioni →
-// workshop. La tappa è determinata dal traguardo PIÙ AVANZATO raggiunto (così
-// chi salta avanti non viene rimandato indietro), sette esiti.
+// Il PASSO SUCCESSIVO del percorso studente. Percorso: guida → seconda guida →
+// T1 → T2 → T3 → missioni → workshop. La tappa è determinata dal traguardo PIÙ
+// AVANZATO raggiunto (così chi salta avanti non viene rimandato indietro),
+// sette esiti.
+//
+// DUE DEI SETTE SONO CANCELLI VERI, dal 2026-09-20. Fino a quella data questo
+// commento diceva che il percorso si limitava a consigliare e che niente era
+// chiuso, ed era vero. Adesso le missioni si aprono con i tre test e i
+// workshop dopo un'esperienza (migrazione 20260920100000): le prime cinque
+// tappe restano consigli — guide e test sono esplorazione e nessuno li chiude
+// — le ultime due no. Se qualcuno rimettesse qui la frase di prima sarebbe la
+// specie di casa: un commento che dichiara quello che il codice faceva ieri.
+// `npm run test:cancelli` la cerca alla lettera, quindi non va riprodotta
+// nemmeno per citarla.
+//
+// E LA SOGLIA DELLE MISSIONI NON SI RICALCOLA QUI. `t1 && t2 && t3` sarebbe la
+// stessa regola scritta una seconda volta, in un'altra lingua rispetto alla
+// policy che poi rifiuta davvero: divergerebbero al primo che ne tocca una.
+// Quel rung chiede a `ha_completato_i_tre_test()`, la stessa funzione del
+// cancello. Gli altri rung continuano a guardare i test uno per uno, e devono:
+// il loro mestiere è NOMINARE il prossimo test, non dire se sei passato.
 //
 // NB (2026-08): le guide NON alimentano il profilo Escape (area_signal) — vivono
 // in activity_log (il radar «Dove hai esplorato»). Il ritratto prima della
@@ -23,14 +39,14 @@ import { caricaContestoPercorso } from "./stato";
 export type ProssimaTappa = { testo: string; cta: string; href: string };
 
 export async function getProssimaTappa(supabase: SupabaseClient, studentId: string): Promise<ProssimaTappa> {
-  const [contesto, testCompletati] = await Promise.all([
+  const [contesto, testCompletati, cancelloMissioniAperto] = await Promise.all([
     caricaContestoPercorso(supabase, studentId),
     leggiTestCompletati(supabase, studentId),
+    leggiCancelloMissioni(supabase),
   ]);
 
   const t1 = testCompletati.has(SLUG_T1);
   const t2 = testCompletati.has(SLUG_T2);
-  const t3 = testCompletati.has(SLUG_T3);
   const haMissione = contesto.missioniCompletate > 0;
 
   // Guide: c'è un'area con ≥2 guide? e quali aree ne hanno esattamente una
@@ -44,7 +60,7 @@ export async function getProssimaTappa(supabase: SupabaseClient, studentId: stri
 
   // Ladder: dal traguardo più avanzato indietro — sempre un solo esito.
   if (haMissione) return { testo: "Prova un workshop.", cta: "Prova un workshop", href: "/app/workshop" };
-  if (t1 && t2 && t3) return { testo: "Le missioni sono aperte.", cta: "Prova una missione", href: "/app/escape" };
+  if (cancelloMissioniAperto) return { testo: "Le missioni sono aperte.", cta: "Prova una missione", href: "/app/escape" };
   if (t1 && t2) return { testo: 'Fai "Più a fondo".', cta: "Fai «Più a fondo»", href: `/app/test/${SLUG_T3}` };
   if (t1) return { testo: 'Fai "Come ti muovi".', cta: "Fai «Come ti muovi»", href: `/app/test/${SLUG_T2}` };
   if (dueGuideStessaArea) return { testo: 'Fai il test "Da dove parti".', cta: "Fai «Da dove parti»", href: `/app/test/${SLUG_T1}` };
@@ -54,6 +70,23 @@ export async function getProssimaTappa(supabase: SupabaseClient, studentId: stri
     return { testo: nome ? `Leggi la seconda guida di ${nome}.` : "Leggi la seconda guida dell'area che hai iniziato.", cta: "Leggi la seconda guida", href: `/app/guide/${slug}` };
   }
   return { testo: "Comincia da una guida: scegli un'area che ti incuriosisce.", cta: "Esplora le aree", href: "/app/aree" };
+}
+
+// Il cancello delle missioni, chiesto a chi lo definisce. Degrada verso
+// l'APERTO come `lib/percorso/cancelli.ts`: se la lettura fallisce la card
+// dice «le missioni sono aperte» e sarà semmai la pagina a fermare — meglio un
+// consiglio ottimista che rimandare ai test uno che li ha già fatti.
+async function leggiCancelloMissioni(supabase: SupabaseClient): Promise<boolean> {
+  try {
+    const { data, error } = await supabase.rpc("ha_completato_i_tre_test");
+    if (error) {
+      console.error("Errore lettura cancello missioni (prossima tappa):", error.message ?? error);
+      return true;
+    }
+    return data === true;
+  } catch {
+    return true;
+  }
 }
 
 // Il passo dopo un TEST, che è una domanda diversa da quella della home.

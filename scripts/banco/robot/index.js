@@ -53,6 +53,26 @@ function fileConsegne() {
   return elenco;
 }
 
+// I due predicati del cancello, chiesti a chi li definisce (migrazione
+// 20260920100000). Restituisce true/false, oppure null quando non si è potuto
+// leggere — e chi chiama tratta null come «parti lo stesso».
+async function cancelloApertoPerIWorkshop(sessione) {
+  try {
+    const [esperienza, gia] = await Promise.all([
+      sessione.supabase.rpc("ha_esperienza_percorso"),
+      sessione.supabase.rpc("e_gia_entrato_in_un_workshop"),
+    ]);
+    if (esperienza.error || gia.error) {
+      console.error("  ⚠  non ho potuto leggere il cancello dei workshop:", (esperienza.error ?? gia.error).message);
+      return null;
+    }
+    return esperienza.data === true || gia.data === true;
+  } catch (errore) {
+    console.error("  ⚠  non ho potuto leggere il cancello dei workshop:", errore?.message ?? errore);
+    return null;
+  }
+}
+
 // Il piano della passata: quali ruoli, e quanto costa. Puro, così il conto si
 // può provare senza toccare la rete (vedi npm run test:robot).
 // UNA TRAPPOLA NON ENTRA NELLA PASSATA COMPLETA, e non è una questione di
@@ -203,6 +223,34 @@ async function robot(filtro) {
 
   const sessione = await apriSessione();
   console.log(`\n✓ sessione aperta come ${sessione.profilo.nome ?? sessione.utente.email} (profilo di prova)\n`);
+
+  // IL CANCELLO SI GUARDA PRIMA DI SPENDERE, e il robot NON PARTE se è chiuso.
+  //
+  // Dal 2026-09-20 i workshop si aprono dopo un'esperienza. Senza questa
+  // guardia, una passata lanciata subito dopo `azzera-percorsi` produrrebbe
+  // venticinque «fermato da un cancello» — e quella è la lista che leggiamo
+  // per PRIMA, proprio perché lì un blocco è prezioso. Riempirla di blocchi
+  // che non dicono niente sul prodotto, ma solo che il banco non si è
+  // preparato, è il modo di renderla inutile: è già successo il 13/09 con i
+  // `fetch failed`, e ci è costata una diagnosi.
+  //
+  // Sta QUI e non prima della conferma perché serve una sessione per sapere di
+  // chi si parla — e a questo punto non è stato speso niente: la conferma non
+  // costa, le chiamate cominciano nel ciclo qui sotto.
+  //
+  // DEGRADA VERSO IL PARTIRE, come il lato prodotto: se le due letture non
+  // riescono (RPC non ancora migrata, rete), la passata parte e sarà semmai il
+  // prodotto a fermarla. Fermare una passata per un difetto dello strumento è
+  // la cosa che la guardia dell'allineamento ha già imparato a non fare.
+  const cancello = await cancelloApertoPerIWorkshop(sessione);
+  if (cancello === false) {
+    console.log("Il robot non ha ancora i requisiti per iscriversi ai workshop.");
+    console.log("Dal 2026-09-20 un workshop si apre dopo una missione completata");
+    console.log("(o un workshop già consegnato), e questo profilo non ne ha.\n");
+    console.log("  Lancia prima:  npm run banco studente\n");
+    console.log("Nessuna chiamata fatta.\n");
+    return;
+  }
 
   // L'istante da cui leggere i guasti, alla fine. Si prende QUI e non dopo:
   // un guasto che capita al primo ruolo deve entrare nella finestra come

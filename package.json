@@ -40,7 +40,8 @@
     "test:modo": "node scripts/verifica-modo-di-lavorare.js",
     "test": "node scripts/tutti-i-test.js",
     "test:news": "node scripts/verifica-news.js",
-    "test:percorso": "node scripts/verifica-percorso-robot.js"
+    "test:percorso": "node scripts/verifica-percorso-robot.js",
+    "test:cancelli": "node scripts/verifica-cancelli.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.112.5",

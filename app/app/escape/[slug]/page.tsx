@@ -9,6 +9,8 @@ import { costruisciRestituzione, type AreaTop } from "@/lib/escape/restituzione"
 import type { Payload } from "@/lib/escape/tipi";
 import EscapePlayer from "@/components/escape/EscapePlayer";
 import IniziaMissione from "@/components/escape/IniziaMissione";
+import PassoMancante from "@/components/app/PassoMancante";
+import { cancelloMissioni } from "@/lib/percorso/cancelli";
 import EsitoMissione, { type AreaEsito, type StatoRevisore } from "@/components/escape/EsitoMissione";
 
 export const metadata = { title: "Missione — KIREO" };
@@ -38,8 +40,21 @@ export default async function MissionePage({ params }: { params: Promise<{ slug:
     </div>
   );
 
-  // Nessun tentativo: intro + avvio.
+  // Nessun tentativo: intro + avvio — se il cancello è aperto.
   if (!attempt) {
+    // Il rifiuto vero lo fa la policy di `mission_attempt` (migrazione
+    // 20260920100000); questo è il secondo livello, quello che dice PERCHÉ.
+    // Si chiede solo qui, dove c'è un bottone da mostrare o non mostrare: chi
+    // ha già un tentativo non passa mai da questo ramo.
+    const cancello = await cancelloMissioni(supabase);
+    if (!cancello.aperto) {
+      return (
+        <div className="space-y-6">
+          {Intestazione}
+          <PassoMancante cancello={cancello} titolo="Prima i tre test" />
+        </div>
+      );
+    }
     return (
       <div className="space-y-6">
         {Intestazione}
