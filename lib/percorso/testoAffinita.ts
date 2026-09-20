@@ -55,7 +55,7 @@ export function copiaUnicaAttivita(origine: OrigineSegnale): CopiaUnicaAttivita 
     return {
       titolo: TITOLO,
       corpo:
-        "Nei test qualcosa si è già acceso: lo trovi nel riepilogo di ognuno. Ma un test racconta come ti vedi. Un'affinità è una cosa che diciamo su di te, e la diciamo solo quando lo stesso segnale ritorna in una situazione dove hai fatto qualcosa, non dove l'hai dichiarato. La prima missione è quella situazione.",
+        "Nei test qualcosa si è già acceso: lo trovi nei loro riepiloghi — le aree in due, il tuo modo di lavorare nel terzo. Ma un test racconta come ti vedi. Un'affinità è una cosa che diciamo su di te, e la diciamo solo quando lo stesso segnale ritorna in una situazione dove hai fatto qualcosa, non dove l'hai dichiarato. La prima missione è quella situazione.",
       cta: "Fai una missione",
       sfiorateTitolo: SFIORATE_TITOLO,
       sfiorateSottotitolo: SFIORATE_SOTTOTITOLO,
