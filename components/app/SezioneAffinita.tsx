@@ -1,6 +1,7 @@
 import Link from "next/link";
 import AreeSfiorate from "@/components/escape/AreeSfiorate";
 import type { AffinitaHome } from "@/lib/percorso/stato";
+import { copiaUnicaAttivita } from "@/lib/percorso/testoAffinita";
 
 // Sezione «Le tue affinità» in cima alla home — l'unica superficie che parla di
 // CHI È lo studente a partire da come agisce (area_signal), distinta dal radar
@@ -15,6 +16,12 @@ import type { AffinitaHome } from "@/lib/percorso/stato";
 // primi giorni di ogni studente, non un caso limite — perciò lo stato non-vuoto
 // mostra comunque le aree sfiorate (qualcosa di suo, e cosa la 2ª attività
 // confermerà o smentirà).
+//
+// Il TESTO del terzo stato dipende da QUALE attività ha acceso il segnale
+// (`affinita.origine`) e vive in lib/percorso/testoAffinita.ts, dove si può
+// controllare: qui dentro dava per scontato che fosse una missione, e dal
+// cancello dei tre test in poi quello è lo stato che nessuno studente può
+// saltare. Vedi il file per il perché.
 
 const STATUS: Record<AffinitaHome["eleggibili"][number]["status"], { testo: string; classe: string }> = {
   emergente: { testo: "Sta emergendo", classe: "border-white/15 text-kireo-muted" },
@@ -37,7 +44,7 @@ function Cta({ testo }: { testo: string }) {
 }
 
 export default function SezioneAffinita({ affinita }: { affinita: AffinitaHome }) {
-  const { eleggibili, sfiorate, haAttivita } = affinita;
+  const { eleggibili, sfiorate, haAttivita, origine } = affinita;
   const contrastanti = eleggibili.filter((a) => a.status === "da_verificare").map((a) => a.nome);
   const vociSfiorate = sfiorate.map((s) => ({ nome: s.nome, testo: s.motivazione ?? "un segnale c'è, ma serve un'altra attività in quest'area." }));
 
@@ -87,17 +94,16 @@ export default function SezioneAffinita({ affinita }: { affinita: AffinitaHome }
     );
   }
 
-  // Stato vuoto — 1 attività (+ aree sfiorate = le piste della prima missione).
+  // Stato vuoto — un'attività sola (+ aree sfiorate = le piste che ha acceso).
+  const copia = copiaUnicaAttivita(origine);
   return (
     <div className="space-y-4">
       <section className="rounded-2xl border border-white/5 bg-kireo-card p-6">
-        <h2 className="font-heading text-lg font-semibold text-kireo-light">Sei a metà strada.</h2>
-        <p className="mt-2 text-sm leading-relaxed text-kireo-light/90">
-          Nella missione che hai fatto qualcosa si è già acceso: lo trovi nel suo riepilogo. Ma quello racconta QUELLA partita. Un&apos;affinità è una cosa che diciamo su di te, e la diciamo solo quando un segnale ritorna in una situazione diversa. Fanne un&apos;altra e cominciamo a metterle in fila.
-        </p>
-        <Cta testo="Fai un'altra missione" />
+        <h2 className="font-heading text-lg font-semibold text-kireo-light">{copia.titolo}</h2>
+        <p className="mt-2 text-sm leading-relaxed text-kireo-light/90">{copia.corpo}</p>
+        <Cta testo={copia.cta} />
       </section>
-      <AreeSfiorate titolo="Quello che hai già acceso" sottotitolo="Sono le piste della tua prima missione: la prossima attività dirà quali reggono." voci={vociSfiorate} />
+      <AreeSfiorate titolo={copia.sfiorateTitolo} sottotitolo={copia.sfiorateSottotitolo} voci={vociSfiorate} />
     </div>
   );
 }

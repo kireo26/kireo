@@ -141,10 +141,16 @@ export type AreaEleggibile = { slug: string; nome: string; interest: number; sta
 // `nome` può elencare PIÙ aree ("A, B") quando la loro prova più forte è la
 // stessa riga di evidenza: condividono una riga, nomi elencati (vedi sotto).
 export type AreaSfiorataAffinita = { nome: string; motivazione: string | null };
+// QUALE attività ha prodotto il segnale, quando non basta ancora per
+// un'affinità. `null` vuol dire «non l'ho potuto stabilire», non «nessuna»:
+// chi legge questo campo non deve poter confondere le due cose, perché la
+// differenza è fra un testo che nomina una cosa vera e uno che la indovina.
+export type OrigineSegnale = "test" | "missione" | null;
 export type AffinitaHome = {
   eleggibili: AreaEleggibile[];
   sfiorate: AreaSfiorataAffinita[];
   haAttivita: boolean; // area_signal ha ≥1 riga → ≥1 attività completata
+  origine: OrigineSegnale; // significativo solo quando eleggibili è vuota e haAttivita è true
 };
 
 function eleggibile(r: { attivita_distinte: number | null; interest_score: number | null }): boolean {
@@ -174,7 +180,7 @@ export function raggruppaSfiorate(voci: { nome: string; motivazione: string | nu
 }
 
 export async function caricaAffinitaHome(supabase: SupabaseClient, studentId: string): Promise<AffinitaHome> {
-  const vuoto: AffinitaHome = { eleggibili: [], sfiorate: [], haAttivita: false };
+  const vuoto: AffinitaHome = { eleggibili: [], sfiorate: [], haAttivita: false, origine: null };
   try {
     const { data, error } = await supabase
       .from("area_signal")
@@ -198,14 +204,49 @@ export async function caricaAffinitaHome(supabase: SupabaseClient, studentId: st
         (b.interest_score ?? 0) - (a.interest_score ?? 0) ||
         a.area_slug.localeCompare(b.area_slug),
     );
-    const motivazioni = await motivazioniPiuPesanti(supabase, studentId, righeSfiorate.map((r) => r.area_slug));
+    const [motivazioni, origine] = await Promise.all([
+      motivazioniPiuPesanti(supabase, studentId, righeSfiorate.map((r) => r.area_slug)),
+      origineSegnale(supabase, studentId),
+    ]);
     const sfiorate = raggruppaSfiorate(
       righeSfiorate.map((r) => ({ nome: getAreaBySlug(r.area_slug)?.nome ?? r.area_slug, motivazione: motivazioni.get(r.area_slug) ?? null })),
     );
 
-    return { eleggibili, sfiorate, haAttivita: true };
+    return { eleggibili, sfiorate, haAttivita: true, origine };
   } catch {
     return vuoto;
+  }
+}
+
+// Da dove viene il segnale: una missione giocata, oppure i test.
+//
+// PERCHÉ DA `evidence` E NON DA `mission_attempt`/`test_attempt`. La domanda a
+// cui questo campo serve a rispondere non è «cosa ha fatto lo studente» ma
+// «cosa ha acceso QUELLO CHE STA VEDENDO qui»: il blocco parla del segnale, e
+// il segnale nasce dalle righe di `evidence`. Contare i tentativi risponderebbe
+// a una domanda vicina ma diversa — e due domande vicine tenute nello stesso
+// posto sono il modo in cui una copia diverge dall'altra.
+//
+// LA MISSIONE VINCE quando ci sono tutt'e due: un testo che nomina la missione
+// giocata resta vero anche per chi ha fatto pure i test, mentre il contrario no.
+//
+// Le fonti `workshop` e `activity` esistono nell'enum e oggi non le scrive
+// nessuno (vedi CLAUDE.md, cross-feed rinviato). Se un domani ci fosse solo
+// quella, questa funzione torna `null` e il testo non nomina niente: la
+// direzione giusta in cui sbagliare.
+async function origineSegnale(supabase: SupabaseClient, studentId: string): Promise<OrigineSegnale> {
+  try {
+    const [missione, test] = await Promise.all([
+      supabase.from("evidence").select("id", { count: "exact", head: true }).eq("student_id", studentId).eq("fonte", "mission"),
+      supabase.from("evidence").select("id", { count: "exact", head: true }).eq("student_id", studentId).eq("fonte", "test"),
+    ]);
+    // Una lettura fallita non è «nessuna delle due»: si dichiara di non saperlo.
+    if (missione.error || test.error) return null;
+    if ((missione.count ?? 0) > 0) return "missione";
+    if ((test.count ?? 0) > 0) return "test";
+    return null;
+  } catch {
+    return null;
   }
 }
 
