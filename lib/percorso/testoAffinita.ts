@@ -32,6 +32,12 @@ export type CopiaUnicaAttivita = {
 
 const TITOLO = "Sei a metà strada.";
 const SFIORATE_TITOLO = "Quello che hai già acceso";
+// Uno solo per tutti e tre i casi, e senza «prima»: era la stessa specie del
+// corpo in formato piccolo — «le piste della tua prima missione» è falso per chi
+// ne ha giocate due su aree disgiunte, e «la prima missione dirà» lo sarebbe per
+// chi una l'ha già fatta. Un sottotitolo che non nomina la sorgente non può
+// diventare falso quando la sorgente cambia.
+const SFIORATE_SOTTOTITOLO = "Sono le piste che si sono accese finora: la prossima attività dirà quali reggono.";
 
 export function copiaUnicaAttivita(origine: OrigineSegnale): CopiaUnicaAttivita {
   if (origine === "missione") {
@@ -41,7 +47,7 @@ export function copiaUnicaAttivita(origine: OrigineSegnale): CopiaUnicaAttivita 
         "Nella missione che hai fatto qualcosa si è già acceso: lo trovi nel suo riepilogo. Ma quello racconta QUELLA partita. Un'affinità è una cosa che diciamo su di te, e la diciamo solo quando un segnale ritorna in una situazione diversa. Fanne un'altra e cominciamo a metterle in fila.",
       cta: "Fai un'altra missione",
       sfiorateTitolo: SFIORATE_TITOLO,
-      sfiorateSottotitolo: "Sono le piste della tua prima missione: la prossima attività dirà quali reggono.",
+      sfiorateSottotitolo: SFIORATE_SOTTOTITOLO,
     };
   }
 
@@ -49,10 +55,10 @@ export function copiaUnicaAttivita(origine: OrigineSegnale): CopiaUnicaAttivita 
     return {
       titolo: TITOLO,
       corpo:
-        "Nei test qualcosa si è già acceso: lo trovi nel riepilogo di ognuno. Ma un test racconta come ti vedi. Un'affinità è una cosa che diciamo su di te, e la diciamo quando lo stesso segnale ritorna in una situazione diversa — una in cui hai fatto qualcosa, non in cui l'hai dichiarato. La prima missione è quella situazione.",
+        "Nei test qualcosa si è già acceso: lo trovi nel riepilogo di ognuno. Ma un test racconta come ti vedi. Un'affinità è una cosa che diciamo su di te, e la diciamo solo quando lo stesso segnale ritorna in una situazione dove hai fatto qualcosa, non dove l'hai dichiarato. La prima missione è quella situazione.",
       cta: "Fai una missione",
       sfiorateTitolo: SFIORATE_TITOLO,
-      sfiorateSottotitolo: "Sono le piste che i test hanno acceso: la prima missione dirà quali reggono.",
+      sfiorateSottotitolo: SFIORATE_SOTTOTITOLO,
     };
   }
 
@@ -63,6 +69,6 @@ export function copiaUnicaAttivita(origine: OrigineSegnale): CopiaUnicaAttivita 
       "Qualcosa si è già acceso, ma per ora è un segnale solo. Un'affinità è una cosa che diciamo su di te, e la diciamo quando lo stesso segnale ritorna in una situazione diversa. Fanne un'altra e cominciamo a metterle in fila.",
     cta: "Vai alle missioni",
     sfiorateTitolo: SFIORATE_TITOLO,
-    sfiorateSottotitolo: "Sono le piste che hai già acceso: la prossima attività dirà quali reggono.",
+    sfiorateSottotitolo: SFIORATE_SOTTOTITOLO,
   };
 }
