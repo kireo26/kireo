@@ -35,18 +35,20 @@ const { misura, stampaRapporto } = require("./misura");
 const { allineamento } = require("../allineamento");
 const { statoProduzione } = require("../vercel");
 const { leggiGuasti, perSpecie } = require("../guasti");
+const { livelli, descriviLivello } = require("../livelli");
 
 const DIR_CONSEGNE = path.join(ROOT, "scripts", "banco", "consegne");
-// Le trappole stanno in una cartella loro: un ruolo per file, così ognuna si
-// lancia da sola. Vanno lette esplicitamente — un `readdirSync` piatto sulla
-// cartella padre non le vedrebbe, e il file finirebbe ignorato in silenzio
-// (il modo peggiore di fallire: «nessun ruolo corrisponde» invece di un
-// errore).
+// Le trappole e le consegne deboli stanno in due cartelle loro: un ruolo per
+// file, così ognuna si lancia da sola. Vanno lette esplicitamente — un
+// `readdirSync` piatto sulla cartella padre non le vedrebbe, e il file
+// finirebbe ignorato in silenzio (il modo peggiore di fallire: «nessun ruolo
+// corrisponde» invece di un errore).
 const DIR_TRAPPOLE = path.join(DIR_CONSEGNE, "trappole");
+const DIR_DEBOLI = path.join(DIR_CONSEGNE, "deboli");
 
 function fileConsegne() {
   const elenco = [];
-  for (const dir of [DIR_CONSEGNE, DIR_TRAPPOLE]) {
+  for (const dir of [DIR_CONSEGNE, DIR_TRAPPOLE, DIR_DEBOLI]) {
     if (!fs.existsSync(dir)) continue;
     for (const f of fs.readdirSync(dir)) if (f.endsWith(".json")) elenco.push(path.join(dir, f));
   }
@@ -75,12 +77,21 @@ async function cancelloApertoPerIWorkshop(sessione) {
 
 // Il piano della passata: quali ruoli, e quanto costa. Puro, così il conto si
 // può provare senza toccare la rete (vedi npm run test:robot).
-// UNA TRAPPOLA NON ENTRA NELLA PASSATA COMPLETA, e non è una questione di
-// conti. Gira sullo stesso ruolo di una `base` con una consegna diversa:
-// nella stessa passata sarebbero due iscrizioni sullo stesso workshop per lo
-// stesso account, e la seconda troverebbe la prima già completata. Le trappole
-// si lanciano per nome, una alla volta — `npm run banco robot defibrillatore`
-// — che è anche il modo in cui si vuole rileggerle.
+//
+// LA PASSATA COMPLETA GIOCA SOLO LE `base`, e non è una questione di conti.
+// Ogni altro livello — una trappola, una consegna debole — gira sullo stesso
+// ruolo di una base con un corpo di risposte diverso: nella stessa passata
+// sarebbero due iscrizioni sullo stesso workshop per lo stesso account, e la
+// seconda troverebbe la prima già completata. Si chiamano per nome, una alla
+// volta — `npm run banco robot defibrillatore`, `npm run banco robot debole` —
+// che è anche il modo in cui si vogliono rileggere.
+//
+// E UNA PASSATA NE GIOCA UNO SOLO. I numeri di una base e quelli di una
+// consegna debole non sono confrontabili: mescolarli in un rapporto vorrebbe
+// dire pubblicare una distribuzione che non descrive niente. Il piano lo
+// rileva (`misto`) e chi chiama si ferma — la guardia sta qui e non nei nomi
+// dei file, perché un filtro può prendere due livelli senza che nessuno abbia
+// scelto male un nome.
 function costruisciPiano(filtro) {
   const lavori = [];
   for (const f of fileConsegne()) {
@@ -90,16 +101,15 @@ function costruisciPiano(filtro) {
     for (const [ruoloSlug, consegne] of Object.entries(dati.ruoli ?? {})) {
       const def = definizioni[ruoloSlug];
       if (!def) continue;
-      // Una trappola ha un nome suo, e il filtro deve poterla prendere per
-      // quello: «npm run banco robot defibrillatore».
       const etichetta = `${dati.workshop} > ${ruoloSlug}`;
-      // Una trappola si prende SOLO per il suo nome o per il suo file, mai per
-      // il workshop o il ruolo: chi scrive «palestra» vuole i cinque ruoli
-      // base, e trovarsi dentro anche una trappola sarebbe una sorpresa a
-      // pagamento. `defibrillatore` la prende, `palestra` no.
-      const trappola = consegne.livello === "trappola";
-      const cercabile = (trappola ? `${consegne.nome ?? ""} ${path.basename(f, ".json")}` : etichetta).toLowerCase();
-      if (!filtro && trappola) continue;
+      // Tutto ciò che non è una `base` è un SECONDO GIRO sullo stesso ruolo:
+      // si prende SOLO per il suo nome o per il suo file, mai per il workshop
+      // o per il ruolo. Chi scrive «palestra» vuole i cinque ruoli base, e
+      // trovarsi dentro anche una trappola (o una consegna debole) sarebbe una
+      // sorpresa a pagamento.
+      const secondoGiro = consegne.livello !== "base";
+      const cercabile = (secondoGiro ? `${consegne.nome ?? ""} ${path.basename(f, ".json")}` : etichetta).toLowerCase();
+      if (!filtro && secondoGiro) continue;
       if (filtro && !cercabile.includes(String(filtro).toLowerCase())) continue;
       // 2 chiamate per tappa (revisione + reazione) + la chat minima, e un
       // feedback finale sull'ultima.
@@ -112,7 +122,7 @@ function costruisciPiano(filtro) {
         fasi: def.fasi,
         chiamate,
         livello: consegne.livello,
-        trappola,
+        secondoGiro,
         nome: consegne.nome ?? null,
         atteso: consegne.atteso ?? null,
       });
@@ -122,6 +132,7 @@ function costruisciPiano(filtro) {
     lavori,
     chiamate: lavori.reduce((s, l) => s + l.chiamate, 0),
     tappe: lavori.reduce((s, l) => s + l.fasi.length, 0),
+    livelli: livelli(lavori),
   };
 }
 
@@ -184,12 +195,41 @@ async function robot(filtro) {
     return;
   }
 
+  // UNA PASSATA GIOCA UN LIVELLO SOLO, e se il filtro ne ha presi due ci si
+  // ferma prima di spendere. Non è una precauzione teorica: «salute» prende la
+  // base `palestra-popolare > salute` e insieme la consegna debole che porta
+  // quella parola nel nome, e il rapporto che ne uscirebbe mescolerebbe i
+  // punteggi di due ingressi di qualità diversa in una distribuzione sola.
+  if (piano.livelli.misto) {
+    console.log("");
+    console.log(`Il filtro «${filtro}» prende consegne di livelli diversi: ${piano.livelli.distinti.join(", ")}.`);
+    console.log("Una passata ne gioca uno solo — i numeri di una base e quelli di una consegna");
+    console.log("debole non stanno nella stessa distribuzione.\n");
+    for (const l of piano.lavori) console.log(`  · [${l.livello}] ${l.etichetta}${l.nome ? `   «${l.nome}»` : ""}`);
+    console.log("\nRestringi il filtro: le consegne che non sono `base` si chiamano per nome.\n");
+    return;
+  }
+  if (piano.livelli.sconosciuti.length > 0) {
+    console.log(`\nLivello non riconosciuto nei file di consegne: ${piano.livelli.sconosciuti.join(", ")}.`);
+    console.log("I livelli previsti sono base, trappola e debole. Controlla con: npm run test:consegne\n");
+    return;
+  }
+
   console.log(`\n═══════════ LA PASSATA ═══════════\n`);
-  console.log(`  ${piano.lavori.length} ruoli, ${piano.tappe} tappe`);
+  // Il livello per primo: qualifica tutto quello che segue, compresi i
+  // punteggi. Un rapporto che non dice con che cosa ha giocato fa leggere una
+  // differenza di ingresso come un cambiamento del prodotto.
+  console.log(`  CONSEGNE DI LIVELLO: ${piano.livelli.unico ?? "?"}`);
+  console.log(`  (${descriviLivello(piano.livelli.unico)})\n`);
+  // «1 ruoli» si legge come una svista, e una svista in una riga di riepilogo
+  // fa dubitare del riepilogo (stessa regola già scritta per l'appello). Da
+  // quando i livelli diversi dalla base si giocano un ruolo alla volta, il
+  // singolare è il caso normale, non un'eccezione.
+  console.log(`  ${piano.lavori.length} ${piano.lavori.length === 1 ? "ruolo" : "ruoli"}, ${piano.tappe} tappe`);
   console.log(`  ~${piano.chiamate} chiamate AI a pagamento`);
   console.log(`  (2 per tappa — revisione e reazione del cliente — più la chat minima,`);
   console.log(`   più un feedback finale per ruolo)\n`);
-  for (const l of piano.lavori) console.log(`  · ${l.etichetta}${l.livello === "trappola" ? `   [trappola: ${l.nome ?? "senza nome"}]` : ""}`);
+  for (const l of piano.lavori) console.log(`  · ${l.etichetta}${l.secondoGiro ? `   [${l.livello}: ${l.nome ?? "senza nome"}]` : ""}`);
   console.log("\n  Il robot gioca come uno studente vero: se un gate lo blocca si ferma");
   console.log("  e lo riporta, invece di aggirarlo.\n");
 
@@ -268,14 +308,14 @@ async function robot(filtro) {
         ruoloSlug: lavoro.ruoloSlug,
         consegne: lavoro.consegne,
         fasi: lavoro.fasi,
-        // Una trappola è per definizione un secondo giro sullo stesso ruolo:
-        // il rifiuto «già completato», che protegge la misura dal contare due
-        // volte gli stessi testi, qui non si applica.
-        rigioca: Boolean(lavoro.trappola),
+        // Una trappola e una consegna debole sono per definizione un secondo
+        // giro sullo stesso ruolo: il rifiuto «già completato», che protegge la
+        // misura dal contare due volte gli stessi testi, qui non si applica.
+        rigioca: Boolean(lavoro.secondoGiro),
         registra: (t) => console.log(t),
       });
       if (esito.fermato) console.log(`  ✗ fermato a «${esito.fermato.dove}»: ${esito.fermato.perche}`);
-      esiti.push({ ...esito, nome: lavoro.nome, atteso: lavoro.atteso });
+      esiti.push({ ...esito, livello: lavoro.livello, nome: lavoro.nome, atteso: lavoro.atteso });
     } catch (errore) {
       console.log(`  ✗ eccezione: ${errore.message}`);
       // Un'eccezione NON è un cancello: è un guasto. Marcarla come tale è
@@ -285,6 +325,10 @@ async function robot(filtro) {
       // esiste per non fare.
       esiti.push({
         etichetta: lavoro.etichetta,
+        // Anche qui: un ruolo caduto per un'eccezione deve portare il suo
+        // livello, o il rapporto direbbe «non lo so» per una passata che lo
+        // sapeva benissimo.
+        livello: lavoro.livello,
         nome: lavoro.nome,
         atteso: lavoro.atteso,
         tappe: [],

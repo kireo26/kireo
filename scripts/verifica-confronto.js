@@ -118,6 +118,27 @@ ok(pulitaDavvero.tappe.length === 0 && pulitaDavvero.noto === true, "una passata
 const vecchia = pulizia({ esiti: [{ etichetta: "w > uno", tappe: [{ faseId: "t1" }] }] }, "prima");
 ok(vecchia.noto === false && vecchia.tappe.length === 0, "un rapporto di prima dichiara di non poterlo dire: è la stessa regola di «non posso vederle»");
 
+// ── E CON CHE COSA SONO STATE GIOCATE ───────────────────────────────────────
+// Viene prima ancora della pulizia. Due passate sullo stesso identico codice,
+// una con le consegne buone e una con quelle deboli, DEVONO dare numeri
+// diversi — ed è la lettura per cui quell'accostamento serve. Ma se nessuno
+// dice qual era l'ingresso, quella differenza si legge come una modifica del
+// prodotto: esattamente il rischio che Mario ha nominato chiedendo la seconda
+// serie.
+console.log("");
+const { ingressiConfrontabili } = require("./banco/confronta");
+const conLivello = (l) => ({ esiti: [{ etichetta: "w > salute", livello: l, tappe: [] }] });
+
+const stessoIngresso = ingressiConfrontabili(conLivello("base"), conLivello("base"));
+ok(stessoIngresso.noti && !stessoIngresso.diversi, "due passate con le stesse consegne si confrontano senza avvisi");
+
+const ingressiDiversi = ingressiConfrontabili(conLivello("base"), conLivello("debole"));
+ok(ingressiDiversi.diversi === true, "base contro debole: il confronto NON parla del prodotto, e va detto");
+ok(ingressiDiversi.a.unico === "base" && ingressiDiversi.b.unico === "debole", "…dicendo quale delle due ha giocato cosa");
+
+const unaVecchia = ingressiConfrontabili(conLivello("base"), { esiti: [{ etichetta: "w > salute", tappe: [] }] });
+ok(unaVecchia.noti === false && unaVecchia.diversi === false, "se una delle due non lo dichiara non si inventa un verdetto: si dice che non si sa");
+
 console.log("\n═══════════════════════════════════════════\n");
 if (falliti) { console.error(`✗ ${falliti} controlli falliti.\n`); process.exit(1); }
-console.log("✓ Le due passate si confrontano, l'inversione sa cosa fare di un pari merito,\n  e si sa se erano pulite.\n");
+console.log("✓ Le due passate si confrontano, l'inversione sa cosa fare di un pari merito,\n  si sa se erano pulite e con che cosa sono state giocate.\n");

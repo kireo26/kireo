@@ -42,6 +42,7 @@ const { trovaRegistro } = require("@/lib/lingua/registroStudente");
 const { stringheInJson } = require("@/lib/lingua/scansione");
 const { verificaAtteso } = require("./atteso");
 const { riprese, descriviRipresa } = require("../riprese");
+const { livelli, descriviLivello } = require("../livelli");
 
 // Una cattura senza la frase intorno non si rilegge: `dove` dice in quale
 // campo sta, non cosa c'era scritto. E qui serve più che altrove, perché i
@@ -364,6 +365,11 @@ function misura(esiti, attesi = null) {
 
   return {
     completezza: verificaCompletezza(esiti, attesi),
+    // CON CHE COSA È STATA GIOCATA. Dal 20/09 lo stesso ruolo si può giocare
+    // con due corpi di risposte di qualità nota diversa, e i numeri che ne
+    // escono non sono confrontabili. Si ricava dagli esiti e non dal piano, che
+    // qui non arriva sempre: un rapporto vecchio non ha il campo e lo dice.
+    livelli: livelli(esiti),
     // Quali tappe NON sono state giocate da zero. Non è un difetto — riprendere
     // invece di rifare è la cosa giusta — ma qualifica tutto il resto del
     // rapporto, e soprattutto qualsiasi confronto con un'altra passata.
@@ -436,7 +442,33 @@ function stampaRapporto(m, righe = console.log) {
 
   di("\n═══════════ LA MISURA ═══════════\n");
 
-  // L'APPELLO, per primo. Non è una misura sui testi: è la domanda se il
+  // CON CHE COSA È STATA GIOCATA, prima di tutto il resto — perfino prima
+  // dell'appello. Non è una misura: è la dichiarazione dell'INGRESSO, e senza
+  // di lei ogni numero qui sotto è un numero senza unità. Due rapporti
+  // accostati fra un mese leggerebbero come un cambiamento del prodotto una
+  // differenza che è solo di consegne.
+  const liv = m.livelli;
+  if (liv) {
+    if (liv.misto) {
+      di(`LIVELLO DELLE CONSEGNE: MISTO — ${liv.distinti.join(", ")}`);
+      di("  Questa passata ha mescolato consegne di qualità diversa, e i suoi numeri");
+      di("  non descrivono niente: una distribuzione costruita su due ingressi diversi");
+      di("  non è la distribuzione di nessuno dei due. Il robot dovrebbe rifiutarsi di");
+      di("  partire su un piano così — se questo rapporto esiste, la guardia non ha");
+      di("  funzionato e va guardata prima dei numeri.\n");
+    } else if (!liv.noto) {
+      di("LIVELLO DELLE CONSEGNE: non lo so");
+      di("  Questi esiti sono stati scritti prima che il banco registrasse il livello.");
+      di("  Non vuol dire «base»: vuol dire che non si può dire, e che un confronto con");
+      di("  una passata dichiarata va letto sapendolo.\n");
+    } else {
+      di(`LIVELLO DELLE CONSEGNE: ${liv.unico}`);
+      di(`  ${descriviLivello(liv.unico)}`);
+      di("");
+    }
+  }
+
+  // L'APPELLO, subito dopo. Non è una misura sui testi: è la domanda se il
   // rapporto che segue parla di tutti o solo di quelli che si sono fatti
   // vedere. Se il piano diceva cinque e gli esiti sono quattro, il quinto è
   // sparito senza lasciare traccia in nessuna delle tre liste — e quello è il

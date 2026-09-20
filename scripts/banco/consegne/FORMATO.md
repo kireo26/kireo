@@ -70,9 +70,22 @@ ne servivano: non ne inventa.
 Se ne dai **più** del necessario, manda solo quelli che servono — ogni messaggio
 è una chiamata a pagamento, e il tetto per tappa è comunque 10.
 
-### `livello` — `"base"` oppure `"trappola"`
+### `livello` — `"base"`, `"trappola"` oppure `"debole"`
 
-Sono due cose diverse e il robot le tratta diversamente.
+Sono tre cose diverse e il robot le tratta diversamente. **Non sono tre gradi
+della stessa scala: sono tre domande.**
+
+| livello | la domanda |
+|---|---|
+| `base` | funziona per tutti e venticinque? |
+| `trappola` | c'è dentro un difetto noto: il revisore lo vede? |
+| `debole` | due ingressi di qualità nota: il punteggio distingue? |
+
+**Una passata ne gioca UNO SOLO**, e il rapporto dice quale. Il robot lo
+controlla sul piano, prima di spendere: se il filtro ha preso due livelli si
+ferma e lo dice. La guardia non sta nei nomi dei file perché un filtro può
+prendere due livelli comunque — «salute» prende la base per etichetta e la
+consegna debole per nome.
 
 **`base`** risponde a *«funziona per tutti e venticinque?»*. Nessun esito
 atteso: il robot registra quello che succede e basta. Serve a trovare i guasti
@@ -188,6 +201,39 @@ prometeva che «il robot dice se è stato colto», e per una settimana `atteso`
 trappola sarebbe girata producendo solo del testo da leggere — cioè la cosa
 per cui non serviva costruirla.*
 
+### `debole` — una consegna di qualità volutamente bassa
+
+Sta in `scripts/banco/consegne/deboli/<nome>.json`, un ruolo per file, con un
+`nome` obbligatorio: si chiama per quello, mai per il ruolo.
+
+**Perché esiste.** Il 20/09 la rubrica del punteggio di tappa è andata in
+produzione e la passata di `palestra` ha dato quattro valori distinti su venti
+tappe. La lettura giusta non era «la rubrica non funziona»: era che *la
+dispersione dei voti era stata misurata su una popolazione che non ne aveva* —
+le venti consegne le aveva scritte una persona sola, tutte bene. Con un ingresso
+solo, «i numeri sono tutti simili» non separa **la rubrica non distingue** da
+**i lavori non erano diversi**. Servono due ingressi di qualità nota.
+
+**Come si scrive, e questa è la parte difficile.** Non è una caricatura: è la
+consegna di uno studente che ha fatto il compito. Nomina i problemi giusti, sta
+in tema, riempie tutte le sezioni — ma non scende mai su un caso, non ha una
+cifra con una provenienza, e dove la sezione chiede una scelta che costa
+risponde con un principio. Scritta assurda non servirebbe: un revisore la boccia
+e non si impara niente sul confine che interessa.
+
+**È un corpo a sé, non la base con dei buchi.** Se le mancasse una sezione, la
+passata proverebbe `sezioniIncomplete` invece della rubrica — e il numero che ne
+uscirebbe direbbe «la tappa non si consegna», non «questo lavoro regge meno».
+`npm run test:consegne` lo controlla in due modi: la tappa deve consegnarsi (lo
+stesso gate delle `base`) e deve riempire **le stesse sezioni della base dello
+stesso ruolo**, confrontate col file vero e non con un elenco scritto a mano.
+
+**Il metro si scrive prima**, come per ogni prova di questo banco: quali
+punteggi ci si aspetta, e quale risultato vorrebbe dire *smetti*. Per la prima
+(`salute`): con le ancore la consegna deve stare in 6-11 su quasi tutte le
+tappe; **se prende 16 o più, il numero non distingue** — e allora la strada non
+è riscrivere le ancore, è togliere la barra 0-100.
+
 ### Come si lancia una trappola
 
 ```
@@ -196,13 +242,15 @@ npm run banco robot defibrillatore
 
 Per **nome**, o per il nome del file — mai per workshop o per ruolo: chi scrive
 `palestra` vuole i cinque ruoli base, e trovarsi dentro anche una trappola
-sarebbe una sorpresa a pagamento. Per lo stesso motivo **le trappole non
-entrano nella passata completa**: girano sullo stesso ruolo di una `base`, e
-nella stessa passata sarebbero due iscrizioni sullo stesso workshop per lo
+sarebbe una sorpresa a pagamento. Vale identico per una consegna debole
+(`npm run banco robot debole`). Per lo stesso motivo **solo le `base` entrano
+nella passata completa**: tutto il resto gira sullo stesso ruolo di una `base`,
+e nella stessa passata sarebbero due iscrizioni sullo stesso workshop per lo
 stesso account.
 
-Una trappola è l'unico caso in cui il robot rigioca un ruolo che ha già
-completato: è un'altra consegna sullo stesso ruolo, ed è il punto. Costa il
+Una trappola e una consegna debole sono i casi in cui il robot rigioca un ruolo
+che ha già completato: è un'altra consegna sullo stesso ruolo, ed è il punto.
+Costa il
 giro intero (22 chiamate per un ruolo da quattro tappe) anche quando la
 trappola sta nella terza: le tappe sono gated, la terza si apre solo dopo che
 le prime due sono state revisionate.
@@ -261,3 +309,9 @@ Le `trappola` sono cinque o sei in tutto, non venticinque, e stanno in
 `scripts/banco/consegne/trappole/<nome>.json` con la stessa forma — un ruolo
 solo per file, così ognuna si può lanciare da sola quando si vuole riprovare
 proprio quella.
+
+Le `debole` stanno in `scripts/banco/consegne/deboli/<nome>.json`, stessa forma
+e stesso principio. Ce n'è **una** (agosto→settembre 2026: `salute-debole`), e
+una basta per la domanda per cui è nata. Ne serviranno altre solo se un giorno
+la risposta risultasse ambigua: lì la strada è più ruoli deboli, non ancore
+riscritte.

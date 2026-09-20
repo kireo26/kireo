@@ -1,0 +1,83 @@
+{
+  "workshop": "palestra-popolare",
+  "_nota": "Le undici sezioni le ha scritte Mario (20/09). La chat l'ho scritta io: il file ne ha bisogno per arrivare al minimo di ogni tappa, e il robot non inventa messaggi. Nessun revisore che produce un punteggio legge la chat — verificato in app/api/cron/workshop-motore/route.ts: promptRevisore riceve il contenuto della tappa, promptFeedbackFinale il contenuto intero, e solo promptModoDiLavorare riceve le domande. Quindi la qualità della chat non tocca la cosa che questa prova misura; tocca il blocco «come hai lavorato», che si legge a parte.",
+  "_una_cosa_allungata": "«una_cosa» arrivava a 145 caratteri e il minimo della sezione è 150: la tappa non si sarebbe consegnata. Ho aggiunto la coda «qualunque sia la loro età e la loro condizione», che resta nello stesso registro — generica, nessun caso, nessuna cifra. È l'unica riga di sezione che non è di Mario, e sta scritto qui perché non passi per sua.",
+  "ruoli": {
+    "salute": {
+      "livello": "debole",
+      "nome": "salute, consegna debole",
+      "tappe": {
+        "quartiere_programma": {
+          "sezioni": {
+            "ricognizione": "Nel quartiere ci sono molte persone che non fanno attività fisica, e le ragioni sono diverse. Spesso il problema è economico, perché le palestre private hanno costi che non tutte le famiglie possono sostenere. C'è anche una questione culturale: in alcune fasce della popolazione lo sport non è visto come una priorità, e questo vale soprattutto per gli adulti e per gli anziani. I giovani passano molto tempo davanti agli schermi e fanno meno movimento rispetto a una volta. Una palestra popolare può rispondere a questi bisogni offrendo attività accessibili a tutti, in un ambiente accogliente e non competitivo, dove le persone si sentano a proprio agio indipendentemente dal loro livello di partenza. L'obiettivo è che chiunque nel quartiere possa trovare un'attività adatta a sé.",
+            "programma_settimanale": [
+              ["Lunedì", "Pomeriggio", "Boxe per ragazzi", "Giovani", "Istruttore qualificato"],
+              ["Martedì", "Mattina", "Ginnastica dolce", "Anziani", "Istruttore qualificato"],
+              ["Mercoledì", "Pomeriggio", "Boxe per ragazzi", "Giovani", "Istruttore qualificato"],
+              ["Giovedì", "Pomeriggio", "Attività per bambini", "Bambini", "Educatore"],
+              ["Venerdì", "Sera", "Attività libera", "Tutti", "Istruttore qualificato"],
+              ["Sabato", "Mattina", "Palestra aperta", "Tutti", "Volontari"]
+            ],
+            "priorita": "Partirei da tutte le attività principali, perché ognuna risponde a un bisogno reale del quartiere e sarebbe un peccato escluderne qualcuna fin dall'inizio. La boxe è importante perché è l'attività che Tonino conosce meglio, ma anche le attività per gli anziani e per i bambini sono fondamentali per il ruolo sociale della palestra. L'idea è partire con un programma completo e poi aggiustare in base a come rispondono le persone."
+          },
+          "chat": [
+            "Tonino, secondo te quali sono i bisogni principali del quartiere?",
+            "Che tipo di attività pensi che possano funzionare meglio qui?",
+            "Ti sembra giusto fare un programma che copra un po' tutte le fasce d'età?"
+          ]
+        },
+        "persone_qualifiche": {
+          "sezioni": {
+            "figure": [
+              ["Istruttore di boxe", "Qualifica federale", "Da definire", "Da valutare"],
+              ["Istruttore per adulti e anziani", "Laurea in Scienze motorie", "Da definire", "Da valutare"],
+              ["Educatore per i bambini", "Titolo adeguato", "Da definire", "Da valutare"],
+              ["Personale formato per le emergenze", "Certificazione", "Presente sempre", "Da valutare"],
+              ["Volontari", "Nessuna", "Variabile", "0"]
+            ],
+            "reclutamento": "Le persone verranno cercate attraverso il passaparola nel quartiere e con annunci, rivolgendosi anche alle associazioni sportive del territorio. È importante che chi lavora qui condivida i valori del progetto: la palestra non è un posto come un altro, e serve gente motivata che creda in quello che si sta facendo. Per le figure qualificate ci si rivolgerà a chi ha i titoli previsti dalla normativa, mentre per le attività di supporto si punterà sui volontari, che sono una risorsa importante per una realtà di quartiere. Il coinvolgimento della comunità è uno degli aspetti più importanti di questo progetto.",
+            "tonino_tecnico": "Tonino dovrà mettersi in regola ottenendo le certificazioni previste dalla normativa per poter insegnare. Ci informeremo presso la federazione competente su quali siano i passaggi necessari e su come procedere. È importante che tutto sia in ordine dal punto di vista formale, sia per lui sia per la copertura assicurativa dei ragazzi."
+          },
+          "chat": [
+            "Tonino, che caratteristiche dovrebbero avere le persone che lavorano in palestra?",
+            "Pensi che si possa contare sui volontari del quartiere?",
+            "Per le qualifiche conviene rivolgersi alla federazione?"
+          ]
+        },
+        "sicurezza": {
+          "sezioni": {
+            "certificati": "Tutti i partecipanti dovranno presentare il certificato medico previsto dalla legge per l'attività sportiva. A seconda del tipo di attività il certificato richiesto può essere diverso, quindi ci informeremo su quale serve per ciascun corso. La segreteria verificherà che i certificati siano presenti e in corso di validità, e non sarà possibile partecipare alle attività senza. È una questione di sicurezza ma anche di responsabilità per l'associazione.",
+            "checklist_sicurezza": {
+              "voci": {
+                "Certificato medico per tutti i tesserati": true,
+                "Defibrillatore (DAE) in sala, segnalato": true,
+                "Almeno un operatore BLSD a ogni turno": true,
+                "Cassetta di primo soccorso e numeri di emergenza": true,
+                "Registro infortuni": true
+              },
+              "nota": "La sicurezza è una priorità assoluta e verranno rispettate tutte le norme vigenti in materia. Gli investimenti necessari saranno previsti nel budget."
+            },
+            "protocollo_infortuni": "In caso di infortunio la cosa più importante è mantenere la calma e non farsi prendere dal panico. Bisogna valutare la situazione e capire la gravità di quello che è successo, e se la situazione è seria va chiamato immediatamente il 118. Nel frattempo si presta la prima assistenza alla persona coinvolta, senza fare manovre azzardate se non si è competenti. In palestra sarà sempre presente personale formato per la gestione delle emergenze, con la certificazione necessaria, e questo garantisce che ci sia sempre qualcuno in grado di intervenire nel modo giusto. Verranno inoltre avvisati i familiari, soprattutto nel caso di minori. Tutti gli infortuni verranno registrati per tenerne traccia. La sicurezza di chi frequenta la palestra è la nostra priorità e non verranno fatti compromessi su questo aspetto."
+          },
+          "chat": [
+            "Tonino, quali sono le norme di sicurezza da rispettare in una palestra come questa?",
+            "Il certificato medico serve per tutte le attività o solo per alcune?",
+            "Secondo te è importante avere personale formato per le emergenze?"
+          ]
+        },
+        "pitch": {
+          "sezioni": {
+            "sintesi": "La palestra popolare vuole essere un punto di riferimento per il quartiere, un posto dove chiunque possa fare attività fisica senza barriere economiche o culturali. Il programma prevede diverse attività rivolte a tutte le fasce d'età: boxe per i ragazzi, ginnastica per gli anziani, attività per i bambini e spazi aperti a tutti. Le persone che ci lavoreranno saranno qualificate e formate, e la sicurezza sarà garantita nel rispetto di tutte le normative. Le quote saranno contenute e per i minori sono previste agevolazioni, perché nessuno deve restare fuori per motivi economici. L'investimento iniziale servirà a sistemare lo spazio e ad acquistare le attrezzature necessarie. Il valore di questo progetto sta nel suo essere radicato nel quartiere e nel rispondere a un bisogno reale delle persone che ci vivono.",
+            "una_cosa": "Che questa palestra è di tutti e per tutti, e che nessuno viene lasciato fuori. È un posto dove le persone del quartiere possono sentirsi a casa, qualunque sia la loro età e la loro condizione."
+          },
+          "chat": [
+            "Tonino, siamo all'ultima parte. Ti sembra che il progetto stia in piedi?",
+            "Qual è secondo te il messaggio più importante da far passare?",
+            "C'è qualcosa che vuoi che venga messo in evidenza?",
+            "Pensi che il quartiere risponderà bene a questa proposta?"
+          ]
+        }
+      }
+    }
+  }
+}

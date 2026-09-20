@@ -30,6 +30,9 @@ const { execSync } = require("child_process");
 // dentro `misura.js` apposta — quel modulo tira dentro il transpilatore
 // TypeScript per leggere il prodotto, e il confronto non deve dipenderne.
 const { riprese, descriviRipresa } = require("./riprese");
+// Stessa ragione: una seconda definizione di «livello» divergerebbe dalla
+// prima, e questo è il comando in cui la differenza fa più danno.
+const { livelli, descriviLivello } = require("./livelli");
 
 // ── le quantità, pure: si provano senza file (npm run test:confronto) ───────
 
@@ -125,6 +128,18 @@ function pulizia(rapporto, nome) {
   return { nome, ...r };
 }
 
+// CON CHE COSA SONO STATE GIOCATE. È la domanda che viene prima ancora di
+// quella sulla pulizia: due passate sullo stesso identico codice, una con le
+// consegne buone e una con quelle deboli, DEVONO dare numeri diversi — e se
+// nessuno dice qual era l'ingresso, quella differenza si legge come una
+// modifica del prodotto. Puro: `npm run test:confronto` lo prova senza file.
+function ingressiConfrontabili(a, b) {
+  const la = livelli(a.esiti ?? []);
+  const lb = livelli(b.esiti ?? []);
+  const noti = la.noto && lb.noto && !la.misto && !lb.misto;
+  return { a: la, b: lb, noti, diversi: noti && la.unico !== lb.unico };
+}
+
 function commitFra(a, b) {
   if (!a?.sha || !b?.sha || a.sha === b.sha) return null;
   try {
@@ -172,7 +187,27 @@ function confronta(fileA, fileB) {
     console.log("\n  Cosa è cambiato in mezzo: non ricostruibile (uno dei due rapporti non porta il commit).");
   }
 
-  // Prima dei numeri, non dopo: se una delle due passate non è pulita, i
+  // L'INGRESSO, prima ancora della pulizia. Se le due passate hanno giocato
+  // consegne di livello diverso, i numeri qui sotto non stanno confrontando il
+  // prodotto: stanno confrontando due studenti diversi.
+  const ing = ingressiConfrontabili(a, b);
+  const dilivello = (l) => (l.misto ? `MISTO (${l.distinti.join(", ")})` : l.noto ? l.unico : "non dichiarato");
+  console.log(`\n  Consegne giocate — prima: ${dilivello(ing.a)}   dopo: ${dilivello(ing.b)}`);
+  if (ing.diversi) {
+    console.log("\n─── ATTENZIONE: NON È UN CONFRONTO SUL PRODOTTO\n");
+    console.log(`  La prima ha giocato consegne «${ing.a.unico}», la seconda «${ing.b.unico}».`);
+    console.log(`    ${ing.a.unico}: ${descriviLivello(ing.a.unico)}`);
+    console.log(`    ${ing.b.unico}: ${descriviLivello(ing.b.unico)}`);
+    console.log("  I numeri qui sotto DEVONO venire diversi, e la differenza non dice niente");
+    console.log("  su quanto è cambiato il codice: dice quanto erano diverse le due consegne.");
+    console.log("  È l'unica lettura per cui questo accostamento serve — se cercavi un delta");
+    console.log("  del prodotto, ti serve una passata dello stesso livello.");
+  } else if (!ing.noti) {
+    console.log("  Almeno una delle due non lo dichiara (o ha mescolato più livelli): il");
+    console.log("  confronto si legge sapendo che l'ingresso potrebbe non essere lo stesso.");
+  }
+
+  // Poi la pulizia: se una delle due passate non è pulita, i
   // numeri qui sotto si leggono diversamente.
   const pulA = pulizia(a, "prima");
   const pulB = pulizia(b, "dopo");
@@ -231,4 +266,4 @@ function confronta(fileA, fileB) {
   console.log("è più utile di un'altra lo decide chi la legge.\n");
 }
 
-module.exports = { confronta, punteggi, scarti, inversioni, affiancaGeneri, pulizia };
+module.exports = { confronta, punteggi, scarti, inversioni, affiancaGeneri, pulizia, ingressiConfrontabili };

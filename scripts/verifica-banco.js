@@ -425,6 +425,47 @@ ok(
   "i punteggi si raccolgono DOPO il salto delle tappe riprese, non prima",
 );
 
+// ── IL LIVELLO DELLE CONSEGNE ───────────────────────────────────────────────
+// Dal 20/09 lo stesso ruolo si può giocare con due corpi di risposte di qualità
+// nota diversa. È l'unico modo di chiedere a un punteggio se DISTINGUE — con un
+// ingresso solo, «i numeri sono tutti simili» non separa «la rubrica non
+// distingue» da «i lavori non erano diversi». Ma due ingressi in una passata
+// sola darebbero una distribuzione che non descrive nessuno dei due.
+console.log("\n── il livello delle consegne, e le due serie che non si mescolano\n");
+
+const { livelli: livelliDi, descriviLivello } = require("./banco/livelli");
+
+const solaBase = livelliDi([{ livello: "base" }, { livello: "base" }]);
+ok(solaBase.noto && solaBase.unico === "base" && !solaBase.misto, "una passata di sole base dichiara «base»");
+
+const mescolata = livelliDi([{ livello: "base" }, { livello: "debole" }]);
+ok(mescolata.misto === true, "due livelli insieme si vedono");
+ok(mescolata.unico === null, "…e una passata mista non ne dichiara uno: sarebbe l'unità di misura sbagliata");
+ok(mescolata.distinti.join(",") === "base,debole", "…e dice quali, così chi legge sa cosa restringere");
+
+// La proprietà che conta più delle altre, ed è la stessa di `riprese`: un
+// rapporto scritto prima che i livelli esistessero non ha il campo, e
+// l'assenza del campo NON è «era una base».
+ok(livelliDi([{ etichetta: "w > a" }]).noto === false, "un esito senza il campo fa dichiarare «non lo so»");
+ok(
+  livelliDi([{ livello: "base" }, { etichetta: "w > b" }]).noto === false,
+  "…e basta UNO senza il campo: fallisce verso «non lo so», non verso il livello degli altri",
+);
+ok(livelliDi([]).noto === false, "nessun esito non è «base»: non c'è niente da dichiarare");
+
+// Un livello inventato domani non deve passare per buono solo perché è una
+// stringa: il robot si ferma e lo nomina, invece di giocarlo come se fosse noto.
+const inventato = livelliDi([{ livello: "medio" }]);
+ok(inventato.sconosciuti.join(",") === "medio", "un livello mai definito viene nominato, non accettato in silenzio");
+ok(livelliDi([{ livello: "trappola" }]).sconosciuti.length === 0, "…e i tre noti passano");
+
+// Ogni livello dice a quale DOMANDA risponde, non solo come si chiama: è la
+// riga che il rapporto stampa accanto al nome, e senza di lei «debole» è
+// un'etichetta che fra sei mesi nessuno sa più perché esiste.
+for (const l of ["base", "trappola", "debole"]) {
+  ok(descriviLivello(l).includes("«"), `«${l}» porta con sé la domanda a cui risponde`);
+}
+
 console.log("\n═══════════════════════════════════════════\n");
 if (falliti) { console.error(`✗ ${falliti} controlli falliti.\n`); process.exit(1); }
 console.log("✓ Ogni esito ha la sua frase, il fallimento non si nasconde dietro un successo,\n  e «non posso vederle» non si legge come «non ci sono».\n");

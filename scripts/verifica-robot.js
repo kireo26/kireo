@@ -39,6 +39,10 @@ const { verificaAtteso } = require("./banco/robot/atteso");
 // ma si leggono), e due letture con due nomi diversi sono due cose che
 // divergono.
 const gioca = fs.readFileSync(path.join(ROOT, "scripts/banco/robot/gioca.js"), "utf8");
+// Lo stesso vale per il sorgente del robot: tre controlli lo guardano, e fino
+// al 20/09 lo leggevano in tre punti con due nomi diversi — che è precisamente
+// la cosa che il commento qui sopra dichiarava di non voler fare.
+const robotIndexSorgente = fs.readFileSync(path.join(ROOT, "scripts/banco/robot/index.js"), "utf8");
 
 let falliti = 0;
 const ok = (cond, msg) => { if (!cond) { console.error("  ✗ " + msg); falliti++; } else { console.log("  ✓ " + msg); } };
@@ -215,6 +219,70 @@ ok(trappole.lavori.length === 1, `il filtro trova la trappola per nome, dentro l
 ok(trappole.lavori[0]?.atteso?.tappa === "sicurezza", "…e si porta dietro l'atteso, altrimenti girerebbe senza verdetto");
 ok(!tutto.lavori.some((l) => l.livello === "trappola"), "la passata completa NON le comprende: girano sullo stesso ruolo di una base, una alla volta");
 ok(costruisciPiano("palestra").lavori.every((l) => l.livello !== "trappola"), "e un filtro per workshop non se le tira dietro a sorpresa: le trappole si chiamano per nome");
+
+// ── il livello delle consegne, e le due serie che non si mescolano ─────────
+// Dal 20/09 lo stesso ruolo si può giocare con due corpi di risposte di qualità
+// nota diversa — una base e una debole — per rispondere alla domanda che la
+// passata del 20/09 non poteva chiudere: il punteggio DISTINGUE? Mescolarle in
+// una passata sola vorrebbe dire pubblicare una distribuzione costruita su due
+// ingressi, che non è la distribuzione di nessuno dei due.
+console.log("");
+ok(tutto.livelli.unico === "base", "la passata completa gioca solo consegne base");
+ok(!tutto.livelli.misto, "…quindi un livello solo, mai due");
+
+const debole = costruisciPiano("debole");
+ok(debole.lavori.length === 1 && debole.lavori[0].livello === "debole", `il filtro «debole» prende la consegna debole (ne trova ${debole.lavori.length})`);
+ok(debole.lavori[0]?.secondoGiro === true, "…marcata come secondo giro: è un'altra consegna sullo stesso ruolo, quindi si rigioca");
+ok(debole.livelli.unico === "debole" && !debole.livelli.misto, "…e la passata dichiara di aver giocato consegne deboli");
+ok(
+  costruisciPiano("palestra").lavori.every((l) => l.livello === "base"),
+  "un filtro per workshop non tira dentro la debole: come le trappole, si chiama per nome",
+);
+const strettoSulRuolo = costruisciPiano("palestra-popolare > salute");
+ok(
+  strettoSulRuolo.lavori.length === 1 && strettoSulRuolo.lavori[0].livello === "base",
+  "…e nemmeno il filtro stretto sul ruolo: «palestra-popolare > salute» resta la base",
+);
+
+// IL CASO CHE LA GUARDIA DEVE PRENDERE, ed è raggiungibile da una parola sola:
+// «salute» prende la base per etichetta e la debole per nome. Non è un nome
+// scelto male — è che un filtro può prendere due livelli comunque, e per questo
+// la guardia sta nel piano e non nei nomi dei file.
+const misto = costruisciPiano("salute");
+ok(misto.livelli.misto === true, `il filtro «salute» prende due livelli insieme (${misto.livelli.distinti.join(", ")})`);
+ok(misto.livelli.unico === null, "…e non ne dichiara uno: una passata mista non ha un livello");
+
+// E che il robot ci si fermi davvero, prima di spendere: la guardia deve stare
+// PRIMA della conferma, non dopo. Non si prova senza rete (la funzione apre una
+// sessione), ma l'ordine fra due righe si legge — stessa scelta già fatta per
+// l'ordine dei gesti in `gioca.js`.
+const iMisto = robotIndexSorgente.indexOf("piano.livelli.misto");
+// Alla CHIAMATA, non al nome: `chiediConferma(` compare anche nella
+// definizione della funzione, che sta più in alto di tutto il resto — la
+// stessa trappola in cui è caduta la prima stesura del controllo sull'ordine
+// dei gesti in `gioca.js`.
+const iConferma = robotIndexSorgente.indexOf("await chiediConferma(");
+ok(iMisto !== -1, "il robot guarda se il piano ha mescolato i livelli");
+ok(iMisto < iConferma, "…e lo guarda prima della conferma: una passata mista non deve nemmeno essere proposta");
+ok(/livello: lavoro\.livello/.test(robotIndexSorgente), "e ogni esito si porta dietro il suo livello, così il rapporto può dichiararlo");
+ok(
+  (robotIndexSorgente.match(/livello: lavoro\.livello/g) ?? []).length === 2,
+  "…anche il ruolo caduto per un'eccezione: lì il campo si dimentica, e il rapporto direbbe «non lo so» per una passata che lo sapeva",
+);
+
+// Il rapporto lo DICE, e in cima: se non lo dicesse, fra un mese due rapporti
+// accostati leggerebbero come un cambiamento del prodotto una differenza che è
+// solo di ingresso.
+const righeLivello = [];
+stampaRapporto(misura([{ etichetta: "w > a", livello: "debole", tappe: [], fiduciaFinale: 40, feedbackFinale: { punti_forza: ["…"] }, chiuso: true }]), (t = "") => righeLivello.push(t));
+const testoLivello = righeLivello.join("\n");
+ok(/LIVELLO DELLE CONSEGNE: debole/.test(testoLivello), "il rapporto dichiara con che cosa ha giocato");
+ok(/qualità volutamente bassa/.test(testoLivello), "…e che domanda risponde quel livello, non solo il suo nome");
+ok(testoLivello.indexOf("LIVELLO DELLE CONSEGNE") < testoLivello.indexOf("APPELLO"), "…in cima a tutto: è l'unità di misura dei numeri che seguono");
+
+const righeIgnoto = [];
+stampaRapporto(misura([{ etichetta: "w > a", tappe: [], fiduciaFinale: 40, feedbackFinale: { punti_forza: ["…"] }, chiuso: true }]), (t = "") => righeIgnoto.push(t));
+ok(/LIVELLO DELLE CONSEGNE: non lo so/.test(righeIgnoto.join("\n")), "un rapporto vecchio dichiara di non poterlo dire, invece di passare per «base»");
 
 // Il verdetto. `FORMATO.md` prometteva «il robot dice se è stato colto» mentre
 // il campo veniva solo validato nella forma: una trappola sarebbe girata
@@ -557,8 +625,7 @@ ok(/senza pagina finale/.test(stampato), "…e la riga dell'appello lo dice già
 // posto in cui un collegamento mancante si nasconde (la lezione di
 // `registra_guardia_lingua`, che per settimane ha contato tutto come
 // produzione perché nessuno le passava il secondo argomento).
-const robotIndex = fs.readFileSync(path.join(ROOT, "scripts/banco/robot/index.js"), "utf8");
-ok(/misura\(esiti,\s*piano\./.test(robotIndex), "il robot passa il piano alla misura, non solo gli esiti");
+ok(/misura\(esiti,\s*piano\./.test(robotIndexSorgente), "il robot passa il piano alla misura, non solo gli esiti");
 
 // ── lo stato che non dovrebbe esistere ─────────────────────────────────────
 // `sconosciuto` stava in fondo a una riga di percentuali, in mezzo ai numeri
@@ -642,22 +709,21 @@ ok(
 // buona notizia al posto di un'assenza di notizie — ed è precisamente la
 // cecità che questa tabella esiste per chiudere, ricreata un piano più in su.
 console.log("");
-const indice = fs.readFileSync(path.join(ROOT, "scripts/banco/robot/index.js"), "utf8");
-ok(indice.includes("leggiGuasti({"), "il rapporto del robot legge anche i guasti registrati dal motore");
+ok(robotIndexSorgente.includes("leggiGuasti({"), "il rapporto del robot legge anche i guasti registrati dal motore");
 ok(
-  /NON HO GUARDATO/.test(indice) && /zero\./.test(indice),
+  /NON HO GUARDATO/.test(robotIndexSorgente) && /zero\./.test(robotIndexSorgente),
   "…e distingue «zero guasti» da «non ho guardato»: due risposte diverse",
 );
 // La finestra si prende PRIMA del primo ruolo: presa dopo, i guasti del primo
 // ruolo resterebbero fuori dalla lettura senza che niente lo dica.
-const iFinestra = indice.indexOf("const inizioPassata");
-const iPrimoRuolo = indice.indexOf("for (const lavoro of piano.lavori)");
+const iFinestra = robotIndexSorgente.indexOf("const inizioPassata");
+const iPrimoRuolo = robotIndexSorgente.indexOf("for (const lavoro of piano.lavori)");
 ok(
   iFinestra !== -1 && iPrimoRuolo !== -1 && iFinestra < iPrimoRuolo,
   "…e la finestra comincia prima del primo ruolo, non dopo",
 );
 ok(
-  /guasti: visti\.visto/.test(indice),
+  /guasti: visti\.visto/.test(robotIndexSorgente),
   "…e nel file finisce la risposta intera, non solo le righe: fra due mesi la differenza serve ancora",
 );
 

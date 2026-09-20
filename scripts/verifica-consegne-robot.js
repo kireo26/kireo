@@ -89,6 +89,24 @@ function formaGiusta(sezione, valore) {
   }
 }
 
+// LA BASE DELLO STESSO RUOLO, per la proprietà che tiene in piedi la consegna
+// debole: dev'essere un CORPO A SÉ, non la base con dei buchi. Se le mancasse
+// una sezione, la passata proverebbe `sezioniIncomplete` invece della rubrica —
+// e il numero che ne uscirebbe direbbe «la tappa non si consegna», non «questo
+// lavoro regge meno». Il confronto è con il file base vero, non con una lista
+// scritta a mano che invecchierebbe alla prima sezione aggiunta al config.
+function baseDelRuolo(workshop, ruoloSlug) {
+  const f = path.join(DIR, `${workshop}.json`);
+  if (!fs.existsSync(f)) return null;
+  try {
+    const dati = JSON.parse(fs.readFileSync(f, "utf8"));
+    const r = dati.ruoli?.[ruoloSlug];
+    return r && r.livello === "base" ? r : null;
+  } catch {
+    return null;
+  }
+}
+
 function validaFile(rel) {
   console.log(`\n─── ${rel}`);
   let dati;
@@ -108,7 +126,8 @@ function validaFile(rel) {
     if (!def) { ok(false, `${ruoloSlug}: ruolo inesistente in questo workshop`); continue; }
 
     const livello = ruolo.livello;
-    if (livello !== "base" && livello !== "trappola") { ok(false, `${ruoloSlug}: livello «${livello}» — dev'essere "base" o "trappola"`); continue; }
+    const LIVELLI = ["base", "trappola", "debole"];
+    if (!LIVELLI.includes(livello)) { ok(false, `${ruoloSlug}: livello «${livello}» — dev'essere ${LIVELLI.join(", ")}`); continue; }
 
     // Tutte le tappe, altrimenti il robot non arriva in fondo e il feedback
     // finale — quello che ci interessa di più — non si genera mai.
@@ -141,7 +160,10 @@ function validaFile(rel) {
       // IL CONTROLLO CHE VALE: il gate vero, la stessa funzione che girerà
       // quando il robot proverà a consegnare.
       const incomplete = sezioniIncomplete(fase, tappa.sezioni ?? {});
-      if (livello === "base") {
+      if (livello === "base" || livello === "debole") {
+        // Su una `debole` questo controllo è la metà mancante della proprietà:
+        // una consegna debole che non si consegna non misura la rubrica,
+        // misura il gate.
         ok(incomplete.length === 0, `${dove}: la tappa si consegna${incomplete.length ? ` — sotto il minimo: ${incomplete.join(", ")}` : ""}`);
       } else if (incomplete.length > 0) {
         // Su una trappola una sezione lasciata sotto il minimo è LEGITTIMA e
@@ -156,6 +178,33 @@ function validaFile(rel) {
       if (quanti > fase.chatMinima) nota(`${dove}: ${quanti - fase.chatMinima} messaggi oltre il minimo — il robot non li manderà, ogni messaggio è una chiamata`);
       const vuoti = (tappa.chat ?? []).filter((m) => typeof m !== "string" || m.trim() === "").length;
       ok(vuoti === 0, `${dove}: nessun messaggio vuoto`);
+    }
+
+    // ── LA CONSEGNA DEBOLE È UN CORPO A SÉ ─────────────────────────────────
+    // La sua ragione di esistere è misurare se il punteggio DISTINGUE: due
+    // ingressi di qualità nota, e si guarda se i numeri escono diversi. Se
+    // diventasse «la base a cui manca qualcosa», la passata proverebbe il gate
+    // invece della rubrica — e nessuno se ne accorgerebbe leggendo il
+    // rapporto, perché una tappa non consegnata ha comunque un numero: zero.
+    if (livello === "debole") {
+      ok(Boolean(ruolo.nome), `${ruoloSlug}: la consegna debole ha un nome — si chiama per quello, mai per il ruolo`);
+      const base = baseDelRuolo(dati.workshop, ruoloSlug);
+      if (!base) {
+        // Senza la base non si può dire: si dichiara invece di passare per
+        // difetto. Un controllo che tace quando non sa è un controllo che dà
+        // sempre la risposta comoda.
+        nota(`${ruoloSlug}: nessuna consegna base per questo ruolo — non posso confrontare le sezioni riempite`);
+      } else {
+        for (const fase of def.fasi) {
+          const mie = Object.keys(ruolo.tappe?.[fase.id]?.sezioni ?? {}).sort();
+          const loro = Object.keys(base.tappe?.[fase.id]?.sezioni ?? {}).sort();
+          const buchi = loro.filter((s) => !mie.includes(s));
+          ok(
+            buchi.length === 0,
+            `${ruoloSlug}/${fase.id}: riempie le stesse sezioni della base${buchi.length ? ` — le manca ${buchi.join(", ")}, quindi proverebbe sezioniIncomplete invece della rubrica` : ""}`,
+          );
+        }
+      }
     }
 
     if (livello === "trappola") {
@@ -205,13 +254,14 @@ if (!fs.existsSync(DIR)) {
   console.log("\nNessuna cartella scripts/banco/consegne: niente da controllare.\n");
   process.exit(0);
 }
-// Anche le trappole, che stanno in una sottocartella: un `readdirSync` piatto
-// le salterebbe in silenzio, e un file di consegne non controllato è
-// esattamente quello che questo script esiste per impedire.
+// Anche le trappole e le consegne deboli, che stanno in due sottocartelle: un
+// `readdirSync` piatto le salterebbe in silenzio, e un file di consegne non
+// controllato è esattamente quello che questo script esiste per impedire.
 const files = fs.readdirSync(DIR).filter((f) => f.endsWith(".json"));
-const dirTrappole = path.join(DIR, "trappole");
-if (fs.existsSync(dirTrappole)) {
-  for (const f of fs.readdirSync(dirTrappole)) if (f.endsWith(".json")) files.push(path.join("trappole", f));
+for (const sotto of ["trappole", "deboli"]) {
+  const d = path.join(DIR, sotto);
+  if (!fs.existsSync(d)) continue;
+  for (const f of fs.readdirSync(d)) if (f.endsWith(".json")) files.push(path.join(sotto, f));
 }
 if (files.length === 0) {
   console.log("\nNessun file di consegne ancora scritto.\n");

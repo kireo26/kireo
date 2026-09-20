@@ -82,6 +82,12 @@ BANCO DI PROVA — i gesti manuali, fatti dal terminale
       chiede sempre conferma: è l'unico comando che spende, e non c'è un
       modo per saltarla. Il filtro è una sottostringa:
       «palestra», «enoteca > food».
+      Senza filtro gioca le consegne BASE, venticinque ruoli. Gli altri due
+      livelli girano sullo stesso ruolo con un corpo di risposte diverso e
+      si chiamano per nome: «defibrillatore» (una trappola: c'è un difetto
+      noto, il revisore lo vede?), «debole» (una consegna di qualità
+      volutamente bassa: il punteggio distingue?). Una passata ne gioca uno
+      solo — se il filtro ne prende due, il robot si ferma e lo dice.
       Si rifiuta di partire se l'account non è marcato di_prova.
 
   npm run banco studente
