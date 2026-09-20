@@ -27,6 +27,8 @@ abilitaTypeScript();
 
 const testConfig = require("@/lib/test/config");
 const testAssembla = require("@/lib/test/assembla-t3");
+const testScoring = require("@/lib/test/scoring");
+const percorsoStato = require("@/lib/percorso/stato");
 const escapeConfig = require("@/lib/escape/config");
 
 const { apriSessione } = require("./robot/sessione");
@@ -37,7 +39,7 @@ const { allineamento } = require("./allineamento");
 const { statoProduzione } = require("./vercel");
 const { leggiGuasti, perSpecie } = require("./guasti");
 
-giocaT.collega({ config: testConfig, assembla: testAssembla });
+giocaT.collega({ config: testConfig, assembla: testAssembla, scoring: testScoring, percorso: percorsoStato });
 giocaM.collega({ escape: escapeConfig, config: testConfig });
 
 function commitCorrente() {
@@ -100,13 +102,16 @@ async function studente() {
     return;
   }
 
-  console.log("\n── il profilo che ne esce");
-  for (const a of profilo.aree.slice(0, 6)) console.log(`   ${a.area.padEnd(34)} ${String(a.punteggio).padStart(3)}  ${a.status}`);
+  console.log("\n── il profilo che ne esce, come lo mostra la home");
+  giocaT.stampaProfilo(profilo, (r) => console.log(r));
   console.log("   —");
   for (const s of profilo.assi) console.log(`   ${s.asse.padEnd(34)} ${String(s.punteggio).padStart(3)}`);
 
   // ── il confronto sulla missione ──────────────────────────────────────────
-  const confronto = giocaM.confrontaMissione(profilo.aree[0]?.area);
+  // L'AREA VINCENTE È QUELLA DEL TORNEO DI T3, come nella pagina di esito
+  // (`classifica[0]` → `missionePerArea`). Qui passava la prima riga di
+  // `area_signal` ordinata per punteggio: un altro numero, con lo stesso nome.
+  const confronto = giocaM.confrontaMissione(esitiTest.find((e) => e.slug === testConfig.SLUG_T3)?.vincitrice);
   console.log("\n── la missione");
   console.log(`   area vincente: ${confronto.areaVincente ?? "nessuna"}`);
   console.log(`   il prodotto suggerisce: ${confronto.suggerita ?? "nessuna"}`);
@@ -137,8 +142,8 @@ async function studente() {
   // Il profilo DOPO la missione: è il punto dell'intera passata — far vedere
   // che i due ritratti (test e missione) finiscono davvero nello stesso posto.
   const dopo = await giocaT.leggiProfilo(sessione);
-  console.log("\n── il profilo dopo la missione");
-  for (const a of dopo.aree.slice(0, 6)) console.log(`   ${a.area.padEnd(34)} ${String(a.punteggio).padStart(3)}  ${a.status}`);
+  console.log("\n── il profilo dopo la missione, come lo mostra la home");
+  giocaT.stampaProfilo(dopo, (r) => console.log(r));
 
   // ── i guasti della finestra ──────────────────────────────────────────────
   const visti = await leggiGuasti({ daIso: inizioPassata });

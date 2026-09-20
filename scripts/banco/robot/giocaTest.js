@@ -23,10 +23,12 @@ const { eGuasto } = require("./sessione");
 const { T1_RISPOSTE, T2_RISPOSTE, scegliT3 } = require("./risposte-percorso");
 
 // Caricati da chi chiama (il comando compila il TypeScript una volta sola).
-let SLUG_T1, SLUG_T2, SLUG_T3, assemblaT3, T3_FROZEN_ITEM_ID;
+let SLUG_T1, SLUG_T2, SLUG_T3, assemblaT3, T3_FROZEN_ITEM_ID, calcolaEvidenzeT3, caricaAffinitaHome;
 function collega(moduli) {
   ({ SLUG_T1, SLUG_T2, SLUG_T3 } = moduli.config);
   ({ assemblaT3, T3_FROZEN_ITEM_ID } = moduli.assembla);
+  ({ calcolaEvidenzeT3 } = moduli.scoring);
+  ({ caricaAffinitaHome } = moduli.percorso);
 }
 
 // SI CHIEDE PRIMA DI INSERIRE, come per i workshop. C'è un indice unico sui
@@ -141,21 +143,91 @@ async function giocaT3({ sessione, registra }) {
   const chiuso = await finalizza(chiama, attempt.id);
   if (chiuso.errore) return { slug: SLUG_T3, fermato: { dove: "finalizzazione", perche: chiuso.errore, guasto: chiuso.guasto } };
   di("finalizzato");
-  return { slug: SLUG_T3, attemptId: attempt.id, candidate: congelate.candidate };
+
+  // L'AREA CHE VINCE IL TORNEO, calcolata dalla funzione del prodotto.
+  //
+  // È quella che decide la missione suggerita: la pagina di esito di T3 fa
+  // `classifica[0]?.area_slug` e la passa a `missionePerArea`. NON è la prima
+  // riga di `area_signal` ordinata per punteggio — sono due calcoli diversi
+  // (un torneo a incontri contro una media pesata), e nel robot coincidono
+  // solo per come è fatto il suo profilo. Finché il banco passava la seconda
+  // chiamandola `areaVincente`, il confronto sulla missione diceva «✓
+  // coincidono» per la ragione sbagliata.
+  const classifica = calcolaEvidenzeT3(congelate, attempt.id, new Map(risposte)).classifica;
+  const vincitrice = classifica[0]?.area_slug ?? null;
+  di(`vince il torneo: ${vincitrice ?? "nessuna"}`);
+  return { slug: SLUG_T3, attemptId: attempt.id, candidate: congelate.candidate, vincitrice };
 }
 
-// Il profilo come il prodotto lo vede dopo i tre test. Serve al rapporto e
-// alle due proprietà che contano (stabilità fra due passate, non degenerazione).
+// IL PROFILO COME LO MOSTRA LA HOME, non come sta in tabella.
+//
+// Questa funzione ordinava le righe di `area_signal` per `interest_score` e le
+// stampava come una classifica. Il prodotto non fa così: `caricaAffinitaHome`
+// applica una BARRA — ≥2 attività distinte E un interesse dichiarato — e
+// un'area che non la passa **non finisce in fondo alla classifica, finisce
+// fuori**, fra le «aree sfiorate», con accanto la sua prova più forte e senza
+// punteggio.
+//
+// Il 20/09 quella differenza ha prodotto due letture sbagliate in due giorni:
+// sul robot `scienze-educazione` ha solo la missione (sfiorata, per il
+// prodotto) e il banco la mostrava SOPRA `salute`, che è confermata con due
+// attività. Da lì «il profilo ribalta l'area su cui ha lavorato di più» —
+// vero dello strumento, falso del prodotto. Il commento che stava qui diceva
+// «il profilo come il prodotto lo vede»: la specie di casa, una proprietà
+// dichiarata guardando l'intenzione.
+//
+// Quindi non si riordina più niente: si CHIEDE alla stessa funzione che
+// riempie la home. Una copia della barra qui sarebbe la seconda definizione
+// della stessa regola, e divergerebbe al primo che ne tocca una.
 async function leggiProfilo(sessione) {
   const { supabase, utente } = sessione;
-  const [{ data: aree }, { data: stili }] = await Promise.all([
-    supabase.from("area_signal").select("area_slug, interest_score, confidence, status").eq("student_id", utente.id).order("interest_score", { ascending: false }),
+  // Il conteggio grezzo NON serve a ordinare: serve a distinguere «il profilo
+  // è vuoto» da «non sono riuscito a leggerlo». `caricaAffinitaHome` degrada a
+  // un profilo vuoto sia quando non c'è niente sia quando la query fallisce —
+  // giusto per una pagina, cieco per un banco. `haAttivita` è il discrimine:
+  // è true solo se la lettura è andata a buon fine e ha trovato righe.
+  const [affinita, { count: righeArea }, { data: stili }] = await Promise.all([
+    caricaAffinitaHome(supabase, utente.id),
+    supabase.from("area_signal").select("area_slug", { count: "exact", head: true }).eq("student_id", utente.id),
     supabase.from("style_signal").select("asse, punteggio").eq("student_id", utente.id).order("punteggio", { ascending: false }),
   ]);
   return {
-    aree: (aree ?? []).map((a) => ({ area: a.area_slug, punteggio: Number(a.interest_score) || 0, status: a.status })),
+    affinita,
+    righeArea: righeArea ?? null,
+    lettura: (righeArea ?? 0) > 0 && !affinita.haAttivita ? "fallita" : "ok",
     assi: (stili ?? []).map((s) => ({ asse: s.asse, punteggio: Number(s.punteggio) || 0 })),
   };
+}
+
+// La stampa, in un posto solo: la usano il profilo dopo i test e quello dopo
+// la missione, e due copie direbbero due cose diverse il giorno in cui una
+// viene toccata.
+function stampaProfilo(profilo, scrivi) {
+  if (profilo.lettura === "fallita") {
+    scrivi(`   ⚠  NON HO POTUTO LEGGERLO: in area_signal ci sono ${profilo.righeArea} righe, ma la`);
+    scrivi("      lettura come la fa la home non ha restituito niente. Non è un profilo vuoto.");
+    return;
+  }
+  if (profilo.affinita.eleggibili.length === 0 && profilo.affinita.sfiorate.length === 0) {
+    scrivi("   nessuna area: il profilo è vuoto (ho guardato).");
+  }
+  if (profilo.affinita.eleggibili.length > 0) {
+    scrivi("   affinità — in classifica:");
+    for (const a of profilo.affinita.eleggibili) {
+      scrivi(`     ${a.slug.padEnd(34)} ${String(a.interest).padStart(3)}  ${a.status}`);
+    }
+  }
+  if (profilo.affinita.sfiorate.length > 0) {
+    scrivi("   aree sfiorate — FUORI dalla classifica, non in fondo:");
+    for (const s of profilo.affinita.sfiorate) {
+      scrivi(`     ${s.nome}${s.motivazione ? ` — ${s.motivazione}` : ""}`);
+    }
+  }
+  // La barra si dichiara ogni volta, sotto le due liste: è l'unica cosa che
+  // impedisce di rileggere le due liste come una classifica sola.
+  scrivi("   · la barra è quella di lib/percorso/stato.ts: ≥2 attività distinte E un interesse");
+  scrivi("     dichiarato. Le sfiorate non hanno un punteggio perché il prodotto non gliene");
+  scrivi("     mostra uno: ordinarle insieme alle altre sarebbe una classifica che non esiste.");
 }
 
 async function giocaTest({ sessione, registra }) {
@@ -178,4 +250,4 @@ async function giocaTest({ sessione, registra }) {
   return { esiti, profilo };
 }
 
-module.exports = { collega, giocaTest, leggiProfilo };
+module.exports = { collega, giocaTest, leggiProfilo, stampaProfilo };

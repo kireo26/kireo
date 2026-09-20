@@ -38,6 +38,8 @@
 
 /* eslint-disable @typescript-eslint/no-require-imports -- script Node CommonJS di utilità */
 
+const fs = require("fs");
+const path = require("path");
 const { abilitaTypeScript } = require("./banco/ts");
 abilitaTypeScript();
 
@@ -341,6 +343,69 @@ const proposta = R.TESTI.proposta.toLowerCase();
 const identificative = ["come ti chiami", "come si chiama", "qual è il tuo nome", "quanti anni hai", "dimmi chi sei", "mi dica chi è"];
 const scivolate = identificative.filter((f) => proposta.includes(f));
 ok(scivolate.length === 0, scivolate.length === 0 ? "la risposta alla mail non chiede chi è" : `la risposta alla mail chiede: ${scivolate.join(", ")}`);
+
+// ── 6bis) Il banco stampa il profilo come lo mostra la HOME ──────────────────
+// La proprietà è una sola, e il 20/09 è costata due letture sbagliate in due
+// giorni: **un'area sotto la barra non sta in fondo alla classifica, sta
+// fuori.** Il banco ordinava le righe di `area_signal` per punteggio, quindi
+// mostrava `scienze-educazione` (una sola attività, per il prodotto è
+// «sfiorata») sopra `salute` (confermata, due attività) — e da lì «il profilo
+// ribalta l'area su cui lo studente ha lavorato di più», vero dello strumento
+// e falso del prodotto.
+console.log("\n6bis) Il profilo stampato è quello della home, non una classifica di comodo");
+
+const giocaT = require("./banco/robot/giocaTest");
+const righeStampate = [];
+giocaT.stampaProfilo(
+  {
+    lettura: "ok",
+    righeArea: 2,
+    affinita: {
+      haAttivita: true,
+      // Il caso vero rovesciato apposta: la sfiorata avrebbe il punteggio più
+      // alto, quindi un ordinamento per punteggio la metterebbe in cima.
+      eleggibili: [{ slug: "salute-professioni-sanitarie", nome: "Salute", interest: 67, status: "confermata" }],
+      sfiorate: [{ nome: "Scienze dell'Educazione", motivazione: "hai messo il minore per primo" }],
+    },
+    assi: [],
+  },
+  (r) => righeStampate.push(r),
+);
+const stampa = righeStampate.join("\n");
+const iClassifica = stampa.indexOf("in classifica");
+const iSfiorate = stampa.indexOf("aree sfiorate");
+const iSalute = stampa.indexOf("salute-professioni-sanitarie");
+const iEducazione = stampa.indexOf("Scienze dell'Educazione");
+ok(iClassifica !== -1 && iSfiorate !== -1, "le due liste sono separate e nominate");
+ok(iSalute > iClassifica && iSalute < iSfiorate, "l'area eleggibile sta nella classifica");
+ok(iEducazione > iSfiorate, "la sfiorata sta DOPO, nel suo blocco: non è una riga della classifica");
+ok(!/Scienze dell'Educazione\s+\d/.test(stampa), "e non porta un punteggio: il prodotto non gliene mostra uno");
+ok(/≥2 attività distinte/.test(stampa), "la barra è dichiarata sotto le due liste");
+ok(/hai messo il minore per primo/.test(stampa), "la sfiorata porta la sua prova più forte, come in home");
+
+// «Non ho potuto leggere» non è «è vuoto»: `caricaAffinitaHome` degrada a un
+// profilo vuoto anche quando la query fallisce, e per un banco quella è la
+// risposta comoda.
+const righeCieche = [];
+giocaT.stampaProfilo({ lettura: "fallita", righeArea: 7, affinita: { haAttivita: false, eleggibili: [], sfiorate: [] }, assi: [] }, (r) => righeCieche.push(r));
+ok(/NON HO POTUTO LEGGERLO/.test(righeCieche.join("\n")), "una lettura fallita si dichiara, invece di stampare un profilo vuoto");
+ok(/7 righe/.test(righeCieche.join("\n")), "…dicendo quante righe ci sono davvero in area_signal");
+
+const righeVuote = [];
+giocaT.stampaProfilo({ lettura: "ok", righeArea: 0, affinita: { haAttivita: false, eleggibili: [], sfiorate: [] }, assi: [] }, (r) => righeVuote.push(r));
+ok(/è vuoto \(ho guardato\)/.test(righeVuote.join("\n")), "…e un profilo davvero vuoto lo dice per quello che è");
+
+// I DUE LETTORI, controllati sul sorgente: le funzioni async contro Supabase
+// non girano senza rete, ma «chi chiede a chi» si legge.
+const srcGioca = fs.readFileSync(path.join(__dirname, "banco/robot/giocaTest.js"), "utf8");
+const srcStudente = fs.readFileSync(path.join(__dirname, "banco/studente.js"), "utf8");
+ok(srcGioca.includes("caricaAffinitaHome(supabase"), "il banco CHIEDE il profilo a caricaAffinitaHome invece di riordinarlo");
+ok(!/order\("interest_score"/.test(srcGioca), "…e non ordina più area_signal per punteggio per conto suo");
+ok(
+  /confrontaMissione\(esitiTest[\s\S]{0,80}?vincitrice\)/.test(srcStudente),
+  "il confronto sulla missione riceve il vincitore del TORNEO, non la prima riga di area_signal",
+);
+ok(!/confrontaMissione\(profilo\.aree/.test(srcStudente), "…e la vecchia forma non rientra");
 
 // ── 7) Controprove ───────────────────────────────────────────────────────────
 // Senza, «tutto verde» direbbe solo che le liste lette erano vuote.
