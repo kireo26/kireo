@@ -40,6 +40,7 @@
     "test:modo": "node scripts/verifica-modo-di-lavorare.js",
     "test": "node scripts/tutti-i-test.js",
     "test:news": "node scripts/verifica-news.js",
+    "test:avviso": "node scripts/verifica-avviso-ai.js",
     "test:percorso": "node scripts/verifica-percorso-robot.js",
     "test:cancelli": "node scripts/verifica-cancelli.js",
     "test:affinita": "node scripts/verifica-affinita.js"
