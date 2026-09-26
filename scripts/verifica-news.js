@@ -59,7 +59,50 @@ const MAX_DESCRIZIONE = 160;
 const CHIAVI_LETTE = new Set([
   "title", "slug", "description", "category", "tags",
   "publishedAt", "updatedAt", "author", "draft", "ogImage", "aree",
+  // Dal 2026-09-26 le legge `components/news/AvvisoAI.tsx`: prima stavano qui
+  // senza consumatori, e l'avviso che il lettore vedeva era un blockquote
+  // ricopiato a mano nel corpo di ognuno degli otto articoli.
+  "aiAssisted", "aiTools", "aiRole", "aiReviewedBy",
 ]);
+
+// ── L'APOSTROFO AL POSTO DELL'ACCENTO ──────────────────────────────────────
+// Tre articoli su undici erano scritti `Cosa e' successo`, `piu'`, `gia'`,
+// `Perche'` — 47 occorrenze, e tre per articolo dentro gli H2, che
+// `estraiIndice` ripete in cima alla pagina. L'MDX compilava benissimo: il
+// controllo guardava la meccanica e il difetto stava nella lingua.
+//
+// LA REGOLA È UN'INVARIANTE, NON UN ELENCO DI PAROLE (che sarebbe un elenco da
+// aggiornare): in italiano l'apostrofo dopo una VOCALE è quasi sempre un
+// accento scritto male. L'elisione mette sempre l'apostrofo dopo una consonante
+// — `l'`, `un'`, `dell'`, `c'`, `quest'`, `anch'` — e le uniche eccezioni sono
+// otto troncamenti.
+const TRONCAMENTI = new Set(["po'", "be'", "mo'", "da'", "di'", "fa'", "sta'", "va'"]);
+
+// L'unico falso positivo del corpus è l'apostrofo usato come VIRGOLETTA:
+// `quelle 'nobili'` (cinque-miti, un H2). Si esclude con una seconda invariante
+// e non con una parità di conteggio: un apostrofo di elisione non è MAI
+// preceduto da uno spazio, quindi un apostrofo preceduto da non-lettera e
+// seguito da una lettera è una virgoletta aperta — e quello che sta fra lei e
+// la successiva non si guarda.
+// Limite noto, scritto perché non si scopra come una sorpresa: su un testo in
+// dialetto («'na cosa», «dev'esse'») la maschera si allargherebbe troppo. Nelle
+// news non ce n'è; nei prompt dei workshop sì, ma questo controllo legge solo
+// content/news.
+function mascheraVirgolette(riga) {
+  return riga.replace(/(^|[^A-Za-zÀ-ÿ])'([^']*)'/g, (_m, pre, dentro) => `${pre}·${"·".repeat(dentro.length)}·`);
+}
+
+function apostrofiSospetti(testo) {
+  const trovati = [];
+  testo.split("\n").forEach((riga, i) => {
+    const pulita = mascheraVirgolette(riga);
+    for (const m of pulita.matchAll(/[A-Za-zÀ-ÿ]*[aeiouAEIOU]'/g)) {
+      if (TRONCAMENTI.has(m[0].toLowerCase())) continue;
+      trovati.push({ riga: i + 1, token: m[0], inTitolo: /^#{1,3}\s/.test(riga) });
+    }
+  });
+  return trovati;
+}
 
 let falliti = 0;
 const note = [];
@@ -82,10 +125,23 @@ let pubblicati = 0;
 
 for (const f of file) {
   const base = f.replace(/\.mdx$/, "");
-  const { data, content } = matter(fs.readFileSync(path.join(DIR, f), "utf8"));
+  const raw = fs.readFileSync(path.join(DIR, f), "utf8");
+  const { data, content } = matter(raw);
   corpi.push({ base, content });
 
   const problemi = [];
+
+  // Si guarda il file INTERO, frontmatter compreso: un accento sbagliato in
+  // `title` o `description` finisce nel tab del browser e in Google, cioè in
+  // due posti che nessuno rilegge.
+  const sospetti = apostrofiSospetti(raw);
+  if (sospetti.length > 0) {
+    const nei = sospetti.filter((s) => s.inTitolo).length;
+    const quali = [...new Set(sospetti.map((s) => s.token))].slice(0, 6).join(", ");
+    problemi.push(
+      `${sospetti.length} apostrofi al posto di un accento (${quali}${nei > 0 ? `; ${nei} in un titolo, quindi anche nell'indice` : ""}) — righe ${sospetti.slice(0, 6).map((s) => s.riga).join(", ")}`,
+    );
+  }
 
   for (const campo of ["title", "description", "publishedAt", "updatedAt", "author"]) {
     if (typeof data[campo] !== "string" || data[campo].trim() === "") problemi.push(`«${campo}» manca o non è testo`);
@@ -101,6 +157,27 @@ for (const f of file) {
   else {
     const ignote = aree.filter((a) => !SLUG_AREE.has(a));
     if (ignote.length) problemi.push(`aree inesistenti in data/aree.ts: ${ignote.join(", ")}`);
+  }
+
+  // L'UNICA CONFIGURAZIONE CHE NON DEVE POTER ESISTERE: un testo scritto con
+  // un'intelligenza artificiale e nessun nome che se ne prenda la
+  // responsabilità. Il componente degrada togliendo la frase sulla revisione
+  // (meglio dire meno che affermare una revisione che nessuno ha fatto), ma un
+  // avviso che non nomina un revisore non deve arrivare in produzione: qui è
+  // rosso, perché la cura è una riga di frontmatter e non una penna.
+  if (data.aiAssisted === true && !String(data.aiReviewedBy ?? "").trim()) {
+    problemi.push("«aiAssisted: true» senza «aiReviewedBy»: un testo assistito senza un nome che se ne prende la responsabilità");
+  }
+  if (data.aiAssisted !== undefined && typeof data.aiAssisted !== "boolean") {
+    problemi.push(`«aiAssisted» dev'essere true o false (qui: ${JSON.stringify(data.aiAssisted)})`);
+  }
+  if (data.aiTools !== undefined && !Array.isArray(data.aiTools)) problemi.push("«aiTools» dev'essere un elenco");
+
+  // Il blockquote scritto a mano non deve tornare: sarebbe la seconda copia
+  // della stessa dichiarazione, e le due divergono al primo articolo in cui
+  // qualcuno aggiorna una sola delle due.
+  if (/^>\s*\*\*Come è fatto questo post/m.test(content)) {
+    problemi.push("l'avviso «Come è fatto questo post» è tornato nel corpo: lo rende AvvisoAI dal frontmatter, due copie divergono");
   }
 
   // CLAUDE.md: readingTime NON è un campo frontmatter, si calcola dal corpo.

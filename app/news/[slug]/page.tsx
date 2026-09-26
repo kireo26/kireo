@@ -8,6 +8,7 @@ import CategoriaBadge from "@/components/news/CategoriaBadge";
 import IndiceArticolo from "@/components/news/IndiceArticolo";
 import ArticoliCorrelati from "@/components/news/ArticoliCorrelati";
 import CtaArticolo from "@/components/news/CtaArticolo";
+import AvvisoAI from "@/components/news/AvvisoAI";
 import TracciaLetturaArticolo from "@/components/app/TracciaLetturaArticolo";
 import { formattaData } from "@/lib/formato";
 import { getArticoloBySlug, getArticoliCorrelati, getTuttiGliArticoli, estraiIndice } from "@/lib/news";
@@ -69,7 +70,15 @@ export default async function ArticoloPage({ params }: { params: Promise<{ slug:
     description: articolo.description,
     datePublished: articolo.publishedAt,
     dateModified: articolo.updatedAt,
-    author: { "@type": "Organization", name: articolo.author },
+    // Il tipo si SCEGLIE dal valore, non è fissato: su otto articoli su undici
+    // `author` è una persona («Mario Izzo»), e dichiararla a Google come
+    // organizzazione è la solita cosa scritta che dice uno stato diverso da
+    // quello vero. Niente chiave nuova nel frontmatter: sarebbe una quinta
+    // dichiarazione da tenere allineata a mano con la prima.
+    author:
+      articolo.author === "Redazione KIREO"
+        ? { "@type": "Organization", name: articolo.author }
+        : { "@type": "Person", name: articolo.author },
     publisher: {
       "@type": "Organization",
       name: "KIREO",
@@ -108,6 +117,16 @@ export default async function ArticoloPage({ params }: { params: Promise<{ slug:
         </div>
 
         <div className="prose prose-invert max-w-none sm:prose-lg prose-headings:font-heading prose-headings:font-bold prose-headings:leading-[1.25] prose-headings:text-kireo-light prose-p:leading-relaxed prose-p:text-kireo-light/90 prose-a:text-kireo-orange prose-strong:text-kireo-light prose-li:leading-relaxed prose-li:text-kireo-light/90 prose-blockquote:border-kireo-orange prose-blockquote:text-kireo-muted">
+          {/* DENTRO la prose e sopra l'MDX: è esattamente il posto in cui
+              stava quando era la prima riga del corpo — dopo l'indice, prima
+              del primo paragrafo — e riceve gli stessi `prose-blockquote:`,
+              quindi per chi legge non cambia niente. */}
+          <AvvisoAI
+            aiAssisted={articolo.aiAssisted}
+            aiTools={articolo.aiTools}
+            aiRole={articolo.aiRole}
+            aiReviewedBy={articolo.aiReviewedBy}
+          />
           <MDXRemote
             source={articolo.content}
             options={{ mdxOptions: { remarkPlugins: [remarkGfm], rehypePlugins: [rehypeSlug] } }}

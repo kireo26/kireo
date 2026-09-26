@@ -29,6 +29,16 @@ type NewsFrontmatter = {
   // l'articolo è pertinente, usato dalla sezione "Articoli di quest'area"
   // nella pagina area pubblica. Un articolo generale può non averne nessuna.
   aree?: string[];
+  // La dichiarazione su come l'articolo è stato scritto. Fino al 2026-09-26
+  // queste quattro chiavi c'erano nel frontmatter di otto articoli e non le
+  // leggeva nessuno: l'avviso che il lettore vedeva era un blockquote
+  // ricopiato a mano nel corpo. Ora lo rende `components/news/AvvisoAI.tsx`
+  // partendo da qui, così la dichiarazione e quello che si legge non possono
+  // divergere (vedi il commento in testa a quel file).
+  aiAssisted?: boolean;
+  aiTools?: string[];
+  aiRole?: string;
+  aiReviewedBy?: string;
 };
 
 export type NewsArticolo = NewsFrontmatter & {
