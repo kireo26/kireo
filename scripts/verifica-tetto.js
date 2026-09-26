@@ -78,6 +78,10 @@ ok(a.cta?.href === "/app/workshop/palestra-popolare", "la CTA porta alla pagina 
 ok(/lascia|lasciarlo|lasciare/i.test(a.corpo), "dice che si può lasciare, non solo che si deve finire");
 ok(/resta|dov'è|dove/i.test(a.corpo), "e dice che il lavoro non si perde: senza questo, nessuno clicca");
 ok(!/\b3\b|\btre\b/.test(a.titolo), "il titolo non parla del tetto: questo muro è un altro");
+// NESSUNA DURATA DICHIARATA. «dura settimane» c'era e l'ha tolta Mario: nessuno
+// studente vero ne ha ancora finito uno, quindi era una cifra travestita da
+// frase — la specie che togliamo dai testi degli altri.
+ok(!/settiman|giorni|mesi/i.test(a.corpo), "non dichiara quanto dura un workshop: non lo sappiamo");
 
 // Il ruolo può mancare (una riga senza ruolo non dovrebbe esistere, ma se
 // esistesse il testo non deve uscire storto).
@@ -91,9 +95,30 @@ const p = avvisoTetto(PIENO);
 ok(p !== null, "c'è un avviso");
 ok(p.titolo.includes("3"), "il titolo dice quanti ne ha fatti");
 ok(p.corpo.includes("3"), "e il corpo dice quanti se ne possono fare");
-ok(!p.corpo.includes("lascia"), "non suggerisce di lasciare niente: non c'è niente di attivo");
+// L'ANCORA ERA `includes("lascia")` E PESCAVA UNA COSA GIUSTA: il testo dice
+// «sei lasciati a metà», che è la ragione del tetto, non un invito a lasciare
+// qualcosa. La proprietà vera è che qui NON compaia il passo dell'altro caso —
+// non c'è niente di attivo da chiudere, quindi né «lascialo» né «finisci quello».
+ok(!/lascialo|finisci quello/i.test(p.corpo), "non manda a chiudere un workshop attivo: qui non ce n'è nessuno");
+ok(!/«/.test(p.corpo), "e non nomina nessun workshop, perché nessuno è in corso");
 ok(/resta|tuo/i.test(p.corpo), "dice che il lavoro resta suo");
-ok(/non è una punizione|non è/i.test(p.corpo), "e dice perché il tetto esiste, invece di limitarsi a negare");
+// NON si cerca «non è una punizione»: quella frase è stata TOLTA di proposito
+// (nominare l'obiezione la pianta in testa a chi non ce l'aveva). Quello che
+// deve restare è la ragione, e la ragione è la diluizione del ritratto.
+ok(!/punizione/i.test(p.corpo), "non nomina la punizione: l'obiezione non si suggerisce a chi non ce l'ha");
+ok(/ritratto/i.test(p.corpo) && /appiatt|a metà/i.test(p.corpo), "e dice PERCHÉ il tetto esiste: il ritratto si appiattisce");
+
+// ── 4b. IL TETTO SI PUÒ CONTESTARE, e non è cortesia ────────────────────────
+// Il numero è scelto e non misurato, e si rivedrà quando qualcuno ne finirà tre
+// e ne chiederà un quarto. Se il muro non invita a chiedere, quell'informazione
+// non arriva mai e il provvisorio diventa definitivo per silenzio.
+ok(p.invito !== undefined, "il tetto pieno offre una strada per contestarlo");
+ok(/scrivic|scriv/i.test(p.invito.testo), "l'invito dice di scrivere");
+ok(/scelto|abbiamo scelto/i.test(p.invito.testo), "e ammette che il numero l'abbiamo scelto noi");
+ok(p.invito.href.startsWith("/"), `porta a un recapito interno reale (${p.invito.href})`);
+// Sull'altro muro NON ci va: lì non c'è niente da contestare, c'è un progetto
+// da chiudere.
+ok(a.invito === undefined, "«ne hai uno attivo» invece non offre di contestare: lì non c'è una decisione nostra da discutere");
 
 // I NUMERI VENGONO DAL DATABASE, non da una costante di qui: se il tetto
 // cambiasse in SQL, il testo deve seguirlo da solo.
@@ -103,7 +128,7 @@ ok(diverso.titolo.includes("5") && diverso.corpo.includes("5"), "un tetto divers
 // ── 5. la lingua non conosce il genere di chi legge ──────────────────────────
 console.log("\nLingua invariante:");
 for (const [nome, avv] of [["uno attivo", a], ["tetto pieno", p]]) {
-  const testi = [avv.titolo, avv.corpo, avv.cta?.testo ?? ""].join(" ");
+  const testi = [avv.titolo, avv.corpo, avv.cta?.testo ?? "", avv.invito?.testo ?? ""].join(" ");
   const accordi = trovaAccordi(testi);
   ok(accordi.length === 0, `«${nome}»: nessuna forma accordata${accordi.length ? ` — ${accordi.map((x) => x.cattura ?? x).join(", ")}` : ""}`);
 }
@@ -112,7 +137,8 @@ for (const [nome, avv] of [["uno attivo", a], ["tetto pieno", p]]) {
 console.log("\nDove vive il testo:");
 const comp = senzaCommenti(leggi("components/workshop/TettoRaggiunto.tsx"));
 ok(/avviso\.titolo/.test(comp) && /avviso\.corpo/.test(comp), "il componente rende l'avviso che riceve");
-ok(!/Stai già lavorando|punizione|Hai già fatto/.test(comp), "e non ricompone la frase al suo interno");
+ok(/avviso\.invito/.test(comp), "…e rende anche l'invito a contestare: un testo che nessuno mostra non esiste");
+ok(!/Stai già lavorando|punizione|Hai già fatto|scrivici/.test(comp), "e non ricompone nessuna di quelle frasi al suo interno");
 
 const pagina = senzaCommenti(leggi("app/app/workshop/[slug]/page.tsx"));
 ok(/avvisoTetto\(/.test(pagina), "la pagina chiama avvisoTetto invece di riscrivere la regola");

@@ -255,6 +255,26 @@ exception
 end;
 $$;
 
+-- IL PERMESSO CHE NON C'ERA, e il motivo non è il rischio di oggi.
+-- `riprendi_iscrizione_workshop` esiste dal 2026-08-30 con un
+-- `grant execute … to authenticated` e **nessun revoke**: quindi dal 30 agosto è
+-- eseguibile anche da `anon`, perché i default privileges di Supabase la fanno
+-- nascere così e un `create or replace` NON tocca i privilegi [verificato su
+-- Postgres 16 in sessione, non dedotto].
+--
+-- Non è un buco: è `security definer` e la prima cosa che fa è
+-- `where student_id = auth.uid()`, che per un anonimo non trova niente e alza
+-- `non_autorizzato`. Fallisce chiuso. La riga si mette perché **la prossima
+-- persona che legge questo blocco vede cinque funzioni nuove tutte revocate e
+-- una vecchia no, e deve indovinare se è una dimenticanza o una scelta.**
+--
+-- E SI REVOCA DA TUTTI E DUE: `revoke … from anon` da solo NON basta, perché
+-- `PUBLIC` ha comunque l'EXECUTE e `anon` passa da lì [verificato: revocato solo
+-- da anon, `set role anon; select f()` risponde ancora]. Il gemello è la lezione
+-- del 19/09 all'inverso: `revoke … from public` da solo lascia il grant esplicito.
+revoke all on function public.riprendi_iscrizione_workshop(uuid) from public, anon;
+grant execute on function public.riprendi_iscrizione_workshop(uuid) to authenticated;
+
 comment on function public.riprendi_iscrizione_workshop(uuid) is
   'Riprende un''iscrizione ritirata, sullo stesso ruolo e con il lavoro dov''era. Rispetta il tetto dei workshop (workshop_gia_attivo / tetto_workshop_raggiunto), perché portare una riga a «attivo» senza passare da un insert sarebbe altrimenti la via d''uscita dal tetto. Solleva iscrizione_gia_attiva se nel frattempo lo studente ha già ripreso un altro ruolo di questo workshop.';
 

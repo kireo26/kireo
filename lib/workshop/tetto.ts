@@ -63,7 +63,13 @@ export async function leggiTettoWorkshop(supabase: SupabaseClient): Promise<Stat
   }
 }
 
-export type AvvisoTetto = { titolo: string; corpo: string; cta?: { testo: string; href: string } };
+export type AvvisoTetto = {
+  titolo: string;
+  corpo: string;
+  /** La strada per contestare il tetto. Solo il caso «li hai già fatti»: su «ne hai uno attivo» non c'è niente da contestare, c'è un progetto da chiudere. */
+  invito?: { testo: string; href: string };
+  cta?: { testo: string; href: string };
+};
 
 /**
  * Cosa legge chi non può cominciare un altro workshop. `null` = può, oppure non
@@ -73,20 +79,44 @@ export function avvisoTetto(stato: StatoTetto | null): AvvisoTetto | null {
   if (!stato || stato.puo) return null;
 
   // Uno alla volta. Il caso più frequente, ed è quello che ha una strada.
+  //
+  // NIENTE «dura settimane»: non lo sappiamo. Nessuno studente vero ne ha
+  // ancora finito uno, quindi quella sarebbe una cifra travestita da frase —
+  // la specie che togliamo dai testi degli altri. «seguire un cliente fino in
+  // fondo» dice la stessa cosa senza dichiarare un dato che non abbiamo.
+  // E «lo riprendi quando vuoi» invece è un fatto: `riprendi_iscrizione_workshop`
+  // esiste, e chi lascia non sa che esiste.
   if (stato.attivoSlug) {
     const quale = stato.attivoTitolo ?? "un altro workshop";
     const ruolo = stato.attivoRuolo ? ` nel ruolo ${stato.attivoRuolo}` : "";
     return {
       titolo: "Stai già lavorando a un workshop",
-      corpo: `Sei dentro «${quale}»${ruolo}. Un workshop dura settimane e chiede di seguire un cliente fino in fondo: farne due insieme vuol dire farne male due. Finisci quello — oppure lascialo, e il lavoro che hai fatto resta lì dov'è.`,
+      corpo: `Sei dentro «${quale}»${ruolo}. Un workshop chiede di seguire un cliente fino in fondo, e portarne avanti due insieme vuol dire farne male due. Finisci quello — oppure lascialo: il lavoro che hai fatto resta dov'è, e lo riprendi quando vuoi.`,
       cta: { testo: `Vai a ${quale}`, href: `/app/workshop/${stato.attivoSlug}` },
     };
   }
 
-  // Il tetto. Qui non c'è un passo da fare: si dice cosa c'è dopo.
+  // Il tetto. Qui non c'è un passo da fare: si dice la ragione, e si lascia
+  // una strada per contestarla.
+  //
+  // NIENTE «non è una punizione»: nominare l'obiezione la pianta in testa a chi
+  // non ce l'aveva. La ragione detta bene basta.
+  //
+  // L'INVITO A SCRIVERE NON È CORTESIA, È STRUTTURA. Il numero è scelto e non
+  // misurato, e la migrazione dice che si rivedrà il giorno in cui qualcuno ne
+  // finisce tre e ne chiede un quarto — ma se il muro non invita a chiedere
+  // quell'informazione non arriva mai, e il numero provvisorio diventa
+  // definitivo per silenzio. Un tetto che non ha un modo di essere contestato
+  // non è provvisorio: è solo non ancora sbagliato abbastanza da accorgersene.
+  // `/contatti` è il recapito che l'area privata usa già per «scrivici»
+  // (ProfiloForm), non uno inventato per l'occasione.
   return {
     titolo: `Hai già fatto ${stato.usate} workshop`,
-    corpo: `Sono i ${stato.tetto} che si possono fare: non è una punizione, è che un ritratto fatto di troppe cose non dice più da che parte stai andando. Quello che hai costruito resta tuo e lo rileggi quando vuoi.`,
+    corpo: `Sono i ${stato.tetto} che si possono fare. Il motivo non è lo spazio: il tuo ritratto si costruisce su quello che fai davvero, e più aree tocchi più si appiattisce — tre progetti seguiti fino in fondo dicono da che parte stai andando meglio di sei lasciati a metà. Quello che hai costruito resta tuo e lo rileggi quando vuoi.`,
+    invito: {
+      testo: "Se pensi che nel tuo caso ne serva un altro, scrivici: il numero l'abbiamo scelto noi, e ci interessa sapere quando sbaglia.",
+      href: "/contatti",
+    },
     cta: { testo: "Rivedi i tuoi workshop", href: "/app/workshop" },
   };
 }

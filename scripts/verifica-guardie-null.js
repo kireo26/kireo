@@ -96,9 +96,21 @@ console.log("\n═══ Nessuna guardia che con NULL lascia passare ═══\n
 // il modo peggiore di fallire, perché somiglia a un successo.
 ok(fn.size >= 80, `l'estrattore legge le funzioni dalle migrazioni (${fn.size})`);
 
+// CHE COSA CONTA COME SCRITTURA. Il pattern di prima era
+// `update\s+\w` con un `\b` in coda, e **pretendeva un confine di parola subito
+// dopo UNA lettera**: quindi vedeva `update p set …` (un alias di una lettera) e
+// NON vedeva `update public.workshop_iscrizioni set …`, che è la forma che usa
+// tutto il repo. Undici funzioni definer che scrivono risultavano «non
+// scrivono» e non venivano guardate — fra loro `verifica_studente`, cioè la
+// funzione del buco di luglio da cui questo controllo è nato. Nessuna di loro
+// aveva un confronto fragile quando il difetto è stato trovato (2026-09-26),
+// quindi il punto cieco non nascondeva un difetto vivo: nascondeva undici
+// funzioni che nessuno aveva guardato, ed è il modo peggiore di essere verdi.
+const SCRIVE = /\binsert\s+into\b|\bdelete\s+from\b|\bupdate\s+(?:only\s+)?[\w."]+\s+set\b/i;
+
 const definer = [...fn.values()].filter((f) => /security\s+definer/i.test(f.testa));
-const scrivono = definer.filter((f) => /\b(insert\s+into|update\s+\w|delete\s+from)\b/i.test(f.corpo));
-ok(scrivono.length >= 20, `…di cui SECURITY DEFINER che scrivono: ${scrivono.length}`);
+const scrivono = definer.filter((f) => SCRIVE.test(f.corpo));
+ok(scrivono.length >= 30, `…di cui SECURITY DEFINER che scrivono: ${scrivono.length}`);
 
 // ── il controllo ────────────────────────────────────────────────────────────
 const fragili = [];
@@ -142,6 +154,29 @@ for (const [riga, atteso] of PROVE) {
   }
 }
 ok(tarature === 0, "…e il controllo distingue la forma fragile da «is distinct from» (6 prove)");
+
+// LA SECONDA TARATURA, che mancava e per questo il punto cieco è vissuto un mese:
+// il primo controprova provava se una GUARDIA fosse riconosciuta, nessuna se una
+// SCRITTURA lo fosse. Un pattern che non vede la scrittura esclude la funzione
+// prima di arrivare alla guardia, quindi il controllo resta verde senza aver
+// guardato — e le sei prove qui sopra passavano comunque.
+const PROVE_SCRITTURA = [
+  ["  update public.workshop_iscrizioni\n  set stato = 'ritirato'", true, "la forma che usa tutto il repo"],
+  ["  update workshop_iscrizioni set stato = 'attivo' where id = x;", true, "senza lo schema davanti"],
+  ["  update p set x = 1 from t p", true, "con un alias di una lettera (l'unica che il pattern di prima vedeva)"],
+  ["  insert into public.activity_log (student_id) values (x)", true, "insert"],
+  ["  delete from public.evidence where attempt_id = x", true, "delete"],
+  ["  select 1 from public.workshop_iscrizioni where id = x", false, "una lettura non è una scrittura"],
+  ["  -- aggiorna lo stato dell'iscrizione", false, "una parola in un commento non è una scrittura"],
+];
+let tarSc = 0;
+for (const [riga, atteso, perche] of PROVE_SCRITTURA) {
+  if (SCRIVE.test(riga) !== atteso) {
+    console.error(`  ✗ taratura scrittura: ${perche} — ${atteso ? "doveva" : "non doveva"} contare`);
+    tarSc++;
+  }
+}
+ok(tarSc === 0, `…e riconosce una scrittura in tutte le forme che il repo usa (${PROVE_SCRITTURA.length} prove)`);
 
 console.log("\n═══════════════════════════════════════════\n");
 if (falliti) {

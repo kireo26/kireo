@@ -205,7 +205,40 @@ begin
   if not v_ok then raise exception 'ROTTO 12: chi non ha niente non può cominciare.'; end if;
   raise notice '  ok  12. i predicati rispondono solo su chi li chiama';
 
+  -- ── 13b. anon non può nemmeno CHIAMARE la via d'uscita ──────────────────
+  --     La 7 e la 10 provano che riprendere rispetta il tetto per chi è
+  --     collegato. Questa prova il permesso: dal 2026-08-30
+  --     `riprendi_iscrizione_workshop` era eseguibile anche da `anon`, perché i
+  --     default privileges di Supabase la fanno nascere così e un
+  --     `create or replace` non tocca i privilegi. Fallisce chiuso comunque
+  --     (`where student_id = auth.uid()` non trova niente), ma il permesso è la
+  --     prima porta e va chiusa lì.
+  --     DUE ESITI DA DISTINGUERE, e la prima stesura non li distingueva: senza
+  --     il revoke, `anon` ENTRA nella funzione e viene fermato dalla guardia
+  --     interna con `non_autorizzato` — cioè fallisce chiuso, ed è per questo
+  --     che non era un buco. Ma un `exception when insufficient_privilege` da
+  --     solo non cattura `non_autorizzato`: la transazione abortiva su «ERROR:
+  --     non_autorizzato», un rosso che non dice cosa è rotto. Adesso «sono
+  --     arrivato alla guardia» è il caso ROTTO, e lo dice.
+  reset role;
+  set local role anon;
+  v_ok := false;
+  begin
+    perform public.riprendi_iscrizione_workshop(isc_lasciata);
+    v_msg := 'la chiamata è perfino riuscita';
+  exception
+    when insufficient_privilege then v_ok := true;          -- atteso: il permesso non c'è
+    when others then get stacked diagnostics v_msg = message_text;
+  end;
+  reset role;
+  if not v_ok then
+    raise exception 'ROTTO 13b: anon ha potuto CHIAMARE riprendi_iscrizione_workshop — è arrivato alla guardia interna («%»). Manca il revoke: la guardia fallisce chiuso, ma il permesso è la prima porta.', v_msg;
+  end if;
+  raise notice '  ok  13b. anon non ha il permesso di chiamare riprendi_iscrizione_workshop';
+
   -- ── 13. senza sessione: chiuso, non aperto ──────────────────────────────
+  reset role;
+  set local role authenticated;
   --     Il caso che va guardato, perché il conteggio da solo direbbe sì: zero
   --     iscrizioni, nessuna attiva, 0 < 3. Lo chiude `auth.uid() is not null`.
   perform set_config('request.jwt.claim.sub', '', true);
@@ -218,6 +251,6 @@ end $$;
 
 -- Il SQL Editor non mostra i `raise notice`: se il blocco qui sopra fosse
 -- saltato, ci sarebbe un errore rosso al posto di questa riga.
-select 'Tredici proprietà verificate: il tetto tiene da tutte e due le strade, e fermarsi non costa un posto.' as esito;
+select 'Quattordici proprietà verificate: il tetto tiene da tutte e due le strade, fermarsi non costa un posto, e anon non ha nemmeno il permesso di provarci.' as esito;
 
 rollback;

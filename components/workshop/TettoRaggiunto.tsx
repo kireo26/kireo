@@ -12,6 +12,16 @@ export default function TettoRaggiunto({ avviso }: { avviso: AvvisoTetto }) {
     <div className="rounded-2xl border border-kireo-orange/30 bg-kireo-orange/5 p-6 sm:p-8">
       <h2 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">{avviso.titolo}</h2>
       <p className="mt-2 text-sm text-kireo-light/90">{avviso.corpo}</p>
+      {/* L'invito a contestare il tetto: sta SOPRA la CTA perché la CTA porta
+          via dalla pagina, e una strada che si legge dopo essere andati altrove
+          non è una strada. */}
+      {avviso.invito && (
+        <p className="mt-3 text-sm font-semibold text-kireo-light">
+          <Link href={avviso.invito.href} className="text-kireo-orange underline underline-offset-2">
+            {avviso.invito.testo}
+          </Link>
+        </p>
+      )}
       {avviso.cta && (
         <Link
           href={avviso.cta.href}

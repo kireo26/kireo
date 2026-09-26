@@ -118,7 +118,22 @@ ok(chiamate.size >= 3, `le RPC chiamate solo di lì sono ${chiamate.size}: ${[..
 // con quei due ruoli, e le righe della migrazione li tolgono o li rimettono in
 // ordine di esecuzione. Un `revoke … from public` non li tocca: revocare da
 // PUBLIC e revocare da un ruolo sono due gesti diversi.
-const NASCE_CON = ["anon", "authenticated"];
+// DUE COSE VERIFICATE SU POSTGRES 16 IL 2026-09-26, non dedotte, e il modello
+// di prima sbagliava su entrambe:
+//
+// 1. `PUBLIC` È NEL MAZZO. Alla nascita una funzione ha EXECUTE per PUBLIC
+//    *oltre* ai due ruoli dei default privileges, e **anon esegue anche solo
+//    attraverso PUBLIC**: revocata da `anon` e non da `public`, un
+//    `set role anon; select f()` risponde ancora. Il modello di prima non
+//    teneva `public` nel Set, quindi una funzione revocata da `anon` e non da
+//    `public` risultava CHIUSA ed era aperta — un verde falso, la direzione
+//    peggiore. (Oggi nessuna migrazione è in quel caso: il difetto era latente.)
+// 2. `CREATE OR REPLACE` PRESERVA I PRIVILEGI. Il modello di prima ricominciava
+//    dai default a ogni `create`, quindi una funzione revocata alla nascita e
+//    ridefinita dopo risultava riaperta — un falso POSITIVO, cioè un rosso su
+//    una funzione scritta bene, che è il modo in cui un controllo viene spento.
+//    Solo il PRIMO `create` è una nascita.
+const NASCE_CON = ["public", "anon", "authenticated"];
 
 const migrazioni = fs
   .readdirSync(path.join(ROOT, "supabase", "migrations"))
@@ -128,27 +143,39 @@ const migrazioni = fs
 // Un passaggio SOLO, in ordine di documento: create/grant/revoke si applicano
 // nell'ordine in cui stanno scritti. Leggere prima tutti i grant e poi tutte le
 // revoche darebbe la risposta sbagliata su un file che revoca e poi concede.
-const permesso = new Map(); // nome funzione -> { a: Set(ruoli), file }
 const RIGA =
   /(create\s+(?:or\s+replace\s+)?function|grant\s+execute\s+on\s+function|revoke\s+(?:all|execute)\s+on\s+function)\s+public\.([a-z_0-9]+)\s*\(([\s\S]*?)\)(\s*(?:to|from)\s+([^;]+);)?/gi;
-for (const nome of migrazioni) {
-  const sql = fs.readFileSync(path.join(ROOT, "supabase", "migrations", nome), "utf8");
-  for (const m of sql.matchAll(RIGA)) {
-    const verbo = m[1].toLowerCase();
-    const fnNome = m[2];
-    const ruoli = (m[5] ?? "").split(",").map((r) => r.trim().toLowerCase()).filter(Boolean);
-    if (verbo.startsWith("create")) {
-      permesso.set(fnNome, { a: new Set(NASCE_CON), file: nome });
-      continue;
+
+// Il riduttore è UNA funzione perché la controprova in fondo passa da qui:
+// se i due casi verificati li riscrivesse a mano, proverebbe la mia idea del
+// modello invece del modello.
+function applica(pezzi) {
+  const stato = new Map(); // nome funzione -> { a: Set(ruoli), file }
+  for (const { file, sql } of pezzi) {
+    for (const m of sql.matchAll(RIGA)) {
+      const verbo = m[1].toLowerCase();
+      const fnNome = m[2];
+      const ruoli = (m[5] ?? "").split(",").map((r) => r.trim().toLowerCase()).filter(Boolean);
+      if (verbo.startsWith("create")) {
+        // Solo la PRIMA definizione è una nascita: un `create or replace`
+        // successivo preserva i privilegi (verificato, vedi sopra).
+        if (!stato.has(fnNome)) stato.set(fnNome, { a: new Set(NASCE_CON), file });
+        continue;
+      }
+      const v = stato.get(fnNome) ?? { a: new Set(NASCE_CON), file };
+      for (const r of ruoli) {
+        if (verbo.startsWith("grant")) v.a.add(r);
+        else v.a.delete(r); // `from public` toglie PUBLIC, e PUBLIC conta: vedi sopra
+      }
+      stato.set(fnNome, { a: v.a, file });
     }
-    const v = permesso.get(fnNome) ?? { a: new Set(NASCE_CON), file: nome };
-    for (const r of ruoli) {
-      if (verbo.startsWith("grant")) v.a.add(r);
-      else v.a.delete(r); // `from public` non toglie un ruolo: infatti "public" non è nel Set
-    }
-    permesso.set(fnNome, { a: v.a, file: nome });
   }
+  return stato;
 }
+
+const permesso = applica(
+  migrazioni.map((nome) => ({ file: nome, sql: fs.readFileSync(path.join(ROOT, "supabase", "migrations", nome), "utf8") })),
+);
 
 ok(permesso.size >= 20, `l'estrattore ricostruisce i permessi dalle migrazioni (${permesso.size} funzioni)`);
 
@@ -196,15 +223,42 @@ for (const [rpc, motivo] of Object.entries(ESENTI)) {
 // nessuna riga di permesso deve risultare aperta, perché i default privileges
 // gliel'hanno data. Se questa tornasse «chiusa», il controllo sarebbe tornato
 // al modello sbagliato senza che nessuno se ne accorga.
-const senzaRighe = [...(undefined ?? NASCE_CON)].filter((r) => r === "anon" || r === "authenticated");
-ok(senzaRighe.length === 2, "…e una funzione senza righe di permesso risulta aperta a anon+authenticated");
-
-const soloDaPublic = new Set(NASCE_CON);
-soloDaPublic.delete("public"); // è quello che fa un «revoke … from public»: niente
-ok(
-  soloDaPublic.has("anon") && soloDaPublic.has("authenticated"),
-  "…e un «revoke … from public» non toglie né anon né authenticated",
-);
+// Le quattro forme passano dal RIDUTTORE VERO, non da una riscrittura a mano.
+// Le ultime due sono i fatti verificati su Postgres 16 il 2026-09-26: prima non
+// c'erano, ed è per questo che il modello poteva sbagliare in silenzio.
+const APERTO = (s) => [...s].some((r) => r === "public" || r === "anon" || r === "authenticated");
+const PROVE_MODELLO = [
+  ["create function public.z() returns int language sql as $$ select 1 $$;", true, "senza righe di permesso è APERTA (default privileges)"],
+  [
+    "create function public.z() returns int language sql as $$ select 1 $$;\nrevoke all on function public.z() from public;",
+    true,
+    "«revoke … from public» da solo non toglie anon: resta APERTA",
+  ],
+  [
+    "create function public.z() returns int language sql as $$ select 1 $$;\nrevoke all on function public.z() from anon, authenticated;",
+    true,
+    "«revoke … from anon, authenticated» senza public resta APERTA (anon passa da PUBLIC)",
+  ],
+  [
+    "create function public.z() returns int language sql as $$ select 1 $$;\nrevoke all on function public.z() from public, anon, authenticated;",
+    false,
+    "revocata da tutti e tre è CHIUSA",
+  ],
+  [
+    "create function public.z() returns int language sql as $$ select 1 $$;\nrevoke all on function public.z() from public, anon, authenticated;\ncreate or replace function public.z() returns int language sql as $$ select 2 $$;",
+    false,
+    "un «create or replace» successivo PRESERVA la revoca: resta CHIUSA",
+  ],
+];
+let tarature = 0;
+for (const [sql, atteso, perche] of PROVE_MODELLO) {
+  const s = applica([{ file: "prova.sql", sql }]).get("z");
+  if (APERTO(s?.a ?? new Set(NASCE_CON)) !== atteso) {
+    console.error(`  ✗ taratura modello: ${perche}`);
+    tarature++;
+  }
+}
+ok(tarature === 0, `…e il modello dei permessi riproduce quello che fa Postgres (${PROVE_MODELLO.length} prove)`);
 
 console.log("\n═══════════════════════════════════════════\n");
 if (falliti) {
