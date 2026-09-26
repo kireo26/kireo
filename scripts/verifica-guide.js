@@ -294,7 +294,15 @@ ok(
     ? "TESTO_SBLOCCO_GUIDE non nomina nessun segnale di sblocco (quello lo dice la card, dove è generato)"
     : `la frase enumera i segnali (${enumerati.join(", ")}): è la forma che si è scollata due volte — il «cosa manca» lo dice «motivo», che non si scrive a mano`,
 );
-ok(/una alla volta/i.test(TESTO_SBLOCCO_GUIDE), "…e dice la sequenza, che è la metà che mancava");
+ok(/in ordine/i.test(TESTO_SBLOCCO_GUIDE), "…e dice la sequenza, che è la metà che mancava");
+// «una alla volta» è la forma che Mario ha scartato rileggendola: si legge anche
+// come «ne puoi tenere aperta una sola», cioè che aprire la seconda chiude la
+// prima. Non è quello che succede, e per chi guarda tre lucchetti è la lettura
+// più naturale — quindi la guardia impedisce che ci si torni per abitudine.
+ok(
+  !/una alla volta/i.test(TESTO_SBLOCCO_GUIDE),
+  "…senza «una alla volta», che si legge come «ne puoi tenere aperta una sola» (e aperta resta aperta)",
+);
 ok(trovaAccordi(TESTO_SBLOCCO_GUIDE).length === 0, "…e non concorda col genere di chi legge");
 
 // Le due pagine la CHIAMANO invece di riscriverla.
@@ -334,6 +342,16 @@ const seq3 = passiPagina("salute-professioni-sanitarie", [
   G(3, "Come partire davvero", false, "sequenza"),
 ]);
 ok(seq3[0]?.tipo === "apri" && seq3[0].livello === 2, "sequenza sulla 3: il passo è aprire la 2, non la 1");
+// E L'ETICHETTA VA CONTROLLATA A PARTE DAL LIVELLO, perché è lì che il difetto
+// si nasconderebbe: un'etichetta FISSA («Apri la Panoramica») lascerebbe l'assert
+// qui sopra verde — il `livello` sarebbe comunque 2 — e manderebbe alla Panoramica
+// chi ce l'ha già aperta. Un no che indica il posto sbagliato è peggio di un no
+// generico, perché sembra preciso. E nessuno se ne accorgerebbe finché uno
+// studente non arriva alla TERZA guida, cioè fra molto tempo e lontano da qui.
+ok(
+  seq3[0]?.etichetta.includes(STRADE) && !seq3[0].etichetta.includes(PANORAMICA),
+  "…e l'etichetta nomina la 2 («Le strade dentro l'area»), non la 1: viene dal titolo della guida precedente, non da una stringa fissa",
+);
 
 // Il PDF precedente non pronto: non si promette una strada chiusa.
 const seqSenzaPdf = passiPagina("x", [G(1, PANORAMICA, true, "aperta", false), G(2, STRADE, false, "sequenza")]);

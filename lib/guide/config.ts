@@ -267,6 +267,15 @@ export function statoSblocco(livello: LivelloGuida, s: SegnaleGuida): StatoSbloc
 // `npm run test:guide` pretende che non nomini nessun segnale: il giorno in cui
 // qualcuno vuole rimetterli, deve togliere la guardia — cioè deciderlo.
 //
-// ⚠️ Testo: l'ho scritto io, va riletto da Mario.
+// LE DUE PAROLE CHE MARIO HA CAMBIATO RILEGGENDOLA, e la ragione di ognuna:
+//   - «una alla volta» → «IN ORDINE». «Una alla volta» si legge anche come *ne
+//     puoi tenere aperta una sola*, cioè che aprire la seconda chiude la prima —
+//     e per chi guarda tre lucchetti è la lettura più naturale, non la più
+//     strana. Non è quello che succede: aperta resta aperta.
+//   - «ognuna dice cosa manca» → «ognuna TI dice cosa manca PER APRIRLA». La
+//     prima descrive il sistema, la seconda gli dice dove guardare. È la stessa
+//     differenza fra un paragrafo e un bottone.
+// «Di profondità crescente» resta nelle due introduzioni: è la ragione per cui
+// la scala esiste, ed è ciò che rende l'ordine sensato invece che burocratico.
 export const TESTO_SBLOCCO_GUIDE =
-  "La prima è sempre pronta; le altre si aprono una alla volta, e ognuna dice cosa manca.";
+  "La prima è pronta da subito; le altre si aprono in ordine, e ognuna ti dice cosa manca per aprirla.";
