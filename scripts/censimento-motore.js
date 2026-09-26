@@ -126,24 +126,50 @@ function censisciMissione(slug) {
   return { righe, areeCandidate };
 }
 
-// ─────────────────────────── Pass B: sei giocatori sintetici
+// ─────────────────────────── Pass B: i giocatori sintetici
+
+// PERCHÉ UN MANDATO SI SCEGLIE PER LE SUE AREE E NON PER IL SUO INDICE.
+// Fino al 2026-09-26 le strategie «concentrati sull'area del mandato»
+// (monomandato, contrario, diversificato) prendevano `mandati[0]` o
+// `mandati[ultimo]` — e su 2 missioni su 11 quel mandato **non porta nessuna
+// area** (`sportello-insieme/scadenza`, `museo-seta/residenti`; l'ultimo è vuoto
+// anche su `crisi-mediateca` e `classe-partecipa`). Con `focus` vuoto ogni ramo
+// «spendi sul focus» cade nel suo ripiego e prende il PRIMO di tutto: il
+// giocatore monomandato **diventava il giocatore essenziale**, cioè il suo nome
+// mentiva. E siccome è la BASELINE di tre asserzioni, tre controlli misuravano
+// contro un giocatore degenere — fra cui una di REGRESSIONE che passava a vuoto
+// (`selfEff-su-A = 0` è banalmente vero quando A è l'insieme vuoto).
+//
+// Quindi il mandato si sceglie per la proprietà che serve alla strategia, non per
+// la posizione nell'elenco. `mandatoId` esplicito serve al giro di copertura
+// (sotto): lo stesso giocatore su OGNI mandato, perché i tag delle consulenze
+// esistono solo sotto il mandato che le porta.
+function mandatoConAree(mandati, daFondo = false) {
+  const ordinati = daFondo ? [...mandati].reverse() : mandati;
+  return ordinati.find((o) => (o.aree ?? []).length) ?? null;
+}
 
 // Costruisce le risposte di un giocatore per una missione, secondo la strategia.
 // Risolve prima con mandato+materiali, poi riempie ogni step dagli step risolti.
 // `strategia`: nullo | completista | monomandato | contrario | essenziale | diversificato.
-function costruisciGiocatore(slug, strategia) {
+function costruisciGiocatore(slug, strategia, mandatoId = null) {
   const base = getMissione(slug);
   const stepMandatoBase = trovaStepId(base, "s1_mandato");
   const mandati = stepMandatoBase.opzioni; // [{id,label,aree}]
   const liberiIds = (trovaStepId(base, "s1_materiali")?.materiali ?? []).map((m) => m.id);
 
   // scelta del mandato + aree su cui il giocatore AGISCE (focus)
-  let mandato = mandati[0];
+  let mandato = mandatoConAree(mandati) ?? mandati[0];
   let focus = new Set(mandato.aree);
-  if (strategia === "diversificato") { mandato = mandati[mandati.length - 1]; focus = new Set(mandato.aree); }
+  if (strategia === "diversificato") { mandato = mandatoConAree(mandati, true) ?? mandati[mandati.length - 1]; focus = new Set(mandato.aree); }
+  // Il giro di copertura passa il mandato esplicito: lì conta attraversarli tutti,
+  // non che il focus sia pieno.
+  if (mandatoId) { mandato = mandati.find((o) => o.id === mandatoId) ?? mandato; focus = new Set(mandato.aree); }
   if (strategia === "contrario") {
     // mandato di un'area A; il focus delle AZIONI è un'area B ≠ A (presa dai ruoli).
-    mandato = mandati[0];
+    // A deve ESISTERE: con A vuoto l'asserzione «la self_efficacy non tocca A»
+    // passa perché non c'è nessuna A, non perché la proprietà valga.
+    mandato = mandatoConAree(mandati) ?? mandati[0];
     const areeA = new Set(mandato.aree);
     // risolvi per leggere i ruoli e scegliere un'area B fuori da A
     const gTmp = accessore({ s1_materiali: { letti: liberiIds }, s1_mandato: { opzioneId: mandato.id } });
@@ -460,6 +486,28 @@ async function run() {
       info[strat] = { evidenze, mandato, focus, mission };
       for (const e of evidenze) if (e.categoria === "area" && e.area_slug) emesse.add(e.area_slug);
     }
+
+    // GIRO DI COPERTURA: un giocatore che prende OGNI mandato e clicca tutto.
+    // Le sei strategie scelgono un mandato a testa, quindi le consulenze degli
+    // altri mandati non le compra nessuno — e un'area taggata SOLO là risultava
+    // «verificata solo staticamente» pur essendo raggiungibile da chiunque quel
+    // mandato lo scegliesse. Erano tre: Arte/Design in guasto-serra, Sicurezza &
+    // Difesa in palco-programma, Ristorazione in classe-partecipa.
+    //
+    // E la strategia di questo giro è «completista», non «monomandato», per una
+    // ragione che il primo tentativo ha trovato invece di dedurre: il monomandato
+    // compra solo i dossier del PROPRIO focus, e due di quelle tre aree stanno su
+    // una consulenza che porta un'area FUORI dal focus del suo mandato. Quel
+    // giocatore non compra la propria consulenza; uno studente sì, perché il
+    // dossier gli compare nell'elenco e nessuno glielo vieta. La copertura vuole
+    // il percorso più larghe, non il più verosimile.
+    //
+    // Costa 55 simulazioni in più: nessuna chiamata AI, nessuna scrittura.
+    for (const mid of trovaStepId(getMissione(slug), "s1_mandato").opzioni.map((o) => o.id)) {
+      const { mission, risposte } = costruisciGiocatore(slug, "completista", mid);
+      const { evidenze } = await calcolaEvidenze(mission, risposte, null);
+      for (const e of evidenze) if (e.categoria === "area" && e.area_slug) emesse.add(e.area_slug);
+    }
     aggregatiPerMissione[slug] = agg;
     // buco di copertura: aree taggate ma che nessuno dei 6 giocatori ha attivato
     for (const area of areeTaggatePerMissione[slug] || []) if (!emesse.has(area)) buchiCopertura.push({ slug, area });
@@ -482,8 +530,15 @@ async function run() {
       const areeA = new Set(co.mandato.aree);
       const mandatoNonInterest = evid.filter((e) => e.step_id === "s1_mandato" && e.categoria === "area" && e.dimensione !== "interest");
       const selfEffSuA = evid.filter((e) => e.categoria === "area" && e.dimensione === "self_efficacy" && areeA.has(e.area_slug));
+      // A VUOTO = NON APPLICABILE, non «passata». `selfEff-su-A = 0` su un insieme
+      // vuoto è vero per costruzione: dichiararlo PASS sarebbe la risposta comoda
+      // su un'asserzione che fa exit 1. Oggi non capita più (il mandato si scegli
+      // per le sue aree), e resta scritto perché il giorno che una missione avesse
+      // tutti i mandati senza aree la differenza si veda.
       const ok = mandatoNonInterest.length === 0 && selfEffSuA.length === 0;
-      asserzioni.push({ slug, tipo: "regressione", nome: "contrario: il merito segue le azioni, non il mandato", esito: ok ? "PASS" : "FAIL", dettaglio: `mandato-non-interest=${mandatoNonInterest.length} selfEff-su-A=${selfEffSuA.length}` });
+      asserzioni.push(areeA.size === 0
+        ? { slug, tipo: "regressione", nome: "contrario: il merito segue le azioni, non il mandato", esito: "N/A", dettaglio: "nessun mandato di questa missione porta aree: l'asserzione passerebbe a vuoto" }
+        : { slug, tipo: "regressione", nome: "contrario: il merito segue le azioni, non il mandato", esito: ok ? "PASS" : "FAIL", dettaglio: `mandato-non-interest=${mandatoNonInterest.length} selfEff-su-A=${selfEffSuA.length}` });
     }
     // nullo: confidence più bassa dell'impegnato (chi tira via ha un profilo più
     // debole). Robusta: un giocatore che spende gettoni/budget/ruoli accumula
@@ -507,18 +562,42 @@ async function run() {
     {
       const mono = info["monomandato"];
       const top = topPer(agg["monomandato"], "interest");
+      // Se il mandato non porta aree la domanda non ha oggetto: non c'è niente da
+      // mettere in cima. Era il caso di 2 missioni su 11, e le due righe gialle che
+      // ne uscivano non erano informazione — erano rumore permanente, perché nessun
+      // contenuto avrebbe potuto farle diventare verdi.
       const ok = top && mono.mandato.aree.includes(top.slug);
-      asserzioni.push({ slug, tipo: "diagnostica", nome: "monomandato: area del mandato in cima", esito: ok ? "PASS" : "REVIEW", dettaglio: `top=${top ? top.slug : "—"} mandato.aree=[${mono.mandato.aree.join(",")}]` });
+      asserzioni.push(mono.mandato.aree.length === 0
+        ? { slug, tipo: "diagnostica", nome: "monomandato: area del mandato in cima", esito: "N/A", dettaglio: "i mandati di questa missione non portano aree: non c'è niente da mettere in cima" }
+        : { slug, tipo: "diagnostica", nome: "monomandato: area del mandato in cima", esito: ok ? "PASS" : "REVIEW", dettaglio: `top=${top ? top.slug : "—"} mandato.aree=[${mono.mandato.aree.join(",")}]` });
     }
     // completista: profilo più PIATTO del focus. Chi clicca tutto non deve ottenere
-    // un picco più netto di chi si concentra: il gap #1-#2 del completista ≤ quello
-    // del monomandato. (Metrica robusta al problema dell'interest-mean assoluto.)
+    // un picco più netto di chi si concentra.
+    //
+    // IL GAP SI MISURA SUL VOLUME DI PESO, NON SULLA MEDIA — e fino al 2026-09-26
+    // era il contrario, con un commento che diceva «metrica robusta al problema
+    // dell'interest-mean»: era esattamente al rovescio, perché il gap fra due medie
+    // eredita il problema della media invece di curarlo. `interest` è una media
+    // pesata, quindi è INSENSIBILE a quante cose hai fatto: una sola prova di valore
+    // alto su un'area nuova le dà una media alta senza nessun peso sotto. E il
+    // completista tocca sempre più aree (17 contro 13, 8 contro 5, 11 contro 7…),
+    // quindi ha sempre più occasioni che una di quelle svetti per caso.
+    //
+    // MISURATO sulle 11 missioni, non dedotto: sulla media 6 «falliscono», sul volume
+    // 9 su 11 passano, **e le 2 che restano sono missioni diverse**. Su
+    // `crisi-mediateca` il completista ha lo stesso volume del focalizzato (2,4 contro
+    // 2,4) — profilo altrettanto piatto — e la media lo chiamava picco più netto. I
+    // due osservabili non concordano su 8 missioni su 11: non erano due
+    // approssimazioni della stessa cosa.
+    //
+    // Il nome della proprietà non cambia (è quella che il prodotto vuole): cambia
+    // l'osservabile, perché quello di prima non poteva rispondere alla domanda.
     {
-      const gapDi = (m) => { const vals = [...m.values()].map((v) => v.interest).filter((x) => x != null).sort((a, b) => b - a); return vals.length >= 2 ? vals[0] - vals[1] : vals[0] ?? 0; };
+      const gapDi = (m) => { const vals = [...m.values()].map((v) => v.pesoInteresse).filter((x) => x > 0).sort((a, b) => b - a); return vals.length >= 2 ? vals[0] - vals[1] : vals[0] ?? 0; };
       const gc = gapDi(agg["completista"]);
       const gm = gapDi(agg["monomandato"]);
       const ok = gc <= gm + 1e-9;
-      asserzioni.push({ slug, tipo: "diagnostica", nome: "completista: il volume non crea un picco più netto del focus", esito: ok ? "PASS" : "REVIEW", dettaglio: `gap completista=${gc.toFixed(3)} ≤ monomandato=${gm.toFixed(3)}` });
+      asserzioni.push({ slug, tipo: "diagnostica", nome: "completista: il volume non crea un picco più netto del focus", esito: ok ? "PASS" : "REVIEW", dettaglio: `peso del picco: completista=${gc.toFixed(1)} ≤ monomandato=${gm.toFixed(1)}` });
     }
   }
 
@@ -578,14 +657,47 @@ async function run() {
   line("");
   line("PASS B — REGRESSIONE (invarianti; un FAIL è un bug del motore → exit 1):");
   let falliti = 0;
-  for (const a of asserzioni.filter((x) => x.tipo === "regressione")) { if (a.esito === "FAIL") falliti++; line(`  ${a.esito === "PASS" ? "✓" : "✗ FAIL"}  [${a.slug}] ${a.nome}  ·  ${a.dettaglio}`); }
+  const SIMBOLO = { PASS: "✓", FAIL: "✗ FAIL", "N/A": "— N/A" };
+  for (const a of asserzioni.filter((x) => x.tipo === "regressione")) { if (a.esito === "FAIL") falliti++; line(`  ${SIMBOLO[a.esito] ?? a.esito}  [${a.slug}] ${a.nome}  ·  ${a.dettaglio}`); }
+  // Un N/A NON si stampa come un ✓: è un'asserzione che non si è potuta fare, e
+  // un insieme scartato in silenzio è un insieme che nessuno ricontrolla.
+  const naReg = asserzioni.filter((x) => x.tipo === "regressione" && x.esito === "N/A");
+  if (naReg.length) line(`  → ${naReg.length} non applicabili (non passate: non si sono potute fare)`);
   line("");
   const daRivedere = asserzioni.filter((x) => x.tipo === "diagnostica" && x.esito === "REVIEW");
-  line(`PASS B — DIAGNOSTICA (proprietà di contenuto da rivedere con Fix C, NON exit): ${daRivedere.length} segnalazioni`);
+  const naDiag = asserzioni.filter((x) => x.tipo === "diagnostica" && x.esito === "N/A");
+  line(`PASS B — DIAGNOSTICA (proprietà di CONTENUTO: un giallo non è un bug del motore, NON exit): ${daRivedere.length} segnalazioni`);
   for (const a of daRivedere) line(`  ⚠ REVIEW  [${a.slug}] ${a.nome}  ·  ${a.dettaglio}`);
+  for (const a of naDiag) line(`  — N/A    [${a.slug}] ${a.nome}  ·  ${a.dettaglio}`);
+  // OGNI GIALLO DICE PERCHÉ RESTA GIALLO E CHI LO DECIDE. Un avviso senza queste
+  // due cose suona a ogni esecuzione e smette di essere un avviso: è la stessa
+  // regola del `.temp` in .gitignore, applicata a una diagnostica. Una famiglia
+  // nuova senza glossa lo dichiara, invece di passare come le altre.
+  const GLOSSA = {
+    "monomandato: area del mandato in cima": [
+      "chi si concentra sul mandato NON ottiene quell'area in cima: in quella missione le AZIONI",
+      "pesano più del mandato. Resta gialla perché la cura è di CONTENUTO — spostare o pesare",
+      "diversamente i tag di quella missione — non di motore. → decide Mario.",
+    ],
+    "completista: il volume non crea un picco più netto del focus": [
+      "chi clicca tutto accumula più peso sul proprio picco di chi si concentra. Osservabile: peso",
+      "d'interesse del #1 meno quello del #2 (NON la media: vedi il commento all'asserzione).",
+      "Resta gialla perché la cura è di CONTENUTO — quanto peso portano gli elementi che il",
+      "completista prende in più — non di motore. → decide Mario.",
+    ],
+  };
+  const famiglie = [...new Set(daRivedere.map((a) => a.nome))];
+  if (famiglie.length) {
+    line("");
+    for (const f of famiglie) {
+      const g = GLOSSA[f] ?? ["nessuna glossa: chi ha aggiunto questa diagnostica deve scrivere cosa vuol dire un suo giallo e chi decide."];
+      line(`  · «${f}»`);
+      for (const riga of g) line(`      ${riga}`);
+    }
+  }
   line("");
-  line(`COPERTURA Pass B — aree taggate ma non attivate da nessuno dei 6 giocatori: ${buchiCopertura.length}`);
-  if (buchiCopertura.length) for (const b of buchiCopertura) line(`  · [${b.slug}] ${nomeArea(b.area)} — verificata solo staticamente, non dal vivo`);
+  line(`COPERTURA Pass B — aree taggate ma non attivate da nessun giocatore (6 strategie + un giro su ogni mandato): ${buchiCopertura.length}`);
+  if (buchiCopertura.length) for (const b of buchiCopertura) line(`  ⚠ [${b.slug}] ${nomeArea(b.area)} — NESSUN percorso la attiva: uno studente portato là non riceve il segnale`);
   line("");
   line(`CASI DUBBI (lessico): ${dubbiUnici.length} → censimento-output/casi-dubbi.{csv,md}`);
   line("");
