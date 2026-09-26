@@ -176,17 +176,24 @@ export type SegnaleGuida = {
   giaAperte: LivelloGuida[];
 };
 
-export type StatoSblocco = { sbloccata: boolean; motivo: string };
+// `causa` esiste perché la PAGINA deve sapere quale passo offrire, e la
+// differenza fra i due non è di grado: la sequenza si chiude aprendo la guida
+// che è già lì, il merito mandando lo studente altrove. Prima quella differenza
+// viveva solo dentro `motivo`, cioè in una frase — e l'unico modo di leggerla
+// sarebbe stato cercarci una parola dentro, che è il modo in cui un controllo
+// smette di funzionare al primo che riscrive il testo.
+export type CausaSblocco = "aperta" | "sequenza" | "merito";
+export type StatoSblocco = { sbloccata: boolean; motivo: string; causa: CausaSblocco };
 
 // Guida 2 — l'area «si rafforza». Sbloccata se lo studente ha COMPLETATO T3, o
 // ≥1 missione del blocco, o l'area è confermata / da_verificare (segnali forti,
 // anche se con tensione interna), o supera la soglia d'interesse di backup.
 function sbloccoL2(s: SegnaleGuida): StatoSblocco {
-  if (s.t3Completato) return { sbloccata: true, motivo: "Sbloccata: hai completato «Più a fondo»." };
-  if (s.missioniBloccoCompletate >= 1) return { sbloccata: true, motivo: "Sbloccata: hai completato una missione di quest'area." };
-  if (s.status === "confermata" || s.status === "da_verificare") return { sbloccata: true, motivo: "Sbloccata: l'area si è rafforzata nel tuo profilo." };
-  if (s.interestScore >= SOGLIA_L2_INTEREST) return { sbloccata: true, motivo: "Sbloccata: l'area si sta rafforzando." };
-  return { sbloccata: false, motivo: "Si sblocca quando l'area si rafforza — fai «Più a fondo» o prova una missione." };
+  if (s.t3Completato) return { sbloccata: true, motivo: "Sbloccata: hai completato «Più a fondo».", causa: "aperta" };
+  if (s.missioniBloccoCompletate >= 1) return { sbloccata: true, motivo: "Sbloccata: hai completato una missione di quest'area.", causa: "aperta" };
+  if (s.status === "confermata" || s.status === "da_verificare") return { sbloccata: true, motivo: "Sbloccata: l'area si è rafforzata nel tuo profilo.", causa: "aperta" };
+  if (s.interestScore >= SOGLIA_L2_INTEREST) return { sbloccata: true, motivo: "Sbloccata: l'area si sta rafforzando.", causa: "aperta" };
+  return { sbloccata: false, motivo: "Si sblocca quando l'area si rafforza — fai «Più a fondo» o prova una missione.", causa: "merito" };
 }
 
 // Guida 3 — l'area «si consolida». Sbloccata se l'area è confermata (o
@@ -194,11 +201,11 @@ function sbloccoL2(s: SegnaleGuida): StatoSblocco {
 // La soglia d'interesse alta resta come backup.
 function sbloccoL3(s: SegnaleGuida): StatoSblocco {
   const consolidata = s.status === "confermata" || (s.status === "da_verificare" && s.confidence >= SOGLIA_CONF_ALTA);
-  if (consolidata && s.missioniBloccoCompletate >= 1) return { sbloccata: true, motivo: "Sbloccata: area consolidata e missione completata." };
-  if (s.interestScore >= SOGLIA_L3_INTEREST && s.missioniBloccoCompletate >= 1) return { sbloccata: true, motivo: "Sbloccata: interesse alto e missione completata." };
-  if (!consolidata && s.interestScore < SOGLIA_L3_INTEREST) return { sbloccata: false, motivo: "Si sblocca quando l'area è consolidata e hai completato una missione." };
-  if (s.missioniBloccoCompletate < 1) return { sbloccata: false, motivo: "Ci sei quasi: manca una missione di quest'area." };
-  return { sbloccata: false, motivo: "Si sblocca quando l'area è consolidata e hai completato una missione." };
+  if (consolidata && s.missioniBloccoCompletate >= 1) return { sbloccata: true, motivo: "Sbloccata: area consolidata e missione completata.", causa: "aperta" };
+  if (s.interestScore >= SOGLIA_L3_INTEREST && s.missioniBloccoCompletate >= 1) return { sbloccata: true, motivo: "Sbloccata: interesse alto e missione completata.", causa: "aperta" };
+  if (!consolidata && s.interestScore < SOGLIA_L3_INTEREST) return { sbloccata: false, motivo: "Si sblocca quando l'area è consolidata e hai completato una missione.", causa: "merito" };
+  if (s.missioniBloccoCompletate < 1) return { sbloccata: false, motivo: "Ci sei quasi: manca una missione di quest'area.", causa: "merito" };
+  return { sbloccata: false, motivo: "Si sblocca quando l'area è consolidata e hai completato una missione.", causa: "merito" };
 }
 
 // L'ORDINE DEI TRE CONTROLLI È LA REGOLA, non un dettaglio di scrittura.
@@ -217,17 +224,49 @@ function sbloccoL3(s: SegnaleGuida): StatoSblocco {
 // di `informatica`. Chi ha scaricato la 1 da anonimo non risulta averla aperta, e
 // va bene così — la riapre da dentro in tre secondi, e l'alternativa sarebbe
 // legare un download anonimo a una persona.
+//
+// LA FRASE CHE DESCRIVE QUESTA REGOLA STA QUI SOTTO, e non nelle due pagine che
+// la mostrano — vedi TESTO_SBLOCCO_GUIDE. Chi cambia la regola ce l'ha sotto gli
+// occhi: è l'unica cura che funziona su una frase che non si può generare.
 export function statoSblocco(livello: LivelloGuida, s: SegnaleGuida): StatoSblocco {
-  if (livello === 1) return { sbloccata: true, motivo: "Sempre disponibile." };
-  if (s.giaAperte.includes(livello)) return { sbloccata: true, motivo: "L'hai già scaricata: resta tua." };
+  if (livello === 1) return { sbloccata: true, motivo: "Sempre disponibile.", causa: "aperta" };
+  if (s.giaAperte.includes(livello)) return { sbloccata: true, motivo: "L'hai già scaricata: resta tua.", causa: "aperta" };
 
   const precedente = (livello - 1) as LivelloGuida;
   if (!s.giaAperte.includes(precedente)) {
     return {
       sbloccata: false,
       motivo: `Si apre dopo la Guida ${precedente} di quest'area: aprila e torna qui.`,
+      causa: "sequenza",
     };
   }
 
   return livello === 2 ? sbloccoL2(s) : sbloccoL3(s);
 }
+
+// ─────────────────────────────────────────── La frase che descrive la regola
+//
+// PERCHÉ ESISTE, e perché sta QUI e non nelle pagine. Fino al 2026-09-26 la
+// regola era riassunta a mano in DUE punti — l'introduzione di /app/guide e
+// quella di /app/guide/<area> — e tutte e due dicevano solo la metà del MERITO
+// («si aprono man mano che l'area si rafforza… con "Più a fondo" o con una
+// missione»). Quando è arrivata la sequenza, `statoSblocco` è stato aggiornato e
+// le due frasi no: la pagina dichiarava una regola e la card un'altra, **e la
+// persona che ci è finita dentro aveva fatto la missione**, quindi secondo
+// l'introduzione la Guida 2 doveva essere aperta. Non due copie di un testo: due
+// DESCRIZIONI della stessa regola, di cui nessuna aggiornata.
+//
+// NON SI PUÒ GENERARE, e vale la pena sapere perché: questa frase descrive la
+// regola in generale, mentre `motivo` parla dello stato di UNO studente. Quindi
+// la cura non è derivarla — è (1) farla vivere accanto alla regola, così chi
+// tocca l'una vede l'altra, e (2) **non farle enumerare i segnali**. L'elenco dei
+// modi di sbloccare ha quattro voci alternative e cambia; la sequenza no. La
+// frase dice quello che resta vero e rimanda dove la verità è generata: la card,
+// che il suo `motivo` non lo scrive a mano.
+//
+// `npm run test:guide` pretende che non nomini nessun segnale: il giorno in cui
+// qualcuno vuole rimetterli, deve togliere la guardia — cioè deciderlo.
+//
+// ⚠️ Testo: l'ho scritto io, va riletto da Mario.
+export const TESTO_SBLOCCO_GUIDE =
+  "La prima è sempre pronta; le altre si aprono una alla volta, e ognuna dice cosa manca.";

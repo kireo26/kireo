@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getAppContext } from "@/lib/app/studentContext";
 import { createClient } from "@/lib/supabase/server";
 import { AREE } from "@/data/aree";
-import { guideDiArea, statoSblocco, GATE_GUIDE_ATTIVO, guidaPronta } from "@/lib/guide/config";
+import { guideDiArea, statoSblocco, GATE_GUIDE_ATTIVO, guidaPronta, TESTO_SBLOCCO_GUIDE } from "@/lib/guide/config";
 import { caricaContestoGuide } from "@/lib/guide/statoStudente";
 
 export const metadata = { title: "Guide di orientamento — KIREO" };
@@ -30,8 +30,11 @@ export default async function GuideHome() {
       <div>
         <p className="mb-4 font-sans text-sm font-semibold uppercase tracking-wide text-kireo-orange">Guide</p>
         <h1 className="py-1 font-heading text-3xl font-bold leading-[1.25] text-kireo-light sm:text-4xl">Le guide di orientamento</h1>
+        {/* Stessa frase della pagina di area, e dallo stesso posto: era la
+            SECONDA copia scritta a mano della regola di sblocco, ferma alla
+            versione di prima della sequenza come la prima. */}
         <p className="mt-2 max-w-2xl text-kireo-muted">
-          Per ogni area, fino a tre guide di profondità crescente: una panoramica, le strade che puoi prendere, e come partire davvero. Le più profonde si aprono man mano che l&apos;area si rafforza nel tuo profilo.
+          Per ogni area, fino a tre guide di profondità crescente: una panoramica, le strade che puoi prendere, e come partire davvero. {TESTO_SBLOCCO_GUIDE}
         </p>
       </div>
 

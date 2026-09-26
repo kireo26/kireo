@@ -34,6 +34,8 @@ require.extensions[".ts"] = require.extensions[".tsx"] = function (mod, filename
 const { statoSblocco, guideDiArea, TUTTE_LE_GUIDE, SOGLIA_L2_INTEREST, SOGLIA_L3_INTEREST, GUIDE_PRONTE, guidaPronta, percorsoGuidaUno, GATE_GUIDE_ATTIVO } = require("@/lib/guide/config");
 const { AREE } = require("@/data/aree");
 const { avvisoRifiuto } = require("@/lib/guide/avvisoRifiuto");
+const { TESTO_SBLOCCO_GUIDE } = require("@/lib/guide/config");
+const { passiPagina } = require("@/lib/guide/passiPagina");
 const { trovaAccordi } = require("@/lib/lingua/accordoGenere");
 
 let falliti = 0;
@@ -275,6 +277,124 @@ ok(accordi.length === 0, `nessuna forma accordata col genere di chi legge${accor
 const pag = fs.readFileSync(path.join(ROOT, "app/app/guide/[areaSlug]/page.tsx"), "utf8");
 ok(/avvisoRifiuto\s*\(/.test(pag), "la pagina dell'area chiama avvisoRifiuto");
 ok(!/problema nostro/.test(pag), "…e non tiene una seconda copia del testo");
+
+// ── La frase che descrive la regola ───────────────────────────────────────────
+// Era scritta a mano in DUE introduzioni e tutte e due si erano fermate alla
+// versione di prima della sequenza. Non si può generare (descrive la regola in
+// generale, non lo stato di uno studente), quindi la proprietà sorvegliabile è
+// un'altra: **non enumera i segnali**. L'elenco dei modi di sbloccare ha quattro
+// voci alternative e cambia; la sequenza no.
+console.log("\n10) La frase sullo sblocco: una sola, e non enumera i segnali");
+
+const SEGNALI_ENUMERATI = [/Più a fondo/i, /mission/i, /profilo/i, /interess/i, /consolidat/i];
+const enumerati = SEGNALI_ENUMERATI.filter((r) => r.test(TESTO_SBLOCCO_GUIDE)).map(String);
+ok(
+  enumerati.length === 0,
+  enumerati.length === 0
+    ? "TESTO_SBLOCCO_GUIDE non nomina nessun segnale di sblocco (quello lo dice la card, dove è generato)"
+    : `la frase enumera i segnali (${enumerati.join(", ")}): è la forma che si è scollata due volte — il «cosa manca» lo dice «motivo», che non si scrive a mano`,
+);
+ok(/una alla volta/i.test(TESTO_SBLOCCO_GUIDE), "…e dice la sequenza, che è la metà che mancava");
+ok(trovaAccordi(TESTO_SBLOCCO_GUIDE).length === 0, "…e non concorda col genere di chi legge");
+
+// Le due pagine la CHIAMANO invece di riscriverla.
+const indice = fs.readFileSync(path.join(ROOT, "app/app/guide/page.tsx"), "utf8");
+for (const [nome, src] of [["l'indice /app/guide", indice], ["la pagina dell'area", pag]]) {
+  ok(/TESTO_SBLOCCO_GUIDE/.test(src), `${nome} usa TESTO_SBLOCCO_GUIDE`);
+  ok(
+    !/si aprono man mano/.test(src),
+    `${nome} non tiene più il riassunto scritto a mano`,
+  );
+}
+
+// ── I passi in fondo alla pagina seguono il passo che MANCA ────────────────────
+console.log("\n11) La riga di azioni: il passo che manca, non l'elenco dei passi");
+
+const G = (livello, titolo, sbloccata, causa, disponibile = true) => ({ livello, titolo, sbloccata, causa, disponibile });
+const PANORAMICA = "Panoramica";
+const STRADE = "Le strade dentro l'area";
+
+// Bloccata dalla sequenza: il passo è aprire la guida precedente, che è lì sopra.
+const seq = passiPagina("salute-professioni-sanitarie", [
+  G(1, PANORAMICA, true, "aperta"),
+  G(2, STRADE, false, "sequenza"),
+  G(3, "Come partire davvero", false, "sequenza"),
+]);
+ok(seq[0]?.tipo === "apri" && seq[0].livello === 1, "sequenza: il primo passo APRE la guida precedente");
+ok(seq[0]?.etichetta.includes(PANORAMICA), "…e la nomina, invece di dire «guida 1»");
+ok(
+  !seq.some((p) => /Più a fondo|missione/i.test(p.etichetta)),
+  "…e NON offre insieme le strade del merito: due strade offerte insieme fanno leggere la seconda, che costa un'ora invece di un clic",
+);
+
+// La 2 aperta ma non ancora LETTA: la 3 è bloccata dalla sequenza su di lei.
+const seq3 = passiPagina("salute-professioni-sanitarie", [
+  G(1, PANORAMICA, true, "aperta"),
+  G(2, STRADE, true, "aperta"),
+  G(3, "Come partire davvero", false, "sequenza"),
+]);
+ok(seq3[0]?.tipo === "apri" && seq3[0].livello === 2, "sequenza sulla 3: il passo è aprire la 2, non la 1");
+
+// Il PDF precedente non pronto: non si promette una strada chiusa.
+const seqSenzaPdf = passiPagina("x", [G(1, PANORAMICA, true, "aperta", false), G(2, STRADE, false, "sequenza")]);
+ok(
+  !seqSenzaPdf.some((p) => p.tipo === "apri"),
+  "se la guida da aprire non è ancora pronta, nessun bottone la promette (è un buco nostro, non un passo dello studente)",
+);
+
+// Merito sulla 2: entrambe le strade la aprono.
+const meritoDue = passiPagina("x", [G(1, PANORAMICA, true, "aperta"), G(2, STRADE, false, "merito")]);
+ok(meritoDue.some((p) => /Più a fondo/.test(p.etichetta)), "merito sulla 2: «Più a fondo» c'è");
+ok(meritoDue.some((p) => /missione/i.test(p.etichetta)), "…e anche la missione");
+
+// Merito sulla 3: «Più a fondo» da solo non la apre MAI (sbloccoL3 richiede una
+// missione in ogni suo ramo), quindi quel bottone non si mostra.
+const meritoTre = passiPagina("x", [
+  G(1, PANORAMICA, true, "aperta"),
+  G(2, STRADE, true, "aperta"),
+  G(3, "Come partire davvero", false, "merito"),
+]);
+ok(
+  !meritoTre.some((p) => /Più a fondo/.test(p.etichetta)),
+  "merito sulla 3: «Più a fondo» NON compare — non può aprirla da solo, e un bottone che non porta dove dice è peggio di nessun bottone",
+);
+ok(meritoTre.some((p) => /missione/i.test(p.etichetta)), "…e la missione, che serve sempre, sì");
+
+// E la coerenza col motore vero: la causa la mette `statoSblocco`, non il test.
+ok(statoSblocco(2, con({})).causa === "sequenza", "statoSblocco marca «sequenza» quando manca la guida precedente");
+ok(statoSblocco(2, meritoL2({})).causa === "merito", "…e «merito» quando la sequenza è a posto ma il segnale no");
+ok(statoSblocco(1, vuoto).causa === "aperta", "…e «aperta» su una guida sbloccata");
+ok(statoSblocco(3, con({ giaAperte: [1, 2, 3] })).causa === "aperta", "…compresa una già scaricata");
+
+// Niente bloccato: la riga torna a essere navigazione.
+const tutteAperte = passiPagina("x", [G(1, PANORAMICA, true, "aperta"), G(2, STRADE, true, "aperta"), G(3, "C", true, "aperta")]);
+ok(tutteAperte.every((p) => p.tipo === "vai"), "con tutto aperto la riga è sola navigazione: nessun bottone di sblocco");
+ok(tutteAperte.length === 3, "…e sono le tre di sempre");
+
+// La pagina li RENDE dalla funzione, e non tiene una riga fissa.
+ok(/passiPagina\s*\(/.test(pag), "la pagina dell'area chiama passiPagina");
+ok(!/Fai «Più a fondo»/.test(pag), "…e non tiene più la riga di bottoni scritta a mano");
+
+// ── Aprire una guida passa da UN posto solo ───────────────────────────────────
+// La sequenza avanza solo se l'apertura finisce in activity_log col livello. Un
+// link diretto al PDF dal fondo pagina aprirebbe il file senza registrare
+// niente: la guida successiva resterebbe chiusa e la pagina continuerebbe a
+// chiedere lo stesso passo a chi l'ha appena fatto. Un giro chiuso, e il PDF si
+// scarica davvero — quindi nessuna prova automatica se ne accorgerebbe da sola.
+console.log("\n12) Aprire una guida registra l'apertura, sempre");
+
+const opener = fs.readFileSync(path.join(ROOT, "components/app/ApriGuidaButton.tsx"), "utf8");
+ok(/registraAttivita\(/.test(opener) && /window\.open\(/.test(opener), "ApriGuidaButton registra l'apertura e poi apre");
+ok(/"download_guida",\s*livello/.test(opener), "…col LIVELLO, che è il fatto che la sequenza legge");
+
+const card = fs.readFileSync(path.join(ROOT, "components/app/CardGuida.tsx"), "utf8");
+ok(/ApriGuidaButton/.test(card), "la card apre attraverso quel componente");
+ok(!/window\.open\(/.test(card), "…e non tiene una seconda copia del gesto");
+ok(!/window\.open\(/.test(pag), "nemmeno la pagina");
+ok(
+  !/href=\{[^}]*percorsoGuida\(/.test(pag) && !/href="\/guide\//.test(pag),
+  "e nessun link diretto al PDF in pagina: aprirebbe il file senza registrare l'apertura, e la sequenza non avanzerebbe mai",
+);
 
 console.log("");
 if (falliti > 0) { console.error(`✗ ${falliti} verifiche fallite`); process.exit(1); }

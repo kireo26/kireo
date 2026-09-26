@@ -3,10 +3,12 @@ import { notFound } from "next/navigation";
 import { getAppContext } from "@/lib/app/studentContext";
 import { createClient } from "@/lib/supabase/server";
 import { getAreaBySlug } from "@/data/aree";
-import { guideDiArea, statoSblocco, GATE_GUIDE_ATTIVO, guidaPronta } from "@/lib/guide/config";
+import { guideDiArea, statoSblocco, GATE_GUIDE_ATTIVO, guidaPronta, TESTO_SBLOCCO_GUIDE, percorsoGuida } from "@/lib/guide/config";
 import { caricaContestoGuide } from "@/lib/guide/statoStudente";
 import { avvisoRifiuto } from "@/lib/guide/avvisoRifiuto";
+import { passiPagina } from "@/lib/guide/passiPagina";
 import CardGuida from "@/components/app/CardGuida";
+import ApriGuidaButton from "@/components/app/ApriGuidaButton";
 
 export const metadata = { title: "Guide — KIREO" };
 
@@ -31,8 +33,27 @@ export default async function GuideAreaPage({
 
   const guide = guideDiArea(areaSlug).map((g) => {
     const sb = statoSblocco(g.livello, segnale);
-    return { guida: g, disponibile: guidaPronta(areaSlug, g.livello), sbloccata: sb.sbloccata, motivo: sb.motivo };
+    return {
+      guida: g,
+      disponibile: guidaPronta(areaSlug, g.livello),
+      sbloccata: sb.sbloccata,
+      motivo: sb.motivo,
+      causa: sb.causa,
+    };
   });
+
+  // La riga di azioni in fondo segue il passo che MANCA, non l'elenco dei passi
+  // possibili: vedi lib/guide/passiPagina.ts per il perché e per l'ordine.
+  const passi = passiPagina(
+    areaSlug,
+    guide.map((g) => ({
+      livello: g.guida.livello,
+      titolo: g.guida.titolo,
+      sbloccata: g.sbloccata,
+      disponibile: g.disponibile,
+      causa: g.causa,
+    })),
+  );
 
   // Il rifiuto atterra qui, e il testo sta in `lib/guide/avvisoRifiuto.ts` —
   // vedi il commento là per il perché non è un ternario dentro questo JSX.
@@ -50,8 +71,11 @@ export default async function GuideAreaPage({
           <span className="flex h-10 w-10 flex-none items-center justify-center rounded-full border border-kireo-orange/40 font-heading text-sm font-bold text-kireo-orange">{area.icona}</span>
           <h1 className="py-1 font-heading text-2xl font-bold leading-[1.25] text-kireo-light sm:text-3xl">{area.nome}</h1>
         </div>
+        {/* La frase sullo sblocco viene da lib/guide/config.ts, accanto alla
+            regola che descrive: qui c'era un riassunto scritto a mano, fermo alla
+            versione di prima della sequenza. */}
         <p className="mt-2 max-w-2xl text-sm text-kireo-muted">
-          Tre guide di profondità crescente. La panoramica è sempre pronta; le altre si aprono man mano che l&apos;area si rafforza nel tuo profilo — con «Più a fondo» o con una missione.
+          Tre guide di profondità crescente. {TESTO_SBLOCCO_GUIDE}
         </p>
       </div>
 
@@ -70,10 +94,26 @@ export default async function GuideAreaPage({
         ))}
       </div>
 
-      <div className="flex flex-wrap gap-3">
-        <Link href={`/aree/${areaSlug}`} className="rounded-full border border-white/10 px-5 py-2 text-sm font-semibold text-kireo-light hover:border-kireo-green">Scopri l&apos;area</Link>
-        <Link href="/app/test/piu-a-fondo" className="rounded-full border border-white/10 px-5 py-2 text-sm font-semibold text-kireo-light hover:border-kireo-green">Fai «Più a fondo»</Link>
-        <Link href="/app/escape" className="rounded-full border border-white/10 px-5 py-2 text-sm font-semibold text-kireo-light hover:border-kireo-green">Prova una missione</Link>
+      <div className="flex flex-wrap items-center gap-3">
+        {passi.map((p) =>
+          p.tipo === "apri" ? (
+            <ApriGuidaButton
+              key={`apri-${p.livello}`}
+              areaSlug={areaSlug}
+              livello={p.livello}
+              pdf={percorsoGuida(areaSlug, p.livello)}
+              etichetta={p.etichetta}
+            />
+          ) : (
+            <Link
+              key={p.href}
+              href={p.href}
+              className="rounded-full border border-white/10 px-5 py-2 text-sm font-semibold text-kireo-light hover:border-kireo-green"
+            >
+              {p.etichetta}
+            </Link>
+          ),
+        )}
       </div>
     </div>
   );

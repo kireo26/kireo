@@ -1,7 +1,7 @@
 "use client";
 
-import { registraAttivita } from "@/lib/app/activityLog";
 import type { Guida } from "@/lib/guide/config";
+import ApriGuidaButton from "./ApriGuidaButton";
 
 // Card di una singola guida. Due stati ORTOGONALI:
 //  - disponibilità del PDF: la guida è già scritta? (dichiarata in GUIDE_PRONTE,
@@ -17,7 +17,9 @@ import type { Guida } from "@/lib/guide/config";
 // nemmeno arrivare.
 //
 // L'apertura traccia `download_guida` in activity_log CON IL LIVELLO: non è
-// telemetria, è il fatto che la sequenza legge («la 2 si apre dopo la 1»).
+// telemetria, è il fatto che la sequenza legge («la 2 si apre dopo la 1») — e sta
+// in `ApriGuidaButton`, insieme all'apertura, perché anche la riga di azioni in
+// fondo alla pagina apre una guida e un secondo gesto che registra divergerebbe.
 export default function CardGuida({
   guida,
   disponibile,
@@ -33,12 +35,6 @@ export default function CardGuida({
 }) {
   const bloccata = gateAttivo && !sbloccata;
   const apribile = disponibile && !bloccata;
-
-  function apri() {
-    if (!apribile) return;
-    registraAttivita(guida.areaSlug, "download_guida", guida.livello);
-    window.open(guida.pdf, "_blank", "noopener,noreferrer");
-  }
 
   return (
     <div className={`rounded-2xl border p-5 ${apribile ? "border-white/10 bg-kireo-card" : "border-white/5 bg-kireo-card/60"}`}>
@@ -59,9 +55,7 @@ export default function CardGuida({
 
       <div className="mt-4">
         {apribile ? (
-          <button type="button" onClick={apri} className="inline-block rounded-full bg-kireo-green px-4 py-1.5 text-sm font-semibold text-white hover:bg-kireo-green-light">
-            Apri la guida →
-          </button>
+          <ApriGuidaButton areaSlug={guida.areaSlug} livello={guida.livello} pdf={guida.pdf} etichetta="Apri la guida →" />
         ) : !disponibile ? (
           <span className="inline-block rounded-full border border-white/10 px-4 py-1.5 text-sm text-kireo-muted">In preparazione</span>
         ) : (
