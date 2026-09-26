@@ -4,15 +4,20 @@ import { registraAttivita } from "@/lib/app/activityLog";
 import type { Guida } from "@/lib/guide/config";
 
 // Card di una singola guida. Due stati ORTOGONALI:
-//  - disponibilità del PDF: il file esiste in public/guide/? (calcolata
-//    server-side, passata come prop). Se no → «In preparazione».
-//  - sblocco: l'area è abbastanza avanzata? In fase di test il gate è OFF
-//    (gateAttivo=false): la guida resta apribile comunque, con SOLO
-//    l'indicazione dello stato. Quando il gate sarà attivo, una guida non
-//    sbloccata non sarà apribile.
+//  - disponibilità del PDF: la guida è già scritta? (dichiarata in GUIDE_PRONTE,
+//    passata come prop). Se no → «In preparazione»: non c'è niente da sbloccare.
+//  - sblocco: l'area è abbastanza avanzata, e l'ordine è stato rispettato?
+//    Dal 2026-09-26 `gateAttivo` è VERO, quindi una guida non sbloccata non si
+//    apre: il bottone non c'è. Prima era solo informativo.
 //
-// L'apertura traccia `download_guida` in activity_log (peso 5), stesso helper
-// del resto del sito, poi apre il PDF in una nuova scheda.
+// QUESTA CARD È LA STRADA, NON LA RETE. Il cancello vero sta nella rotta che
+// serve i PDF riservati (app/api/guide/...): qui si evita solo di offrire una
+// porta che poi si chiude in faccia. Un rifiuto della rotta atterrerebbe in una
+// scheda nuova, ed è la peggior forma di un no — per questo la card non ci fa
+// nemmeno arrivare.
+//
+// L'apertura traccia `download_guida` in activity_log CON IL LIVELLO: non è
+// telemetria, è il fatto che la sequenza legge («la 2 si apre dopo la 1»).
 export default function CardGuida({
   guida,
   disponibile,
@@ -48,8 +53,8 @@ export default function CardGuida({
         </span>
       </div>
 
-      {/* Indicazione di stato (sempre visibile). In test il lucchetto è solo
-          informativo: la guida resta apribile se il PDF esiste. */}
+      {/* Il motivo è SEMPRE visibile, sbloccata o no: una guida chiusa senza il
+          passo che manca è un no che non si può usare. */}
       <p className={`mt-3 text-xs ${sbloccata ? "text-kireo-green-light" : "text-kireo-muted"}`}>{motivo}</p>
 
       <div className="mt-4">

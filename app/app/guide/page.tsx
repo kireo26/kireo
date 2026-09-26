@@ -9,8 +9,9 @@ export const metadata = { title: "Guide di orientamento — KIREO" };
 
 // Indice della sezione Guide: le 18 aree, ognuna con quante guide sono
 // disponibili (PDF pronto) e quante sbloccate. Il dettaglio è in
-// /app/guide/[areaSlug]. In fase di test il gate è OFF: le guide restano tutte
-// visibili, lo stato è solo un'indicazione.
+// /app/guide/[areaSlug]. Dal 2026-09-26 il cancello è ACCESO: le tre guide di
+// ogni area restano tutte VISIBILI — una guida che non si sa di avere davanti
+// non invoglia nessuno — ma solo quelle sbloccate si aprono.
 export default async function GuideHome() {
   const contesto = await getAppContext();
   const supabase = await createClient();

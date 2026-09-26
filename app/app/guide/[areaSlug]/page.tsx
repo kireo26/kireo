@@ -5,14 +5,22 @@ import { createClient } from "@/lib/supabase/server";
 import { getAreaBySlug } from "@/data/aree";
 import { guideDiArea, statoSblocco, GATE_GUIDE_ATTIVO, guidaPronta } from "@/lib/guide/config";
 import { caricaContestoGuide } from "@/lib/guide/statoStudente";
+import { avvisoRifiuto } from "@/lib/guide/avvisoRifiuto";
 import CardGuida from "@/components/app/CardGuida";
 
 export const metadata = { title: "Guide — KIREO" };
 
 // Dettaglio di un'area: le sue (fino a) tre guide, con stato di sblocco e
 // disponibilità del PDF. Ogni apertura traccia `download_guida` (CardGuida).
-export default async function GuideAreaPage({ params }: { params: Promise<{ areaSlug: string }> }) {
+export default async function GuideAreaPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ areaSlug: string }>;
+  searchParams: Promise<{ bloccata?: string; guasto?: string }>;
+}) {
   const { areaSlug } = await params;
+  const { bloccata, guasto } = await searchParams;
   const area = getAreaBySlug(areaSlug);
   if (!area) notFound();
 
@@ -26,6 +34,14 @@ export default async function GuideAreaPage({ params }: { params: Promise<{ area
     return { guida: g, disponibile: guidaPronta(areaSlug, g.livello), sbloccata: sb.sbloccata, motivo: sb.motivo };
   });
 
+  // Il rifiuto atterra qui, e il testo sta in `lib/guide/avvisoRifiuto.ts` —
+  // vedi il commento là per il perché non è un ternario dentro questo JSX.
+  const avviso = avvisoRifiuto(
+    guide.map((g) => ({ livello: g.guida.livello, titolo: g.guida.titolo, sbloccata: g.sbloccata, motivo: g.motivo })),
+    bloccata,
+    guasto,
+  );
+
   return (
     <div className="space-y-6">
       <div>
@@ -38,6 +54,15 @@ export default async function GuideAreaPage({ params }: { params: Promise<{ area
           Tre guide di profondità crescente. La panoramica è sempre pronta; le altre si aprono man mano che l&apos;area si rafforza nel tuo profilo — con «Più a fondo» o con una missione.
         </p>
       </div>
+
+      {avviso && (
+        <p
+          role="status"
+          className="rounded-2xl border border-kireo-orange/40 bg-kireo-orange/10 px-5 py-4 text-sm text-kireo-light"
+        >
+          {avviso}
+        </p>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-3">
         {guide.map((g) => (

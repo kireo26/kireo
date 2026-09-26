@@ -31,15 +31,24 @@ require.extensions[".ts"] = require.extensions[".tsx"] = function (mod, filename
   return mod._compile(out.outputText, filename);
 };
 
-const { statoSblocco, guideDiArea, TUTTE_LE_GUIDE, SOGLIA_L2_INTEREST, SOGLIA_L3_INTEREST, GUIDE_PRONTE, guidaPronta, percorsoGuidaUno } = require("@/lib/guide/config");
+const { statoSblocco, guideDiArea, TUTTE_LE_GUIDE, SOGLIA_L2_INTEREST, SOGLIA_L3_INTEREST, GUIDE_PRONTE, guidaPronta, percorsoGuidaUno, GATE_GUIDE_ATTIVO } = require("@/lib/guide/config");
 const { AREE } = require("@/data/aree");
+const { avvisoRifiuto } = require("@/lib/guide/avvisoRifiuto");
+const { trovaAccordi } = require("@/lib/lingua/accordoGenere");
 
 let falliti = 0;
 const ok = (cond, msg) => { if (!cond) { console.error("  ✗ " + msg); falliti++; } else { console.log("  ✓ " + msg); } };
 
-// Segnale «vuoto»: area non ancora emersa, niente T3, niente missioni.
-const vuoto = { status: null, interestScore: 0, confidence: 0, t3Completato: false, missioniBloccoCompletate: 0 };
+// Segnale «vuoto»: area non ancora emersa, niente T3, niente missioni, nessuna
+// guida ancora aperta.
+const vuoto = { status: null, interestScore: 0, confidence: 0, t3Completato: false, missioniBloccoCompletate: 0, giaAperte: [] };
 const con = (o) => ({ ...vuoto, ...o });
+// Dal 2026-09-26 la SEQUENZA sta prima delle condizioni di merito, quindi per
+// provare il merito bisogna prima soddisfarla: questi due helper lo fanno. Le
+// asserzioni dei blocchi 2 e 3 sono le stesse di prima — se un giorno la
+// sequenza cadesse, resterebbero a dire cosa il merito deve fare.
+const meritoL2 = (o) => con({ giaAperte: [1], ...o });
+const meritoL3 = (o) => con({ giaAperte: [1, 2], ...o });
 
 // ── L1 sempre disponibile ─────────────────────────────────────────────────────
 console.log("\n1) Guida 1 — sempre disponibile");
@@ -48,23 +57,23 @@ ok(statoSblocco(1, con({ status: "emergente" })).sbloccata, "L1 sbloccata a pres
 
 // ── L2 — l'area «si rafforza» (condizioni-azione) ─────────────────────────────
 console.log("\n2) Guida 2 — si sblocca quando l'area si rafforza");
-ok(!statoSblocco(2, vuoto).sbloccata, "L2 BLOCCATA con segnale vuoto");
-ok(statoSblocco(2, con({ t3Completato: true })).sbloccata, "L2 sbloccata se T3 completato");
-ok(statoSblocco(2, con({ missioniBloccoCompletate: 1 })).sbloccata, "L2 sbloccata con ≥1 missione del blocco");
-ok(statoSblocco(2, con({ status: "confermata" })).sbloccata, "L2 sbloccata se area confermata");
-ok(statoSblocco(2, con({ status: "da_verificare" })).sbloccata, "L2 sbloccata se area da_verificare (segnali forti)");
-ok(statoSblocco(2, con({ interestScore: SOGLIA_L2_INTEREST })).sbloccata, `L2 sbloccata alla soglia di backup (${SOGLIA_L2_INTEREST})`);
-ok(!statoSblocco(2, con({ status: "emergente", interestScore: SOGLIA_L2_INTEREST - 1 })).sbloccata, "L2 bloccata sotto soglia, area solo emergente");
+ok(!statoSblocco(2, meritoL2({})).sbloccata, "L2 BLOCCATA con segnale vuoto");
+ok(statoSblocco(2, meritoL2({ t3Completato: true })).sbloccata, "L2 sbloccata se T3 completato");
+ok(statoSblocco(2, meritoL2({ missioniBloccoCompletate: 1 })).sbloccata, "L2 sbloccata con ≥1 missione del blocco");
+ok(statoSblocco(2, meritoL2({ status: "confermata" })).sbloccata, "L2 sbloccata se area confermata");
+ok(statoSblocco(2, meritoL2({ status: "da_verificare" })).sbloccata, "L2 sbloccata se area da_verificare (segnali forti)");
+ok(statoSblocco(2, meritoL2({ interestScore: SOGLIA_L2_INTEREST })).sbloccata, `L2 sbloccata alla soglia di backup (${SOGLIA_L2_INTEREST})`);
+ok(!statoSblocco(2, meritoL2({ status: "emergente", interestScore: SOGLIA_L2_INTEREST - 1 })).sbloccata, "L2 bloccata sotto soglia, area solo emergente");
 
 // ── L3 — l'area «si consolida» ────────────────────────────────────────────────
 console.log("\n3) Guida 3 — si sblocca quando l'area è consolidata");
-ok(!statoSblocco(3, vuoto).sbloccata, "L3 bloccata con segnale vuoto");
-ok(statoSblocco(3, con({ status: "confermata", missioniBloccoCompletate: 1 })).sbloccata, "L3 sbloccata: confermata + missione");
-ok(!statoSblocco(3, con({ status: "confermata", missioniBloccoCompletate: 0 })).sbloccata, "L3 BLOCCATA: confermata ma nessuna missione");
-ok(statoSblocco(3, con({ status: "da_verificare", confidence: 0.85, missioniBloccoCompletate: 1 })).sbloccata, "L3 sbloccata: da_verificare con confidenza alta + missione");
-ok(!statoSblocco(3, con({ status: "da_verificare", confidence: 0.5, missioniBloccoCompletate: 1 })).sbloccata, "L3 bloccata: da_verificare con confidenza bassa");
-ok(statoSblocco(3, con({ status: "emergente", interestScore: SOGLIA_L3_INTEREST, missioniBloccoCompletate: 1 })).sbloccata, `L3 sbloccata al backup: interesse ${SOGLIA_L3_INTEREST} + missione`);
-ok(!statoSblocco(3, con({ status: "emergente", interestScore: SOGLIA_L3_INTEREST })).sbloccata, "L3 bloccata: interesse alto ma nessuna missione");
+ok(!statoSblocco(3, meritoL3({})).sbloccata, "L3 bloccata con segnale vuoto");
+ok(statoSblocco(3, meritoL3({ status: "confermata", missioniBloccoCompletate: 1 })).sbloccata, "L3 sbloccata: confermata + missione");
+ok(!statoSblocco(3, meritoL3({ status: "confermata", missioniBloccoCompletate: 0 })).sbloccata, "L3 BLOCCATA: confermata ma nessuna missione");
+ok(statoSblocco(3, meritoL3({ status: "da_verificare", confidence: 0.85, missioniBloccoCompletate: 1 })).sbloccata, "L3 sbloccata: da_verificare con confidenza alta + missione");
+ok(!statoSblocco(3, meritoL3({ status: "da_verificare", confidence: 0.5, missioniBloccoCompletate: 1 })).sbloccata, "L3 bloccata: da_verificare con confidenza bassa");
+ok(statoSblocco(3, meritoL3({ status: "emergente", interestScore: SOGLIA_L3_INTEREST, missioniBloccoCompletate: 1 })).sbloccata, `L3 sbloccata al backup: interesse ${SOGLIA_L3_INTEREST} + missione`);
+ok(!statoSblocco(3, meritoL3({ status: "emergente", interestScore: SOGLIA_L3_INTEREST })).sbloccata, "L3 bloccata: interesse alto ma nessuna missione");
 
 // ── Struttura del banco ───────────────────────────────────────────────────────
 console.log("\n4) Struttura del config");
@@ -74,10 +83,11 @@ for (const a of AREE) {
   const g = guideDiArea(a.slug);
   if (g.length !== 3) strutturaOk = false;
   if (g.map((x) => x.livello).join() !== "1,2,3") strutturaOk = false;
-  if (g.some((x) => x.pdf !== `/guide/${a.slug}/${x.livello}.pdf`)) strutturaOk = false;
+  if (g[0].pdf !== `/guide/${a.slug}/1.pdf`) strutturaOk = false;
+  if (g.slice(1).some((x) => x.pdf !== `/api/guide/${a.slug}/${x.livello}`)) strutturaOk = false;
   if (g.some((x) => !x.titolo || !x.sottotitolo)) strutturaOk = false;
 }
-ok(strutturaOk, "ogni area: 3 guide (livelli 1/2/3), percorso PDF /guide/<area>/<livello>.pdf, titoli non vuoti");
+ok(strutturaOk, "ogni area: 3 guide; la 1 statica in /guide/<area>/1.pdf, la 2 e la 3 dietro /api/guide/<area>/<livello>");
 
 // ── Disponibilità config-driven (non fs) ──────────────────────────────────────
 console.log("\n5) Disponibilità dichiarata da config (GUIDE_PRONTE)");
@@ -149,6 +159,122 @@ ok(!/\/api\/guida\//.test(senzaCommenti(form)), "GuidaAreaForm non ha nessun rip
 ok(/\/api\/guida\//.test(senzaCommenti('linkGuida = `${SITE_URL}/api/guida/${area.slug}`;')), "la guardia cattura la forma interpolata (quella del difetto vero)");
 ok(/\/api\/guida\//.test(senzaCommenti('const url = "/api/guida/" + slug;')), "la guardia cattura anche la forma letterale");
 ok(!/\/api\/guida\//.test(senzaCommenti("// il segnaposto di /api/guida/<area> resta il ripiego\nconst x = 1;")), "e non grida su un commento che lo nomina");
+
+
+// ── La clausola e la sequenza ─────────────────────────────────────────────────
+// Le due regole entrate col cancello acceso (2026-09-26). L'ORDINE fra loro è la
+// parte che conta: la clausola sta SOPRA la sequenza, perché chi ha preso la 2
+// quando il cancello era spento non deve trovarsela chiusa oggi.
+console.log("\n7) Il cancello acceso: la clausola e la sequenza");
+
+ok(GATE_GUIDE_ATTIVO === true, "il cancello è acceso (se torna false, la regola qui sotto non governa niente)");
+
+// «Una guida già scaricata resta sua» — il no che un cancello non deve mai dire.
+ok(statoSblocco(2, con({ giaAperte: [2] })).sbloccata, "L2 già scaricata resta aperta, anche senza nessun merito");
+ok(statoSblocco(3, con({ giaAperte: [3] })).sbloccata, "L3 già scaricata resta aperta, anche senza nessun merito");
+ok(
+  statoSblocco(2, con({ giaAperte: [2] })).motivo.includes("già"),
+  "e lo dice: il motivo spiega che è già sua, non inventa un merito"
+);
+// Il caso che ha richiesto quest'ordine: la 2 presa con la bandiera spenta,
+// senza aver mai aperto la 1. Con la sequenza sopra la clausola, oggi sarebbe
+// chiusa — cioè accendere una bandiera avrebbe TOLTO qualcosa a qualcuno.
+ok(statoSblocco(2, con({ giaAperte: [2] })).sbloccata, "la 2 presa a cancello spento senza la 1 resta aperta (clausola sopra la sequenza)");
+ok(statoSblocco(3, con({ giaAperte: [3], status: null })).sbloccata, "idem per la 3, senza nemmeno un'area emersa");
+
+// La sequenza: non si salta l'ordine, e il motivo nomina il passo che manca.
+const senzaUno = statoSblocco(2, con({ t3Completato: true, status: "confermata", interestScore: 100 }));
+ok(!senzaUno.sbloccata, "L2 BLOCCATA senza aver aperto la 1, anche con tutti i meriti possibili");
+ok(senzaUno.motivo.includes("Guida 1"), `e il motivo nomina la Guida 1 ("${senzaUno.motivo}")`);
+const senzaDue = statoSblocco(3, con({ giaAperte: [1], status: "confermata", missioniBloccoCompletate: 1 }));
+ok(!senzaDue.sbloccata, "L3 BLOCCATA con la 1 aperta ma non la 2, anche con merito pieno");
+ok(senzaDue.motivo.includes("Guida 2"), `e il motivo nomina la Guida 2 ("${senzaDue.motivo}")`);
+// Il passo che manca è quello che si può fare subito: la sequenza parla PRIMA
+// del merito, se no la persona legge «fai una missione» invece di «apri la 1».
+ok(!senzaUno.motivo.includes("missione"), "con la 1 da aprire non si chiede una missione: si chiede la 1");
+
+// La sequenza è PER AREA: il segnale arriva già filtrato per area, quindi la
+// prova è che `giaAperte` di un'altra area non abbia alcun effetto qui.
+ok(!statoSblocco(2, con({ giaAperte: [], t3Completato: true })).sbloccata, "L2 di un'area dove non ho aperto la 1 resta chiusa (la sequenza non è globale)");
+
+// E la Panoramica non è toccata da nessuna delle due: è il magnete del funnel.
+ok(statoSblocco(1, con({ giaAperte: [] })).sbloccata, "L1 aperta anche senza nulla: nessuna sequenza davanti al primo gradino");
+
+// ── Dove vivono i PDF ─────────────────────────────────────────────────────────
+// La proprietà che rende il cancello un cancello: dei livelli riservati non
+// esiste NESSUNA copia a un indirizzo pubblico. Se un giorno uno tornasse in
+// public/, sarebbe di nuovo scaricabile da chiunque e questo test lo dice.
+console.log("\n8) I PDF riservati non hanno una copia pubblica");
+
+let pubbliciDiTroppo = [];
+let riservatiMancanti = [];
+let panoramicheMancanti = [];
+for (const a of AREE) {
+  for (const liv of GUIDE_PRONTE[a.slug] ?? []) {
+    const inPublic = path.join(ROOT, "public", "guide", a.slug, `${liv}.pdf`);
+    const riservato = path.join(ROOT, "content", "guide", a.slug, `${liv}.pdf`);
+    if (liv === 1) {
+      if (!fs.existsSync(inPublic)) panoramicheMancanti.push(`${a.slug}/1.pdf`);
+    } else {
+      if (fs.existsSync(inPublic)) pubbliciDiTroppo.push(`${a.slug}/${liv}.pdf`);
+      if (!fs.existsSync(riservato)) riservatiMancanti.push(`${a.slug}/${liv}.pdf`);
+    }
+  }
+}
+ok(
+  pubbliciDiTroppo.length === 0,
+  pubbliciDiTroppo.length === 0
+    ? "nessuna guida 2 o 3 è rimasta in public/ (là sarebbe scaricabile da chiunque)"
+    : `guide riservate ancora in public/: ${pubbliciDiTroppo.join(", ")}`
+);
+ok(riservatiMancanti.length === 0, riservatiMancanti.length === 0 ? "ogni guida 2/3 dichiarata pronta esiste in content/guide/" : `mancanti: ${riservatiMancanti.join(", ")}`);
+ok(
+  panoramicheMancanti.length === 0,
+  panoramicheMancanti.length === 0
+    ? "ogni Panoramica dichiarata pronta è ancora in public/ (è l'URL che sta nelle email: non si sposta mai più)"
+    : `Panoramiche spostate per errore: ${panoramicheMancanti.join(", ")}`
+);
+
+// E il bundle della funzione: senza questa riga in next.config.ts la rotta
+// legge un file che non c'è, e il sintomo è un 500 su una guida.
+const cfg = fs.readFileSync(path.join(ROOT, "next.config.ts"), "utf8");
+ok(/outputFileTracingIncludes/.test(cfg), "next.config.ts traccia i PDF riservati nel bundle della funzione");
+ok(/content\/guide/.test(cfg), "…e li traccia da content/guide");
+
+
+// ── Il testo del rifiuto ──────────────────────────────────────────────────────
+// Tre esiti, non due: bloccata / non ho potuto controllare / nel frattempo si è
+// aperta. E dove atterra conta quanto cosa dice — vedi avvisoRifiuto.ts.
+console.log("\n9) Il testo del rifiuto");
+
+const treGuide = [
+  { livello: 1, titolo: "Panoramica", sbloccata: true, motivo: "Sempre disponibile." },
+  { livello: 2, titolo: "Le strade dentro l'area", sbloccata: false, motivo: "Si apre dopo la Guida 1 di quest'area: aprila e torna qui." },
+  { livello: 3, titolo: "Come partire davvero", sbloccata: false, motivo: "Si sblocca quando l'area è consolidata e hai completato una missione." },
+];
+
+const bloccato = avvisoRifiuto(treGuide, "2");
+ok(bloccato !== null, "un rifiuto produce un avviso");
+ok(bloccato.includes("Le strade dentro l'area"), "…che nomina la guida chiesta");
+ok(bloccato.includes("Guida 1"), "…e porta dentro il motivo ricalcolato dalla pagina");
+
+const guasto = avvisoRifiuto(treGuide, "2", "1");
+ok(guasto.includes("problema nostro"), "se non abbiamo potuto controllare, lo dice: è un problema nostro");
+ok(!guasto.includes("Guida 1"), "…e non finge un motivo che non conosce");
+
+ok(avvisoRifiuto(treGuide, "1") === null, "una guida già aperta non produce nessun no");
+ok(avvisoRifiuto(treGuide, undefined) === null, "chi arriva senza `bloccata` non legge nessun avviso");
+ok(avvisoRifiuto(treGuide, "9") === null, "un livello inventato nell'URL non produce un avviso");
+ok(avvisoRifiuto([], "2") === null, "nessuna guida da valutare: nessun avviso");
+
+// La lingua del prodotto non conosce il genere di chi legge (vedi CLAUDE.md).
+const accordi = [bloccato, guasto, ...treGuide.map((g) => g.motivo)].flatMap((x) => trovaAccordi(x));
+ok(accordi.length === 0, `nessuna forma accordata col genere di chi legge${accordi.length ? ` — ${accordi.join(", ")}` : ""}`);
+
+// E la pagina la CHIAMA invece di ricomporre il testo.
+const pag = fs.readFileSync(path.join(ROOT, "app/app/guide/[areaSlug]/page.tsx"), "utf8");
+ok(/avvisoRifiuto\s*\(/.test(pag), "la pagina dell'area chiama avvisoRifiuto");
+ok(!/problema nostro/.test(pag), "…e non tiene una seconda copia del testo");
 
 console.log("");
 if (falliti > 0) { console.error(`✗ ${falliti} verifiche fallite`); process.exit(1); }

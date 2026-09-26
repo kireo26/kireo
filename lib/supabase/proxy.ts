@@ -23,7 +23,24 @@ function redirectAccedi(request: NextRequest) {
 // sito invece della sola area protetta. Se le credenziali mancano o la
 // verifica fallisce, le route pubbliche passano comunque (fail-open),
 // quelle protette negano l'accesso per sicurezza (fail-closed).
+// I vecchi indirizzi statici delle guide riservate: `/guide/<area>/2.pdf` e
+// `/3.pdf`. Quei file non stanno più in public/ (vedi `percorsoGuida`), quindi
+// oggi darebbero un 404 — ma sono stati raggiungibili per settimane con il
+// cancello spento, e possono essere nella cronologia o nei preferiti di
+// qualcuno. Qui si mandano alla rotta che decide, invece di lasciarli morire.
+// **Non è questo che fa da cancello**: il cancello è che non esiste nessuna
+// copia a un indirizzo pubblico. Questa è solo una porta di servizio che porta
+// nello stesso posto. Il livello 1 non è toccato: resta statico e aperto.
+const VECCHIO_PDF_RISERVATO = /^\/guide\/([a-z0-9-]+)\/([23])\.pdf$/;
+
 export async function updateSession(request: NextRequest) {
+  const vecchio = VECCHIO_PDF_RISERVATO.exec(request.nextUrl.pathname);
+  if (vecchio) {
+    const url = request.nextUrl.clone();
+    url.pathname = `/api/guide/${vecchio[1]}/${vecchio[2]}`;
+    return NextResponse.redirect(url);
+  }
+
   // /scuola/invito resta pubblica sotto /scuola: un tutor invitato non ha
   // ancora un account quando vi accede per la prima volta (deve poterla
   // raggiungere per registrarsi). /ente/regolamento resta pubblica sotto

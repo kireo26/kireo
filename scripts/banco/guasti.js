@@ -45,6 +45,7 @@ const ORDINE = [
   "reazione_cliente",
   "prove_missione",
   "prove_test",
+  "guida_riservata",
   "feedback_elaborato",
   "alert_email",
 ];
@@ -67,6 +68,8 @@ const COSA_VUOL_DIRE = {
   reazione_cliente: "il cliente non ha reagito alla consegna",
   prove_missione: "il revisore della proposta non ha prodotto prove",
   prove_test: "il test non ha prodotto nessuna prova: il profilo resta vuoto, e se ne accorge T3",
+  guida_riservata:
+    "una guida 2 o 3 non è stata consegnata a chi aveva il diritto di leggerla: di solito il PDF non è nel bundle della funzione (vedi outputFileTracingIncludes in next.config.ts)",
   feedback_elaborato: "il feedback della consegna (v1) non è arrivato",
   alert_email: "l'email di osservabilità non è partita: i guasti di quel giorno non li ha visti nessuno",
 };

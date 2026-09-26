@@ -52,9 +52,29 @@ export function guideDiArea(areaSlug: string): Guida[] {
       livello,
       titolo: ov?.titolo ?? LIVELLI[livello].titolo,
       sottotitolo: ov?.sottotitolo ?? LIVELLI[livello].sottotitolo(nome),
-      pdf: `/guide/${areaSlug}/${livello}.pdf`,
+      pdf: percorsoGuida(areaSlug, livello),
     };
   });
+}
+
+// Dove vive il PDF di una guida, e la ragione per cui i tre livelli non stanno
+// nello stesso posto.
+//
+// LIVELLO 1 — `public/guide/<area>/1.pdf`, statico, aperto anche da anonimo:
+// è il magnete del funnel su /aree/<slug> **e l'indirizzo che finisce nelle
+// email di follow-up**. Un'email resta nella casella per sempre e può essere
+// inoltrata: quell'URL non si sposta mai più.
+//
+// LIVELLI 2 e 3 — `content/guide/<area>/<livello>.pdf`, FUORI da public/, letti
+// dal server e serviti da /api/guide/<area>/<livello> dietro il cancello.
+// Restavano in public/ fino al 2026-09-26, quindi si scaricavano da chiunque
+// conoscesse l'indirizzo, anonimo compreso: `statoSblocco` non era un cancello
+// ma un bottone in meno. **Non li abbiamo lasciati là con una guardia davanti**
+// perché una guardia su un percorso che la CDN può servire da sé è verde in
+// ogni prova e assente là fuori — e quello è il difetto che non si vede. Qui
+// invece non esiste nessuna copia raggiungibile senza passare dal cancello.
+export function percorsoGuida(areaSlug: string, livello: LivelloGuida): string {
+  return livello === 1 ? `/guide/${areaSlug}/1.pdf` : `/api/guide/${areaSlug}/${livello}`;
 }
 
 export const TUTTE_LE_GUIDE: Guida[] = AREE.flatMap((a) => guideDiArea(a.slug));
@@ -113,15 +133,23 @@ export function guidaPronta(areaSlug: string, livello: LivelloGuida): boolean {
 // `npm run test:guide` pretende che i consumatori la chiamino invece di
 // riscriverla, in qualunque forma.
 export function percorsoGuidaUno(areaSlug: string): string {
-  return guidaPronta(areaSlug, 1) ? `/guide/${areaSlug}/1.pdf` : `/api/guida/${areaSlug}`;
+  return guidaPronta(areaSlug, 1) ? percorsoGuida(areaSlug, 1) : `/api/guida/${areaSlug}`;
 }
 
 // ─────────────────────────────────────────── Regola di sblocco (gate)
 //
-// Fase di test: GATE_GUIDE_ATTIVO = false → nessun blocco effettivo, tutte le
-// guide restano visibili e apribili, con SOLO l'indicazione dello stato. Quando
-// il gate verrà attivato, `statoSblocco().sbloccata` diventerà vincolante.
-export const GATE_GUIDE_ATTIVO = false;
+// ACCESO dal 2026-09-26 (decisione di Mario). Fino a quel giorno valeva
+// `false`, e con la bandiera spenta `CardGuida` faceva `gateAttivo && !sbloccata`
+// → non bloccava mai, nemmeno visivamente: la regola qui sotto era scritta e non
+// governava niente.
+//
+// ACCENDERE UNA BANDIERA TOGLIE A QUALCUNO QUALCOSA CHE AVEVA IERI, e quella è
+// l'unica cosa che un cancello non deve mai fare. Per questo `statoSblocco`
+// guarda PRIMA se la guida è già stata scaricata: chi ce l'ha se la tiene. Non è
+// cortesia, è la stessa clausola dei cancelli del percorso — *il cancello guarda
+// chi entra per la prima volta, non chi rientra* — e non serve nessuna eccezione
+// per data, perché il fatto è già nei dati (`activity_log.livello`).
+export const GATE_GUIDE_ATTIVO = true;
 
 // Soglie numeriche di BACKUP (tarabili): usate in aggiunta ai segnali d'azione,
 // così un'area che si scalda molto sblocca anche senza aver ancora fatto T3/una
@@ -138,6 +166,14 @@ export type SegnaleGuida = {
   confidence: number; // 0..1
   t3Completato: boolean;
   missioniBloccoCompletate: number;
+  // I livelli di QUEST'AREA che lo studente ha già aperto, letti da
+  // `activity_log` (tipo_attivita='download_guida', colonna `livello`). Servono a
+  // due cose distinte: la clausola «una guida già scaricata resta sua» e la
+  // sequenza (non si salta l'ordine). Il fatto esisteva già con la granularità
+  // giusta — `activity_log` ha un cap DB su `coalesce(livello,0)` scritto apposta
+  // perché le tre guide di un'area producano tre righe al giorno invece di una —
+  // e nessuno dei due sapeva di averlo mentre progettava di costruirlo.
+  giaAperte: LivelloGuida[];
 };
 
 export type StatoSblocco = { sbloccata: boolean; motivo: string };
@@ -165,7 +201,33 @@ function sbloccoL3(s: SegnaleGuida): StatoSblocco {
   return { sbloccata: false, motivo: "Si sblocca quando l'area è consolidata e hai completato una missione." };
 }
 
+// L'ORDINE DEI TRE CONTROLLI È LA REGOLA, non un dettaglio di scrittura.
+//
+//  1. la Panoramica è sempre aperta (anche da anonimo: è il magnete del funnel);
+//  2. **una guida già scaricata resta sua** — prima di tutto il resto, perché
+//     accendere la bandiera non deve togliere niente a chi ce l'aveva ieri. Sta
+//     sopra anche alla sequenza: chi ha preso la 2 quando il cancello era spento,
+//     senza aver mai aperto la 1, non deve trovarsela chiusa oggi;
+//  3. **la sequenza** (non si salta l'ordine) prima delle condizioni di merito,
+//     perché il passo che manca è quello che si può fare subito e gratis: dire
+//     «prima leggi la 1» è più utile di «fai una missione», e se si dicessero
+//     insieme la persona leggerebbe la seconda.
+//
+// La sequenza è PER AREA, non globale: aver aperto la 1 di `salute` non apre la 2
+// di `informatica`. Chi ha scaricato la 1 da anonimo non risulta averla aperta, e
+// va bene così — la riapre da dentro in tre secondi, e l'alternativa sarebbe
+// legare un download anonimo a una persona.
 export function statoSblocco(livello: LivelloGuida, s: SegnaleGuida): StatoSblocco {
   if (livello === 1) return { sbloccata: true, motivo: "Sempre disponibile." };
+  if (s.giaAperte.includes(livello)) return { sbloccata: true, motivo: "L'hai già scaricata: resta tua." };
+
+  const precedente = (livello - 1) as LivelloGuida;
+  if (!s.giaAperte.includes(precedente)) {
+    return {
+      sbloccata: false,
+      motivo: `Si apre dopo la Guida ${precedente} di quest'area: aprila e torna qui.`,
+    };
+  }
+
   return livello === 2 ? sbloccoL2(s) : sbloccoL3(s);
 }
