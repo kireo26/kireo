@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { inviaEmail } from "@/lib/email/brevo";
 import { templateFollowUpGuida } from "@/lib/email/templates";
 import { getAreaBySlug } from "@/data/aree";
+import { percorsoGuidaUno } from "@/lib/guide/config";
 import { SITE_URL } from "@/lib/site";
 
 // Follow-up via email dopo il download di una guida (area o ente): ora
@@ -26,7 +27,11 @@ export async function POST(request: Request) {
     const area = getAreaBySlug(corpo.areaSlug);
     if (!area) return NextResponse.json({ ok: false }, { status: 400 });
     titoloGuida = `Guida di orientamento — ${area.nome}`;
-    linkGuida = `${SITE_URL}/api/guida/${area.slug}`;
+    // La scelta fra guida vera e segnaposto NON si riscrive qui: fino al
+    // 2026-09-26 questa riga puntava sempre al segnaposto, quindi chi lasciava
+    // la mail scaricava la guida vera dalla pagina e riceveva per email un PDF
+    // che dichiara di non essere ancora scritto.
+    linkGuida = `${SITE_URL}${percorsoGuidaUno(area.slug)}`;
   } else {
     if (typeof corpo.pdfUrl !== "string" || !corpo.pdfUrl) {
       return NextResponse.json({ ok: false }, { status: 400 });

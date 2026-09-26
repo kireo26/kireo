@@ -31,7 +31,7 @@ require.extensions[".ts"] = require.extensions[".tsx"] = function (mod, filename
   return mod._compile(out.outputText, filename);
 };
 
-const { statoSblocco, guideDiArea, TUTTE_LE_GUIDE, SOGLIA_L2_INTEREST, SOGLIA_L3_INTEREST, GUIDE_PRONTE, guidaPronta, areeConGuida1Pronte } = require("@/lib/guide/config");
+const { statoSblocco, guideDiArea, TUTTE_LE_GUIDE, SOGLIA_L2_INTEREST, SOGLIA_L3_INTEREST, GUIDE_PRONTE, guidaPronta, percorsoGuidaUno } = require("@/lib/guide/config");
 const { AREE } = require("@/data/aree");
 
 let falliti = 0;
@@ -88,8 +88,67 @@ for (const a of AREE) for (const liv of [1, 2, 3]) {
   if (guidaPronta(a.slug, liv) !== atteso) coerente = false;
 }
 ok(coerente, "guidaPronta() coincide con GUIDE_PRONTE per ogni area/livello");
-ok(areeConGuida1Pronte().every((s) => guidaPronta(s, 1)), "areeConGuida1Pronte(): solo aree con la Guida 1 dichiarata pronta");
-ok(areeConGuida1Pronte().length === AREE.filter((a) => (GUIDE_PRONTE[a.slug] ?? []).includes(1)).length, "areeConGuida1Pronte(): conteggio coerente con la mappa");
+// ── La scelta fra guida vera e segnaposto, in un posto solo ───────────────────
+// PERCHÉ È QUI. Fino al 2026-09-26 questa scelta era scritta a mano in TRE
+// punti con due meccanismi diversi, e il terzo — il follow-up via email — se
+// n'era dimenticato: mandava il segnaposto a chi aveva appena scaricato la
+// guida vera dalla pagina. Un PDF che dichiara di non essere ancora scritto,
+// spedito all'indirizzo di una persona. Nessun test poteva accorgersene, perché
+// quell'email non la riceve mai nessuno di noi.
+console.log("\n6) Il percorso della Guida 1: una scelta, un posto solo");
+
+let percorsiOk = true;
+let mandanoSegnaposto = [];
+for (const a of AREE) {
+  const atteso = guidaPronta(a.slug, 1) ? `/guide/${a.slug}/1.pdf` : `/api/guida/${a.slug}`;
+  if (percorsoGuidaUno(a.slug) !== atteso) percorsiOk = false;
+  // La proprietà che conta: dove la guida vera ESISTE, nessuno può ricevere il
+  // segnaposto — né dalla pagina, né dal chip, né dall'email.
+  if (guidaPronta(a.slug, 1) && percorsoGuidaUno(a.slug).includes("/api/guida/")) mandanoSegnaposto.push(a.slug);
+}
+ok(percorsiOk, "percorsoGuidaUno(): guida reale dove dichiarata pronta, segnaposto altrove");
+ok(
+  mandanoSegnaposto.length === 0,
+  mandanoSegnaposto.length === 0
+    ? `nessuna delle ${AREE.length} aree manda il segnaposto dove la guida vera esiste`
+    : `aree con guida vera che ricevono il segnaposto: ${mandanoSegnaposto.join(", ")}`
+);
+ok(percorsoGuidaUno("area-che-non-esiste") === "/api/guida/area-che-non-esiste", "uno slug sconosciuto ricade sul segnaposto, non su un file che non c'è");
+
+// E i quattro consumatori la CHIAMANO invece di riscriverla: senza questa
+// guardia, il quinto punto che scarica una guida nascerà con la sua copia — che
+// è esattamente come è nato il difetto dell'email.
+const CONSUMATORI = [
+  ["app/api/guida-email/route.ts", "il follow-up via email"],
+  ["app/aree/[slug]/page.tsx", "il lead-magnet pubblico"],
+  ["components/app/BloccoLeMieAree.tsx", "il chip «Scarica la guida»"],
+];
+// Il percorso del segnaposto NON si cerca solo a inizio di stringa: la prima
+// stesura di questa guardia pretendeva una virgoletta subito prima
+// (`/["\'`]\/api\/guida\//`) e sulla controprova è rimasta MUTA — la riga vera
+// del difetto era `${SITE_URL}/api/guida/${area.slug}`, dove prima della barra
+// c'è una graffa. Ha parlato solo l'altra asserzione, quella sulla chiamata: la
+// guardia che conta guardava troppo stretto. *Un verde ottenuto guardando nel
+// posto sbagliato non vuol dire niente, e lo si scopre solo provando a
+// romperlo.* I commenti si togliono prima, o questo file stesso sarebbe rosso.
+function senzaCommenti(src) {
+  return src.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/^\s*\/\/.*$/gm, " ").replace(/\{\/\*[\s\S]*?\*\/\}/g, " ");
+}
+
+for (const [file, cosa] of CONSUMATORI) {
+  const src = fs.readFileSync(path.join(ROOT, file), "utf8");
+  ok(/percorsoGuidaUno\s*\(/.test(senzaCommenti(src)), `${cosa} chiama percorsoGuidaUno (${file})`);
+  ok(!/\/api\/guida\//.test(senzaCommenti(src)), `${cosa} non nomina il segnaposto in nessuna forma (${file})`);
+}
+// Il form non decide: riceve. Un ripiego qui sarebbe la quarta copia.
+const form = fs.readFileSync(path.join(ROOT, "components/GuidaAreaForm.tsx"), "utf8");
+ok(!/\/api\/guida\//.test(senzaCommenti(form)), "GuidaAreaForm non ha nessun ripiego al segnaposto: usa l'url che riceve");
+
+// E la guardia si prova su sé stessa, a ogni giro: due forme sintetiche, quella
+// del difetto vero e quella letterale, devono essere tutte e due catturate.
+ok(/\/api\/guida\//.test(senzaCommenti('linkGuida = `${SITE_URL}/api/guida/${area.slug}`;')), "la guardia cattura la forma interpolata (quella del difetto vero)");
+ok(/\/api\/guida\//.test(senzaCommenti('const url = "/api/guida/" + slug;')), "la guardia cattura anche la forma letterale");
+ok(!/\/api\/guida\//.test(senzaCommenti("// il segnaposto di /api/guida/<area> resta il ripiego\nconst x = 1;")), "e non grida su un commento che lo nomina");
 
 console.log("");
 if (falliti > 0) { console.error(`✗ ${falliti} verifiche fallite`); process.exit(1); }

@@ -3,20 +3,23 @@
 import Link from "next/link";
 import { registraAttivita } from "@/lib/app/activityLog";
 import { isAreaAttiva } from "@/lib/assistente/config";
+import { percorsoGuidaUno } from "@/lib/guide/config";
 
 export type AreaInteresse = { slug: string; nome: string; icona: string };
 
 // Estratto dal blocco già presente nella vecchia Home minima: stesso
 // markup, ora riusabile (Home e pagina Aree), con azioni rapide per chip
 // (Scarica la guida / Parla con l'assistente).
-// `areeConGuida1`: slug delle aree con il PDF reale della Guida 1 già caricato
-// (calcolato server-side). Dove c'è, il chip apre quello; dove manca, resta il
-// segnaposto di /api/guida/<area> (fallback).
-export default function BloccoLeMieAree({ aree, areeConGuida1 = [] }: { aree: AreaInteresse[]; areeConGuida1?: string[] }) {
+//
+// Il percorso del PDF lo decide `percorsoGuidaUno` (lib/guide/config.ts).
+// Prima arrivava come prop `areeConGuida1`, un elenco di slug calcolato
+// server-side: la stessa scelta scritta con un secondo meccanismo, che è il
+// modo in cui due copie divergono senza che nessuno se ne accorga (e infatti
+// una terza, nell'email, se n'era dimenticata del tutto).
+export default function BloccoLeMieAree({ aree }: { aree: AreaInteresse[] }) {
   function handleScaricaGuida(slug: string) {
     registraAttivita(slug, "download_guida", 1);
-    const url = areeConGuida1.includes(slug) ? `/guide/${slug}/1.pdf` : `/api/guida/${slug}`;
-    window.location.assign(url);
+    window.location.assign(percorsoGuidaUno(slug));
   }
 
   return (

@@ -13,11 +13,11 @@ const CLASSI = [
   { value: "5", label: "5° anno" },
 ];
 
-// `pdfRealeUrl` (opzionale): URL del PDF reale della Guida 1 (Panoramica) se già
-// caricato in public/guide/<area>/1.pdf. Dove c'è, il download punta a quello;
-// dove manca, resta il segnaposto generato da /api/guida/<area> (fallback,
-// nessuna rimozione del meccanismo esistente).
-export default function GuidaAreaForm({ areaNome, areaSlug, pdfRealeUrl }: { areaNome: string; areaSlug: string; pdfRealeUrl?: string }) {
+// Il percorso del PDF lo decide `percorsoGuidaUno` (lib/guide/config.ts), un
+// posto solo per tutti e quattro i punti che scaricano la Guida 1 — vedi il
+// commento là per il perché. Qui non c'è più nessun ripiego: chi rende il form
+// passa quello che quella funzione dice.
+export default function GuidaAreaForm({ areaNome, areaSlug, pdfUrl }: { areaNome: string; areaSlug: string; pdfUrl: string }) {
   const [nome, setNome] = useState("");
   const [cognome, setCognome] = useState("");
   const [email, setEmail] = useState("");
@@ -62,9 +62,7 @@ export default function GuidaAreaForm({ areaNome, areaSlug, pdfRealeUrl }: { are
 
     setInviato(true);
 
-    // Download immediato: il PDF reale della Guida 1 dove esiste, altrimenti il
-    // segnaposto generato da /api/guida/<area> (chiaramente marcato come tale).
-    window.location.href = pdfRealeUrl ?? `/api/guida/${areaSlug}`;
+    window.location.href = pdfUrl;
 
     // Follow-up via email: predisposto ma non ancora collegato a un invio
     // reale (nessun provider email configurato, vedi report). Non blocca

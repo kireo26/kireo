@@ -12,7 +12,6 @@ import CardProssimaTappa from "@/components/app/CardProssimaTappa";
 import SezioneAffinita from "@/components/app/SezioneAffinita";
 import BarreEsplorazione from "@/components/app/BarreEsplorazione";
 import BloccoLeMieAree, { type AreaInteresse } from "@/components/app/BloccoLeMieAree";
-import { areeConGuida1Pronte } from "@/lib/guide/config";
 import ContatorePCTO from "@/components/app/ContatorePCTO";
 import StrisciaProssimoEvento from "@/components/app/StrisciaProssimoEvento";
 import CardEventiPerTe from "@/components/app/CardEventiPerTe";
@@ -100,7 +99,7 @@ export default async function AreaPersonaleHome() {
         </div>
 
         <div className="flex flex-col gap-6">
-          <BloccoLeMieAree aree={areeInteresse} areeConGuida1={areeConGuida1Pronte()} />
+          <BloccoLeMieAree aree={areeInteresse} />
           <CardEventiPerTe eventi={eventiPerTe} />
           <ContatorePCTO oreCertificate={oreCertificate} />
         </div>

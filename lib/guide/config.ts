@@ -93,11 +93,27 @@ export function guidaPronta(areaSlug: string, livello: LivelloGuida): boolean {
   return (GUIDE_PRONTE[areaSlug] ?? []).includes(livello);
 }
 
-// Slug delle aree con il PDF reale della Guida 1 (Panoramica) già pronto: il
-// lead-magnet pubblico e il chip «Scarica la guida» ci puntano dove esiste,
-// tenendo il segnaposto /api/guida/<area> come fallback altrove.
-export function areeConGuida1Pronte(): string[] {
-  return AREE.map((a) => a.slug).filter((s) => guidaPronta(s, 1));
+// Il PERCORSO della Guida 1 di un'area: il PDF reale dove esiste, altrimenti il
+// segnaposto generato da /api/guida/<area> — che dice di sé, per iscritto, di
+// non essere ancora la guida vera.
+//
+// PERCHÉ È UNA FUNZIONE SOLA. Questa scelta era scritta a mano in TRE posti (il
+// lead-magnet pubblico, il chip «Scarica la guida» in area privata, il
+// follow-up via email) con due meccanismi diversi — `guidaPronta` in uno, un
+// elenco di slug passato come prop nell'altro — e il terzo se ne era
+// dimenticato: l'email mandava il segnaposto a chi aveva appena scaricato la
+// guida vera dalla pagina. Un documento che dichiara di non esistere, spedito
+// all'indirizzo di una persona, dove resta e da dove può essere inoltrato.
+// *Il difetto non era la riga: era che quell'email non la riceve mai nessuno di
+// noi, e un percorso che non si attraversa può dire qualunque cosa e restare
+// verde per settimane.*
+//
+// Restituisce un percorso RELATIVO: chi deve mandarlo fuori dal sito lo
+// prefissa con SITE_URL. La scelta fra vero e segnaposto invece sta solo qui —
+// `npm run test:guide` pretende che i consumatori la chiamino invece di
+// riscriverla, in qualunque forma.
+export function percorsoGuidaUno(areaSlug: string): string {
+  return guidaPronta(areaSlug, 1) ? `/guide/${areaSlug}/1.pdf` : `/api/guida/${areaSlug}`;
 }
 
 // ─────────────────────────────────────────── Regola di sblocco (gate)
