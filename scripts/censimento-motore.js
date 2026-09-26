@@ -58,6 +58,60 @@ const { AREE, getAreaBySlug } = require(path.join(ROOT, "data/aree.ts"));
 
 const nomeArea = (slug) => getAreaBySlug(slug)?.nome ?? slug;
 
+// ─────────────────────────── Le isolate riviste a mano (2026-09-26)
+//
+// PERCHÉ ESISTE QUESTA TABELLA. L'euristica dei tag isolati stampava 24 righe ⚠,
+// tutte le volte, da settimane, e nessuno le chiudeva: «ventiquattro è un numero
+// che nessuno guarda, e fra un mese è un altro avviso che suona sempre» (Mario).
+// Un avviso che suona sempre smette di essere un avviso — l'abbiamo già scritto
+// per le due righe irremediabili di §1, ed è la stessa malattia.
+//
+// La riduzione è in DUE passi, e vanno in quest'ordine:
+//   1. un filtro STRUTTURALE (vedi `sfumatura` più sotto): un'area che non
+//      possiede nessun elemento suo non è sospetta, è una sfumatura — e togliere
+//      una CLASSE intera è meglio che elencarne i membri. Vale 10 righe su 24.
+//   2. questa tabella, che sono le 14 restanti GUARDATE UNA PER UNA. Ognuna o è
+//      legittima con la sua ragione — e allora non suona più — o è una domanda di
+//      CONTENUTO, che non si decide qui: retaggare un'area cambia su quale campo
+//      uno studente prende credito, e i contenuti sono di Mario. Quelle restano ⚠
+//      con la proposta accanto e il nome di chi decide, esattamente come le
+//      quattro gialle di §1.
+//
+// Una riga che non sta qui e non è una sfumatura è NUOVA: quello suona, ed è il
+// solo caso in cui deve. Una riga che sta qui e non esiste più è obsoleta, e
+// suona anche lei: una baseline che descrive uno stato che non c'è più è la
+// specie che inseguiamo da un mese.
+const ISOLATE_RIVISTE = {
+  // ── legittime ──────────────────────────────────────────────────────────────
+  "citta-acqua|comunicazione-media": { esito: "legittima", perche: "una campagna informativa È comunicazione: quel lavoro esiste per quello" },
+  "classe-partecipa|ristorazione-turismo": { esito: "legittima", perche: "la consulenza parla di dove si mangia con pochi soldi e di una guida per chi è appena arrivato" },
+  "crisi-mediateca|scienze-ricerca": { esito: "legittima", perche: "leggere dei dati di affluenza è la stessa mappatura della Missione 03: fatti misurati → scienze-ricerca" },
+  "palco-programma|sicurezza-difesa": { esito: "legittima", perche: "è l'UNICO tag di quest'area in tutto il motore, e non per refuso: la lacuna di contenuto è già nei punti aperti" },
+  "classe-partecipa|comunicazione-media": { esito: "legittima", perche: "i due elementi hanno la stessa etichetta («Scrivere i quattro testi»): è una cosa sola contata due volte, non due occasioni" },
+  "crisi-mediateca|economia-management": { esito: "legittima", perche: "il bilancio e il capo del personale sono i due documenti economici di quella missione" },
+  "crisi-mediateca|edilizia-architettura": { esito: "legittima", perche: "rivedere il progetto degli spazi, con l'esperto che ne parla: una cosa e il suo documento" },
+  "palco-programma|giurisprudenza-pa": { esito: "legittima", perche: "l'autorizzazione di pubblico spettacolo e il contratto del service sono due atti, non un contesto" },
+  "palco-programma|scienze-educazione": { esito: "legittima", perche: "i ragazzi del centro estivo sono una priorità della missione, non una comparsa" },
+  "progetto-quartiere|comunicazione-media": { esito: "legittima", perche: "la voce di budget e il ruolo «raccontare il progetto fuori» sono due azioni vere" },
+  "viaggio-impossibile|scienze-educazione": { esito: "legittima", perche: "la lettera della famiglia e la prof di sostegno sono il cuore educativo di quella missione" },
+  // ── aperte: decide Mario, è contenuto ──────────────────────────────────────
+  "museo-seta|mobilita-sostenibile": {
+    esito: "aperta",
+    proposta: "edilizia-architettura",
+    perche: "TUTTI E DUE i suoi elementi parlano di accessibilità fisica («la Sala 3 è al primo piano senza ascensore»), e Mobilità Sostenibile è l'area dei trasporti: un piano senza ascensore non è un problema di mobilità sostenibile",
+  },
+  "palco-programma|arte-design-moda": {
+    esito: "aperta",
+    proposta: "musica-spettacolo",
+    perche: "i «fuochi d'artificio» e «una serata che qualcuno si ricorderà» sono spettacolo; musica-spettacolo è già l'area più densa di quella missione, e la priorità le porta entrambe",
+  },
+  "guasto-serra|arte-design-moda": {
+    esito: "aperta",
+    proposta: "edilizia-architettura",
+    perche: "il mandato è «abbiamo progettato male» e il progettista parla di sole, altezza ed esposizione: è progettazione tecnica, non arte/design/moda",
+  },
+};
+
 // ─────────────────────────────────────────── util
 
 const accessore = (obj) => (id) => obj[id];
@@ -439,14 +493,40 @@ async function run() {
     if (!elementiPerMissioneArea.has(k)) elementiPerMissioneArea.set(k, new Set());
     elementiPerMissioneArea.get(k).add(r.mecc + "/" + r.elementoId + "|" + r.etichetta);
   }
+  // Quante aree porta ciascun elemento: serve al primo filtro qui sotto.
+  const areePerElemento = new Map();
+  for (const r of tuttiTag) {
+    const k = r.missione + "|" + r.mecc + "/" + r.elementoId;
+    if (!areePerElemento.has(k)) areePerElemento.set(k, new Set());
+    areePerElemento.get(k).add(r.area);
+  }
+
   const tagIsolati = [];
   for (const [k, set] of elementiPerMissioneArea) {
     if (set.size <= 2) {
       const [missione, area] = k.split("|");
-      tagIsolati.push({ missione, area, n: set.size, elementi: [...set].map((e) => e.split("|")[0]).sort() });
+      const elementi = [...set].map((e) => e.split("|")[0]).sort();
+      // PRIMO FILTRO, strutturale: se OGNI elemento che porta quest'area porta
+      // anche altre aree, il tag è una SFUMATURA su elementi di qualcun altro —
+      // ed è proprio così che una sfumatura è fatta, per costruzione. La prova
+      // che è deliberato: tre di questi casi sono esattamente ciò che il triage
+      // lessicale RACCOMANDA di aggiungere (M11 «Regolamento del finanziamento
+      // comunale» → giurisprudenza, M12 «Costi e tempi» → economia,
+      // «comunicare solo quello» → comunicazione). Un avviso che grida sul
+      // consiglio dell'avviso accanto è la definizione di rumore.
+      const propri = elementi.filter((e) => areePerElemento.get(missione + "|" + e)?.size === 1);
+      const rivista = ISOLATE_RIVISTE[`${missione}|${area}`] ?? null;
+      tagIsolati.push({ missione, area, n: set.size, elementi, sfumatura: propri.length === 0, rivista });
     }
   }
   tagIsolati.sort((a, b) => a.n - b.n || a.missione.localeCompare(b.missione) || a.area.localeCompare(b.area));
+
+  // Le voci riviste e non più nell'elenco: una riga di baseline che descrive un
+  // tag che non esiste più è la stessa malattia di casa (una cosa scritta che
+  // dichiara uno stato diverso da quello vero), quindi si fa sentire.
+  const isolateObsolete = Object.keys(ISOLATE_RIVISTE).filter(
+    (k) => !tagIsolati.some((t) => `${t.missione}|${t.area}` === k),
+  );
 
   // ── Copertura fra missioni ────────────────────────────────────────────────
   // I totali non bastano: un'area con venti tag tutti in una missione è fragile
@@ -612,16 +692,28 @@ async function run() {
   const dubbiUnici = dubbi.filter((d) => { const k = `${d.missione}|${d.mecc}|${d.elementoId}|${d.areaSuggerita}`; if (visto.has(k)) return false; visto.add(k); return true; });
 
   // ── output file ──
-  fs.writeFileSync(path.join(OUT, "censimento.json"), JSON.stringify({ tuttiTag, maiTaggate, maiRaggiungibili, asserzioni, buchiCopertura, tagIsolati, coperturaMissioni, dubbi: dubbiUnici, lessicoAutoSeed: autoSeed }, null, 2));
+  fs.writeFileSync(path.join(OUT, "censimento.json"), JSON.stringify({ tuttiTag, maiTaggate, maiRaggiungibili, asserzioni, buchiCopertura, tagIsolati, coperturaMissioni, isolateObsolete, dubbi: dubbiUnici, lessicoAutoSeed: autoSeed }, null, 2));
 
+  const statoIso = (t) =>
+    t.sfumatura ? "sfumatura" : t.rivista ? t.rivista.esito : "NUOVA — da rivedere";
   const mdIso = [
     "# Tag isolati — censimento del motore Escape",
     "",
-    "Ogni riga: un'area che in una missione compare su **uno o due elementi soltanto**. **Sospetta, non un verdetto** — di solito è un contesto scambiato per campo o un refuso. Guarda a occhio. Non cattura invece un'area *densa ma fuori tema* (es. un grappolo su 5 elementi): per quella serve la lettura di `coperturaMissioni`.",
+    "Ogni riga: un'area che in una missione compare su **uno o due elementi soltanto**. **Sospetta, non un verdetto** — di solito è un contesto scambiato per campo o un refuso. Non cattura invece un'area *densa ma fuori tema* (es. un grappolo su 5 elementi): per quella serve la lettura di `coperturaMissioni`.",
     "",
-    "| missione | area | n. elementi | elementi |",
-    "|---|---|---|---|",
-    ...tagIsolati.map((t) => `| ${t.missione} | ${nomeArea(t.area)} | ${t.n} | ${t.elementi.join(", ")} |`),
+    "La colonna **stato** è la riduzione (vedi `ISOLATE_RIVISTE` in `scripts/censimento-motore.js`):",
+    "",
+    "- **sfumatura** — nessuno dei suoi elementi porta quest'area da solo: è una nuance su elementi di altri, e così è fatta una nuance. Filtro strutturale, non una riga da chiudere.",
+    "- **legittima** — guardata a mano il 2026-09-26, con la sua ragione. Non suona più.",
+    "- **aperta** — è una domanda di CONTENUTO: la proposta e il perché stanno nella tabella, decide Mario.",
+    "- **NUOVA** — non è in tabella: è comparsa dopo la revisione, e va guardata.",
+    "",
+    "| missione | area | n. elementi | elementi | stato | perché |",
+    "|---|---|---|---|---|---|",
+    ...tagIsolati.map(
+      (t) =>
+        `| ${t.missione} | ${nomeArea(t.area)} | ${t.n} | ${t.elementi.join(", ")} | ${statoIso(t)} | ${t.rivista?.perche ?? (t.sfumatura ? "—" : "**da guardare**")}${t.rivista?.proposta ? ` → proposta: ${nomeArea(t.rivista.proposta)}` : ""} |`,
+    ),
   ].join("\n");
   fs.writeFileSync(path.join(OUT, "tag-isolati.md"), mdIso);
 
@@ -701,9 +793,37 @@ async function run() {
   line("");
   line(`CASI DUBBI (lessico): ${dubbiUnici.length} → censimento-output/casi-dubbi.{csv,md}`);
   line("");
-  line(`TAG ISOLATI — un'area su 1-2 elementi in una missione (sospetta, da rivedere a occhio): ${tagIsolati.length}`);
-  for (const t of tagIsolati) line(`  · [${t.missione}] ${nomeArea(t.area)} — ${t.n} elemento/i: ${t.elementi.join(", ")}`);
-  line("  (→ tag-isolati.md. NB: non cattura un'area densa ma fuori tema — per quella leggi la copertura qui sotto.)");
+  // TAG ISOLATI — si stampa quello che qualcuno deve DECIDERE, non tutto quello
+  // che l'euristica vede. Le due liste piene restano in tag-isolati.md: chi vuole
+  // rivedere le riviste sa dove sono, chi legge questo output ha sotto gli occhi
+  // solo le righe che chiedono qualcosa.
+  const sfumature = tagIsolati.filter((t) => t.sfumatura);
+  const nonSfumature = tagIsolati.filter((t) => !t.sfumatura);
+  const aperte = nonSfumature.filter((t) => t.rivista?.esito === "aperta");
+  const legittime = nonSfumature.filter((t) => t.rivista?.esito === "legittima");
+  const nuove = nonSfumature.filter((t) => !t.rivista);
+  // Il singolare si scrive: «1 nuove» in una riga che qualcuno legge è il genere
+  // di sciatteria che fa smettere di leggere le righe.
+  const plur = (n, uno, molti) => `${n} ${n === 1 ? uno : molti}`;
+  line(
+    `TAG ISOLATI — un'area su 1-2 elementi in una missione: ${tagIsolati.length} in tutto → ` +
+      `${plur(sfumature.length, "sfumatura", "sfumature")} su elementi di altri (per costruzione, non sospette), ` +
+      `${plur(legittime.length, "rivista e legittima", "riviste e legittime")}, ` +
+      `${plur(aperte.length, "aperta", "aperte")}, ${plur(nuove.length, "nuova", "nuove")}`,
+  );
+  for (const t of nuove) {
+    line(`  ⚠ NUOVA [${t.missione}] ${nomeArea(t.area)} — ${t.n} elemento/i: ${t.elementi.join(", ")}`);
+    line(`      da guardare a occhio: o è legittima (e va scritta in ISOLATE_RIVISTE con la sua ragione), o è un contesto scambiato per campo`);
+  }
+  for (const t of aperte) {
+    line(`  ⚠ APERTA [${t.missione}] ${nomeArea(t.area)} — ${t.elementi.join(", ")}`);
+    line(`      ${t.rivista.perche}`);
+    line(`      proposta: ${nomeArea(t.rivista.proposta)} → decide Mario (è contenuto: cambia su quale campo lo studente prende credito)`);
+  }
+  for (const k of isolateObsolete) {
+    line(`  ⚠ OBSOLETA ${k} — è in ISOLATE_RIVISTE ma non è più un tag isolato: la riga va tolta da lì`);
+  }
+  line("  (elenco completo → tag-isolati.md. NB: non cattura un'area densa ma fuori tema — per quella leggi la copertura qui sotto.)");
   line("");
   line("COPERTURA FRA MISSIONI — in quante missioni distinte compare ogni area (fragile ≤ 2):");
   for (const c of coperturaMissioni) line(`  ${c.fragile ? "⚠" : " "} ${nomeArea(c.area).padEnd(34)} ${String(c.tag).padStart(3)} tag  in ${c.missioni} missioni`);
