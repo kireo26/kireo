@@ -95,6 +95,34 @@ ok(fin.a.certe === 5 && fin.b.certe === 2, "e tiene i due valori distinti: è co
 const solo = affiancaGeneri(ga, { misura: { perGenere: { revisione: { testi: 1, accordi: 0, certe: 0, registro: 0 } } } });
 ok(solo.length === 2 && solo.find((r) => r.genere === "feedback finale").b.testi === 0, "un genere assente da una passata vale zero, non fa saltare la riga");
 
+// ── ma uno zero può essere un'ASSENZA DI DISTINZIONE, non un calo ───────────
+// Dal 26/09 il «feedback finale» è diviso in tre (il revisore finale, il blocco
+// «come hai lavorato» che lo scrive un'altra chiamata, la chiusura nella voce
+// del cliente). Un rapporto di prima non ha i due generi nuovi, e la riga qui
+// sopra li riempie di zeri: il confronto mostrerebbe «feedback finale 98 → 34»
+// e «come hai lavorato 0 → 32», che si legge come un crollo mentre è solo la
+// vecchia passata che non distingueva.
+const { stessaDivisioneDeiGeneri } = require("./banco/confronta");
+const conTre = (etichetta) => ({
+  misura: {
+    perGenere: {
+      revisione: { testi: 4, accordi: 0, certe: 0, registro: 1 },
+      "feedback finale": { testi: 1, accordi: 0, certe: 0, registro: 1 },
+      "come hai lavorato": { testi: 1, accordi: 0, certe: 0, registro: 1 },
+      "chiusura del cliente": { testi: 1, accordi: 0, certe: 0, registro: 0 },
+      [etichetta]: { testi: 0, accordi: 0, certe: 0, registro: 0 },
+    },
+  },
+});
+const dueNuove = stessaDivisioneDeiGeneri(conTre("reazione del cliente"), conTre("reazione del cliente"));
+ok(dueNuove.noto && dueNuove.uguale === true, "due passate che dividono i generi allo stesso modo si confrontano senza avvisi");
+
+const unaSola = stessaDivisioneDeiGeneri(conTre("reazione del cliente"), ga);
+ok(unaSola.noto && unaSola.uguale === false, "una passata di prima del 26/09 contro una di dopo: le righe non si confrontano, e va detto");
+ok(unaSola.a === true && unaSola.b === false, "…dicendo QUALE delle due non distingueva");
+
+ok(stessaDivisioneDeiGeneri({}, conTre("reazione del cliente")).noto === false, "senza la tabella per genere non si inventa un verdetto: si dice che non si sa");
+
 // ── le due passate erano pulite? ───────────────────────────────────────────
 // La domanda viene PRIMA dei numeri. Una passata ripresa gioca meno di quello
 // che dice: una tappa trovata già revisionata non porta i suoi testi nel

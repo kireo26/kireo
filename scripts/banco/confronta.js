@@ -108,6 +108,29 @@ function affiancaGeneri(a, b) {
   return righe;
 }
 
+// SE LE DUE PASSATE HANNO DIVISO I GENERI ALLO STESSO MODO — e se no, lo si
+// dice invece di affiancare due colonne che contano cose diverse.
+//
+// Dal 26/09 quello che era «feedback finale» è diviso in tre (vedi
+// `partiDelFinale` nella misura). Un rapporto di prima non ha i due generi
+// nuovi, e la riga qui sopra li riempirebbe di zeri: il confronto mostrerebbe
+// «feedback finale 98 → 34» e «come hai lavorato 0 → 32», che si legge come un
+// crollo mentre è solo la vecchia passata che non distingueva. È la stessa
+// regola di `riprese` e `livelli`: è la PRESENZA del campo a dire che quella
+// passata sapeva guardare, e la sua assenza si dichiara.
+const GENERI_NUOVI = ["come hai lavorato", "chiusura del cliente"];
+const distingue = (r) => {
+  const chiavi = Object.keys(r.misura?.perGenere ?? {});
+  if (chiavi.length === 0) return null; // non c'è niente da dichiarare
+  return GENERI_NUOVI.every((g) => chiavi.includes(g));
+};
+function stessaDivisioneDeiGeneri(a, b) {
+  const da = distingue(a);
+  const db = distingue(b);
+  if (da === null || db === null) return { noto: false, a: da, b: db };
+  return { noto: true, a: da, b: db, uguale: da === db };
+}
+
 // ── il contorno: cosa c'era in mezzo ────────────────────────────────────────
 // Il rapporto porta con sé il commit su cui girava. I rapporti vecchi non ce
 // l'hanno, e si dice invece di inventarlo.
@@ -250,6 +273,18 @@ function confronta(fileA, fileB) {
   }
 
   console.log("\n─── LINGUA E REGISTRO, PER GENERE DI TESTO\n");
+  const divisione = stessaDivisioneDeiGeneri(a, b);
+  if (!divisione.noto) {
+    console.log("  Una delle due passate non ha la tabella per genere: le righe qui sotto");
+    console.log("  valgono solo per quella che ce l'ha.\n");
+  } else if (!divisione.uguale) {
+    const vecchia = divisione.a ? "la seconda" : "la prima";
+    console.log(`  ⚠  LE DUE PASSATE NON DIVIDONO I GENERI ALLO STESSO MODO: ${vecchia} è`);
+    console.log("     di prima del 26/09, quando «feedback finale», «come hai lavorato» e");
+    console.log("     «chiusura del cliente» erano un testo solo. Le righe di quei tre non si");
+    console.log("     confrontano: gli zeri da un lato non sono un calo, sono un'assenza di");
+    console.log("     distinzione. Le altre due righe restano confrontabili.\n");
+  }
   console.log("  genere                     testi        certe            registro");
   for (const r of affiancaGeneri(a, b)) {
     const certe = `${r.a.certe}/${r.a.testi} → ${r.b.certe}/${r.b.testi}`;
@@ -266,4 +301,13 @@ function confronta(fileA, fileB) {
   console.log("è più utile di un'altra lo decide chi la legge.\n");
 }
 
-module.exports = { confronta, punteggi, scarti, inversioni, affiancaGeneri, pulizia, ingressiConfrontabili };
+module.exports = {
+  confronta,
+  punteggi,
+  scarti,
+  inversioni,
+  affiancaGeneri,
+  stessaDivisioneDeiGeneri,
+  pulizia,
+  ingressiConfrontabili,
+};

@@ -37,9 +37,9 @@ if (!require.extensions[".ts"]) {
 }
 
 const { trovaAccordi } = require("@/lib/lingua/accordoGenere");
-const { LESSICO_VERDETTO } = require("@/lib/lingua/registroStudente");
+const { LESSICO_VERDETTO, LESSICO_SOLO_AI, PATTERN_TERZA_PERSONA } = require("@/lib/lingua/registroStudente");
 const { trovaRegistro } = require("@/lib/lingua/registroStudente");
-const { stringheInJson } = require("@/lib/lingua/scansione");
+const { stringheInJson, trovaConPattern } = require("@/lib/lingua/scansione");
 const { verificaAtteso } = require("./atteso");
 const { riprese, descriviRipresa } = require("../riprese");
 const { livelli, descriviLivello } = require("../livelli");
@@ -78,6 +78,46 @@ const certa = (cattura) => CERTA.test(String(cattura).toLowerCase());
 const PATTERN_FORMULA = LESSICO_VERDETTO["stato-d'animo"] ?? [];
 const eFormula = (cattura) => PATTERN_FORMULA.some((re) => new RegExp(re.source, "i").test(String(cattura)));
 
+// QUALI VOCI DEL LESSICO HANNO CATTURATO, E QUANTE VOLTE — comprese quelle che
+// non hanno catturato mai.
+//
+// `LESSICO_VERDETTO` è una lista EDITORIALE che «si fa crescere con revisione»,
+// e oggi non sappiamo distinguere i due casi in cui una voce non scatta: o è
+// inutile, o è la prova che il divieto funziona. Il conto del 26/09 su trenta
+// rapporti diceva che le prime due voci coprono il 64% delle catture e che
+// buona parte della lista non ne ha mai fatta nessuna — un fatto che a mano non
+// rifà nessuno, e che va stampato accanto alla lista quando la lista gira.
+//
+// SI CONTA PATTERN PER PATTERN, non ri-testando le catture già raccolte: una
+// cattura è la porzione di testo che UN pattern ha trovato, e ri-testarla
+// contro tutti attribuirebbe la stessa occorrenza a due voci quando i loro
+// match si sovrappongono. Contando ogni pattern da sé la somma delle voci è
+// esattamente il numero delle catture — e il rapporto la confronta, perché un
+// estrattore che perde una riga è verde e non lo sa nessuno.
+const FAMIGLIE_LESSICO = [
+  ...Object.entries(LESSICO_VERDETTO).map(([famiglia, patterns]) => ({ famiglia, patterns })),
+  ...Object.entries(LESSICO_SOLO_AI).map(([famiglia, patterns]) => ({ famiglia, patterns })),
+  { famiglia: "terza-persona", patterns: PATTERN_TERZA_PERSONA },
+];
+
+function contaLessico(testi) {
+  const stringhe = testi.flatMap((t) => stringheInJson(t.valore));
+  const voci = [];
+  for (const { famiglia, patterns } of FAMIGLIE_LESSICO) {
+    for (const re of patterns) {
+      const voce = { famiglia, pattern: re.source, catture: 0, esempi: [] };
+      for (const s of stringhe) {
+        for (const c of trovaConPattern(s, [re])) {
+          voce.catture++;
+          if (voce.esempi.length < 3 && !voce.esempi.includes(c)) voce.esempi.push(c);
+        }
+      }
+      voci.push(voce);
+    }
+  }
+  return voci;
+}
+
 // LE PAROLE-CONTENITORE, in «dove_porta» e solo lì.
 //
 // Quel campo deve nominare una persona che fa una cosa in un posto: «chi fa
@@ -113,6 +153,40 @@ function contenitoriIn(voce) {
   return CONTENITORI.map((re) => String(voce).match(re)?.[0]).filter(Boolean);
 }
 
+// IL «FEEDBACK FINALE» NON È UN TESTO SOLO, e finché lo contavamo come tale il
+// suo numero non era di nessun prompt. Dentro `feedbackFinale` convivono tre
+// provenienze diverse:
+//
+//   · i campi di `promptFeedbackFinale` (punti_forza, da_migliorare,
+//     messaggio_chiusura) — il revisore che giudica il progetto consegnato;
+//   · `modo_di_lavorare`, che lo scrive una CHIAMATA SEPARATA, con un altro
+//     prompt (`promptModoDiLavorare`), e finisce annidato qui dentro
+//     (`route.ts`: `feedbackFinale.modo_di_lavorare = modo`);
+//   · `chiusura_cliente`, scritto dallo stesso prompt del finale ma NELLA VOCE
+//     DEL CLIENTE, di proposito — lì «hai capito» detto da Gianni è un
+//     personaggio in carattere, non un revisore che emette un verdetto.
+//
+// Tenendole in un testo solo, una cattura in QUALUNQUE delle tre marcava tutto
+// l'insieme: un tasso del tipo «quanti testi hanno almeno una cattura» non
+// poteva che salire, e non si poteva sapere quale prompt lo alzasse. Il conto
+// del 26/09 su trenta rapporti in archivio dava il feedback finale al 100% —
+// cioè un numero attribuito a un prompt che ne produce soltanto una parte, e su
+// cui si stava per spendere una passata per vedere se una modifica a quel
+// prompt lo abbassava.
+//
+// Le tre diventano quindi tre testi distinti, con tre `dove`. Un rapporto
+// scritto prima di oggi non ha i due generi nuovi: `banco confronta` lo
+// DICHIARA, invece di leggere la loro assenza come uno zero.
+function partiDelFinale(feedbackFinale) {
+  const { modo_di_lavorare: modo, chiusura_cliente: chiusura, ...resto } = feedbackFinale;
+  const parti = [{ suffisso: "feedback finale", valore: resto }];
+  // Assenti quando non ci sono: un testo senza stringhe non può avere catture,
+  // e contarlo diluirebbe le percentuali di tutti gli altri.
+  if (modo) parti.push({ suffisso: "come hai lavorato", valore: modo });
+  if (chiusura) parti.push({ suffisso: "chiusura del cliente", valore: chiusura });
+  return parti;
+}
+
 // Ogni testo con la sua provenienza, così una cattura si può andare a rileggere
 // invece di restare un numero.
 function raccogliTesti(esiti) {
@@ -122,7 +196,11 @@ function raccogliTesti(esiti) {
       if (t.revisione) testi.push({ dove: `${e.etichetta} / ${t.faseId} / revisione`, valore: t.revisione });
       if (t.reazione) testi.push({ dove: `${e.etichetta} / ${t.faseId} / reazione del cliente`, valore: t.reazione });
     }
-    if (e.feedbackFinale) testi.push({ dove: `${e.etichetta} / feedback finale`, valore: e.feedbackFinale });
+    if (e.feedbackFinale) {
+      for (const p of partiDelFinale(e.feedbackFinale)) {
+        testi.push({ dove: `${e.etichetta} / ${p.suffisso}`, valore: p.valore });
+      }
+    }
   }
   return testi;
 }
@@ -326,7 +404,17 @@ function misura(esiti, attesi = null) {
   // il feedback finale è cinque volte più esposto delle revisioni e che la
   // reazione del cliente non sbaglia mai. Quel numero dice DOVE si lavora — un
   // prompt invece di quattro — e a mano non lo rifà nessuno.
-  const generi = ["revisione", "reazione del cliente", "feedback finale"];
+  //
+  // CINQUE e non tre dal 26/09: quello che si chiamava «feedback finale» era la
+  // somma di due chiamate più un passaggio scritto nella voce del cliente (vedi
+  // `partiDelFinale`). L'ordine è quello in cui uno studente li legge.
+  const generi = [
+    "revisione",
+    "reazione del cliente",
+    "feedback finale",
+    "come hai lavorato",
+    "chiusura del cliente",
+  ];
   const genereDi = (dove) => generi.find((g) => String(dove).endsWith(g)) ?? "altro";
   const perGenere = {};
   for (const g of generi) perGenere[g] = { testi: 0, accordi: 0, certe: 0, registro: 0 };
@@ -377,6 +465,8 @@ function misura(esiti, attesi = null) {
     testi: testi.length,
     accordi,
     registro,
+    // Quali voci del lessico hanno catturato e quante volte, zeri compresi.
+    lessico: contaLessico(testi),
     testiConAccordo,
     testiConRegistro,
     dovePorta,
@@ -680,6 +770,12 @@ function stampaRapporto(m, righe = console.log) {
     if (v.testi === 0) continue;
     di(`  ${g.padEnd(22)} ${String(v.testi).padStart(3)} testi   lingua ${v.accordi} (${v.certe} certe, ${percentuale(v.certe, v.testi)})   registro ${v.registro}`);
   }
+  if (m.perGenere["come hai lavorato"] || m.perGenere["chiusura del cliente"]) {
+    di("  Le ultime tre righe erano UNA fino al 26/09, e il loro numero non era di");
+    di("  nessun prompt: «come hai lavorato» lo scrive una chiamata a sé, «chiusura");
+    di("  del cliente» è scritta nella voce del cliente apposta. Una cattura in una");
+    di("  qualunque delle tre marcava tutte e tre.");
+  }
   di("");
 
   const formule = m.registro.filter((r) => r.formula).length;
@@ -698,6 +794,40 @@ function stampaRapporto(m, righe = console.log) {
     if (m.registro.length > 12) di(`  … e altre ${m.registro.length - 12}, tutte nel rapporto su file.`);
   }
   di("");
+
+  // LA LISTA ACCANTO ALLE SUE CATTURE. Non conclude niente, e non deve: una
+  // voce a zero o è inutile o è la prova che il divieto funziona, e i due casi
+  // da qui non si distinguono. Dirlo è il punto — un elenco editoriale che
+  // cresce senza che nessuno sappia quali voci lavorano cresce alla cieca.
+  if (m.lessico) {
+    const attive = m.lessico.filter((v) => v.catture > 0).sort((a, b) => b.catture - a.catture);
+    const mute = m.lessico.filter((v) => v.catture === 0);
+    const somma = m.lessico.reduce((a, v) => a + v.catture, 0);
+    di(`IL LESSICO, VOCE PER VOCE — ${attive.length} voci su ${m.lessico.length} hanno catturato`);
+    for (const v of attive) {
+      di(`  ${String(v.catture).padStart(4)}  ${v.famiglia.padEnd(22)} /${v.pattern}/${v.esempi.length ? `   «${v.esempi.join("», «")}»` : ""}`);
+    }
+    if (mute.length > 0) {
+      di("");
+      di(`  Mai scattate in questa passata (${mute.length}):`);
+      // Per famiglia, che è l'unità con cui la lista è scritta e con cui si
+      // deciderà se una voce va tolta.
+      const perFamiglia = {};
+      for (const v of mute) (perFamiglia[v.famiglia] ??= []).push(`/${v.pattern}/`);
+      for (const [f, ps] of Object.entries(perFamiglia)) di(`    ${f.padEnd(22)} ${ps.join("  ")}`);
+    }
+    // Il riscontro incrociato: la somma delle voci DEVE essere il numero delle
+    // catture. Se divergono è l'estrattore a doversi spiegare, non i numeri —
+    // un conteggio che non torna con quello accanto è l'unico modo di
+    // accorgersi che uno dei due ha smesso di guardare.
+    if (somma !== m.registro.length) {
+      di("");
+      di(`  ⚠  La somma delle voci (${somma}) non torna col numero delle catture (${m.registro.length}).`);
+      di("     Non è un dato sul modello: è questo conto che ha un difetto. Da guardare");
+      di("     prima di leggere qualunque riga qui sopra.");
+    }
+    di("");
+  }
 
   // «Dove porta» ha una riga sua perché è l'unico campo del prodotto in cui una
   // parola-contenitore è di per sé il difetto: altrove «settore» può starci.
@@ -811,4 +941,13 @@ function stampaRapporto(m, righe = console.log) {
   di("pericoloso, quello del protocollo senza defibrillatore.\n");
 }
 
-module.exports = { misura, stampaRapporto, raccogliTesti, verificaCompletezza, categoriaEsito, distribuzionePunteggi };
+module.exports = {
+  misura,
+  stampaRapporto,
+  raccogliTesti,
+  partiDelFinale,
+  contaLessico,
+  verificaCompletezza,
+  categoriaEsito,
+  distribuzionePunteggi,
+};

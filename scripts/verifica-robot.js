@@ -504,6 +504,62 @@ ok(perGenere.perGenere["feedback finale"].registro === 1, "il verdetto «hai cap
 ok(perGenere.testiConAccordo === 3 && perGenere.testiConRegistro === 1, "conta i TESTI con almeno una cattura: sono le seconde chiamate che non sono servite");
 
 
+// ── il «feedback finale» sono TRE testi, non uno ───────────────────────────
+// Dentro `feedbackFinale` convivono tre provenienze: i campi del revisore
+// finale, il blocco «come hai lavorato» (che lo scrive una CHIAMATA SEPARATA,
+// con un altro prompt) e `chiusura_cliente` (scritto nella voce del cliente
+// apposta). Contandoli come un testo solo, una cattura in una qualunque delle
+// tre marcava tutte e tre — e il conto del 26/09 su trenta rapporti dava il
+// feedback finale al 100%, cioè un numero attribuito a un prompt che ne
+// produce solo una parte.
+//
+// LE TRE FRASI SONO DIVERSE APPOSTA, una per provenienza: se la divisione non
+// funzionasse, la cattura finirebbe sul genere sbagliato e si vedrebbe qui.
+const { partiDelFinale } = require("./banco/robot/misura");
+const treParti = misura([
+  {
+    etichetta: "w > salute",
+    tappe: [],
+    feedbackFinale: {
+      punti_forza: ["La tabella regge."],
+      messaggio_chiusura: "Hai capito che il margine non è uno spreco.",
+      chiusura_cliente: "Hai riconosciuto il problema, e questo me piace.",
+      punteggio_area: 70,
+      modo_di_lavorare: {
+        quello_che_si_vede: ["Hai imparato a chiedere delle persone."],
+        dove_porta: ["chi fa l'infermiere in un paese di montagna"],
+        cosa_non_si_vede_ancora: "",
+      },
+    },
+    fiduciaFinale: 70,
+  },
+]);
+ok(
+  treParti.perGenere["feedback finale"].testi === 1 &&
+    treParti.perGenere["come hai lavorato"].testi === 1 &&
+    treParti.perGenere["chiusura del cliente"].testi === 1,
+  "il feedback finale si divide in tre testi, uno per provenienza",
+);
+ok(treParti.perGenere["feedback finale"].registro === 1, "«hai capito» resta sul revisore finale, che è chi l'ha scritto");
+ok(treParti.perGenere["come hai lavorato"].registro === 1, "…«hai imparato» va sul blocco, che lo scrive un'ALTRA chiamata");
+ok(treParti.perGenere["chiusura del cliente"].registro === 1, "…e «hai riconosciuto» sulla chiusura del cliente, dove è un personaggio in carattere");
+ok(treParti.testi === 3, "tre testi, quindi tre possibili seconde chiamate contate separatamente");
+
+// E le stringhe non si duplicano: il testo del revisore finale NON contiene
+// più quelle delle altre due, altrimenti la cattura sarebbe contata due volte.
+const parti = partiDelFinale({
+  punti_forza: ["a"],
+  chiusura_cliente: "b",
+  modo_di_lavorare: { quello_che_si_vede: ["c"], dove_porta: [], cosa_non_si_vede_ancora: "" },
+});
+const testoFinale = JSON.stringify(parti.find((p) => p.suffisso === "feedback finale").valore);
+ok(!testoFinale.includes('"b"') && !testoFinale.includes('"c"'), "e le tre non si sovrappongono: nessuna stringa contata due volte");
+
+// Un feedback finale senza i due campi facoltativi resta UN testo: un testo
+// senza stringhe non può avere catture, e contarlo diluirebbe le percentuali.
+ok(partiDelFinale({ punti_forza: ["a"] }).length === 1, "senza i due campi facoltativi non si inventano due testi vuoti");
+
+
 // ── le tre liste ──────────────────────────────────────────────────────────
 // Un fermato prodotto dal robot non è un cancello che morde. Il 2026-08-31 un
 // ritentativo sulle scritture ha fatto arrivare un quinto messaggio al
@@ -540,6 +596,52 @@ const dueProblemi = misura([
 ]);
 ok(dueProblemi.registro.filter((r) => r.formula).length === 1, "la formula sulla testa è marcata come tale");
 ok(dueProblemi.registro.filter((r) => !r.formula).length === 1, "e «maturo» resta un giudizio, che è un altro problema");
+
+
+// ── la lista accanto alle sue catture ──────────────────────────────────────
+// `LESSICO_VERDETTO` è editoriale e cresce con revisione, e oggi una voce che
+// non scatta mai è indistinguibile fra le due spiegazioni possibili: o è
+// inutile, o è la prova che il divieto funziona. Il conto del 26/09 su trenta
+// rapporti diceva che due voci coprono il 64% delle catture e che buona parte
+// della lista non ne ha mai fatta nessuna.
+//
+// LA PROPRIETÀ CHE CONTA È IL RISCONTRO INCROCIATO: la somma delle voci deve
+// essere il numero delle catture. Un conteggio che non torna con quello accanto
+// è l'unico modo di accorgersi che uno dei due ha smesso di guardare.
+const vociAttive = dueProblemi.lessico.filter((v) => v.catture > 0);
+ok(
+  dueProblemi.lessico.reduce((a, v) => a + v.catture, 0) === dueProblemi.registro.length,
+  "la somma delle voci del lessico è esattamente il numero delle catture",
+);
+ok(
+  vociAttive.length === 2 && vociAttive.every((v) => v.catture === 1),
+  "…e sono due voci distinte, una per cattura, non una voce che ne prende due",
+);
+ok(
+  vociAttive.some((v) => v.pattern.includes("hai capito") && v.famiglia === "stato-d'animo"),
+  "ogni cattura è attribuita alla voce che l'ha trovata, con la sua famiglia",
+);
+ok(
+  vociAttive.find((v) => v.pattern.includes("matur"))?.esempi.includes("maturo"),
+  "…e la voce porta un esempio di quello che ha catturato, così si può rileggere",
+);
+// Le MUTE sono la metà per cui la misura esiste: senza di loro la lista dice
+// solo quello che già si vede nelle catture.
+const mute = dueProblemi.lessico.filter((v) => v.catture === 0);
+ok(mute.length > 0 && mute.every((v) => v.famiglia), "le voci che non hanno mai catturato ci sono, con la loro famiglia");
+ok(
+  dueProblemi.lessico.some((v) => v.famiglia === "terza-persona"),
+  "la terza persona è nel conto: altrimenti la somma non tornerebbe con le catture",
+);
+
+// E il rapporto le stampa, senza concludere niente: quale delle due
+// spiegazioni valga per una voce muta da qui non si sa, e dirlo è il punto.
+const righeLessico = [];
+stampaRapporto(dueProblemi, (t = "") => righeLessico.push(t));
+const testoLessico = righeLessico.join("\n");
+ok(/IL LESSICO, VOCE PER VOCE/.test(testoLessico), "il rapporto stampa la lista voce per voce");
+ok(/Mai scattate in questa passata/.test(testoLessico), "…comprese quelle che non hanno catturato");
+ok(!/⚠ {2}La somma delle voci/.test(testoLessico), "…e non grida sul riscontro incrociato quando torna");
 
 // ── l'appello: ogni ruolo del piano compare in un esito ────────────────────
 // La proprietà è generale, e per questo vale più della singola strada: quella
