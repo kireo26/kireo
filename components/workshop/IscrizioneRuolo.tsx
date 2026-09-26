@@ -54,6 +54,14 @@ export default function IscrizioneRuolo({
         if (error.code === "23505") {
           // Rimasto un solo significato: sei già iscritto a questo workshop.
           setErrore("Risulti già iscritto a questo workshop. Ricarica la pagina per vedere il tuo ruolo.");
+        } else if (error.code === "42501") {
+          // La policy ha detto no: il cancello del percorso o il tetto dei
+          // workshop. Qui si arriva solo per una corsa — la pagina li legge
+          // prima e in quel caso questa schermata non compare nemmeno (vedi
+          // `TettoRaggiunto` e `PassoMancante`). «Riprova» sarebbe un consiglio
+          // falso: riprovare non cambia niente. Il motivo non lo inventiamo:
+          // lo dice la pagina ricaricata, che lo rilegge dal database.
+          setErrore("Qualcosa è cambiato da quando hai aperto questa pagina. Ricaricala: ti dice cosa manca.");
         } else {
           setErrore("Non è stato possibile completare l'iscrizione. Riprova.");
         }

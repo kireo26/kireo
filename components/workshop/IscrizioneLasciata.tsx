@@ -21,10 +21,21 @@ export default function IscrizioneLasciata({ iscrizioneId, ruoloTitolo }: { iscr
       const supabase = createClient();
       const { error } = await supabase.rpc("riprendi_iscrizione_workshop", { p_iscrizione_id: iscrizioneId });
       if (error) {
+        // I tre motivi che la funzione sa nominare. Il primo è la rete contro
+        // la doppia richiesta, gli altri due sono il tetto dei workshop — e la
+        // pagina normalmente li intercetta prima, mostrando `TettoRaggiunto`
+        // invece di questo bottone: qui si arriva solo per una corsa (due
+        // schede aperte, un'altra iscrizione cominciata nel frattempo). Per
+        // nessuno dei tre «Riprova» sarebbe un consiglio vero.
+        const m = error.message ?? "";
         setErrore(
-          error.message?.includes("iscrizione_gia_attiva")
+          m.includes("iscrizione_gia_attiva")
             ? "Risulta già attivo un altro ruolo di questo workshop: lascia quello, e poi puoi tornare qui."
-            : "Non è stato possibile riprendere il ruolo. Riprova fra un momento.",
+            : m.includes("workshop_gia_attivo")
+              ? "Nel frattempo hai cominciato un altro workshop. Si fa uno per volta: finisci o lascia quello, e questo ti aspetta qui com'era."
+              : m.includes("tetto_workshop_raggiunto")
+                ? "Hai già usato tutti i workshop che si possono fare. Il lavoro di questo resta tuo e lo rileggi quando vuoi."
+                : "Non è stato possibile riprendere il ruolo. Riprova fra un momento.",
         );
         return;
       }

@@ -12,6 +12,8 @@ import NetworkPeers from "@/components/workshop/NetworkPeers";
 import ComeFunziona from "@/components/workshop/ComeFunziona";
 import RitiroIscrizione from "@/components/workshop/RitiroIscrizione";
 import IscrizioneLasciata from "@/components/workshop/IscrizioneLasciata";
+import TettoRaggiunto from "@/components/workshop/TettoRaggiunto";
+import { avvisoTetto, leggiTettoWorkshop } from "@/lib/workshop/tetto";
 import { getIscrizioniWorkshop, scegliIscrizione, STATI_APRIBILI } from "@/lib/workshop/iscrizioneCorrente";
 
 export const metadata = { title: "Workshop — KIREO" };
@@ -44,6 +46,14 @@ export default async function WorkshopPage({ params }: { params: Promise<{ slug:
   // a comparire a chi deve ripartire da dove aveva lasciato.
   const cancello = await cancelloWorkshop(supabase);
 
+  // Il tetto (uno attivo per volta, tre in tutto): un'altra cosa dal cancello.
+  // Il cancello dice «non ci sei ancora arrivato», il tetto «ne hai già uno» o
+  // «li hai già fatti» — due muri diversi, con due strade diverse davanti. Il
+  // rifiuto vero lo fa la policy; qui si evita che arrivi come «Riprova».
+  // Si chiede solo a chi non è già dentro QUESTO workshop: chi ci sta lavorando
+  // non deve leggere niente sul tetto.
+  const avviso = iscrizione ? null : avvisoTetto(await leggiTettoWorkshop(supabase));
+
   const ruoloIscritto = iscrizione?.workshop_ruoli ?? null;
   const ruoloLasciato = lasciata?.workshop_ruoli ?? null;
 
@@ -60,7 +70,14 @@ export default async function WorkshopPage({ params }: { params: Promise<{ slug:
 
       {!iscrizione && !cancello.aperto && <PassoMancante cancello={cancello} titolo="Prima una missione" />}
 
-      {!iscrizione && cancello.aperto && (
+      {/* Il tetto viene prima della scelta del ruolo E del riprendi: anche
+          riprendere un ruolo lasciato porta un'iscrizione ad «attivo», quindi
+          passa dal tetto (la funzione alza workshop_gia_attivo /
+          tetto_workshop_raggiunto). Mostrare il bottone «Riprendi» per poi
+          farlo fallire sarebbe un no dato due volte. */}
+      {!iscrizione && cancello.aperto && avviso && <TettoRaggiunto avviso={avviso} />}
+
+      {!iscrizione && cancello.aperto && !avviso && (
         <>
           {lasciata && ruoloLasciato ? (
             <IscrizioneLasciata iscrizioneId={lasciata.id} ruoloTitolo={ruoloLasciato.titolo} />
