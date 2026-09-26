@@ -44,7 +44,8 @@
     "test:percorso": "node scripts/verifica-percorso-robot.js",
     "test:cancelli": "node scripts/verifica-cancelli.js",
     "test:affinita": "node scripts/verifica-affinita.js",
-    "test:tetto": "node scripts/verifica-tetto.js"
+    "test:tetto": "node scripts/verifica-tetto.js",
+    "test:revisore": "node scripts/verifica-revisore-aree.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.112.5",

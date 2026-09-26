@@ -652,10 +652,21 @@ export function descrittoriPerformancePerTest(
   return null;
 }
 
-const PROMPT_RIFLESSIONE = (aree: string[]) =>
+// Esportati come seam di test insieme a `costruisciPromptPropostaPerTest`: il
+// controllo che verifica la whitelist (`npm run test:revisore`) deve ASSEMBLARE
+// i tre prompt davvero, non leggerli a occhio — una lista di aree copiata nel
+// test sarebbe la seconda definizione della stessa cosa, e divergerebbe. Restano
+// server-only come tutto questo file.
+export const PROMPT_RIFLESSIONE = (aree: string[]) =>
   `Sei un analista di orientamento per studenti italiani di 16-19 anni. Leggi la riflessione che uno studente ha scritto DOPO aver completato una missione (dove si è sentito nel suo, dove fuori posto). Individua da 1 a 2 aree — SCEGLIENDO SOLO tra questi slug: ${aree.join(", ")} — che sembrano averlo attratto o messo a suo agio. Per ognuna valuta: curiosity = quanta voglia di esplorare quell'area traspare (0-1); self_efficacy = quanto si è sentito capace su quell'area (0-1). Motivazione breve, calda, IPOTETICA, in italiano. Rispondi SOLO JSON: {"aree":[{"area_slug":"...","curiosity":0.0,"self_efficacy":0.0,"motivazione":"..."}]}`;
 
-const PROMPT_NON_APPROFONDIRE =
+// Il terzo prompt aperto, e l'unico che NON nomina nessuna area: dopo Fix B lo
+// step `s2_non_approfondire` emette qualità di missione (`area_slug: null`),
+// quindi una whitelist qui non servirebbe a niente e nominare un'area sarebbe un
+// invito a legare la consapevolezza del metodo a un campo. La proprietà
+// sorvegliata è quindi l'opposto delle altre due: qui gli slug non ci devono
+// essere. Esportato per lo stesso motivo dei due sopra.
+export const PROMPT_NON_APPROFONDIRE =
   "Sei un analista di orientamento per studenti italiani di 16-19 anni. Lo studente spiega una cosa che ha scelto di NON approfondire e perché. Valuta quanto è lucido e consapevole del compromesso (0 = non motivato / superficiale, 1 = pienamente consapevole). Rispondi SOLO con JSON: {\"consapevolezza\":0.0,\"motivazione\":\"...\"}. La motivazione: breve, calda, ipotetica, in italiano, rivolta allo studente.";
 
 // ─────────────────────────────────────────── AI helper
