@@ -45,7 +45,8 @@
     "test:cancelli": "node scripts/verifica-cancelli.js",
     "test:affinita": "node scripts/verifica-affinita.js",
     "test:tetto": "node scripts/verifica-tetto.js",
-    "test:revisore": "node scripts/verifica-revisore-aree.js"
+    "test:revisore": "node scripts/verifica-revisore-aree.js",
+    "test:barra": "node scripts/verifica-barra-percorso.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.112.5",

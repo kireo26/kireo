@@ -50,12 +50,24 @@ export default function BloccoLeMieAree({ aree }: { aree: AreaInteresse[] }) {
                 >
                   Scarica la guida
                 </button>
-                <Link
-                  href={isAreaAttiva(area.slug) ? `/app/assistente/${area.slug}` : `/aree/${area.slug}#assistente-digitale`}
-                  className="text-kireo-orange underline underline-offset-2"
-                >
-                  Assistente
-                </Link>
+                {/* L'ASSISTENTE C'È PER UN'AREA SU DICIOTTO, e la scorciatoia
+                    compare solo per quella. Fino al 27/09 compariva per tutte:
+                    per le altre diciassette portava su `/aree/[slug]
+                    #assistente-digitale`, dove il bottone «Parla con
+                    l'assistente digitale» dice «Non è ancora attivo» SOLO AL
+                    CLIC. Non era un link rotto — era peggio: due clic per
+                    scoprire che la cosa non esiste, e con la stessa etichetta
+                    di quella che esiste.
+
+                    Non è la regola della barra («mostra l'ordine, non il
+                    permesso»): là la voce c'è e chi ci arriva legge cosa manca.
+                    Qui non manca un passo, manca la cosa — non c'è niente da
+                    nominare, quindi non c'è niente da invitare. */}
+                {isAreaAttiva(area.slug) && (
+                  <Link href={`/app/assistente/${area.slug}`} className="text-kireo-orange underline underline-offset-2">
+                    Assistente
+                  </Link>
+                )}
               </div>
             </li>
           ))}

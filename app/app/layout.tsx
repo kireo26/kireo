@@ -2,6 +2,7 @@ import AppShell from "@/components/app/AppShell";
 import LogoutButton from "@/components/LogoutButton";
 import CompletaEtaForm from "@/components/app/CompletaEtaForm";
 import { getAppContext } from "@/lib/app/studentContext";
+import { getPassoCorrente } from "@/lib/percorso/passoCorrente";
 
 // Guardia auth + shell di navigazione per tutta l'area /app. Il middleware
 // (proxy.ts) già nega l'accesso senza sessione; qui recuperiamo il contesto
@@ -50,5 +51,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     );
   }
 
-  return <AppShell userId={contesto.userId}>{children}</AppShell>;
+  // Il segno sul passo corrente nella barra. `getPassoCorrente` è in `cache()`,
+  // quindi la home che lo chiede a sua volta per la card non fa altre letture.
+  const { chiave } = await getPassoCorrente(contesto.userId);
+
+  return (
+    <AppShell userId={contesto.userId} passoCorrente={chiave}>
+      {children}
+    </AppShell>
+  );
 }

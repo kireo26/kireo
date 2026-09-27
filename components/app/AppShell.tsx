@@ -6,20 +6,61 @@ import Logo from "@/components/Logo";
 import { createClient } from "@/lib/supabase/client";
 import NotificheBell from "@/components/app/NotificheBell";
 
-const NAV_ITEMS = [
-  { href: "/app", label: "Home", shortLabel: "Home", icon: IconHome },
-  { href: "/app/aree", label: "Aree", shortLabel: "Aree", icon: IconAree },
-  { href: "/app/esplora", label: "Esplora", shortLabel: "Esplora", icon: IconEsplora },
-  { href: "/app/agenda", label: "Agenda", shortLabel: "Agenda", icon: IconAgenda },
-  { href: "/app/test", label: "Test", shortLabel: "Test", icon: IconTest },
-  { href: "/app/guide", label: "Guide", shortLabel: "Guide", icon: IconGuide },
-  { href: "/app/workshop", label: "Workshop", shortLabel: "Workshop", icon: IconWorkshop },
-  { href: "/app/escape", label: "Missioni", shortLabel: "Missioni", icon: IconEscape },
-  { href: "/app/bacheca", label: "Bacheca", shortLabel: "Bacheca", icon: IconBacheca },
-  { href: "/app/messaggi", label: "Messaggi", shortLabel: "Messaggi", icon: IconMessaggi },
-  { href: "/app/attivita", label: "Le mie attività", shortLabel: "Attività", icon: IconAttivita },
-  { href: "/app/profilo", label: "Profilo", shortLabel: "Profilo", icon: IconProfilo },
+// LA BARRA MOSTRA L'ORDINE, NON IL PERMESSO.
+//
+// Due gruppi: le voci del percorso in fila, e il resto. È la sola cosa che i
+// gruppi dicono — nessuna voce è disabilitata e nessuna è sbiadita, e la
+// decisione di non sbiadirle è del 27/09, con tre ragioni che vale la pena
+// tenere scritte perché non rientrino fra un mese:
+//
+//   · UNA VOCE SPENTA NON PUÒ DIRE PERCHÉ È SPENTA. Tutto il lavoro sulle guide
+//     sta nel fatto che il rifiuto nomina il passo che manca: chi clicca su
+//     Missioni senza i test arriva e legge cosa manca. Un grigio non nomina
+//     niente, e toglie la spiegazione proprio al primo incontro;
+//   · di dodici voci quelle davvero chiuse sono DUE — Missioni e Workshop. Le
+//     altre sono libere per scelta: le guide perché la Panoramica è sempre
+//     aperta, i test perché chiuderli allontanerebbe chi è appena arrivato;
+//   · e contraddirebbe una decisione già scritta, in `prossimaTappa.ts`: il
+//     percorso CONSIGLIA, e le prime cinque tappe restano consigli.
+//
+// L'ORDINE DEI PASSI NON È SCRITTO QUI: viene da `PASSI_PERCORSO`. Una seconda
+// lista di passi in questo file divergerebbe da quella della pagina del
+// percorso al primo che ne tocca una — è la malattia dei due riassunti delle
+// guide, vista su un dato invece che su una frase. Qui si aggiungono solo le
+// icone (che sono componenti React e non possono stare in una costante
+// condivisa) e le due voci di navigazione che NON sono passi del viaggio.
+import { PASSI_PERCORSO, type ChiavePasso } from "@/lib/percorso/passi";
+
+const ICONE_PASSI: Record<ChiavePasso, (p: { className?: string }) => React.ReactElement> = {
+  aree: IconAree,
+  guide: IconGuide,
+  test: IconTest,
+  missioni: IconEscape,
+  workshop: IconWorkshop,
+};
+
+const ABBREVIAZIONI: Record<string, string> = { "Le mie attività": "Attività", "Il percorso": "Percorso" };
+
+type Voce = { href: string; label: string; icon: (p: { className?: string }) => React.ReactElement; passo?: ChiavePasso };
+
+const GRUPPO_PERCORSO: Voce[] = [
+  { href: "/app", label: "Home", icon: IconHome },
+  { href: "/app/percorso", label: "Il percorso", icon: IconPercorso },
+  ...PASSI_PERCORSO.map((p) => ({ href: p.href, label: p.nome, icon: ICONE_PASSI[p.chiave], passo: p.chiave })),
 ];
+
+// AGENDA STA QUI E NON NEL PERCORSO: gli eventi non sono un passo del viaggio, e
+// in mezzo ad Aree e Guide romperebbero la fila.
+const GRUPPO_RESTO: Voce[] = [
+  { href: "/app/agenda", label: "Agenda", icon: IconAgenda },
+  { href: "/app/esplora", label: "Esplora", icon: IconEsplora },
+  { href: "/app/bacheca", label: "Bacheca", icon: IconBacheca },
+  { href: "/app/messaggi", label: "Messaggi", icon: IconMessaggi },
+  { href: "/app/attivita", label: "Le mie attività", icon: IconAttivita },
+  { href: "/app/profilo", label: "Profilo", icon: IconProfilo },
+];
+
+const NAV_ITEMS: Voce[] = [...GRUPPO_PERCORSO, ...GRUPPO_RESTO];
 
 function isAttivo(pathname: string, href: string) {
   return href === "/app" ? pathname === "/app" : pathname.startsWith(href);
@@ -131,6 +172,16 @@ function IconProfilo({ className }: { className?: string }) {
   );
 }
 
+function IconPercorso({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" aria-hidden="true">
+      <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M6 20c0-3 3-4 6-4s6-1 6-4-3-4-6-4-6-1-6-4" />
+      <circle cx="6" cy="4" r="1.6" strokeWidth="2" />
+      <circle cx="18" cy="20" r="1.6" strokeWidth="2" />
+    </svg>
+  );
+}
+
 function IconLogout({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" aria-hidden="true">
@@ -139,7 +190,47 @@ function IconLogout({ className }: { className?: string }) {
   );
 }
 
-export default function AppShell({ userId, children }: { userId: string; children: React.ReactNode }) {
+// Una voce della barra, desktop. Il SEGNO sul passo corrente è un puntino
+// arancione a destra, non un colore di sfondo: lo sfondo è già occupato dalla
+// voce su cui si sta navigando (`aria-current`), e le due cose sono domande
+// diverse — «dove sono adesso» e «dov'è il mio prossimo passo». Se coincidono si
+// vedono entrambe senza darsi noia.
+function VoceBarra({ item, pathname, passoCorrente }: { item: Voce; pathname: string; passoCorrente: ChiavePasso | null }) {
+  const attivo = isAttivo(pathname, item.href);
+  const eIlPasso = item.passo !== undefined && item.passo === passoCorrente;
+  return (
+    <Link
+      href={item.href}
+      aria-current={attivo ? "page" : undefined}
+      className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+        attivo ? "bg-kireo-green/15 text-kireo-orange" : "text-kireo-light/90 hover:bg-white/5"
+      }`}
+    >
+      <item.icon className="h-5 w-5 flex-none" />
+      <span className="flex-1">{item.label}</span>
+      {eIlPasso && (
+        <span className="flex-none" title="Il tuo prossimo passo">
+          <span className="block h-2 w-2 rounded-full bg-kireo-orange" aria-hidden="true" />
+          <span className="sr-only">il tuo prossimo passo</span>
+        </span>
+      )}
+    </Link>
+  );
+}
+
+export default function AppShell({
+  userId,
+  passoCorrente,
+  children,
+}: {
+  userId: string;
+  /** Il passo del percorso in cui lo studente è adesso, da `getPassoCorrente`.
+      Null quando non si sa: allora non si segna niente, invece di segnare un
+      passo a caso — un segno sbagliato indica a uno studente un posto in cui non
+      è, e vale meno di nessun segno. */
+  passoCorrente: ChiavePasso | null;
+  children: React.ReactNode;
+}) {
   const pathname = usePathname();
   const router = useRouter();
 
@@ -162,22 +253,16 @@ export default function AppShell({ userId, children }: { userId: string; childre
           <NotificheBell userId={userId} allineamento="sinistra" />
         </div>
         <nav className="flex flex-1 flex-col gap-1" aria-label="Navigazione area personale">
-          {NAV_ITEMS.map((item) => {
-            const attivo = isAttivo(pathname, item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                aria-current={attivo ? "page" : undefined}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-                  attivo ? "bg-kireo-green/15 text-kireo-orange" : "text-kireo-light/90 hover:bg-white/5"
-                }`}
-              >
-                <item.icon className="h-5 w-5 flex-none" />
-                {item.label}
-              </Link>
-            );
-          })}
+          {GRUPPO_PERCORSO.map((item) => (
+            <VoceBarra key={item.href} item={item} pathname={pathname} passoCorrente={passoCorrente} />
+          ))}
+          {/* La riga fra i due gruppi: dice che qui il percorso finisce e
+              comincia il resto. Non è un separatore decorativo, ed è l'unica
+              cosa che i gruppi comunicano. */}
+          <hr className="my-3 border-white/10" />
+          {GRUPPO_RESTO.map((item) => (
+            <VoceBarra key={item.href} item={item} pathname={pathname} passoCorrente={passoCorrente} />
+          ))}
         </nav>
         <button
           type="button"
@@ -207,23 +292,43 @@ export default function AppShell({ userId, children }: { userId: string; childre
 
         <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-24 pt-6 sm:px-6 md:pb-10 md:pt-10">{children}</main>
 
+        {/* LA BARRA MOBILE SCORRE, e non è una rifinitura. Con dodici voci su un
+            telefono da 390px ognuna aveva 32px: l'icona ci sta, l'etichetta no,
+            e le etichette si tagliavano. Con la voce del percorso sono tredici.
+            Scorrere tiene visibili le prime (il percorso, che è l'ordine che
+            stiamo mostrando) senza NASCONDERE nessuna delle altre — l'unica
+            alternativa senza perdite sarebbe stata un menu «Altro», che è una
+            decisione di prodotto e non la prendo qui.
+
+            Se un domani si vorrà quella strada: le voci del percorso sono sette
+            e ci starebbero, il resto sono sei. */}
         <nav
-          className="fixed inset-x-0 bottom-0 z-40 flex border-t border-white/10 bg-kireo-dark/95 backdrop-blur md:hidden"
+          className="fixed inset-x-0 bottom-0 z-40 flex overflow-x-auto border-t border-white/10 bg-kireo-dark/95 backdrop-blur md:hidden"
           aria-label="Navigazione area personale"
         >
-          {NAV_ITEMS.map((item) => {
+          {NAV_ITEMS.map((item, i) => {
             const attivo = isAttivo(pathname, item.href);
+            const eIlPasso = item.passo !== undefined && item.passo === passoCorrente;
+            // La riga che separa i due gruppi anche qui: senza, scorrendo non si
+            // capisce dove finisce il percorso.
+            const primoDelResto = i === GRUPPO_PERCORSO.length;
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 aria-current={attivo ? "page" : undefined}
-                className={`flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] font-medium ${
-                  attivo ? "text-kireo-orange" : "text-kireo-light/70"
-                }`}
+                className={`relative flex min-w-[68px] flex-none flex-col items-center gap-1 py-2.5 text-[11px] font-medium ${
+                  primoDelResto ? "border-l border-white/10" : ""
+                } ${attivo ? "text-kireo-orange" : "text-kireo-light/70"}`}
               >
                 <item.icon className="h-5 w-5" />
-                {item.shortLabel}
+                {ABBREVIAZIONI[item.label] ?? item.label}
+                {eIlPasso && (
+                  <>
+                    <span className="absolute right-3 top-1.5 block h-2 w-2 rounded-full bg-kireo-orange" aria-hidden="true" />
+                    <span className="sr-only">il tuo prossimo passo</span>
+                  </>
+                )}
               </Link>
             );
           })}
