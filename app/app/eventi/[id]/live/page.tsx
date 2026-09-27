@@ -6,6 +6,8 @@ import PannelloLive from "@/components/live/PannelloLive";
 import ConsegnaEvento from "@/components/live/ConsegnaEvento";
 import { MAX_CARATTERI_CONSEGNA, MIN_CARATTERI_CONSEGNA } from "@/lib/eventi/consegna";
 import { statoPortaConsegna } from "@/lib/eventi/portaConsegna";
+import RileggiConsegna from "@/components/live/RileggiConsegna";
+import { consegnaAperta } from "@/lib/live";
 
 // Accesso solo autenticato (garantito dal layout /app + middleware) E
 // iscritto: un evento non trovato o non pubblico=studenti dà 404 (RLS
@@ -93,9 +95,27 @@ export default async function EventoLivePage({ params }: { params: Promise<{ id:
           <p className="font-heading text-base font-semibold text-kireo-light">La tua risposta</p>
           <p className="mt-3 border-l-2 border-kireo-orange pl-4 text-sm text-kireo-muted">{evento.domanda_consegna}</p>
           <p className="mt-4 whitespace-pre-wrap text-sm text-kireo-light">{consegnaMia.testo}</p>
-          {consegnaMia.valutata_il ? null : (
+          {/*
+            `valutata_il` nullo vuol dire UNA cosa sola, da quando esiste
+            `segna_consegna_letta`: la lettura non è arrivata. Prima ne voleva
+            dire due — quella, e «letta, nessuna area riconosciuta» — e nel
+            secondo caso l'invito a farla rileggere sarebbe stato una porta che
+            riporta sempre allo stesso posto, a pagamento ogni giro.
+
+            Fuori dalla finestra il bottone non si mostra: la route cadrebbe sul
+            42501 della policy e risponderebbe «il tempo per rispondere è
+            scaduto», che a chi ha già risposto dice la cosa sbagliata.
+          */}
+          {consegnaMia.valutata_il ? null : consegnaAperta(evento.data_inizio, evento.data_fine) ? (
+            <RileggiConsegna eventoId={evento.id} testo={consegnaMia.testo} />
+          ) : (
             <p className="mt-4 text-sm text-kireo-muted">
-              La stiamo leggendo. Non è un giudizio sospeso: il testo è al sicuro, e quello che ne emerge arriva nel tuo profilo.
+              Non siamo riusciti a leggerla, e il tempo per rileggerla è passato. Il testo resta tuo e al sicuro: non è un giudizio su
+              quello che hai scritto, è un problema nostro. Se ti va, scrivici da{" "}
+              <Link href="/contatti" className="text-kireo-orange underline underline-offset-2">
+                Contatti
+              </Link>
+              .
             </p>
           )}
         </div>

@@ -305,5 +305,76 @@ for (const s of specieSql) {
   ok(new RegExp(`"${s}"`).test(jsBanco) && new RegExp(`\\b${s}:`).test(jsBanco), `…e il banco sa dire cosa vuol dire «${s}»`);
 }
 
+// ─────────────────────────────────────── 9. i testi, e dove finiscono
+// Sono testi, quindi sono decisioni: qui si sorveglia che non tornino alla forma
+// da cui sono stati corretti, perché a quella forma ci si torna per abitudine e
+// la ragione per cui non va bene non è visibile rileggendo la frase.
+console.log("\n9. I quattro testi della consegna, e la riga che dice dove finisce quello che scrive");
+
+const consegnaTsx = senzaCommenti(leggi("components/live/ConsegnaEvento.tsx"));
+const routeTesti = senzaCommenti(leggi("app/api/eventi/[id]/consegna/route.ts"));
+
+// Una consegna pesa ~1,0 → confidence ~0,10, e la barra è 0,40: mandare in home
+// a cercare le affinità è mandare a cercare una cosa che non c'è.
+ok(!/fra le aree della tua home/.test(routeTesti), "il messaggio di successo NON manda a cercare l'area in home");
+ok(/non basta a dire qualcosa su di te/.test(routeTesti), "…e dice che una risposta sola non basta ancora");
+
+// In un prodotto per minori il silenzio su chi legge non è neutro.
+ok(/lo legge (?:solo )?KIREO/.test(consegnaTsx), "il campo dice che quello che scrive lo legge KIREO");
+ok(/organizzato la diretta non lo vede/.test(consegnaTsx), "…e nomina il terzo su cui si fa la domanda: l'ente");
+ok(
+  !/legge solo KIREO|solo KIREO/.test(consegnaTsx),
+  "…e NON dice «solo KIREO»: è previsto che il docente dell'orientamento veda le attività dei suoi studenti, e «solo» diventerebbe falso senza che nessuno se ne accorga",
+);
+
+// «Riprova fra un momento» funzionava solo finché la pagina restava aperta.
+ok(!/Riprova fra un momento/.test(routeTesti), "il messaggio di guasto non consiglia più di riprovare e basta");
+ok(/farla rileggere/.test(routeTesti), "…dice che si può far rileggere, che è quello che succede davvero");
+
+const rileggi = leggi("components/live/RileggiConsegna.tsx");
+const pagLive = senzaCommenti(leggi("app/app/eventi/[id]/live/page.tsx"));
+ok(/api\/eventi\/\$\{eventoId\}\/consegna/.test(rileggi), "il bottone della rilettura passa dalla stessa route (nessuna seconda strada)");
+ok(/RileggiConsegna/.test(pagLive) && /consegnaAperta\(/.test(pagLive), "la pagina lo mostra solo dentro la finestra");
+ok(
+  /valutata_il \? null :/.test(pagLive),
+  "…e solo su una consegna non valutata (da quando «letta senza credito» viene segnata, quello stato vuol dire una cosa sola)",
+);
+ok(
+  /segna_consegna_letta/.test(routeTesti),
+  "il ramo «nessuna area riconosciuta» segna la consegna come letta: altrimenti l'invito a rileggerla sarebbe una porta che riporta sempre allo stesso posto, a pagamento",
+);
+
+const domandaTsx = senzaCommenti(leggi("components/ente/DomandaConsegnaForm.tsx"));
+ok(!/hanno seguito la diretta/.test(domandaTsx), "il pannello dell'ente non dice più «hanno seguito la diretta» (il cancello chiede un ping)");
+ok(/si sono collegati/.test(domandaTsx), "…dice «si sono collegati», che è quello che succede");
+ok(!/hanno seguito la diretta/.test(senzaCommenti(leggi("lib/eventi/portaConsegna.ts"))), "…e lo stesso vale nel testo che legge lo studente");
+ok(/resta loro, tu vedi solo che è arrivato/.test(domandaTsx), "i testi degli studenti non escono da KIREO, e all'ente lo si dice");
+ok(
+  /non si può rispondere bene restando generici/.test(domandaTsx),
+  "sopra il campo c'è la riga sulla forma della domanda (il placeholder si legge una volta, questa resta)",
+);
+ok(
+  !/quale di questi servizi manca di più/.test(domandaTsx),
+  "l'esempio non è più una domanda d'opinione: a una domanda a cui si risponde senza aver guardato la diretta, la misura di attenzione diventa finta",
+);
+
+// ─────────────────────────────────────── 10. il terzo numero per l'ente
+console.log("\n10. Il terzo numero sta dove l'ente già guarda");
+
+const sqlVista = senzaCommentiSql(leggi("supabase/migrations/20260927140000_stats_risposte_evento.sql"));
+ok(
+  /\(select count\(\*\) from public\.consegne_evento ce where ce\.evento_id = e\.id\)/.test(sqlVista),
+  "le risposte si contano con una sottoquery scalare",
+);
+ok(
+  !/left join public\.consegne_evento/.test(sqlVista),
+  "…e NON con un secondo left join, che moltiplicherebbe le righe e gonfierebbe iscritti e partecipati lasciandoli plausibili",
+);
+const selectVista = sqlVista.slice(0, sqlVista.indexOf("comment on view"));
+ok(!/testo/.test(selectVista), "la vista non nomina mai il testo di una risposta: conta, non elenca");
+const paginaStats = senzaCommenti(leggi("app/ente/(dashboard)/statistiche/page.tsx"));
+ok(/\{s\.risposte\} risposte/.test(paginaStats), "la pagina mostra il numero in fila con iscritti e partecipati");
+ok(/s\.domanda_posta \?/.test(paginaStats), "…e solo dove una domanda è stata posta (uno zero senza domanda sarebbe un fallimento che non c'è stato)");
+
 console.log(falliti === 0 ? "\n✅ tutto verde\n" : `\n❌ ${falliti} asserzioni rosse\n`);
 process.exit(falliti === 0 ? 0 : 1);

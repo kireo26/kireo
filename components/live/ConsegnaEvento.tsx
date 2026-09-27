@@ -69,6 +69,21 @@ export default function ConsegnaEvento({
       <p className="mt-4 text-sm text-kireo-muted">
         Rispondi con le tue parole. Non serve avere ragione: serve dire una cosa concreta — un esempio, un vincolo, una conseguenza.
       </p>
+      {/*
+        DOVE FINISCE QUELLO CHE SCRIVE. In un prodotto per minori il silenzio su
+        questo punto non è neutro: viene riempito da quello che il ragazzo
+        immagina, e quello che immagina non lo controlliamo. La riga nomina
+        esattamente il terzo su cui si fa la domanda — l'ente che gli ha appena
+        parlato per quarantacinque minuti.
+
+        E NON dice «lo legge SOLO KIREO»: «solo» è una parola che diventa falsa
+        senza che nessuno se ne accorga, ed è previsto che il docente
+        dell'orientamento veda più avanti le attività dei suoi studenti. Questa
+        frase è vera oggi e resta vera dopo.
+      */}
+      <p className="mt-2 text-sm text-kireo-muted">
+        Quello che scrivi lo legge KIREO, per capire le tue affinità. Chi ha organizzato la diretta non lo vede.
+      </p>
 
       <label htmlFor="consegna-testo" className="sr-only">
         La tua risposta
@@ -88,8 +103,14 @@ export default function ConsegnaEvento({
             ? `${testo.trim().length} caratteri`
             : `${testo.trim().length} di ${minCaratteri} caratteri: ancora un po'`}
         </p>
+        {/*
+          Dopo un fallimento del giudizio il testo è già salvato: un secondo
+          invio non consegna di nuovo, fa RILEGGERE quello che c'è (la route cade
+          sul 23505 e rigiudica il testo autorevole). L'etichetta lo dice, invece
+          di far credere che si stia riconsegnando.
+        */}
         <Button onClick={invia} disabled={!abbastanza || invio}>
-          {invio ? "Invio in corso…" : "Consegna la risposta"}
+          {invio ? "Invio in corso…" : esito && !esito.ok ? "Fai rileggere la risposta" : "Consegna la risposta"}
         </Button>
       </div>
 

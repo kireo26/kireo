@@ -20,8 +20,18 @@ import { segnalaGuasto } from "@/lib/guasti/registra";
 // Node runtime: l'SDK Anthropic non gira su edge.
 export const runtime = "nodejs";
 
+// «Riprova fra un momento» NON è il consiglio giusto qui, e la ragione è
+// strutturale: il testo è già salvato, quindi un secondo invio non ripete la
+// consegna — cade sul `23505` e fa RILEGGERE quello che c'è. Funziona, ma solo
+// finché questa pagina resta aperta: dopo un ricaricamento `statoPortaConsegna`
+// risponde `gia_consegnata` e il campo non viene più reso, quindi non c'è più
+// niente da premere. Da qui il bottone «Fai rileggere la risposta» sulla pagina
+// della diretta (components/live/RileggiConsegna.tsx): è la stessa chiamata, resa
+// raggiungibile anche dopo. Il messaggio dice cosa è successo e dove si torna, e
+// NON promette che ci ripassiamo noi: nessun secondo passaggio automatico esiste
+// (vedi la nota in testa a 20260927150000).
 const MESSAGGIO_GUASTO =
-  "Abbiamo salvato la tua risposta, ma non siamo riusciti a leggerla adesso. Non è un giudizio su quello che hai scritto: è un problema nostro. Riprova fra un momento.";
+  "Abbiamo salvato la tua risposta, ma non siamo riusciti a leggerla adesso. Non è un giudizio su quello che hai scritto: è un problema nostro. Il testo è al sicuro: puoi farla rileggere da qui, o riaprendo questa pagina.";
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -128,6 +138,18 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     // nessuna area), non un guasto: si dice allo studente e non si registra fra
     // le cose rotte. Gli altri tre sono nostri.
     if (esito.motivo === "senza_credito") {
+      // Letta, e non ne è emersa nessuna area. È un esito, non un guasto —
+      // quindi la consegna va segnata come LETTA: altrimenti resterebbe
+      // `valutata_il` nulla e indistinguibile da una lettura non arrivata, e la
+      // pagina continuerebbe a offrire di farla rileggere (una chiamata a
+      // pagamento per giro, sempre con la stessa risposta).
+      const { error: erroreLetta } = await supabase.rpc("segna_consegna_letta", { p_evento_id: id });
+      if (erroreLetta) {
+        await segnalaGuasto(
+          { processo: "eventi/consegna", specie: "scrittura_consegna_evento", motivo: "segna_letta", dettaglio: erroreLetta, diProva },
+          "Consegna evento — non è stato possibile segnare la consegna come letta",
+        );
+      }
       return NextResponse.json({
         ok: true,
         credito: false,
@@ -158,6 +180,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   return NextResponse.json({
     ok: true,
     credito: true,
-    messaggio: "Risposta consegnata. Quello che hai scritto è entrato nel tuo profilo: lo trovi fra le aree della tua home.",
+    // NON «lo trovi fra le aree della tua home»: una consegna pesa ~1,0, cioè
+    // confidence ~0,10, e la barra per entrare in classifica è 0,40. Chi ci
+    // andasse a guardare non troverebbe niente, e la conclusione non sarebbe
+    // «serve altro»: sarebbe che il prodotto dice cose a caso. Questo testo dice
+    // il vero in tutti e due i versi — è entrata, e non si vedrà ancora.
+    messaggio:
+      "Risposta consegnata, ed è entrata nel tuo profilo. Una risposta sola non basta a dire qualcosa su di te — ma è la prima cosa che hai scritto su quest'area, e le altre si sommano a questa.",
   });
 }

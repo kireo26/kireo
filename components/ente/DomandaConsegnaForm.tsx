@@ -51,8 +51,19 @@ export default function DomandaConsegnaForm({ eventoId, domandaAttuale }: { even
     <div className="rounded-lg border border-white/5 bg-kireo-dark p-4">
       <p className="text-xs font-semibold uppercase tracking-wide text-kireo-muted">La domanda finale</p>
       <p className="mt-2 text-xs text-kireo-muted">
-        Una domanda aperta sul contenuto di oggi. Gli studenti iscritti che hanno seguito la diretta possono rispondere in KIREO nelle 48 ore
+        Una domanda aperta sul contenuto di oggi. Gli studenti iscritti che si sono collegati possono rispondere in KIREO nelle 48 ore
         successive: quello che scrivono resta loro, tu vedi solo che è arrivato.
+      </p>
+
+      {/*
+        LA RIGA SOPRA IL CAMPO VALE PIÙ DEL PLACEHOLDER, perché il placeholder si
+        legge una volta e questa resta. La consegna è l'unica misura di ATTENZIONE
+        che abbiamo — è quello che distingue «la scheda era aperta» da «ha
+        seguito» — e una domanda a cui si può rispondere senza aver guardato la
+        rende finta: il numero sale e non misura più niente.
+      */}
+      <p className="mt-3 text-xs text-kireo-light">
+        La domanda migliore è quella a cui non si può rispondere bene restando generici.
       </p>
 
       <label htmlFor={`domanda-${eventoId}`} className="sr-only">
@@ -67,7 +78,7 @@ export default function DomandaConsegnaForm({ eventoId, domandaAttuale }: { even
         }}
         rows={3}
         className="mt-3 w-full rounded-lg border border-white/10 bg-kireo-card p-3 text-sm text-kireo-light outline-none focus:border-kireo-green"
-        placeholder="Es. Nel tuo quartiere, quale di questi servizi manca di più, e cosa cambierebbe se ci fosse?"
+        placeholder="Es. Abbiamo 40.000 € e due cose da fare: rifare il tetto o assumere una persona in più. Cosa scegliereste, e chi ci rimette?"
       />
 
       <div className="mt-2 flex flex-wrap items-center justify-between gap-3">

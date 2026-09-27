@@ -33,8 +33,11 @@ const TESTI: Record<MotivoPortaConsegna, string> = {
   diretta_non_finita: "La domanda finale si apre quando la diretta è terminata.",
   finestra_chiusa: "Il tempo per rispondere è scaduto: la domanda finale resta aperta per due giorni dopo la diretta.",
   non_iscritto: "Solo chi era iscritto a questo incontro può rispondere alla domanda finale.",
+  // «per chi si è collegato» e non «per chi ha seguito»: il cancello chiede un
+  // ping, non la presenza certificata, e un testo che promette di più è un testo
+  // che qualcuno ripete.
   senza_presenza:
-    "La domanda finale è per chi ha seguito la diretta: non risulta che tu sia entrato nella pagina dell'incontro.",
+    "La domanda finale è per chi si è collegato alla diretta: non risulta che tu sia entrato nella pagina dell'incontro.",
   evento_senza_aree: "Per questo incontro non possiamo ancora aprire la domanda finale. Non è colpa tua: è un problema nostro.",
   gia_consegnata: "Hai già risposto a questa domanda.",
   non_ho_potuto_controllare:

@@ -57,9 +57,19 @@ export default async function EnteStatistichePage() {
                         {new Date(s.data_inizio).toLocaleDateString("it-IT", { dateStyle: "long" })}
                       </p>
                     </div>
+                    {/*
+                      Tre numeri che raccontano una scala: chi si è iscritto, chi
+                      c'era, chi ha risposto. Il terzo è la misura di attenzione,
+                      e quando una domanda è stata posta si scrive ANCHE se è
+                      zero — un ente che non vede il numero pensa che non lo
+                      misuriamo. Dove nessuna domanda è stata posta il numero non
+                      compare: uno zero là somiglierebbe a un fallimento che non
+                      c'è stato.
+                    */}
                     <div className="flex gap-4 text-sm text-kireo-light">
                       <span>{s.iscritti} iscritti</span>
                       <span>{s.partecipati} partecipati</span>
+                      {s.domanda_posta ? <span>{s.risposte} risposte</span> : null}
                     </div>
                   </li>
                 ))}
