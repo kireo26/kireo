@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
       `Escape Fix E — ANTHROPIC_API_KEY assente: prove aperte NON calcolate. studente=${user.id} missione=${attempt.mission_slug} attempt=${attempt.id}`,
     );
   }
-  const { evidenze, revisoreEsito } = await calcolaEvidenze(mission, risposte, anthropic, diProva);
+  const { evidenze, revisoreEsito, revisoreDiagnosi } = await calcolaEvidenze(mission, risposte, anthropic, diProva);
 
   // UNA MISSIONE CHE NON HA PRODOTTO NIENTE NON SI COMPLETA — e qui, a
   // differenza dei test, NESSUN RITENTATIVO AUTOMATICO. È la differenza fra le
@@ -200,5 +200,23 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  return NextResponse.json({ ok: true });
+  // LA DIAGNOSI DEL REVISORE VIENE RESTITUITA A CHI HA CHIAMATO, e non è per lo
+  // studente: è per il banco. `revisore_esito` sul tentativo dice COSA è
+  // successo, questa dice PERCHÉ — quante aree il modello ha proposto, quante ne
+  // sono passate e quali sono state scartate. Senza, `letto_senza_credito` resta
+  // una parola, ed è comparsa in cinque rapporti su sei senza che nessuno
+  // potesse dire quale dei due modi fosse stato.
+  //
+  // NON è persistita, e la ragione è che non è un guasto: il revisore ha girato
+  // e ha risposto. Una colonna in più su `mission_attempt` (o una riga in
+  // `guasti`) sarebbe una cosa da decidere; un campo nella risposta costa zero e
+  // arriva dove serve. Il `console.warn` nel motore resta l'unica traccia per uno
+  // studente vero, e quella resta un limite noto.
+  //
+  // `candidate` esce verso il client e NON è una fuga anti-gaming: la whitelist
+  // di una missione vive in `config.ts`, che è già nel bundle del player
+  // [verificato: `areeCandidate` sta nella definizione della missione, non in
+  // scoring.ts]. Quello che resta server-only è COME si pesa, non quali aree
+  // esistono.
+  return NextResponse.json({ ok: true, revisore: revisoreDiagnosi });
 }

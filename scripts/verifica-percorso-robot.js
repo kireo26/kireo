@@ -50,6 +50,19 @@ const { selezionaCandidate, assemblaT3 } = require("@/lib/test/assembla-t3");
 const { getTest } = require("@/lib/test/config");
 const { getMissione, stepDellaMissione, valutaPiano } = require("@/lib/escape/config");
 const R = require("./banco/robot/risposte-percorso");
+const { senzaCommenti } = require("./lib/senza-commenti");
+const giocaM = require("./banco/robot/giocaMissione");
+const ROOT = path.join(__dirname, "..");
+
+// `spiegaRevisore` deriva la frase del perché dal PRODOTTO (lib/escape/tipi.ts),
+// quindi va collegata come la collega il banco: se un domani il collegamento si
+// perdesse, il controllo qui sotto cadrebbe insieme alla passata vera invece di
+// restare verde su una copia scritta nel test.
+giocaM.collega({
+  escape: require("@/lib/escape/config"),
+  config: require("@/lib/test/config"),
+  tipi: require("@/lib/escape/tipi"),
+});
 
 let falliti = 0;
 const ok = (cond, msg) => {
@@ -587,6 +600,99 @@ console.log("\n6ter) Le cifre citate nella proposta sono quelle del motore");
   }
 }
 
+// ── 6quater) `letto_senza_credito` non si stampa mai da solo ─────────────────
+// DA DOVE VIENE. Quell'esito è comparso in cinque rapporti del banco su sei sulla
+// stessa missione (`sportello-insieme`, la derivata) e per sei rapporti non l'ha
+// letto nessuno. Non era nascosto: era **senza spiegazione** — una parola, e una
+// parola che non dice perché si salta. Il perché esisteva già, in un
+// `console.warn` del motore, cioè nei log di un fornitore che li conserva poche
+// ore: la stessa specie di «un guasto che vive solo nei log di un fornitore è un
+// guasto che non possediamo».
+//
+// La proprietà è quindi una sola: **quando il revisore non dà credito d'area, il
+// rapporto dice QUALE dei due modi è stato** — zero proposte, oppure proposte
+// tutte fuori whitelist. Hanno cure opposte (testo/prompt che non morde contro
+// whitelist troppo stretta), quindi confonderle è peggio che tacere.
+//
+// E i tre silenzi restano tre. «Il deploy non lo dice» non è «il revisore non ha
+// girato» non è «zero aree proposte»: il primo è l'assenza di una risposta, e il
+// banco gioca contro il codice DISTRIBUITO, che può essere più vecchio di questo
+// repo — quindi quel caso non è teorico.
+console.log("\n6quater) L'esito del revisore porta il suo perché");
+
+{
+  const { percheSenzaCredito } = require("@/lib/escape/tipi");
+  const base = { candidate: ["a", "b", "c"], giudizio: true };
+
+  // I tre modi, distinti nella frase: se due di loro producessero lo stesso
+  // testo, il rapporto direbbe «senza credito» e non servirebbe a niente.
+  const zero = percheSenzaCredito({ ...base, chiaveAssente: false, proposte: 0, ammesse: 0, scartate: [] });
+  const fuori = percheSenzaCredito({ ...base, chiaveAssente: false, proposte: 2, ammesse: 0, scartate: ["x", "y"] });
+  const assente = percheSenzaCredito({ ...base, chiaveAssente: true, proposte: 0, ammesse: 0, scartate: [] });
+  ok(/non ha proposto nessuna area/.test(zero), `zero proposte: «${zero.slice(0, 60)}…»`);
+  ok(/fuori whitelist/.test(fuori) && fuori.includes("x, y"), `proposte fuori whitelist: nomina gli slug scartati`);
+  ok(/campo «aree»/.test(assente), "chiave assente: è una forma sbagliata, non una scelta del modello");
+  ok(new Set([zero, fuori, assente]).size === 3, "i tre modi danno tre frasi diverse");
+  ok([zero, fuori, assente].every((t) => t.includes("a, b, c")), "…e ognuna dice quali aree erano ammesse");
+
+  const righe = (esito) => giocaM.spiegaRevisore(esito).join("\n");
+
+  // (a) senza credito: il perché c'è, e il nome del modo c'è.
+  const senzaCredito = righe({
+    stato: "completata",
+    revisoreEsito: "letto_senza_credito",
+    revisoreDiagnosi: { chiaveAssente: false, proposte: 0, ammesse: 0, scartate: [], candidate: ["salute", "lingue"], giudizio: true },
+  });
+  ok(/SENZA CREDITO/.test(senzaCredito), "un esito senza credito è marcato, non nascosto in una riga di stato");
+  ok(/non ha proposto nessuna area/.test(senzaCredito), "…e dice quale dei due modi è stato");
+  ok(/frase di sintesi/.test(senzaCredito), "…e se resta un giudizio complessivo lo dice: è l'unica cosa che lo studente legge");
+
+  const senzaNiente = righe({
+    stato: "completata",
+    revisoreEsito: "letto_senza_credito",
+    revisoreDiagnosi: { chiaveAssente: false, proposte: 3, ammesse: 0, scartate: ["p", "q", "r"], candidate: ["salute"], giudizio: false },
+  });
+  ok(/fuori whitelist/.test(senzaNiente) && /p, q, r/.test(senzaNiente), "l'altro modo nomina gli slug proposti e rifiutati");
+  ok(/non resta niente/.test(senzaNiente), "…e senza giudizio complessivo lo dichiara: allo studente non arriva nulla");
+
+  // (b) lo scarto PARZIALE: oggi l'esito dice «letto» e nessuno sa quante ne
+  //     sono cadute. È la stessa domanda di «un controllo deve dire quanti
+  //     elementi ha selezionato», applicata al revisore.
+  const parziale = righe({
+    stato: "completata",
+    revisoreEsito: "letto",
+    revisoreDiagnosi: { chiaveAssente: false, proposte: 3, ammesse: 1, scartate: ["fuori1", "fuori2"], candidate: ["salute"], giudizio: true },
+  });
+  ok(/ha proposto 3 aree, 1 sono passate/.test(parziale), "anche quando va bene, il conto è dichiarato");
+  ok(/2 scartate anche se l'esito è «letto»/.test(parziale), "…e uno scarto parziale si vede, invece di sparire dentro un «letto»");
+  ok(!/SENZA CREDITO/.test(parziale), "…senza gridare dove non c'è niente da gridare");
+
+  // (c) i due silenzi, che non sono lo stesso silenzio.
+  const deployVecchio = righe({ stato: "completata", revisoreEsito: "letto_senza_credito" });
+  ok(/NON HO GUARDATO/.test(deployVecchio), "la chiave assente si dichiara: il deploy che ha risposto non sa dirlo");
+  ok(!/non ha proposto/.test(deployVecchio), "…e NON si legge come «zero proposte», che sarebbe la risposta comoda");
+  const nonGirato = righe({ stato: "completata", revisoreEsito: "non_riuscito", revisoreDiagnosi: null });
+  ok(/non ha girato/.test(nonGirato), "il revisore che non ha girato è un terzo caso, con parole sue");
+  ok(!/NON HO GUARDATO/.test(nonGirato), "…e non si confonde con «non lo so»");
+
+  // (d) i collegamenti, letti sul sorgente: le tre funzioni sono async contro
+  //     Anthropic/Supabase e non girano qui, ma «chi passa cosa a chi» si legge.
+  const srcScoring = senzaCommenti(fs.readFileSync(path.join(ROOT, "lib/escape/scoring.ts"), "utf8"));
+  ok(/revisoreDiagnosi = \{/.test(srcScoring), "il motore costruisce la diagnosi");
+  ok(/percheSenzaCredito\(revisoreDiagnosi\)/.test(srcScoring), "…e il suo log la DERIVA invece di riscrivere la frase");
+  ok(/revisoreDiagnosi \}/.test(srcScoring), "…e la restituisce a chi lo chiama");
+
+  const srcRoute = senzaCommenti(fs.readFileSync(path.join(ROOT, "app/api/escape/finalizza/route.ts"), "utf8"));
+  ok(/revisore: revisoreDiagnosi/.test(srcRoute), "la route la restituisce: è così che arriva al banco");
+
+  const srcGiocaM2 = fs.readFileSync(path.join(__dirname, "banco/robot/giocaMissione.js"), "utf8");
+  ok(
+    /hasOwnProperty\.call\(fine\.dati, "revisore"\)/.test(srcGiocaM2),
+    "il banco distingue la chiave ASSENTE da un valore nullo, invece di trattarle uguale",
+  );
+  ok(/percheSenzaCredito\(d\)/.test(senzaCommenti(srcGiocaM2)), "…e usa la frase del prodotto, non una copia sua");
+}
+
 // ── 7) Controprove ───────────────────────────────────────────────────────────
 // Senza, «tutto verde» direbbe solo che le liste lette erano vuote.
 console.log("\n7) Controprove: il controllo si accorge davvero");
@@ -692,7 +798,7 @@ ok(R.rispostaPerStep("una-missione-che-non-esiste", { id: "s1_mandato", tipo: "s
 // GLI ID CHE UNO STEP OFFRIVA. Senza, una risposta che dipende da cosa era in
 // offerta non si rilegge: nel rapporto resterebbe «ha scelto materiali» senza
 // dire fra cosa. E il dossier e i lavori cambiano davvero con la partita.
-const giocaM = require("./banco/robot/giocaMissione");
+
 ok(/offerte: offertePerStep\(prossimo\)/.test(srcGiocaM), "giocaMissione registra, per ogni passo, gli id che quel passo offriva");
 for (const r of raccolta) {
   const info = r.perId.get("s2_informazioni");

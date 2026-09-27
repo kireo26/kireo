@@ -36,6 +36,7 @@ const testAssembla = require("@/lib/test/assembla-t3");
 const testScoring = require("@/lib/test/scoring");
 const percorsoStato = require("@/lib/percorso/stato");
 const escapeConfig = require("@/lib/escape/config");
+const escapeTipi = require("@/lib/escape/tipi");
 
 const { apriSessione } = require("./robot/sessione");
 const giocaT = require("./robot/giocaTest");
@@ -46,7 +47,7 @@ const { statoProduzione } = require("./vercel");
 const { leggiGuasti, perSpecie } = require("./guasti");
 
 giocaT.collega({ config: testConfig, assembla: testAssembla, scoring: testScoring, percorso: percorsoStato });
-giocaM.collega({ escape: escapeConfig, config: testConfig });
+giocaM.collega({ escape: escapeConfig, config: testConfig, tipi: escapeTipi });
 
 function commitCorrente() {
   try {
@@ -149,7 +150,7 @@ async function studente() {
     if (esito.fermato) {
       console.log(`  ✗ fermato a «${esito.fermato.dove}»: ${esito.fermato.perche}`);
     } else {
-      console.log(`  stato: ${esito.stato ?? "?"} · revisore: ${esito.revisoreEsito ?? "nessun esito scritto"}`);
+      for (const r of giocaM.spiegaRevisore(esito)) console.log(r);
       const conArea = (esito.prove ?? []).filter((p) => p.area_slug);
       console.log(`  prove scritte: ${esito.prove?.length ?? 0} (${conArea.length} con un'area)`);
     }

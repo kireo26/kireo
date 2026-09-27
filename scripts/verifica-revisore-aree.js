@@ -125,14 +125,20 @@ function giocatoreMinimo(slug) {
 function clienteFinto(prompt, jsonPer) {
   const chiamate = [];
   const ignoti = [];
+  // I system COMPLETI, come li riceve il modello: è l unico posto da cui si può
+  // verificare che una regola appesa centralmente arrivi davvero. Un controllo
+  // lessicale sul sorgente direbbe che la riga esiste, non che passa di qui.
+  const sistemi = [];
   return {
     chiamate,
     ignoti,
+    sistemi,
     messages: {
       create: async ({ system }) => {
         const quale = ["proposta", "riflessione", "nonApprofondire"].find((k) => system.startsWith(prompt[k]));
         if (!quale) { ignoti.push(system.slice(0, 120)); throw new Error("prompt non riconosciuto dal cliente finto"); }
         chiamate.push(quale);
+        sistemi.push(system);
         return {
           content: [{ type: "text", text: jsonPer[quale] }],
           stop_reason: "end_turn",
@@ -242,6 +248,24 @@ async function perMissione(slug) {
     const na2 = evidenze.filter((e) => e.step_id === "s2_non_approfondire");
     const sporche = righe.filter((r) => /Cifra non citabile|senza credito/.test(r));
     ok(cliente.ignoti.length === 0, `B1 · i tre prompt sono stati riconosciuti tutti${cliente.ignoti.length ? ` (ignoto: ${cliente.ignoti[0]})` : ""}`);
+
+    // B1bis · LA REGOLA SENZA VOTO arriva a tutti e tre i revisori di Escape.
+    // Il 27/09 una motivazione diceva «Quello che riduce il voto è…» dentro il
+    // blocco che dichiara di non mostrare nessun punteggio: due frasi che si
+    // contraddicono sulla stessa schermata, e quella falsa era la nostra. Si
+    // verifica sul SYSTEM VERO ricevuto dal modello, non sul sorgente: una riga
+    // che esiste nel file e non passa di qui è la specie che inseguiamo.
+    const senzaVoto = cliente.sistemi.filter((x) => /non nominare mai il voto/i.test(x));
+    ok(
+      cliente.sistemi.length > 0 && senzaVoto.length === cliente.sistemi.length,
+      senzaVoto.length === cliente.sistemi.length
+        ? `B1bis · la regola «chi legge non vede nessun numero» arriva a tutti e ${cliente.sistemi.length} i revisori`
+        : `B1bis · la regola arriva solo a ${senzaVoto.length} dei ${cliente.sistemi.length} revisori: gli altri possono parlare di un voto che lo studente non vede`,
+    );
+    ok(
+      cliente.sistemi.every((x) => /resta il punto più fragile/.test(x)),
+      "B1bis · …e porta la sostituzione svolta, non solo il divieto (è la forma che in questo progetto prende)",
+    );
     ok(
       revisoreEsito === "letto" &&
         perf?.motivazione === MOT_PROPOSTA &&

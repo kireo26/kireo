@@ -117,6 +117,25 @@ function validaFile(rel) {
     return;
   }
 
+  // NESSUN SEGNO DI MARKDOWN nel testo che il revisore legge. Il 27/09
+  // `scuola-musica-napoli` era l'unico dei cinque workshop a portare un `**…**`
+  // dentro una sezione: cinquantacinque sezioni e una sola con quel segno è
+  // l'impronta di un incolla, non di una scelta. Il revisore riceve testo, non
+  // markdown, quindi quei due asterischi sono un'enfasi rivolta a nessuno — e
+  // stanno dentro il materiale con cui misuriamo il prodotto.
+  //
+  // Si cercano le forme PAIATE (`**…**`, `__…__`), non l'asterisco singolo: un
+  // asterisco può essere una moltiplicazione o una nota, e un controllo che
+  // grida su una cosa giusta è un controllo che qualcuno disattiva.
+  const grezzo = fs.readFileSync(path.join(DIR, rel), "utf8");
+  const segni = grezzo.match(/\*\*[^*\n]+\*\*|__[^_\n]+__/g) ?? [];
+  ok(
+    segni.length === 0,
+    segni.length === 0
+      ? "nessun segno di markdown nel testo (il revisore legge testo, non markdown)"
+      : `${segni.length} ${segni.length === 1 ? "segno" : "segni"} di markdown nel testo che il revisore legge: ${segni.slice(0, 3).join(", ")}`,
+  );
+
   const ruoliDelWorkshop = WORKSHOP_ELABORATO[dati.workshop];
   ok(Boolean(ruoliDelWorkshop), `il workshop «${dati.workshop}» esiste nel motore`);
   if (!ruoliDelWorkshop) return;

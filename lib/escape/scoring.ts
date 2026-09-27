@@ -18,12 +18,14 @@ import { chiamaJson, type EsitoAI } from "@/lib/ai/chiamaJson";
 import { cifreNonCitabili, insiemeCifreCitabili } from "@/lib/escape/cifreCitabili";
 import { stringheInJson } from "@/lib/lingua/scansione";
 import { componiPerformance, type DescrittoreVoce } from "./componiPerformance";
+import { percheSenzaCredito } from "./tipi";
 import type {
   AsseStile,
   Dimensione,
   EscapeMission,
   EvidenceInput,
   LeggiRisposta,
+  RevisoreDiagnosi,
   RevisoreEsito,
   TagAsse,
   Payload,
@@ -670,6 +672,27 @@ export const PROMPT_NON_APPROFONDIRE =
   "Sei un analista di orientamento per studenti italiani di 16-19 anni. Lo studente spiega una cosa che ha scelto di NON approfondire e perché. Valuta quanto è lucido e consapevole del compromesso (0 = non motivato / superficiale, 1 = pienamente consapevole). Rispondi SOLO con JSON: {\"consapevolezza\":0.0,\"motivazione\":\"...\"}. La motivazione: breve, calda, ipotetica, in italiano, rivolta allo studente.";
 
 // ─────────────────────────────────────────── AI helper
+// CHI LEGGE UNA MOTIVAZIONE DI ESCAPE NON VEDE NESSUN NUMERO, e per un mese i
+// revisori hanno parlato del voto che assegnavano. Il 27/09, nel blocco delle
+// «aree sfiorate» — che dichiara esso stesso «non portano un punteggio, perché il
+// prodotto non gliene mostra uno» — la motivazione diceva «Quello che riduce il
+// voto è il margine di nove giorni». Due frasi che si contraddicono a dieci righe
+// di distanza sulla stessa schermata, e quella falsa era la nostra.
+//
+// LA REGOLA STA QUI E NON FRA QUELLE CENTRALI di `chiamaJson`, ed è deliberato:
+// nei WORKSHOP un punteggio lo studente lo vede davvero (la barra della fiducia,
+// 0-100, e il punteggio d'area del feedback finale). Una regola «non nominare il
+// voto» appesa a tutti i revisori sarebbe falsa metà delle volte — e una regola
+// falsa dove non serve è una regola che qualcuno toglie. `chiamaEscape` è la
+// cucitura che passano tutti e soli i revisori di Escape.
+//
+// Forma: una SOSTITUZIONE SVOLTA, che in questo progetto è l'unica che prende
+// (vedi «Le sostituzioni funzionano, i principi no»). E a differenza del segno
+// tipografico di `ragazz@` qui nominare la parola non è insegnarla: «voto» e
+// «punteggio» il modello le usa già da sé.
+const REGOLA_SENZA_VOTO =
+  "\n\nCHI LEGGE NON VEDE NESSUN NUMERO: la tua motivazione compare accanto a un'area senza punteggio, e i valori che assegni non escono da qui. Non nominare mai il voto, il punteggio o la valutazione, e non citare le cifre che hai assegnato: di' cosa c'è nel testo. «Quello che riduce il voto è il margine di nove giorni» → «Il margine di nove giorni resta il punto più fragile».";
+
 // Sottile wrapper sul chiamaJson condiviso: fissa modello e max_tokens di
 // Escape, così i tre call-site (non-approfondire, proposta, riflessione)
 // ricevono un EsitoAI tipizzato — un fallimento (chiamata o estrazione) è un
@@ -681,7 +704,7 @@ function chiamaEscape(
   diProva: boolean,
   controlloExtra?: (dati: unknown) => string[],
 ): Promise<EsitoAI> {
-  return chiamaJson(anthropic, { model: MODELLO_ESCAPE, maxTokens: 600, system, user, controlloExtra, diProva });
+  return chiamaJson(anthropic, { model: MODELLO_ESCAPE, maxTokens: 600, system: system + REGOLA_SENZA_VOTO, user, controlloExtra, diProva });
 }
 
 // ─────────────────────────────────────────── motore
@@ -692,7 +715,7 @@ export async function calcolaEvidenze(
   // Vero se lo studente è un profilo di prova: non cambia il punteggio, separa
   // il contatore della guardia sulla lingua (vedi chiamaJson).
   diProva = false,
-): Promise<{ evidenze: EvidenceInput[]; revisoreEsito: RevisoreEsito | null }> {
+): Promise<{ evidenze: EvidenceInput[]; revisoreEsito: RevisoreEsito | null; revisoreDiagnosi: RevisoreDiagnosi | null }> {
   const evidenze: EvidenceInput[] = [];
   const get: LeggiRisposta = (id) => risposte.get(id);
   const step = stepDellaMissione(mission);
@@ -703,6 +726,11 @@ export async function calcolaEvidenze(
   // Resta null se lo studente non ha scritto la proposta. Persistito su
   // mission_attempt.revisore_esito dal route di finalizzazione.
   let revisoreEsito: RevisoreEsito | null = null;
+  // Il PERCHÉ dell'esito (vedi RevisoreDiagnosi in tipi.ts): un valore solo, da
+  // cui derivano sia il log qui sotto sia la risposta della route — due copie
+  // della stessa spiegazione divergerebbero, e quella che nessuno rilegge è
+  // sempre il log.
+  let revisoreDiagnosi: RevisoreDiagnosi | null = null;
 
   const letti = materialiLetti(get);
 
@@ -1082,6 +1110,7 @@ export async function calcolaEvidenze(
         // revisore_esiti mostrerà quello stato, si costruirà un consumatore con
         // una frequenza reale in mano, non con un'ipotesi.
         const parsed = esito.dati as { aree?: unknown[]; giudizio_complessivo?: unknown };
+        const chiaveAreeAssente = !Array.isArray(parsed.aree);
         const aree = Array.isArray(parsed.aree) ? parsed.aree : [];
         let propEmesse = 0;
         // Gli slug scartati, per il log qui sotto. Senza questo elenco i due modi
@@ -1137,19 +1166,30 @@ export async function calcolaEvidenze(
         if (eProposta && propEmesse === 0 && giudizio && cifreNonCitabili(giudizio, cifreOk).length === 0) {
           evidenze.push({ area_slug: null, categoria: "qualita_missione", dimensione: "performance", valore: 0.5, peso: P.revisore, motivazione: giudizio, step_id: s.id });
         }
+        // LA DIAGNOSI, costruita una volta sola. Prima questi numeri esistevano
+        // solo dentro il `console.warn` qui sotto, cioè nei log di Vercel: e
+        // `letto_senza_credito` è comparso in cinque rapporti del banco su sei
+        // senza che nessuno potesse dire quale dei due modi fosse stato.
+        if (eProposta) {
+          revisoreDiagnosi = {
+            chiaveAssente: chiaveAreeAssente,
+            proposte: aree.length,
+            ammesse: propEmesse,
+            scartate,
+            candidate: [...mission.areeCandidate],
+            giudizio: giudizio.length > 0,
+          };
+        }
+
         // Lo stato `letto_senza_credito` costa allo studente una dimensione
         // intera («Bravura — non ancora misurata») dopo che ha scritto davvero:
         // quando capita vogliamo sapere QUALE dei due modi è stato, non solo che
         // è stato. Una riga sola, e solo in quel caso — un log per ogni proposta
-        // sarebbe rumore.
-        if (eProposta && propEmesse === 0) {
-          console.warn(
-            `Revisore senza credito — missione ${mission.slug}: ` +
-              (scartate.length === 0
-                ? "il revisore non ha proposto nessuna area."
-                : `tutte le aree proposte sono fuori whitelist (${scartate.join(", ")}).`) +
-              ` Ammesse: ${mission.areeCandidate.join(", ")}.`,
-          );
+        // sarebbe rumore. Il TESTO deriva dalla diagnosi, non la riscrive: due
+        // spiegazioni della stessa cosa divergono, e quella che nessuno rilegge
+        // è sempre il log.
+        if (revisoreDiagnosi && revisoreDiagnosi.ammesse === 0) {
+          console.warn(`Revisore senza credito — missione ${mission.slug}: ${percheSenzaCredito(revisoreDiagnosi)}`);
         }
         break;
       }
@@ -1253,5 +1293,5 @@ export async function calcolaEvidenze(
     }
   }
 
-  return { evidenze: sanitizzaEvidenze(evidenze), revisoreEsito };
+  return { evidenze: sanitizzaEvidenze(evidenze), revisoreEsito, revisoreDiagnosi };
 }

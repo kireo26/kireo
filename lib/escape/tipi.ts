@@ -27,6 +27,53 @@ export type Dimensione = "interest" | "performance" | "self_efficacy" | "curiosi
 export const REVISORE_ESITI = ["letto", "letto_senza_credito", "non_riuscito"] as const;
 export type RevisoreEsito = (typeof REVISORE_ESITI)[number];
 
+// IL PERCHÉ DELL'ESITO, e non solo l'esito. `letto_senza_credito` è comparso in
+// cinque rapporti del banco su sei sulla stessa missione, e per sei rapporti non
+// è stato letto da nessuno — perché è UNA PAROLA, e una parola che non dice
+// perché si salta. Il «perché» esisteva già (un `console.warn` in `scoring.ts`),
+// cioè viveva nei log di un fornitore che li conserva poche ore: la stessa
+// specie di «un guasto che vive solo nei log di un fornitore è un guasto che non
+// possediamo».
+//
+// SI EMETTE SEMPRE che il revisore abbia girato, non solo quando non dà credito:
+// un numero dichiarato anche quando va bene è un numero che, il giorno che
+// diventa impossibile, si nota. Emesso solo sul passo canonico `s4_proposta`;
+// `null` quando il revisore non ha girato (nessun testo, chiave assente,
+// chiamata fallita) — e lì l'esito è già `non_riuscito`, che è un'altra cosa.
+//
+// I due modi di finire senza credito hanno CURE OPPOSTE, e da qui si
+// distinguono: `proposte === 0` (il modello non ha proposto niente, benché il
+// prompt chieda «da 1 a 3 aree») vuol dire testo troppo scarno o prompt che non
+// morde; `scartate.length > 0 && ammesse === 0` vuol dire whitelist troppo
+// stretta per quello che lo studente ha scritto.
+export type RevisoreDiagnosi = {
+  // Il modello non ha nemmeno emesso il campo `aree`: distinto da «lo ha emesso
+  // vuoto», perché il primo è una forma sbagliata e il secondo una scelta.
+  chiaveAssente: boolean;
+  proposte: number; // quante aree ha proposto
+  ammesse: number; // quante sono passate dalla whitelist della missione
+  scartate: string[]; // gli slug rifiutati, nell'ordine in cui li ha proposti
+  candidate: string[]; // la whitelist di questa missione (già client-safe: sta in config.ts)
+  // Aveva una frase di sintesi da dire: quando le aree sono zero è l'unica cosa
+  // che ha da dire su un testo che lo studente ha scritto davvero.
+  giudizio: boolean;
+};
+
+// Il perché in una frase, DERIVATO dalla diagnosi e non riscritto: lo usano il
+// log del motore e il rapporto del banco. Due spiegazioni della stessa cosa
+// divergono, e quella che nessuno rilegge è sempre il log.
+//
+// Sta qui e non in `scoring.ts` perché il banco la importa: `scoring.ts` è
+// server-only per anti-gaming (la logica di punteggio non deve finire nel
+// bundle client) e si porta dietro l'SDK Anthropic. Questa è una stringa.
+//
+// Non è un testo che legge uno studente: è diagnostica, per noi.
+export function percheSenzaCredito(d: RevisoreDiagnosi): string {
+  if (d.chiaveAssente) return `il modello non ha emesso il campo «aree» (forma sbagliata). Ammesse: ${d.candidate.join(", ")}.`;
+  if (d.proposte === 0) return `il revisore non ha proposto nessuna area, benché il prompt gliene chieda da 1 a 3. Ammesse: ${d.candidate.join(", ")}.`;
+  return `tutte e ${d.proposte} le aree proposte sono fuori whitelist (${d.scartate.join(", ")}). Ammesse: ${d.candidate.join(", ")}.`;
+}
+
 // I quattro assi di STILE di lavoro (Fase 2, T2 «Come ti muovi»). Sono
 // trasversali alle 18 aree: uno può muoversi da analitico o da relazionale in
 // QUALUNQUE area. Vivono in una struttura gemella di area_signal (style_signal),

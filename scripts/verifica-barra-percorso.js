@@ -48,9 +48,7 @@ const ok = (cond, msg) => {
 // che spiega perché ci deve stare — quindi restava verde con la `cache()` tolta.
 // Un controllo soddisfatto da una frase che descrive l'intenzione è la specie di
 // casa: un commento che dichiara quello che il codice dovrebbe fare.
-function senzaCommenti(src) {
-  return src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
-}
+const { senzaCommenti } = require("./lib/senza-commenti");
 
 const leggi = (p) => senzaCommenti(fs.readFileSync(path.join(ROOT, p), "utf8"));
 const srcBarra = leggi("components/app/AppShell.tsx");

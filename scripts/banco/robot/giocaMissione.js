@@ -26,10 +26,14 @@ const { eGuasto } = require("./sessione");
 const { rispostaPerStep, MISSIONE_DERIVATA } = require("./risposte-percorso");
 
 // Caricati da chi chiama (il comando compila il TypeScript una volta sola).
-let getMissione, stepDellaMissione, missionePerArea;
+let getMissione, stepDellaMissione, missionePerArea, percheSenzaCredito;
 function collega(moduli) {
   ({ getMissione, stepDellaMissione } = moduli.escape);
   ({ missionePerArea } = moduli.config);
+  // La frase del perché arriva dal PRODOTTO (`lib/escape/tipi.ts`), non
+  // riscritta qui: è la stessa che il motore mette nel suo log, e due
+  // spiegazioni della stessa cosa divergono.
+  ({ percheSenzaCredito } = moduli.tipi);
 }
 
 // LA MISSIONE DERIVATA È FISSATA NEL BANCO, e questa funzione la confronta con
@@ -165,6 +169,21 @@ async function giocaMissione({ sessione, missionSlug, registra }) {
   }
   di("finalizzata");
 
+  // IL PERCHÉ DELL'ESITO DEL REVISORE, dalla risposta della route.
+  //
+  // Tre stati distinti nel dato, e vanno tenuti distinti anche qui:
+  //   · la CHIAVE ASSENTE  = il deploy che ha risposto non sa dirlo (codice più
+  //     vecchio di questo banco) → «non ho guardato», mai «nessuna diagnosi»;
+  //   · `null`             = il revisore non ha girato (nessun testo, chiave AI
+  //     assente, chiamata fallita) — e lì l'esito è già `non_riuscito`;
+  //   · l'oggetto          = i numeri veri.
+  // La chiave si OMETTE quando è assente (JSON.stringify la lascia fuori): così
+  // in un rapporto la sua presenza dice che quella passata sapeva guardare, come
+  // per `ripresa` nei workshop.
+  if (fine.dati && Object.prototype.hasOwnProperty.call(fine.dati, "revisore")) {
+    esito.revisoreDiagnosi = fine.dati.revisore ?? null;
+  }
+
   // L'esito del revisore, che è la cosa per cui questa passata costa qualcosa.
   // Tre stati distinti (letto / letto_senza_credito / non_riuscito): un
   // fallimento che si chiama per nome è un fallimento che si ripara.
@@ -187,4 +206,44 @@ async function giocaMissione({ sessione, missionSlug, registra }) {
   return esito;
 }
 
-module.exports = { collega, giocaMissione, confrontaMissione, offertePerStep };
+// LE RIGHE DELL'ESITO DEL REVISORE, pura: l'unica cosa che questa funzione fa è
+// decidere COSA si può dire, e lo si prova senza rete.
+//
+// La proprietà che tiene: `letto_senza_credito` non si stampa mai da solo.
+// Quell'esito costa allo studente una dimensione intera dopo che ha scritto
+// davvero, ed è comparso in cinque rapporti su sei senza che nessuno lo leggesse
+// — perché era una parola. Una parola che non dice perché si salta.
+//
+// E i tre silenzi restano tre: «il deploy non lo dice», «il revisore non ha
+// girato» e «zero aree proposte» sono tre cose diverse, e la prima non è una
+// risposta — è l'assenza di una risposta.
+function spiegaRevisore(esito) {
+  const righe = [];
+  const stato = esito.revisoreEsito ?? "nessun esito scritto";
+  righe.push(`  stato: ${esito.stato ?? "?"} · revisore: ${stato}`);
+
+  const haChiave = Object.prototype.hasOwnProperty.call(esito, "revisoreDiagnosi");
+  if (!haChiave) {
+    righe.push("    ⚠  perché: NON HO GUARDATO — il deploy che ha risposto non porta la diagnosi.");
+    righe.push("       Non vuol dire che non c'è un perché: vuol dire che questa passata non lo sa.");
+    return righe;
+  }
+  const d = esito.revisoreDiagnosi;
+  if (!d) {
+    righe.push("    perché: il revisore non ha girato su questa proposta (nessun testo, o la chiamata non è partita).");
+    return righe;
+  }
+
+  righe.push(`    il revisore ha proposto ${d.proposte} aree, ${d.ammesse} sono passate dalla whitelist (${d.candidate.length} ammesse).`);
+  if (d.ammesse === 0) {
+    righe.push(`    ⚠  SENZA CREDITO D'AREA: ${percheSenzaCredito(d)}`);
+    righe.push(`       ${d.giudizio ? "Ha però una frase di sintesi, ed è l'unica cosa che dice a chi ha scritto." : "E non ha nemmeno una frase di sintesi: allo studente non resta niente."}`);
+  } else if (d.scartate.length > 0) {
+    // Uno scarto PARZIALE oggi non si vede da nessuna parte: l'esito dice
+    // «letto» e il conto delle prove non dice quante ne sono cadute.
+    righe.push(`    (${d.scartate.length} scartate anche se l'esito è «letto»: ${d.scartate.join(", ")})`);
+  }
+  return righe;
+}
+
+module.exports = { collega, giocaMissione, confrontaMissione, offertePerStep, spiegaRevisore };
