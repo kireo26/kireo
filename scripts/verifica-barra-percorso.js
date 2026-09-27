@@ -186,8 +186,8 @@ ok(!/Le aree|Le guide|I workshop/.test(srcPagina), "nessun titolo di passo è sc
 console.log("\n6) La pagina racconta la forma del viaggio, non le soglie");
 
 // Le forme in cui una condizione rientrerebbe. Sono TARATE SUL TESTO VERO: il
-// testo dice «Tre passaggi», «tre documenti», «Ogni passo si apre quando quello
-// prima ha lasciato qualcosa» e «quando la domanda diventa difficile» — tutte
+// testo dice «Tre passaggi», «tre documenti», «più ogni passo chiede che il
+// precedente abbia lasciato qualcosa» e «quando la domanda diventa difficile» — tutte
 // legittime. Un elenco che gridasse su quelle sarebbe un elenco che qualcuno
 // disattiva, quindi si vieta la forma CONDIZIONALE, non le parole.
 const VIETATE = [
@@ -211,7 +211,17 @@ ok(
     : `il testo nomina una soglia: ${trovate.map((v) => v.cosa).join("; ")} — è il momento in cui la pagina comincia a invecchiare`,
 );
 // La riga che parla della regola c'è, e parla senza condizioni.
-ok(/si apre quando quello prima ha lasciato qualcosa/.test(T.CHIUSURA_PERCORSO), "l'unica riga che parla della regola c'è");
+//
+// L'ANCORA È LA SOSTANZA, NON LA FRASE. Fino al 27/09 questa asserzione cercava
+// «si apre quando quello prima ha lasciato qualcosa», cioè mezza frase
+// trascritta: Mario ne ha riscritta la voce e il controllo è diventato rosso su
+// un testo giusto. Una frase copiata dentro il controllo è una seconda copia del
+// testo, e diverge alla prima riscrittura — la malattia che questo file esiste
+// per sorvegliare, in formato minuscolo. Si tiene la sostanza della regola (un
+// passo chiede qualcosa a quello prima) in tre parole, e tutto il resto della
+// voce resta libero.
+ok(/lasciato qualcosa/.test(T.CHIUSURA_PERCORSO), "l'unica riga che parla della regola c'è, e dice che un passo chiede qualcosa a quello prima");
+ok(T.CHIUSURA_PERCORSO.length > 60 && testo.includes(T.CHIUSURA_PERCORSO), "…e fa parte del testo della pagina: non è una costante che nessuno rende");
 ok(!/test|guid/i.test(T.CHIUSURA_PERCORSO), "…e non nomina nessun passo in particolare");
 
 // L'ACCORDO DI GENERE: questo testo lo legge uno studente, e KIREO non sa chi
@@ -248,7 +258,7 @@ for (const frase of CONDIZIONI_FINTE) {
 const LEGITTIME = [
   "Tre passaggi. Non hanno voti e non si possono sbagliare: servono a far vedere verso cosa ti giri.",
   "Per ogni area tre documenti, uno più a fondo dell'altro.",
-  "Ogni passo si apre quando quello prima ha lasciato qualcosa.",
+  "Puoi cominciare subito. Più si va avanti, più ogni passo chiede che il precedente abbia lasciato qualcosa.",
   "Diciotto campi in cui si può lavorare.",
   "Quello che decidi qui dice più di quello che dichiari.",
 ];

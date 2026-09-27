@@ -64,8 +64,18 @@ export const PROSA_PASSI: Record<ChiavePasso, { titolo: string; testo: string }>
 // L'UNICA RIGA CHE PARLA DELLA REGOLA, e lo fa senza nominare nessuna
 // condizione. Se un giorno qualcuno ci aggiunge «dopo i tre test», quello è il
 // momento in cui la pagina comincia a invecchiare.
+//
+// LA PRIMA STESURA ERA PIÙ SEVERA DEL VERO (Mario, 27/09): diceva «ogni passo si
+// apre quando quello prima ha lasciato qualcosa», e Aree, Guide e Test sono
+// aperti da subito — il cancello ce l'hanno solo Missioni e Workshop. «Più si va
+// avanti, più» dice la stessa cosa con la gradualità che c'è davvero.
+//
+// E NON NOMINA QUALI PASSI SONO CHIUSI, di proposito: sarebbe esatto oggi e
+// diventerebbe falso in silenzio il giorno che si sposta un cancello, che è la
+// cosa per cui questa pagina esiste. Quali sono lo dice la pagina di ciascuno,
+// che lo genera dalla regola vera.
 export const CHIUSURA_PERCORSO =
-  "Ogni passo si apre quando quello prima ha lasciato qualcosa, e la pagina di ciascuno ti dice cosa manca. Non c'è fretta e non c'è un tempo giusto.";
+  "Puoi cominciare subito. Più si va avanti, più ogni passo chiede che il precedente abbia lasciato qualcosa — e la pagina di ciascuno ti dice cosa manca. Non c'è fretta e non c'è un tempo giusto.";
 
 // I passi con la loro prosa, nell'ordine della costante condivisa.
 export function passiConProsa() {
