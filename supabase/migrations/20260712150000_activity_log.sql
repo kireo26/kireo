@@ -41,6 +41,19 @@ create table public.activity_log (
     )
   ),
   tipo_attivita public.tipo_attivita not null,
+  -- ⚠️ DUE COLONNE CON LO STESSO NOME E DUE SCALE DIVERSE (nota del 27/09,
+  -- nessuna DDL). Questo `peso` e `public.evidence.peso` NON sono la stessa
+  -- grandezza:
+  --   activity_log.peso → intero 1…25, e si SOMMA (vista score_aree → radar);
+  --   evidence.peso     → numeric 0,35…1,4, ed è il peso di una MEDIA
+  --                       (ricalcola_area_signal), con confidence = Σpeso/10.
+  -- Quindi una soglia dell'una non dice niente sull'altra: Σpeso >= 4 è la barra
+  -- delle affinità (quattro prove, non un quarto di una partecipazione), e
+  -- sommarle mescolerebbe due registri che teniamo separati per scelta — il
+  -- credito di ESPLORAZIONE («dove hai messo piede») e quello di AFFINITÀ
+  -- («cosa diciamo di te»), come la home li dichiara separati. Il posto in cui
+  -- si toccano quasi è chiudi_diretta_evento: una partecipazione scrive QUI
+  -- (15/25) e non scrive mai una prova.
   peso integer not null check (peso > 0),
   created_at timestamptz not null default now()
 );

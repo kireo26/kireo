@@ -30,9 +30,12 @@
 -- "scheda aperta"»). Un'affinità costruita su quattro schede aperte è
 -- un'affermazione su una persona che nessuna sua scelta sostiene.
 --
--- Quindi: la presenza resta ore + certificato, e non tocca `evidence`. Se un
--- giorno si volesse cambiare, il numero da rifare è quello sopra — non è una
--- questione di gusto, è aritmetica.
+-- Quindi: la presenza resta ore PCTO + certificato + credito di ESPLORAZIONE
+-- (una riga in `activity_log` per ogni area dell'evento, peso 15 o 25: il
+-- radar), e non tocca `evidence`. Non è «non lascia niente»: lascia la cosa che
+-- la home dichiara — *dove hai messo piede*, non un'attitudine. Se un giorno si
+-- volesse cambiare, il numero da rifare è quello sopra — non è una questione di
+-- gusto, è aritmetica.
 --
 -- ═══════════════════════════════════════════════════════════════════════════
 -- IL PESO DELLA CONSEGNA È SCELTO E NON MISURATO
@@ -68,8 +71,12 @@
 -- registro principale sono le ore, e funziona); per la consegna sarebbe il
 -- contrario: l'area È lo scopo, quindi una consegna su un evento senza aree
 -- sarebbe un testo scritto e una chiamata AI pagata per non produrre niente.
--- Non tocco quella funzione qui (è una decisione, non una riparazione: vedi il
--- rapporto), ma per la consegna la porta è chiusa in TRE punti, ognuno con un
+-- Quella funzione NON si tocca in questa migrazione (era una decisione, non una
+-- riparazione) — ed è stata presa subito dopo: la porta è chiusa dove nasce
+-- (`CreaEventoForm`: almeno un'area su un evento per studenti) e l'allarme sta
+-- in 20260927130000_allarme_evento_senza_aree.sql, che fa suonare un guasto
+-- quando una partecipazione certificata non ha nessuna area a cui accreditarsi.
+-- Per la consegna, invece, la porta è chiusa in TRE punti, ognuno con un
 -- mestiere diverso:
 --   1. `imposta_domanda_consegna` — il più a monte: l'ente lo sa nel momento in
 --      cui pone la domanda, non dopo;

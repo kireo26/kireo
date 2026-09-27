@@ -54,6 +54,8 @@ export type SpecieGuasto =
   // — artefatti della consegna di una diretta
   | "prove_consegna_evento" // il giudizio della risposta alla domanda finale
   | "scrittura_consegna_evento" // la persistenza di prove/valutazione
+  | "credito_area_evento" // il credito d'esplorazione di una partecipazione certificata
+
   // — artefatti del workshop fuori dal cron
   | "feedback_elaborato" // il feedback finale della route consegna (v1)
   | "consegna_progetto" // la scrittura della consegna stessa

@@ -109,6 +109,18 @@ create table public.evidence (
   ),
   dimensione public.escape_dimensione not null,
   valore numeric(4,3) not null check (valore >= 0 and valore <= 1),  -- forza del segnale 0..1
+  -- ⚠️ DUE COLONNE CON LO STESSO NOME E DUE SCALE DIVERSE (nota del 27/09,
+  -- nessuna DDL). Questo `peso` e `public.activity_log.peso` NON sono la stessa
+  -- grandezza:
+  --   evidence.peso     → 0,35 (una risposta a un test) … 1,4 (un revisore di
+  --                       missione), ed è il peso di una MEDIA pesata in
+  --                       ricalcola_area_signal, con confidence = Σpeso/10;
+  --   activity_log.peso → intero 1…25, e si SOMMA (score_aree → radar).
+  -- Non si sommano e non si travasano: un 15 preso da là dentro qui farebbe una
+  -- prova che pesa dieci missioni. Sono due registri separati per scelta — il
+  -- credito di AFFINITÀ e quello di ESPLORAZIONE. Quando si accenderà il
+  -- cross-feed da activity_log (fonte 'activity', predisposta e senza
+  -- scrittori), la scala va RICALIBRATA da zero, non trasportata.
   peso numeric(5,2) not null check (peso > 0),                        -- importanza/affidabilità della prova
   fonte public.escape_fonte not null,
   step_id text,                                                       -- da quale step (null per non-mission)

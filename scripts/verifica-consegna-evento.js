@@ -25,7 +25,7 @@
 const fs = require("fs");
 const path = require("path");
 const { abilitaTypeScript, ROOT } = require("./banco/ts");
-const { senzaCommenti } = require("./lib/senza-commenti");
+const { senzaCommenti, senzaCommentiSql } = require("./lib/senza-commenti");
 
 abilitaTypeScript();
 
@@ -250,6 +250,60 @@ ok(
   new RegExp(`char_length\\(btrim\\(testo\\)\\) >= ${MIN_CARATTERI_CONSEGNA}`).test(sqlConsegna),
   "…e il minimo in SQL è lo stesso numero (un rifiuto su una lunghezza è il no che si può evitare dicendolo prima)",
 );
+
+// ─────────────────────────────────────── 8. le aree vuote: la porta e l'allarme
+// Due cose, non una. La PORTA sta dove l'evento nasce (il form), perché è il
+// posto in cui il vincolo costa una scelta a chi lo incontra. L'ALLARME sta dove
+// il difetto si consuma (la chiusura della diretta), perché restano gli eventi
+// già creati e una strada che non abbiamo visto.
+console.log("\n8. Un evento per studenti senza aree: chiuso dove nasce, rumoroso dove si consuma");
+
+const form = senzaCommenti(leggi("components/ente/CreaEventoForm.tsx"));
+ok(
+  /!perDocenti\s*&&\s*aree\.length\s*===\s*0/.test(form),
+  "il form pretende almeno un'area su un evento per studenti (e mai su uno per docenti, che non deve averne)",
+);
+ok(/next\.aree\s*=/.test(form) && /errori\.aree/.test(form), "…e il no si vede accanto alle aree, non solo dentro validate()");
+ok(/almeno una/.test(form), "…ed è annunciato nell'etichetta, prima che qualcuno ci sbatta contro");
+ok(
+  /error:\s*erroreAree/.test(form) && /setAreeNonSalvate/.test(form),
+  "l'insert delle aree non ingoia più il proprio errore: l'evento c'è, e chi l'ha creato lo viene a sapere",
+);
+
+const ALLARME = "supabase/migrations/20260927130000_allarme_evento_senza_aree.sql";
+const sqlAllarme = senzaCommentiSql(leggi(ALLARME));
+ok(
+  /select count\(\*\) into v_aree_evento from public\.eventi_aree/.test(sqlAllarme),
+  "l'allarme conta le AREE, non le righe scritte (row_count è zero anche col cap giornaliero di activity_log: falso allarme)",
+);
+ok(!/get diagnostics/i.test(sqlAllarme), "…quindi row_count non compare affatto");
+ok(
+  /v_pubblico is distinct from 'docenti'/.test(sqlAllarme),
+  "la condizione è la stessa del ramo che scrive il credito, NULL compreso (`is distinct from`, non `<>`)",
+);
+ok(/v_certificati > 0/.test(sqlAllarme), "…e suona solo se qualcuno ha davvero perso il credito");
+ok(
+  /exception when others then[\s\S]{0,400}raise warning/.test(sqlAllarme),
+  "l'allarme è best-effort: se non si registra non si porta dietro la certificazione già fatta",
+);
+
+// LA TERZA LISTA. `npm run test:banco` tiene insieme le due liste JS (l'ordine e
+// le glosse); nessuno finora confrontava le specie scritte dalle MIGRAZIONI con
+// quelle che il codice conosce. Una specie che vive solo in SQL verrebbe stampata
+// in fondo alla coda senza glossa, e il nome nuovo non aiuterebbe nessuno.
+const specieSql = new Set();
+for (const f of fs.readdirSync(path.join(ROOT, "supabase/migrations"))) {
+  if (!f.endsWith(".sql")) continue;
+  const testo = leggi(`supabase/migrations/${f}`);
+  for (const m of testo.matchAll(/p_specie\s*=>\s*'([a-z_]+)'/g)) specieSql.add(m[1]);
+}
+const tsRegistra = leggi("lib/guasti/registra.ts");
+const jsBanco = leggi("scripts/banco/guasti.js");
+ok(specieSql.size > 0, `l'estrattore vede le specie scritte in SQL (${[...specieSql].join(", ") || "nessuna"})`);
+for (const s of specieSql) {
+  ok(new RegExp(`\\|\\s*"${s}"`).test(tsRegistra), `la specie SQL «${s}» è fra quelle che il codice conosce (SpecieGuasto)`);
+  ok(new RegExp(`"${s}"`).test(jsBanco) && new RegExp(`\\b${s}:`).test(jsBanco), `…e il banco sa dire cosa vuol dire «${s}»`);
+}
 
 console.log(falliti === 0 ? "\n✅ tutto verde\n" : `\n❌ ${falliti} asserzioni rosse\n`);
 process.exit(falliti === 0 ? 0 : 1);

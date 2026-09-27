@@ -18,4 +18,18 @@ function senzaCommenti(src) {
   return src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
 }
 
-module.exports = { senzaCommenti };
+// La gemella per SQL, che nasce dalla stessa ragione il 27/09: un controllo
+// pretendeva che `row_count` NON comparisse in una migrazione, ed era rosso
+// perché il commento in testa spiegava proprio perché non si usa. Un commento
+// che fa fallire un controllo su codice giusto è l'altra faccia dello stesso
+// difetto — e un controllo che grida su codice giusto è un controllo che qualcuno
+// disattiva.
+//
+// Stesso limite dichiarato, e stessa direzione: un `--` dentro una stringa viene
+// tolto come se fosse un commento, quindi al più si perde del codice e il
+// controllo diventa rosso. Mai verde su qualcosa che non c'è.
+function senzaCommentiSql(src) {
+  return src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/--.*$/gm, "");
+}
+
+module.exports = { senzaCommenti, senzaCommentiSql };

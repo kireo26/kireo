@@ -67,6 +67,7 @@ export default function CreaEventoForm({
   const [inviando, setInviando] = useState(false);
   const [erroreGenerale, setErroreGenerale] = useState<string | null>(null);
   const [inviato, setInviato] = useState(false);
+  const [areeNonSalvate, setAreeNonSalvate] = useState(false);
 
   function toggleArea(slug: string) {
     setAree((prev) => {
@@ -82,6 +83,19 @@ export default function CreaEventoForm({
     if (!dataInizio) next.dataInizio = "Inserisci data e ora.";
     if (!scaletta.trim()) next.scaletta = "La scaletta/argomento è obbligatoria per la revisione di KIREO.";
     if (perDocenti && !filone) next.filone = "Seleziona il filone del webinar.";
+    // ALMENO UN'AREA su un evento per studenti, e il posto è QUESTO: un evento
+    // senza aree non accredita niente a chi partecipa (chiudi_diretta_evento
+    // scrive il credito con un insert…select da eventi_aree, che su zero aree
+    // scrive zero righe e riporta successo), e la consegna finale non potrebbe
+    // nemmeno aprirsi. Qui il vincolo costa una scelta a chi lo incontra,
+    // mentre scoperto a diretta chiusa non costa più niente a nessuno perché
+    // non c'è più modo di rimediare. NON è un vincolo di tabella: gli eventi
+    // per docenti non devono avere aree (il trigger blocca_aree_su_eventi_docenti
+    // le VIETA), e un vincolo che vale per metà delle righe è un vincolo che
+    // qualcuno toglierà.
+    if (!perDocenti && aree.length === 0) {
+      next.aree = "Scegli almeno un'area: è così che l'incontro raggiunge gli studenti giusti, e senza un'area chi partecipa non se ne porta niente nel profilo.";
+    }
     if (eDiretta) {
       if (!dataFine) next.dataFine = "Per un webinar in diretta la data e ora di fine sono obbligatorie (servono a calcolare le presenze).";
       if (hostingDiretta === "proprio") {
@@ -150,8 +164,16 @@ export default function CreaEventoForm({
         return;
       }
 
-      if (!perDocenti && aree.length > 0) {
-        await supabase.from("eventi_aree").insert(aree.map((area_slug) => ({ evento_id: evento.id, area_slug })));
+      // L'evento c'è già: se le aree non si salvano NON si può dire «non è
+      // stato possibile inviare» (chi legge riproverebbe, e creerebbe un
+      // doppione). Si dice quello che è successo davvero — un'insert fallita e
+      // ignorata sarebbe la stessa specie che questo giro chiude: un'assenza
+      // che passa per un risultato.
+      if (!perDocenti) {
+        const { error: erroreAree } = await supabase
+          .from("eventi_aree")
+          .insert(aree.map((area_slug) => ({ evento_id: evento.id, area_slug })));
+        if (erroreAree) setAreeNonSalvate(true);
       }
 
       setInviato(true);
@@ -172,6 +194,16 @@ export default function CreaEventoForm({
         <p className="mt-2 text-sm text-kireo-muted">
           KIREO lo revisiona prima che compaia pubblicamente. Puoi seguirne lo stato qui sotto.
         </p>
+        {areeNonSalvate && (
+          <p className="mt-3 rounded-lg border border-kireo-orange/40 bg-kireo-orange/10 px-4 py-3 text-left text-sm text-kireo-orange">
+            Le aree tematiche però non si sono salvate, e senza un&apos;area l&apos;incontro non lascia niente nel
+            profilo di chi partecipa. Non rimandarlo: scrivici da{" "}
+            <a href="/contatti" target="_blank" className="underline underline-offset-2">
+              contatti
+            </a>{" "}
+            e le sistemiamo prima della revisione.
+          </p>
+        )}
       </div>
     );
   }
@@ -435,12 +467,13 @@ export default function CreaEventoForm({
       ) : (
         <div>
           <div className="mb-2 flex items-center justify-between">
-            <label className="text-sm font-medium text-kireo-light">Aree tematiche (fino a 2)</label>
+            <label className="text-sm font-medium text-kireo-light">Aree tematiche (almeno una, fino a 2)</label>
             <span className="text-sm text-kireo-muted">
               {aree.length}/{MAX_AREE_EVENTO}
             </span>
           </div>
           <AreeInteresseGrid selezionate={aree} onToggle={toggleArea} max={MAX_AREE_EVENTO} />
+          {errori.aree && <p className="mt-1.5 text-sm text-red-400">{errori.aree}</p>}
         </div>
       )}
 

@@ -48,6 +48,7 @@ const ORDINE = [
   "guida_riservata",
   "prove_consegna_evento",
   "scrittura_consegna_evento",
+  "credito_area_evento",
   "feedback_elaborato",
   "alert_email",
 ];
@@ -75,6 +76,8 @@ const COSA_VUOL_DIRE = {
   prove_consegna_evento:
     "la risposta alla domanda finale di una diretta non è stata giudicata: il testo è salvato, il credito d'area no (si rigiudica a mano)",
   scrittura_consegna_evento: "le prove della consegna non si sono salvate: il profilo non le ha viste",
+  credito_area_evento:
+    "una diretta è stata chiusa e chi ha partecipato non ha ricevuto nessun credito d'area: l'evento non ha aree a cui accreditarlo (le ore PCTO e il certificato ci sono comunque)",
   feedback_elaborato: "il feedback della consegna (v1) non è arrivato",
   alert_email: "l'email di osservabilità non è partita: i guasti di quel giorno non li ha visti nessuno",
 };

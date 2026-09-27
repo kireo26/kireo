@@ -15,13 +15,21 @@
 --   (automatico, non ancora implementato)"): NESSUNA modifica al vincolo è
 --   necessaria in questa migration.
 
--- NOTA AGGIUNTA IL 27/09, nessuna DDL: questo file è GIÀ APPLICATO, cambia solo
--- un commento. La presenza rilevata qui sotto NON produce una prova d'area
--- (`evidence`/`area_signal`), e non è un lavoro lasciato a metà: un'area entra
--- nelle affinità a confidence >= 0,40, cioè Σpeso >= 4, quindi con una presenza da
--- ~1,0 quattro dirette creerebbero un'affinità — e una presenza è aver tenuto una
--- scheda aperta. Quello che lascia un segno nel profilo è la CONSEGNA della
--- diretta: vedi 20260927120000_consegna_evento.sql, dove la ragione sta per esteso.
+-- NOTA AGGIUNTA IL 27/09, nessuna DDL: cambia solo un commento (e non ho potuto
+-- interrogare il database reale per sapere se questo file vi risulti applicato).
+-- COSA LASCIA NEL PROFILO la presenza rilevata qui sotto: ore PCTO, il
+-- certificato, e il credito di ESPLORAZIONE — `chiudi_diretta_evento` scrive una
+-- riga in `activity_log` (peso 15, o 25 per un workshop) per ogni area
+-- dell'evento, che è quello che alimenta il radar. Quello che NON lascia è una
+-- prova di AFFINITÀ (`evidence`/`area_signal`), e non è un lavoro a metà: un'area
+-- entra nelle affinità a confidence >= 0,40, cioè Σpeso >= 4, quindi con una
+-- presenza da ~1,0 quattro dirette creerebbero un'affinità — e una presenza è
+-- aver tenuto una scheda aperta. A lasciare una prova di affinità è la CONSEGNA
+-- della diretta: vedi 20260927120000_consegna_evento.sql, dove la ragione sta per
+-- esteso. E se l'evento non ha nessuna area, il credito di esplorazione non va da
+-- nessuna parte pur riportando successo: da lì l'allarme di
+-- 20260927130000_allarme_evento_senza_aree.sql, che sostituisce in place la
+-- funzione qui sotto.
 
 -- ============ presenze_live ============
 create table public.presenze_live (

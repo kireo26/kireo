@@ -117,6 +117,10 @@ const ESENTI = new Map([
     "Stessa specie: crea il proprio studente finto e il proprio evento dentro una transazione, prova le proprietà della consegna e fa ROLLBACK. Nomina evidence e area_signal perché le sta PROVANDO, non perché conti qualcosa su una popolazione di studenti.",
   ],
   [
+    "scripts/verifica-allarme-evento-senza-aree.sql",
+    "Stessa specie ancora: crea il proprio ente finto, i propri studenti e cinque eventi dentro una transazione, chiude le dirette e fa ROLLBACK. Legge activity_log perché deve verificare che il credito arrivi quando l'area c'è e non arrivi quando manca — cioè lo sta PROVANDO, non contando su una popolazione. QUINTA volta che un controllo lessicale viene letto come una misura da un altro controllo lessicale: la cura resta l'esenzione con la ragione scritta.",
+  ],
+  [
     "scripts/verifica-badge-confidence.sql",
     "Stessa specie: crea il proprio studente finto e le proprie prove dentro una transazione, prova sei proprietà del badge «confermata» e fa ROLLBACK. Nomina area_signal perché la sta PROVANDO, non perché conti qualcosa su una popolazione di studenti.",
   ],

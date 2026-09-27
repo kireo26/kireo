@@ -7,10 +7,13 @@ import { useEffect } from "react";
 // da mostrare, il prossimo tentativo tra 60s lo recupera — la certificazione
 // finale è comunque tollerante (soglia 75%, non 100%).
 
-// ⚠️ QUELLO CHE UN PING PRODUCE, E QUELLO CHE NON PRODUCE. Produce ore PCTO e un
-// certificato di partecipazione (chiudi_diretta_evento, soglia 75%). NON produce
-// una prova d'area — niente `evidence`, niente `area_signal` — e la scelta è
-// deliberata, non un lavoro lasciato a metà.
+// ⚠️ QUELLO CHE UN PING PRODUCE, E QUELLO CHE NON PRODUCE. Produce ore PCTO, un
+// certificato di partecipazione e il credito di ESPLORAZIONE — una riga in
+// `activity_log` per ogni area dell'evento, peso 15 o 25, che alimenta il radar
+// (chiudi_diretta_evento, soglia 75%). NON produce una prova d'AFFINITÀ — niente
+// `evidence`, niente `area_signal` — e la scelta è deliberata, non un lavoro
+// lasciato a metà: è la stessa separazione che la home dichiara, «conta dove hai
+// messo piede, non le tue attitudini».
 //
 // IL NUMERO CHE LA DECIDE: un'area entra nella classifica delle affinità a
 // `confidence >= 0,40`, e `confidence = least(1, Σpeso / 10)`, quindi la barra è
