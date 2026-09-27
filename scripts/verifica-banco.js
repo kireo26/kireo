@@ -511,18 +511,87 @@ const eIgnota = epoca("0000000000000000000000000000000000000000");
 ok(eIgnota.noto === false, "un commit che non esiste in questa copia fa dichiarare «non ho guardato»");
 ok(epoca(null).noto === false, "…e un rapporto senza commit nemmeno prova a dirlo");
 
-// I due confini sono commit VERI di questa storia: se uno venisse riscritto o
-// perso, ogni datazione diventerebbe «non lo so» in silenzio.
+// I TRE «NON LO SO» SONO TRE, E NON DEVONO CONTRADDIRSI. Il 27/09 la stampa ne
+// dava due sulla stessa riga: «il rapporto non porta il commit» seguito da «il
+// commit non è in questa copia del repository» — se non lo porta, non c'è niente
+// da cercare. Ora ogni caso porta il suo motivo, e i motivi sono distinti.
+ok(/non porta il commit/.test(epoca(null).perche ?? ""), "un rapporto senza commit dice che non lo porta");
+ok(!/in questa copia/.test(epoca(null).perche ?? ""), "…e NON dice che il commit non è in questa copia: non c'è niente da cercare");
+ok(/non è in questa copia/.test(eIgnota.perche ?? ""), "un commit inventato dice che non è in questa copia del repository");
+ok(epoca(CONFINI[0].sha).perche === null, "e quando l'epoca si sa, non c'è nessun motivo da dare");
+
+// I confini sono commit VERI di questa storia: se uno venisse riscritto o perso,
+// ogni datazione diventerebbe «non lo so» — e il motivo dev'essere IL CONFINE,
+// non il commit del rapporto, o si andrebbe a cercare nel posto sbagliato.
 for (const c of CONFINI) {
   ok(epoca(c.sha).noto === true, `il confine «${c.chiave}» (${c.sha}) è un commit di questa storia`);
   ok(epoca(c.sha).dentro[c.chiave] === true, `…e un rapporto girato su di lui risulta dentro il suo confine`);
 }
-// Il confine più vecchio NON contiene quello più nuovo: se l'ordine si
-// invertisse, tutti i rapporti cadrebbero in un'epoca sola.
+
+// L'ORDINE DEI TRE CONFINI, in catena: se si invertisse, tutti i rapporti
+// cadrebbero in un'epoca sola e nessuno se ne accorgerebbe.
+for (let i = 0; i < CONFINI.length - 1; i++) {
+  const dopo = CONFINI.slice(i + 1);
+  const e = epoca(CONFINI[i].sha);
+  const sbagliati = dopo.filter((c) => e.dentro[c.chiave] !== false);
+  ok(
+    sbagliati.length === 0,
+    sbagliati.length === 0
+      ? `«${CONFINI[i].chiave}» viene prima di ${dopo.map((c) => `«${c.chiave}»`).join(", ")}`
+      : `«${CONFINI[i].chiave}» contiene già ${sbagliati.map((c) => `«${c.chiave}»`).join(", ")}: l'ordine dei confini è rotto`,
+  );
+}
+
+// LA FINESTRA IN CUI IL RENAME ERA NEL PROMPT E NON NEL GUARDIANO. Sono tre ore
+// del 30/08, e un rapporto che ci cade non contiene NESSUNA revisione valida:
+// il suo numero del registro misura quante revisioni non sono avvenute, non il
+// registro. Il commit di mezzo (`536de8f`) è dentro il primo confine e fuori dal
+// secondo, ed è quello che rende la finestra rilevabile.
+const eMezzo = epoca("536de8f");
+ok(eMezzo.noto === true, "il commit dentro la finestra rotta è databile");
 ok(
-  epoca(CONFINI[0].sha).dentro.rubrica === false,
-  "il confine di agosto non contiene quello di settembre: le tre epoche restano tre",
+  eMezzo.dentro.cosa_regge === true && eMezzo.dentro.rename_riparato === false,
+  "…e cade fra i due confini del 30/08: ha il rename nel prompt e non nel guardiano",
 );
+ok(CONFINI.some((c) => c.chiave === "rename_riparato"), "il confine che chiude quella finestra esiste: senza, quei rapporti finirebbero contati «col rename»");
+
+// ── LA CONCLUSIONE NON SI STAMPA SE LA SUA PREMESSA È VUOTA ─────────────────
+// Il 27/09 la stampa diceva «l'epoca intermedia c'è: il calo è attribuibile al
+// solo campo» con ZERO rapporti nell'epoca «senza il rename»: verificava
+// l'esistenza del separatore e non delle due cose che deve separare. Un
+// separatore fra due cose di cui una non c'è non separa niente.
+const { stampa } = require("./banco/registro");
+const conto0 = { righe: [], haElencoCatture: true, generi: [] };
+const finto = (sha) => ({ percorso: `${sha}.json`, quando: null, sha, titolo: null, sporco: false, epoca: epoca(sha), conto: conto0 });
+const stampato = (shas) => {
+  const righe = [];
+  stampa(shas.map(finto), (r) => righe.push(r));
+  return righe.join("\n");
+};
+
+// Tutte e tre le epoche presenti: la conclusione si stampa.
+const tutte = stampato([CONFINI[0].sha + "~1", CONFINI[1].sha, CONFINI[2].sha]);
+ok(/Le tre epoche ci sono tutte/.test(tutte), "con tutte e tre le epoche piene, la conclusione si stampa");
+ok(/attribuibile al solo campo/.test(tutte), "…e dice cosa è attribuibile a cosa");
+
+// Manca il «prima»: la conclusione NON si stampa, e al suo posto va il motivo.
+const senzaPrima = stampato([CONFINI[1].sha, CONFINI[2].sha]);
+ok(!/Le tre epoche ci sono tutte/.test(senzaPrima), "mancando un'epoca, la conclusione NON si stampa");
+ok(!/attribuibile al solo campo/.test(senzaPrima), "…e nemmeno la frase che attribuisce il calo a una causa");
+ok(/NON SI PUÒ LEGGERE/.test(senzaPrima), "al suo posto c'è il motivo per cui non si legge");
+ok(/senza il rename/.test(senzaPrima), "…che nomina l'epoca che manca");
+ok(/NON RISPONDIBILE/.test(senzaPrima), "e quando è il «prima» a mancare lo dice: non confondibile, non rispondibile");
+
+// Manca l'intermedia: stesso trattamento, motivo diverso.
+const senzaMezzo = stampato([CONFINI[0].sha + "~1", CONFINI[2].sha]);
+ok(!/Le tre epoche ci sono tutte/.test(senzaMezzo), "manca l'intermedia: la conclusione non si stampa");
+ok(/separa le due cause/.test(senzaMezzo), "…e il motivo nomina cosa quell'epoca serviva a separare");
+
+// La finestra rotta si dichiara e resta fuori dal conto.
+const conRotto = stampato([CONFINI[0].sha + "~1", "536de8f", CONFINI[1].sha, CONFINI[2].sha]);
+ok(/tre ore del 30\/08/.test(conRotto), "un rapporto della finestra rotta viene dichiarato");
+ok(/Fuori da ogni epoca, non contato/.test(conRotto), "…e si dice che non entra in nessuna epoca");
+ok(/col rename, senza rubrica:\s+1 rapporto/.test(conRotto), "…quindi «col rename» ne conta uno, non due");
 
 console.log("\n═══════════════════════════════════════════\n");
 if (falliti) { console.error(`✗ ${falliti} controlli falliti.\n`); process.exit(1); }

@@ -30,12 +30,33 @@ const ROOT = path.join(__dirname, "..", "..");
 // Sono COMMIT, non date: la data di un file dice quando è stato scritto sul
 // disco, il commit dice con quale codice ha girato. Un rapporto ricopiato, o
 // scaricato da un'altra macchina, ha la data sbagliata e il commit giusto.
+// I CONFINI SONO TRE E NON DUE, e il terzo è stato trovato il 27/09 andando a
+// cercare QUALE commit avesse introdotto `cosa_regge` invece di fidarsi di uno
+// sha scritto a mano.
+//
+//   0f6f975  10:11  il rename entra nel prompt — ma il guardiano cerca ancora
+//                   `punti_forza`, quindi OGNI revisione fallisce
+//                   (`forma_non_valida`, fiducia 0)
+//   be847bf  13:24  la rinomina arriva al guardiano: dal qui il campo funziona
+//
+// In mezzo ci sono tre ore e tredici minuti in cui **non è stata prodotta
+// nessuna revisione valida**. Un rapporto di quella finestra, datato «col
+// rename», porterebbe un numero del registro vicino a zero — e quello zero si
+// leggerebbe come «il registro è crollato» mentre vuol dire «le revisioni non
+// sono mai avvenute». È esattamente la specie di errore per cui questo comando
+// esiste: un'assenza letta come un valore basso.
 const CONFINI = [
   {
     chiave: "cosa_regge",
     sha: "0f6f975",
     quando: "2026-08-30",
-    cosa: "la revisione di tappa chiede `cosa_regge` invece di `punti_forza`",
+    cosa: "il prompt della revisione di tappa chiede `cosa_regge` invece di `punti_forza`",
+  },
+  {
+    chiave: "rename_riparato",
+    sha: "be847bf",
+    quando: "2026-08-30",
+    cosa: "la rinomina arriva anche al guardiano: da qui le revisioni tornano valide",
   },
   {
     chiave: "rubrica",
@@ -63,11 +84,45 @@ function contiene(shaRapporto, shaConfine) {
   }
 }
 
+function esiste(sha) {
+  if (!sha) return false;
+  try {
+    execSync(`git cat-file -e ${sha}^{commit}`, { cwd: ROOT, stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// I TRE «NON LO SO» SONO TRE, E VANNO DETTI PER NOME. Fino al 27/09 questa
+// funzione ne conosceva uno solo, e `stampa` ne stampava due sulla stessa riga
+// che si contraddicevano: «il rapporto non porta il commit» seguito da «il
+// commit non è in questa copia del repository». Se il rapporto non lo porta,
+// non c'è niente da cercare — una delle due frasi descriveva un altro caso.
+//
+// Tre «non lo so» distinti erano la parte migliore di questo strumento; due che
+// si contraddicono nella stessa riga sono peggio di uno solo.
 function epoca(shaRapporto) {
   const dentro = {};
   for (const c of CONFINI) dentro[c.chiave] = contiene(shaRapporto, c.sha);
   const noto = Object.values(dentro).every((v) => v !== null);
-  return { dentro, noto };
+  if (noto) return { dentro, noto, perche: null };
+
+  // I confini persi vengono PRIMA: se manca un confine, nessuna datazione è
+  // possibile per nessun rapporto, e dare la colpa al commit del rapporto
+  // manderebbe a cercare nel posto sbagliato.
+  const confiniPersi = CONFINI.filter((c) => !esiste(c.sha));
+  if (confiniPersi.length > 0) {
+    return {
+      dentro,
+      noto,
+      perche: `${confiniPersi.length === 1 ? "il confine" : "i confini"} ${confiniPersi
+        .map((c) => `«${c.chiave}» (${c.sha})`)
+        .join(" e ")} non ${confiniPersi.length === 1 ? "è" : "sono"} in questa copia del repository: senza di ${confiniPersi.length === 1 ? "lui" : "loro"} nessun rapporto si può datare`,
+    };
+  }
+  if (!shaRapporto) return { dentro, noto, perche: "il rapporto non porta il commit: non c'è niente da cercare" };
+  return { dentro, noto, perche: `il commit ${String(shaRapporto).slice(0, 7)} non è in questa copia del repository (ramo mai spinto, o storia riscritta)` };
 }
 
 // I generi storici: gli unici tre che esistono in TUTTI i rapporti, quindi gli
@@ -146,20 +201,19 @@ function stampa(letti, di = console.log) {
 
   for (const l of buoni) {
     di(`── ${l.percorso}${l.quando ? `   (${l.quando.slice(0, 10)})` : ""}`);
-    if (l.sha) {
-      di(`   commit ${l.sha.slice(0, 7)}${l.titolo ? `  «${l.titolo}»` : ""}${l.sporco ? "   [albero sporco]" : ""}`);
-    } else {
-      di("   commit: il rapporto non lo porta — l'epoca non si può dire");
-    }
+    // Il commit: si dice cosa c'è, non la conseguenza — la conseguenza la dice
+    // la riga dell'epoca, e una sola volta.
+    di(l.sha ? `   commit ${l.sha.slice(0, 7)}${l.titolo ? `  «${l.titolo}»` : ""}${l.sporco ? "   [albero sporco]" : ""}` : "   commit: il rapporto non lo porta");
 
-    // L'epoca, dal commit e non dalla data.
+    // L'epoca, dal commit e non dalla data. Quando non si sa, si dice QUALE dei
+    // tre motivi è: sono tre casi diversi e si riparano in tre modi diversi.
     if (l.epoca.noto) {
       const e = l.epoca.dentro;
       const nomi = CONFINI.filter((c) => e[c.chiave]).map((c) => c.chiave);
       di(`   epoca: ${nomi.length === 0 ? "prima di tutti i confini" : `con ${nomi.join(" + ")}`}`);
     } else {
-      di("   epoca: NON HO GUARDATO — il commit non è in questa copia del repository");
-      di("          (ramo mai spinto, o storia riscritta). Non la indovino.");
+      di(`   epoca: NON HO GUARDATO — ${l.epoca.perche}`);
+      di("          Non la indovino.");
     }
 
     di("");
@@ -187,28 +241,64 @@ function stampa(letti, di = console.log) {
 
   const epocheNote = buoni.filter((l) => l.epoca.noto);
   const senza = epocheNote.filter((l) => !l.epoca.dentro.cosa_regge);
-  const conRename = epocheNote.filter((l) => l.epoca.dentro.cosa_regge && !l.epoca.dentro.rubrica);
+  // LA FINESTRA ROTTA NON È UN'EPOCA: è un secchio da scartare. Un rapporto che
+  // ha il rename nel prompt ma non nel guardiano non contiene nessuna revisione
+  // valida, quindi il suo numero del registro non misura il registro.
+  const finestraRotta = epocheNote.filter((l) => l.epoca.dentro.cosa_regge && !l.epoca.dentro.rename_riparato);
+  const conRename = epocheNote.filter((l) => l.epoca.dentro.rename_riparato && !l.epoca.dentro.rubrica);
   const conRubrica = epocheNote.filter((l) => l.epoca.dentro.rubrica);
 
+  // LE TRE EPOCHE SI CONTANO TUTTE E TRE, non solo l'intermedia.
+  //
+  // Il 27/09 questo blocco stampava «l'epoca intermedia c'è: il calo è
+  // attribuibile al solo campo» con ZERO rapporti nell'epoca «senza il rename»:
+  // verificava l'esistenza del separatore e non delle due cose che deve
+  // separare. Un separatore fra due cose di cui una non c'è non separa niente —
+  // ed è nato nel ramo scritto apposta per dichiarare il confondente: la
+  // cautela era sulla causa sbagliata.
+  const EPOCHE = [
+    { nome: "senza il rename", righe: senza, spiega: "il «prima» con cui confrontare" },
+    { nome: "col rename, senza rubrica", righe: conRename, spiega: "l'epoca che separa le due cause" },
+    { nome: "con la rubrica", righe: conRubrica, spiega: "il «dopo»" },
+  ];
+  const quanti = (n) => `${n} ${n === 1 ? "rapporto" : "rapporti"}`;
   di("  LA PROVA SU `cosa_regge`, e il suo confondente");
-  di(`    senza il rename:          ${senza.length} rapporti`);
-  di(`    col rename, senza rubrica: ${conRename.length} rapporti   ← è QUESTA l'epoca che separa le due cause`);
-  di(`    con la rubrica:            ${conRubrica.length} rapporti`);
-  di("");
-  if (conRename.length === 0) {
-    di("    Senza un rapporto dell'epoca intermedia la prova ha TRE cause candidate e");
-    di("    non una: il nome del campo, la rubrica della fiducia entrata il 20/09, o");
-    di("    semplicemente un prompt più lungo che lascia meno spazio al registro.");
-    di("    Un calo letto qui non dice quale delle tre.");
-  } else {
-    di("    L'epoca intermedia c'è: il calo della revisione fra «senza» e «col rename,");
-    di("    senza rubrica» è attribuibile al solo campo. Quello fra intermedia e «con");
-    di("    la rubrica» alla sola rubrica.");
+  for (const e of EPOCHE) di(`    ${(e.nome + ":").padEnd(27)}${String(e.righe.length).padStart(3)} ${e.righe.length === 1 ? "rapporto" : "rapporti"}${e.righe.length === 0 ? "   ← MANCA" : ""}`);
+  if (epocheNote.length < buoni.length) di(`    (${buoni.length - epocheNote.length === 1 ? "1 rapporto non datato" : quanti(buoni.length - epocheNote.length) + " non datati"}: non entrano in nessuna delle tre)`);
+  if (finestraRotta.length > 0) {
+    di("");
+    di(`    ⚠  ${quanti(finestraRotta.length)} ${finestraRotta.length === 1 ? "cade" : "cadono"} nelle tre ore del 30/08 fra ${CONFINI[0].sha} e ${CONFINI[1].sha},`);
+    di("       quando il rename era nel prompt e non nel guardiano: lì OGNI revisione");
+    di("       falliva, quindi il numero del registro non misura il registro — misura");
+    di("       quante revisioni non sono avvenute. Fuori da ogni epoca, non contato:");
+    for (const l of finestraRotta) di(`         · ${l.percorso}`);
   }
   di("");
-  di("  E il metro scritto il 20/09 vale ancora: se cala solo il prompt cambiato è il");
-  di("  campo; se calano entrambi o nessuno, l'ipotesi era sbagliata. Il feedback");
-  di("  finale non è stato toccato in nessuno dei due confini — è il controllo.");
+
+  const vuote = EPOCHE.filter((e) => e.righe.length === 0);
+  if (vuote.length === EPOCHE.length) {
+    di("    NON HO GUARDATO: nessuno dei rapporti passati è datato, quindi le tre epoche");
+    di("    sono tutte a zero. Non vuol dire che la prova sia irrisolvibile — vuol dire");
+    di("    che con questi file non si legge.");
+  } else if (vuote.length > 0) {
+    di(`    LA PROVA NON SI PUÒ LEGGERE: ${vuote.length === 1 ? "manca l'epoca" : "mancano le epoche"}`);
+    for (const e of vuote) di(`      · «${e.nome}» — ${e.spiega}`);
+    if (senza.length === 0) {
+      di("");
+      di("    Quando è il «prima» a mancare, la prova non è CONFONDIBILE: è NON RISPONDIBILE.");
+      di(`    Il rename è del ${CONFINI[0].quando}: se ogni rapporto in archivio gli è successivo,`);
+      di("    non esiste un «prima» da confrontare, e nessun numero letto qui dice qualcosa");
+      di("    sul campo. Non è un difetto dei rapporti: è che la domanda è nata dopo di loro.");
+    }
+  } else {
+    di("    Le tre epoche ci sono tutte: il calo della revisione fra «senza» e «col rename,");
+    di("    senza rubrica» è attribuibile al solo campo. Quello fra intermedia e «con la");
+    di("    rubrica» alla sola rubrica.");
+    di("");
+    di("    E il metro scritto il 20/09 vale ancora: se cala solo il prompt cambiato è il");
+    di("    campo; se calano entrambi o nessuno, l'ipotesi era sbagliata. Il feedback");
+    di("    finale non è stato toccato in nessuno dei due confini — è il controllo.");
+  }
   di("");
 }
 
