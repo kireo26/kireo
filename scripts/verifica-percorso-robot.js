@@ -514,6 +514,79 @@ ok(
 );
 ok(!/confrontaMissione\(profilo\.aree/.test(srcStudente), "…e la vecchia forma non rientra");
 
+// ── 6ter) Le cifre che il testo CITA sono quelle che il motore calcola ────────
+// LA REGOLA CHE QUESTO BLOCCO TIENE: «un numero che il lettore può rifare» non
+// deve poter essere smentito dal motore. Nella prima stesura della proposta del
+// cantiere una clausola diceva «e quei sei giorni servivano», e i sei giorni non
+// c'erano: `valutaPiano` dà gli stessi giorni col parquet e col PVC. Un difetto
+// del genere non si vede rileggendo — la frase suona bene — e a trovarlo è stato
+// un conto eseguito.
+//
+// Quindi le cifre non si confrontano con una copia: si costruisce la FRASE dal
+// valore che il motore restituisce e si cerca quella nel testo. Se un domani un
+// costo o una durata cambiano nel config, il controllo cerca una frase che nel
+// testo non c'è più e lo dice, invece di restare verde su una prosa diventata
+// falsa.
+//
+// IL LIMITE, dichiarato: questo vede una cifra SPARITA o CAMBIATA, non una
+// aggiunta. Una clausola nuova con un numero inventato non la prende nessuno
+// qui — quella si legge.
+console.log("\n6ter) Le cifre citate nella proposta sono quelle del motore");
+{
+  const conPiano = raccolta.find((r) => r.perId.get("s3_budget")?.tipo === "pianifica_lavori");
+  if (!conPiano) {
+    console.log("   (nessuna missione con un piano di lavori: niente da confrontare)");
+  } else {
+    const step = conPiano.perId.get("s3_budget");
+    const sel = conPiano.def.partita.s3_budget.selezionati;
+    const testo = conPiano.def.testi.proposta;
+
+    // Un vocabolario di NUMERALI, non una copia delle risposte: se il motore
+    // dicesse 75 invece di 74 la voce non c'è e il controllo lo dichiara, invece
+    // di cercare una parola sbagliata.
+    const PAROLE = {
+      6: "sei", 9: "nove", 12: "dodici", 14: "quattordici",
+      74: "settantaquattro", 80: "ottanta", 83: "ottantatré",
+    };
+    const p = (n) => PAROLE[n] ?? `«${n}» (numerale non in vocabolario)`;
+    // Il separatore delle migliaia a mano: `toLocaleString("it-IT")` non lo mette
+    // sui numeri di quattro cifre (7000 → «7000»), e il testo scrive «7.000 €».
+    const eur = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    const lavoro = (id) => step.lavori.find((l) => l.id === id);
+
+    const piano = valutaPiano(step, sel);
+    const conParquet = valutaPiano(step, sel.map((x) => (x === "pvc" ? "parquet" : x)));
+    const conFondo = valutaPiano(step, [...sel, "fondo_imprevisti"]);
+    const senzaSquadra = valutaPiano(step, sel.filter((x) => x !== "seconda_squadra"));
+
+    const frasi = [
+      ["i giorni dei due pavimenti", `il parquet ne prende ${p(lavoro("parquet").giorni)} e il PVC ${p(lavoro("pvc").giorni)}`],
+      ["i giorni degli spogliatoi", `che ne prendono ${p(lavoro("accessibilita").giorni)}`],
+      ["i due costi a confronto", `${eur(lavoro("parquet").costo)} € contro i ${eur(lavoro("pvc").costo)}`],
+      ["lo sforo col parquet", `arrivava a ${eur(conParquet.soldi)} € su ${eur(step.budgetSoldi)}`],
+      ["il costo della seconda squadra", `${eur(lavoro("seconda_squadra").costo)} € per la seconda squadra`],
+      ["il fondo a cui si rinuncia", `fondo imprevisti da ${eur(lavoro("fondo_imprevisti").costo)}`],
+      ["lo sforo col fondo", `arrivava a ${eur(conFondo.soldi)} su ${eur(step.budgetSoldi)} disponibili`],
+      ["i giorni guadagnati", `da ${p(senzaSquadra.giorni)} giorni a ${p(piano.giorni)}`],
+      ["il margine", `sugli ${p(step.budgetGiorni)} che avevamo: ${p(step.budgetGiorni - piano.giorni)} di margine`],
+      ["le economie non spese", `Restano ${eur(step.budgetSoldi - piano.soldi)} € non spesi`],
+      ["gli spogliatoi, costo e durata", `${eur(lavoro("accessibilita").costo)} € e ${p(lavoro("accessibilita").giorni)} giorni`],
+    ];
+    for (const [cosa, frase] of frasi) {
+      ok(testo.includes(frase), testo.includes(frase) ? `${cosa}: il testo dice «${frase}»` : `${cosa}: il motore dice «${frase}» e il testo non lo dice`);
+    }
+    // La minaccia dichiarata: il ritardo del quadro (12 giorni, testo del vincolo
+    // del mandato) è più grande del margine. È la cosa che la clausola riscritta
+    // AMMETTE, e se un domani il margine crescesse l'ammissione diventerebbe falsa.
+    ok(
+      step.budgetGiorni - piano.giorni < 12,
+      step.budgetGiorni - piano.giorni < 12
+        ? `il margine (${step.budgetGiorni - piano.giorni} giorni) NON copre i dodici del quadro difettoso: il testo ha ragione ad ammetterlo`
+        : `il margine (${step.budgetGiorni - piano.giorni} giorni) copre i dodici del quadro: la clausola che ammette di essere stata fortunata non regge più`,
+    );
+  }
+}
+
 // ── 7) Controprove ───────────────────────────────────────────────────────────
 // Senza, «tutto verde» direbbe solo che le liste lette erano vuote.
 console.log("\n7) Controprove: il controllo si accorge davvero");

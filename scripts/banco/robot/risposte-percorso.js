@@ -399,18 +399,27 @@ const TESTI_CANTIERE = {
 
   // s4_proposta — il resoconto al dirigente e al Comune. Minimo 250 caratteri.
   //
-  // UNA CLAUSOLA È STATA CORRETTA DOPO AVER ESEGUITO I CONTI, e va riletta da
-  // Mario perché è voce: diceva «39.000 € e dodici giorni contro i 21.000 e sei
-  // del PVC, e quei sei giorni servivano». I sei giorni non servivano —
-  // `valutaPiano` dà 74 giorni con l'uno e con l'altro, perché sono entrambi
-  // parallelizzabili e l'accessibilità (14) domina comunque. Il parquet fa
-  // sforare sui SOLDI: 251.000 contro 240.000. La ragione vera è quella, ed è
-  // più forte; la falsa sarebbe stata un numero che chi legge può rifare.
+  // DUE CLAUSOLE SONO STATE RISCRITTE DA MARIO dopo che i conti sono stati
+  // eseguiti, e la proprietà da tenere non è che i numeri siano giusti: è che il
+  // testo **ritratta la propria giustificazione**. La prima stesura diceva «e
+  // quei sei giorni servivano» (falso: `valutaPiano` dà 74 giorni col parquet e
+  // col PVC, perché sono entrambi parallelizzabili e l'accessibilità domina
+  // comunque — il parquet sfora sui SOLDI, 251.000 su 240.000); la seconda
+  // spiegava la seconda squadra come una scelta fra due opzioni, e non era una
+  // scelta, perché col fondo imprevisti il piano arrivava comunque a 248.000.
+  // Ora il testo lo dice, e dichiara che i nove giorni di margine NON coprivano
+  // i dodici del quadro difettoso: un piano che ammette di essere stato
+  // fortunato vale più di uno che spiega perché era giusto.
+  //
+  // Ogni cifra qui dentro è rifacibile da chi legge, quindi è sorvegliata:
+  // `npm run test:percorso` le confronta con `valutaPiano` invece di fidarsi
+  // della prosa (vedi CIFRE_PROPOSTA_CANTIERE in fondo al blocco).
   proposta: [
     "Al 20 agosto sono fatti l'impianto elettrico, la copertura dell'angolo nord, il controsoffitto nuovo e l'adeguamento degli spogliatoi. Il pavimento in PVC si posa in questi giorni: è l'ultimo, perché fino a ieri passavano ancora i ponteggi.",
-    "Cosa non abbiamo fatto, e chi ci rimette. Niente parquet omologato: 39.000 € contro i 21.000 del PVC, e quei 18.000 di differenza non li avevamo — con il parquet il piano sforava il finanziamento. Il PVC dura meno: fra qualche anno qualcuno rifarà questo pavimento. È un costo spostato in avanti, non risparmiato, e lo paga la scuola fra sei o otto anni, cioè non noi.",
+    "Cosa non abbiamo fatto, e chi ci rimette. Niente parquet omologato: 39.000 € contro i 21.000 del PVC. E non è una questione di giorni — il parquet ne prende dodici e il PVC sei, ma tutti e due corrono in parallelo con gli spogliatoi, che ne prendono quattordici: sul calendario non cambiava niente. È che con il parquet il piano arrivava a 251.000 € su 240.000. Non ci stava, e basta. Il PVC dura meno: fra qualche anno qualcuno rifarà questo pavimento. È un costo spostato in avanti, non risparmiato, e lo paga la scuola fra sei o otto anni, cioè non noi.",
     "Niente caldaia nuova. È del 2003 e il verbale dice che è fuori norma sulle emissioni: funziona, ma è l'unico dei sei problemi che a settembre sarà esattamente com'era a marzo. Ci rimette chi paga il riscaldamento, tutti gli anni.",
-    "Una scelta che sembra sbagliata e va spiegata. Abbiamo pagato 18.000 € per la seconda squadra e rinunciato al fondo imprevisti da 15.000. Di solito si fa il contrario. Il motivo è che i giorni persi li avevamo già in mano — dodici, per il quadro elettrico arrivato difettoso — mentre l'imprevisto era ancora soltanto possibile. Abbiamo comprato giorni certi invece di margine ipotetico. Se fosse arrivato un secondo imprevisto avremmo sbagliato, e il collaudo sarebbe saltato.",
+    "Una scelta che sembra sbagliata, e la spiegazione che mi ero dato non regge. Abbiamo pagato 18.000 € per la seconda squadra e rinunciato al fondo imprevisti da 15.000. Mentre lo facevo me lo sono raccontato come una scelta fra le due: giorni certi invece di margine ipotetico. Rifacendo i conti non era una scelta — con il fondo il piano arrivava a 248.000 su 240.000 disponibili, e non ci stava comunque.",
+    "E i sei giorni che la seconda squadra ci ha fatto guadagnare non bastano. Siamo passati da ottanta giorni a settantaquattro sugli ottantatré che avevamo: nove di margine. Il quadro elettrico è arrivato difettoso e ne è costati dodici. Se fosse arrivato a lavori avanzati saremmo fuori dal 5 settembre. È andata perché il ritardo è caduto su lavori non ancora partiti, non perché avessimo un piano che lo reggeva.",
     "Gli spogliatoi li abbiamo fatti, 27.000 € e quattordici giorni. Erano la voce più facile da togliere: quattro studenti su milleduecento, e nessuna norma che ce lo gridasse addosso. Li abbiamo tenuti perché una palestra da cui quattro persone restano fuori riapre per tutti tranne che per loro.",
     "Restano 7.000 € non spesi. Il quadro economico dice che le economie non tornano alla scuola: quei soldi li abbiamo persi, e sarebbero bastati per una parte di pavimento migliore. Non abbiamo trovato un modo di usarli che stesse dentro i giorni.",
     "Quello che non sappiamo. Nessuno di noi ha mai visto un collaudo. Abbiamo dato per buono che i lavori fatti nell'ordine giusto bastino a passarlo. Se il collaudatore chiede un documento che non abbiamo — e l'impianto elettrico ne produce parecchi — sedici giorni non bastano a procurarlo.",
