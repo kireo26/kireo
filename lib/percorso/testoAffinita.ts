@@ -31,6 +31,18 @@ import type { OrigineSegnale } from "@/lib/percorso/stato";
 // prove dei test pesano 0,35 l'una e non arrivano alla soglia, quelle di una
 // missione sì. Un testo che descrive una regola è la copia che invecchia nel
 // momento in cui la regola si muove, e questi tre erano esattamente quella.
+//
+// E IL CONSIGLIO IN CODA ERA SOPRAVVISSUTO ALLA CLAUSOLA CHE LO GIUSTIFICAVA
+// (Mario, 27/09, stesso giorno): «fanne un'altra e cominciamo a metterle in
+// fila» è la strada della regola a CONTEGGIO — con la barra a `confidence` non
+// serve una seconda attività, serve che quello che si fa pesi. Riscritto in
+// tutti e due i rami che lo avevano («Cresce con quanto pesa quello che fai,
+// non con quante volte lo fai»), e le parole della regola vecchia — «in fila»,
+// «un'altra», «due attività» — sono ora VIETATE nel corpo da
+// `npm run test:affinita`: una clausola riscritta lascia in giro il consiglio
+// che ne discendeva, e quello non si vede rileggendo la frase che si è appena
+// corretta. La `cta` resta fuori dal divieto: «Fai un'altra missione» è un
+// bottone, e farne un'altra è ancora la strada giusta.
 
 export type CopiaUnicaAttivita = {
   titolo: string;
@@ -54,7 +66,7 @@ export function copiaUnicaAttivita(origine: OrigineSegnale): CopiaUnicaAttivita 
     return {
       titolo: TITOLO,
       corpo:
-        "Nella missione che hai fatto qualcosa si è già acceso: lo trovi nel suo riepilogo. Ma quello racconta QUELLA partita. Un'affinità è una cosa che diciamo su di te, e la diciamo quando il segnale è abbastanza forte da reggere. Quello che hai acceso per ora è leggero: fanne un'altra e cominciamo a metterle in fila.",
+        "Nella missione che hai fatto qualcosa si è già acceso: lo trovi nel suo riepilogo. Ma quello racconta quella partita. Un'affinità è una cosa che diciamo su di te, e la diciamo quando il segnale è abbastanza forte da reggere — per ora è leggero. Cresce con quanto pesa quello che fai, non con quante volte lo fai.",
       cta: "Fai un'altra missione",
       sfiorateTitolo: SFIORATE_TITOLO,
       sfiorateSottotitolo: SFIORATE_SOTTOTITOLO,
@@ -76,7 +88,7 @@ export function copiaUnicaAttivita(origine: OrigineSegnale): CopiaUnicaAttivita 
   return {
     titolo: TITOLO,
     corpo:
-      "Qualcosa si è già acceso, ma per ora è leggero. Un'affinità è una cosa che diciamo su di te, e la diciamo quando il segnale è abbastanza forte da reggere. Fanne un'altra e cominciamo a metterle in fila.",
+      "Qualcosa si è già acceso, ma per ora è leggero. Un'affinità è una cosa che diciamo su di te, e la diciamo quando il segnale è abbastanza forte da reggere. Cresce con quanto pesa quello che fai, non con quante volte lo fai.",
     cta: "Vai alle missioni",
     sfiorateTitolo: SFIORATE_TITOLO,
     sfiorateSottotitolo: SFIORATE_SOTTOTITOLO,

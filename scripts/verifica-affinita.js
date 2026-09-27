@@ -133,6 +133,30 @@ function nominaITest(t) {
   return /\btest\b/i.test(t);
 }
 
+// LE PAROLE DELLA REGOLA VECCHIA, quella a CONTEGGIO (`attivita_distinte >= 2`).
+// Dal 27/09 la barra è `confidence >= 0,40`: un'affinità non chiede una SECONDA
+// attività, chiede che quello che si è fatto PESI. «Fanne un'altra e cominciamo
+// a metterle in fila» era sopravvissuto alla riscrittura della clausola che lo
+// giustificava, tre righe più su — un consiglio orfano non si vede rileggendo la
+// frase appena corretta, perché quella è giusta.
+//
+// SI CERCA NEL CORPO E NEL SOTTOTITOLO, MAI NELLA `cta`: «Fai un'altra missione»
+// è un bottone, e farne un'altra resta la strada giusta per accendere un segnale
+// che pesa. Un controllo che gridasse anche lì è un controllo che qualcuno
+// disattiva. Limite dichiarato: «un'altra» è una parola comune, quindi un testo
+// futuro legittimo potrebbe inciamparci — il divieto è tarato sul difetto vero,
+// non su una famiglia di frasi.
+const REGOLA_A_CONTEGGIO = [
+  /in\s+fila/i,
+  /un'altra\b/i,
+  /due\s+attivit/i,
+  /seconda\s+attivit/i,
+  /\baltra\s+volta\b/i,
+];
+function consigliaIlConteggio(t) {
+  return REGOLA_A_CONTEGGIO.filter((re) => re.test(t)).map((re) => String(re));
+}
+
 function proveTesto() {
   console.log("\n2) Il testo cambia con l'origine, e non afferma cose non fatte");
 
@@ -152,6 +176,19 @@ function proveTesto() {
   ok(n.cta.length > 0 && !/un'altra/i.test(n.cta), "…e il bottone non dà per scontato che ce ne sia già stata una");
 
   for (const [nome, c] of [["test", t], ["missione", m], ["null", n]]) {
+    const conteggio = consigliaIlConteggio(c.corpo + " " + c.sfiorateSottotitolo);
+    ok(
+      conteggio.length === 0,
+      `«${nome}»: il corpo non manda a fare una SECONDA attività — la barra guarda quanto pesa` +
+        (conteggio.length ? ` (trovato: ${conteggio.join(", ")})` : ""),
+    );
+    // La metà positiva: non basta che il consiglio a conteggio sia sparito, il
+    // corpo deve dire cosa il segnale guarda DAVVERO. Ancorata al PESO e non a
+    // «abbastanza forte»: quella frase c'è in tutti e tre da prima della
+    // riscrittura, quindi un assert su di lei sarebbe verde qualunque cosa si
+    // togliesse — la regola delle due metà, vista dal lato di ciò che decide.
+    ok(/\bpes(a|i|ano)\b/i.test(c.corpo), `«${nome}»: …e dice che il segnale cresce col PESO di quello che si fa`);
+
     const campi = [c.titolo, c.corpo, c.cta, c.sfiorateTitolo, c.sfiorateSottotitolo];
     ok(campi.every((s) => typeof s === "string" && s.trim().length > 0), `«${nome}»: nessun campo vuoto`);
     const accordi = campi.flatMap((s) => trovaAccordi(s));
