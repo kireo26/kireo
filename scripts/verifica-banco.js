@@ -466,6 +466,64 @@ for (const l of ["base", "trappola", "debole"]) {
   ok(descriviLivello(l).includes("«"), `«${l}» porta con sé la domanda a cui risponde`);
 }
 
+
+// ── il registro ricontato: DUE metriche, mai una spacciata per l'altra ──────
+// Il 26/09 la prova su `cosa_regge` è stata letta accostando «83%» (catture su
+// testi) e «98/98» (testi con almeno una cattura). Le due divergono per
+// costruzione appena un testo ha più di una cattura, e il fixture qui è tarato
+// esattamente su quel caso: un testo, due catture.
+console.log("");
+const { riconta, epoca, CONFINI } = require("./banco/registro");
+
+const misuraFinta = {
+  perGenere: {
+    revisione: { testi: 4, accordi: 0, certe: 0, registro: 2 },
+    "feedback finale": { testi: 1, accordi: 0, certe: 0, registro: 2 },
+  },
+  registro: [
+    { dove: "w > a / t1 / revisione", cattura: "hai capito" },
+    { dove: "w > a / t1 / revisione", cattura: "maturo" },
+    { dove: "w > a / feedback finale", cattura: "hai capito" },
+    { dove: "w > a / feedback finale", cattura: "hai riconosciuto" },
+  ],
+};
+const contato = riconta(misuraFinta);
+const rev = contato.righe.find((r) => r.genere === "revisione");
+const fin = contato.righe.find((r) => r.genere === "feedback finale");
+ok(rev.catture === 2 && rev.testiConCattura === 1, "due catture sullo stesso testo: 2 catture, 1 testo sporco");
+ok(fin.catture === 2 && fin.testi === 1, "e sul finale la metrica delle catture supera il 100% (2 su 1 testo)");
+ok(
+  fin.testiConCattura === 1,
+  "…mentre quella dei testi sporchi resta 1: le due colonne DEVONO poter divergere, o non c'è niente da tenere separato",
+);
+
+// Senza l'elenco delle catture la seconda metrica non si stima: si dichiara.
+const senzaElenco = riconta({ perGenere: misuraFinta.perGenere });
+ok(
+  senzaElenco.haElencoCatture === false && senzaElenco.righe.every((r) => r.testiConCattura === null),
+  "un rapporto senza l'elenco delle catture dichiara «n/d» invece di stimare i testi sporchi",
+);
+
+// L'EPOCA VIENE DAL COMMIT, non dalla data del file: un rapporto ricopiato ha
+// la data sbagliata e il commit giusto. E un commit che non è in questa copia
+// del repository non si indovina.
+const eIgnota = epoca("0000000000000000000000000000000000000000");
+ok(eIgnota.noto === false, "un commit che non esiste in questa copia fa dichiarare «non ho guardato»");
+ok(epoca(null).noto === false, "…e un rapporto senza commit nemmeno prova a dirlo");
+
+// I due confini sono commit VERI di questa storia: se uno venisse riscritto o
+// perso, ogni datazione diventerebbe «non lo so» in silenzio.
+for (const c of CONFINI) {
+  ok(epoca(c.sha).noto === true, `il confine «${c.chiave}» (${c.sha}) è un commit di questa storia`);
+  ok(epoca(c.sha).dentro[c.chiave] === true, `…e un rapporto girato su di lui risulta dentro il suo confine`);
+}
+// Il confine più vecchio NON contiene quello più nuovo: se l'ordine si
+// invertisse, tutti i rapporti cadrebbero in un'epoca sola.
+ok(
+  epoca(CONFINI[0].sha).dentro.rubrica === false,
+  "il confine di agosto non contiene quello di settembre: le tre epoche restano tre",
+);
+
 console.log("\n═══════════════════════════════════════════\n");
 if (falliti) { console.error(`✗ ${falliti} controlli falliti.\n`); process.exit(1); }
 console.log("✓ Ogni esito ha la sua frase, il fallimento non si nasconde dietro un successo,\n  e «non posso vederle» non si legge come «non ci sono».\n");

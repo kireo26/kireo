@@ -31,6 +31,7 @@ const { robot } = require("./robot");
 const { iscrizioni } = require("./iscrizioni");
 const { guasti } = require("./guasti");
 const { confronta } = require("./confronta");
+const { comando: registro } = require("./registro");
 const { PERCORSO, flag } = require("./config");
 
 const AIUTO = `
@@ -106,6 +107,13 @@ BANCO DI PROVA — i gesti manuali, fatti dal terminale
       tappa), quante coppie di ruoli si INVERTONO, lingua e registro
       affiancati per genere di testo, e i commit che stanno in mezzo.
       I rapporti li scrive «npm run banco robot» alla fine di ogni passata.
+
+  npm run banco registro <rapporto.json> [altri...]
+      Riconta il registro sui rapporti GIÀ in archivio, con una metrica sola
+      e per genere, e data ogni rapporto dal suo commit invece che dal file.
+      Serve a non accostare due numeri che non sono la stessa cosa —
+      «catture/testi» e «testi con almeno una cattura» sono due domande.
+      Sola lettura, nessuna chiamata, nessun costo.
 
   npm run banco azzera-percorsi
       Riporta i profili DI PROVA a prima della passata: cancella le loro
@@ -211,6 +219,8 @@ async function main() {
     }
     case "confronta":
       return confronta(resto[0], resto[1]);
+    case "registro":
+      return registro(resto);
     case "azzera-percorsi":
       return azzeraPercorsi();
     case "azzera-tentativi":
