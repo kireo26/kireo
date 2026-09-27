@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/Button";
+import DomandaConsegnaForm from "./DomandaConsegnaForm";
 
 type Domanda = { id: string; testo: string; stato: string; creata_il: string; nome_completo: string | null };
 
@@ -12,7 +13,13 @@ type Domanda = { id: string; testo: string; stato: string; creata_il: string; no
 // per costruzione lato server, vedi la migration). Le classi in modalità
 // DAD non sono toccate: nessun heartbeat individuale, la certificazione
 // resta manuale della scuola (nota esplicita in fondo).
-export default function ControlloDirettaEvento({ eventoId }: { eventoId: string }) {
+export default function ControlloDirettaEvento({
+  eventoId,
+  domandaConsegna = null,
+}: {
+  eventoId: string;
+  domandaConsegna?: string | null;
+}) {
   const [presenti, setPresenti] = useState<number | null>(null);
   const [domande, setDomande] = useState<Domanda[]>([]);
   const [caricamento, setCaricamento] = useState(false);
@@ -103,6 +110,8 @@ export default function ControlloDirettaEvento({ eventoId }: { eventoId: string 
           </ul>
         </div>
       )}
+
+      <DomandaConsegnaForm eventoId={eventoId} domandaAttuale={domandaConsegna} />
 
       {risultatoChiusura ? (
         <p className="rounded-lg border border-kireo-green/40 bg-kireo-green/10 px-4 py-3 text-sm text-kireo-light">

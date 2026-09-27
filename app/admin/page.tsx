@@ -56,7 +56,7 @@ export default async function AdminPage() {
       .order("created_at", { ascending: true }),
     supabase
       .from("eventi")
-      .select("id, titolo, pubblico, hosting_diretta, youtube_video_id, data_inizio, data_fine, istituzioni(nome)")
+      .select("id, titolo, pubblico, hosting_diretta, youtube_video_id, data_inizio, data_fine, domanda_consegna, istituzioni(nome)")
       .eq("tipo", "webinar")
       .eq("stato", "approvato")
       .order("data_inizio", { ascending: false })
@@ -177,7 +177,7 @@ export default async function AdminPage() {
                     {e.hosting_diretta === "proprio" ? "canale dell'ente" : "KIREO"}
                   </p>
                   {e.hosting_diretta === "kireo" && <GestisciVideoDirettaForm eventoId={e.id} videoIdAttuale={e.youtube_video_id} />}
-                  <ControlloDirettaEvento eventoId={e.id} />
+                  <ControlloDirettaEvento eventoId={e.id} domandaConsegna={e.domanda_consegna} />
                   <div className="mt-3">
                     <a href={`/api/admin/presenze/${e.id}`} className="text-xs text-kireo-orange underline underline-offset-2">
                       Esporta presenze (CSV)

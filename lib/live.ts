@@ -18,6 +18,29 @@ export function statoDiretta(dataInizio: string, dataFine: string | null, ora: D
   return "conclusa";
 }
 
+// Finestra della CONSEGNA, specchio lato client di consegna_evento_aperta
+// (20260927120000_consegna_evento.sql): dalla fine della diretta a
+// ORE_FINESTRA_CONSEGNA ore dopo. Stesso patto dello specchio sopra — serve solo
+// a decidere cosa mostrare, l'autorizzazione vera è il `with check` della policy
+// di insert su consegne_evento, che chiama `puo_consegnare_evento`.
+//
+// ⚠️ LA PRESENZA NON PRODUCE UN SEGNALE D'AREA, ED È DELIBERATO. Sta scritto qui
+// perché questo file è l'altro posto in cui uno verrebbe a «completare il
+// lavoro»: c'è l'heartbeat, c'è la consegna che scrive prove, e in mezzo la
+// presenza che non ne scrive. Il numero: un'area entra nelle affinità a
+// confidence >= 0,40, cioè Σpeso >= 4 — se la presenza valesse ~1,0, quattro
+// dirette basterebbero a creare un'affinità, e la presenza è aver tenuto una
+// scheda aperta. La ragione per esteso sta in testa a
+// supabase/migrations/20260927120000_consegna_evento.sql.
+export const ORE_FINESTRA_CONSEGNA = 48;
+
+export function consegnaAperta(dataInizio: string, dataFine: string | null, ora: Date = new Date()): boolean {
+  const inizio = new Date(dataInizio).getTime();
+  const fine = dataFine ? new Date(dataFine).getTime() : inizio + DURATA_DEFAULT_MS;
+  const now = ora.getTime();
+  return now >= fine && now < fine + ORE_FINESTRA_CONSEGNA * 60 * 60 * 1000;
+}
+
 // Il link "Entra nella diretta" appare da 15 minuti prima dell'inizio fino
 // alla chiusura, indipendentemente da youtube_video_id: se l'id manca
 // ancora la pagina live mostra comunque uno stato onesto ("diretta in

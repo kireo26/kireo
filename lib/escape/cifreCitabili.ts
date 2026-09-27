@@ -162,6 +162,17 @@ export function insiemeCifreCitabili(mission: EscapeMission, risposte: Map<strin
   return dentro;
 }
 
+// Le cifre che stanno DENTRO uno o più testi, nella stessa forma canonica.
+// Serve dove l'insieme delle cifre citabili non viene da una missione ma dal
+// materiale che il revisore ha davanti — la consegna di una diretta: lì le
+// uniche cifre che si possono ripetere sono quelle che ha scritto lo studente,
+// più quelle della domanda che gli è stata posta.
+export function cifreDelTesto(...testi: (string | null | undefined)[]): Set<string> {
+  const dentro = new Set<string>();
+  for (const t of testi) for (const tok of tokenDi(t ?? "")) dentro.add(tok.canonico);
+  return dentro;
+}
+
 // I frammenti da correggere: le cifre del testo che non stanno nell'insieme.
 // Ritorna la forma GREZZA («37.000 euro» → «37.000»), che è quella che serve a
 // chi legge un log o un messaggio d'errore.

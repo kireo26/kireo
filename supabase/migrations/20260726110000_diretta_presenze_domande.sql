@@ -15,6 +15,14 @@
 --   (automatico, non ancora implementato)"): NESSUNA modifica al vincolo è
 --   necessaria in questa migration.
 
+-- NOTA AGGIUNTA IL 27/09, nessuna DDL: questo file è GIÀ APPLICATO, cambia solo
+-- un commento. La presenza rilevata qui sotto NON produce una prova d'area
+-- (`evidence`/`area_signal`), e non è un lavoro lasciato a metà: un'area entra
+-- nelle affinità a confidence >= 0,40, cioè Σpeso >= 4, quindi con una presenza da
+-- ~1,0 quattro dirette creerebbero un'affinità — e una presenza è aver tenuto una
+-- scheda aperta. Quello che lascia un segno nel profilo è la CONSEGNA della
+-- diretta: vedi 20260927120000_consegna_evento.sql, dove la ragione sta per esteso.
+
 -- ============ presenze_live ============
 create table public.presenze_live (
   id uuid primary key default gen_random_uuid(),

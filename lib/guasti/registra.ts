@@ -51,6 +51,9 @@ export type SpecieGuasto =
   | "prove_test" // le prove del test: senza, il profilo resta vuoto
   // — artefatti delle guide
   | "guida_riservata" // il PDF di una guida 2/3 non è stato consegnato
+  // — artefatti della consegna di una diretta
+  | "prove_consegna_evento" // il giudizio della risposta alla domanda finale
+  | "scrittura_consegna_evento" // la persistenza di prove/valutazione
   // — artefatti del workshop fuori dal cron
   | "feedback_elaborato" // il feedback finale della route consegna (v1)
   | "consegna_progetto" // la scrittura della consegna stessa
