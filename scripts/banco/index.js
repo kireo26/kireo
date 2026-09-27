@@ -92,14 +92,16 @@ BANCO DI PROVA — i gesti manuali, fatti dal terminale
       Si rifiuta di partire se l'account non è marcato di_prova.
 
   npm run banco studente
-      LA PASSATA DALL'INIZIO ALLA FINE: i tre test attitudinali e poi la
-      missione che ne esce. È il pezzo che mancava — fino a oggi il banco
-      sapeva giocare solo i workshop, cioè l'ultimo gradino del percorso.
-      I test non fanno nessuna chiamata AI, la missione ne fa tre: due o
-      tre centesimi in tutto. La missione è FISSATA nel banco e confrontata
-      con quella che il prodotto suggerisce: se divergono lo dice, invece
-      di seguire il suggerimento e giocare una missione per cui i testi
-      scritti non sono risposte.
+      LA PASSATA DALL'INIZIO ALLA FINE: i tre test attitudinali e poi le
+      missioni. È il pezzo che mancava — fino a oggi il banco sapeva giocare
+      solo i workshop, cioè l'ultimo gradino del percorso.
+      I test non fanno nessuna chiamata AI, ogni missione ne fa tre: qualche
+      centesimo in tutto. Le missioni sono FISSATE nel banco; la prima è
+      quella che il percorso produce da sé, e SOLO quella si confronta con
+      quella che il prodotto suggerisce (se divergono lo dice, invece di
+      seguire il suggerimento e giocare una missione per cui i testi scritti
+      non sono risposte). Le altre le gioca di proposito, per coprire rami
+      di codice che il suggerimento non raggiungerebbe — e ognuna dice quale.
       Chiede conferma e non parte su un account non di_prova, come robot.
 
   npm run banco confronta <rapporto-a> <rapporto-b>

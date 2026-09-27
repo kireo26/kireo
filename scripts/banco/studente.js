@@ -1,9 +1,15 @@
 // `npm run banco studente` — la passata dall'inizio alla fine.
 //
-// Il robot fa i tre test attitudinali e poi la missione che quei test gli
-// suggeriscono. È il pezzo che mancava: fino a oggi il banco sapeva giocare i
-// workshop, cioè l'ULTIMO gradino del percorso, e non aveva mai attraversato i
-// primi. Da qui in poi copre tutto quello che fa uno studente.
+// Il robot fa i tre test attitudinali e poi le missioni. È il pezzo che
+// mancava: fino a oggi il banco sapeva giocare i workshop, cioè l'ULTIMO
+// gradino del percorso, e non aveva mai attraversato i primi. Da qui in poi
+// copre tutto quello che fa uno studente.
+//
+// LE MISSIONI SONO PIÙ DI UNA, E NON SONO TUTTE UGUALI. La prima è quella che i
+// test gli SUGGERISCONO — l'unica su cui il confronto col prodotto dice
+// qualcosa. Le altre le gioca di proposito, perché coprono rami di codice che il
+// suggerimento non raggiungerebbe: il cantiere ha un piano con due tetti (soldi
+// e giorni) e dipendenze fra i lavori, e quel ramo non era mai girato.
 //
 // SERVE AI CANCELLI, e serve da solo. Ai cancelli perché senza questo un robot
 // che arriva a un workshop verrebbe fermato al primo gate («prima i test») e
@@ -11,9 +17,9 @@
 // passata intera non l'avevamo mai fatta, e le cose che si rompono in mezzo a
 // un percorso non si vedono guardando i pezzi separati.
 //
-// QUANTO COSTA: i tre test ZERO (scoring deterministico, nessuna AI), la
-// missione TRE chiamate — e solo sui passi aperti. Due o tre centesimi. Il
-// costo di questo comando è il tempo di chi legge il rapporto, non i soldi.
+// QUANTO COSTA: i tre test ZERO (scoring deterministico, nessuna AI), ogni
+// missione TRE chiamate — e solo sui passi aperti. Qualche centesimo. Il costo
+// di questo comando è il tempo di chi legge il rapporto, non i soldi.
 
 /* eslint-disable @typescript-eslint/no-require-imports -- script Node CommonJS di utilità */
 
@@ -34,7 +40,7 @@ const escapeConfig = require("@/lib/escape/config");
 const { apriSessione } = require("./robot/sessione");
 const giocaT = require("./robot/giocaTest");
 const giocaM = require("./robot/giocaMissione");
-const { MISSIONE_FISSATA, GETTONI } = require("./robot/risposte-percorso");
+const { MISSIONI_GIOCATE } = require("./robot/risposte-percorso");
 const { allineamento } = require("./allineamento");
 const { statoProduzione } = require("./vercel");
 const { leggiGuasti, perSpecie } = require("./guasti");
@@ -69,11 +75,16 @@ async function studente() {
   const stato = { ...allineamento({ locale, deploys, perche }), locale };
 
   console.log(`\n═══════════ LA PASSATA DELLO STUDENTE ═══════════\n`);
-  console.log(`  I tre test attitudinali, poi la missione che ne esce.`);
-  console.log(`  ~3 chiamate AI a pagamento (i test non ne fanno nessuna).`);
-  console.log(`  Missione fissata nel banco: ${MISSIONE_FISSATA}`);
-  console.log(`  — il banco la confronta con quella che il prodotto suggerisce,`);
-  console.log(`    e se divergono lo dice invece di seguire il suggerimento.\n`);
+  console.log(`  I tre test attitudinali, poi ${MISSIONI_GIOCATE.length} missioni.`);
+  console.log(`  ~${MISSIONI_GIOCATE.length * 3} chiamate AI a pagamento (i test non ne fanno nessuna).\n`);
+  for (const m of MISSIONI_GIOCATE) {
+    console.log(`  · ${m.slug}${m.derivata ? "   ← la derivata" : ""}`);
+    console.log(`      ${m.perche}`);
+    console.log(`      ramo: ${m.ramo}`);
+  }
+  console.log(`\n  Solo la derivata si confronta con quella che il prodotto suggerisce:`);
+  console.log(`  le altre il robot le gioca di proposito, e il confronto direbbe sempre`);
+  console.log(`  «non coincidono» — un avviso che suona sempre è un avviso spento.\n`);
 
   for (const riga of stato.righe) console.log("  " + riga);
   console.log("");
@@ -128,21 +139,34 @@ async function studente() {
     console.log(`   ✓ coincidono`);
   }
 
-  // ── la missione ──────────────────────────────────────────────────────────
-  console.log(`\n── ${confronto.fissata}`);
-  const esitoMissione = await giocaM.giocaMissione({ sessione, registra: (t) => console.log(t) });
-  if (esitoMissione.fermato) {
-    console.log(`  ✗ fermato a «${esitoMissione.fermato.dove}»: ${esitoMissione.fermato.perche}`);
-  } else {
-    console.log(`  stato: ${esitoMissione.stato ?? "?"} · revisore: ${esitoMissione.revisoreEsito ?? "nessun esito scritto"}`);
-    const conArea = (esitoMissione.prove ?? []).filter((p) => p.area_slug);
-    console.log(`  prove scritte: ${esitoMissione.prove?.length ?? 0} (${conArea.length} con un'area)`);
+  // ── le missioni, in ordine ───────────────────────────────────────────────
+  // Una che si ferma NON blocca le altre: sono partite indipendenti, e fermarsi
+  // qui butterebbe via la parte della passata già pagata.
+  const esitiMissioni = [];
+  for (const def of MISSIONI_GIOCATE) {
+    console.log(`\n── ${def.slug}${def.derivata ? "" : "   (giocata di proposito: " + def.ramo + ")"}`);
+    const esito = await giocaM.giocaMissione({ sessione, missionSlug: def.slug, registra: (t) => console.log(t) });
+    if (esito.fermato) {
+      console.log(`  ✗ fermato a «${esito.fermato.dove}»: ${esito.fermato.perche}`);
+    } else {
+      console.log(`  stato: ${esito.stato ?? "?"} · revisore: ${esito.revisoreEsito ?? "nessun esito scritto"}`);
+      const conArea = (esito.prove ?? []).filter((p) => p.area_slug);
+      console.log(`  prove scritte: ${esito.prove?.length ?? 0} (${conArea.length} con un'area)`);
+    }
+    esitiMissioni.push({ ...esito, derivata: def.derivata === true, gettoni: def.gettoni });
   }
 
-  // Il profilo DOPO la missione: è il punto dell'intera passata — far vedere
-  // che i due ritratti (test e missione) finiscono davvero nello stesso posto.
+  // L'APPELLO, come per i workshop: ogni missione del piano deve comparire in un
+  // esito. Se il conto non torna, un pezzo di passata è sparito senza che niente
+  // risultasse rotto — ed è il modo in cui un buco si legge come un successo.
+  if (esitiMissioni.length !== MISSIONI_GIOCATE.length) {
+    console.log(`\n  ⚠  APPELLO INCOMPLETO: ${MISSIONI_GIOCATE.length} missioni in programma, ${esitiMissioni.length} con un esito.`);
+  }
+
+  // Il profilo DOPO le missioni: è il punto dell'intera passata — far vedere
+  // che i due ritratti (test e missioni) finiscono davvero nello stesso posto.
   const dopo = await giocaT.leggiProfilo(sessione);
-  console.log("\n── il profilo dopo la missione, come lo mostra la home");
+  console.log("\n── il profilo dopo le missioni, come lo mostra la home");
   giocaT.stampaProfilo(dopo, (r) => console.log(r));
 
   // ── i guasti della finestra ──────────────────────────────────────────────
@@ -165,11 +189,13 @@ async function studente() {
       {
         commit: stato.locale,
         quando: new Date().toISOString(),
-        gettoni: GETTONI,
+        // Il piano: serve all'appello, e serve a chi rilegge un rapporto vecchio
+        // per sapere quante missioni quella passata sapeva giocare.
+        missioniInProgramma: MISSIONI_GIOCATE.map((m) => ({ slug: m.slug, derivata: m.derivata === true, ramo: m.ramo, gettoni: m.gettoni })),
         test: esitiTest,
         profiloDopoITest: profilo,
         confrontoMissione: confronto,
-        missione: esitoMissione,
+        missioni: esitiMissioni,
         profiloFinale: dopo,
         guasti: visti.visto ? { visto: true, righe: visti.righe } : { visto: false, perche: visti.perche },
       },

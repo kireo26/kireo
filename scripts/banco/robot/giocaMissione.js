@@ -17,13 +17,13 @@
 // hai letto il regolamento. Un robot che costruisse la missione una volta sola
 // all'inizio risponderebbe a una versione che nessuno studente vede.
 //
-// COSTO: tre chiamate AI, e solo sui passi aperti (la risposta alla mail, la
-// riflessione, il «non approfondire»). Il resto dello scoring è deterministico.
+// COSTO: tre chiamate AI per missione, e solo sui passi aperti (i due testi
+// scritti e il «non approfondire»). Il resto dello scoring è deterministico.
 
 /* eslint-disable @typescript-eslint/no-require-imports -- script Node CommonJS di utilità */
 
 const { eGuasto } = require("./sessione");
-const { rispostaPerStep, MISSIONE_FISSATA } = require("./risposte-percorso");
+const { rispostaPerStep, MISSIONE_DERIVATA } = require("./risposte-percorso");
 
 // Caricati da chi chiama (il comando compila il TypeScript una volta sola).
 let getMissione, stepDellaMissione, missionePerArea;
@@ -32,26 +32,61 @@ function collega(moduli) {
   ({ missionePerArea } = moduli.config);
 }
 
-// LA MISSIONE È FISSATA NEL BANCO, e questa funzione la confronta con quella
-// che il prodotto avrebbe suggerito. Se il banco seguisse il suggerimento, il
-// giorno in cui il registro delle missioni cambia il robot giocherebbe
-// un'altra missione e nessuno se ne accorgerebbe — e i testi aperti, che sono
-// risposte a domande precise, diventerebbero parole a caso.
+// LA MISSIONE DERIVATA È FISSATA NEL BANCO, e questa funzione la confronta con
+// quella che il prodotto avrebbe suggerito. Se il banco seguisse il
+// suggerimento, il giorno in cui il registro delle missioni cambia il robot
+// giocherebbe un'altra missione e nessuno se ne accorgerebbe — e i testi aperti,
+// che sono risposte a domande precise, diventerebbero parole a caso.
 //
 // Quando divergono NON si interrompe: è un'informazione sul prodotto, non un
 // guasto del robot. Si dice, e si gioca comunque quella fissata — perché è
 // quella per cui i testi sono scritti.
+//
+// IL CONFRONTO RIGUARDA SOLO LA DERIVATA. Le altre missioni che il robot gioca
+// (oggi il cantiere) non sono suggerite da nessuno e non devono esserlo: le
+// gioca di proposito per coprire un ramo di codice, e ognuna porta scritto
+// quale. Confrontarle col suggerimento produrrebbe un «non coincidono» a ogni
+// passata — cioè un avviso che suona sempre, che è un avviso spento.
 function confrontaMissione(areaVincente) {
   const suggerita = areaVincente ? missionePerArea(areaVincente) : null;
   return {
     areaVincente: areaVincente ?? null,
-    fissata: MISSIONE_FISSATA,
+    fissata: MISSIONE_DERIVATA,
     suggerita: suggerita?.slug ?? null,
-    coincidono: suggerita?.slug === MISSIONE_FISSATA,
+    coincidono: suggerita?.slug === MISSIONE_DERIVATA,
   };
 }
 
-async function giocaMissione({ sessione, missionSlug = MISSIONE_FISSATA, registra }) {
+// Gli id che uno step OFFRIVA, per gli step il cui insieme di opzioni è
+// costruito a runtime dalla partita: il dossier cambia col mandato (le due
+// consulenze), le voci del budget e i lavori del piano cambiano coi materiali
+// comprati (`seconda_squadra` esiste solo con M10 in mano). Senza questo dato
+// una risposta che dipende da cosa era in offerta non si rilegge: nel rapporto
+// resterebbe «ha scelto materiali» senza dire fra cosa.
+//
+// Gli step a opzioni FISSE (le priorità, il mandato, i passi, lo scarto) non
+// finiscono qui: quelle liste stanno nel config e chi legge le trova là. Lo
+// `assegna_ruoli` ci sta comunque, perché la risposta del robot su quel passo è
+// scritta nominando un compito e senza l'elenco non si sa se c'era.
+function offertePerStep(step) {
+  switch (step.tipo) {
+    case "seleziona_informazioni":
+      return (step.dossier ?? []).map((d) => d.id);
+    case "pianifica_lavori":
+      return (step.lavori ?? []).map((l) => l.id);
+    case "alloca_budget":
+      return (step.voci ?? []).map((v) => v.id);
+    case "assegna_ruoli":
+      return (step.ruoli ?? []).map((r) => r.id);
+    default:
+      return null;
+  }
+}
+
+// `missionSlug` non ha un default: vedi `rispostaPerStep`. Chi gioca nomina la
+// missione, sempre.
+async function giocaMissione({ sessione, missionSlug, registra }) {
+  if (!missionSlug) throw new Error("giocaMissione: serve il missionSlug — non c'è un default, e non deve esserci");
   const { supabase, chiama, utente } = sessione;
   const di = (t) => registra(`  ${t}`);
   const esito = { missionSlug, passi: [], fermato: null };
@@ -95,14 +130,17 @@ async function giocaMissione({ sessione, missionSlug = MISSIONE_FISSATA, registr
     const prossimo = steps.find((s) => !risposte.has(s.id));
     if (!prossimo) break;
 
-    const payload = rispostaPerStep(prossimo);
+    const payload = rispostaPerStep(missionSlug, prossimo);
     if (!payload) {
       // NON SI INVENTA UNA RISPOSTA. Se la missione guadagna un passo di un
       // tipo che il robot non sa trattare, si ferma dicendolo: una risposta
       // plausibile inventata qui produrrebbe una misura che sembra buona.
       return {
         ...esito,
-        fermato: { dove: prossimo.id, perche: `nessuna risposta scritta per un passo di tipo «${prossimo.tipo}», e la regola generica non copre quel tipo` },
+        fermato: {
+          dove: prossimo.id,
+          perche: `nessuna risposta per un passo di tipo «${prossimo.tipo}»: né una scritta per «${missionSlug}», né la regola generica, che quel tipo non lo copre`,
+        },
       };
     }
 
@@ -113,7 +151,7 @@ async function giocaMissione({ sessione, missionSlug = MISSIONE_FISSATA, registr
       return { ...esito, fermato: { dove: prossimo.id, perche: `la risposta è stata rifiutata: ${error.message}` } };
     }
     risposte.set(prossimo.id, payload);
-    esito.passi.push({ id: prossimo.id, tipo: prossimo.tipo, stanza: prossimo.stanza });
+    esito.passi.push({ id: prossimo.id, tipo: prossimo.tipo, stanza: prossimo.stanza, offerte: offertePerStep(prossimo) });
     di(`${prossimo.id} · ${prossimo.tipo}`);
   }
 
@@ -149,4 +187,4 @@ async function giocaMissione({ sessione, missionSlug = MISSIONE_FISSATA, registr
   return esito;
 }
 
-module.exports = { collega, giocaMissione, confrontaMissione };
+module.exports = { collega, giocaMissione, confrontaMissione, offertePerStep };

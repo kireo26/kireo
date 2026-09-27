@@ -1,4 +1,4 @@
-// Le risposte del robot ai tre test e alla missione. Scritte, non casuali.
+// Le risposte del robot ai tre test e alle missioni. Scritte, non casuali.
 //
 // PERCHÉ FISSE. Se il robot rispondesse a caso, il suo profilo cambierebbe a
 // ogni passata; con il profilo cambia l'area vincente di T3, e con quella la
@@ -18,23 +18,33 @@
 // LA DIPENDENZA CHE NON SI VEDE, E CHE VA LETTA PRIMA DI TOCCARE QUALUNQUE
 // COSA QUI DENTRO:
 //
-//   il robot spende CINQUE gettoni e ne lascia chiusi SETTE, apposta —
-//   e i tre testi aperti PARLANO DI QUELLO CHE NON HA GUARDATO.
+//   in ogni missione il robot spende TUTTI i gettoni che ha e ne lascia
+//   chiusi degli altri, apposta — e i testi aperti PARLANO DI QUELLO CHE
+//   NON HA GUARDATO.
 //
 // Non è pigrizia ed è la parte più importante della partita: un robot che
 // compra tutto quello che conta non somiglia a nessuno studente e non lascia
 // niente da ammettere. Se un domani qualcuno «migliora» il robot facendogli
-// comprare tutto, i tre testi diventano FALSI — restano lì a dire «non ho
-// letto il registro degli accessi» mentre il registro è stato letto, e nessuno
-// se ne accorge leggendo il codice, perché le due cose stanno a cento righe di
+// comprare tutto, i testi diventano FALSI — restano lì a dire «non ho letto il
+// registro degli accessi» mentre il registro è stato letto, e nessuno se ne
+// accorge leggendo il codice, perché le due cose stanno a cento righe di
 // distanza.
 //
-// Per questo la dipendenza non è solo scritta: è CONTROLLATA. Più sotto,
-// `NOMINATI_COME_NON_LETTI` accoppia ogni materiale lasciato chiuso alla frase
-// con cui il testo lo nomina, e `npm run test:percorso` pretende che le due
-// liste dicano la stessa cosa — in tutti e due i versi. Comprarne uno in più
-// fa diventare rosso il test con il nome del materiale e la frase che quel
-// testo continua a dire.
+// Per questo la dipendenza non è solo scritta: è CONTROLLATA. In ogni missione
+// `nominatiComeNonLetti` accoppia i materiali lasciati chiusi alla frase con
+// cui il testo li nomina, e `npm run test:percorso` pretende che le due liste
+// dicano la stessa cosa. Comprarne uno in più fa diventare rosso il test con il
+// nome del materiale e la frase che quel testo continua a dire.
+//
+// I DUE VERSI NON VALGONO SEMPRE ENTRAMBI, ed è una differenza di SCRITTURA e
+// non di rigore. Il verso «nessuna frase nomina come non letto qualcosa che è
+// stato comprato» vale sempre: è quello che tiene i testi dal diventare falsi.
+// Il verso opposto — «ogni materiale non comprato è nominato» — vale solo dove
+// il testo li ELENCA tutti (`chiusi: "enumerati"`). Dove il testo ne nomina uno
+// di proposito (`chiusi: "unoSolo"`) pretenderlo spingerebbe verso un elenco,
+// che è una scrittura peggiore; al suo posto si pretende che il NUMERO
+// dichiarato nel testo («i cinque documenti») sia quello vero — un numero che
+// chi legge può rifare, quindi che deve restare giusto.
 // ─────────────────────────────────────────────────────────────────────────
 
 // ══════════════════════════════════════════════════════ T1 «Da dove parti»
@@ -123,7 +133,7 @@ function scegliT3(item) {
   return rango(a) <= rango(b) ? a.id : b.id;
 }
 
-// ══════════════════════════════════════════════════════ La missione
+// ══════════════════════════════════════════ La missione 05 «sportello-insieme»
 //
 // FISSATA QUI, e confrontata con quella che il prodotto suggerirebbe. Se il
 // banco si limitasse a seguire il suggerimento, il giorno in cui il registro
@@ -131,6 +141,11 @@ function scegliT3(item) {
 // accorgerebbe — e questi testi, che sono risposte a QUESTE domande,
 // diventerebbero parole a caso. Se divergono, il banco lo dice e va avanti: è
 // un'informazione sul prodotto, non un guasto del robot.
+//
+// QUESTA È LA MISSIONE *DERIVATA*: l'unica delle due che il percorso del robot
+// produce da sé, e quindi l'unica su cui il confronto col suggerimento ha senso.
+// La seconda (il cantiere, più sotto) il robot la gioca di proposito, perché
+// copre un ramo di codice che il suggerimento non raggiungerebbe mai.
 //
 // Deriva (rifatta eseguendo lo scoring, non leggendo una tabella): T1 porta
 // salute a 15 punti su 9 di riferimento → 1.0, quindi area_signal 100 contro
@@ -144,12 +159,12 @@ function scegliT3(item) {
 // anche partendo quarta. Misurato in `scripts/verifica-percorso-robot.js` §2,
 // dove sta il ragionamento per esteso: togliendo tre dei cinque item di T1 che
 // nominano salute la missione non cambia; serve toglierli tutti e cinque.
-const MISSIONE_FISSATA = "sportello-insieme";
+const MISSIONE_DERIVATA = "sportello-insieme";
 
 // I cinque gettoni, nell'ordine in cui hanno senso. Ognuno ha una ragione che
 // si può leggere; comprarne uno diverso è legittimo, ma allora vanno riscritti
-// i testi (vedi NOMINATI_COME_NON_LETTI, e il test che lo pretende).
-const GETTONI = [
+// i testi (vedi `nominatiComeNonLetti`, e il test che lo pretende).
+const GETTONI_SPORTELLO = [
   "M5", // protocollo minori — è il mandato scelto, e dice che il termine scade oggi
   "M4", // regolamento affitti — cambia la mossa su Kaur: basta protocollare entro le 12
   "M9", // cosa dice davvero la lettera Colella — un'ora di ascolto diventa tre minuti di informazione
@@ -160,7 +175,7 @@ const GETTONI = [
 // L'UNICO DEI CINQUE CHE RIGUARDA PERSONE E NON CARTE. Serve al testo della
 // riflessione, che dice «quattro su carte e uno solo su persone»: è un conto
 // che chi legge può rifare, quindi deve restare vero. Il test lo verifica.
-const GETTONI_DI_PERSONE = ["M11"];
+const GETTONI_DI_PERSONE_SPORTELLO = ["M11"];
 
 // I SETTE LASCIATI CHIUSI, ognuno con la frase che lo nomina nei testi. È la
 // forma controllabile della dipendenza dichiarata in testa al file: la chiave
@@ -170,7 +185,7 @@ const GETTONI_DI_PERSONE = ["M11"];
 // stanno nello stesso dossier dei materiali e si comprano con gli stessi
 // gettoni. La prima stesura della spec ne contava cinque e si leggeva come un
 // elenco completo — il conto vero è sette.
-const NOMINATI_COME_NON_LETTI = {
+const NOMINATI_SPORTELLO = {
   M7: "il registro degli accessi",
   M8: "la nota sulla mediazione",
   M10: "la scheda dell'alunno",
@@ -201,7 +216,7 @@ const NOMINATI_COME_NON_LETTI = {
 //     budget, senza dipendere da nessun materiale. La cosa che il robot sa per
 //     certo, dichiarata come quella che non sa. Al suo posto c'è
 //     un'ammissione vera, che è già di Mario: il registro degli accessi.
-const TESTI = {
+const TESTI_SPORTELLO = {
   // s2_non_approfondire — facoltativo, nessun minimo.
   nonApprofondire: [
     "Ho lasciato chiusi il registro degli accessi, la nota sulla mediazione, la scheda dell'alunno, le indicazioni della coordinatrice e il precedente della mail di aprile, e non ho sentito né l'assistente sociale né la referente della scuola.",
@@ -233,7 +248,7 @@ const TESTI = {
 // Una voce per step, per id. Quelli non nominati qui cadono nella regola
 // generica (`rispostaGenerica`): prima opzione in ordine di comparsa, sempre,
 // mai a caso.
-const PARTITA = {
+const PARTITA_SPORTELLO = {
   // Gratis: non leggerli sarebbe una scelta senza nessun contenuto. Si
   // prendono dallo step invece di elencarli, così un materiale aggiunto
   // domani viene letto e non ignorato in silenzio.
@@ -246,8 +261,8 @@ const PARTITA = {
   s1_priorita: { ordine: ["alunno", "kaur", "colella", "muratori", "mail"] },
   s1_mandato: { opzioneId: "minori" },
 
-  s2_informazioni: { selezionati: GETTONI },
-  s2_non_approfondire: { testo: TESTI.nonApprofondire },
+  s2_informazioni: { selezionati: GETTONI_SPORTELLO },
+  s2_non_approfondire: { testo: TESTI_SPORTELLO.nonApprofondire },
 
   // 210 minuti-operatore, a passi di 10. `protocolla_kaur` e `spiega_colella`
   // esistono solo perché M4 e M9 sono stati letti; `data_per_ciascuno` non
@@ -291,8 +306,8 @@ const PARTITA = {
   // estremi, per la stessa ragione delle Likert di T2.
   s4_previsione: { fiducia: 70 },
 
-  s4_proposta: { testo: TESTI.proposta },
-  s5_riflessione: { testo: TESTI.riflessione },
+  s4_proposta: { testo: TESTI_SPORTELLO.proposta },
+  s5_riflessione: { testo: TESTI_SPORTELLO.riflessione },
 
   // DERIVATI DALLA PARTITA, non dalla regola generica — e va detto perché è
   // una scelta. La regola generica (prime tre in ordine di comparsa) darebbe
@@ -311,6 +326,217 @@ const PARTITA = {
   // sembrare fortuna.
   s5_passi: { passi: ["sociale_alunno", "segnala_ferme", "canale_mail"] },
 };
+
+// ══════════════════════════════════════════ La missione 04 «cantiere-scuola»
+//
+// PERCHÉ IL ROBOT LA GIOCA, dato che il prodotto non gliela suggerirebbe mai:
+// è l'unica delle due con un `pianifica_lavori` — un tetto di SOLDI **e** uno
+// di GIORNI, più le dipendenze fra i lavori — e quel ramo non era mai girato,
+// né con l'AI né col database. Lo sportello ha un `alloca_budget`, che è una
+// grandezza sola.
+//
+// E il suggerimento non ci arriverebbe: il cantiere è suggerito solo per
+// `edilizia-architettura` [verificato eseguendo `missionePerArea` su tutte e sei
+// le sue aree candidate], e l'area vincente del robot è la salute, che fra le
+// candidate del cantiere non c'è. Quindi qui NON si confronta niente col
+// suggerimento: è una scelta dichiarata, non una divergenza da segnalare.
+//
+// ─────────────────────────────────────────────────────────────────────────────
+// I CONTI DI QUESTA MISSIONE TORNANO O LA PARTITA NON ENTRA, e sono stati
+// eseguiti contro `valutaPiano`, non calcolati a mano. Quello che il motore dice
+// del piano qui sotto (233.000 € / 74 giorni su 240.000 e 83):
+//
+//   soldi   233.000 = 34+62+71+21+27+18 mila                        ✓ entra
+//   giorni  74 = (copertura 15 + elettrico 25 + controsoffitto 20) + 14
+//
+// I 74 giorni sono la parte che una lettura a mano sbaglia, e vale la pena
+// sapere perché: nel motore **il PVC è `parallelizzabile` esattamente come
+// l'accessibilità**, quindi con la seconda squadra i due contano per il MASSIMO
+// dei due (14, l'accessibilità) e non «PVC in fila, accessibilità in parallelo».
+// Il racconto del cronoprogramma distingue spogliatoi e palestra; `valutaPiano`
+// non distingue: prende il massimo di tutti i parallelizzabili selezionati.
+//
+// DUE CONSEGUENZE, ed erano tutte e due il contrario di quello che si crederebbe:
+//
+//   · i 12 giorni del quadro difettoso (il vincolo del mandato `elettrico`) NON
+//     entrano nel motore: `budgetGiorni` è la costante 83, e il vincolo vive
+//     solo come testo nell'intro della Stanza 3. Quindi il piano entra anche
+//     SENZA la seconda squadra (80 ≤ 83): comprarla è una scelta che paga 6
+//     giorni di margine con 18.000 €, non la condizione per starci dentro;
+//   · il parquet al posto del PVC non costa nemmeno un giorno (i giorni restano
+//     74, perché l'accessibilità domina comunque): fa sforare sui SOLDI —
+//     251.000 contro 240.000. È il motivo per cui il testo della proposta,
+//     qui sotto, dice i soldi e non i giorni.
+// ─────────────────────────────────────────────────────────────────────────────
+const GETTONI_CANTIERE = [
+  "M4", // relazione sull'impianto elettrico — è il mandato scelto, e apre la dipendenza controsoffitto ← elettrico
+  "M13", // tempi di consegna dei pannelli — non leggerlo fa scattare la sorpresa dell'intro di Stanza 3
+  "M5", // perizia sulla copertura — apre la dipendenza controsoffitto ← copertura, e l'avviso sullo scarto
+  "M10", // cronoprogramma della ditta — è l'unico che APRE la voce «seconda squadra» (gate M10)
+  "M9", // dossier accessibilità — trasforma la trappola dichiarata in una scelta consapevole
+];
+
+// LE SETTE COSE LASCIATE CHIUSE, con la frase che le nomina. Sono sette e non
+// cinque perché il dossier della Stanza 2 ha DODICI voci: i dieci materiali a
+// gettone più le due consulenze del mandato, che stanno nello stesso dossier e
+// si comprano con gli stessi gettoni [verificato: `dossier.length === 12`].
+//
+// Il testo ne nomina UNA di proposito — lo storico delle manutenzioni, l'unico
+// che dice *perché* la palestra è chiusa — quindi `chiusi: "unoSolo"`: si
+// pretende il verso che tiene il testo dal diventare falso, e al suo posto il
+// numero dichiarato («i cinque documenti»). Vedi il blocco in testa al file.
+const NOMINATI_CANTIERE = {
+  M12: "lo storico delle manutenzioni",
+};
+
+const TESTI_CANTIERE = {
+  // s2_non_approfondire — facoltativo, nessun minimo.
+  nonApprofondire: [
+    "Non ho chiesto lo storico delle manutenzioni. Ho pensato: è passato, e io ho ottantatré giorni davanti.",
+    "Scrivendolo mi accorgo che non è vero. Il verbale dice che il controsoffitto è caduto di notte, e in assemblea il custode dice di aver segnalato l'acqua tre volte. Tre volte vuol dire che da qualche parte quelle segnalazioni sono scritte, e vuol dire anche che qualcuno le ha lette. Sapere com'è andata l'ultima volta non mi serviva per scegliere i lavori — mi serviva per capire perché siamo qui.",
+    "Ho comprato i cinque documenti che mi dicevano cosa fare, e ho lasciato l'unico che mi diceva perché.",
+  ].join("\n\n"),
+
+  // s4_proposta — il resoconto al dirigente e al Comune. Minimo 250 caratteri.
+  //
+  // UNA CLAUSOLA È STATA CORRETTA DOPO AVER ESEGUITO I CONTI, e va riletta da
+  // Mario perché è voce: diceva «39.000 € e dodici giorni contro i 21.000 e sei
+  // del PVC, e quei sei giorni servivano». I sei giorni non servivano —
+  // `valutaPiano` dà 74 giorni con l'uno e con l'altro, perché sono entrambi
+  // parallelizzabili e l'accessibilità (14) domina comunque. Il parquet fa
+  // sforare sui SOLDI: 251.000 contro 240.000. La ragione vera è quella, ed è
+  // più forte; la falsa sarebbe stata un numero che chi legge può rifare.
+  proposta: [
+    "Al 20 agosto sono fatti l'impianto elettrico, la copertura dell'angolo nord, il controsoffitto nuovo e l'adeguamento degli spogliatoi. Il pavimento in PVC si posa in questi giorni: è l'ultimo, perché fino a ieri passavano ancora i ponteggi.",
+    "Cosa non abbiamo fatto, e chi ci rimette. Niente parquet omologato: 39.000 € contro i 21.000 del PVC, e quei 18.000 di differenza non li avevamo — con il parquet il piano sforava il finanziamento. Il PVC dura meno: fra qualche anno qualcuno rifarà questo pavimento. È un costo spostato in avanti, non risparmiato, e lo paga la scuola fra sei o otto anni, cioè non noi.",
+    "Niente caldaia nuova. È del 2003 e il verbale dice che è fuori norma sulle emissioni: funziona, ma è l'unico dei sei problemi che a settembre sarà esattamente com'era a marzo. Ci rimette chi paga il riscaldamento, tutti gli anni.",
+    "Una scelta che sembra sbagliata e va spiegata. Abbiamo pagato 18.000 € per la seconda squadra e rinunciato al fondo imprevisti da 15.000. Di solito si fa il contrario. Il motivo è che i giorni persi li avevamo già in mano — dodici, per il quadro elettrico arrivato difettoso — mentre l'imprevisto era ancora soltanto possibile. Abbiamo comprato giorni certi invece di margine ipotetico. Se fosse arrivato un secondo imprevisto avremmo sbagliato, e il collaudo sarebbe saltato.",
+    "Gli spogliatoi li abbiamo fatti, 27.000 € e quattordici giorni. Erano la voce più facile da togliere: quattro studenti su milleduecento, e nessuna norma che ce lo gridasse addosso. Li abbiamo tenuti perché una palestra da cui quattro persone restano fuori riapre per tutti tranne che per loro.",
+    "Restano 7.000 € non spesi. Il quadro economico dice che le economie non tornano alla scuola: quei soldi li abbiamo persi, e sarebbero bastati per una parte di pavimento migliore. Non abbiamo trovato un modo di usarli che stesse dentro i giorni.",
+    "Quello che non sappiamo. Nessuno di noi ha mai visto un collaudo. Abbiamo dato per buono che i lavori fatti nell'ordine giusto bastino a passarlo. Se il collaudatore chiede un documento che non abbiamo — e l'impianto elettrico ne produce parecchi — sedici giorni non bastano a procurarlo.",
+  ].join("\n\n"),
+
+  // s5_riflessione — minimo 120 caratteri. Risponde a tutte e due le domande.
+  riflessione: [
+    "La cosa che mi è rimasta addosso è la caldaia, e non me l'aspettavo. L'ho messa ultima in classifica il primo giorno, in dieci secondi, perché era l'unica voce che non riguardava né la sicurezza né il poterci giocare. Poi per ottantatré giorni non l'ho più guardata. È l'unico dei sei problemi che il 12 settembre sarà identico a com'era a marzo, e l'ho deciso prima di sapere quasi niente.",
+    "Il momento in cui ho visto qualcosa che gli altri non vedevano è stato il quinto gettone. I primi quattro li ho spesi su lavori. Il quinto sugli spogliatoi, e non perché mi aspettassi di trovarci qualcosa: ci ho trovato un gradino di diciotto centimetri e quattro studenti che oggi non entrano. Prima di leggerlo, per me erano «gli spogliatoi» — una voce in fondo a una lista che avevo ordinato in dieci secondi.",
+  ].join("\n\n"),
+};
+
+const PARTITA_CANTIERE = {
+  s1_materiali: (step) => ({ letti: step.materiali.map((m) => m.id) }),
+
+  // I primi tre sono ciò che impedisce di riaprire. `spogliatoi` prima di
+  // `pavimento` perché quattro studenti non entrano affatto, mentre gli altri
+  // giocherebbero su un pavimento consumato. `caldaia` ultima: è l'unica che non
+  // impedisce niente — ed è la scelta che il robot rimpiange nella riflessione.
+  s1_priorita: { ordine: ["elettrico", "controsoffitto", "tetto", "spogliatoi", "pavimento", "caldaia"] },
+
+  // IL MANDATO SI SCEGLIE PRIMA DEI GETTONI, quindi M4 non è ancora stato letto:
+  // la scelta si regge su M1, che è gratuito e dice «impianto elettrico del
+  // 1988, non a norma». Non a norma su una scuola è la cosa che blocca un
+  // collaudo, e il robot lo sceglie da lì — non dalla relazione, che arriverà
+  // dopo a confermarlo.
+  s1_mandato: { opzioneId: "elettrico" },
+
+  s2_informazioni: { selezionati: GETTONI_CANTIERE },
+  s2_non_approfondire: { testo: TESTI_CANTIERE.nonApprofondire },
+
+  // IL PIANO. `seconda_squadra` esiste solo perché M10 è stato comprato (gate):
+  // se un domani M10 uscisse dai gettoni, questa voce non comparirebbe e il
+  // piano verrebbe rifiutato — è la dipendenza più dura di tutta la partita.
+  // Il fondo imprevisti NON si prende: con lui il totale sarebbe 248.000 e
+  // sforerebbe [verificato]. Nota: non prenderlo non costa niente nemmeno nella
+  // rubrica, perché quel criterio entra solo se è stato letto M11 — e M11 è fra
+  // i sette lasciati chiusi.
+  s3_budget: { selezionati: ["copertura", "elettrico", "controsoffitto", "pvc", "accessibilita", "seconda_squadra"] },
+
+  // Coerente col piano: nessuno dei due è dentro. L'ACCESSIBILITÀ NON SI SCARTA
+  // — è la trappola dichiarata (`trappola: true, trappolaSeScartata: true`, cioè
+  // qui scatta a scartarla e non a tenerla) e il robot ha comprato M9 apposta
+  // per saperlo.
+  s3_scarto: { scartati: ["pompa_calore", "parquet"] },
+
+  // CINQUE COMPITI, NON TRE — e sono cinque persone nel gruppo: uno a testa.
+  // Il robot si prende `materiali` perché i 35 giorni di consegna dei pannelli
+  // li ha letti lui (M13) e nessun altro li sa. E lascia `conti` proprio perché
+  // il regolamento del finanziamento (M11), che dice quanto costa una variante,
+  // è fra quelli che NON ha comprato: tenere i conti senza sapere cosa costa
+  // cambiare idea sarebbe prendersi un compito alla cieca.
+  s3_ruoli: {
+    assegnazioni: {
+      ditta: "altri",
+      conti: "altri",
+      sicurezza: "altri",
+      materiali: "io",
+      famiglie: "altri",
+    },
+  },
+
+  // La palestra riapre ma non è finita: 70 è «Abbastanza solida». Mai agli
+  // estremi, per la stessa ragione delle Likert di T2.
+  s4_previsione: { fiducia: 70 },
+
+  s4_proposta: { testo: TESTI_CANTIERE.proposta },
+  s5_riflessione: { testo: TESTI_CANTIERE.riflessione },
+
+  // Il registro per primo perché in assemblea il custode dice «l'ho detto tre
+  // volte» — e tre volte vuol dire che il problema non era sapere. La caldaia
+  // seconda perché è l'unica cosa che il 12 settembre sarà identica a com'era a
+  // marzo. I sensori terzi: l'acqua entra sempre dallo stesso angolo.
+  //
+  // ONESTÀ SU COME SONO STATI SCELTI, come per lo sportello: derivati dalla
+  // partita, poi confrontati con gli ideali della rubrica — e qui ne coincide
+  // UNO su tre (`registro`; gli ideali sono registro/controlli/accessibilita).
+  // Non si cambiano per farli coincidere: seguono dalla mattina che il robot ha
+  // giocato, e l'accessibilità l'ha già fatta.
+  s5_passi: { passi: ["registro", "caldaia", "sensori"] },
+};
+
+// ══════════════════════════════════════════════ Le missioni che il robot gioca
+//
+// IN ORDINE, e l'ordine conta: la prima è quella DERIVATA — la sola che il
+// percorso produce da sé, e quindi la sola su cui il confronto col suggerimento
+// del prodotto dice qualcosa. Le altre il robot le gioca di proposito, e ognuna
+// porta scritto il ramo di codice per cui esiste.
+const MISSIONI_GIOCATE = [
+  {
+    slug: MISSIONE_DERIVATA,
+    derivata: true,
+    perche: "è la missione che il percorso del robot produce: quella che T3 suggerisce.",
+    ramo: "alloca_budget (una grandezza sola) + assegna_ruoli",
+    gettoni: GETTONI_SPORTELLO,
+    gettoniDiPersone: GETTONI_DI_PERSONE_SPORTELLO,
+    nominatiComeNonLetti: NOMINATI_SPORTELLO,
+    chiusi: "enumerati",
+    testi: TESTI_SPORTELLO,
+    partita: PARTITA_SPORTELLO,
+  },
+  {
+    slug: "cantiere-scuola",
+    derivata: false,
+    // Una riga: è quello che il comando stampa. Il ragionamento per esteso sta
+    // nel blocco di commento sopra la partita del cantiere.
+    perche: "copre un ramo che il suggerimento non raggiungerebbe mai (il cantiere si propone solo per l'edilizia, e il robot vince sulla salute).",
+    ramo: "pianifica_lavori (due grandezze + dipendenze)",
+    gettoni: GETTONI_CANTIERE,
+    // Nessun conto «su carte e su persone» nei suoi testi: il conto che quei
+    // testi fanno ad alta voce è un altro (i cinque documenti), e sta in
+    // `chiusi: "unoSolo"`.
+    gettoniDiPersone: null,
+    nominatiComeNonLetti: NOMINATI_CANTIERE,
+    chiusi: "unoSolo",
+    // Il numero che il testo dichiara: deve restare uguale a `gettoni.length`,
+    // perché chi legge può ricontarlo.
+    numeroDichiarato: "cinque",
+    testi: TESTI_CANTIERE,
+    partita: PARTITA_CANTIERE,
+  },
+];
+
+function missioneGiocata(slug) {
+  return MISSIONI_GIOCATE.find((m) => m.slug === slug) ?? null;
+}
 
 // La regola generica per ogni passo strutturato non nominato sopra: prima
 // opzione in ordine di comparsa, sempre. Se un giorno la missione guadagna uno
@@ -349,9 +575,18 @@ function rispostaGenerica(step) {
   }
 }
 
-// La risposta per uno step della missione, o null se non si sa rispondere.
-function rispostaPerStep(step) {
-  const scritta = PARTITA[step.id];
+// La risposta per uno step di UNA missione, o null se non si sa rispondere.
+//
+// IL SLUG È IL PRIMO PARAMETRO E NON HA UN DEFAULT, apposta: gli id degli step
+// sono canonici e COLLIDONO fra missioni — `s3_budget` esiste in tutte e due, e
+// nelle due vuole un payload di forma diversa (`allocazioni` contro
+// `selezionati`). Un default qui sarebbe il posto in cui un collegamento
+// mancante si nasconde: il robot risponderebbe alla missione sbagliata senza
+// che niente si rompesse, e la risposta sarebbe perfino plausibile.
+function rispostaPerStep(slug, step) {
+  const missione = missioneGiocata(slug);
+  if (!missione) return null;
+  const scritta = missione.partita[step.id];
   if (typeof scritta === "function") return scritta(step);
   if (scritta) return scritta;
   return rispostaGenerica(step);
@@ -363,12 +598,9 @@ module.exports = {
   PREFERENZA_AREE,
   PREFERENZA_ASSI,
   scegliT3,
-  MISSIONE_FISSATA,
-  GETTONI,
-  GETTONI_DI_PERSONE,
-  NOMINATI_COME_NON_LETTI,
-  TESTI,
-  PARTITA,
+  MISSIONE_DERIVATA,
+  MISSIONI_GIOCATE,
+  missioneGiocata,
   rispostaGenerica,
   rispostaPerStep,
 };
