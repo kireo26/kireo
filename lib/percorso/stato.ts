@@ -101,24 +101,18 @@ export type StatoAvanzamento = {
 //
 // CLASSIFICA PER ELEGGIBILITÀ (item 3): l'affinità è un'affermazione SULLO
 // STUDENTE, quindi ha una barra di sufficienza — non basta un segnale qualunque.
-// Un'area entra nella classifica solo se:
-//   - ha ≥2 attività distinte (attivita_distinte, la stessa barra del Fix D:
-//     conferma = il segnale ritorna in un'attività diversa), E
-//   - ha un interesse dichiarato (interest_score non NULL): l'affinità È
-//     l'interesse; senza, l'area non è affine — è ESCLUSA, non ordinata a 0.
-// Le aree escluse ma con un segnale non spariscono: vanno nell'elenco «aree
-// sfiorate» (vedi caricaAffinitaHome), non in fondo alla classifica.
+// Vedi `eleggibilePerAffinita` più sotto per la regola e per il perché.
 //
 // Ritorna gli area_slug ELEGGIBILI ordinati per interest_score decrescente.
 export async function leggiAffinita(supabase: SupabaseClient, studentId: string): Promise<string[]> {
   try {
     const { data, error } = await supabase
       .from("area_signal")
-      .select("area_slug, interest_score, confidence, attivita_distinte")
+      .select("area_slug, interest_score, confidence")
       .eq("student_id", studentId);
     if (error || !data) return [];
     return [...data]
-      .filter((r) => (r.attivita_distinte ?? 0) >= 2 && r.interest_score !== null) // eleggibili
+      .filter((r) => eleggibilePerAffinita(r))
       .sort(
         (a, b) =>
           (b.interest_score ?? 0) - (a.interest_score ?? 0) || // interesse decrescente
@@ -153,8 +147,44 @@ export type AffinitaHome = {
   origine: OrigineSegnale; // significativo solo quando eleggibili è vuota e haAttivita è true
 };
 
-function eleggibile(r: { attivita_distinte: number | null; interest_score: number | null }): boolean {
-  return (r.attivita_distinte ?? 0) >= 2 && r.interest_score !== null;
+// LA BARRA DELL'AFFINITÀ, in un posto solo. Fino al 27/09 questa regola era
+// scritta DUE volte — qui e inline dentro `leggiAffinita` — e la seconda copia è
+// il modo in cui due definizioni della stessa cosa divergono.
+//
+// PERCHÉ `confidence` E NON `attivita_distinte`. La barra risponde a «ne
+// sappiamo abbastanza per dirlo?», e `confidence` è ESATTAMENTE quel numero: la
+// funzione SQL lo calcola come `least(1, Σpeso/10)` su tutte le dimensioni, lo
+// salva in tabella, e la barra lo ignorava — contando invece QUANTE VOLTE, che è
+// il surrogato peggiore possibile. Misurato su un profilo reale il 27/09: il
+// prodotto metteva in classifica un'area con confidence 0,120 e teneva fuori una
+// con 1,000 (diciassette prove, una missione intera). Sei aree su dodici stavano
+// dal lato sbagliato.
+//
+// PERCHÉ 0,40, e perché NON è una scelta. Sulla colonna vera il salto più largo
+// sta fra 0,800 e 0,390 (×2,1): qualunque soglia in (0,39 – 0,80] dà lo stesso
+// insieme. Il numero non l'ha scelto nessuno, l'ha disegnato la distribuzione —
+// e 0,25, che era la prima ipotesi, faceva entrare un'area con punteggio 15,
+// cioè riapriva dall'altra parte il difetto che stiamo chiudendo.
+//
+// ⚠️ 0,40 NON è 0,66 anche se su quel profilo coincidono. Sono due livelli con
+// due mestieri: 0,40 fa entrare in classifica, 0,66 dà il badge «confermata»
+// (vedi `ricalcola_area_signal`). Un'area a 0,50 entra SENZA badge, ed è giusto.
+// Se si mettesse 0,66 anche in ingresso, il badge diventerebbe per costruzione
+// sempre vero — e quella sarebbe una regola rotta. Il plateau è una proprietà di
+// QUESTO profilo: il giorno che ce n'è un secondo, la misura si rifà.
+//
+// `interest_score !== null` resta e porta peso: l'affinità È l'interesse, e
+// un'area può avere confidence alta con prove solo di performance/autoefficacia
+// /curiosità. Senza interesse non è affine — è ESCLUSA, non ordinata a 0. Le
+// aree escluse non spariscono: vanno fra le «aree sfiorate».
+//
+// `Number(...)` perché `confidence` è un numeric di Postgres e può arrivare come
+// stringa; `Number(null)` è 0, quindi una confidence assente FALLISCE la barra
+// invece di passarla — la direzione giusta in cui sbagliare.
+export const SOGLIA_AFFINITA = 0.4;
+
+export function eleggibilePerAffinita(r: { confidence: number | string | null; interest_score: number | null }): boolean {
+  return Number(r.confidence) >= SOGLIA_AFFINITA && r.interest_score !== null;
 }
 
 // Regola #2 (2026-08): se la motivazione PIÙ PESANTE di due o più aree è la
@@ -184,12 +214,12 @@ export async function caricaAffinitaHome(supabase: SupabaseClient, studentId: st
   try {
     const { data, error } = await supabase
       .from("area_signal")
-      .select("area_slug, interest_score, confidence, status, attivita_distinte")
+      .select("area_slug, interest_score, confidence, status")
       .eq("student_id", studentId);
     if (error || !data || data.length === 0) return vuoto;
 
     const eleggibili: AreaEleggibile[] = data
-      .filter((r) => eleggibile(r))
+      .filter((r) => eleggibilePerAffinita(r))
       .sort(
         (a, b) =>
           (b.interest_score ?? 0) - (a.interest_score ?? 0) ||
@@ -198,7 +228,7 @@ export async function caricaAffinitaHome(supabase: SupabaseClient, studentId: st
       )
       .map((r) => ({ slug: r.area_slug, nome: getAreaBySlug(r.area_slug)?.nome ?? r.area_slug, interest: r.interest_score ?? 0, status: r.status as StatoArea }));
 
-    const righeSfiorate = [...data.filter((r) => !eleggibile(r))].sort(
+    const righeSfiorate = [...data.filter((r) => !eleggibilePerAffinita(r))].sort(
       (a, b) =>
         Number(b.confidence) - Number(a.confidence) || // più segnale prima
         (b.interest_score ?? 0) - (a.interest_score ?? 0) ||

@@ -109,6 +109,10 @@ const ESENTI = new Map([
     "La gemella del file qui sopra, per le missioni: stesso studente finto dentro una transazione, stesse sei proprietà, stesso ROLLBACK.",
   ],
   [
+    "scripts/verifica-badge-confidence.sql",
+    "Stessa specie: crea il proprio studente finto e le proprie prove dentro una transazione, prova sei proprietà del badge «confermata» e fa ROLLBACK. Nomina area_signal perché la sta PROVANDO, non perché conti qualcosa su una popolazione di studenti.",
+  ],
+  [
     "scripts/banco/robot/gioca.js",
     "È il robot che gioca, non un conteggio: legge le PROPRIE righe per sapere a che punto è il suo percorso. Escludere i profili di prova qui vorrebbe dire escludere se stesso.",
   ],

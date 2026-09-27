@@ -8,14 +8,17 @@ import { copiaUnicaAttivita } from "@/lib/percorso/testoAffinita";
 // «Dove hai esplorato finora» (un tally di clic) e da «Le mie aree» (gli
 // interessi dichiarati). Tre lenti dichiarate per quello che sono.
 //
-// Tre stati (la barra di eleggibilità = ≥2 attività distinte, vedi leggiAffinita):
+// Tre stati (la barra di eleggibilità = `confidence ≥ 0,40`, vedi
+// `eleggibilePerAffinita` in lib/percorso/stato.ts per la regola e il perché):
 //   - aree eleggibili → classifica per interesse;
 //   - nessuna eleggibile e 0 attività → «Le tue affinità appaiono qui»;
 //   - nessuna eleggibile e ≥1 attività → «Sei a metà strada» + aree sfiorate.
-// Con una missione sola nessuna area è eleggibile: è la condizione NORMALE dei
-// primi giorni di ogni studente, non un caso limite — perciò lo stato non-vuoto
-// mostra comunque le aree sfiorate (qualcosa di suo, e cosa la 2ª attività
-// confermerà o smentirà).
+// Dopo i soli tre test nessuna area è eleggibile — il loro peso è minuscolo
+// (Σp fra 0,35 e 0,70, cioè confidence fra 0,035 e 0,07): è la condizione
+// NORMALE dei primi giorni di ogni studente, non un caso limite, perciò lo stato
+// non-vuoto mostra comunque le aree sfiorate (qualcosa di suo, e cosa la
+// prossima attività confermerà o smentirà). Una missione ricca invece può bastare
+// da sola: è il cambio del 27/09 — la barra guarda quanto pesa, non quante volte.
 //
 // Il TESTO del terzo stato dipende da QUALE attività ha acceso il segnale
 // (`affinita.origine`) e vive in lib/percorso/testoAffinita.ts, dove si può
@@ -43,10 +46,30 @@ function Cta({ testo }: { testo: string }) {
   );
 }
 
+// UN TETTO ALLE BARRE, e non è lì per il profilo che abbiamo davanti. Con la
+// barra a `confidence ≥ 0,40` quel profilo ne dà quattro da sole, quindi qui il
+// taglio non dà forma a niente: è una RETE per un profilo che non abbiamo mai
+// visto, che potrebbe darne dieci — e la pagina non ha nessun'altra cosa che la
+// fermi (`TOP_N_AFFINITA` non gata questa superficie: il suo unico consumatore è
+// un ramo inerte, verificato il 27/09).
+//
+// ⚠️ Il 5 è scelto e NON misurato, come il 3 di `TOP_N_AFFINITA`. Sta scritto
+// perché nessuno lo ritrovi fra sei mesi credendo che qualcuno l'abbia tarato.
+//
+// NON è `TOP_N_AFFINITA`: quello risponde a «quest'area è fra le mie prime N»
+// (una condizione d'accesso per area), questo a «quante barre stanno in una
+// schermata». Due domande diverse tenute nello stesso numero divergono.
+const MAX_BARRE_AFFINITA = 5;
+
 export default function SezioneAffinita({ affinita }: { affinita: AffinitaHome }) {
   const { eleggibili, sfiorate, haAttivita, origine } = affinita;
-  const contrastanti = eleggibili.filter((a) => a.status === "da_verificare").map((a) => a.nome);
-  const vociSfiorate = sfiorate.map((s) => ({ nome: s.nome, testo: s.motivazione ?? "un segnale c'è, ma serve un'altra attività in quest'area." }));
+  // Il taglio si applica UNA volta e tutto il resto deriva da qui: la nota sui
+  // segnali contrastanti nominava le aree di `eleggibili`, cioè poteva nominare
+  // un'area che il taglio non mostra — una frase su una cosa che chi legge non
+  // vede. Una lista sola, così le due non possono divergere.
+  const mostrate = eleggibili.slice(0, MAX_BARRE_AFFINITA);
+  const contrastanti = mostrate.filter((a) => a.status === "da_verificare").map((a) => a.nome);
+  const vociSfiorate = sfiorate.map((s) => ({ nome: s.nome, testo: s.motivazione ?? "un segnale c'è, ma per ora è leggero." }));
 
   // Caso pieno: aree eleggibili → classifica per interesse.
   if (eleggibili.length > 0) {
@@ -56,7 +79,7 @@ export default function SezioneAffinita({ affinita }: { affinita: AffinitaHome }
           <h2 className="font-heading text-lg font-semibold text-kireo-light">Le tue affinità</h2>
           <p className="mt-1 text-sm text-kireo-muted">Le aree che emergono da come agisci — non da quello che hai dichiarato, ma da cosa fai davvero.</p>
           <ul className="mt-4 space-y-3">
-            {eleggibili.map((a) => (
+            {mostrate.map((a) => (
               <li key={a.slug} className="rounded-xl border border-white/5 bg-kireo-dark p-4">
                 <div className="flex items-center justify-between gap-2">
                   <Link href={`/aree/${a.slug}`} className="font-heading text-sm font-semibold text-kireo-light hover:text-kireo-green-light">{a.nome}</Link>
@@ -74,7 +97,7 @@ export default function SezioneAffinita({ affinita }: { affinita: AffinitaHome }
             </p>
           )}
         </section>
-        <AreeSfiorate titolo="Aree che stai sfiorando" sottotitolo="Un segnale c'è, ma serve una seconda attività in quest'area prima che diventi un'affinità." voci={vociSfiorate} />
+        <AreeSfiorate titolo="Aree che stai sfiorando" sottotitolo="Un segnale c'è, ma è ancora leggero: serve qualcosa in più in quest'area prima che diventi un'affinità." voci={vociSfiorate} />
       </div>
     );
   }

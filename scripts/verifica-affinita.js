@@ -25,6 +25,10 @@
 const fs = require("fs");
 const path = require("path");
 const { abilitaTypeScript, ROOT } = require("./banco/ts");
+// I controlli lessicali girano sul sorgente SENZA COMMENTI: il 27/09 uno di loro
+// trovava `cache(` dentro il commento che spiegava perché la cache ci doveva
+// stare, e restava verde togliendola.
+const { senzaCommenti } = require("./lib/senza-commenti");
 
 abilitaTypeScript();
 
@@ -170,9 +174,80 @@ function proveCollegamento() {
   ok(/origineSegnale\(supabase, studentId\)/.test(stato), "…e caricaAffinitaHome la riempie davvero");
 }
 
-// ── 4) Controprove ───────────────────────────────────────────────────────────
+// ── 4) LA BARRA: confidence, non il conteggio delle attività ─────────────────
+// Dal 27/09 un'area entra in classifica se `confidence >= 0,40`, non se ha ≥2
+// attività distinte. La misura che l'ha deciso sta in CLAUDE.md; qui si tengono
+// ferme le proprietà, perché una regola scritta in un commento è un'intenzione.
+//
+// L'INVARIANTE CHE TIENE TUTTO: `attivita_distinte` non compare in NESSUNA
+// condizione di visibilità. È la cosa che si rompe per prima se qualcuno rimette
+// la vecchia barra «per sicurezza» accanto a quella nuova — due definizioni della
+// stessa cosa, che è il modo in cui divergono.
+function riga(area, { conf, interest = 40, status = "emergente" }) {
+  return { area_slug: area, interest_score: interest, confidence: conf, status, attivita_distinte: 1 };
+}
+function conRighe(righe) {
+  return clienteFinto((q) => {
+    if (q.tabella === "area_signal") return { data: righe, error: null };
+    if (q.tabella === "evidence" && q.opzioni && q.opzioni.head) return { count: 1, error: null };
+    return { data: [], error: null };
+  });
+}
+
+async function proveBarra() {
+  console.log("\n4) La barra guarda confidence, e attivita_distinte non entra più in nessuna condizione");
+
+  const { SOGLIA_AFFINITA, eleggibilePerAffinita } = require("@/lib/percorso/stato");
+  ok(SOGLIA_AFFINITA === 0.4, `la soglia è 0,40 (letta: ${SOGLIA_AFFINITA})`);
+
+  // il predicato, sui casi al bordo
+  ok(eleggibilePerAffinita({ confidence: 0.4, interest_score: 10 }), "esattamente 0,40 entra (la soglia è inclusiva)");
+  ok(!eleggibilePerAffinita({ confidence: 0.39, interest_score: 90 }), "0,39 no, nemmeno con un interesse altissimo");
+  ok(eleggibilePerAffinita({ confidence: "0.85", interest_score: 10 }), "una confidence che arriva come STRINGA (numeric di Postgres) viene letta come numero");
+  ok(!eleggibilePerAffinita({ confidence: null, interest_score: 10 }), "confidence assente → fuori: fallisce chiuso, non aperto");
+  ok(!eleggibilePerAffinita({ confidence: 1, interest_score: null }), "senza interesse resta fuori anche con confidence 1,000: l'affinità È l'interesse");
+
+  // il caso reale che ha deciso il cambio, con i numeri del profilo misurato
+  const profiloVero = conRighe([
+    riga("edilizia-architettura", { conf: 1.0, interest: 62 }),
+    riga("giurisprudenza-pa", { conf: 0.81, interest: 66 }),
+    riga("meccanica-meccatronica", { conf: 0.8, interest: 64 }),
+    riga("salute-professioni-sanitarie", { conf: 1.0, interest: 71, status: "confermata" }),
+    riga("informatica-digitale", { conf: 0.335, interest: 71 }),
+    riga("comunicazione-media", { conf: 0.12, interest: 71 }),
+    riga("lingue-relazioni-internazionali", { conf: 0.15, interest: 59 }),
+  ]);
+  const vero = await caricaAffinitaHome(profiloVero, "s-vero");
+  const dentro = vero.eleggibili.map((a) => a.slug);
+  ok(dentro.length === 4, `il profilo misurato dà 4 aree in classifica (${dentro.length})`);
+  ok(dentro[0] === "salute-professioni-sanitarie", "…prima salute (71)");
+  ok(dentro.includes("edilizia-architettura"), "…e edilizia ENTRA: confidence 1,000, diciassette prove, prima era fuori");
+  ok(!dentro.includes("comunicazione-media"), "…mentre comunicazione (0,120) esce: era dentro con la barra vecchia");
+  ok(!dentro.includes("lingue-relazioni-internazionali"), "…e lingue (0,150) pure");
+
+  // il tetto: una rete, non una forma
+  const dieci = conRighe(Array.from({ length: 10 }, (_, i) => riga(["informatica-digitale","salute-professioni-sanitarie","ristorazione-turismo","meccanica-meccatronica","agrifood-ambiente","arte-design-moda","musica-spettacolo","energia-sostenibilita","edilizia-architettura","economia-management"][i], { conf: 0.9, interest: 90 - i })));
+  const molte = await caricaAffinitaHome(dieci, "s-dieci");
+  ok(molte.eleggibili.length === 10, `il DATO non taglia: dieci eleggibili restano dieci (${molte.eleggibili.length})`);
+
+  const src = fs.readFileSync(path.join(ROOT, "components/app/SezioneAffinita.tsx"), "utf8");
+  ok(/MAX_BARRE_AFFINITA\s*=\s*5/.test(src), "il tetto è 5, e vive nel componente (è una questione di schermo, non di dato)");
+  ok(/const mostrate = eleggibili\.slice\(0, MAX_BARRE_AFFINITA\)/.test(src), "…applicato una volta sola, in una lista sola");
+  ok(/const contrastanti = mostrate\./.test(src), "…e la nota sui segnali contrastanti nomina le aree MOSTRATE, non quelle tagliate");
+  ok(/\{mostrate\.map\(/.test(src), "…ed è `mostrate` che viene reso, non `eleggibili`");
+  ok(!/MAX_BARRE_AFFINITA\s*=\s*TOP_N_AFFINITA/.test(src), "il tetto NON è TOP_N_AFFINITA: due domande diverse nello stesso numero divergono");
+
+  // L'INVARIANTE
+  const stato = senzaCommenti(fs.readFileSync(path.join(ROOT, "lib/percorso/stato.ts"), "utf8"));
+  ok(!/attivita_distinte/.test(stato), "`attivita_distinte` non compare in nessuna condizione di visibilità (fuori dai commenti)");
+  ok(!/eleggibile\(/.test(stato), "…e non è rimasta una seconda copia della regola: un solo predicato, `eleggibilePerAffinita`");
+  const quante = (stato.match(/eleggibilePerAffinita\(/g) ?? []).length;
+  ok(quante >= 3, `…chiamato da tutti i posti che decidono la visibilità (${quante} chiamate: la definizione più i due lettori)`);
+}
+
+// ── 5) Controprove ───────────────────────────────────────────────────────────
 function controprove() {
-  console.log("\n4) Controprove: il controllo si accorge davvero");
+  console.log("\n5) Controprove: il controllo si accorge davvero");
   ok(affermaUnaMissioneGiocata("Nella missione che hai fatto qualcosa si è già acceso"), "il vecchio testo, dato all'origine «test», verrebbe segnalato");
   ok(affermaUnaMissioneGiocata("Sono le piste della tua prima missione: la prossima attività dirà quali reggono."), "…e anche il vecchio sottotitolo delle sfiorate");
   ok(!affermaUnaMissioneGiocata("La prima missione è quella situazione."), "…mentre una missione al FUTURO non è un'affermazione su cosa ha fatto");
@@ -182,6 +257,7 @@ function controprove() {
   await prove();
   proveTesto();
   proveCollegamento();
+  await proveBarra();
   controprove();
 
   console.log("\n═══════════════════════════════════════════\n");

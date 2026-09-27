@@ -20,7 +20,17 @@ import type { OrigineSegnale } from "@/lib/percorso/stato";
 // del banco, «non ho guardato» non è «non ce n'è».
 //
 // ⚠️ I testi sono voce: questi li ho adattati io dai due che c'erano, e vanno
-// riletti da Mario. La riga della missione è invariata parola per parola.
+// riletti da Mario.
+//
+// RISCRITTI IL 27/09, e solo in una clausola. Tutti e tre dicevano che
+// un'affinità si dichiara «quando il segnale RITORNA in una situazione
+// diversa»: era la descrizione della vecchia barra, `attivita_distinte ≥ 2`.
+// Dal passaggio a `confidence ≥ 0,40` quella frase è falsa — una missione
+// ricca basta da sola — quindi la clausola dice adesso che il segnale deve
+// essere abbastanza FORTE. La tesi del prodotto non cambia e si rafforza: le
+// prove dei test pesano 0,35 l'una e non arrivano alla soglia, quelle di una
+// missione sì. Un testo che descrive una regola è la copia che invecchia nel
+// momento in cui la regola si muove, e questi tre erano esattamente quella.
 
 export type CopiaUnicaAttivita = {
   titolo: string;
@@ -44,7 +54,7 @@ export function copiaUnicaAttivita(origine: OrigineSegnale): CopiaUnicaAttivita 
     return {
       titolo: TITOLO,
       corpo:
-        "Nella missione che hai fatto qualcosa si è già acceso: lo trovi nel suo riepilogo. Ma quello racconta QUELLA partita. Un'affinità è una cosa che diciamo su di te, e la diciamo solo quando un segnale ritorna in una situazione diversa. Fanne un'altra e cominciamo a metterle in fila.",
+        "Nella missione che hai fatto qualcosa si è già acceso: lo trovi nel suo riepilogo. Ma quello racconta QUELLA partita. Un'affinità è una cosa che diciamo su di te, e la diciamo quando il segnale è abbastanza forte da reggere. Quello che hai acceso per ora è leggero: fanne un'altra e cominciamo a metterle in fila.",
       cta: "Fai un'altra missione",
       sfiorateTitolo: SFIORATE_TITOLO,
       sfiorateSottotitolo: SFIORATE_SOTTOTITOLO,
@@ -55,7 +65,7 @@ export function copiaUnicaAttivita(origine: OrigineSegnale): CopiaUnicaAttivita 
     return {
       titolo: TITOLO,
       corpo:
-        "Nei test qualcosa si è già acceso: lo trovi nei loro riepiloghi — le aree in due, il tuo modo di lavorare nel terzo. Ma un test racconta come ti vedi. Un'affinità è una cosa che diciamo su di te, e la diciamo solo quando lo stesso segnale ritorna in una situazione dove hai fatto qualcosa, non dove l'hai dichiarato. La prima missione è quella situazione.",
+        "Nei test qualcosa si è già acceso: lo trovi nei loro riepiloghi — le aree in due, il tuo modo di lavorare nel terzo. Ma un test racconta come ti vedi, e una risposta a un questionario pesa poco. Un'affinità è una cosa che diciamo su di te, e la diciamo quando il segnale è abbastanza forte: pesa quello che fai, non quello che dichiari. La prima missione è la prima volta che fai qualcosa.",
       cta: "Fai una missione",
       sfiorateTitolo: SFIORATE_TITOLO,
       sfiorateSottotitolo: SFIORATE_SOTTOTITOLO,
@@ -66,7 +76,7 @@ export function copiaUnicaAttivita(origine: OrigineSegnale): CopiaUnicaAttivita 
   return {
     titolo: TITOLO,
     corpo:
-      "Qualcosa si è già acceso, ma per ora è un segnale solo. Un'affinità è una cosa che diciamo su di te, e la diciamo quando lo stesso segnale ritorna in una situazione diversa. Fanne un'altra e cominciamo a metterle in fila.",
+      "Qualcosa si è già acceso, ma per ora è leggero. Un'affinità è una cosa che diciamo su di te, e la diciamo quando il segnale è abbastanza forte da reggere. Fanne un'altra e cominciamo a metterle in fila.",
     cta: "Vai alle missioni",
     sfiorateTitolo: SFIORATE_TITOLO,
     sfiorateSottotitolo: SFIORATE_SOTTOTITOLO,

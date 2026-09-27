@@ -4,7 +4,8 @@
 //   - esito missione: aree con ≥3 dimensioni su 4 non misurate (troppo vuote per
 //     una card) — la motivazione più pesante spiega cosa si è comunque acceso;
 //   - vista affinità (Blocco B): aree escluse dalla classifica per eleggibilità
-//     (meno di 2 attività distinte, o interesse non misurato).
+//     (`confidence` sotto la soglia, o interesse non misurato — vedi
+//     `eleggibilePerAffinita` in lib/percorso/stato.ts).
 // Il testo di ogni voce lo decide il chiamante (il «perché è sfiorata» cambia col
 // contesto); qui si rende solo nome + testo, in forma onesta e non punitiva.
 
