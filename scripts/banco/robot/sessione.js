@@ -163,7 +163,10 @@ async function apriSessione() {
     } catch {
       /* alcune risposte sono HTML: è il caso delle pagine */
     }
-    return { status: risposta.status, dati, testo };
+    // `url` è quella FINALE: `redirect: "follow"` segue i 307, quindi senza di
+    // lei si leggerebbe il corpo della pagina di login credendo che sia quella
+    // chiesta — e con stato 200.
+    return { status: risposta.status, dati, testo, url: risposta.url };
   }
 
   return { supabase, chiama, utente: data.user, profilo, sitoUrl: c.sitoUrl };

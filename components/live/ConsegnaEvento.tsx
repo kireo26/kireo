@@ -80,9 +80,25 @@ export default function ConsegnaEvento({
         senza che nessuno se ne accorga, ed è previsto che il docente
         dell'orientamento veda più avanti le attività dei suoi studenti. Questa
         frase è vera oggi e resta vera dopo.
+
+        ⚠️ E NON DICE «AFFINITÀ», che è quello che diceva fino al 28/09. Non era
+        falsa — la consegna entra nel ritratto — ma in KIREO «affinità» non è una
+        parola generica: è il NOME PROPRIO della classifica in home, quella in
+        cui questa strada per scelta non entra mai (una consegna emette solo
+        `performance`, vedi lib/eventi/consegna.ts). Il ragazzo leggeva il nome
+        di un posto, andava a guardare quel posto, e da lì non arrivava niente:
+        non una promessa sbagliata, *una parola giusta puntata verso il posto
+        sbagliato*.
+
+        E IL SECONDO MOTIVO VALE PIÙ DEL PRIMO: questa riga PREPARA quello che
+        sta per scrivere. «Per capire le tue affinità» gli chiede implicitamente
+        di dichiarare cosa gli piace, che è il testo peggiore che possa uscire da
+        una consegna. «Per capire come affronti un problema» è quello che il
+        prompt misura davvero, e gli chiede di ragionare invece di dichiararsi.
       */}
       <p className="mt-2 text-sm text-kireo-muted">
-        Quello che scrivi lo legge KIREO, per capire le tue affinità. Chi ha organizzato la diretta non lo vede.
+        Quello che scrivi lo legge KIREO, per capire come affronti un problema. Chi ha organizzato la diretta non lo
+        vede.
       </p>
 
       <label htmlFor="consegna-testo" className="sr-only">

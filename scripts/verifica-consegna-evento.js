@@ -50,6 +50,14 @@ function ok(cond, testo) {
 }
 
 const leggi = (rel) => fs.readFileSync(path.join(ROOT, rel), "utf8");
+
+// UN'ANCORA SU UNA FRASE DEL JSX SI ROMPE AL PRIMO A-CAPO DEL FORMATTATORE, e il
+// rosso arriva su un testo GIUSTO. Successo il 28/09: cambiata una frase, il
+// formattatore ha spezzato quella accanto su due righe, e un'asserzione
+// preesistente è diventata rossa senza che nessuno avesse toccato il suo testo.
+// Le ancore di FRASE si cercano quindi su una copia con gli spazi normalizzati;
+// quelle di CODICE no, perché lì l'a-capo è informazione.
+const frasiDi = (src) => src.replace(/\s+/g, " ");
 const MIGRAZIONE = "supabase/migrations/20260927120000_consegna_evento.sql";
 const sqlConsegna = leggi(MIGRAZIONE);
 const sqlPresenze = leggi("supabase/migrations/20260726110000_diretta_presenze_domande.sql");
@@ -325,6 +333,7 @@ for (const s of specieSql) {
 console.log("\n9. I quattro testi della consegna, e la riga che dice dove finisce quello che scrive");
 
 const consegnaTsx = senzaCommenti(leggi("components/live/ConsegnaEvento.tsx"));
+const consegnaFrasi = frasiDi(consegnaTsx);
 const routeTesti = senzaCommenti(leggi("app/api/eventi/[id]/consegna/route.ts"));
 
 // Una consegna pesa ~1,0 → confidence ~0,10, e la barra è 0,40: mandare in home
@@ -347,11 +356,20 @@ ok(!/messaggio:\s*\n?\s*"Risposta consegnata/.test(routeTesti), "…e il messagg
 ok(/"Ed è entrata nel tuo profilo/.test(routeTesti), "…attaccandosi al titolo con una frase che senza di lui non starebbe in piedi");
 
 // In un prodotto per minori il silenzio su chi legge non è neutro.
-ok(/lo legge (?:solo )?KIREO/.test(consegnaTsx), "il campo dice che quello che scrive lo legge KIREO");
-ok(/organizzato la diretta non lo vede/.test(consegnaTsx), "…e nomina il terzo su cui si fa la domanda: l'ente");
+ok(/lo legge (?:solo )?KIREO/.test(consegnaFrasi), "il campo dice che quello che scrive lo legge KIREO");
+ok(/organizzato la diretta non lo vede/.test(consegnaFrasi), "…e nomina il terzo su cui si fa la domanda: l'ente");
 ok(
-  !/legge solo KIREO|solo KIREO/.test(consegnaTsx),
+  !/legge solo KIREO|solo KIREO/.test(consegnaFrasi),
   "…e NON dice «solo KIREO»: è previsto che il docente dell'orientamento veda le attività dei suoi studenti, e «solo» diventerebbe falso senza che nessuno se ne accorga",
+);
+// E NON DICE «AFFINITÀ», che è il nome proprio della classifica in home — quella
+// in cui una consegna, per scelta, non entra mai. Vietata e non solo sostituita:
+// è la parola che viene in mente quando si pensa «profilo», ed è la stessa
+// confusione che il 27/09 aveva prodotto il falso «servono quattro consegne».
+ok(!/affinit/i.test(consegnaFrasi), "il campo NON nomina le affinità: è il nome di un posto in cui questa strada non entra");
+ok(
+  /per capire come affronti un problema/.test(consegnaFrasi),
+  "…e dice cosa guardiamo davvero, che chiede al ragazzo di ragionare invece di dichiarare cosa gli piace",
 );
 
 // «Riprova fra un momento» funzionava solo finché la pagina restava aperta.
@@ -372,16 +390,17 @@ ok(
 );
 
 const domandaTsx = senzaCommenti(leggi("components/ente/DomandaConsegnaForm.tsx"));
-ok(!/hanno seguito la diretta/.test(domandaTsx), "il pannello dell'ente non dice più «hanno seguito la diretta» (il cancello chiede un ping)");
-ok(/si sono collegati/.test(domandaTsx), "…dice «si sono collegati», che è quello che succede");
+const domandaFrasi = frasiDi(domandaTsx);
+ok(!/hanno seguito la diretta/.test(domandaFrasi), "il pannello dell'ente non dice più «hanno seguito la diretta» (il cancello chiede un ping)");
+ok(/si sono collegati/.test(domandaFrasi), "…dice «si sono collegati», che è quello che succede");
 ok(!/hanno seguito la diretta/.test(senzaCommenti(leggi("lib/eventi/portaConsegna.ts"))), "…e lo stesso vale nel testo che legge lo studente");
-ok(/resta loro, tu vedi solo che è arrivato/.test(domandaTsx), "i testi degli studenti non escono da KIREO, e all'ente lo si dice");
+ok(/resta loro, tu vedi solo che è arrivato/.test(domandaFrasi), "i testi degli studenti non escono da KIREO, e all'ente lo si dice");
 ok(
-  /non si può rispondere bene restando generici/.test(domandaTsx),
+  /non si può rispondere bene restando generici/.test(domandaFrasi),
   "sopra il campo c'è la riga sulla forma della domanda (il placeholder si legge una volta, questa resta)",
 );
 ok(
-  !/quale di questi servizi manca di più/.test(domandaTsx),
+  !/quale di questi servizi manca di più/.test(domandaFrasi),
   "l'esempio non è più una domanda d'opinione: a una domanda a cui si risponde senza aver guardato la diretta, la misura di attenzione diventa finta",
 );
 
@@ -528,6 +547,7 @@ console.log("\n12) La porta verso un evento finito");
 
 const tsConsegne = senzaCommenti(leggi("lib/app/consegneDaFare.ts"));
 const tsxBlocco = senzaCommenti(leggi("components/app/ConsegneDaFare.tsx"));
+const blocco = frasiDi(tsxBlocco);
 const pagHome = senzaCommenti(leggi("app/app/page.tsx"));
 const pagAgenda = senzaCommenti(leggi("app/app/agenda/page.tsx"));
 
@@ -551,8 +571,8 @@ ok(/consegne\.length === 0/.test(tsxBlocco) && /return null/.test(tsxBlocco), "�
 // una domanda»: il passivo nasconde chi, e chi ha chiesto è tutto il punto —
 // non è un compito che compare nella pagina, è una persona che aspetta. Quella
 // differenza decide se il riquadro somiglia a un dovere o a un invito.
-ok(/chi l&apos;ha fatta ti ha lasciato/.test(tsxBlocco), "il blocco dice CHI ha lasciato la domanda");
-ok(!/è stata lasciata/.test(tsxBlocco), "…e non torna al passivo, che nasconde l'unica cosa che rende quel riquadro un invito");
+ok(/chi l&apos;ha fatta ti ha lasciato/.test(blocco), "il blocco dice CHI ha lasciato la domanda");
+ok(!/è stata lasciata/.test(blocco), "…e non torna al passivo, che nasconde l'unica cosa che rende quel riquadro un invito");
 
 // (c) E LA LISTA DEGLI EVENTI PASSATI non è più un elenco cieco: chi era
 // iscritto ha un link, chi non lo era no — la pagina lo respingerebbe, e un

@@ -32,6 +32,7 @@ const { iscrizioni } = require("./iscrizioni");
 const { guasti } = require("./guasti");
 const { confronta } = require("./confronta");
 const { comando: registro } = require("./registro");
+const { pagine } = require("./pagine");
 const { PERCORSO, flag } = require("./config");
 
 const AIUTO = `
@@ -103,6 +104,20 @@ BANCO DI PROVA — i gesti manuali, fatti dal terminale
       non sono risposte). Le altre le gioca di proposito, per coprire rami
       di codice che il suggerimento non raggiungerebbe — e ognuna dice quale.
       Chiede conferma e non parte su un account non di_prova, come robot.
+
+  npm run banco pagine
+      IL TESTO DI QUATTRO O CINQUE PAGINE VERE, come lo legge uno studente.
+      L'unico strumento che guarda quello che una pagina RENDE invece di
+      quello che il codice scrive: il 28/09 un webinar delle 15:00 si leggeva
+      13:00 nell'Agenda, e nessuno dei controlli poteva vederlo.
+      Non trova niente da sola — nessuna macchina sa che 13:00 doveva essere
+      15:00 — quindi è un CORPUS da leggere, non un controllo: non sta in
+      «npm test» e non è verde né rosso.
+      ⚠️ Solo contro la PRODUZIONE: in locale il fuso della macchina annulla
+      il difetto, e il corpus sarebbe cieco proprio su quello. Si rifiuta di
+      partire se sitoUrl è un indirizzo locale.
+      Nessuna chiamata AI, nessuna scrittura: solo GET con la sessione del
+      robot (uno studente: scuola, ente e docente restano fuori).
 
   npm run banco confronta <rapporto-a> <rapporto-b>
       Due passate a confronto: quanto si muove il punteggio (per ruolo e per
@@ -219,6 +234,8 @@ async function main() {
       const { studente } = require("./studente");
       return studente();
     }
+    case "pagine":
+      return pagine();
     case "confronta":
       return confronta(resto[0], resto[1]);
     case "registro":

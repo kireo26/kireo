@@ -60,6 +60,7 @@ schede-missioni.md
 # Rapporti del robot del banco: materiale da leggere, non da versionare
 banco-robot-*.json
 banco-studente-*.json
+banco-pagine-*.txt
 
 # Scarto della Supabase CLI. Senza questa riga l'albero risulta sporco a ogni
 # passata del banco, e la guardia sull'allineamento avvisa sempre: un avviso
