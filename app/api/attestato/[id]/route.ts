@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { generaAttestatoPdf } from "@/lib/pdf/attestato";
 import { getFiloneBySlug } from "@/data/filoniDocenti";
+import { formattaData } from "@/lib/formato";
 
 function formattaDurata(dataInizio: string, dataFine: string | null): string | null {
   if (!dataFine) return null;
@@ -54,11 +55,11 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     nomeCompleto: `${profilo.nome} ${profilo.cognome}`,
     titoloWebinar: evento.titolo,
     filoneLabel,
-    dataEventoLabel: new Date(evento.data_inizio).toLocaleDateString("it-IT", { dateStyle: "long" }),
+    dataEventoLabel: formattaData(evento.data_inizio, "long"),
     durataLabel: formattaDurata(evento.data_inizio, evento.data_fine),
     organizzatoreNome: organizzatore?.nome ?? "KIREO",
     codiceVerifica: attestato.codice_verifica,
-    rilasciatoIlLabel: new Date(attestato.rilasciato_il).toLocaleDateString("it-IT", { dateStyle: "long" }),
+    rilasciatoIlLabel: formattaData(attestato.rilasciato_il, "long"),
   });
 
   return new NextResponse(new Uint8Array(pdf), {

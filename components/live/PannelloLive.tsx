@@ -5,6 +5,7 @@ import Link from "next/link";
 import { statoDiretta } from "@/lib/live";
 import { useHeartbeatDiretta } from "@/lib/useHeartbeatDiretta";
 import BoxDomandeLive, { type Domanda } from "./BoxDomandeLive";
+import { formattaDataOra } from "@/lib/formato";
 
 // Pannello condiviso studenti/docenti (stessa meccanica, l'unica differenza
 // — nome visibile o meno all'organizzatore nelle domande — è decisa lato
@@ -45,7 +46,7 @@ export default function PannelloLive({
       <div className="rounded-2xl border border-white/5 bg-kireo-card p-8 text-center">
         <p className="font-heading text-lg font-semibold text-kireo-light">La diretta non è ancora iniziata</p>
         <p className="mt-2 text-sm text-kireo-muted">
-          Inizia il {new Date(dataInizio).toLocaleString("it-IT", { dateStyle: "full", timeStyle: "short" })}. Questa pagina si aggiorna da sola, torna
+          Inizia il {formattaDataOra(dataInizio, "full")}. Questa pagina si aggiorna da sola, torna
           a trovarci qualche minuto prima.
         </p>
         <Link href={hrefRitorno} className="mt-4 inline-block text-sm text-kireo-orange underline underline-offset-2">

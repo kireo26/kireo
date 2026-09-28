@@ -11,6 +11,7 @@ import AzioneChiudiConversazione from "@/components/admin/AzioneChiudiConversazi
 import LogoutButton from "@/components/LogoutButton";
 import { ETICHETTA_PIANO } from "@/lib/ente/pianoSuccessivo";
 import { getFiloneBySlug } from "@/data/filoniDocenti";
+import { formattaData, formattaDataOra } from "@/lib/formato";
 
 export default async function AdminPage() {
   const { supabase, nome } = await requireAdmin();
@@ -110,7 +111,7 @@ export default async function AdminPage() {
                   <div>
                     <p className="font-heading text-sm font-semibold text-kireo-light">{i.nome}</p>
                     <p className="mt-1 text-xs text-kireo-muted">
-                      {i.tipo} · richiesta il {new Date(i.created_at).toLocaleDateString("it-IT", { dateStyle: "long" })}
+                      {i.tipo} · richiesta il {formattaData(i.created_at, "long")}
                     </p>
                   </div>
                   <AttivaIstituzioneButton istituzioneId={i.id} />
@@ -134,7 +135,7 @@ export default async function AdminPage() {
                   <p className="font-heading text-sm font-semibold text-kireo-light">{e.titolo}</p>
                   <p className="mt-1 text-xs text-kireo-muted">
                     {organizzatore?.nome ?? "KIREO"} · {e.tipo} ·{" "}
-                    {new Date(e.data_inizio).toLocaleString("it-IT", { dateStyle: "long", timeStyle: "short" })}
+                    {formattaDataOra(e.data_inizio, "long")}
                     {e.pubblico === "docenti" && ` · Docenti · ${getFiloneBySlug(e.filone)?.nome ?? e.filone}`}
                   </p>
                   <p className="mt-2 text-sm text-kireo-light/90">{e.descrizione}</p>
@@ -173,7 +174,7 @@ export default async function AdminPage() {
                   <p className="font-heading text-sm font-semibold text-kireo-light">{e.titolo}</p>
                   <p className="mt-1 text-xs text-kireo-muted">
                     {organizzatore?.nome ?? "KIREO"} · {e.pubblico === "docenti" ? "Docenti" : "Studenti"} ·{" "}
-                    {new Date(e.data_inizio).toLocaleString("it-IT", { dateStyle: "long", timeStyle: "short" })} · hosting:{" "}
+                    {formattaDataOra(e.data_inizio, "long")} · hosting:{" "}
                     {e.hosting_diretta === "proprio" ? "canale dell'ente" : "KIREO"}
                   </p>
                   {e.hosting_diretta === "kireo" && <GestisciVideoDirettaForm eventoId={e.id} videoIdAttuale={e.youtube_video_id} />}
@@ -242,7 +243,7 @@ export default async function AdminPage() {
                     {studente?.nome ?? "Studente"} {studente?.cognome ?? ""} ↔ {ente?.nome ?? "Ente"}
                   </p>
                   <p className="mt-1 text-xs text-kireo-muted">
-                    {c.stato} · {new Date(c.created_at).toLocaleDateString("it-IT", { dateStyle: "long" })}
+                    {c.stato} · {formattaData(c.created_at, "long")}
                   </p>
                   {c.stato !== "chiusa_da_admin" && (
                     <div className="mt-2">
@@ -294,7 +295,7 @@ export default async function AdminPage() {
                     {ente?.nome ?? "—"} → {ETICHETTA_PIANO[piano?.nome ?? ""] ?? piano?.nome}
                   </p>
                   <p className="mt-1 text-xs text-kireo-muted">
-                    richiesta il {new Date(r.created_at).toLocaleDateString("it-IT", { dateStyle: "long" })}
+                    richiesta il {formattaData(r.created_at, "long")}
                   </p>
                   {r.note && <p className="mt-2 text-sm text-kireo-light/90">{r.note}</p>}
                   <AzioneApprovazioneUpgrade richiestaId={r.id} />
@@ -319,7 +320,7 @@ export default async function AdminPage() {
                       {nomeScuolaPerCodice.get(s.scuola_id) ?? s.scuola_id}
                     </p>
                     <p className="mt-1 text-xs text-kireo-muted">
-                      richiesta il {new Date(s.created_at).toLocaleDateString("it-IT", { dateStyle: "long" })}
+                      richiesta il {formattaData(s.created_at, "long")}
                     </p>
                   </div>
                   <AttivaScuolaControlli
@@ -348,7 +349,7 @@ export default async function AdminPage() {
                 <li key={m.id} className="rounded-xl border border-white/5 bg-kireo-card p-4">
                   <p className="font-heading text-sm font-semibold text-kireo-light">{m.oggetto}</p>
                   <p className="mt-1 text-xs text-kireo-muted">
-                    {nomeScuola ?? "Scuola"} · {m.destinatari} · {new Date(m.created_at).toLocaleString("it-IT", { dateStyle: "long", timeStyle: "short" })}
+                    {nomeScuola ?? "Scuola"} · {m.destinatari} · {formattaDataOra(m.created_at, "long")}
                   </p>
                   <p className="mt-2 whitespace-pre-wrap text-sm text-kireo-light/90">{m.corpo}</p>
                 </li>
@@ -380,7 +381,7 @@ export default async function AdminPage() {
                     <p className="mt-1 text-xs text-kireo-muted">
                       {r.istituto}
                       {r.codice_meccanografico ? ` (${r.codice_meccanografico})` : ""} · {r.email} ·{" "}
-                      {new Date(r.created_at).toLocaleDateString("it-IT", { dateStyle: "long" })}
+                      {formattaData(r.created_at, "long")}
                     </p>
                   </div>
                   <ToggleGestitaRichiesta id={r.id} gestita={false} />

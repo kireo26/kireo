@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/Button";
 import { registraAttivita } from "@/lib/app/activityLog";
+import { formattaDataOra } from "@/lib/formato";
 
 type FeedbackAI = {
   punti_forza: string[];
@@ -114,7 +115,7 @@ export default function ConsegnaUpload({
                 )}
                 <span className="text-xs text-kireo-muted">
                   {formattaDimensione(consegna.file_dimensione)} ·{" "}
-                  {new Date(consegna.created_at).toLocaleString("it-IT", { dateStyle: "medium", timeStyle: "short" })}
+                  {formattaDataOra(consegna.created_at, "medium")}
                 </span>
               </div>
 

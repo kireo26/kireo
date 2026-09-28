@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getEnteContext } from "@/lib/ente/context";
 import { createClient } from "@/lib/supabase/server";
 import { pianoAPagamento } from "@/lib/ente/pianoSuccessivo";
+import { formattaData } from "@/lib/formato";
 
 const ETICHETTA_STATO: Record<string, string> = {
   aperta: "Aperta",
@@ -51,7 +52,7 @@ export default async function EnteMessaggiPage() {
                     <p className="font-heading text-sm font-semibold text-kireo-light">
                       {profilo?.nome ?? "Studente"} {profilo?.cognome ?? ""}
                     </p>
-                    <p className="mt-1 text-xs text-kireo-muted">{new Date(c.created_at).toLocaleDateString("it-IT", { dateStyle: "long" })}</p>
+                    <p className="mt-1 text-xs text-kireo-muted">{formattaData(c.created_at, "long")}</p>
                   </div>
                   <span className="text-xs text-kireo-muted">{ETICHETTA_STATO[c.stato] ?? c.stato}</span>
                 </Link>

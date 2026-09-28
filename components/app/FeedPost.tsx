@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import type { PostBacheca } from "@/lib/app/bacheca";
+import { formattaData } from "@/lib/formato";
 
 function estraiEmbedIframeUrl(embedUrl: string): string | null {
   if (/instagram\.com/i.test(embedUrl)) {
@@ -50,7 +51,7 @@ export default function FeedPost({ post }: { post: PostBacheca }) {
         <Link href={`/istituzioni/${post.istituzione_slug}`} className="font-heading text-sm font-semibold text-kireo-light hover:underline">
           {post.istituzione_nome}
         </Link>
-        <span className="text-xs text-kireo-muted">{new Date(post.created_at).toLocaleDateString("it-IT", { dateStyle: "medium" })}</span>
+        <span className="text-xs text-kireo-muted">{formattaData(post.created_at, "medium")}</span>
       </div>
       <p className="mt-3 whitespace-pre-wrap text-sm text-kireo-light/90">{post.corpo}</p>
       {post.tipo === "immagine" && post.immagine_url && (

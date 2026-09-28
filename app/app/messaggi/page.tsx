@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getAppContext } from "@/lib/app/studentContext";
 import { createClient } from "@/lib/supabase/server";
+import { formattaData } from "@/lib/formato";
 
 const ETICHETTA_STATO: Record<string, string> = {
   aperta: "Aperta",
@@ -38,7 +39,7 @@ export default async function MessaggiAppPage() {
                 <Link href={`/app/messaggi/${c.id}`} className="flex items-center justify-between rounded-xl border border-white/5 bg-kireo-card p-4 transition-colors hover:border-kireo-green/40">
                   <div>
                     <p className="font-heading text-sm font-semibold text-kireo-light">{istituzione?.nome ?? "Istituzione"}</p>
-                    <p className="mt-1 text-xs text-kireo-muted">{new Date(c.created_at).toLocaleDateString("it-IT", { dateStyle: "long" })}</p>
+                    <p className="mt-1 text-xs text-kireo-muted">{formattaData(c.created_at, "long")}</p>
                   </div>
                   <span className="text-xs text-kireo-muted">{ETICHETTA_STATO[c.stato] ?? c.stato}</span>
                 </Link>

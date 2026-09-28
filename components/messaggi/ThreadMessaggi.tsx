@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/Button";
 import { createClient } from "@/lib/supabase/client";
+import { formattaDataOra } from "@/lib/formato";
 
 type Messaggio = { id: string; mittente: "studente" | "ente"; corpo: string; created_at: string; letta: boolean };
 
@@ -92,7 +93,7 @@ export default function ThreadMessaggi({
             <div key={m.id} className={`flex ${mio ? "justify-end" : "justify-start"}`}>
               <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${mio ? "bg-kireo-green text-kireo-light" : "bg-kireo-dark text-kireo-light/90"}`}>
                 <p className="whitespace-pre-wrap">{m.corpo}</p>
-                <p className="mt-1 text-[10px] opacity-70">{new Date(m.created_at).toLocaleString("it-IT", { dateStyle: "short", timeStyle: "short" })}</p>
+                <p className="mt-1 text-[10px] opacity-70">{formattaDataOra(m.created_at, "short")}</p>
               </div>
             </div>
           );

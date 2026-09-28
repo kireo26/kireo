@@ -2,6 +2,7 @@ import { getFiloneBySlug } from "@/data/filoniDocenti";
 import IscrivitiWebinarButton from "./IscrivitiWebinarButton";
 import EntraDirettaLink from "@/components/EntraDirettaLink";
 import type { WebinarDocente } from "@/lib/docente/eventi";
+import { formattaDataOra } from "@/lib/formato";
 
 export default function CardWebinarDocente({
   webinar,
@@ -30,7 +31,7 @@ export default function CardWebinarDocente({
           </div>
           <h3 className="mt-2 font-heading text-base font-semibold text-kireo-light">{webinar.titolo}</h3>
           <p className="mt-1 text-sm text-kireo-muted">
-            {new Date(webinar.data_inizio).toLocaleString("it-IT", { dateStyle: "full", timeStyle: "short" })}
+            {formattaDataOra(webinar.data_inizio, "full")}
           </p>
           {webinar.descrizione && <p className="mt-2 text-sm text-kireo-muted">{webinar.descrizione}</p>}
           <p className="mt-2 text-xs text-kireo-muted">Organizzato da {webinar.organizzatore_nome ?? "KIREO"}</p>

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Evento } from "@/lib/app/eventi";
+import { formattaData } from "@/lib/formato";
 
 export default function CardEventiPerTe({ eventi }: { eventi: Evento[] }) {
   return (
@@ -23,7 +24,7 @@ export default function CardEventiPerTe({ eventi }: { eventi: Evento[] }) {
                   {e.titolo}
                 </p>
                 <p className="text-xs text-kireo-muted">
-                  {new Date(e.data_inizio).toLocaleDateString("it-IT", { dateStyle: "long" })}
+                  {formattaData(e.data_inizio, "long")}
                 </p>
               </div>
               {e.ore_pcto > 0 && (

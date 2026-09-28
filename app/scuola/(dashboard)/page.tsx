@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getScuolaContext } from "@/lib/scuola/context";
 import { createClient } from "@/lib/supabase/server";
+import { formattaData } from "@/lib/formato";
 
 export default async function ScuolaHomePage() {
   const contesto = await getScuolaContext();
@@ -79,7 +80,7 @@ export default async function ScuolaHomePage() {
                   <p className="font-heading text-sm font-semibold text-kireo-light">{evento?.titolo ?? "Evento"}</p>
                   <p className="mt-1 text-xs text-kireo-muted">
                     {classe?.nome_visualizzato ?? "Classe"} ·{" "}
-                    {evento?.data_inizio ? new Date(evento.data_inizio).toLocaleDateString("it-IT", { dateStyle: "long" }) : ""}
+                    {evento?.data_inizio ? formattaData(evento.data_inizio, "long") : ""}
                   </p>
                 </li>
               );

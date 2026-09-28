@@ -3,6 +3,7 @@ import { getQuoteEnte } from "@/lib/ente/quote";
 import { createClient } from "@/lib/supabase/server";
 import { ETICHETTA_PIANO, trovaPianoSuccessivo, type PianoQuote } from "@/lib/ente/pianoSuccessivo";
 import CreaComunicazioneForm from "@/components/ente/CreaComunicazioneForm";
+import { formattaData } from "@/lib/formato";
 
 const ETICHETTA_STATO: Record<string, { label: string; classe: string }> = {
   bozza: { label: "Bozza", classe: "bg-white/10 text-kireo-light" },
@@ -62,7 +63,7 @@ export default async function EnteComunicazioniPage() {
                     <span className="font-heading text-sm font-semibold text-kireo-light">{c.oggetto}</span>
                     <p className="mt-1 text-xs text-kireo-muted">
                       {c.tipo === "newsletter" ? "Newsletter" : "Comunicazione mirata"} ·{" "}
-                      {new Date(c.created_at).toLocaleDateString("it-IT", { dateStyle: "long" })}
+                      {formattaData(c.created_at, "long")}
                     </p>
                   </div>
                 </div>

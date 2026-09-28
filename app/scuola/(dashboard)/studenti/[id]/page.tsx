@@ -4,6 +4,7 @@ import { getScuolaContext } from "@/lib/scuola/context";
 import { createClient } from "@/lib/supabase/server";
 import { getDettaglioStudente } from "@/lib/scuola/studenteDettaglio";
 import { etichettaPrincipaleStudente, nomeCompletoStudente } from "@/lib/scuola/formatStudente";
+import { formattaData } from "@/lib/formato";
 
 const ETICHETTA_CERTIFICATORE: Record<string, string> = {
   sistema: "Certificato automaticamente",
@@ -49,7 +50,7 @@ export default async function ScuolaStudenteDettaglioPage({ params }: { params: 
           <p className="mt-1 font-heading text-lg font-semibold text-kireo-green-light">Verificato</p>
           {studente.verificatoIl && (
             <p className="mt-1 text-xs text-kireo-muted">
-              il {new Date(studente.verificatoIl).toLocaleDateString("it-IT", { dateStyle: "long" })}
+              il {formattaData(studente.verificatoIl, "long")}
             </p>
           )}
         </div>
@@ -69,13 +70,13 @@ export default async function ScuolaStudenteDettaglioPage({ params }: { params: 
               <li key={p.eventoId} className="rounded-xl border border-white/5 bg-kireo-card p-4">
                 <p className="font-heading text-sm font-semibold text-kireo-light">{p.titolo}</p>
                 <p className="mt-1 text-xs text-kireo-muted">
-                  {p.dataInizio && new Date(p.dataInizio).toLocaleDateString("it-IT", { dateStyle: "long" })}
+                  {p.dataInizio && formattaData(p.dataInizio, "long")}
                   {p.orePcto > 0 && ` · ${p.orePcto}h PCTO`}
                 </p>
                 <p className="mt-1 text-xs text-kireo-muted">
                   {(p.certificataDaTipo && ETICHETTA_CERTIFICATORE[p.certificataDaTipo]) ?? "Certificato"}
                   {p.certificataDaTipo === "scuola" && p.certificataDaNome && ` — ${p.certificataDaNome}`}
-                  {p.certificataIl && ` · ${new Date(p.certificataIl).toLocaleDateString("it-IT", { dateStyle: "long" })}`}
+                  {p.certificataIl && ` · ${formattaData(p.certificataIl, "long")}`}
                 </p>
               </li>
             ))}

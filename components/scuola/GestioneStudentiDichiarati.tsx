@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/Button";
 import { createClient } from "@/lib/supabase/client";
 import { etichettaPrincipaleStudente, nomeCompletoStudente } from "@/lib/scuola/formatStudente";
+import { formattaData } from "@/lib/formato";
 
 type StudenteDichiarato = {
   userId: string;
@@ -95,7 +96,7 @@ export default function GestioneStudentiDichiarati({
                 </span>
                 <span className="mt-0.5 block text-xs text-kireo-muted">
                   {s.classe && <>classe dichiarata: {s.classe} · </>}
-                  dichiarata il {new Date(s.dichiaratoIl).toLocaleDateString("it-IT", { dateStyle: "long" })}
+                  dichiarata il {formattaData(s.dichiaratoIl, "long")}
                 </span>
               </span>
             </label>

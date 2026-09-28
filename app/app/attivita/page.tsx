@@ -3,6 +3,7 @@ import { getAppContext } from "@/lib/app/studentContext";
 import { createClient } from "@/lib/supabase/server";
 import { getStoricoAttivita, getPercorsoEsplorazione, getSuggerimentiPerAree } from "@/lib/app/attivita";
 import { getOreCertificate, TRAGUARDO_ORE_PCTO } from "@/lib/app/pcto";
+import { formattaData } from "@/lib/formato";
 
 export default async function AttivitaAppPage() {
   const contesto = await getAppContext();
@@ -46,7 +47,7 @@ export default async function AttivitaAppPage() {
               <li key={voce.id} className="flex flex-wrap items-baseline justify-between gap-2 text-sm text-kireo-light">
                 <span>{voce.testo}</span>
                 <span className="text-xs text-kireo-muted">
-                  {new Date(voce.data).toLocaleDateString("it-IT", { dateStyle: "medium" })}
+                  {formattaData(voce.data, "medium")}
                 </span>
               </li>
             ))}
@@ -96,7 +97,7 @@ export default async function AttivitaAppPage() {
                   </span>
                   <span className="font-heading text-sm font-semibold text-kireo-light">{voce.titolo}</span>
                   <p className="mt-1 text-xs text-kireo-muted">
-                    {new Date(voce.data).toLocaleDateString("it-IT", { dateStyle: "long" })}
+                    {formattaData(voce.data, "long")}
                   </p>
                 </div>
                 {voce.oreCertificate ? (

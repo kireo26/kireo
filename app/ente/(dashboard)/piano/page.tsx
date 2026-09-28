@@ -3,6 +3,7 @@ import { getQuoteEnte } from "@/lib/ente/quote";
 import { createClient } from "@/lib/supabase/server";
 import { ETICHETTA_PIANO, trovaPianiSuperiori, type PianoQuote } from "@/lib/ente/pianoSuccessivo";
 import RichiediUpgradeButton from "@/components/ente/RichiediUpgradeButton";
+import { formattaData } from "@/lib/formato";
 
 const RIGHE_QUOTA: { chiave: keyof PianoQuote; label: string }[] = [
   { chiave: "quota_eventi_promossi", label: "Eventi in evidenza all'anno" },
@@ -56,8 +57,8 @@ export default async function EntePianoPage() {
         </h1>
         {istituzione?.piano_scade_il && (
           <p className="mt-2 text-kireo-muted">
-            Attivo dal {new Date(istituzione.piano_attivato_il as string).toLocaleDateString("it-IT", { dateStyle: "long" })}, in
-            scadenza il {new Date(istituzione.piano_scade_il).toLocaleDateString("it-IT", { dateStyle: "long" })}.
+            Attivo dal {formattaData(istituzione.piano_attivato_il as string, "long")}, in
+            scadenza il {formattaData(istituzione.piano_scade_il, "long")}.
           </p>
         )}
       </div>
@@ -79,7 +80,7 @@ export default async function EntePianoPage() {
         <div className="rounded-2xl border border-kireo-orange/40 bg-kireo-orange/10 px-4 py-3 text-sm text-kireo-orange">
           Hai una richiesta di upgrade al piano {ETICHETTA_PIANO[pianoRichiesto?.nome ?? ""] ?? pianoRichiesto?.nome} in attesa di
           approvazione da parte di KIREO, inviata il{" "}
-          {new Date(richiestaInAttesa.created_at).toLocaleDateString("it-IT", { dateStyle: "long" })}.
+          {formattaData(richiestaInAttesa.created_at, "long")}.
           {richiestaInAttesa.note && <span className="mt-1 block text-kireo-light/80">Nota: {richiestaInAttesa.note}</span>}
         </div>
       )}

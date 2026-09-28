@@ -5,6 +5,7 @@ import DocenteForm from "@/components/DocenteForm";
 import { createClient } from "@/lib/supabase/server";
 import { getProssimiWebinar } from "@/lib/docente/eventi";
 import { getFiloneBySlug } from "@/data/filoniDocenti";
+import { formattaDataOra } from "@/lib/formato";
 
 export const metadata: Metadata = {
   title: "Per i docenti — KIREO",
@@ -155,7 +156,7 @@ export default async function PerIDocenti() {
                   </div>
                   <h3 className="mt-2 font-heading text-base font-semibold text-kireo-light">{w.titolo}</h3>
                   <p className="mt-1 text-sm text-kireo-muted">
-                    {new Date(w.data_inizio).toLocaleString("it-IT", { dateStyle: "full", timeStyle: "short" })}
+                    {formattaDataOra(w.data_inizio, "full")}
                     {w.organizzatore_nome ? ` · ${w.organizzatore_nome}` : ""}
                   </p>
                 </li>

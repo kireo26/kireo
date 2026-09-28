@@ -1,6 +1,7 @@
 import { getScuolaContext } from "@/lib/scuola/context";
 import { createClient } from "@/lib/supabase/server";
 import InviaMessaggioScuolaForm from "@/components/scuola/InviaMessaggioScuolaForm";
+import { formattaData } from "@/lib/formato";
 
 const ETICHETTA_DESTINATARI: Record<string, string> = {
   tutta_scuola: "Tutta la scuola",
@@ -63,7 +64,7 @@ export default async function ScuolaComunicazioniPage() {
                 <p className="font-heading text-sm font-semibold text-kireo-light">{m.oggetto}</p>
                 <p className="mt-1 text-xs text-kireo-muted">
                   {ETICHETTA_DESTINATARI[m.destinatari] ?? m.destinatari} ·{" "}
-                  {new Date(m.created_at).toLocaleDateString("it-IT", { dateStyle: "long" })}
+                  {formattaData(m.created_at, "long")}
                 </p>
               </li>
             ))}

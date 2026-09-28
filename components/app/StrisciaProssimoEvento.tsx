@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Evento } from "@/lib/app/eventi";
+import { formattaDataOra } from "@/lib/formato";
 
 export default function StrisciaProssimoEvento({ evento }: { evento: Evento | null }) {
   return (
@@ -10,7 +11,7 @@ export default function StrisciaProssimoEvento({ evento }: { evento: Evento | nu
             <p className="text-xs font-semibold uppercase tracking-wide text-kireo-orange">Prossimo evento</p>
             <p className="mt-1 text-sm text-kireo-light">
               {evento.titolo} —{" "}
-              {new Date(evento.data_inizio).toLocaleString("it-IT", { dateStyle: "medium", timeStyle: "short" })}
+              {formattaDataOra(evento.data_inizio, "medium")}
             </p>
           </div>
           <Link href="/app/agenda" className="text-sm font-medium text-kireo-orange underline underline-offset-2">

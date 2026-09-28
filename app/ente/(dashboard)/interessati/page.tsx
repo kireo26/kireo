@@ -2,6 +2,7 @@ import { getEnteContext } from "@/lib/ente/context";
 import { createClient } from "@/lib/supabase/server";
 import { pianoAPagamento } from "@/lib/ente/pianoSuccessivo";
 import { getAreaBySlug } from "@/data/aree";
+import { formattaData } from "@/lib/formato";
 
 type RigaInteresse = {
   student_id: string;
@@ -63,7 +64,7 @@ export default async function EnteInteressatiPage() {
                 {r.nome} {r.cognome}
               </p>
               <p className="mt-1 text-xs text-kireo-muted">
-                {r.scuola_denominazione ?? "Scuola non indicata"} · condiviso il {new Date(r.creata_il).toLocaleDateString("it-IT", { dateStyle: "long" })}
+                {r.scuola_denominazione ?? "Scuola non indicata"} · condiviso il {formattaData(r.creata_il, "long")}
               </p>
               {r.aree_interesse.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-1.5">

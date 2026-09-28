@@ -9,6 +9,7 @@ import { inputClass, fieldBorder } from "@/lib/formStyles";
 import { createClient } from "@/lib/supabase/client";
 import { CLASSI } from "@/lib/registrazione";
 import AreeInteresseGrid from "./AreeInteresseGrid";
+import { formattaData } from "@/lib/formato";
 
 const MAX_AREE_INTERESSE = 3;
 type StatoSalvataggio = "idle" | "salvando" | "ok" | "errore";
@@ -43,7 +44,7 @@ function SezioneAnagrafica({
         <div>
           <dt className="text-xs font-semibold uppercase tracking-wide text-kireo-muted">Data di nascita</dt>
           <dd className="mt-1 text-kireo-light">
-            {dataNascita ? new Date(dataNascita).toLocaleDateString("it-IT", { dateStyle: "long" }) : "—"}
+            {dataNascita ? formattaData(dataNascita, "long") : "—"}
           </dd>
         </div>
       </dl>

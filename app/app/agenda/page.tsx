@@ -2,6 +2,7 @@ import { getAppContext } from "@/lib/app/studentContext";
 import { createClient } from "@/lib/supabase/server";
 import { getProssimiEventi, getEventiPassati, getAreeDegliEventi, getIscrizioniStudenteConOrigine } from "@/lib/app/eventi";
 import ListaEventiProssimi from "@/components/app/ListaEventiProssimi";
+import { formattaDataOra } from "@/lib/formato";
 
 export default async function AgendaAppPage() {
   const contesto = await getAppContext();
@@ -43,7 +44,7 @@ export default async function AgendaAppPage() {
               <li key={e.id} className="rounded-xl border border-white/5 bg-kireo-card/60 p-4 opacity-70">
                 <p className="font-heading text-sm font-semibold text-kireo-light">{e.titolo}</p>
                 <p className="mt-1 text-xs text-kireo-muted">
-                  {new Date(e.data_inizio).toLocaleString("it-IT", { dateStyle: "full", timeStyle: "short" })}
+                  {formattaDataOra(e.data_inizio, "full")}
                 </p>
               </li>
             ))}

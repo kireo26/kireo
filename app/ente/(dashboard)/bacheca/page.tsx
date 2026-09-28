@@ -2,6 +2,7 @@ import { getEnteContext } from "@/lib/ente/context";
 import { createClient } from "@/lib/supabase/server";
 import { pianoAPagamento } from "@/lib/ente/pianoSuccessivo";
 import CreaPostForm from "@/components/ente/CreaPostForm";
+import { formattaData } from "@/lib/formato";
 
 const ETICHETTA_STATO: Record<string, { label: string; classe: string }> = {
   in_approvazione: { label: "In approvazione", classe: "bg-kireo-orange/15 text-kireo-orange" },
@@ -54,7 +55,7 @@ export default async function EnteBachecaPage() {
                   <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-kireo-light/80">
                     {ETICHETTA_TIPO[p.tipo] ?? p.tipo}
                   </span>
-                  <span className="text-xs text-kireo-muted">{new Date(p.created_at).toLocaleDateString("it-IT", { dateStyle: "long" })}</span>
+                  <span className="text-xs text-kireo-muted">{formattaData(p.created_at, "long")}</span>
                 </div>
                 <p className="mt-2 text-sm text-kireo-light/90">{p.corpo}</p>
                 {p.stato === "rifiutato" && p.motivo_rifiuto && (

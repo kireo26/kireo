@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { formattaData } from "@/lib/formato";
 
 export type MessaggioRicevuto = {
   id: string;
@@ -51,7 +52,7 @@ export default function MessaggiScuola({ messaggiIniziali }: { messaggiIniziali:
                 {!m.lettoIl && <span className="h-2 w-2 flex-none rounded-full bg-kireo-orange" aria-hidden="true" />}
                 <span className="font-heading text-sm font-semibold text-kireo-light">{m.oggetto}</span>
               </span>
-              <span className="flex-none text-xs text-kireo-muted">{new Date(m.createdAt).toLocaleDateString("it-IT", { dateStyle: "medium" })}</span>
+              <span className="flex-none text-xs text-kireo-muted">{formattaData(m.createdAt, "medium")}</span>
             </button>
             {aperto === m.id && <p className="mt-2 whitespace-pre-wrap text-sm text-kireo-light/80">{m.corpo}</p>}
           </li>

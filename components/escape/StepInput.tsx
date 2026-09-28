@@ -31,9 +31,10 @@ import type {
   StepSceltaSingola,
   StepSelezionaInformazioni,
 } from "@/lib/escape/tipi";
+import { formattaNumero } from "@/lib/formato";
 
 const CARD = "rounded-xl border border-white/10 bg-kireo-dark px-4 py-3 text-sm text-kireo-light";
-const fmtBudget = (n: number, unita: string) => `${n.toLocaleString("it-IT")} ${unita}`;
+const fmtBudget = (n: number, unita: string) => `${formattaNumero(n)} ${unita}`;
 
 type OnChange = (v: Payload, valido: boolean) => void;
 
@@ -237,7 +238,7 @@ function LavoriInput({ step, valore, onChange }: { step: StepPianificaLavori; va
           </div>
           <p className="mt-2 text-[11px] text-kireo-muted">
             {raggiunto ? "Traguardo raggiunto — puoi ancora rivedere il pacchetto." : `Mancano ${obiettivo - risparmio} ${uo} al traguardo.`}{" "}
-            Il pacchetto costa {soldi.toLocaleString("it-IT")} {u} e impiega {giorni} gg.
+            Il pacchetto costa {formattaNumero(soldi)} {u} e impiega {giorni} gg.
           </p>
         </div>
         {step.lavori.map((l) => {
@@ -249,7 +250,7 @@ function LavoriInput({ step, valore, onChange }: { step: StepPianificaLavori; va
               <span className="flex-none text-right text-[11px] text-kireo-muted">
                 <span className="text-kireo-green-light">+{l.risparmio ?? 0} {uo}</span>
                 {l.giorni > 0 ? ` · ${l.giorni} gg` : ""}
-                {l.costo > 0 ? ` · ${l.costo.toLocaleString("it-IT")} ${u}` : ""}
+                {l.costo > 0 ? ` · ${formattaNumero(l.costo)} ${u}` : ""}
               </span>
             </label>
           );
@@ -269,7 +270,7 @@ function LavoriInput({ step, valore, onChange }: { step: StepPianificaLavori; va
       <div className={`grid ${doppio ? "grid-cols-2" : "grid-cols-1"} gap-2`}>
         <div className="rounded-xl border border-white/10 bg-kireo-card px-3 py-2 text-sm">
           <p className="text-[11px] text-kireo-muted">Speso</p>
-          <p className={overSoldi ? "text-red-400" : "text-kireo-light"}>{soldi.toLocaleString("it-IT")} / {budgetSoldi.toLocaleString("it-IT")} {u}</p>
+          <p className={overSoldi ? "text-red-400" : "text-kireo-light"}>{formattaNumero(soldi)} / {formattaNumero(budgetSoldi)} {u}</p>
         </div>
         {doppio && (
           <div className="rounded-xl border border-white/10 bg-kireo-card px-3 py-2 text-sm">
@@ -292,7 +293,7 @@ function LavoriInput({ step, valore, onChange }: { step: StepPianificaLavori; va
             <input type="checkbox" checked={on} onChange={() => toggle(l.id)} className="accent-kireo-green" />
             <span className="flex-1">{l.label}</span>
             <span className={`flex-none text-[11px] ${risparmioVoce ? "text-kireo-green-light" : "text-kireo-muted"}`}>
-              {risparmioVoce ? `−${Math.abs(l.costo).toLocaleString("it-IT")} ${u} (risparmio)` : `${l.costo.toLocaleString("it-IT")} ${u}`}{l.giorni > 0 ? ` · ${l.giorni} gg` : ""}
+              {risparmioVoce ? `−${formattaNumero(Math.abs(l.costo))} ${u} (risparmio)` : `${formattaNumero(l.costo)} ${u}`}{l.giorni > 0 ? ` · ${l.giorni} gg` : ""}
             </span>
           </label>
         );

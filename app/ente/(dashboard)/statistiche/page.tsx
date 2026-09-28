@@ -1,5 +1,6 @@
 import { getEnteContext } from "@/lib/ente/context";
 import { createClient } from "@/lib/supabase/server";
+import { formattaData } from "@/lib/formato";
 
 export default async function EnteStatistichePage() {
   const contesto = await getEnteContext();
@@ -54,7 +55,7 @@ export default async function EnteStatistichePage() {
                     <div>
                       <p className="font-heading text-sm font-semibold text-kireo-light">{s.titolo}</p>
                       <p className="mt-1 text-xs text-kireo-muted">
-                        {new Date(s.data_inizio).toLocaleDateString("it-IT", { dateStyle: "long" })}
+                        {formattaData(s.data_inizio, "long")}
                       </p>
                     </div>
                     {/*

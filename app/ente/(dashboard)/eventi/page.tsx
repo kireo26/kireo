@@ -8,6 +8,7 @@ import ControlloDirettaEvento from "@/components/ente/ControlloDirettaEvento";
 import ReportEventoButton from "@/components/ente/ReportEventoButton";
 import RispondiPropostaForm, { CreaEventoDaPropostaLink } from "@/components/ente/RispondiPropostaForm";
 import { getFiloneBySlug } from "@/data/filoniDocenti";
+import { formattaDataOra } from "@/lib/formato";
 
 const ETICHETTA_STATO: Record<string, { label: string; classe: string }> = {
   bozza: { label: "Bozza", classe: "bg-white/10 text-kireo-light" },
@@ -112,7 +113,7 @@ export default async function EnteEventiPage({ searchParams }: { searchParams: P
                     )}
                     <span className="font-heading text-sm font-semibold text-kireo-light">{e.titolo}</span>
                     <p className="mt-1 text-xs text-kireo-muted">
-                      {new Date(e.data_inizio).toLocaleString("it-IT", { dateStyle: "long", timeStyle: "short" })}
+                      {formattaDataOra(e.data_inizio, "long")}
                     </p>
                   </div>
                   {e.stato === "approvato" && !e.in_evidenza && (

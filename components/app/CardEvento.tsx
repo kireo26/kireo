@@ -2,6 +2,7 @@ import { getAreaBySlug } from "@/data/aree";
 import IscrivitiEventoButton from "./IscrivitiEventoButton";
 import EntraDirettaLink from "@/components/EntraDirettaLink";
 import type { Evento } from "@/lib/app/eventi";
+import { formattaDataOra } from "@/lib/formato";
 
 const ETICHETTA_TIPO: Record<Evento["tipo"], string> = {
   webinar: "Webinar",
@@ -54,7 +55,7 @@ export default function CardEvento({
           </div>
           <h3 className="mt-2 font-heading text-base font-semibold text-kireo-light">{evento.titolo}</h3>
           <p className="mt-1 text-sm text-kireo-muted">
-            {new Date(evento.data_inizio).toLocaleString("it-IT", { dateStyle: "full", timeStyle: "short" })}
+            {formattaDataOra(evento.data_inizio, "full")}
             {evento.sede ? ` · ${evento.sede}` : " · Online"}
           </p>
           {evento.descrizione && <p className="mt-2 text-sm text-kireo-muted">{evento.descrizione}</p>}

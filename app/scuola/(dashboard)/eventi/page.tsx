@@ -4,6 +4,7 @@ import { getEventiConIscrizioniScuola, getRegistroPresenze } from "@/lib/scuola/
 import IscriviClasseEventoForm from "@/components/scuola/IscriviClasseEventoForm";
 import IscriviTuttiVerificatiButton from "@/components/scuola/IscriviTuttiVerificatiButton";
 import RegistroPresenzeEvento from "@/components/scuola/RegistroPresenzeEvento";
+import { formattaData, formattaDataOra } from "@/lib/formato";
 
 export default async function ScuolaEventiPage() {
   const contesto = await getScuolaContext();
@@ -49,7 +50,7 @@ export default async function ScuolaEventiPage() {
               <li key={e.id} className="rounded-2xl border border-white/5 bg-kireo-card p-5">
                 <p className="font-heading text-sm font-semibold text-kireo-light">{e.titolo}</p>
                 <p className="mt-1 text-xs text-kireo-muted">
-                  {new Date(e.data_inizio).toLocaleString("it-IT", { dateStyle: "long", timeStyle: "short" })}
+                  {formattaDataOra(e.data_inizio, "long")}
                   {e.ore_pcto > 0 && ` · ${e.ore_pcto}h PCTO`}
                 </p>
                 {contesto.puoGestireClassi ? (
@@ -79,7 +80,7 @@ export default async function ScuolaEventiPage() {
               <li key={evento.id} className="rounded-2xl border border-white/5 bg-kireo-card p-5">
                 <p className="font-heading text-sm font-semibold text-kireo-light">{evento.titolo}</p>
                 <p className="mt-1 text-xs text-kireo-muted">
-                  {new Date(evento.data_inizio).toLocaleDateString("it-IT", { dateStyle: "long" })}
+                  {formattaData(evento.data_inizio, "long")}
                 </p>
                 <RegistroPresenzeEvento eventoId={evento.id} righe={righe} puoCertificare={contesto.puoCertificarePresenze} />
                 {contesto.puoCertificarePresenze && (

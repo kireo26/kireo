@@ -2,6 +2,7 @@ import { getDocenteContext } from "@/lib/docente/context";
 import { getAttestatiDocente } from "@/lib/docente/attestati";
 import { createClient } from "@/lib/supabase/server";
 import { getFiloneBySlug } from "@/data/filoniDocenti";
+import { formattaData } from "@/lib/formato";
 
 export default async function DocenteAttestatiPage() {
   const contesto = await getDocenteContext();
@@ -35,9 +36,9 @@ export default async function DocenteAttestatiPage() {
                   )}
                   <p className="mt-2 font-heading text-sm font-semibold text-kireo-light">{a.titoloWebinar}</p>
                   <p className="mt-1 text-xs text-kireo-muted">
-                    {new Date(a.dataEvento).toLocaleDateString("it-IT", { dateStyle: "long" })}
+                    {formattaData(a.dataEvento, "long")}
                     {a.organizzatoreNome ? ` · ${a.organizzatoreNome}` : ""} · rilasciato il{" "}
-                    {new Date(a.rilasciatoIl).toLocaleDateString("it-IT", { dateStyle: "long" })}
+                    {formattaData(a.rilasciatoIl, "long")}
                   </p>
                 </div>
                 <a

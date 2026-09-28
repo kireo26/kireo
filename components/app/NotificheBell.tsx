@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { formattaData } from "@/lib/formato";
 
 type Notifica = {
   id: string;
@@ -138,7 +139,7 @@ export default function NotificheBell({ userId, allineamento = "destra" }: { use
                       {ETICHETTA_TIPO[n.tipo] ?? n.tipo}
                     </span>
                     <span className="mt-0.5 block text-[11px] text-kireo-muted">
-                      {new Date(n.created_at).toLocaleDateString("it-IT", { dateStyle: "medium" })}
+                      {formattaData(n.created_at, "medium")}
                     </span>
                   </Link>
                 </li>

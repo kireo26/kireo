@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { getFiloneBySlug } from "@/data/filoniDocenti";
+import { formattaData } from "@/lib/formato";
 
 export const metadata: Metadata = {
   title: "Verifica attestato — KIREO",
@@ -41,7 +42,7 @@ export default async function VerificaAttestatoPage({ params }: { params: Promis
 
           <p className="mt-4 text-sm text-kireo-muted">Attestato rilasciato il</p>
           <p className="text-kireo-light/90">
-            {new Date(risultato.rilasciato_il).toLocaleDateString("it-IT", { dateStyle: "long" })}
+            {formattaData(risultato.rilasciato_il, "long")}
           </p>
         </div>
       ) : (
