@@ -134,7 +134,7 @@ export async function getIscrizioniStudente(supabase: SupabaseClient, userId: st
 }
 
 // Come sopra, ma con l'origine (studente/scuola): per mostrare l'etichetta
-// "Iscritto dalla tua scuola" quando l'iscrizione è d'ufficio (vedi
+// "Ti ha iscritto la tua scuola" quando l'iscrizione è d'ufficio (vedi
 // CLAUDE.md — non è un segnale di interesse, ma lo studente deve saperlo).
 export async function getIscrizioniStudenteConOrigine(
   supabase: SupabaseClient,

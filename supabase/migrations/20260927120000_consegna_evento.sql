@@ -43,14 +43,21 @@
 -- ~1,0 per area riconosciuta (il valore vive in lib/eventi/consegna.ts, accanto
 -- al prompt che lo giustifica). Più di una risposta a un questionario (0,35),
 -- molto meno di una missione (una missione intera porta un'area a
--- confidence 1,000), MAI sufficiente da sola. Il vincolo che lo limita è lo
--- stesso di sopra: con 1,0 servono QUATTRO consegne sulla stessa area per
--- entrare in classifica — quattro dirette diverse, su quella stessa area, ognuna
--- con un testo scritto e giudicato. È una soglia che si attraversa lavorando,
--- non presenziando.
+-- confidence 1,000), MAI sufficiente da sola.
 -- Il numero non è tarato su dati: il giorno in cui ci saranno abbastanza
--- consegne vere, si guarda quante aree entrano in classifica per questa strada
--- e si ritara. Fino a quel giorno resta una scelta, e sta scritto che lo è.
+-- consegne vere si ritara. Fino a quel giorno resta una scelta, e sta scritto
+-- che lo è.
+--
+-- ⚠️ ATTENZIONE, E LA PRIMA STESURA DICEVA IL FALSO. Diceva «con 1,0 servono
+-- quattro consegne sulla stessa area per entrare in classifica». NON NE BASTA
+-- NESSUN NUMERO: la barra di `eleggibilePerAffinita` ha DUE condizioni —
+-- confidence >= 0,40 E interest_score non nullo — e la seconda non cade mai
+-- per questa strada, perché qui si emette solo `performance`. Verificato
+-- eseguendo il predicato: a 1, 4, 10 e 100 consegne l'esito è false.
+-- Una consegna contribuisce al PROFILO (la riga in area_signal c'è) e non alla
+-- CLASSIFICA. Se debba poterci arrivare è una decisione di prodotto — o si
+-- emette anche `interest`, o la barra guarda anche `performance_score` — non un
+-- peso da ritoccare.
 --
 -- ═══════════════════════════════════════════════════════════════════════════
 -- LE AREE NON SONO OBBLIGATORIE SU UN EVENTO — e non lo erano nemmeno prima

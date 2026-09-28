@@ -28,9 +28,12 @@ export function statoDiretta(dataInizio: string, dataFine: string | null, ora: D
 // perché questo file è l'altro posto in cui uno verrebbe a «completare il
 // lavoro»: c'è l'heartbeat, c'è la consegna che scrive prove, e in mezzo la
 // presenza che non ne scrive. Il numero: un'area entra nelle affinità a
-// confidence >= 0,40, cioè Σpeso >= 4 — se la presenza valesse ~1,0, quattro
-// dirette basterebbero a creare un'affinità, e la presenza è aver tenuto una
-// scheda aperta. La ragione per esteso sta in testa a
+// confidence >= 0,40 (cioè Σpeso >= 4) E un interesse non nullo — se la
+// presenza valesse ~1,0 su quella dimensione, quattro dirette basterebbero a
+// creare un'affinità, e la
+// presenza è aver tenuto una scheda aperta. (La dimensione va detta: la
+// consegna pesa 1,0 e NON può creare un'affinità per nessun numero, perché
+// emette solo `performance`.) La ragione per esteso sta in testa a
 // supabase/migrations/20260927120000_consegna_evento.sql.
 export const ORE_FINESTRA_CONSEGNA = 48;
 
@@ -39,6 +42,15 @@ export function consegnaAperta(dataInizio: string, dataFine: string | null, ora:
   const fine = dataFine ? new Date(dataFine).getTime() : inizio + DURATA_DEFAULT_MS;
   const now = ora.getTime();
   return now >= fine && now < fine + ORE_FINESTRA_CONSEGNA * 60 * 60 * 1000;
+}
+
+// Un evento è già cominciato. Serve a decidere se OFFRIRE l'iscrizione: una
+// prenotazione per una cosa già iniziata non serve a niente e promette
+// qualcosa. Sta qui, con l'ora iniettabile come le sorelle, per due ragioni —
+// si prova con un istante fisso invece che con l'orologio della macchina, e in
+// un componente non compare una chiamata impura dentro il render.
+export function eventoCominciato(dataInizio: string, ora: Date = new Date()): boolean {
+  return new Date(dataInizio).getTime() <= ora.getTime();
 }
 
 // Il link "Entra nella diretta" appare da 15 minuti prima dell'inizio fino

@@ -17,7 +17,9 @@ import { useEffect } from "react";
 //
 // IL NUMERO CHE LA DECIDE: un'area entra nella classifica delle affinità a
 // `confidence >= 0,40`, e `confidence = least(1, Σpeso / 10)`, quindi la barra è
-// Σpeso >= 4. Se una presenza valesse ~1,0 come una consegna, QUATTRO DIRETTE
+// Σpeso >= 4 E un interesse non nullo. Se una presenza valesse ~1,0 SU QUELLA
+// DIMENSIONE — non come una consegna, che emette solo performance e per questo
+// non crea affinità per nessun numero — QUATTRO DIRETTE
 // basterebbero a creare un'affinità — e una presenza è, alla lettera, aver tenuto
 // una scheda aperta e visibile: questo file non sa nemmeno se il video sta
 // andando. Un'affermazione su una persona che nessuna sua scelta sostiene.

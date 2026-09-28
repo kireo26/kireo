@@ -3,6 +3,7 @@ import IscrivitiEventoButton from "./IscrivitiEventoButton";
 import EntraDirettaLink from "@/components/EntraDirettaLink";
 import type { Evento } from "@/lib/app/eventi";
 import { formattaDataOra } from "@/lib/formato";
+import { eventoCominciato } from "@/lib/live";
 
 const ETICHETTA_TIPO: Record<Evento["tipo"], string> = {
   webinar: "Webinar",
@@ -25,6 +26,18 @@ export default function CardEvento({
   // studente — solo un'etichetta informativa, il bottone resta invariato.
   origineIscrizione?: "studente" | "scuola" | null;
 }) {
+  // UN EVENTO GIÀ COMINCIATO NON SI PRENOTA. `getEventiPerArea` non filtra per
+  // data — di proposito, un'area mostra anche quello che è già stato — quindi
+  // fino al 28/09 su /aree/[slug] un incontro finito mostrava comunque
+  // «Iscriviti»: un bottone che non serve a niente e promette qualcosa.
+  //
+  // È anche la risposta alla domanda «si può caricare un evento già tenuto?».
+  // Sì, e resta lecito: quello che non deve succedere è che la pagina poi
+  // chieda agli studenti di prenotarsi. Il fatto sta sull'EVENTO, non sul form
+  // che lo ha creato, quindi vale per un evento caricato a posteriori e per uno
+  // normale il giorno dopo.
+  const cominciato = eventoCominciato(evento.data_inizio);
+
   return (
     <li className="rounded-2xl border border-white/5 bg-kireo-card p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -41,8 +54,11 @@ export default function CardEvento({
                 {evento.ore_pcto}h PCTO
               </span>
             )}
+            {iscritto && cominciato && (
+              <span className="rounded-full bg-white/10 px-2.5 py-0.5 text-xs text-kireo-light/80">Avevi un posto</span>
+            )}
             {iscritto && origineIscrizione === "scuola" && (
-              <span className="rounded-full bg-white/10 px-2.5 py-0.5 text-xs text-kireo-light/80">Iscritto dalla tua scuola</span>
+              <span className="rounded-full bg-white/10 px-2.5 py-0.5 text-xs text-kireo-light/80">Ti ha iscritto la tua scuola</span>
             )}
             {areeSlugs.map((slug) => {
               const area = getAreaBySlug(slug);
@@ -77,13 +93,15 @@ export default function CardEvento({
             iscritto={iscritto}
           />
         </div>
-        <IscrivitiEventoButton
-          eventoId={evento.id}
-          areaSlug={areeSlugs[0] ?? null}
-          organizzatoreId={evento.organizzatore_id}
-          userId={userId}
-          iscrittoIniziale={iscritto}
-        />
+        {cominciato ? null : (
+          <IscrivitiEventoButton
+            eventoId={evento.id}
+            areaSlug={areeSlugs[0] ?? null}
+            organizzatoreId={evento.organizzatore_id}
+            userId={userId}
+            iscrittoIniziale={iscritto}
+          />
+        )}
       </div>
     </li>
   );

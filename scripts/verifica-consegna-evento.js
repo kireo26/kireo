@@ -39,6 +39,7 @@ const {
 } = require("@/lib/eventi/consegna");
 const { TETTO_LETTURE_CONSEGNA, statoRilettura, testoRilettura, MESSAGGIO_TETTO } = require("@/lib/eventi/rilettura");
 const { scadenzaConsegna } = require("@/lib/app/consegneDaFare");
+const { eleggibilePerAffinita, SOGLIA_AFFINITA } = require("@/lib/percorso/stato");
 
 let falliti = 0;
 function ok(cond, testo) {
@@ -230,6 +231,14 @@ for (const [nome, testo] of [
   ["supabase/migrations/20260726110000_diretta_presenze_domande.sql", sqlPresenze],
 ]) {
   ok(/0,40/.test(testo) && /Σp(eso)?\s*>=\s*4/.test(testo), `${nome} porta l'aritmetica che limita il peso (confidence 0,40 ⇔ Σpeso >= 4)`);
+  // ⚠️ QUI NON CI VA UN DIVIETO LESSICALE SULLA FRASE FALSA, e la prima stesura
+  // ce l'aveva messo. La frase «servono quattro consegne perché nasca
+  // un'affinità» era scritta in quattro posti il 27/09 ed era falsa in tutti e
+  // quattro — ma i file che la correggono devono CITARLA per spiegare perché era
+  // sbagliata, e l'aritmetica che qui si pretende vive nei commenti, quindi non
+  // si può leggere il sorgente spogliato. Un divieto così è rosso sui testi che
+  // fanno la cosa giusta, cioè un controllo che qualcuno disattiva.
+  // La conseguenza vera è tenuta ferma dalla §13, che la ESEGUE.
 }
 ok(
   /scelto e non misurato/i.test(sqlConsegna) && /scelta, e sta scritto che lo è/i.test(tsConsegna),
@@ -327,6 +336,13 @@ ok(/non basta a dire qualcosa su di te/.test(routeTesti), "…e dice che una ris
 // vede rileggendo la frase.
 ok(!/la prima cosa che hai scritto/.test(routeTesti), "…e non conta le consegne («la prima cosa» è falsa alla seconda)");
 ok(!/su quest'area/.test(routeTesti), "…né nomina una sola area (un evento può averne due)");
+// IL TITOLO È PARTE DELLA FRASE. A schermo c'è «Risposta consegnata» e sotto il
+// messaggio: la versione del 27/09 ricominciava con le stesse due parole, e chi
+// leggeva le leggeva due volte. Le due metà si controllano insieme, perché
+// separate nessuna delle due è sbagliata.
+ok(/>Risposta consegnata</.test(consegnaTsx), "sopra il messaggio c'è il titolo «Risposta consegnata»");
+ok(!/messaggio:\s*\n?\s*"Risposta consegnata/.test(routeTesti), "…e il messaggio non lo ripete: continua da lì invece di ricominciare");
+ok(/"Ed è entrata nel tuo profilo/.test(routeTesti), "…attaccandosi al titolo con una frase che senza di lui non starebbe in piedi");
 
 // In un prodotto per minori il silenzio su chi legge non è neutro.
 ok(/lo legge (?:solo )?KIREO/.test(consegnaTsx), "il campo dice che quello che scrive lo legge KIREO");
@@ -467,6 +483,32 @@ ok(
   "all'ultima lettura consentita il messaggio di guasto non invita più a ripremere un bottone che sta sparendo",
 );
 
+// (f) L'ESAURIMENTO SI REGISTRA. Lo studente sa che ci abbiamo provato cinque
+// volte; noi no — e cinque fallimenti di fila sullo stesso testo sono il segnale
+// più forte che qualcosa è rotto da questa parte. Senza, lo scopriremmo solo se
+// qualcuno si lamentasse, cioè mai: nessuno scrive a un sito per dire che un
+// bottone non ha funzionato.
+ok(/specie: "consegna_esaurita"/.test(routeTetto), "l'esaurimento delle letture lascia un guasto con una specie sua");
+ok(
+  /if \(!ultimaLettura\) return;/.test(routeTetto),
+  "…solo all'ultima lettura: una riga per ogni tentativo renderebbe illeggibile proprio quella che conta",
+);
+// Si registra alla QUINTA, non alla sesta pressione: il rifiuto `troppe_letture`
+// arriva solo se lo studente riprova ancora, e un allarme che dipende da un
+// gesto in più è un allarme che non suona.
+const iTroppe = routeTetto.indexOf("troppe_letture");
+const iUltima = routeTetto.indexOf("const ultimaLettura");
+ok(iTroppe > 0 && iUltima > iTroppe, "…e non dal ramo che rifiuta la sesta pressione, che dipenderebbe da un gesto in più");
+// LA PROPRIETÀ STRUTTURALE: nessun ramo può rispondere «non ci siamo riusciti»
+// all'ultima lettura senza lasciare l'allarme. Un ramo nuovo aggiunto domani lo
+// perderebbe in silenzio.
+const ramiGuasto = [...routeTetto.matchAll(/messaggio: messaggioGuasto/g)].map((m) => m.index);
+ok(ramiGuasto.length >= 2, `i rami che rispondono con il messaggio di guasto sono ${ramiGuasto.length}`);
+ok(
+  ramiGuasto.every((i) => /segnalaEsaurimento\(/.test(routeTetto.slice(Math.max(0, i - 400), i))),
+  "…e ognuno di loro segnala l'esaurimento prima di rispondere",
+);
+
 
 // ── 12) LA PORTA: un evento finito dev'essere raggiungibile ────────────────
 //
@@ -527,6 +569,43 @@ ok(
     !consegnaAperta(INIZIO_C, FINE_C, new Date(new Date(atteso).getTime() + 1000)),
   "…e al momento che annuncia la porta si chiude davvero: la scadenza detta e quella applicata sono la stessa",
 );
+
+
+// ── 13) UNA CONSEGNA NON ENTRA NELLA CLASSIFICA, E NON È IL PESO ────────────
+//
+// La domanda di Mario il 28/09, dopo la sua prima consegna vera: la riga in
+// `area_signal` era interest **null**, performance 100, confidence 0,100. E
+// `eleggibilePerAffinita` chiede DUE cose — `confidence >= SOGLIA_AFFINITA` **e**
+// `interest_score !== null`. Quindi un'area sostenuta solo da consegne non entra
+// in classifica mai: la confidence sale, l'interesse resta nullo, la seconda
+// condizione non cade.
+//
+// È UNA SCELTA, non un effetto collaterale: il prompt chiede `performance` e
+// nient'altro, e la ragione sta in testa a lib/eventi/consegna.ts (che un'area
+// INTERESSI non lo dice il fatto di aver risposto a una domanda posta da
+// qualcun altro). Quello che era sbagliato è come la conseguenza era descritta.
+//
+// Qui si tiene ferma la conseguenza VERA, eseguendola: se un domani si volesse
+// cambiarla, si cambia il prodotto e questo controllo lo dice.
+console.log("\n13) Una consegna nel profilo, non nella classifica");
+
+const confDi = (n) => Math.min(1, (n * PESO_CONSEGNA_EVENTO) / 10);
+ok(PESO_CONSEGNA_EVENTO > 0 && SOGLIA_AFFINITA > 0, `peso ${PESO_CONSEGNA_EVENTO}, barra ${SOGLIA_AFFINITA}`);
+ok(
+  confDi(4) >= SOGLIA_AFFINITA,
+  "quattro consegne portano la confidence ALLA barra…",
+);
+ok(
+  [1, 4, 10, 100].every((n) => !eleggibilePerAffinita({ confidence: confDi(n), interest_score: null, performance_score: 100 })),
+  "…e l'area non entra comunque, per nessun numero: la barra chiede anche un interesse, che questa strada non produce",
+);
+ok(
+  eleggibilePerAffinita({ confidence: SOGLIA_AFFINITA, interest_score: 30 }),
+  "…mentre con un interesse da un'altra parte la stessa confidence basta (è la seconda condizione, non la prima, a fermarla)",
+);
+// La dimensione è UNA, e il prompt è il posto in cui lo si vede.
+ok(!/interest/i.test(prompt), "il prompt non chiede interesse: è quello che rende la conseguenza sopra una scelta e non una svista");
+ok(/"performance"/.test(tsConsegna), "…e il tipo della prova ammette solo performance");
 
 console.log(falliti === 0 ? "\n✅ tutto verde\n" : `\n❌ ${falliti} asserzioni rosse\n`);
 process.exit(falliti === 0 ? 0 : 1);

@@ -129,6 +129,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     testo = inserita.testo;
   }
 
+  // `di_prova` si legge qui e non più giù: da quando l'esaurimento delle
+  // letture registra un guasto, serve già al blocco del tetto — e una misura
+  // che non distingue il robot dagli studenti veri è una misura che mente.
+  const { data: profilo } = await supabase.from("profiles").select("di_prova").eq("id", user.id).maybeSingle();
+  const diProva = profilo?.di_prova === true;
+
   // ── 2. il tetto, PRIMA della chiamata
   // Un errore qui non fa proseguire: se non sappiamo limitare, non spendiamo.
   // Fallire chiuso su una porta che protegge una spesa è il verso giusto — meglio
@@ -149,12 +155,37 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }
   // Questa era l'ultima lettura consentita: da qui in avanti il bottone non
   // c'è più, quindi il messaggio di guasto non può invitare a ripremerlo.
-  const messaggioGuasto = Number(letture) >= TETTO_LETTURE_CONSEGNA ? MESSAGGIO_TETTO : MESSAGGIO_GUASTO;
+  const ultimaLettura = Number(letture) >= TETTO_LETTURE_CONSEGNA;
+  const messaggioGuasto = ultimaLettura ? MESSAGGIO_TETTO : MESSAGGIO_GUASTO;
+
+  /**
+   * L'ESAURIMENTO SI REGISTRA UNA VOLTA, ED È UN FATTO DIVERSO DAL FALLIMENTO.
+   *
+   * Ogni tentativo andato male lascia già la sua riga (`prove_consegna_evento`
+   * o `scrittura_consegna_evento`): quella dice *cosa* non ha funzionato, ed è
+   * rumore normale. Cinque fallimenti di fila sullo stesso testo dicono un'altra
+   * cosa — che quella consegna non è più recuperabile da sola, e che uno
+   * studente resta con una risposta che nessuno giudicherà. **Lo studente lo sa
+   * (glielo dice MESSAGGIO_TETTO); noi no.** E non lo scopriremmo mai
+   * aspettando: nessuno scrive a un sito per dire che un bottone non ha
+   * funzionato.
+   *
+   * SI REGISTRA ALLA QUINTA, non alla sesta pressione: il rifiuto
+   * `troppe_letture` arriva solo se lo studente riprova ancora, e un allarme
+   * che dipende da un gesto in più è un allarme che non suona. Per la stessa
+   * ragione non si registra *a ogni* fallimento: una riga per tentativo
+   * renderebbe illeggibile proprio la riga che conta.
+   */
+  const segnalaEsaurimento = async (motivo: string) => {
+    if (!ultimaLettura) return;
+    await segnalaGuasto(
+      { processo: "eventi/consegna", specie: "consegna_esaurita", motivo, dettaglio: { eventoId: id, letture: Number(letture) }, diProva },
+      `Consegna evento — letture esaurite (${TETTO_LETTURE_CONSEGNA}) senza riuscire: il testo resta non valutato`,
+    );
+  };
 
   // ── 3. il giudizio
   const chiave = process.env.ANTHROPIC_API_KEY;
-  const { data: profilo } = await supabase.from("profiles").select("di_prova").eq("id", user.id).maybeSingle();
-  const diProva = profilo?.di_prova === true;
 
   const esito = await giudicaConsegna(
     chiave ? new Anthropic({ apiKey: chiave }) : null,
@@ -193,6 +224,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       { processo: "eventi/consegna", specie: "prove_consegna_evento", motivo: esito.motivo, diProva },
       `Consegna evento — il giudizio non è arrivato (${esito.motivo})`,
     );
+    await segnalaEsaurimento(esito.motivo);
     return NextResponse.json({ ok: false, messaggio: messaggioGuasto }, { status: 500 });
   }
 
@@ -206,6 +238,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       { processo: "eventi/consegna", specie: "scrittura_consegna_evento", motivo: "registra_evidenze", dettaglio: erroreProve, diProva },
       "Consegna evento — le prove non si sono salvate",
     );
+    await segnalaEsaurimento("registra_evidenze");
     return NextResponse.json({ ok: false, messaggio: messaggioGuasto }, { status: 500 });
   }
 
@@ -223,7 +256,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     // consegna sulla stessa area e al singolare su un evento che ne ha due. Qui
     // non c'è nessun numero e nessun singolare, quindi non c'è niente che possa
     // diventare falso: vale alla prima consegna e alla quinta.
+    //
+    // E NON RIPETE IL TITOLO. A schermo sopra c'è già «Risposta consegnata»
+    // (`ConsegnaEvento.tsx`): la versione precedente cominciava con le stesse
+    // due parole, e chi leggeva le leggeva due volte. Questa continua il
+    // titolo invece di ricominciare — quindi il titolo è parte della frase, e
+    // `npm run test:consegna-evento` pretende che resti quello.
     messaggio:
-      "Risposta consegnata, ed è entrata nel tuo profilo. Una risposta sola non basta a dire qualcosa su di te — conta insieme a tutto quello che hai già fatto, e a quello che farai dopo.",
+      "Ed è entrata nel tuo profilo. Una risposta sola non basta a dire qualcosa su di te — conta insieme a tutto quello che hai già fatto, e a quello che farai dopo.",
   });
 }

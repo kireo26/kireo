@@ -22,8 +22,10 @@
 -- riga in `activity_log` (peso 15, o 25 per un workshop) per ogni area
 -- dell'evento, che è quello che alimenta il radar. Quello che NON lascia è una
 -- prova di AFFINITÀ (`evidence`/`area_signal`), e non è un lavoro a metà: un'area
--- entra nelle affinità a confidence >= 0,40, cioè Σpeso >= 4, quindi con una
--- presenza da ~1,0 quattro dirette creerebbero un'affinità — e una presenza è
+-- entra nelle affinità a confidence >= 0,40 (cioè Σpeso >= 4) E con un
+-- interesse non nullo,
+-- quindi con una presenza da ~1,0 SU QUELLA DIMENSIONE quattro dirette
+-- creerebbero un'affinità — e una presenza è
 -- aver tenuto una scheda aperta. A lasciare una prova di affinità è la CONSEGNA
 -- della diretta: vedi 20260927120000_consegna_evento.sql, dove la ragione sta per
 -- esteso. E se l'evento non ha nessuna area, il credito di esplorazione non va da

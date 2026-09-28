@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import AreeInteresseGrid from "@/components/app/AreeInteresseGrid";
 import { FILONI_DOCENTI } from "@/data/filoniDocenti";
 import { estraiIdYoutube } from "@/lib/youtube";
+import { messaggioErroreEvento } from "@/lib/ente/erroreEvento";
 
 const VOCI_CHECKLIST: { chiave: "non_in_elenco" | "incorporamento_attivo" | "chat_disattivata" | "no_contenuti_terzi"; testo: string }[] = [
   { chiave: "non_in_elenco", testo: "La diretta è impostata come \"non in elenco\" su YouTube (non pubblica, raggiungibile solo dal link)." },
@@ -96,6 +97,13 @@ export default function CreaEventoForm({
     if (!perDocenti && aree.length === 0) {
       next.aree = "Scegli almeno un'area: è così che l'incontro raggiunge gli studenti giusti, e senza un'area chi partecipa non se ne porta niente nel profilo.";
     }
+    // L'ORDINE DELLE DATE, prima che lo dica il database. Il vincolo
+    // `eventi_date_order` esiste dal 12/07 e faceva il suo mestiere — ma il
+    // rifiuto arrivava come un errore generico che diceva «riprova più tardi»,
+    // cioè un consiglio falso su un campo non nominato.
+    if (dataInizio && dataFine && new Date(dataFine) < new Date(dataInizio)) {
+      next.dataFine = "La fine non può venire prima dell'inizio.";
+    }
     if (eDiretta) {
       if (!dataFine) next.dataFine = "Per un webinar in diretta la data e ora di fine sono obbligatorie (servono a calcolare le presenze).";
       if (hostingDiretta === "proprio") {
@@ -156,11 +164,9 @@ export default function CreaEventoForm({
         .single();
 
       if (error || !evento) {
-        if (error?.message?.includes("troppi_eventi_in_revisione")) {
-          setErroreGenerale("Hai già 4 eventi in attesa di revisione: attendi l'esito prima di proporne altri.");
-        } else {
-          setErroreGenerale("Non è stato possibile inviare l'evento. Riprova più tardi.");
-        }
+        // Un rifiuto del DATO non si dice «riprova più tardi»: il tempo non lo
+        // cambia. Vedi lib/ente/erroreEvento.ts.
+        setErroreGenerale(messaggioErroreEvento(error));
         return;
       }
 
@@ -277,6 +283,23 @@ export default function CreaEventoForm({
             className={`${inputClass} ${fieldBorder(Boolean(errori.dataInizio))}`}
           />
           {errori.dataInizio && <p className="mt-1.5 text-sm text-red-400">{errori.dataInizio}</p>}
+          {/*
+            UNA DATA NEL PASSATO NON È VIETATA, ed è una scelta: un ente può
+            voler caricare un incontro già tenuto (per certificarne le presenze,
+            per farlo comparire sul proprio profilo). Quello che non deve
+            succedere è che la pagina poi chieda agli studenti di prenotarsi, e
+            quello lo chiude `CardEvento`, che su un evento già cominciato non
+            mostra il bottone.
+
+            Qui resta un avviso, non un errore: informa di cosa comporta, non
+            blocca un uso legittimo. Non entra in `validate()` apposta — una
+            riga in `errori` bloccherebbe l'invio.
+          */}
+          {dataInizio && new Date(dataInizio) < new Date() && !errori.dataInizio && (
+            <p className="mt-1.5 text-sm text-kireo-muted">
+              Questa data è già passata: l&apos;incontro resterà visibile, ma gli studenti non potranno più prenotarsi.
+            </p>
+          )}
         </div>
         <div>
           <label htmlFor="dataFine" className="mb-1.5 block text-sm font-medium text-kireo-light">

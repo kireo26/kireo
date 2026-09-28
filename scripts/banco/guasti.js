@@ -46,6 +46,7 @@ const ORDINE = [
   "prove_missione",
   "prove_test",
   "guida_riservata",
+  "consegna_esaurita",
   "prove_consegna_evento",
   "scrittura_consegna_evento",
   "credito_area_evento",
@@ -73,6 +74,8 @@ const COSA_VUOL_DIRE = {
   prove_test: "il test non ha prodotto nessuna prova: il profilo resta vuoto, e se ne accorge T3",
   guida_riservata:
     "una guida 2 o 3 non è stata consegnata a chi aveva il diritto di leggerla: di solito il PDF non è nel bundle della funzione (vedi outputFileTracingIncludes in next.config.ts)",
+  consegna_esaurita:
+    "tutte le letture di una consegna sono finite senza riuscire: quel testo non sarà giudicato da solo, e lo studente non ha più un bottone da premere",
   prove_consegna_evento:
     "la risposta alla domanda finale di una diretta non è stata giudicata: il testo è salvato, il credito d'area no (si rigiudica a mano)",
   scrittura_consegna_evento: "le prove della consegna non si sono salvate: il profilo non le ha viste",

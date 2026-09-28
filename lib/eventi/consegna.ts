@@ -21,13 +21,30 @@
 // ha un nome.
 //
 // ═══ IL PESO È SCELTO E NON MISURATO ═══
-// 1,0 per area riconosciuta. Il vincolo che lo limita: un'area entra nella
-// classifica delle affinità a `confidence >= 0,40`, cioè **Σp >= 4** — quindi
-// servono QUATTRO consegne sulla stessa area perché da questa strada nasca
-// un'affinità. Più di una risposta a un questionario (0,35), molto meno di una
-// missione (che da sola porta un'area a confidence 1,000). Il giorno in cui ci
-// saranno consegne vere in numero, si guarda quante aree entrano per questa
-// strada e si ritara: fino a lì è una scelta, e sta scritto che lo è.
+// 1,0 per area riconosciuta. Più di una risposta a un questionario (0,35),
+// molto meno di una missione (che da sola porta un'area a confidence 1,000). Il
+// giorno in cui ci saranno consegne vere in numero si ritara: fino a lì è una
+// scelta, e sta scritto che lo è.
+//
+// L'aritmetica, per chi passa di qui: un'area entra nella classifica delle
+// affinità a `confidence >= 0,40`, e `confidence = least(1, Σpeso / 10)` —
+// quindi Σpeso >= 4.
+//
+// ⚠️ MA IL PESO NON È LA COSA CHE CONTA, E LA PRIMA STESURA DICEVA IL FALSO.
+// Diceva: «servono quattro consegne sulla stessa area perché nasca
+// un'affinità». **Non ne basta nessun numero.** La barra di
+// `eleggibilePerAffinita` ha DUE condizioni — `confidence >= 0,40` **e**
+// `interest_score !== null` — e la seconda non cade mai per questa strada,
+// perché qui si emette solo `performance` e `interest_score` resta nullo.
+// Verificato eseguendo il predicato, non dedotto: a 1, 4, 10 e 100 consegne
+// l'esito è `false`.
+//
+// Quindi oggi una consegna **non può contribuire alla classifica delle
+// affinità**, per costruzione. Contribuisce al profilo (la riga in
+// `area_signal` c'è, con la sua `performance` e la sua `confidence`), e si
+// vede nel ritratto per dimensione. Se debba poterci arrivare è una decisione
+// di prodotto, non un peso da ritoccare: o si emette anche `interest`, o la
+// barra guarda anche `performance_score`. Non si sceglie da qui.
 
 import type Anthropic from "@anthropic-ai/sdk";
 import { getAreaBySlug } from "@/data/aree";

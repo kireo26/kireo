@@ -50,7 +50,8 @@
     "test:revisore": "node scripts/verifica-revisore-aree.js",
     "test:barra": "node scripts/verifica-barra-percorso.js",
     "test:vincoli": "node scripts/verifica-vincoli-mandato.js",
-    "test:date": "node scripts/verifica-date.js"
+    "test:date": "node scripts/verifica-date.js",
+    "test:evento": "node scripts/verifica-evento-form.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.112.5",
