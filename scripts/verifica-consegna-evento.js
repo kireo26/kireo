@@ -10,9 +10,11 @@
 //
 // E DUE COSE CHE SI DIMENTICANO, sorvegliate perché sono decisioni e non
 // dettagli:
-//   - il PESO (1,0) e il vincolo che lo limita (Σpeso >= 4 per entrare nelle
-//     affinità): il numero è scelto e non misurato, e il giorno in cui qualcuno
-//     lo alza deve vedere l'aritmetica accanto;
+//   - il PESO (1,0) e l'aritmetica che lo rende leggibile (Σpeso >= 4 è metà
+//     della barra delle affinità: l'altra metà, un interesse non nullo, per
+//     questa strada non cade mai — vedi il §13): il numero è scelto e non
+//     misurato, e il giorno in cui qualcuno lo alza deve vedere l'aritmetica
+//     accanto;
 //   - la PRESENZA non produce un segnale d'area, ed è deliberato. La prova è
 //     ancorata al NUMERO (Σp >= 4 / confidence 0,40), non a una frase: il 27/09
 //     un'ancora fatta di mezza frase trascritta è diventata rossa su un testo
@@ -544,6 +546,13 @@ for (const [nome, pag] of [["la home", pagHome], ["l'Agenda", pagAgenda]]) {
 }
 ok(/href={`\/app\/eventi\/\$\{[^}]+\}\/live`}/.test(tsxBlocco), "il blocco porta davvero alla pagina dell'incontro");
 ok(/consegne\.length === 0/.test(tsxBlocco) && /return null/.test(tsxBlocco), "…e sparisce quando non c'è niente da fare, invece di lasciare un riquadro vuoto");
+
+// (b-bis) CHI HA CHIESTO SI NOMINA. La prima stesura diceva «è stata lasciata
+// una domanda»: il passivo nasconde chi, e chi ha chiesto è tutto il punto —
+// non è un compito che compare nella pagina, è una persona che aspetta. Quella
+// differenza decide se il riquadro somiglia a un dovere o a un invito.
+ok(/chi l&apos;ha fatta ti ha lasciato/.test(tsxBlocco), "il blocco dice CHI ha lasciato la domanda");
+ok(!/è stata lasciata/.test(tsxBlocco), "…e non torna al passivo, che nasconde l'unica cosa che rende quel riquadro un invito");
 
 // (c) E LA LISTA DEGLI EVENTI PASSATI non è più un elenco cieco: chi era
 // iscritto ha un link, chi non lo era no — la pagina lo respingerebbe, e un

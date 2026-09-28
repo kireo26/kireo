@@ -10,8 +10,16 @@
 -- guardare: la guardia sull'array vuoto sta PRIMA del delete (sulle gemelle, il
 -- 19/09, una seconda finalizzazione a vuoto svuotava il profilo invece di
 -- lasciarlo com'era), e l'aritmetica su cui poggia la scelta del peso — quattro
--- consegne sulla stessa area per arrivare a confidence 0,40 — è un fatto, non
+-- consegne sulla stessa area arrivano a confidence 0,40 — è un fatto, non
 -- un'affermazione nei commenti.
+--
+-- ⚠️ E CONFIDENCE 0,40 NON È «LA BARRA DELLE AFFINITÀ», che è quello che questo
+-- file diceva fino al 28/09. `eleggibilePerAffinita` ha DUE condizioni —
+-- confidence >= 0,40 **e** interest_score non nullo — e per questa strada la
+-- seconda non cade mai, perché una consegna emette solo `performance`. Quattro
+-- consegne arrivano alla metà ARITMETICA della barra, non alla barra: nessun
+-- numero di consegne crea un'affinità, ed è una scelta (vedi il prompt in
+-- lib/eventi/consegna.ts).
 
 begin;
 
@@ -309,10 +317,12 @@ end $$;
 reset role;
 
 -- ════════════════════════ 8. l'aritmetica del peso ════════════════════════
--- QUATTRO consegne sulla stessa area arrivano a confidence 0,40, cioè alla barra
--- delle affinità. È il fatto su cui poggia la scelta del peso (1,0) e la
--- decisione che la PRESENZA non produce un segnale d'area: se la presenza valesse
--- lo stesso, quattro schede aperte creerebbero un'affinità.
+-- QUATTRO consegne sulla stessa area arrivano a confidence 0,40, cioè alla metà
+-- aritmetica della barra delle affinità — non alla barra (vedi l'avvertenza in
+-- testa: l'altra metà, un interesse non nullo, per questa strada non cade mai).
+-- È il fatto su cui poggia la scelta del peso (1,0) e la decisione che la
+-- PRESENZA non produce un segnale d'area: se una presenza valesse lo stesso SU
+-- QUELLA DIMENSIONE, quattro schede aperte creerebbero un'affinità.
 insert into public.eventi (id, organizzatore_id, titolo, tipo, data_inizio, data_fine, stato, domanda_consegna)
 select ('eeeeeeee-0000-0000-0000-00000000001' || n)::uuid, 'aaaaaaaa-0000-0000-0000-000000000001',
        'Incontro ' || n, 'webinar', now() - interval '3 hours', now() - interval '1 hour', 'approvato', 'Cosa ti resta in mente di questo incontro numero ' || n || '?'
@@ -341,7 +351,7 @@ end $$;
 reset role;
 
 insert into esiti (proprieta, atteso, trovato)
-  select 'quattro consegne sulla stessa area: Σpeso 4, confidence 0,40 — la barra delle affinità', '4.00|0.40',
+  select 'quattro consegne sulla stessa area: Σpeso 4, confidence 0,40 — la metà aritmetica della barra, non la barra', '4.00|0.40',
          sum(e.peso)::text || '|' || min(a.confidence)::text
   from public.evidence e
   join public.area_signal a

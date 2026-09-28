@@ -21,8 +21,16 @@ export default function ConsegneDaFare({ consegne }: { consegne: ConsegnaDaFare[
       <ul className="mt-4 space-y-4">
         {consegne.map((c) => (
           <li key={c.eventoId}>
+            {/*
+              IL PASSIVO NASCONDEVA CHI, e chi ha chiesto è tutto il punto: non
+              è un compito che compare nella pagina, è una PERSONA che ha
+              chiesto una cosa e aspetta. Quella differenza decide se il
+              riquadro somiglia a un dovere o a un invito — e sui compiti a casa
+              questi ragazzi hanno già una posizione.
+            */}
             <p className="text-sm text-kireo-light">
-              Alla fine di <span className="font-semibold">{c.titolo}</span> è stata lasciata una domanda.
+              Alla fine di <span className="font-semibold">{c.titolo}</span>, chi l&apos;ha fatta ti ha lasciato una
+              domanda.
             </p>
             <p className="mt-1 text-xs text-kireo-muted">Puoi rispondere fino al {formattaDataOra(c.scadenza)}.</p>
             <Link

@@ -22,6 +22,13 @@
 // questo file: «funziona per caso» e «funziona» non si distinguono guardando —
 // una chiamata in un componente client oggi usa la zona di chi guarda e sembra
 // giusta, e lo sembrerà finché qualcuno non sposta quel componente sul server.
+//
+// ⚠️ E UN FORMATTATORE CONDIVISO NON È AL SICURO PER IL FATTO DI ESSERE
+// CONDIVISO. Questo file esisteva già il 28/09, ed era la cinquantatreesima
+// chiamata col difetto: scritto con `Intl.DateTimeFormat`, quindi invisibile a
+// una ricerca su `toLocale`. Centralizzare mette le cose in un posto solo; non
+// le rende giuste. Per questo la guardia controlla la zona DENTRO questo file,
+// su ogni formattatore, e non solo fuori.
 
 const ZONA = "Europe/Rome";
 
@@ -40,6 +47,84 @@ export function formattaData(iso: string | Date, stile: StileData = "long"): str
 /** Giorno e ora: «28 settembre 2026 alle ore 15:00». L'ora è sempre `short` — i secondi non servono a nessuno qui. */
 export function formattaDataOra(iso: string | Date, stile: StileData = "long"): string {
   return quando(iso).toLocaleString("it-IT", { dateStyle: stile, timeStyle: "short", timeZone: ZONA });
+}
+
+// ─────────────────────────── L'ALTRA METÀ: L'INGRESSO ───────────────────────
+//
+// PERCHÉ ESISTE. Fissare la zona in USCITA lascia aperta la metà simmetrica:
+// `<input type="datetime-local">` restituisce "2026-09-28T15:00" senza fuso, e
+// `new Date(quella stringa)` la interpreta nella zona DEL BROWSER DI CHI
+// COMPILA. Per un ente italiano le due metà si annullano, quindi chi prova oggi
+// non vede niente di strano — ed è la forma peggiore: un errore che aspetta, e
+// che quando arriva colpisce un evento solo, quindi verrà scambiato per un caso
+// isolato.
+//
+// LA PROPRIETÀ: quello che l'ente digita è UN ORARIO DI SCUOLA ITALIANA, non un
+// orario di chi lo digita. «15:00» deve produrre lo stesso istante da Napoli,
+// da Londra e da una macchina configurata male.
+
+const FORMATO_LOCALE = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/;
+
+/**
+ * Quanto Roma è avanti rispetto a UTC in quell'istante, in millisecondi.
+ * Si ricava leggendo l'ora di Roma e rimontandola come se fosse UTC: la
+ * differenza è l'offset. Nessuna tabella di fusi da tenere aggiornata — la sa
+ * già la piattaforma, e la sa anche per gli anni futuri.
+ */
+function offsetDiRoma(istante: number): number {
+  const p: Record<string, string> = {};
+  for (const parte of new Intl.DateTimeFormat("en-CA", {
+    timeZone: ZONA,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date(istante))) {
+    p[parte.type] = parte.value;
+  }
+  const comeSeUtc = Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute, +p.second);
+  return comeSeUtc - istante;
+}
+
+/**
+ * Da un valore di `<input type="datetime-local">` all'istante che quell'orario
+ * indica **in Italia**. Restituisce una stringa ISO, o `null` se la stringa non
+ * ha quella forma.
+ *
+ * NULL E NON UN RIPIEGO, di proposito: un ripiego silenzioso scriverebbe un
+ * istante sbagliato di ore, e nessuno lo vedrebbe. Chi chiama tratta il null
+ * come un errore di campo, dove l'ente può ancora correggere.
+ *
+ * L'OFFSET SI CALCOLA DUE VOLTE perché nel giorno del cambio d'ora il primo
+ * candidato può cadere dall'altra parte della transizione. Il caso concreto,
+ * trovato eseguendo le due versioni su ogni mezz'ora intorno alle transizioni:
+ * le 01:30 dell'ultima domenica di marzo, che con una passata sola finiscono
+ * alle 23:30 del GIORNO PRIMA. «Subito dopo il cambio» esce giusto anche con
+ * una passata sola, quindi non è quello il caso da provare.
+ *
+ * Un orario che nel cambio d'ora non esiste (le 02:30 di marzo) scivola in
+ * avanti, uno ambiguo (le 02:30 di ottobre) prende la seconda occorrenza —
+ * deterministico, e nessuna delle due capita a un orario di scuola.
+ */
+export function istanteDaOrarioItaliano(locale: string): string | null {
+  const m = FORMATO_LOCALE.exec(locale.trim());
+  if (!m) return null;
+  const comeSeUtc = Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], m[6] ? +m[6] : 0);
+  const primoTentativo = comeSeUtc - offsetDiRoma(comeSeUtc);
+  return new Date(comeSeUtc - offsetDiRoma(primoTentativo)).toISOString();
+}
+
+/**
+ * Lo stesso valore come numero di millisecondi, per i confronti. `NaN` quando
+ * la stringa non è un orario: un confronto con `NaN` è sempre falso, quindi un
+ * campo malformato non fa scattare un avviso per sbaglio.
+ */
+export function millisecondiDaOrarioItaliano(locale: string): number {
+  const iso = istanteDaOrarioItaliano(locale);
+  return iso === null ? NaN : new Date(iso).getTime();
 }
 
 /**

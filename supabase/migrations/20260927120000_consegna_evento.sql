@@ -22,8 +22,9 @@
 --
 -- IL NUMERO CHE LO DECIDE. Un'area entra nella classifica delle affinità a
 -- `confidence >= 0,40` (lib/percorso/stato.ts), e
--- `confidence = least(1, Σpeso / 10)` — quindi la barra è **Σp >= 4**. Se la
--- presenza valesse ~1,0, QUATTRO DIRETTE basterebbero a creare un'affinità. E
+-- `confidence = least(1, Σpeso / 10)` — quindi metà della barra è **Σp >= 4**
+-- (l'altra metà è un `interest_score` non nullo). Se la presenza valesse ~1,0
+-- SU QUELLA DIMENSIONE, QUATTRO DIRETTE basterebbero a creare un'affinità. E
 -- la presenza è, alla lettera, *aver tenuto una scheda aperta e visibile per il
 -- 75% del tempo*: i limiti di quel rilevamento sono già scritti in CLAUDE.md
 -- («nessun segnale che distingua "video effettivamente in riproduzione" da

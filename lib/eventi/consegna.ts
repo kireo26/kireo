@@ -45,6 +45,22 @@
 // vede nel ritratto per dimensione. Se debba poterci arrivare è una decisione
 // di prodotto, non un peso da ritoccare: o si emette anche `interest`, o la
 // barra guarda anche `performance_score`. Non si sceglie da qui.
+//
+// ═══ ED È DECISO: NON SI CAMBIA. Mario, 28/09 ═══
+// Una consegna **non scopre una direzione: ne rinforza una che c'è**. Su un'area
+// già toccata da un test o da una missione aggiunge prove e alza la confidence;
+// su un'area intatta lascia l'impronta nel radar dell'esplorazione, dove va, e
+// non inventa un'affinità. Rispondere alla domanda di un ente non dice VERSO
+// COSA ti orienti — magari eri lì perché ti ha iscritto la classe, perché l'ha
+// detto un docente, perché era un'ora buca. Quello che il testo mostra è come
+// ragioni davanti a un problema, e quella dimensione ha già un nome.
+//
+// ⚠️ E LA RIGA DA LEGGERE IL GIORNO IN CUI SEMBRERÀ UNA DIMENTICANZA: se uno
+// studente avrà nel profilo solo consegne e nessuna affinità, la risposta giusta
+// è che **il suo ritratto è magro** — non che la barra è troppo alta. Far
+// guardare alla barra anche `performance_score` cambierebbe la classifica di
+// OGNI sorgente per sistemare un caso, che è il modo in cui si rompe una cosa
+// giusta per aggiustarne una che non era rotta.
 
 import type Anthropic from "@anthropic-ai/sdk";
 import { getAreaBySlug } from "@/data/aree";

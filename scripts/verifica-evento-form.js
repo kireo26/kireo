@@ -49,8 +49,24 @@ ok(iValidate > 0 && iSubmit > iValidate, "il form ha una `validate()` prima del 
 const corpoValidate = form.slice(iValidate, iSubmit);
 
 ok(
-  /new Date\(dataFine\) < new Date\(dataInizio\)/.test(corpoValidate),
-  "…che confronta la fine con l'inizio",
+  /millisecondiDaOrarioItaliano\(dataFine\) < millisecondiDaOrarioItaliano\(dataInizio\)/.test(corpoValidate),
+  "…che confronta la fine con l'inizio, sugli ISTANTI: è quello che confronta il vincolo del database",
+);
+// L'ORARIO DIGITATO È ITALIANO, non della zona di chi digita. `new Date` di una
+// stringa `datetime-local` la legge nel fuso del browser: per un ente italiano
+// si annulla con la formattazione in uscita, quindi nessuna prova a mano lo
+// vedrebbe — e il primo evento caricato dall'estero sarebbe sbagliato di ore.
+ok(
+  !/new Date\(data(?:Inizio|Fine)\)/.test(form),
+  "nessun `new Date(dataInizio/dataFine)`: l'orario passa dalla conversione, che non dipende dalla zona del browser",
+);
+ok(
+  /data_inizio: inizioIso/.test(form) && /data_fine: fineIso/.test(form),
+  "…ed è l'istante convertito quello che finisce nel database",
+);
+ok(
+  /next\.dataInizio = "Data e ora non valide/.test(corpoValidate),
+  "un orario che non si sa leggere è un errore di campo, non un istante inventato",
 );
 ok(
   /next\.dataFine = "La fine non può venire prima dell'inizio/.test(corpoValidate),
@@ -61,9 +77,17 @@ ok(
 console.log("\n2) Una data di inizio già passata");
 
 ok(
-  !/dataInizio\) < new Date\(\)/.test(corpoValidate),
+  !/dataInizio\) < Date\.now\(\)/.test(corpoValidate),
   "non è un errore bloccante: caricare un incontro già tenuto resta lecito",
 );
+ok(
+  /const inizioItaliano = dataInizio \? istanteDaOrarioItaliano\(dataInizio\)/.test(form) &&
+    /eventoCominciato\(inizioItaliano\)/.test(form),
+  "…e l'avviso confronta l'ISTANTE italiano con l'adesso, non una stringa letta nella zona del browser",
+);
+// L'ora si legge dentro `eventoCominciato`, non nel render: la stessa cura di
+// CardEvento il 28/09, e la stessa regola di lint che l'aveva imposta.
+ok(!/Date\.now\(\)/.test(form) && !/< new Date\(\)/.test(form), "…senza leggere l'orologio dentro il render");
 ok(
   /Questa data è già passata/.test(form),
   "…ma il form dice cosa comporta, invece di lasciarlo scoprire dopo",

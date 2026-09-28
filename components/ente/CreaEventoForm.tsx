@@ -9,6 +9,8 @@ import AreeInteresseGrid from "@/components/app/AreeInteresseGrid";
 import { FILONI_DOCENTI } from "@/data/filoniDocenti";
 import { estraiIdYoutube } from "@/lib/youtube";
 import { messaggioErroreEvento } from "@/lib/ente/erroreEvento";
+import { istanteDaOrarioItaliano, millisecondiDaOrarioItaliano } from "@/lib/formato";
+import { eventoCominciato } from "@/lib/live";
 
 const VOCI_CHECKLIST: { chiave: "non_in_elenco" | "incorporamento_attivo" | "chat_disattivata" | "no_contenuti_terzi"; testo: string }[] = [
   { chiave: "non_in_elenco", testo: "La diretta è impostata come \"non in elenco\" su YouTube (non pubblica, raggiungibile solo dal link)." },
@@ -97,11 +99,20 @@ export default function CreaEventoForm({
     if (!perDocenti && aree.length === 0) {
       next.aree = "Scegli almeno un'area: è così che l'incontro raggiunge gli studenti giusti, e senza un'area chi partecipa non se ne porta niente nel profilo.";
     }
+    // Un orario che non si sa leggere non si scrive con un ripiego: si dice
+    // qui, dove l'ente può ancora correggerlo. Il browser produce sempre la
+    // forma giusta, quindi questo ramo è una rete — ma una rete che parla.
+    if (dataInizio && istanteDaOrarioItaliano(dataInizio) === null) next.dataInizio = "Data e ora non valide.";
+    if (dataFine && istanteDaOrarioItaliano(dataFine) === null) next.dataFine = "Data e ora non valide.";
     // L'ORDINE DELLE DATE, prima che lo dica il database. Il vincolo
     // `eventi_date_order` esiste dal 12/07 e faceva il suo mestiere — ma il
     // rifiuto arrivava come un errore generico che diceva «riprova più tardi»,
     // cioè un consiglio falso su un campo non nominato.
-    if (dataInizio && dataFine && new Date(dataFine) < new Date(dataInizio)) {
+    //
+    // Si confrontano gli ISTANTI, non le due stringhe lette nella zona del
+    // browser: è quello che confronta il vincolo del database, quindi è quello
+    // che deve confrontare il form se non vuole dire una cosa diversa da lui.
+    if (dataInizio && dataFine && millisecondiDaOrarioItaliano(dataFine) < millisecondiDaOrarioItaliano(dataInizio)) {
       next.dataFine = "La fine non può venire prima dell'inizio.";
     }
     if (eDiretta) {
@@ -114,6 +125,12 @@ export default function CreaEventoForm({
     return next;
   }
 
+  // L'avviso sulla data già passata: la conversione (pura) e il confronto con
+  // l'adesso (che legge l'ora dentro `eventoCominciato`) stanno in due funzioni
+  // di libreria, così nel render non compare nessuna chiamata impura.
+  const inizioItaliano = dataInizio ? istanteDaOrarioItaliano(dataInizio) : null;
+  const inizioGiaPassato = inizioItaliano !== null && eventoCominciato(inizioItaliano);
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setErroreGenerale(null);
@@ -124,6 +141,19 @@ export default function CreaEventoForm({
     const validazione = validate();
     setErrori(validazione);
     if (Object.keys(validazione).length > 0) return;
+
+    // QUELLO CHE L'ENTE HA DIGITATO È UN ORARIO ITALIANO, non un orario di chi
+    // lo digita: `new Date("2026-09-28T15:00")` lo leggerebbe nella zona del
+    // browser, e da Londra o da una macchina configurata male salverebbe un
+    // istante diverso da quello scritto. Vedi lib/formato.ts.
+    const inizioIso = istanteDaOrarioItaliano(dataInizio);
+    const fineIso = dataFine ? istanteDaOrarioItaliano(dataFine) : null;
+    // `validate()` l'ha già escluso: se succede comunque, non si scrive un
+    // istante inventato — si dice dov'è il problema.
+    if (inizioIso === null || (dataFine && fineIso === null)) {
+      setErrori({ ...validazione, [inizioIso === null ? "dataInizio" : "dataFine"]: "Data e ora non valide." });
+      return;
+    }
 
     setInviando(true);
     try {
@@ -137,8 +167,8 @@ export default function CreaEventoForm({
           descrizione: scaletta.trim(),
           tipo,
           organizzatore_id: istituzioneId,
-          data_inizio: new Date(dataInizio).toISOString(),
-          data_fine: dataFine ? new Date(dataFine).toISOString() : null,
+          data_inizio: inizioIso,
+          data_fine: fineIso,
           sede: sede.trim() || null,
           link: link.trim() || null,
           posti: posti ? Number(posti) : null,
@@ -294,8 +324,15 @@ export default function CreaEventoForm({
             Qui resta un avviso, non un errore: informa di cosa comporta, non
             blocca un uso legittimo. Non entra in `validate()` apposta — una
             riga in `errori` bloccherebbe l'invio.
+
+            Il confronto è fra ISTANTI: `new Date(dataInizio)` leggerebbe
+            l'orario nella zona del browser e lo metterebbe contro l'adesso
+            vero, quindi da un'altra zona l'avviso comparirebbe (o mancherebbe)
+            per un margine di ore. Lo calcola `inizioGiaPassato`, sopra: l'ora
+            si legge dentro `eventoCominciato`, così nel render non compare una
+            chiamata impura (stessa cura di CardEvento).
           */}
-          {dataInizio && new Date(dataInizio) < new Date() && !errori.dataInizio && (
+          {inizioGiaPassato && !errori.dataInizio && (
             <p className="mt-1.5 text-sm text-kireo-muted">
               Questa data è già passata: l&apos;incontro resterà visibile, ma gli studenti non potranno più prenotarsi.
             </p>
