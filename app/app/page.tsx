@@ -5,6 +5,7 @@ import { getOreCertificate } from "@/lib/app/pcto";
 import { getValoriRadar } from "@/lib/app/radarData";
 import { getProssimiEventi, getProssimiEventiPerAree } from "@/lib/app/eventi";
 import { getMessaggiScuolaStudente } from "@/lib/app/messaggi";
+import { getConsegneDaFare } from "@/lib/app/consegneDaFare";
 import { caricaAffinitaHome } from "@/lib/percorso/stato";
 import { getPassoCorrente } from "@/lib/percorso/passoCorrente";
 import { cancelloMissioni } from "@/lib/percorso/cancelli";
@@ -17,6 +18,7 @@ import ContatorePCTO from "@/components/app/ContatorePCTO";
 import StrisciaProssimoEvento from "@/components/app/StrisciaProssimoEvento";
 import CardEventiPerTe from "@/components/app/CardEventiPerTe";
 import MessaggiScuola from "@/components/app/MessaggiScuola";
+import ConsegneDaFare from "@/components/app/ConsegneDaFare";
 import type { VoceChecklist } from "@/components/app/BadgeProfiloPercentuale";
 
 // Cinque voci da 20%: dati anagrafici e scuola/classe sono sempre presenti per
@@ -63,7 +65,7 @@ export default async function AreaPersonaleHome() {
   const conTelefono = await supabase.from("profiles").select("telefono").eq("id", contesto.userId).maybeSingle();
   const telefonoCompilato = !conTelefono.error && Boolean(conTelefono.data?.telefono);
 
-  const [{ data: righeAree }, oreCertificate, valoriRadar, prossimoEvento, messaggiScuola, affinita, passoCorrente, gateMissioni] =
+  const [{ data: righeAree }, oreCertificate, valoriRadar, prossimoEvento, messaggiScuola, affinita, passoCorrente, gateMissioni, consegneDaFare] =
     await Promise.all([
       supabase.from("student_area_interests").select("area_slug").eq("user_id", contesto.userId),
       getOreCertificate(supabase, contesto.userId),
@@ -75,6 +77,7 @@ export default async function AreaPersonaleHome() {
       // non costa un'altra lettura.
       getPassoCorrente(contesto.userId),
       cancelloMissioni(supabase),
+      getConsegneDaFare(supabase, contesto.userId),
     ]);
   const prossimaTappa = passoCorrente.tappa;
 
@@ -122,6 +125,13 @@ export default async function AreaPersonaleHome() {
         percentualeProfilo={percentuale}
         vociProfilo={voci}
       />
+
+      {/*
+        Sopra tutto il resto, e non per importanza: per DURATA. La finestra è di
+        due giorni — quello che si perde in fondo alla pagina non si recupera,
+        mentre un'affinità che sta un blocco più in basso resta lì.
+      */}
+      <ConsegneDaFare consegne={consegneDaFare} />
 
       {!primoIncontro && <SezioneAffinita affinita={affinita} />}
 

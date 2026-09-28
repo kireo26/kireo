@@ -38,6 +38,7 @@ const {
   MAX_CARATTERI_CONSEGNA,
 } = require("@/lib/eventi/consegna");
 const { TETTO_LETTURE_CONSEGNA, statoRilettura, testoRilettura, MESSAGGIO_TETTO } = require("@/lib/eventi/rilettura");
+const { scadenzaConsegna } = require("@/lib/app/consegneDaFare");
 
 let falliti = 0;
 function ok(cond, testo) {
@@ -464,6 +465,67 @@ ok(
 ok(
   /messaggioGuasto/.test(routeTetto),
   "all'ultima lettura consentita il messaggio di guasto non invita più a ripremere un bottone che sta sparendo",
+);
+
+
+// ── 12) LA PORTA: un evento finito dev'essere raggiungibile ────────────────
+//
+// PERCHÉ. Il 28/09, al primo giro con una persona: la consegna si apre quando
+// la diretta finisce e resta aperta due giorni, e **non c'era nessuna strada
+// per arrivarci** — l'unico link verso /app/eventi/<id>/live stava in
+// `CardEvento`, che l'Agenda usa solo per gli eventi FUTURI. Mario ci è entrato
+// solo con l'indirizzo preso dal database.
+//
+// È UNA SPECIE NUOVA: una funzione completa, corretta, provata, e senza porta.
+// Nessun controllo poteva vederla — la pagina esiste, la rotta risponde, i
+// permessi sono giusti, la finestra funziona. Mancava un `href`. Quindi qui non
+// si prova che il codice sia corretto: si prova che la porta **sia appesa**.
+console.log("\n12) La porta verso un evento finito");
+
+const tsConsegne = senzaCommenti(leggi("lib/app/consegneDaFare.ts"));
+const tsxBlocco = senzaCommenti(leggi("components/app/ConsegneDaFare.tsx"));
+const pagHome = senzaCommenti(leggi("app/app/page.tsx"));
+const pagAgenda = senzaCommenti(leggi("app/app/agenda/page.tsx"));
+
+// (a) LA REGOLA NON È RISCRITTA. «La consegna è aperta per me» la sa già
+// statoPortaConsegna: una seconda versione qui sarebbe la seconda definizione
+// della stessa cosa, e divergerebbe.
+ok(/statoPortaConsegna\(/.test(tsConsegne), "getConsegneDaFare chiama statoPortaConsegna invece di riscrivere la regola");
+ok(/consegnaAperta\(/.test(tsConsegne), "…e usa la finestra condivisa di lib/live");
+ok(!/48|ORE_FINESTRA_CONSEGNA\s*=/.test(tsConsegne.replace(/ORE_FINESTRA_CONSEGNA/g, "")), "…senza una seconda copia del numero di ore");
+ok(/console\.error/.test(tsConsegne) && /return \[\]/.test(tsConsegne), "una lettura fallita si logga e non produce un invito (un bottone verso una porta chiusa è peggio di nessun bottone)");
+
+// (b) LA PORTA È APPESA, in tutti e due i posti.
+for (const [nome, pag] of [["la home", pagHome], ["l'Agenda", pagAgenda]]) {
+  ok(/getConsegneDaFare\(/.test(pag), `${nome} chiede le consegne aperte`);
+  ok(/<ConsegneDaFare/.test(pag), `…e ${nome} monta il blocco`);
+}
+ok(/href={`\/app\/eventi\/\$\{[^}]+\}\/live`}/.test(tsxBlocco), "il blocco porta davvero alla pagina dell'incontro");
+ok(/consegne\.length === 0/.test(tsxBlocco) && /return null/.test(tsxBlocco), "…e sparisce quando non c'è niente da fare, invece di lasciare un riquadro vuoto");
+
+// (c) E LA LISTA DEGLI EVENTI PASSATI non è più un elenco cieco: chi era
+// iscritto ha un link, chi non lo era no — la pagina lo respingerebbe, e un
+// link che porta a un no è peggio di nessun link.
+const iPassati = pagAgenda.indexOf("Eventi passati");
+const codaAgenda = pagAgenda.slice(iPassati);
+ok(iPassati > 0, "l'Agenda ha una sezione «Eventi passati»");
+ok(/href={`\/app\/eventi\/\$\{[^}]+\}\/live`}/.test(codaAgenda), "…e un evento passato porta alla sua pagina");
+ok(/iscrizioni\[[^\]]+\]\s*\?/.test(codaAgenda), "…solo per chi era iscritto");
+
+// (d) IL COMPORTAMENTO: la scadenza che lo studente legge è la stessa finestra
+// che il database applica, non un numero scritto accanto.
+const INIZIO_C = "2026-10-01T18:00:00.000Z";
+const FINE_C = "2026-10-01T19:00:00.000Z";
+const atteso = new Date(new Date(FINE_C).getTime() + ORE_FINESTRA_CONSEGNA * 3600_000).toISOString();
+ok(scadenzaConsegna(INIZIO_C, FINE_C) === atteso, "la scadenza mostrata è la fine della diretta più la finestra");
+ok(
+  scadenzaConsegna(INIZIO_C, null) === new Date(new Date(INIZIO_C).getTime() + 3 * 3600_000 + ORE_FINESTRA_CONSEGNA * 3600_000).toISOString(),
+  "…e senza data_fine usa la stessa durata di ripiego di lib/live (3 ore), non un'altra",
+);
+ok(
+  consegnaAperta(INIZIO_C, FINE_C, new Date(new Date(atteso).getTime() - 1000)) &&
+    !consegnaAperta(INIZIO_C, FINE_C, new Date(new Date(atteso).getTime() + 1000)),
+  "…e al momento che annuncia la porta si chiude davvero: la scadenza detta e quella applicata sono la stessa",
 );
 
 console.log(falliti === 0 ? "\n✅ tutto verde\n" : `\n❌ ${falliti} asserzioni rosse\n`);

@@ -2,16 +2,20 @@ import { getAppContext } from "@/lib/app/studentContext";
 import { createClient } from "@/lib/supabase/server";
 import { getProssimiEventi, getEventiPassati, getAreeDegliEventi, getIscrizioniStudenteConOrigine } from "@/lib/app/eventi";
 import ListaEventiProssimi from "@/components/app/ListaEventiProssimi";
+import ConsegneDaFare from "@/components/app/ConsegneDaFare";
+import { getConsegneDaFare } from "@/lib/app/consegneDaFare";
 import { formattaDataOra } from "@/lib/formato";
+import Link from "next/link";
 
 export default async function AgendaAppPage() {
   const contesto = await getAppContext();
   const supabase = await createClient();
 
-  const [prossimi, passati, iscrizioni] = await Promise.all([
+  const [prossimi, passati, iscrizioni, consegneDaFare] = await Promise.all([
     getProssimiEventi(supabase),
     getEventiPassati(supabase),
     getIscrizioniStudenteConOrigine(supabase, contesto.userId),
+    getConsegneDaFare(supabase, contesto.userId),
   ]);
   const areeDegliEventi = await getAreeDegliEventi(
     supabase,
@@ -28,6 +32,8 @@ export default async function AgendaAppPage() {
         </p>
       </div>
 
+      <ConsegneDaFare consegne={consegneDaFare} />
+
       {prossimi.length === 0 ? (
         <div className="rounded-2xl border border-white/5 bg-kireo-card p-6 text-center">
           <p className="text-kireo-muted">Il calendario si sta riempiendo. Torna a trovarci presto.</p>
@@ -39,15 +45,42 @@ export default async function AgendaAppPage() {
       {passati.length > 0 && (
         <div>
           <h2 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">Eventi passati</h2>
+          {/*
+            UN EVENTO A CUI ERI ISCRITTO È RAGGIUNGIBILE. Fino al 28/09 queste
+            voci non avevano nessun link, e l'unica strada verso la pagina di un
+            incontro (`EntraDirettaLink`) stava nella card degli eventi FUTURI:
+            appena l'evento finiva, la sua pagina — con le domande fatte in
+            diretta e la consegna aperta per due giorni — restava raggiungibile
+            solo da chi ne conosceva l'indirizzo.
+
+            Le voci di chi NON era iscritto restano senza link, e non per
+            prudenza: la pagina lo respingerebbe con «Non risulti iscritto», e un
+            link che porta a un no è peggio di nessun link.
+          */}
           <ul className="mt-4 space-y-3">
-            {passati.map((e) => (
-              <li key={e.id} className="rounded-xl border border-white/5 bg-kireo-card/60 p-4 opacity-70">
-                <p className="font-heading text-sm font-semibold text-kireo-light">{e.titolo}</p>
-                <p className="mt-1 text-xs text-kireo-muted">
-                  {formattaDataOra(e.data_inizio, "full")}
-                </p>
-              </li>
-            ))}
+            {passati.map((e) => {
+              const contenuto = (
+                <>
+                  <p className="font-heading text-sm font-semibold text-kireo-light">{e.titolo}</p>
+                  <p className="mt-1 text-xs text-kireo-muted">{formattaDataOra(e.data_inizio, "full")}</p>
+                </>
+              );
+              return iscrizioni[e.id] ? (
+                <li key={e.id}>
+                  <Link
+                    href={`/app/eventi/${e.id}/live`}
+                    className="block rounded-xl border border-white/5 bg-kireo-card/60 p-4 opacity-70 transition hover:border-white/15 hover:opacity-100"
+                  >
+                    {contenuto}
+                    <p className="mt-2 text-xs text-kireo-orange">Rivedi l&apos;incontro →</p>
+                  </Link>
+                </li>
+              ) : (
+                <li key={e.id} className="rounded-xl border border-white/5 bg-kireo-card/60 p-4 opacity-70">
+                  {contenuto}
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}
