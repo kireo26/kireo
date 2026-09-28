@@ -41,10 +41,11 @@ function leggi(rel) {
 }
 
 // Un commento può contenere qualunque cosa: le guardie lessicali guardano il
-// codice, non quello che ci abbiamo scritto intorno.
-function senzaCommenti(src) {
-  return src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^[ \t]*\/\/.*$/gm, "");
-}
+// codice, non quello che ci abbiamo scritto intorno. La copia locale che stava
+// qui toglieva solo i commenti a riga intera; quella condivisa toglie anche
+// quelli a fine riga, ed è tarata sul difetto vero (27/09, `cache(` dentro il
+// commento che ne spiegava la necessità).
+const { senzaCommenti } = require("./lib/senza-commenti");
 
 console.log("\n═══ IL TETTO DEI WORKSHOP (lato pagina) ═══\n");
 

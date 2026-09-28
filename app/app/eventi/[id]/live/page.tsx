@@ -7,6 +7,7 @@ import ConsegnaEvento from "@/components/live/ConsegnaEvento";
 import { MAX_CARATTERI_CONSEGNA, MIN_CARATTERI_CONSEGNA } from "@/lib/eventi/consegna";
 import { statoPortaConsegna } from "@/lib/eventi/portaConsegna";
 import RileggiConsegna from "@/components/live/RileggiConsegna";
+import { statoRilettura, testoRilettura } from "@/lib/eventi/rilettura";
 import { consegnaAperta } from "@/lib/live";
 
 // Accesso solo autenticato (garantito dal layout /app + middleware) E
@@ -59,14 +60,24 @@ export default async function EventoLivePage({ params }: { params: Promise<{ id:
   // server non ha visto. Chi resta sulla pagina fino alla fine legge l'avviso qui
   // sotto e ricaricando trova il campo.
   const porta = evento.domanda_consegna ? await statoPortaConsegna(supabase, evento, contesto.userId) : null;
-  const { data: consegnaMia } = evento.domanda_consegna
+  // `letture_tentate` serve a decidere se OFFRIRE la rilettura: il cancello vero
+  // è `apri_lettura_consegna` in SQL. L'errore si logga invece di essere scartato
+  // — una lettura muta che torna vuota è indistinguibile da «non ha consegnato»,
+  // e qui la conseguenza sarebbe far sparire dalla pagina la risposta che uno
+  // studente ha scritto.
+  const { data: consegnaMia, error: erroreConsegna } = evento.domanda_consegna
     ? await supabase
         .from("consegne_evento")
-        .select("testo, valutata_il")
+        .select("testo, valutata_il, letture_tentate")
         .eq("evento_id", id)
         .eq("student_id", contesto.userId)
         .maybeSingle()
-    : { data: null };
+    : { data: null, error: null };
+  if (erroreConsegna) console.error("EventoLivePage — lettura della consegna fallita:", erroreConsegna);
+
+  const rilettura = consegnaMia
+    ? statoRilettura(Number(consegnaMia.letture_tentate ?? 0), consegnaAperta(evento.data_inizio, evento.data_fine))
+    : null;
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-6 py-10 sm:py-16">
@@ -104,20 +115,22 @@ export default async function EventoLivePage({ params }: { params: Promise<{ id:
 
             Fuori dalla finestra il bottone non si mostra: la route cadrebbe sul
             42501 della policy e risponderebbe «il tempo per rispondere è
-            scaduto», che a chi ha già risposto dice la cosa sbagliata.
+            scaduto», che a chi ha già risposto dice la cosa sbagliata. E al tetto
+            delle letture nemmeno: ogni pressione è una chiamata a pagamento, e
+            un bottone che risponde sempre 429 è una porta che riporta allo stesso
+            posto.
           */}
-          {consegnaMia.valutata_il ? null : consegnaAperta(evento.data_inizio, evento.data_fine) ? (
+          {consegnaMia.valutata_il ? null : rilettura === "si_puo" ? (
             <RileggiConsegna eventoId={evento.id} testo={consegnaMia.testo} />
-          ) : (
+          ) : rilettura ? (
             <p className="mt-4 text-sm text-kireo-muted">
-              Non siamo riusciti a leggerla, e il tempo per rileggerla è passato. Il testo resta tuo e al sicuro: non è un giudizio su
-              quello che hai scritto, è un problema nostro. Se ti va, scrivici da{" "}
+              {testoRilettura(rilettura)}{" "}
               <Link href="/contatti" className="text-kireo-orange underline underline-offset-2">
                 Contatti
               </Link>
               .
             </p>
-          )}
+          ) : null}
         </div>
       ) : null}
 

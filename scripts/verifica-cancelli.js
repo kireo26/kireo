@@ -35,10 +35,21 @@ const MIGRAZIONE = path.join(ROOT, "supabase/migrations/20260920100000_cancelli_
 let falliti = 0;
 const ok = (cond, msg) => { if (!cond) { console.error("  ✗ " + msg); falliti++; } else { console.log("  ✓ " + msg); } };
 
-const sql = fs.readFileSync(MIGRAZIONE, "utf8");
-const config = fs.readFileSync(path.join(ROOT, "lib/test/config.ts"), "utf8");
-const robot = fs.readFileSync(path.join(ROOT, "scripts/banco/robot/index.js"), "utf8");
-const tappa = fs.readFileSync(path.join(ROOT, "lib/percorso/prossimaTappa.ts"), "utf8");
+// I CONTROLLI LESSICALI GIRANO SUL SORGENTE SPOGLIATO dei commenti, e sbagliare
+// si può in due versi: una guardia positiva verde perché la forma sta in un
+// commento (il difetto del 27/09 con `cache(`), e una negativa rossa su codice
+// giusto il giorno che qualcuno documenta bene la forma che vieta — e qui la
+// forma vietata è `if (t1 && t2 && t3)`, cioè proprio quella che un commento
+// scriverebbe per spiegare perché non si riscrive.
+const { senzaCommenti, senzaCommentiSql } = require("./lib/senza-commenti");
+const sql = senzaCommentiSql(fs.readFileSync(MIGRAZIONE, "utf8"));
+const config = senzaCommenti(fs.readFileSync(path.join(ROOT, "lib/test/config.ts"), "utf8"));
+const robot = senzaCommenti(fs.readFileSync(path.join(ROOT, "scripts/banco/robot/index.js"), "utf8"));
+const tappa = senzaCommenti(fs.readFileSync(path.join(ROOT, "lib/percorso/prossimaTappa.ts"), "utf8"));
+// L'ECCEZIONE, con la sua ragione: questa proprietà parla DI un commento — che la
+// riga «nessun gate, tutto resta aperto» non ci sia più, perché oggi sarebbe
+// falsa. Su un sorgente spogliato sarebbe verde qualunque cosa ci fosse scritto.
+const tappaConCommenti = fs.readFileSync(path.join(ROOT, "lib/percorso/prossimaTappa.ts"), "utf8");
 
 console.log("\n═══ I due cancelli del percorso ═══\n");
 
@@ -108,7 +119,7 @@ console.log("\n5) La home non ricalcola la soglia delle missioni");
 ok(tappa.includes("ha_completato_i_tre_test"), "il rung delle missioni chiede al predicato del cancello");
 ok(!/if\s*\(t1 && t2 && t3\)/.test(tappa), "e non riscrive `t1 && t2 && t3` per conto suo");
 ok(/t1 && t2\b/.test(tappa), "i rung intermedi guardano ancora i test uno per uno (devono nominare il prossimo)");
-ok(!/nessun gate, tutto resta aperto/.test(tappa), "il commento «nessun gate, tutto resta aperto» non c'è più: sarebbe falso");
+ok(!/nessun gate, tutto resta aperto/.test(tappaConCommenti), "il commento «nessun gate, tutto resta aperto» non c'è più: sarebbe falso");
 
 // ── 6) controprove ──────────────────────────────────────────────────────────
 console.log("\n6) Controprove: il controllo si accorge davvero");

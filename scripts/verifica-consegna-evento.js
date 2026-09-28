@@ -37,6 +37,7 @@ const {
   MIN_CARATTERI_CONSEGNA,
   MAX_CARATTERI_CONSEGNA,
 } = require("@/lib/eventi/consegna");
+const { TETTO_LETTURE_CONSEGNA, statoRilettura, testoRilettura, MESSAGGIO_TETTO } = require("@/lib/eventi/rilettura");
 
 let falliti = 0;
 function ok(cond, testo) {
@@ -318,6 +319,13 @@ const routeTesti = senzaCommenti(leggi("app/api/eventi/[id]/consegna/route.ts"))
 // a cercare le affinità è mandare a cercare una cosa che non c'è.
 ok(!/fra le aree della tua home/.test(routeTesti), "il messaggio di successo NON manda a cercare l'area in home");
 ok(/non basta a dire qualcosa su di te/.test(routeTesti), "…e dice che una risposta sola non basta ancora");
+// Le due forme corrette il 27/09, vietate e non solo sostituite: un conteggio
+// («la prima cosa») diventa falso alla seconda consegna sulla stessa area, e
+// un'area al singolare è falsa su un evento che ne ha due. Sono entrambe cose
+// che si riscrivono per abitudine, e il motivo per cui non vanno bene non si
+// vede rileggendo la frase.
+ok(!/la prima cosa che hai scritto/.test(routeTesti), "…e non conta le consegne («la prima cosa» è falsa alla seconda)");
+ok(!/su quest'area/.test(routeTesti), "…né nomina una sola area (un evento può averne due)");
 
 // In un prodotto per minori il silenzio su chi legge non è neutro.
 ok(/lo legge (?:solo )?KIREO/.test(consegnaTsx), "il campo dice che quello che scrive lo legge KIREO");
@@ -375,6 +383,88 @@ ok(!/testo/.test(selectVista), "la vista non nomina mai il testo di una risposta
 const paginaStats = senzaCommenti(leggi("app/ente/(dashboard)/statistiche/page.tsx"));
 ok(/\{s\.risposte\} risposte/.test(paginaStats), "la pagina mostra il numero in fila con iscritti e partecipati");
 ok(/s\.domanda_posta \?/.test(paginaStats), "…e solo dove una domanda è stata posta (uno zero senza domanda sarebbe un fallimento che non c'è stato)");
+
+// ─────────────────────── 11. il tetto delle letture (28/09)
+// Ogni pressione del bottone «Fai rileggere la risposta» è una chiamata a
+// pagamento. Fino al 28/09 l'unico limite era la finestra di 48 ore: dentro
+// quella, premere venti volte era possibile e non costava niente a chi premeva.
+console.log("\n11. Il tetto delle letture: quante volte si può far rileggere");
+
+const sqlTetto = senzaCommentiSql(leggi("supabase/migrations/20260928100000_tetto_letture_consegna.sql"));
+const routeTetto = senzaCommenti(leggi("app/api/eventi/[id]/consegna/route.ts"));
+const pagTetto = senzaCommenti(leggi("app/app/eventi/[id]/live/page.tsx"));
+
+// (a) LA COPIA DEL NUMERO. Il database non può importare TypeScript e la pagina
+// non può fare un giro di rete per un intero, quindi le due copie esistono — e
+// senza questo confronto esisterebbe una versione del tetto che dice allo
+// studente un numero e gliene applica un altro.
+const numeroSql = /create or replace function public\.tetto_letture_consegna\(\)[\s\S]*?select\s+(\d+)/.exec(sqlTetto);
+ok(numeroSql !== null, "il numero del tetto si legge dalla migrazione");
+if (numeroSql) {
+  ok(
+    Number(numeroSql[1]) === TETTO_LETTURE_CONSEGNA,
+    `SQL e TypeScript dicono lo stesso tetto (SQL ${numeroSql[1]}, TS ${TETTO_LETTURE_CONSEGNA})`,
+  );
+}
+
+// (b) L'INCREMENTO STA NELLA `where`, non in un conteggio letto prima e scritto
+// dopo: è quello che chiude la corsa fra due pressioni simultanee al confine.
+ok(
+  /update public\.consegne_evento[\s\S]*?set letture_tentate = letture_tentate \+ 1[\s\S]*?and letture_tentate < public\.tetto_letture_consegna\(\)/.test(sqlTetto),
+  "il tetto è una condizione dentro l'update che incrementa (nessun leggi-poi-scrivi)",
+);
+ok(/raise exception 'troppe_letture'/.test(sqlTetto), "…e a tetto pieno solleva un motivo con un nome suo");
+ok(/if v_student is null then/.test(sqlTetto), "…e una sessione assente non alza il contatore di nessuno");
+ok(
+  /revoke all on function public\.apri_lettura_consegna\(uuid\) from public, anon;/.test(sqlTetto),
+  "la funzione che scrive revoca anon (i default privileges di Supabase la concedono alla nascita)",
+);
+ok(
+  /revoke all on function public\.tetto_letture_consegna\(\) from public, anon, authenticated;/.test(sqlTetto),
+  "…e il numero non è chiamabile da fuori: il grant si dà a chi chiama, e da fuori non chiama nessuno",
+);
+
+// (c) L'ORDINE È LA PROPRIETÀ: il cancello sta PRIMA della chiamata a pagamento.
+// Dentro `registra_evidenze_consegna_evento` i soldi sarebbero già spesi.
+const iTetto = routeTetto.indexOf("apri_lettura_consegna");
+const iGiudizio = routeTetto.indexOf("giudicaConsegna(");
+ok(iTetto > 0 && iGiudizio > 0 && iTetto < iGiudizio, "la route alza il contatore PRIMA di giudicare");
+// E se il contatore non si alza non si prosegue: fallire chiuso su una porta che
+// protegge una spesa è il verso giusto.
+const fraTettoEGiudizio = routeTetto.slice(iTetto, iGiudizio);
+ok(/status: 500/.test(fraTettoEGiudizio), "…e un errore del contatore ferma la richiesta invece di lasciar spendere");
+ok(/status: 429/.test(fraTettoEGiudizio), "…mentre il tetto pieno risponde 429 (un cancello che morde, non un guasto nostro)");
+ok(/troppe_letture/.test(routeTetto), "la route riconosce il motivo del rifiuto e non lo mostra grezzo");
+
+// (d) LA PAGINA non offre un bottone che risponderebbe sempre 429.
+ok(/letture_tentate/.test(pagTetto), "la pagina legge il contatore");
+ok(/statoRilettura\(/.test(pagTetto), "…e decide con la funzione condivisa invece di riscrivere il confronto");
+ok(/rilettura === "si_puo"/.test(pagTetto), "…mostrando il bottone solo quando si può davvero");
+ok(/erroreConsegna/.test(pagTetto), "…e una lettura fallita si logga: muta, sarebbe indistinguibile da «non ha consegnato»");
+
+// (e) IL COMPORTAMENTO, non solo le stringhe: il tetto si guarda prima della
+// finestra, perché «il tempo è passato» farebbe credere che con più tempo
+// sarebbe andata.
+ok(statoRilettura(0, true) === "si_puo", "a zero letture, dentro la finestra, si può");
+ok(statoRilettura(TETTO_LETTURE_CONSEGNA - 1, true) === "si_puo", "…l'ultima lettura consentita si può ancora");
+ok(statoRilettura(TETTO_LETTURE_CONSEGNA, true) === "tetto_pieno", "…al tetto no");
+ok(statoRilettura(0, false) === "fuori_finestra", "fuori dalla finestra no");
+ok(
+  statoRilettura(TETTO_LETTURE_CONSEGNA, false) === "tetto_pieno",
+  "…e quando valgono entrambi si dice il tetto, non la finestra (la finestra è incidentale)",
+);
+ok(
+  testoRilettura("tetto_pieno").endsWith("scrivici da") && testoRilettura("fuori_finestra").endsWith("scrivici da"),
+  "i due testi finiscono sulla cucitura del link a Contatti (la pagina lo aggiunge, uno script Node non lo può leggere)",
+);
+ok(
+  /provato più volte/.test(MESSAGGIO_TETTO) && /problema nostro/.test(MESSAGGIO_TETTO),
+  "il rifiuto dice cosa è successo e che è un problema nostro: la colpa non è di chi ha scritto",
+);
+ok(
+  /messaggioGuasto/.test(routeTetto),
+  "all'ultima lettura consentita il messaggio di guasto non invita più a ripremere un bottone che sta sparendo",
+);
 
 console.log(falliti === 0 ? "\n✅ tutto verde\n" : `\n❌ ${falliti} asserzioni rosse\n`);
 process.exit(falliti === 0 ? 0 : 1);

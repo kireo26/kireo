@@ -38,11 +38,16 @@ const { verificaAtteso } = require("./banco/robot/atteso");
 // proprietà che vivono in un ORDINE fra due righe non si provano senza rete,
 // ma si leggono), e due letture con due nomi diversi sono due cose che
 // divergono.
-const gioca = fs.readFileSync(path.join(ROOT, "scripts/banco/robot/gioca.js"), "utf8");
+// E SPOGLIA i commenti: un controllo lessicale che trova la forma dentro un
+// commento è verde senza che il codice la faccia — è il difetto del 27/09, dove
+// `cache(` stava nel commento che spiegava perché la cache ci doveva stare.
+const { senzaCommenti } = require("./lib/senza-commenti");
+const leggiBanco = (rel) => senzaCommenti(fs.readFileSync(path.join(ROOT, rel), "utf8"));
+const gioca = leggiBanco("scripts/banco/robot/gioca.js");
 // Lo stesso vale per il sorgente del robot: tre controlli lo guardano, e fino
 // al 20/09 lo leggevano in tre punti con due nomi diversi — che è precisamente
 // la cosa che il commento qui sopra dichiarava di non voler fare.
-const robotIndexSorgente = fs.readFileSync(path.join(ROOT, "scripts/banco/robot/index.js"), "utf8");
+const robotIndexSorgente = leggiBanco("scripts/banco/robot/index.js");
 
 let falliti = 0;
 const ok = (cond, msg) => { if (!cond) { console.error("  ✗ " + msg); falliti++; } else { console.log("  ✓ " + msg); } };
@@ -576,7 +581,7 @@ ok(treListe.respinti.length === 1 && treListe.respinti[0].etichetta === "w > c",
 ok(!treListe.fermati.some((f) => f.doppio) && !treListe.caduti.some((f) => f.doppio), "una richiesta doppia non compare anche nelle altre due: sporcherebbe l'unica lista che leggiamo per prima");
 
 // La riga che ha reso possibile il difetto: il ritentativo su una scrittura.
-const sessione = fs.readFileSync(path.join(ROOT, "scripts", "banco", "robot", "sessione.js"), "utf8");
+const sessione = leggiBanco("scripts/banco/robot/sessione.js");
 ok(
   /metodo === "GET" \? await conUnRitentativo/.test(sessione),
   "il ritentativo vale solo in lettura: su una scrittura è un secondo invio, e il robot non può sapere se la prima è arrivata",

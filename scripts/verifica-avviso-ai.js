@@ -28,6 +28,7 @@
 /* eslint-disable @typescript-eslint/no-require-imports -- script Node CommonJS di utilità */
 
 const fs = require("fs");
+const { senzaCommenti } = require("./lib/senza-commenti");
 const path = require("path");
 const matter = require("gray-matter");
 const { abilitaTypeScript, ROOT } = require("./banco/ts");
@@ -193,12 +194,15 @@ ok(assistiti > 0 && senzaRiquadro > 0, "il corpus contiene entrambi i casi (se n
 
 // ── Il componente chiama la funzione, non ricompone la frase ─────────────────
 console.log("\nIl componente chiama la funzione invece di ricomporre il testo");
-const tsx = fs.readFileSync(path.join(ROOT, "components", "news", "AvvisoAI.tsx"), "utf8");
+// Spogliato dei commenti: le due guardie qui sotto vietano due frasi, e un
+// commento che le cita per spiegare perché non si ricopiano farebbe diventare
+// rosso un componente giusto.
+const tsx = senzaCommenti(fs.readFileSync(path.join(ROOT, "components", "news", "AvvisoAI.tsx"), "utf8"));
 ok(/componiAvvisoAI/.test(tsx) && /@\/lib\/avvisoAI/.test(tsx), "`AvvisoAI.tsx` importa e chiama `componiAvvisoAI`");
 ok(!tsx.includes("Ogni fonte"), "nessuna seconda copia della frase dentro il componente");
 ok(!tsx.includes("è stato:"), "e nessuna seconda copia della forma con i due punti");
 
-const pagina = fs.readFileSync(path.join(ROOT, "app", "news", "[slug]", "page.tsx"), "utf8");
+const pagina = senzaCommenti(fs.readFileSync(path.join(ROOT, "app", "news", "[slug]", "page.tsx"), "utf8"));
 ok(/<AvvisoAI/.test(pagina), "la pagina dell'articolo rende il riquadro");
 
 console.log(falliti === 0 ? "\n✓ tutto a posto\n" : `\n✗ ${falliti} controlli falliti\n`);

@@ -3,14 +3,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { giudicaConsegna, MAX_CARATTERI_CONSEGNA, MIN_CARATTERI_CONSEGNA } from "@/lib/eventi/consegna";
 import { statoPortaConsegna, testoPorta } from "@/lib/eventi/portaConsegna";
+import { MESSAGGIO_TETTO, TETTO_LETTURE_CONSEGNA } from "@/lib/eventi/rilettura";
 import { segnalaGuasto } from "@/lib/guasti/registra";
 
-// La risposta alla domanda posta in diretta. Un gesto solo per chi scrive, due
+// La risposta alla domanda posta in diretta. Un gesto solo per chi scrive, tre
 // scritture distinte sotto, e l'ORDINE È LA PROPRIETÀ:
 //   1. il TESTO si salva (session client → la policy di insert su
 //      consegne_evento chiama puo_consegnare_evento: è quella la porta, non
 //      niente di quello che si legge qui);
-//   2. poi si giudica e si scrivono le prove.
+//   2. si alza il CONTATORE delle letture, che è quello che limita: prima della
+//      chiamata, mai dopo — un tentativo bloccato non deve pagare una chiamata
+//      che verrebbe comunque scartata (il pattern di assistente_conversazioni e
+//      workshop_tutor_log);
+//   3. poi si giudica e si scrivono le prove.
 // Se il giudizio fallisce, la consegna resta salvata e `valutata_il` a null: lo
 // studente non perde il testo che ha scritto, e un secondo tentativo lo fa una
 // PERSONA — rigiudicare costa una chiamata, quindi nessun ritentativo automatico
@@ -30,6 +35,11 @@ export const runtime = "nodejs";
 // raggiungibile anche dopo. Il messaggio dice cosa è successo e dove si torna, e
 // NON promette che ci ripassiamo noi: nessun secondo passaggio automatico esiste
 // (vedi la nota in testa a 20260927150000).
+//
+// «Puoi farla rileggere da qui» è vero solo sotto il tetto: all'ultima lettura
+// consentita questo testo lascia il posto a MESSAGGIO_TETTO, perché un invito a
+// premere un bottone che sta sparendo è la specie di casa (una cosa scritta che
+// dichiara uno stato diverso da quello vero).
 const MESSAGGIO_GUASTO =
   "Abbiamo salvato la tua risposta, ma non siamo riusciti a leggerla adesso. Non è un giudizio su quello che hai scritto: è un problema nostro. Il testo è al sicuro: puoi farla rileggere da qui, o riaprendo questa pagina.";
 
@@ -119,7 +129,29 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     testo = inserita.testo;
   }
 
-  // ── 2. il giudizio
+  // ── 2. il tetto, PRIMA della chiamata
+  // Un errore qui non fa proseguire: se non sappiamo limitare, non spendiamo.
+  // Fallire chiuso su una porta che protegge una spesa è il verso giusto — meglio
+  // una lettura che non arriva di una che nessuno conta.
+  const { data: letture, error: erroreTetto } = await supabase.rpc("apri_lettura_consegna", { p_evento_id: id });
+  if (erroreTetto) {
+    if (/troppe_letture/.test(erroreTetto.message ?? "")) {
+      // 429 e non 403: il prodotto non sta dicendo che non puoi, sta dicendo che
+      // ci ha già provato quanto sa fare. È anche la differenza che legge il
+      // banco, dove un 429 è un cancello che morde e un 5xx è un guasto nostro.
+      return NextResponse.json({ ok: false, messaggio: MESSAGGIO_TETTO }, { status: 429 });
+    }
+    await segnalaGuasto(
+      { processo: "eventi/consegna", specie: "scrittura_consegna_evento", motivo: "apri_lettura", dettaglio: erroreTetto },
+      "Consegna evento — il contatore delle letture non si è alzato: nessuna chiamata è stata fatta",
+    );
+    return NextResponse.json({ ok: false, messaggio: MESSAGGIO_GUASTO }, { status: 500 });
+  }
+  // Questa era l'ultima lettura consentita: da qui in avanti il bottone non
+  // c'è più, quindi il messaggio di guasto non può invitare a ripremerlo.
+  const messaggioGuasto = Number(letture) >= TETTO_LETTURE_CONSEGNA ? MESSAGGIO_TETTO : MESSAGGIO_GUASTO;
+
+  // ── 3. il giudizio
   const chiave = process.env.ANTHROPIC_API_KEY;
   const { data: profilo } = await supabase.from("profiles").select("di_prova").eq("id", user.id).maybeSingle();
   const diProva = profilo?.di_prova === true;
@@ -161,10 +193,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       { processo: "eventi/consegna", specie: "prove_consegna_evento", motivo: esito.motivo, diProva },
       `Consegna evento — il giudizio non è arrivato (${esito.motivo})`,
     );
-    return NextResponse.json({ ok: false, messaggio: MESSAGGIO_GUASTO }, { status: 500 });
+    return NextResponse.json({ ok: false, messaggio: messaggioGuasto }, { status: 500 });
   }
 
-  // ── 3. le prove
+  // ── 4. le prove
   const { error: erroreProve } = await supabase.rpc("registra_evidenze_consegna_evento", {
     p_evento_id: id,
     p_evidenze: esito.prove,
@@ -174,7 +206,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       { processo: "eventi/consegna", specie: "scrittura_consegna_evento", motivo: "registra_evidenze", dettaglio: erroreProve, diProva },
       "Consegna evento — le prove non si sono salvate",
     );
-    return NextResponse.json({ ok: false, messaggio: MESSAGGIO_GUASTO }, { status: 500 });
+    return NextResponse.json({ ok: false, messaggio: messaggioGuasto }, { status: 500 });
   }
 
   return NextResponse.json({
@@ -185,7 +217,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     // andasse a guardare non troverebbe niente, e la conclusione non sarebbe
     // «serve altro»: sarebbe che il prodotto dice cose a caso. Questo testo dice
     // il vero in tutti e due i versi — è entrata, e non si vedrà ancora.
+    //
+    // E non conta niente, né la prima volta né l'area: la versione precedente
+    // diceva «è la prima cosa che hai scritto su quest'area», falsa alla seconda
+    // consegna sulla stessa area e al singolare su un evento che ne ha due. Qui
+    // non c'è nessun numero e nessun singolare, quindi non c'è niente che possa
+    // diventare falso: vale alla prima consegna e alla quinta.
     messaggio:
-      "Risposta consegnata, ed è entrata nel tuo profilo. Una risposta sola non basta a dire qualcosa su di te — ma è la prima cosa che hai scritto su quest'area, e le altre si sommano a questa.",
+      "Risposta consegnata, ed è entrata nel tuo profilo. Una risposta sola non basta a dire qualcosa su di te — conta insieme a tutto quello che hai già fatto, e a quello che farai dopo.",
   });
 }

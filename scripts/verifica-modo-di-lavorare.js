@@ -23,6 +23,11 @@
 
 const path = require("path");
 const fs = require("fs");
+// I controlli lessicali girano sul sorgente SPOGLIATO dei commenti: un commento
+// che cita la forma cercata fa passare la guardia al posto del codice (il difetto
+// del 27/09 con `cache(`), e uno che cita una forma vietata fa diventare rossa
+// una guardia negativa su codice giusto.
+const { senzaCommenti } = require("./lib/senza-commenti");
 const ts = require("typescript");
 const Module = require("module");
 
@@ -218,7 +223,7 @@ ok(raggruppaDomandePerTappa(CHAT, []).every((g) => g.tappa === null), "senza rig
 // nemmeno dalla guardia sulla lingua: qui il setaccio va messo a mano, con gli
 // STESSI pattern del prodotto (`lib/lingua/accordoGenere.ts`, un posto solo).
 console.log("\n─── il testo del silenzio");
-const PANNELLO = fs.readFileSync(path.join(ROOT, "components/workshop/elaborato/FeedbackFinalePanel.tsx"), "utf8");
+const PANNELLO = senzaCommenti(fs.readFileSync(path.join(ROOT, "components/workshop/elaborato/FeedbackFinalePanel.tsx"), "utf8"));
 const blocco = PANNELLO.split("const TESTO_SILENZIO = [")[1]?.split("];")[0] ?? "";
 ok(blocco.trim().length > 0, "il testo del silenzio esiste come costante nel pannello");
 

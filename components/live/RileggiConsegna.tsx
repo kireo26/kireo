@@ -45,6 +45,11 @@ export default function RileggiConsegna({ eventoId, testo }: { eventoId: string;
         return;
       }
       setErrore(dati.messaggio ?? "Non ci siamo riusciti nemmeno adesso. Riprova più tardi.");
+      // Si ricarica lo stato del server ANCHE quando è andata male: ogni
+      // pressione alza il contatore delle letture, quindi il bottone può essere
+      // appena sparito e tenerlo a schermo sarebbe offrire una porta chiusa. Chi
+      // decide cosa mostrare è la pagina, non questo componente.
+      router.refresh();
     } catch {
       setErrore("Non ci siamo riusciti: controlla la connessione e riprova.");
     } finally {

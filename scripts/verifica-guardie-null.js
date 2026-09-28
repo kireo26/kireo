@@ -155,9 +155,20 @@ const SCRIVE = /\binsert\s+into\b|\bdelete\s+from\b|\bupdate\s+(?:only\s+)?[\w."
 // Una parola di scrittura qualunque: troppo larga per decidere, buona per
 // sospettare. Serve solo al riscontro (c).
 const PAROLA_LARGA = /\b(insert|update|delete)\b/i;
-const senzaCommenti = (s) => s.replace(/--[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, "");
+// Una copia locale di questo helper c'era, e ora si importa: due copie dello
+// stesso spogliatore divergono, e quella che diverge è quella che nessuno
+// rilegge. `senzaCommentiSql` fa la stessa cosa e ha la sua ragione scritta
+// accanto.
+const { senzaCommentiSql: senzaCommenti } = require("./lib/senza-commenti");
 
 const definer = [...fn.values()].filter((f) => /security\s+definer/i.test(f.testa));
+// LA CLASSIFICAZIONE GIRA SUL CORPO SPOGLIATO, e non è una rifinitura: una
+// funzione il cui unico «insert into» sta in un commento risulterebbe scrivente,
+// e da lì le si chiederebbe una guardia che non le serve. Nell'altro verso
+// varrebbe lo stesso: un commento che cita un confronto fragile la farebbe
+// sospettare per niente. Il riscontro (c) qui sotto spoglia già, quindi prima di
+// oggi i due passaggi guardavano due testi diversi.
+for (const f of fn.values()) f.corpo = senzaCommenti(f.corpo);
 const scrivono = definer.filter((f) => SCRIVE.test(f.corpo));
 const nonScrivono = definer.filter((f) => !SCRIVE.test(f.corpo));
 const eTrigger = (f) => /\btrigger\b/i.test(f.testa);

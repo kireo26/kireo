@@ -30,6 +30,13 @@ const { abilitaTypeScript, ROOT } = require("./banco/ts");
 // stare, e restava verde togliendola.
 const { senzaCommenti } = require("./lib/senza-commenti");
 
+// UN LETTORE SOLO, E SPOGLIA. Avvolgere `senzaCommenti` al punto di lettura è la
+// forma che si dimentica: in questo file era avvolto in un posto su quattro. E
+// sbagliare si può in due versi — una guardia POSITIVA verde perché la forma sta
+// in un commento (il difetto del 27/09 con `cache(`), e una NEGATIVA rossa su
+// codice giusto il giorno che qualcuno documenta bene la forma che vieta.
+const leggiSorgente = (rel) => senzaCommenti(fs.readFileSync(path.join(ROOT, rel), "utf8"));
+
 abilitaTypeScript();
 
 const { caricaAffinitaHome } = require("@/lib/percorso/stato");
@@ -201,12 +208,12 @@ function proveTesto() {
 // del parametro con il default, visto abbastanza volte da meritarsi una riga.
 function proveCollegamento() {
   console.log("\n3) Il componente usa questo testo, e non ne tiene una copia");
-  const src = fs.readFileSync(path.join(ROOT, "components/app/SezioneAffinita.tsx"), "utf8");
+  const src = leggiSorgente("components/app/SezioneAffinita.tsx");
   ok(/copiaUnicaAttivita\(origine\)/.test(src), "SezioneAffinita chiede il testo a copiaUnicaAttivita, passandogli l'origine");
   ok(!/Fai un'altra missione/.test(src), "…e la vecchia stringa del bottone non è più nel componente");
   ok(!/Nella missione che hai fatto/.test(src), "…né quella del corpo");
 
-  const stato = fs.readFileSync(path.join(ROOT, "lib/percorso/stato.ts"), "utf8");
+  const stato = leggiSorgente("lib/percorso/stato.ts");
   ok(/origine: OrigineSegnale/.test(stato), "AffinitaHome porta l'origine");
   ok(/origineSegnale\(supabase, studentId\)/.test(stato), "…e caricaAffinitaHome la riempie davvero");
 }
@@ -267,7 +274,7 @@ async function proveBarra() {
   const molte = await caricaAffinitaHome(dieci, "s-dieci");
   ok(molte.eleggibili.length === 10, `il DATO non taglia: dieci eleggibili restano dieci (${molte.eleggibili.length})`);
 
-  const src = fs.readFileSync(path.join(ROOT, "components/app/SezioneAffinita.tsx"), "utf8");
+  const src = leggiSorgente("components/app/SezioneAffinita.tsx");
   ok(/MAX_BARRE_AFFINITA\s*=\s*5/.test(src), "il tetto è 5, e vive nel componente (è una questione di schermo, non di dato)");
   ok(/const mostrate = eleggibili\.slice\(0, MAX_BARRE_AFFINITA\)/.test(src), "…applicato una volta sola, in una lista sola");
   ok(/const contrastanti = mostrate\./.test(src), "…e la nota sui segnali contrastanti nomina le aree MOSTRATE, non quelle tagliate");
@@ -275,7 +282,7 @@ async function proveBarra() {
   ok(!/MAX_BARRE_AFFINITA\s*=\s*TOP_N_AFFINITA/.test(src), "il tetto NON è TOP_N_AFFINITA: due domande diverse nello stesso numero divergono");
 
   // L'INVARIANTE
-  const stato = senzaCommenti(fs.readFileSync(path.join(ROOT, "lib/percorso/stato.ts"), "utf8"));
+  const stato = leggiSorgente("lib/percorso/stato.ts");
   ok(!/attivita_distinte/.test(stato), "`attivita_distinte` non compare in nessuna condizione di visibilità (fuori dai commenti)");
   ok(!/eleggibile\(/.test(stato), "…e non è rimasta una seconda copia della regola: un solo predicato, `eleggibilePerAffinita`");
   const quante = (stato.match(/eleggibilePerAffinita\(/g) ?? []).length;

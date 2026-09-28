@@ -173,11 +173,21 @@ ok(!flag("tutto", ["robot", "palestra"]), "un flag diverso non si accende per sb
 // giorno qualcuno spegne.
 const fsBanco = require("fs");
 const pathBanco = require("path");
+const { senzaCommenti } = require("./lib/senza-commenti");
+// UN LETTORE SOLO, E SPOGLIA i commenti. I controlli lessicali di questo file
+// cercano forme nel sorgente, e un commento che cita la forma sbaglia in due
+// versi: fa passare una guardia positiva che non ha niente sotto (il difetto del
+// 27/09 con `cache(`), e fa diventare rossa una negativa il giorno che qualcuno
+// documenta bene la forma che vieta. Sotto c'è già un posto che aggirava la cosa
+// a mano, cercando un indice DOPO l'uscita perché la frase compariva anche in un
+// commento: quell'aggiramento non serve più, e resta perché la ragione per cui
+// esiste vale la pena leggerla.
+const leggiSorgente = (rel) => senzaCommenti(fsBanco.readFileSync(pathBanco.join(__dirname, "..", rel), "utf8"));
 for (const [nome, percorso] of [
   ["robot", "scripts/banco/robot/index.js"],
   ["azzera-percorsi", "scripts/banco/azzera-percorsi.js"],
 ]) {
-  const sorgente = fsBanco.readFileSync(pathBanco.join(__dirname, "..", percorso), "utf8");
+  const sorgente = leggiSorgente(percorso);
   ok(!/opzioni\.vai|\.vai\b/.test(sorgente), `${nome}: nessuna scorciatoia che salti la conferma`);
   ok(/await (chiediConferma|conferma)\(/.test(sorgente), `${nome}: la conferma si chiede, e non dietro una condizione`);
 }
@@ -250,7 +260,7 @@ ok(!stessoCommit(SHA_QUI, "11"), "…e due caratteri non bastano a dichiarare un
 // funzione può essere giusta e non essere chiamata da nessuno. È già successo
 // in questo progetto con `registra_guardia_lingua`, che per settimane ha
 // contato tutto come produzione perché nessuno le passava il secondo argomento.
-const sorgenteRobot = fsBanco.readFileSync(pathBanco.join(__dirname, "banco", "robot", "index.js"), "utf8");
+const sorgenteRobot = leggiSorgente("scripts/banco/robot/index.js");
 ok(/allineamento\(\{/.test(sorgenteRobot), "il robot chiama davvero la guardia");
 ok(/statoProduzione\(\)/.test(sorgenteRobot), "…con lo stato vero della produzione, non con una lista vuota");
 // Fra il riconoscimento del blocco e la conferma ci deve essere un `return`:
@@ -293,10 +303,7 @@ ok(
 // nel banco — quindi si può controllare solo da qui, e senza rete.
 console.log("");
 const { INTERESSANTI } = require("./banco/vercel");
-const sorgenteCron = fsBanco.readFileSync(
-  pathBanco.join(__dirname, "..", "app/api/cron/workshop-motore/route.ts"),
-  "utf8",
-);
+const sorgenteCron = leggiSorgente("app/api/cron/workshop-motore/route.ts");
 
 // Il primo argomento di ogni `console.error`, fino alla prima interpolazione:
 // se il prefisso passa il filtro, la riga intera passa.
@@ -345,7 +352,7 @@ ok(
 console.log("\n── banco guasti: le specie e cosa vogliono dire\n");
 
 const { COSA_VUOL_DIRE, leggiGuasti } = require("./banco/guasti");
-const sorgenteSpecie = fsBanco.readFileSync(pathBanco.join(__dirname, "..", "lib", "guasti", "registra.ts"), "utf8");
+const sorgenteSpecie = leggiSorgente("lib/guasti/registra.ts");
 const blocco = sorgenteSpecie.slice(
   sorgenteSpecie.indexOf("export type SpecieGuasto"),
   sorgenteSpecie.indexOf("export type Guasto"),
@@ -414,7 +421,7 @@ ok(
 // passata precedente) non entrano. La loro revisione l'ha scritta un altro
 // prompt, e mescolarla a questa passata è il modo di rendere illeggibile
 // proprio il confronto per cui la distribuzione esiste.
-const sorgenteMisura = fsBanco.readFileSync(pathBanco.join(__dirname, "banco", "robot", "misura.js"), "utf8");
+const sorgenteMisura = leggiSorgente("scripts/banco/robot/misura.js");
 const dentroIlLoop = sorgenteMisura.slice(
   sorgenteMisura.indexOf("for (const t of e.tappe) {"),
   sorgenteMisura.indexOf("const punteggi = distribuzionePunteggi"),

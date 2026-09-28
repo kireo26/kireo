@@ -18,6 +18,11 @@
 
 const path = require("path");
 const fs = require("fs");
+// I controlli lessicali girano sul sorgente SPOGLIATO dei commenti: un commento
+// che cita la forma cercata fa passare la guardia al posto del codice (il difetto
+// del 27/09 con `cache(`), e uno che cita una forma vietata fa diventare rossa
+// una guardia negativa su codice giusto.
+const { senzaCommenti } = require("./lib/senza-commenti");
 const ts = require("typescript");
 const Module = require("module");
 
@@ -91,7 +96,7 @@ for (const rel of [
   "app/app/workshop/[slug]/progetto/page.tsx",
   "app/app/workshop/[slug]/cliente/page.tsx",
 ]) {
-  const testo = fs.readFileSync(path.join(ROOT, rel), "utf8");
+  const testo = senzaCommenti(fs.readFileSync(path.join(ROOT, rel), "utf8"));
   ok(testo.includes("scegliIscrizione"), `${rel.split("/").slice(-2).join("/")}: usa la regola condivisa`);
   ok(
     !/from\("workshop_iscrizioni"\)[\s\S]{0,400}?maybeSingle\(\)/.test(testo),

@@ -26,6 +26,11 @@
 
 const path = require("path");
 const fs = require("fs");
+// I controlli lessicali girano sul sorgente SPOGLIATO dei commenti: un commento
+// che cita la forma cercata fa passare la guardia al posto del codice (il difetto
+// del 27/09 con `cache(`), e uno che cita una forma vietata fa diventare rossa
+// una guardia negativa su codice giusto.
+const { senzaCommenti } = require("./lib/senza-commenti");
 const ts = require("typescript");
 const Module = require("module");
 
@@ -109,7 +114,7 @@ const CORNICI_CHE_USANO_I_RUOLI = {
 // nuovo. Questo si decide sulla sorgente, non su una griglia di partite — una
 // griglia può sempre non passare per il caso giusto.
 function predicatiCheLeggonoIRuoli() {
-  const src = fs.readFileSync(path.join(ROOT, "lib/escape/restituzione.ts"), "utf8");
+  const src = senzaCommenti(fs.readFileSync(path.join(ROOT, "lib/escape/restituzione.ts"), "utf8"));
   const quando = [...src.matchAll(/quando: \(c\) => ([^\n]*?), testo:/g)].map((m) => m[1]);
   return quando.filter((q) => /c\.ruoli|presoDaTe|ruoliCompilati/.test(q)).length;
 }

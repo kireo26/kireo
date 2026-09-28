@@ -23,6 +23,11 @@
 /* eslint-disable @typescript-eslint/no-require-imports -- script Node CommonJS di utilità */
 
 const fs = require("fs");
+// I controlli lessicali girano sul sorgente SPOGLIATO dei commenti: un commento
+// che cita la forma cercata fa passare la guardia al posto del codice (il difetto
+// del 27/09 con `cache(`), e uno che cita una forma vietata fa diventare rossa
+// una guardia negativa su codice giusto.
+const { senzaCommenti } = require("./lib/senza-commenti");
 const path = require("path");
 
 const ROOT = path.join(__dirname, "..");
@@ -147,7 +152,7 @@ ok(marcaAncheIlFinale(FINALE_GIUSTO).ok === true, "…e verde quando il valore �
 
 // ── il file vero ──────────────────────────────────────────────────────────
 console.log("");
-const sorgente = fs.readFileSync(FILE, "utf8");
+const sorgente = senzaCommenti(fs.readFileSync(FILE, "utf8"));
 const esito = guardiaTraLeDue(sorgente);
 ok(esito.ok, esito.ok ? "nel cron: se la marcatura non atterra, la tappa non avanza" : `nel cron: ${esito.perche}`);
 

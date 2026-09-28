@@ -20,6 +20,7 @@
 
 const path = require("path");
 const fs = require("fs");
+const { senzaCommenti } = require("./lib/senza-commenti");
 const ts = require("typescript");
 const Module = require("module");
 
@@ -129,7 +130,10 @@ ok(
 
   // La regola del prossimo messaggio sta in un posto solo — la route la
   // riscriveva a mano, e la seconda copia si era dimenticata del `faseId`.
-  const route = fs.readFileSync(path.join(ROOT, "app/api/workshop/cliente-chat/route.ts"), "utf8");
+  // Spogliato dei commenti: la forma vietata è proprio quella che un commento
+  // scriverebbe per spiegare perché la seconda copia è stata tolta, e una guardia
+  // negativa che la trovasse là diventerebbe rossa su codice giusto.
+  const route = senzaCommenti(fs.readFileSync(path.join(ROOT, "app/api/workshop/cliente-chat/route.ts"), "utf8"));
   ok(/esitoDelProssimoMessaggio\(stato\)/.test(route), "la route chiede la regola a chatTappa invece di riscriverla");
   ok(!/inviati \+ 1 >= stato\.tetto/.test(route), "…e non è rimasta una seconda copia del confronto col tetto");
 

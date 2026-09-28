@@ -143,9 +143,11 @@ const CONSUMATORI = [
 // guardia che conta guardava troppo stretto. *Un verde ottenuto guardando nel
 // posto sbagliato non vuol dire niente, e lo si scopre solo provando a
 // romperlo.* I commenti si togliono prima, o questo file stesso sarebbe rosso.
-function senzaCommenti(src) {
-  return src.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/^\s*\/\/.*$/gm, " ").replace(/\{\/\*[\s\S]*?\*\/\}/g, " ");
-}
+// Una copia locale c'era, e toglieva solo i commenti a riga intera: quella
+// condivisa toglie anche i commenti a fine riga, che è la forma in cui la
+// citazione di un codice si infila più spesso. Due copie dello stesso helper
+// divergono, e quella che diverge è sempre quella che nessuno rilegge.
+const { senzaCommenti } = require("./lib/senza-commenti");
 
 for (const [file, cosa] of CONSUMATORI) {
   const src = fs.readFileSync(path.join(ROOT, file), "utf8");

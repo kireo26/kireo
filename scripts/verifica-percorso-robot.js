@@ -51,6 +51,13 @@ const { getTest } = require("@/lib/test/config");
 const { getMissione, stepDellaMissione, valutaPiano } = require("@/lib/escape/config");
 const R = require("./banco/robot/risposte-percorso");
 const { senzaCommenti } = require("./lib/senza-commenti");
+// UN LETTORE SOLO, E SPOGLIA. Avvolgere `senzaCommenti` al punto di lettura è la
+// forma che si dimentica: in questo file era avvolto in tre posti su sei. E
+// sbagliare si può in due versi — una guardia positiva verde perché la forma sta
+// in un commento (il difetto del 27/09 con `cache(`), e una negativa rossa su
+// codice giusto il giorno che qualcuno documenta bene la forma che vieta.
+const leggiBanco = (rel) => senzaCommenti(fs.readFileSync(path.join(__dirname, rel), "utf8"));
+const leggiApp = (rel) => senzaCommenti(fs.readFileSync(path.join(ROOT, rel), "utf8"));
 const giocaM = require("./banco/robot/giocaMissione");
 const ROOT = path.join(__dirname, "..");
 
@@ -517,8 +524,8 @@ ok(/è vuoto \(ho guardato\)/.test(righeVuote.join("\n")), "…e un profilo davv
 
 // I DUE LETTORI, controllati sul sorgente: le funzioni async contro Supabase
 // non girano senza rete, ma «chi chiede a chi» si legge.
-const srcGioca = fs.readFileSync(path.join(__dirname, "banco/robot/giocaTest.js"), "utf8");
-const srcStudente = fs.readFileSync(path.join(__dirname, "banco/studente.js"), "utf8");
+const srcGioca = leggiBanco("banco/robot/giocaTest.js");
+const srcStudente = leggiBanco("banco/studente.js");
 ok(srcGioca.includes("caricaAffinitaHome(supabase"), "il banco CHIEDE il profilo a caricaAffinitaHome invece di riordinarlo");
 ok(!/order\("interest_score"/.test(srcGioca), "…e non ordina più area_signal per punteggio per conto suo");
 ok(
@@ -677,20 +684,20 @@ console.log("\n6quater) L'esito del revisore porta il suo perché");
 
   // (d) i collegamenti, letti sul sorgente: le tre funzioni sono async contro
   //     Anthropic/Supabase e non girano qui, ma «chi passa cosa a chi» si legge.
-  const srcScoring = senzaCommenti(fs.readFileSync(path.join(ROOT, "lib/escape/scoring.ts"), "utf8"));
+  const srcScoring = leggiApp("lib/escape/scoring.ts");
   ok(/revisoreDiagnosi = \{/.test(srcScoring), "il motore costruisce la diagnosi");
   ok(/percheSenzaCredito\(revisoreDiagnosi\)/.test(srcScoring), "…e il suo log la DERIVA invece di riscrivere la frase");
   ok(/revisoreDiagnosi \}/.test(srcScoring), "…e la restituisce a chi lo chiama");
 
-  const srcRoute = senzaCommenti(fs.readFileSync(path.join(ROOT, "app/api/escape/finalizza/route.ts"), "utf8"));
+  const srcRoute = leggiApp("app/api/escape/finalizza/route.ts");
   ok(/revisore: revisoreDiagnosi/.test(srcRoute), "la route la restituisce: è così che arriva al banco");
 
-  const srcGiocaM2 = fs.readFileSync(path.join(__dirname, "banco/robot/giocaMissione.js"), "utf8");
+  const srcGiocaM2 = leggiBanco("banco/robot/giocaMissione.js");
   ok(
     /hasOwnProperty\.call\(fine\.dati, "revisore"\)/.test(srcGiocaM2),
     "il banco distingue la chiave ASSENTE da un valore nullo, invece di trattarle uguale",
   );
-  ok(/percheSenzaCredito\(d\)/.test(senzaCommenti(srcGiocaM2)), "…e usa la frase del prodotto, non una copia sua");
+  ok(/percheSenzaCredito\(d\)/.test(srcGiocaM2), "…e usa la frase del prodotto, non una copia sua");
 }
 
 // ── 7) Controprove ───────────────────────────────────────────────────────────
@@ -790,7 +797,7 @@ if (conPiano) {
 // chiamata senza slug, o con quello sbagliato, darebbe una risposta PLAUSIBILE
 // alla missione sbagliata. Controllo lessicale perché `giocaMissione` è async
 // contro Supabase e non gira qui — ma «chi passa cosa» si legge.
-const srcGiocaM = fs.readFileSync(path.join(__dirname, "banco/robot/giocaMissione.js"), "utf8");
+const srcGiocaM = leggiBanco("banco/robot/giocaMissione.js");
 ok(/rispostaPerStep\(missionSlug, prossimo\)/.test(srcGiocaM), "giocaMissione passa il slug a rispostaPerStep, non si affida a un default");
 ok(!/missionSlug = /.test(srcGiocaM), "…e `missionSlug` non ha un default: chi gioca nomina la missione, sempre");
 ok(R.rispostaPerStep("una-missione-che-non-esiste", { id: "s1_mandato", tipo: "scelta_singola", opzioni: [{ id: "x" }] }) === null, "con uno slug sconosciuto rispostaPerStep torna null, invece di rispondere a caso");

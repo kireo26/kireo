@@ -38,6 +38,7 @@
 /* eslint-disable @typescript-eslint/no-require-imports -- script Node CommonJS di utilità */
 
 const fs = require("fs");
+const { senzaCommenti } = require("./lib/senza-commenti");
 const path = require("path");
 
 const ROOT = path.join(__dirname, "..");
@@ -65,7 +66,7 @@ const LASCIA_TRACCIA = /console\.error|\bsegnalaGuasto\s*\(|\bawait guasto\s*\(/
 // renderebbe questo controllo cieco proprio sui rami che ha appena imparato a
 // leggere. Si cerca il `console.error` come PRIMA istruzione del corpo, non da
 // qualche parte nel file.
-const SORGENTE_SEGNALA = fs.readFileSync(path.join(ROOT, "lib", "guasti", "registra.ts"), "utf8");
+const SORGENTE_SEGNALA = senzaCommenti(fs.readFileSync(path.join(ROOT, "lib", "guasti", "registra.ts"), "utf8"));
 const CORPO_SEGNALA = SORGENTE_SEGNALA.slice(SORGENTE_SEGNALA.indexOf("export async function segnalaGuasto"));
 const stampaSempre = /^export async function segnalaGuasto[^{]*\{\s*\n\s*console\.error\(/.test(CORPO_SEGNALA);
 if (!stampaSempre) {
@@ -178,7 +179,15 @@ const file = routeHandlers(APP).sort();
 console.log("\n═══ Nessun 5xx muto ═══\n");
 
 for (const percorso of file) {
-  const righe = fs.readFileSync(percorso, "utf8").split("\n");
+  // SPOGLIATO DEI COMMENTI, e riga per riga. Senza, un ramo che contiene la
+  // PAROLA `console.error` dentro un commento risulterebbe tracciato senza
+  // scrivere niente: verde esattamente nel caso per cui questo controllo esiste.
+  // Riga per riga e non su tutto il file perché un blocco `/* */` toglierebbe
+  // delle righe, e i numeri stampati qui sotto punterebbero al posto sbagliato.
+  const righe = fs
+    .readFileSync(percorso, "utf8")
+    .split("\n")
+    .map((r) => senzaCommenti(r));
   const rel = path.relative(ROOT, percorso);
 
   for (let i = 0; i < righe.length; i++) {
