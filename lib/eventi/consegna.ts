@@ -64,7 +64,7 @@
 
 import type Anthropic from "@anthropic-ai/sdk";
 import { getAreaBySlug } from "@/data/aree";
-import { chiamaEscape } from "@/lib/escape/chiamaEscape";
+import { chiamaEscape, motivazioneNelLimite } from "@/lib/escape/chiamaEscape";
 import { cifreDelTesto, cifreNonCitabili } from "@/lib/escape/cifreCitabili";
 import { stringheInJson } from "@/lib/lingua/scansione";
 
@@ -143,8 +143,14 @@ export function leggiGiudizioConsegna(
     }
     if (prove.some((p) => p.area_slug === a.area_slug)) continue; // una prova per area
     const ripiego = `La tua risposta lavora su ${getAreaBySlug(a.area_slug)?.nome ?? a.area_slug}.`;
-    const proposta = typeof a.motivazione === "string" && a.motivazione.trim() ? a.motivazione.trim() : ripiego;
-    const fuori = cifreNonCitabili(proposta, cifreOk);
+    const grezza = typeof a.motivazione === "string" && a.motivazione.trim() ? a.motivazione.trim() : ripiego;
+    // Il TETTO prima della cifra, come nelle missioni (vedi `motivazioneSicura`
+    // in lib/escape/scoring.ts): sopra il limite il testo non si spedisce, quindi
+    // non c'è motivo di cercarci dentro una cifra. Il numero e la ragione stanno
+    // in un posto solo — `MAX_MOTIVAZIONE` in lib/escape/chiamaEscape.ts, lo
+    // stesso file da cui passa la chiamata.
+    const proposta = motivazioneNelLimite(grezza, ripiego, "consegna evento");
+    const fuori = proposta === grezza ? cifreNonCitabili(proposta, cifreOk) : [];
     if (fuori.length > 0) {
       console.warn(`Consegna evento — cifra non citabile (${fuori.join(", ")}): motivazione sostituita dal ripiego.`);
     }

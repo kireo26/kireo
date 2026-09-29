@@ -28,6 +28,23 @@
 // E UNA PASSATA CHE NON SA COSA CERCA VEDE LE COSE SBAGLIATE, NON QUELLE
 // ASSENTI: dei due difetti del 28/09 avrebbe preso le date subito, e la porta
 // mancante no — un corpus dice cosa c'è scritto, non che manca un link.
+//
+// ⚠️ IL CORPUS È AFFIDABILE SUL CONTENUTO, NON SULLA SPAZIATURA. Ogni tag diventa
+// uno spazio (è l'unico modo per non incollare due parole separate solo da un
+// `<span>`), quindi al confine fra due tag ne compare uno che a schermo non c'è:
+// `2 <span>eventi</span>` esce «2 evento i», `Profilo <span>80%</span>` esce
+// «Profilo 80 %», e un `&` dentro un nome d'area seguito da un tag diventa
+// «informatica & digitale :». **Non sono difetti tipografici**: tutti e tre
+// vengono da qui, e nella prima lettura umana del 29/09 erano esattamente il
+// genere di cosa su cui si aprono tre bug inesistenti.
+//
+// Non si ripara mettendo "" al posto dello spazio, e la ragione è che l'HTML non
+// sa quanto spazio c'è: due `<span>` adiacenti possono essere incollati o
+// distanziati da un `gap` di flex, e lo decide il CSS che qui non guardiamo.
+// Sbagliare per eccesso di spazi lascia il testo LEGGIBILE, sbagliare per difetto
+// lo incolla: la direzione giusta è questa. Quello che va scritto è che chi legge
+// lo sappia — se una di quelle tre spaziature fosse davvero sbagliata, lo si vede
+// solo a schermo.
 
 /* eslint-disable @typescript-eslint/no-require-imports -- script Node CommonJS di utilità */
 

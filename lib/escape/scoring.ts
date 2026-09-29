@@ -14,7 +14,7 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { AREE, getAreaBySlug } from "@/data/aree";
-import { chiamaEscape } from "@/lib/escape/chiamaEscape";
+import { chiamaEscape, motivazioneNelLimite } from "@/lib/escape/chiamaEscape";
 import { cifreNonCitabili, insiemeCifreCitabili } from "@/lib/escape/cifreCitabili";
 import { stringheInJson } from "@/lib/lingua/scansione";
 import { componiPerformance, type DescrittoreVoce } from "./componiPerformance";
@@ -55,6 +55,13 @@ const PESO_MINIMO = 0.01;
 // il cuore del sistema — le azioni pesano più delle dichiarazioni.
 const PESO_STILE_MISSIONE = 1.35;
 
+// L'ultimo ripiego di una motivazione: quello che uno studente legge quando non
+// c'è niente da dire (o quando il testo dell'AI è stato scartato dal terminale).
+// ⚠️ È TESTO CHE ARRIVA A SCHERMO nel blocco delle aree sfiorate, non una stringa
+// di servizio — stava inline fin dal primo giorno e la sua voce non l'ha mai
+// riletta nessuno. Onesta lo è; bella non particolarmente.
+const RIPIEGO_MOTIVAZIONE = "Segnale rilevato durante la missione.";
+
 const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
 const nomeArea = (slug: string) => getAreaBySlug(slug)?.nome ?? slug;
 
@@ -71,11 +78,19 @@ function sanitizzaEvidenze(evidenze: EvidenceInput[]): EvidenceInput[] {
     if (e.asse != null && !ASSI_VALIDI.has(e.asse)) continue;
     const valore = Number.isFinite(e.valore) ? Math.max(0, Math.min(1, e.valore)) : 0;
     const peso = Number.isFinite(e.peso) && e.peso > 0 ? e.peso : PESO_MINIMO;
-    const motivazione = (typeof e.motivazione === "string" ? e.motivazione.trim() : "") || "Segnale rilevato durante la missione.";
+    const grezza = (typeof e.motivazione === "string" ? e.motivazione.trim() : "") || RIPIEGO_MOTIVAZIONE;
+    // IL TETTO ANCHE QUI, e non è una ripetizione di `motivazioneSicura`: quello
+    // copre le tre motivazioni scritte dall'AI, questo è il terminale che copre
+    // OGNI prova, comprese le venti cablate. Se una di loro cresce oltre il
+    // limite, lo studente riceve la riga generica invece di un paragrafo — e in
+    // repo il caso non arriva mai, perché `npm run test:revisore` misura il
+    // corpus a mano contro il tetto. Non si TRONCA, per la ragione scritta in
+    // `motivazioneNelLimite`: un giudizio amputato è peggio di nessun giudizio.
+    const motivazione = motivazioneNelLimite(grezza, RIPIEGO_MOTIVAZIONE, "terminale sanitizza");
     // `categoria` è obbligatoria sul tipo: ogni emissione la dichiara al punto di
     // push (garanzia a compile-time), quindi qui non c'è nulla da derivare né da
     // scartare — arriva già valorizzata con `...e`.
-    pulite.push({ ...e, asse: e.asse ?? null, valore, peso, motivazione: motivazione.slice(0, 2000) });
+    pulite.push({ ...e, asse: e.asse ?? null, valore, peso, motivazione });
   }
   return pulite;
 }
@@ -714,7 +729,15 @@ export async function calcolaEvidenze(
   // scelta che lo studente non ha fatto: meglio la riga generica. Il log dice
   // quale cifra, perché è l'unico modo per accorgersi che l'insieme è troppo
   // stretto invece che il revisore troppo fantasioso.
+  //
+  // DUE TERMINALI, NON UNO, e la lunghezza va per prima: sopra il tetto la
+  // motivazione non si spedisce affatto (vedi motivazioneNelLimite), quindi
+  // cercarle dentro una cifra non citabile sarebbe lavoro su un testo che non
+  // arriva a nessuno. Il ripiego è cablato dal punto in cui siamo e le sue cifre
+  // vengono dalla missione, quindi sono citabili per costruzione.
   const motivazioneSicura = (mot: string, ripiego: string, dove: string): string => {
+    const entro = motivazioneNelLimite(mot, ripiego, `${dove}, missione ${mission.slug}`);
+    if (entro !== mot) return entro;
     const fuori = cifreNonCitabili(mot, cifreOk);
     if (fuori.length === 0) return mot;
     console.warn(`Cifra non citabile (${dove}, missione ${mission.slug}): ${fuori.join(", ")} — motivazione sostituita dal ripiego.`);

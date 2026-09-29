@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getAreaBySlug } from "@/data/aree";
+import { guideDiArea } from "@/lib/guide/config";
 import type { TipoAttivita } from "./activityLog";
 
 export type VoceStorico = {
@@ -72,15 +73,40 @@ export async function getStoricoAttivita(supabase: SupabaseClient, userId: strin
 
 export type VoceEsplorazione = { id: string; testo: string; data: string };
 
-const ETICHETTE_TIPO: Record<TipoAttivita, (areaNome: string) => string> = {
+// LE ETICHETTE RICEVONO ANCHE IL LIVELLO, e per una sola di loro conta.
+//
+// PERCHÉ. Il 29/09, nel primo corpus di pagine vere, «Il tuo percorso di
+// esplorazione» mostrava DUE VOLTE la stessa riga nello stesso giorno: «Hai
+// scaricato la guida di Salute & Professioni sanitarie — 26 set 2026». Non era un
+// doppione: il cap giornaliero di `activity_log` è su (studente, area, tipo,
+// coalesce(livello,0)) dalla migrazione 20260813120000, apposta perché le TRE
+// guide di un'area facciano tre righe al giorno. Erano due guide diverse — la
+// Panoramica e Le strade — e l'etichetta, che il livello non lo leggeva, le
+// raccontava con la stessa frase: una cosa scritta che dichiara due fatti dove
+// ce ne sono due, ma illeggibili come uno.
+//
+// Il nome della guida viene da `guideDiArea`, la stessa fonte della pagina
+// `/app/guide/<area>`: se un domani cambia lì, cambia anche qui — mai una seconda
+// copia dei tre nomi. Il livello è nullable per ogni altro tipo di attività (ed è
+// nullo anche sulle righe `download_guida` scritte prima di quella migrazione):
+// senza livello la frase torna a essere quella di prima, che per una riga vecchia
+// è l'unica cosa vera che si può dire.
+const ETICHETTE_TIPO: Record<TipoAttivita, (areaNome: string, guida: string | null) => string> = {
   visita_area: (a) => `Hai visitato l'area ${a}`,
   lettura_articolo: (a) => `Hai letto un articolo su ${a}`,
   chat_assistente: (a) => `Hai aperto l'assistente digitale di ${a}`,
-  download_guida: (a) => `Hai scaricato la guida di ${a}`,
+  download_guida: (a, guida) => (guida ? `Hai aperto «${guida}» di ${a}` : `Hai scaricato la guida di ${a}`),
   iscrizione_webinar: (a) => `Iscrizione a un evento di ${a}`,
   partecipazione_webinar: (a) => `Hai partecipato a un evento di ${a}`,
   workshop_pcto: (a) => `Hai completato un workshop PCTO di ${a}`,
 };
+
+// Il titolo della guida di quel livello, o null se il livello non c'è (ogni
+// attività che non è una guida) o non è uno dei tre.
+function titoloGuida(areaSlug: string, livello: unknown): string | null {
+  if (livello !== 1 && livello !== 2 && livello !== 3) return null;
+  return guideDiArea(areaSlug).find((g) => g.livello === livello)?.titolo ?? null;
+}
 
 // Percorso di esplorazione leggibile (non tecnico) da activity_log, più
 // recenti prima.
@@ -88,7 +114,7 @@ export async function getPercorsoEsplorazione(supabase: SupabaseClient, userId: 
   try {
     const { data, error } = await supabase
       .from("activity_log")
-      .select("id, area_slug, tipo_attivita, created_at")
+      .select("id, area_slug, tipo_attivita, livello, created_at")
       .eq("student_id", userId)
       .order("created_at", { ascending: false })
       .limit(limite);
@@ -96,7 +122,9 @@ export async function getPercorsoEsplorazione(supabase: SupabaseClient, userId: 
 
     return (data ?? []).map((riga) => {
       const area = getAreaBySlug(riga.area_slug);
-      const testo = ETICHETTE_TIPO[riga.tipo_attivita as TipoAttivita]?.(area?.nome ?? riga.area_slug) ?? "Attività registrata";
+      const testo =
+        ETICHETTE_TIPO[riga.tipo_attivita as TipoAttivita]?.(area?.nome ?? riga.area_slug, titoloGuida(riga.area_slug, riga.livello)) ??
+        "Attività registrata";
       return { id: riga.id, testo, data: riga.created_at };
     });
   } catch {

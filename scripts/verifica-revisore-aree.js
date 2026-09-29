@@ -67,6 +67,7 @@ const {
   PROMPT_NON_APPROFONDIRE,
 } = require("@/lib/escape/scoring");
 const { insiemeCifreCitabili } = require("@/lib/escape/cifreCitabili");
+const { MAX_MOTIVAZIONE } = require("@/lib/escape/chiamaEscape");
 const { AREE, getAreaBySlug } = require("@/data/aree");
 
 const SLUG_TUTTI = AREE.map((a) => a.slug);
@@ -266,6 +267,30 @@ async function perMissione(slug) {
       cliente.sistemi.every((x) => /resta il punto più fragile/.test(x)),
       "B1bis · …e porta la sostituzione svolta, non solo il divieto (è la forma che in questo progetto prende)",
     );
+
+    // B1ter · LA REGOLA CHE LA MOTIVAZIONE NON GIUDICA, e che porta una MISURA.
+    // Il 29/09 il prompt chiedeva già una motivazione «breve» — un aggettivo
+    // senza numero, che non impegna nessuno — e nel blocco «Aree che stai
+    // sfiorando» sono comparsi due paragrafi in cui il prodotto spiegava a un
+    // diciassettenne cosa aveva sbagliato. Si verifica sul system vero, come
+    // sopra, e si pretendono tutte e tre le metà: il divieto, il NUMERO (che deve
+    // essere quello applicato dal codice, o le due copie divergono) e una
+    // sostituzione svolta.
+    const senzaGiudizio = cliente.sistemi.filter((x) => /MAI COSA HA SBAGLIATO/.test(x));
+    ok(
+      cliente.sistemi.length > 0 && senzaGiudizio.length === cliente.sistemi.length,
+      senzaGiudizio.length === cliente.sistemi.length
+        ? `B1ter · la regola «dice cosa ha fatto, mai cosa ha sbagliato» arriva a tutti e ${cliente.sistemi.length} i revisori`
+        : `B1ter · la regola arriva solo a ${senzaGiudizio.length} dei ${cliente.sistemi.length} revisori: gli altri possono spiegare a un ragazzo cosa ha sbagliato`,
+    );
+    ok(
+      cliente.sistemi.every((x) => x.includes(`${MAX_MOTIVAZIONE} caratteri`)),
+      `B1ter · …e dichiara la MISURA vera (${MAX_MOTIVAZIONE} caratteri), non l'aggettivo «breve»: il numero nel prompt è quello che il codice applica`,
+    );
+    ok(
+      cliente.sistemi.every((x) => /chiedere a Sofia di spiegare/.test(x)),
+      "B1ter · …con una riscrittura svolta, presa dal paragrafo vero del 29/09",
+    );
     ok(
       revisoreEsito === "letto" &&
         perf?.motivazione === MOT_PROPOSTA &&
@@ -340,9 +365,84 @@ async function perMissione(slug) {
       );
     }
   }
+
+  // B4 · una motivazione più lunga del tetto
+  //
+  // IL CASO VERO DEL 29/09, in forma riproducibile: il modello scrive un
+  // paragrafo, e il paragrafo arriva a schermo perché il campo non ha un tetto.
+  // Tre proprietà, e la terza è quella che si dimentica:
+  //   — al suo posto va il RIPIEGO contestuale, non il testo tagliato a metà
+  //     (un giudizio amputato è peggio di un giudizio intero);
+  //   — il paragrafo non compare in NESSUNA prova, nemmeno accorciato;
+  //   — NESSUNA SECONDA CHIAMATA: il tetto è un terminale, non un ritentativo.
+  //     Una lunghezza non è un errore di fatto come una cifra inventata, e
+  //     ripagare una chiamata per una proprietà di stile non si fa.
+  {
+    const lungo = `${MOT_PROPOSTA} ${"Qui hai scelto il documento invece che la conversazione, e se l'area ti interessa è proprio perché vedi che questa scelta è stata uno sbaglio. ".repeat(3)}`;
+    ok(lungo.length > MAX_MOTIVAZIONE, `B4 · il caso di prova è davvero sopra il tetto (${lungo.length} > ${MAX_MOTIVAZIONE})`);
+    const cliente = clienteFinto(prompt, {
+      proposta: jsonProposta(dentro, lungo),
+      riflessione: jsonRiflessione(dentro, MOT_RIFLESSIONE),
+      nonApprofondire: JSON_NON_APPROFONDIRE,
+    });
+    const { evidenze, revisoreEsito, righe } = await esegui(mission, risposte, cliente);
+    const perf = evidenze.find((e) => e.step_id === "s4_proposta" && e.area_slug === dentro && e.dimensione === "performance");
+    const ripiego = `La tua proposta valorizza ${nomeArea(dentro)}.`;
+    const pezzoAschermo = evidenze.some((e) => String(e.motivazione ?? "").includes("è stata uno sbaglio"));
+    const avviso = righe.find((r) => r.includes("Motivazione troppo lunga"));
+    const oltre = evidenze.filter((e) => String(e.motivazione ?? "").length > MAX_MOTIVAZIONE);
+    ok(
+      revisoreEsito === "letto" &&
+        perf?.motivazione === ripiego &&
+        !pezzoAschermo &&
+        oltre.length === 0 &&
+        Boolean(avviso) &&
+        cliente.chiamate.length === 3,
+      `B4 · motivazione di ${lungo.length} caratteri: sostituita dal ripiego, il paragrafo non arriva a schermo, nessuna seconda chiamata` +
+        ` [motivazione=${perf?.motivazione === ripiego ? "ripiego" : "ALTRA"} paragrafo_a_schermo=${pezzoAschermo ? "SÌ" : "no"} oltre_il_tetto=${oltre.length} avviso=${avviso ? "sì" : "no"} chiamate=${cliente.chiamate.length}]`,
+    );
+  }
+}
+
+// ───────────────────────────────── C · il corpus a mano contro il tetto
+//
+// DA DOVE VIENE IL NUMERO. 220 non è scelto in mezzo al nulla: è ancorato alle
+// motivazioni SCRITTE A MANO in `scoring.ts`, la forma che consideriamo giusta.
+// Se un giorno una di loro cresce oltre il tetto, il terminale la sostituirebbe
+// con la riga generica — e lo studente perderebbe un testo buono per colpa di un
+// numero tarato su un mondo che non c'è più. Questo controllo è il solo posto in
+// cui quel legame è scritto: qui si misura il corpus vero, non un'idea del corpus.
+function corpusAMano() {
+  const src = fs.readFileSync(path.join(ROOT, "lib", "escape", "scoring.ts"), "utf8");
+  // I letterali `motivazione: "…"` / `motivazione: \`…\``. Le interpolazioni si
+  // sostituiscono con una stima generosa (venti caratteri per placeholder): una
+  // stima al RIBASSO direbbe che il corpus sta nel tetto quando non ci sta, cioè
+  // sbaglierebbe nella direzione comoda.
+  const trovate = [];
+  const re = /motivazione:\s*(`[^`]*`|"(?:[^"\\]|\\.)*")/g;
+  let m;
+  while ((m = re.exec(src))) {
+    const testo = m[1].slice(1, -1).replace(/\$\{[^}]*\}/g, "X".repeat(20));
+    trovate.push(testo);
+  }
+  const lunghezze = trovate.map((t) => t.length).sort((a, b) => b - a);
+  ok(trovate.length >= 15, `C · il corpus a mano si legge: ${trovate.length} motivazioni cablate in scoring.ts`);
+  ok(
+    lunghezze.length > 0 && lunghezze[0] <= MAX_MOTIVAZIONE,
+    lunghezze[0] <= MAX_MOTIVAZIONE
+      ? `C · …e la più lunga (${lunghezze[0]} caratteri) sta nel tetto di ${MAX_MOTIVAZIONE}: il numero contiene la forma che consideriamo giusta`
+      : `C · una motivazione cablata è SOPRA il tetto (${lunghezze[0]} > ${MAX_MOTIVAZIONE}): oggi uno studente ne riceverebbe la riga generica. Alza il tetto o accorcia quel testo`,
+  );
+  // L'altra metà: un tetto molto più alto del corpus non protegge da niente.
+  // 2000 (quello che c'era prima del 29/09) è appunto il caso.
+  ok(
+    MAX_MOTIVAZIONE <= lunghezze[0] * 2,
+    `C · …e non è tanto più alto del corpus (${MAX_MOTIVAZIONE} contro ${lunghezze[0]}): un tetto a 2000, come prima del 29/09, non era un tetto`,
+  );
 }
 
 (async () => {
+  corpusAMano();
   for (const m of MISSIONI) await perMissione(m.slug);
 
   console.log("");

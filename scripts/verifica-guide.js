@@ -416,6 +416,86 @@ ok(
   "e nessun link diretto al PDF in pagina: aprirebbe il file senza registrare l'apertura, e la sequenza non avanzerebbe mai",
 );
 
-console.log("");
-if (falliti > 0) { console.error(`✗ ${falliti} verifiche fallite`); process.exit(1); }
-console.log("✓ Tutte le verifiche Guide superate.");
+// ── Il percorso di esplorazione dice QUALE guida ───────────────────────────────
+//
+// PERCHÉ È QUI E NON IN UNA SUITE SUA: la proprietà è che quella riga nomina una
+// guida con lo STESSO nome della pagina delle guide. Se un domani i tre titoli
+// cambiano, devono cambiare in un posto solo — e questo è il file che sorveglia i
+// nomi delle guide.
+//
+// IL CASO DEL 29/09. Nel primo corpus di pagine vere, «Il tuo percorso di
+// esplorazione» mostrava due volte la stessa riga nello stesso giorno: «Hai
+// scaricato la guida di Salute & Professioni sanitarie — 26 set 2026». Non era un
+// doppione e il cap giornaliero di `activity_log` funzionava: è su (studente,
+// area, tipo, coalesce(livello,0)) apposta perché le tre guide di un'area facciano
+// tre righe. Erano DUE GUIDE DIVERSE raccontate con la stessa frase.
+console.log("\n13) Il percorso di esplorazione: quale guida, non «la guida»");
+
+const { getPercorsoEsplorazione } = require("@/lib/app/attivita");
+
+// Un client finto: `getPercorsoEsplorazione` concatena from→select→eq→order→limit.
+const supabaseFinto = (righe) => {
+  const q = { data: righe, error: null };
+  const c = { select: () => c, eq: () => c, order: () => c, limit: () => Promise.resolve(q) };
+  return { from: () => c, _select: null };
+};
+// …e uno che registra le colonne chieste: se `livello` non viene letto, la riga
+// non può nominare la guida — ed è esattamente com'era il 29/09.
+const supabaseSpia = () => {
+  const visto = { colonne: "" };
+  const c = { select: (s) => { visto.colonne = s; return c; }, eq: () => c, order: () => c, limit: () => Promise.resolve({ data: [], error: null }) };
+  return { client: { from: () => c }, visto };
+};
+
+(async () => {
+  const AREA = "salute-professioni-sanitarie";
+  const nomi = guideDiArea(AREA);
+  const righe = [
+    { id: "r1", area_slug: AREA, tipo_attivita: "download_guida", livello: 1, created_at: "2026-09-26T10:00:00Z" },
+    { id: "r2", area_slug: AREA, tipo_attivita: "download_guida", livello: 2, created_at: "2026-09-26T11:00:00Z" },
+  ];
+  const voci = await getPercorsoEsplorazione(supabaseFinto(righe), "u1");
+  const testi = voci.map((v) => v.testo);
+
+  ok(testi.length === 2 && testi[0] !== testi[1], `due guide aperte lo stesso giorno danno due righe DIVERSE [${testi.join(" / ")}]`);
+  ok(
+    testi.some((t) => t.includes(nomi[0].titolo)) && testi.some((t) => t.includes(nomi[1].titolo)),
+    `…e ognuna nomina la sua guida con il titolo della pagina delle guide («${nomi[0].titolo}», «${nomi[1].titolo}»)`,
+  );
+
+  // Il livello è nullable: per ogni attività che non è una guida, e per le righe
+  // `download_guida` scritte prima della migrazione 20260813120000. Là la frase
+  // di prima è l'unica cosa vera che si può dire.
+  const senzaLivello = await getPercorsoEsplorazione(
+    supabaseFinto([{ id: "v", area_slug: AREA, tipo_attivita: "download_guida", livello: null, created_at: "2026-08-01T10:00:00Z" }]),
+    "u1",
+  );
+  ok(
+    senzaLivello[0]?.testo === "Hai scaricato la guida di Salute & Professioni sanitarie",
+    `una riga senza livello (scritta prima della migrazione) resta al testo generico [${senzaLivello[0]?.testo}]`,
+  );
+  // Un livello fuori da 1-3 non deve inventare un titolo né far saltare la riga.
+  const fuoriScala = await getPercorsoEsplorazione(
+    supabaseFinto([{ id: "x", area_slug: AREA, tipo_attivita: "download_guida", livello: 9, created_at: "2026-08-01T10:00:00Z" }]),
+    "u1",
+  );
+  ok(/^Hai scaricato la guida di /.test(fuoriScala[0]?.testo ?? ""), "…e un livello fuori scala degrada allo stesso testo, senza inventare un titolo");
+
+  // Le altre attività non cambiano: un livello che non c'entra non deve comparire.
+  const altra = await getPercorsoEsplorazione(
+    supabaseFinto([{ id: "a", area_slug: AREA, tipo_attivita: "visita_area", livello: null, created_at: "2026-08-01T10:00:00Z" }]),
+    "u1",
+  );
+  ok(altra[0]?.testo === "Hai visitato l'area Salute & Professioni sanitarie", `le altre attività sono invariate [${altra[0]?.testo}]`);
+
+  // LA METÀ CHE GUARDA: se la query smettesse di chiedere `livello`, tutte le
+  // asserzioni qui sopra resterebbero verdi sui loro fixture e la pagina tornerebbe
+  // a dire la stessa frase due volte.
+  const spia = supabaseSpia();
+  await getPercorsoEsplorazione(spia.client, "u1");
+  ok(/\blivello\b/.test(spia.visto.colonne), `…e la query chiede davvero `+"`livello`"+` a activity_log [${spia.visto.colonne}]`);
+
+  console.log("");
+  if (falliti > 0) { console.error(`✗ ${falliti} verifiche fallite`); process.exit(1); }
+  console.log("✓ Tutte le verifiche Guide superate.");
+})();
