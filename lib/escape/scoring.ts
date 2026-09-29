@@ -13,8 +13,8 @@
 // esattamente i valori della v2.
 
 import Anthropic from "@anthropic-ai/sdk";
-import { AREE, getAreaBySlug } from "@/data/aree";
-import { chiamaEscape, motivazioneNelLimite } from "@/lib/escape/chiamaEscape";
+import { AREE } from "@/data/aree";
+import { chiamaEscape, motivazioneNelLimite, RIPIEGHI_MOTIVAZIONE } from "@/lib/escape/chiamaEscape";
 import { cifreNonCitabili, insiemeCifreCitabili } from "@/lib/escape/cifreCitabili";
 import { stringheInJson } from "@/lib/lingua/scansione";
 import { componiPerformance, type DescrittoreVoce } from "./componiPerformance";
@@ -67,13 +67,20 @@ const PESO_STILE_MISSIONE = 1.35;
 //
 // E DAL 29/09 CONTA DI PIÙ: con il tetto di `MAX_MOTIVAZIONE` questo ripiego è
 // la frase che prende il posto dei paragrafi scartati, quindi comparirà più
-// spesso di quanto sia mai comparso. La forma nuova rispetta la regola del
-// prompt — il soggetto è una cosa che lo studente ha fatto — dice il vero senza
-// inventare quale, e non suona come un errore di sistema.
-const RIPIEGO_MOTIVAZIONE = "Qualcosa che hai fatto in questa missione ha toccato quest'area.";
+// spesso di quanto sia mai comparso.
+//
+// IL TESTO NON STA PIÙ QUI: i quattro ripieghi vivono insieme in `chiamaEscape`,
+// sotto la FORMA che devono rispettare («<Nome area> — Da <cosa hai fatto>.»,
+// mai il nome dell'area, mai un giudizio). Erano quattro frasi scritte in tre
+// file diversi, e tre volte su quattro erano nate nominando l'area.
+const RIPIEGO_MOTIVAZIONE = RIPIEGHI_MOTIVAZIONE.missione;
 
 const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
-const nomeArea = (slug: string) => getAreaBySlug(slug)?.nome ?? slug;
+// QUI C'ERA `nomeArea`, ed è uscito il 2026-09-29 con l'ultimo ripiego che
+// nominava l'area. Non serve più a niente in questo file, e un helper che
+// restituisce il nome di un'area, lasciato a portata di mano dentro il motore
+// che produce le motivazioni, è precisamente il posto in cui la prossima nasce
+// nominandola.
 
 // Paracadute finale prima di passare l'array a registra_evidence: nessuna prova
 // deve violare i CHECK del DB (valore in [0,1], peso > 0, dimensione/area
@@ -1124,7 +1131,9 @@ export async function calcolaEvidenze(
           }
           const perf = clamp01(Number(a.performance ?? 0));
           const inter = clamp01(Number(a.interest ?? 0));
-          const ripiego = `La tua proposta valorizza ${nomeArea(a.area_slug)}.`;
+          // Nomina il PROPRIO passo e non l'area (il blocco che lo rende la
+          // prefissa già): vedi la FORMA in `chiamaEscape`.
+          const ripiego = RIPIEGHI_MOTIVAZIONE.proposta;
           const mot = motivazioneSicura(typeof a.motivazione === "string" && a.motivazione ? a.motivazione : ripiego, ripiego, "proposta");
           // Fix A: la performance della proposta è il giudizio del revisore sul
           // testo scritto → peso P.revisore (1.4), non P.ai (0.5). L'interest resta
@@ -1247,7 +1256,8 @@ export async function calcolaEvidenze(
         for (const raw of aree) {
           const a = raw as { area_slug?: string; curiosity?: number; self_efficacy?: number; motivazione?: string };
           if (!a.area_slug || !mission.areeCandidate.includes(a.area_slug)) continue;
-          const ripiegoRifl = `Dalla tua riflessione traspare un legame con ${nomeArea(a.area_slug)}.`;
+          // Come sopra: il proprio passo, mai il nome dell'area.
+          const ripiegoRifl = RIPIEGHI_MOTIVAZIONE.riflessione;
           const mot = motivazioneSicura(typeof a.motivazione === "string" && a.motivazione ? a.motivazione : ripiegoRifl, ripiegoRifl, "riflessione");
           // La curiosity ha motivazione DISTINTA per area (generata dall'Aì leggendo
           // la riflessione) → resta ad area.

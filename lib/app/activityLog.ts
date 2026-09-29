@@ -3,6 +3,20 @@ import { createClient } from "@/lib/supabase/client";
 // Stesso valori descritti nella migration activity_log: unica fonte di
 // verità lato client per non disperdere i "numeri magici" nei punti di
 // chiamata.
+//
+// DUE VALORI CON LO STESSO PESO, E SONO DUE FATTI DIVERSI (dal 2026-09-29):
+//   · workshop_pcto    — presenza certificata su un EVENTO di tipo 'workshop'.
+//                        Le ore PCTO esistono davvero: le scrive la stessa
+//                        transazione che certifica, con chi ha certificato.
+//   · workshop_progetto — un progetto workshop KIREO portato a termine. Nessuna
+//                        ora: non c'è un monte ore e non c'è nessuno che
+//                        certifichi, l'ha giudicato un'AI.
+// Li scrivono solo funzioni SQL (certifica_presenza / chiudi_diretta_evento e
+// avanza_fase_workshop): nessun punto di chiamata client passa di qui per
+// loro, e il peso resta 25 per entrambi perché la scala dell'esplorazione non
+// c'entra con la distinzione — a cambiare è cosa la riga DICE, non quanto vale.
+// Stanno tutti e due in questa mappa perché è lei a produrre `TipoAttivita`, e
+// quindi a costringere il compilatore a pretendere l'etichetta di ognuno.
 export const PESI_ATTIVITA = {
   visita_area: 1,
   lettura_articolo: 2,
@@ -11,6 +25,7 @@ export const PESI_ATTIVITA = {
   iscrizione_webinar: 8,
   partecipazione_webinar: 15,
   workshop_pcto: 25,
+  workshop_progetto: 25,
 } as const;
 
 export type TipoAttivita = keyof typeof PESI_ATTIVITA;

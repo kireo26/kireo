@@ -81,7 +81,45 @@ export function motivazioneNelLimite(mot: string, ripiego: string, dove: string)
 // regge — è la sua rubrica — e una regola «non nominare uno sbaglio» appesa a
 // tutti sarebbe falsa metà delle volte. Qui no: questo testo compare accanto a
 // un'area come spiegazione di un SEGNALE, non come correzione di un compito.
-export const REGOLA_MOTIVAZIONE = `\n\nLA MOTIVAZIONE DICE COSA HA FATTO, MAI COSA HA SBAGLIATO. Compare accanto al nome di un'area, come spiegazione del segnale che quell'area ha acceso — non è la correzione di un compito. Al massimo DUE FRASI e ${MAX_MOTIVAZIONE} caratteri: oltre quel limite non viene mostrata affatto, e lo studente resta senza spiegazione. Il soggetto è una cosa che ha fatto o che c'è nel testo, mai una lacuna, uno sbaglio o una mancanza, e non spiegargli cosa dovrebbe capire di sé. «Qui hai scelto il documento invece che la conversazione: se l'area ti interessa, è proprio perché vedi che questa scelta è stata uno sbaglio» → «Hai aperto il documento invece di chiedere a Sofia di spiegare». «L'hai lasciata in piedi perché non c'erano soldi: è una lacuna che emerge dal resoconto, più che una scelta consapevole» → «La caldaia è rimasta in piedi, e il suo costo con lei».`;
+export const REGOLA_MOTIVAZIONE = `\n\nLA MOTIVAZIONE DICE COSA HA FATTO, MAI COSA HA SBAGLIATO. Compare accanto al nome di un'area, come spiegazione del segnale che quell'area ha acceso — non è la correzione di un compito. Al massimo DUE FRASI e ${MAX_MOTIVAZIONE} caratteri: oltre quel limite non viene mostrata affatto, e lo studente resta senza spiegazione. Il soggetto è una cosa che ha fatto o che c'è nel testo, mai una lacuna, uno sbaglio o una mancanza, e non spiegargli cosa dovrebbe capire di sé. «Qui hai scelto il documento invece che la conversazione: se l'area ti interessa, è proprio perché vedi che questa scelta è stata uno sbaglio» → «Hai aperto il documento invece di chiedere a Sofia di spiegare». «L'hai lasciata in piedi perché non c'erano soldi: è una lacuna che emerge dal resoconto, più che una scelta consapevole» → «La caldaia è rimasta in piedi, e il suo costo con lei». E NON NOMINARE L'AREA: il suo nome compare già accanto alla tua frase, quindi ripeterlo la fa leggere due volte. «La tua proposta valorizza Energia & Sostenibilità» → «Hai messo i pannelli prima di sistemare il tetto».`;
+
+// ═══════════════════ LA FORMA DI UN RIPIEGO, E I QUATTRO RIPIEGHI ═══════════════════
+//
+//     <Nome area> — Da <la cosa che lo studente ha fatto>.
+//
+// Mai il nome dell'area. Mai un giudizio. Il soggetto è sempre una cosa sua.
+//
+// PERCHÉ MAI IL NOME. La riga si legge dentro `components/escape/AreeSfiorate.tsx`,
+// che rende ogni voce come «**Nome area** — testo»: una motivazione che nomina
+// l'area la dice DUE VOLTE nella stessa riga. È la terza volta che una frase
+// scritta per stare da sola finisce sotto qualcosa che la ripete — dopo il
+// titolo «Risposta consegnata» col messaggio che lo ricopiava (28/09) e il
+// ripiego della consegna (29/09). La premessa è verificata dai controlli, non
+// data per buona: se un domani `AreeSfiorate` smettesse di prefissare il nome,
+// questa regola starebbe gridando su niente.
+//
+// PERCHÉ UN FRAMMENTO E NON UNA FRASE INTERA. Dopo un trattino «Da…» COMPLETA il
+// nome invece di ricominciare. E le motivazioni buone — quelle cablate nei punti
+// di scoring — sono frasi intere proprio perché dicono un fatto preciso: un
+// ripiego che si traveste da frase intera promette una precisione che non ha.
+//
+// PERCHÉ STANNO TUTTI QUI, accanto alla regola. Il difetto si è ripresentato tre
+// volte perché nominare l'area sembra la cosa premurosa da fare: la prossima
+// motivazione che qualcuno scriverà nascerà sbagliata se la regola non è scritta
+// accanto. Aggiungerne una vuol dire aggiungere una chiave qui, sotto gli occhi
+// della forma — e `npm run test:revisore` legge questi VALORI (non il sorgente)
+// e pretende la forma su ognuno.
+//
+// I TRE DI MEZZO RESTANO DISTINGUIBILI, ed è la cosa da non perdere: ognuno
+// nomina il PROPRIO passo (la proposta, la riflessione, la risposta), che è
+// l'unica informazione che il nome dell'area non sostituiva.
+export const RIPIEGHI_MOTIVAZIONE = {
+  // Il terminale delle missioni: nessuno sa quale passo abbia acceso il segnale.
+  missione: "Da qualcosa che hai fatto in questa missione.",
+  proposta: "Dalla proposta che hai scritto.",
+  riflessione: "Dalla riflessione che hai scritto.",
+  consegnaEvento: "Da qualcosa che hai scritto nella risposta.",
+} as const;
 
 export function chiamaEscape(
   anthropic: Anthropic,

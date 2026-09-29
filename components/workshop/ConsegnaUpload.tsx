@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/Button";
-import { registraAttivita } from "@/lib/app/activityLog";
 import { formattaDataOra } from "@/lib/formato";
 
 type FeedbackAI = {
@@ -28,17 +27,23 @@ function formattaDimensione(byte: number) {
   return `${(byte / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+// IL COMPONENTE DELLA CONSEGNA v1, tenuto al suo posto di proposito (vedi
+// `app/app/workshop/[slug]/page.tsx`: rimettere il blocco è una riga) ma NON
+// MONTATO DA NESSUNA PARTE dal 2026-08-29, quando l'elaborato a tappe ha
+// sostituito il caricamento file e `/api/workshop/consegna` è passata a 410.
+//
+// `areaSlug` è uscito dalle props il 2026-09-29 insieme alla scrittura in
+// activity_log: senza quella scrittura non serviva più a niente, e un
+// parametro che non serve è il posto in cui la scrittura rinasce.
 export default function ConsegnaUpload({
   iscrizioneId,
   workshopTitolo,
   ruoloSlug,
-  areaSlug,
   consegneEsistenti,
 }: {
   iscrizioneId: string;
   workshopTitolo: string;
   ruoloSlug: string;
-  areaSlug: string;
   consegneEsistenti: Consegna[];
 }) {
   const router = useRouter();
@@ -70,7 +75,15 @@ export default function ConsegnaUpload({
         return;
       }
 
-      await registraAttivita(areaSlug, "workshop_pcto");
+      // QUI C'ERA `registraAttivita(areaSlug, "workshop_pcto")`, ed è uscita il
+      // 2026-09-29. Non perché fosse irraggiungibile (lo è: la route sopra
+      // risponde 410 dal 29/08, quindi `res.ok` è falso e questa riga non
+      // veniva mai eseguita) — ma perché se qualcuno rimettesse il blocco,
+      // quella chiamata tornerebbe a scrivere righe INDISTINGUIBILI da quelle
+      // delle altre due strade, che è precisamente il difetto appena chiuso.
+      // Caricare un file non è completare un progetto e non è una presenza
+      // certificata: è un terzo fatto, e finché non avrà un nome suo non ne
+      // prende in prestito uno.
       setFile(null);
       router.refresh();
     } catch {

@@ -42,6 +42,7 @@ const {
 const { TETTO_LETTURE_CONSEGNA, statoRilettura, testoRilettura, MESSAGGIO_TETTO } = require("@/lib/eventi/rilettura");
 const { scadenzaConsegna } = require("@/lib/app/consegneDaFare");
 const { eleggibilePerAffinita, SOGLIA_AFFINITA } = require("@/lib/percorso/stato");
+const { RIPIEGHI_MOTIVAZIONE } = require("@/lib/escape/chiamaEscape");
 
 let falliti = 0;
 function ok(cond, testo) {
@@ -646,12 +647,21 @@ ok(/"performance"/.test(tsConsegna), "…e il tipo della prova ammette solo perf
 //
 // Conta di più dal 29/09, per la stessa ragione del ripiego delle missioni: con
 // il tetto di `MAX_MOTIVAZIONE` i ripieghi compaiono più spesso.
+//
+// DALLO STESSO GIORNO IL TESTO NON STA PIÙ QUI: i quattro ripieghi vivono
+// insieme in `lib/escape/chiamaEscape.ts`, sotto la FORMA che devono rispettare
+// — e la forma la tiene ferma `npm run test:revisore`, che li importa tutti e
+// quattro. Qui resta la metà che quel controllo non può vedere: che sia proprio
+// QUESTO punto a usare la voce giusta delle quattro, e non un'altra. Una frase
+// riscritta a mano qui (o la chiave sbagliata) passerebbe là senza un rosso.
 console.log("\n14) Il ripiego della motivazione, e il nome dell'area");
 
-const mRip = /const ripiego = "([^"]*)"/.exec(tsConsegna);
-ok(mRip !== null, `il ripiego è un letterale, senza il nome dell'area interpolato${mRip ? `: «${mRip[1]}»` : ""}`);
-ok(mRip !== null && !/\$\{/.test(mRip[0]), "…nessuna interpolazione: un nome interpolato qui sarebbe il nome dell'area");
-ok(mRip !== null && /hai scritto/.test(mRip[1]), "…e il soggetto è una cosa che lo studente ha fatto, come chiede la regola del prompt");
+ok(
+  /RIPIEGHI_MOTIVAZIONE\.consegnaEvento/.test(tsConsegna),
+  `il ripiego viene dal posto in cui sta la forma, non riscritto qui: «${RIPIEGHI_MOTIVAZIONE.consegnaEvento}»`,
+);
+ok(!/const ripiego = ["'`]/.test(tsConsegna), "…e non c'è un letterale scritto a mano al suo posto");
+ok(/risposta/i.test(RIPIEGHI_MOTIVAZIONE.consegnaEvento), "…e quella voce nomina il PROPRIO passo (la risposta), non un altro");
 // LA PREMESSA SI VERIFICA: la proprietà sopra vale solo perché il componente
 // prefissa già il nome. Se smettesse, staremmo gridando su niente.
 ok(

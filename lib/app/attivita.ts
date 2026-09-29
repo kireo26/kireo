@@ -91,6 +91,22 @@ export type VoceEsplorazione = { id: string; testo: string; data: string };
 // nullo anche sulle righe `download_guida` scritte prima di quella migrazione):
 // senza livello la frase torna a essere quella di prima, che per una riga vecchia
 // è l'unica cosa vera che si può dire.
+//
+// ═══ «PCTO» STA SU UNA RIGA SOLA DELLE DUE, E NON È UNA SFUMATURA ═══
+// Fino al 2026-09-29 `workshop_pcto` era scritto da TRE strade diverse, con lo
+// stesso peso e nessuna colonna che dicesse quale: un progetto workshop KIREO
+// concluso, la presenza certificata su un evento di tipo 'workshop', e il
+// vecchio caricamento file di v1 (morto dal 29/08). «PCTO» era vero solo per
+// la seconda — le ore esistono lì e solo lì, perché nascono da una
+// certificazione con un responsabile nominato. Dalle migrazioni 20260929100000
+// e 20260929110000 i nomi sono due, e la parola resta dove è vera.
+//
+// ⚠️ LE RIGHE PRECEDENTI AL CAMBIO NON SONO ATTRIBUIBILI, e nessuno prova a
+// farlo: ricevono l'etichetta di `workshop_pcto`, che per le vecchie righe di
+// progetto è inesatta. È il prezzo dichiarato del nome condiviso — inventare
+// un'attribuzione a posteriori (per data, per vicinanza a un'altra riga)
+// sarebbe peggio del difetto, perché produrrebbe una frase che nessuno può
+// verificare. Nessuna di quelle righe appartiene a uno studente vero.
 const ETICHETTE_TIPO: Record<TipoAttivita, (areaNome: string, guida: string | null) => string> = {
   visita_area: (a) => `Hai visitato l'area ${a}`,
   lettura_articolo: (a) => `Hai letto un articolo su ${a}`,
@@ -98,7 +114,8 @@ const ETICHETTE_TIPO: Record<TipoAttivita, (areaNome: string, guida: string | nu
   download_guida: (a, guida) => (guida ? `Hai aperto «${guida}» di ${a}` : `Hai scaricato la guida di ${a}`),
   iscrizione_webinar: (a) => `Iscrizione a un evento di ${a}`,
   partecipazione_webinar: (a) => `Hai partecipato a un evento di ${a}`,
-  workshop_pcto: (a) => `Hai completato un workshop PCTO di ${a}`,
+  workshop_pcto: (a) => `Hai partecipato al workshop PCTO di ${a}`,
+  workshop_progetto: (a) => `Hai completato un workshop di ${a}`,
 };
 
 // Il titolo della guida di quel livello, o null se il livello non c'è (ogni

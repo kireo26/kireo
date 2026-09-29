@@ -64,7 +64,7 @@
 
 import type Anthropic from "@anthropic-ai/sdk";
 import { getAreaBySlug } from "@/data/aree";
-import { chiamaEscape, motivazioneNelLimite } from "@/lib/escape/chiamaEscape";
+import { chiamaEscape, motivazioneNelLimite, RIPIEGHI_MOTIVAZIONE } from "@/lib/escape/chiamaEscape";
 import { cifreDelTesto, cifreNonCitabili } from "@/lib/escape/cifreCitabili";
 import { stringheInJson } from "@/lib/lingua/scansione";
 
@@ -142,21 +142,18 @@ export function leggiGiudizioConsegna(
       continue;
     }
     if (prove.some((p) => p.area_slug === a.area_slug)) continue; // una prova per area
-    // IL RIPIEGO NON RIPETE IL NOME DELL'AREA, e non è una scelta di gusto.
-    // Fino al 29/09 diceva «La tua risposta lavora su <Nome area>.», e questa
-    // frase si legge dentro `components/escape/AreeSfiorate.tsx`, che rende ogni
-    // voce come «**Nome area** — <frase>»: il nome usciva DUE VOLTE sulla stessa
-    // riga. È la stessa ripetizione già corretta il 28/09 fra il titolo
-    // «Risposta consegnata» e il messaggio che lo ricopiava. Non è la lingua da
-    // radar del ripiego delle missioni — quello è un difetto diverso — ma arriva
-    // allo stesso posto, e per la stessa ragione conta di più da quando il tetto
-    // di `MAX_MOTIVAZIONE` fa comparire i ripieghi più spesso.
+    // IL RIPIEGO SEGUE LA FORMA, e la forma vive in `chiamaEscape` insieme agli
+    // altri tre: «<Nome area> — Da <la cosa che hai fatto>.», mai il nome
+    // dell'area, mai un giudizio. Qui nomina il PROPRIO passo (la risposta),
+    // che è l'unica cosa che il nome dell'area non sostituiva.
     //
-    // Che ci arrivi davvero non è dedotto: `motivazioniPiuPesanti` (in
-    // lib/percorso/stato.ts) legge `evidence` senza filtrare su `fonte` e mostra
-    // la motivazione col peso maggiore — e una consegna pesa 1,0 contro gli 0,35
-    // di una risposta di test, quindi è spesso lei la più pesante.
-    const ripiego = "Qualcosa che hai scritto ha toccato quest'area.";
+    // Che questa frase arrivi davvero a schermo non è dedotto:
+    // `motivazioniPiuPesanti` (in lib/percorso/stato.ts) legge `evidence` senza
+    // filtrare su `fonte` e mostra la motivazione col peso maggiore — e una
+    // consegna pesa 1,0 contro gli 0,35 di una risposta di test, quindi è
+    // spesso lei la più pesante. Il posto è `AreeSfiorate`, che prefissa il
+    // nome: è la ragione per cui la forma esiste.
+    const ripiego = RIPIEGHI_MOTIVAZIONE.consegnaEvento;
     const grezza = typeof a.motivazione === "string" && a.motivazione.trim() ? a.motivazione.trim() : ripiego;
     // Il TETTO prima della cifra, come nelle missioni (vedi `motivazioneSicura`
     // in lib/escape/scoring.ts): sopra il limite il testo non si spedisce, quindi

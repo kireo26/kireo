@@ -67,12 +67,11 @@ const {
   PROMPT_NON_APPROFONDIRE,
 } = require("@/lib/escape/scoring");
 const { insiemeCifreCitabili } = require("@/lib/escape/cifreCitabili");
-const { MAX_MOTIVAZIONE } = require("@/lib/escape/chiamaEscape");
-const { AREE, getAreaBySlug } = require("@/data/aree");
+const { MAX_MOTIVAZIONE, RIPIEGHI_MOTIVAZIONE, REGOLA_MOTIVAZIONE } = require("@/lib/escape/chiamaEscape");
+const { AREE } = require("@/data/aree");
 const { senzaCommenti } = require("./lib/senza-commenti");
 
 const SLUG_TUTTI = AREE.map((a) => a.slug);
-const nomeArea = (slug) => getAreaBySlug(slug)?.nome ?? slug;
 const accessore = (obj) => (id) => obj[id];
 
 let falliti = 0;
@@ -352,7 +351,7 @@ async function perMissione(slug) {
       });
       const { evidenze, revisoreEsito, righe } = await esegui(mission, risposte, cliente);
       const perf = evidenze.find((e) => e.step_id === "s4_proposta" && e.area_slug === dentro && e.dimensione === "performance");
-      const ripiego = `La tua proposta valorizza ${nomeArea(dentro)}.`;
+      const ripiego = RIPIEGHI_MOTIVAZIONE.proposta;
       const letta = evidenze.some((e) => String(e.motivazione ?? "").includes(String(cifra)));
       const avviso = righe.find((r) => r.includes("Cifra non citabile") && r.includes(String(cifra)));
       ok(
@@ -388,7 +387,7 @@ async function perMissione(slug) {
     });
     const { evidenze, revisoreEsito, righe } = await esegui(mission, risposte, cliente);
     const perf = evidenze.find((e) => e.step_id === "s4_proposta" && e.area_slug === dentro && e.dimensione === "performance");
-    const ripiego = `La tua proposta valorizza ${nomeArea(dentro)}.`;
+    const ripiego = RIPIEGHI_MOTIVAZIONE.proposta;
     const pezzoAschermo = evidenze.some((e) => String(e.motivazione ?? "").includes("è stata uno sbaglio"));
     const avviso = righe.find((r) => r.includes("Motivazione troppo lunga"));
     const oltre = evidenze.filter((e) => String(e.motivazione ?? "").length > MAX_MOTIVAZIONE);
@@ -442,27 +441,64 @@ function corpusAMano() {
   );
 }
 
-// ───────────────────────────────── D · la voce del ripiego terminale
+// ───────────────────────────────── D · la FORMA dei ripieghi
 //
-// PERCHÉ È SORVEGLIATA. Fino al 29/09 `RIPIEGO_MOTIVAZIONE` diceva «Segnale
-// rilevato durante la missione.»: lingua da radar, in un riquadro che parla a un
-// ragazzo di quello che ha fatto. Non era un difetto nuovo — stava inline dal
-// primo giorno — ma dal 29/09 conta di più, perché quella frase è quella che
-// prende il posto dei paragrafi scartati dal tetto: comparirà più spesso di
-// quanto sia mai comparsa.
+// PERCHÉ È SORVEGLIATA, e perché guarda TUTTI E QUATTRO invece che uno.
+// Fino al 29/09 i ripieghi erano quattro frasi in tre file diversi, e tre su
+// quattro erano nate nominando l'area — che il blocco delle aree sfiorate
+// prefissa già («**Nome area** — testo»): il nome usciva due volte sulla stessa
+// riga. Il quarto diceva «Segnale rilevato durante la missione.», lingua da
+// radar in un riquadro che parla a un ragazzo di quello che ha fatto.
 //
-// LA PREMESSA SI VERIFICA, non si dà per buona: la proprietà «il ripiego non
-// ripete il nome dell'area» ha senso solo perché `AreeSfiorate` lo prefissa già.
-// Se quel componente smettesse di farlo, questo controllo starebbe gridando su
-// niente (è la regola già pagata il 19/09: un test che accetta una forma deve
-// verificare la premessa su cui la accetta).
-function voceDelRipiego() {
-  const src = senzaCommenti(fs.readFileSync(path.join(ROOT, "lib", "escape", "scoring.ts"), "utf8"));
-  const m = src.match(/const RIPIEGO_MOTIVAZIONE = "([^"]*)"/);
-  const rip = m ? m[1] : null;
-  ok(rip !== null, `D · il ripiego terminale si legge da scoring.ts${rip ? `: «${rip}»` : ""}`);
-  ok(rip !== null && !/segnale rilevat/i.test(rip), "D · non è lingua da radar («segnale rilevato» è una macchina che parla a una macchina)");
-  ok(rip !== null && /hai fatto/.test(rip), "D · e il soggetto è una cosa che lo studente ha fatto, come chiede la regola del prompt");
+// La cura non è stata quattro sostituzioni ma UNA FORMA scritta accanto a loro
+// (`RIPIEGHI_MOTIVAZIONE` in lib/escape/chiamaEscape.ts): «<Nome area> — Da <la
+// cosa che hai fatto>.» Questo controllo la tiene ferma sui VALORI — li importa,
+// non li cerca nel sorgente — così una frase nuova aggiunta là dentro deve
+// rispettarla, e non può nascere nominando l'area: è successo tre volte perché
+// nominarla sembra la cosa premurosa da fare.
+//
+// LA PREMESSA SI VERIFICA, non si dà per buona: «non ripetere il nome» ha senso
+// solo perché `AreeSfiorate` lo prefissa già. Se quel componente smettesse, il
+// controllo starebbe gridando su niente (regola già pagata il 19/09: un test che
+// accetta una forma deve verificare la premessa su cui la accetta).
+function formaDeiRipieghi() {
+  const voci = Object.entries(RIPIEGHI_MOTIVAZIONE);
+  ok(voci.length === 4, `D · i ripieghi vivono in un posto solo, e sono ${voci.length}`);
+
+  for (const [chiave, testo] of voci) {
+    ok(/^Da(l|lla)? /.test(testo), `D · «${chiave}» è un frammento che completa il nome dopo il trattino: «${testo}»`);
+    ok(testo.endsWith("."), `D · «${chiave}» finisce con un punto`);
+    ok(testo.length <= MAX_MOTIVAZIONE, `D · «${chiave}» sta sotto il tetto (${testo.length}/${MAX_MOTIVAZIONE})`);
+    // Nessun nome d'area, in nessuna delle diciotto forme: è il difetto che la
+    // forma esiste per chiudere.
+    const nominata = AREE.find((a) => testo.includes(a.nome) || testo.includes(a.dalleParti));
+    ok(!nominata, `D · «${chiave}» non nomina nessun'area${nominata ? ` (nomina «${nominata.nome}»)` : ""}`);
+    ok(!/segnale rilevat/i.test(testo), `D · «${chiave}» non è lingua da radar`);
+  }
+
+  // I tre che non sono il terminale nominano il PROPRIO passo: è l'unica
+  // informazione che il nome dell'area non sostituiva, e perderla renderebbe le
+  // quattro frasi intercambiabili.
+  ok(/proposta/i.test(RIPIEGHI_MOTIVAZIONE.proposta), "D · il ripiego della proposta nomina la proposta");
+  ok(/riflessione/i.test(RIPIEGHI_MOTIVAZIONE.riflessione), "D · quello della riflessione nomina la riflessione");
+  ok(/risposta/i.test(RIPIEGHI_MOTIVAZIONE.consegnaEvento), "D · quello della consegna nomina la risposta");
+
+  // I tre punti di produzione li USANO, invece di riscriverli: senza questa
+  // metà, la forma sarebbe ferma su quattro stringhe che nessuno legge più.
+  const scoring = senzaCommenti(fs.readFileSync(path.join(ROOT, "lib", "escape", "scoring.ts"), "utf8"));
+  const consegna = senzaCommenti(fs.readFileSync(path.join(ROOT, "lib", "eventi", "consegna.ts"), "utf8"));
+  ok(/RIPIEGHI_MOTIVAZIONE\.missione/.test(scoring), "D · scoring.ts prende il terminale da lì");
+  ok(/RIPIEGHI_MOTIVAZIONE\.proposta/.test(scoring), "D · …e così la proposta");
+  ok(/RIPIEGHI_MOTIVAZIONE\.riflessione/.test(scoring), "D · …e la riflessione");
+  ok(/RIPIEGHI_MOTIVAZIONE\.consegnaEvento/.test(consegna), "D · consegna.ts prende il suo da lì");
+  // E nessuno dei due si tiene in casa un modo comodo di scrivere il nome di
+  // un'area: `nomeArea` è uscito da scoring.ts insieme all'ultimo ripiego che
+  // la nominava.
+  ok(!/nomeArea/.test(scoring), "D · scoring.ts non ha più un helper che restituisce il nome di un'area");
+
+  // La regola arriva anche all'AI, non solo ai ripieghi: la motivazione
+  // scritta dal modello finisce nello stesso posto.
+  ok(/NON NOMINARE L'AREA/.test(REGOLA_MOTIVAZIONE), "D · e il prompt dice al modello di non nominarla, con la sostituzione svolta");
 
   // La premessa: il componente che rende quella riga prefissa il nome dell'area.
   const areeSfiorate = fs.readFileSync(path.join(ROOT, "components", "escape", "AreeSfiorate.tsx"), "utf8");
@@ -471,7 +507,7 @@ function voceDelRipiego() {
 
 (async () => {
   corpusAMano();
-  voceDelRipiego();
+  formaDeiRipieghi();
   for (const m of MISSIONI) await perMissione(m.slug);
 
   console.log("");

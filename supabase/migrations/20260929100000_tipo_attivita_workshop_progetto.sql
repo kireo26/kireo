@@ -1,0 +1,45 @@
+-- Aggiunge il valore 'workshop_progetto' a tipo_attivita: le righe che nascono
+-- dalla CHIUSURA di un progetto workshop KIREO (vedi la migrazione successiva,
+-- che è l'unica a scriverlo).
+--
+-- MIGRAZIONE ISOLATA, per il vincolo Postgres già noto in questo progetto: un
+-- valore enum appena creato non si può usare nella stessa transazione in cui è
+-- stato aggiunto (stesso trattamento di 20260927110000, 20260812100000,
+-- 20260713100000, 20260722110000, 20260727210000).
+--
+-- ═══ PERCHÉ UN NOME IN PIÙ: 'workshop_pcto' ERANO TRE FATTI ═══
+-- Fino al 2026-09-29 tre strade diverse scrivevano lo stesso valore, con lo
+-- stesso peso (25) e lo stesso livello (null), e NESSUNA COLONNA diceva quale:
+--   A. la chiusura di un progetto workshop KIREO (avanza_fase_workshop, ramo
+--      p_ultima) — un elaborato a tappe giudicato da un'AI: nessun monte ore,
+--      nessuna catena di responsabilità, quindi NESSUNA ora PCTO può esistere;
+--   B. la certificazione di presenza su un EVENTO di tipo 'workshop'
+--      (certifica_presenza, chiudi_diretta_evento) — lì le ore ci sono davvero,
+--      le scrive la stessa transazione che certifica, con chi ha certificato;
+--   C. il vecchio caricamento file dei workshop v1 (ConsegnaUpload), strada
+--      morta dal 2026-08-29 (route a 410, componente montato in nessun posto).
+--
+-- IL DIFETTO PEGGIORE NON ERA L'ETICHETTA, ERA IL CAP. L'indice unico del cap
+-- giornaliero è su (student_id, area_slug, tipo_attivita, data, coalesce(livello,0)):
+-- con un nome solo, chi nello stesso giorno chiudeva un progetto KIREO ED era
+-- certificato su un evento di tipo workshop per la stessa area riceveva UNA
+-- RIGA SOLA, quella di chi arrivava primo. La seconda strada non era attribuita
+-- male: era invisibile. Con due valori le chiavi sono due e il cap smette di
+-- fonderle da sé — non serve toccare l'indice.
+--
+-- CHI TIENE QUALE NOME, e i due criteri concordano: 'workshop_pcto' resta alla
+-- strada B, dove la parola è VERA; la A prende il nome nuovo. È anche la
+-- modifica più piccola (una funzione invece di due).
+--
+-- ⚠️ LE RIGHE SCRITTE PRIMA DI QUESTA MIGRAZIONE NON SONO ATTRIBUIBILI, e non
+-- si prova a farlo. Sono di tre strade indistinguibili, una delle quali morta,
+-- e nessuna appartiene a uno studente vero (sono tutte di Mario o di chi
+-- conosce). Inventare un'attribuzione a posteriori — per data, per vicinanza
+-- temporale a un'altra riga — sarebbe esattamente la specie che questa
+-- migrazione chiude: una cosa scritta che dichiara uno stato che nessuno ha
+-- verificato. Da qui in avanti 'workshop_pcto' significa la strada B; indietro
+-- significa «una delle tre», e l'etichetta che quelle righe ricevono è quella
+-- di B, inesatta per le vecchie righe A e C. È il prezzo dichiarato del nome
+-- condiviso, non un difetto nuovo.
+
+alter type public.tipo_attivita add value if not exists 'workshop_progetto';
