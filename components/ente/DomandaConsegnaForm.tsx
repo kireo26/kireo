@@ -1,22 +1,46 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/Button";
+import { motivoRifiutoDomanda, statoDomandaConsegna, testoRifiutoDomanda } from "@/lib/eventi/domandaConsegna";
 
-// La domanda finale, posta DURANTE la diretta. È il momento in cui l'ente è lì e
-// sa cosa è stato detto: una domanda decisa alla creazione dell'evento, settimane
-// prima, sarebbe una consegna generica.
+// La domanda finale. Si scrive da quando l'evento è APPROVATO e si cambia fino
+// alla FINE DELLA DIRETTA — le due metà hanno ragioni opposte, e stanno per
+// esteso in supabase/migrations/20260929120000_finestra_domanda_consegna.sql.
 //
-// E dopo la fine della diretta non si cambia più: la consegna è già aperta, e
-// cambiare la domanda sotto a chi sta scrivendo è peggio che non averla posta. Il
-// rifiuto arriva da `imposta_domanda_consegna` (fuori_finestra_diretta), qui si
-// traduce.
-export default function DomandaConsegnaForm({ eventoId, domandaAttuale }: { eventoId: string; domandaAttuale: string | null }) {
+// Fino al 29/09 si poneva solo durante la diretta: per un evento di un quarto
+// d'ora erano trenta minuti, quindici dei quali l'ente li passa in onda a
+// parlare. Il pezzo che regge tutto il formato dipendeva da un gesto fatto nel
+// momento in cui una persona è più occupata.
+//
+// L'OROLOGIO SI RICALCOLA OGNI 30s, stesso idioma di PannelloLive: l'ente può
+// essere su questa pagina mentre la diretta finisce, e il campo deve chiudersi
+// da sé invece di accettare un testo che poi verrebbe rifiutato.
+export default function DomandaConsegnaForm({
+  eventoId,
+  domandaAttuale,
+  dataInizio,
+  dataFine,
+}: {
+  eventoId: string;
+  domandaAttuale: string | null;
+  dataInizio: string;
+  dataFine: string | null;
+}) {
   const [testo, setTesto] = useState(domandaAttuale ?? "");
+  const [domandaPosta, setDomandaPosta] = useState(domandaAttuale);
   const [salvata, setSalvata] = useState(Boolean(domandaAttuale));
   const [invio, setInvio] = useState(false);
   const [errore, setErrore] = useState<string | null>(null);
+  const [ora, setOra] = useState(() => new Date());
+
+  useEffect(() => {
+    const intervallo = setInterval(() => setOra(new Date()), 30000);
+    return () => clearInterval(intervallo);
+  }, []);
+
+  const pannello = statoDomandaConsegna({ data_inizio: dataInizio, data_fine: dataFine, domanda_consegna: domandaPosta }, ora);
 
   async function salva() {
     setInvio(true);
@@ -25,20 +49,10 @@ export default function DomandaConsegnaForm({ eventoId, domandaAttuale }: { even
       const supabase = createClient();
       const { error } = await supabase.rpc("imposta_domanda_consegna", { p_evento_id: eventoId, p_domanda: testo.trim() });
       if (error) {
-        const m = error.message ?? "";
-        if (m.includes("fuori_finestra_diretta")) {
-          setErrore("La domanda si pone mentre la diretta è aperta: adesso è troppo tardi (o troppo presto).");
-        } else if (m.includes("evento_senza_aree")) {
-          setErrore(
-            "Questo evento non ha nessuna area di orientamento: senza almeno una, la risposta degli studenti non potrebbe portare niente nel loro profilo. Scrivi a KIREO per aggiungerla.",
-          );
-        } else if (m.includes("non_autorizzato")) {
-          setErrore("Non puoi porre la domanda su questo evento.");
-        } else {
-          setErrore("Non è stato possibile salvare la domanda. Riprova.");
-        }
+        setErrore(testoRifiutoDomanda(motivoRifiutoDomanda(error.message ?? ""), pannello.fine));
         return;
       }
+      setDomandaPosta(testo.trim());
       setSalvata(true);
     } catch {
       setErrore("Non è stato possibile salvare la domanda. Controlla la connessione e riprova.");
@@ -51,8 +65,8 @@ export default function DomandaConsegnaForm({ eventoId, domandaAttuale }: { even
     <div className="rounded-lg border border-white/5 bg-kireo-dark p-4">
       <p className="text-xs font-semibold uppercase tracking-wide text-kireo-muted">La domanda finale</p>
       <p className="mt-2 text-xs text-kireo-muted">
-        Una domanda aperta sul contenuto di oggi. Gli studenti iscritti che si sono collegati possono rispondere in KIREO nelle 48 ore
-        successive: quello che scrivono resta loro, tu vedi solo che è arrivato.
+        Una domanda aperta sul contenuto dell&apos;incontro. Gli studenti iscritti che si sono collegati possono rispondere in KIREO nelle
+        48 ore successive: quello che scrivono resta loro, tu vedi solo che è arrivato.
       </p>
 
       {/*
@@ -62,35 +76,47 @@ export default function DomandaConsegnaForm({ eventoId, domandaAttuale }: { even
         seguito» — e una domanda a cui si può rispondere senza aver guardato la
         rende finta: il numero sale e non misura più niente.
       */}
-      <p className="mt-3 text-xs text-kireo-light">
-        La domanda migliore è quella a cui non si può rispondere bene restando generici.
-      </p>
+      {pannello.modificabile && (
+        <p className="mt-3 text-xs text-kireo-light">
+          La domanda migliore è quella a cui non si può rispondere bene restando generici.
+        </p>
+      )}
 
-      <label htmlFor={`domanda-${eventoId}`} className="sr-only">
-        La domanda finale
-      </label>
-      <textarea
-        id={`domanda-${eventoId}`}
-        value={testo}
-        onChange={(e) => {
-          setTesto(e.target.value.slice(0, 500));
-          setSalvata(false);
-        }}
-        rows={3}
-        className="mt-3 w-full rounded-lg border border-white/10 bg-kireo-card p-3 text-sm text-kireo-light outline-none focus:border-kireo-green"
-        placeholder="Es. Abbiamo 40.000 € e due cose da fare: rifare il tetto o assumere una persona in più. Cosa scegliereste, e chi ci rimette?"
-      />
+      {pannello.modificabile ? (
+        <>
+          <label htmlFor={`domanda-${eventoId}`} className="sr-only">
+            La domanda finale
+          </label>
+          <textarea
+            id={`domanda-${eventoId}`}
+            value={testo}
+            onChange={(e) => {
+              setTesto(e.target.value.slice(0, 500));
+              setSalvata(false);
+            }}
+            rows={3}
+            className="mt-3 w-full rounded-lg border border-white/10 bg-kireo-card p-3 text-sm text-kireo-light outline-none focus:border-kireo-green"
+            placeholder="Es. Abbiamo 40.000 € e due cose da fare: rifare il tetto o assumere una persona in più. Cosa scegliereste, e chi ci rimette?"
+          />
 
-      <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
-        {salvata ? (
-          <p className="text-xs text-kireo-green-light">Domanda salvata: gli studenti la vedono a diretta conclusa.</p>
-        ) : (
-          <p className="text-xs text-kireo-muted">{testo.trim().length} / 500 caratteri (minimo 10)</p>
-        )}
-        <Button type="button" variant="outline" onClick={salva} disabled={invio || testo.trim().length < 10 || salvata}>
-          {invio ? "Salvataggio…" : domandaAttuale ? "Aggiorna la domanda" : "Poni la domanda"}
-        </Button>
-      </div>
+          <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+            <p className={salvata ? "text-xs text-kireo-green-light" : "text-xs text-kireo-muted"}>
+              {salvata ? pannello.testo : `${testo.trim().length} / 500 caratteri (minimo 10)`}
+            </p>
+            <Button type="button" variant="outline" onClick={salva} disabled={invio || testo.trim().length < 10 || salvata}>
+              {invio ? "Salvataggio…" : domandaPosta ? "Aggiorna la domanda" : "Poni la domanda"}
+            </Button>
+          </div>
+
+          {/* Il buco detto ad alta voce: approvato, e la domanda non c'è ancora. */}
+          {!salvata && !domandaPosta && <p className="mt-2 text-xs text-kireo-orange">{pannello.testo}</p>}
+        </>
+      ) : (
+        <>
+          {domandaPosta && <p className="mt-3 border-l-2 border-kireo-orange pl-3 text-sm text-kireo-light/90">{domandaPosta}</p>}
+          <p className="mt-3 text-xs text-kireo-muted">{pannello.testo}</p>
+        </>
+      )}
 
       {errore && <p className="mt-2 text-xs text-red-400">{errore}</p>}
     </div>

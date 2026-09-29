@@ -577,12 +577,13 @@ ok(!/è stata lasciata/.test(blocco), "…e non torna al passivo, che nasconde l
 
 // (c) E LA LISTA DEGLI EVENTI PASSATI non è più un elenco cieco: chi era
 // iscritto ha un link, chi non lo era no — la pagina lo respingerebbe, e un
-// link che porta a un no è peggio di nessun link.
+// link che porta a un no è peggio di nessun link. QUALE etichetta porti quel
+// link, e quando non debba portarne nessuna, è il §16.
 const iPassati = pagAgenda.indexOf("Eventi passati");
 const codaAgenda = pagAgenda.slice(iPassati);
 ok(iPassati > 0, "l'Agenda ha una sezione «Eventi passati»");
 ok(/href={`\/app\/eventi\/\$\{[^}]+\}\/live`}/.test(codaAgenda), "…e un evento passato porta alla sua pagina");
-ok(/iscrizioni\[[^\]]+\]\s*\?/.test(codaAgenda), "…solo per chi era iscritto");
+ok(/iscritto: Boolean\(iscrizioni\[/.test(codaAgenda), "…solo per chi era iscritto");
 
 // (d) IL COMPORTAMENTO: la scadenza che lo studente legge è la stessa finestra
 // che il database applica, non un numero scritto accanto.
@@ -681,5 +682,206 @@ const iMot = statoTs.indexOf("async function motivazioniPiuPesanti");
 const corpoMot = iMot === -1 ? "" : statoTs.slice(iMot, statoTs.indexOf("\n}", iMot));
 ok(iMot !== -1 && !/\.eq\("fonte"/.test(corpoMot), "…e la lettura delle motivazioni non filtra su `fonte`: una consegna può essere la più pesante e comparire lì");
 
-console.log(falliti === 0 ? "\n✅ tutto verde\n" : `\n❌ ${falliti} asserzioni rosse\n`);
-process.exit(falliti === 0 ? 0 : 1);
+// ── 15) LA FINESTRA DELLA DOMANDA ───────────────────────────────────────────
+//
+// Il 29/09 alle 12:23 l'ente ha premuto «Poni la domanda» quindici minuti prima
+// della sua diretta e ha letto «adesso è troppo tardi (o troppo presto)». La
+// finestra era `evento_in_finestra_diretta`: trenta minuti per un evento di un
+// quarto d'ora, quindici dei quali l'ente li passa IN ONDA A PARLARE.
+//
+// Nessun controllo poteva trovarlo: la finestra funzionava, la guardia era
+// corretta, il messaggio compariva quando doveva. Era giusta la macchina e
+// sbagliato il momento in cui chiedeva una cosa a una persona. Quello che si può
+// sorvegliare è il DOPO: che la finestra resti larga, che le altre due non si
+// allarghino con lei, e che il rifiuto dica da che parte sei.
+console.log("\n15) La domanda si scrive con calma, non in onda");
+
+const { domandaModificabile, fineDiretta } = require("@/lib/live");
+const {
+  statoDomandaConsegna,
+  testoPannelloDomanda,
+  motivoRifiutoDomanda,
+  testoRifiutoDomanda,
+} = require("@/lib/eventi/domandaConsegna");
+
+const INIZIO_D = "2026-10-01T13:00:00.000Z";
+const FINE_D = "2026-10-01T13:15:00.000Z";
+const tFine = new Date(FINE_D).getTime();
+const quandoD = (delta) => new Date(tFine + delta);
+
+// (a) IL COMPORTAMENTO. Giorni prima è scrivibile: è tutto il punto.
+ok(domandaModificabile(INIZIO_D, FINE_D, new Date(tFine - 9 * 24 * 3600_000)), "nove giorni prima la domanda si può già scrivere");
+ok(domandaModificabile(INIZIO_D, FINE_D, quandoD(-1000)), "…e un secondo prima della fine si può ancora cambiare");
+ok(!domandaModificabile(INIZIO_D, FINE_D, quandoD(0)), "…alla fine della diretta no");
+ok(fineDiretta(INIZIO_D, FINE_D) === FINE_D, "la fine della diretta è data_fine quando c'è");
+ok(
+  fineDiretta(INIZIO_D, null) === new Date(new Date(INIZIO_D).getTime() + 3 * 3600_000).toISOString(),
+  "…e senza data_fine è la stessa durata di ripiego delle altre due finestre (3 ore), non un'altra",
+);
+
+// LE DUE FINESTRE SONO ADIACENTI E DISGIUNTE, ed è la proprietà che tiene in
+// piedi la promessa della migrazione precedente: una domanda non cambia MAI
+// sotto a chi sta già rispondendo. Si prova sull'istante di confine, non a
+// parole.
+for (const delta of [-1000, 0]) {
+  const mod = domandaModificabile(INIZIO_D, FINE_D, quandoD(delta));
+  const cons = consegnaAperta(INIZIO_D, FINE_D, quandoD(delta));
+  ok(mod !== cons, `a ${delta}ms dalla fine, esattamente una delle due finestre è aperta (domanda ${mod}, consegna ${cons})`);
+}
+ok(
+  !domandaModificabile(INIZIO_D, null, new Date(new Date(fineDiretta(INIZIO_D, null)).getTime())) &&
+    consegnaAperta(INIZIO_D, null, new Date(new Date(fineDiretta(INIZIO_D, null)).getTime())),
+  "…e il confine coincide anche senza data_fine",
+);
+
+// (b) LA MIGRAZIONE. Le altre due finestre non si allargano con questa: una
+// domanda del pubblico e un battito di presenza fuori dalla diretta non sono la
+// stessa cosa di una domanda finale preparata il giorno prima.
+const sqlFinestra = senzaCommentiSql(leggi("supabase/migrations/20260929120000_finestra_domanda_consegna.sql"));
+ok(/create or replace function public\.domanda_consegna_modificabile/.test(sqlFinestra), "la migrazione crea la finestra della domanda");
+ok(
+  /now\(\) < coalesce\(e\.data_fine, e\.data_inizio \+ interval '3 hours'\)/.test(sqlFinestra) && /e\.stato = 'approvato'/.test(sqlFinestra),
+  "…dall'approvazione alla fine della diretta",
+);
+ok(/public\.domanda_consegna_modificabile\(p_evento_id\)/.test(sqlFinestra), "imposta_domanda_consegna usa la finestra nuova");
+ok(!/evento_in_finestra_diretta/.test(sqlFinestra), "…e non passa più da quella stretta della diretta");
+ok(
+  !/create or replace function public\.evento_in_finestra_diretta/.test(sqlFinestra) &&
+    !/create or replace function public\.ping_presenza_live/.test(sqlFinestra) &&
+    !/create policy domande_live/.test(sqlFinestra),
+  "…e gli altri due chiamanti della finestra stretta restano intatti",
+);
+// ⚠️ QUANDO GLI STUDENTI LA VEDONO NON CAMBIA: scriverla prima non vuol dire
+// mostrarla prima.
+// La NOMINA (in un `comment on function`, che è codice e non un commento) per
+// dire dove si tocca con questa; quello che non deve fare è RIDEFINIRLA.
+ok(
+  !/create or replace function public\.consegna_evento_aperta/.test(sqlFinestra),
+  "la finestra della CONSEGNA non viene ridefinita: gli studenti la vedono a diretta conclusa, come prima",
+);
+ok(
+  /imposta_domanda_consegna\(p_evento_id uuid, p_domanda text\)/.test(sqlFinestra),
+  "la firma resta (uuid, text): un parametro in più creerebbe un secondo overload invece di sostituirla",
+);
+for (const eccezione of ["evento_non_approvato", "domanda_non_piu_modificabile"]) {
+  ok(new RegExp(`raise exception '${eccezione}'`).test(sqlFinestra), `…e i due rifiuti sono distinti: ${eccezione}`);
+}
+ok(
+  /revoke all on function public\.domanda_consegna_modificabile\(uuid\) from public, anon/.test(sqlFinestra),
+  "la funzione nuova revoca anon (i default privileges di Supabase la concedono a tutti)",
+);
+
+// (c) I TESTI. Un rifiuto deve dire da che parte sei E l'ora: il sistema le ha
+// tutte e due. La parentesi che ammetteva di non saperlo non deve tornare.
+const QUANDO_D = "1 ottobre 2026 alle ore 15:15"; // formattaDataOra(FINE_D, "long"), zona Roma
+for (const stato of ["da_scrivere", "modificabile", "chiusa_con_domanda", "chiusa_senza_domanda"]) {
+  ok(testoPannelloDomanda(stato, FINE_D).includes(QUANDO_D), `«${stato}» dice l'ora della fine della diretta`);
+}
+ok(/troppo tardi/.test(testoPannelloDomanda("chiusa_con_domanda", FINE_D)) === false, "…e nessuno dei testi torna a «troppo tardi»");
+// SENZA COMMENTI, perché i due file CITANO il messaggio vecchio per spiegare
+// perché era sbagliato: una guardia negativa letta sul sorgente grezzo grida
+// sul testo che la rispetta (presa da questo controllo stesso, al primo giro).
+const tsxDomanda = senzaCommenti(leggi("components/ente/DomandaConsegnaForm.tsx"));
+const repoTesti = [senzaCommenti(leggi("lib/eventi/domandaConsegna.ts")), tsxDomanda].join("\n");
+ok(!/adesso è troppo tardi \(o troppo presto\)/.test(repoTesti), "la parentesi che ammetteva di non sapere da che parte sei non esiste più");
+
+// IL BUCO DETTO AD ALTA VOCE: approvato, e la domanda non c'è ancora. Prima
+// durava quindici minuti ed era invisibile, adesso dura giorni.
+const daScrivere = statoDomandaConsegna({ data_inizio: INIZIO_D, data_fine: FINE_D, domanda_consegna: null }, quandoD(-3 * 24 * 3600_000));
+ok(daScrivere.stato === "da_scrivere" && daScrivere.modificabile, "tre giorni prima e senza domanda: «da scrivere»");
+ok(/non hai ancora posto la domanda/i.test(daScrivere.testo), "…e il pannello lo dice, invece di lasciare il buco in silenzio");
+const dimenticata = statoDomandaConsegna({ data_inizio: INIZIO_D, data_fine: FINE_D, domanda_consegna: null }, quandoD(3600_000));
+ok(dimenticata.stato === "chiusa_senza_domanda" && !dimenticata.modificabile, "a diretta finita e senza domanda: chiusa");
+ok(/non ci sarà una consegna/.test(dimenticata.testo), "…e lo dice, perché è la conseguenza vera di essersene dimenticati");
+const posta = statoDomandaConsegna({ data_inizio: INIZIO_D, data_fine: FINE_D, domanda_consegna: "Una domanda vera." }, quandoD(-60_000));
+ok(posta.stato === "modificabile" && /cambiarla/.test(posta.testo), "un minuto prima della fine la domanda posta si può ancora cambiare");
+
+// (d) IL RIFIUTO, dal messaggio grezzo di PostgREST al testo.
+ok(motivoRifiutoDomanda('… raise exception "domanda_non_piu_modificabile" …') === "domanda_non_piu_modificabile", "il motivo si riconosce dal messaggio");
+ok(motivoRifiutoDomanda("qualcosa di mai visto") === "sconosciuto", "…e uno mai visto cade sul ripiego invece di indovinare");
+ok(testoRifiutoDomanda("domanda_non_piu_modificabile", FINE_D).includes(QUANDO_D), "…e il rifiuto della corsa dice l'ora della fine");
+ok(/non è ancora approvato/.test(testoRifiutoDomanda("evento_non_approvato", FINE_D)), "…e quello dell'evento non approvato dice cosa aspettare");
+
+// (e) IL COLLEGAMENTO. Il form non riscrive i rami: li chiede al modulo, e per
+// dire l'ora ha bisogno delle date — che le due pagine devono passargli.
+ok(/statoDomandaConsegna\(/.test(tsxDomanda) && /testoRifiutoDomanda\(/.test(tsxDomanda), "il form chiede stato e rifiuti al modulo");
+ok(!/setErrore\("La domanda si pone/.test(tsxDomanda), "…invece di riscriverseli dentro");
+ok(/dataInizio/.test(tsxDomanda) && /dataFine/.test(tsxDomanda), "…e riceve le date, senza cui non potrebbe dire l'ora");
+const tsxControllo = senzaCommenti(leggi("components/ente/ControlloDirettaEvento.tsx"));
+ok(/dataInizio={dataInizio}/.test(tsxControllo) && /dataFine={dataFine}/.test(tsxControllo), "il pannello gliele passa");
+for (const [nome, file] of [
+  ["/ente/eventi", "app/ente/(dashboard)/eventi/page.tsx"],
+  ["/admin", "app/admin/page.tsx"],
+]) {
+  const src = senzaCommenti(leggi(file));
+  ok(/dataInizio={e\.data_inizio}/.test(src) && /dataFine={e\.data_fine}/.test(src), `${nome} passa le date al pannello`);
+}
+
+// ── 16) L'ETICHETTA DICE COSA C'È DIETRO ────────────────────────────────────
+//
+// «Rivedi l'incontro» prometteva una registrazione che non esiste e non abbiamo
+// mai costruito: di là c'è la consegna, o la risposta già data, o nulla. Stessa
+// specie del titolo che ripeteva il messaggio — un testo scritto guardando il
+// posto in cui sta e non la cosa che ci trova chi lo segue.
+//
+// E LA RIGA CHE CONTA PIÙ DELLE ALTRE DUE: una porta che si apre su «La diretta
+// è terminata» è peggio di nessuna porta. Chi la segue ha fatto un gesto e ha
+// ricevuto meno di quello che aveva da fermo, e la volta dopo non la segue più —
+// nemmeno quando di là c'è una domanda vera.
+console.log("\n16) L'etichetta di un evento passato");
+
+const {
+  portaEventoPassato,
+  getEventiConRisposta,
+  ETICHETTA_RISPONDI,
+  ETICHETTA_RIVEDI_RISPOSTA,
+} = require("@/lib/app/portaEventoPassato");
+
+ok(portaEventoPassato({ iscritto: false, haRisposto: false, consegnaAperta: true }) === null, "chi non era iscritto non ha link");
+ok(
+  portaEventoPassato({ iscritto: true, haRisposto: false, consegnaAperta: true })?.etichetta === ETICHETTA_RISPONDI,
+  `consegna aperta e nessuna risposta: «${ETICHETTA_RISPONDI}»`,
+);
+ok(
+  portaEventoPassato({ iscritto: true, haRisposto: true, consegnaAperta: false })?.etichetta === ETICHETTA_RIVEDI_RISPOSTA,
+  `già risposto: «${ETICHETTA_RIVEDI_RISPOSTA}»`,
+);
+ok(portaEventoPassato({ iscritto: true, haRisposto: false, consegnaAperta: false }) === null, "niente da fare: nessun link");
+ok(
+  portaEventoPassato({ iscritto: true, haRisposto: true, consegnaAperta: true })?.etichetta === ETICHETTA_RIVEDI_RISPOSTA,
+  "…e se fossero vere tutte e due vince la risposta salvata, che è quello che la pagina mostra davvero",
+);
+// NESSUNA ETICHETTA PROMETTE UNA REGISTRAZIONE. Non c'è, non l'abbiamo mai
+// costruita, e la prima parola di quella vecchia era l'unica cosa che di là non
+// si trova.
+for (const e of [ETICHETTA_RISPONDI, ETICHETTA_RIVEDI_RISPOSTA]) {
+  ok(!/rivedi l'incontro/i.test(e) && !/registrazione|replay/i.test(e), `«${e}» non promette una registrazione`);
+}
+// Senza commenti: il JSX dell'Agenda CITA l'etichetta vecchia per dire perché
+// non c'è più.
+ok(!/Rivedi l&apos;incontro|Rivedi l'incontro/.test(pagAgenda), "…e l'etichetta vecchia non è rimasta nell'Agenda");
+
+// IL COLLEGAMENTO: l'Agenda non riscrive né l'etichetta né la regola. Quali
+// consegne siano APERTE lo sa già `getConsegneDaFare`, che la pagina chiama
+// comunque: ricalcolarlo qui sarebbe la seconda definizione della stessa cosa.
+ok(/portaEventoPassato\(/.test(pagAgenda), "l'Agenda chiede l'etichetta al modulo");
+ok(/getEventiConRisposta\(/.test(pagAgenda), "…e chi ha già risposto con una lettura sola");
+ok(/consegneDaFare\.map\(\(c\) => c\.eventoId\)/.test(pagAgenda), "…e quali consegne sono aperte lo riusa da getConsegneDaFare invece di ricalcolarlo");
+ok(!/Rispondi alla domanda|Rivedi la tua risposta/.test(pagAgenda), "…e i testi non sono ricopiati nel JSX");
+
+(async () => {
+  // LA LETTURA DEGRADA VERSO IL NIENTE: un link in meno, mai un link che porta
+  // a una pagina che non ha quello che l'etichetta promette.
+  const chain = (risposta) => {
+    const c = { from: () => c, select: () => c, eq: () => c, in: () => c, then: (res) => res(risposta) };
+    return c;
+  };
+  const con = await getEventiConRisposta(chain({ data: [{ evento_id: "e1" }], error: null }), "u1", ["e1", "e2"]);
+  ok(con.has("e1") && !con.has("e2"), "getEventiConRisposta restituisce solo gli eventi con una risposta");
+  const rotta = await getEventiConRisposta(chain({ data: null, error: { message: "boom" } }), "u1", ["e1"]);
+  ok(rotta.size === 0, "…e una lettura fallita non inventa una risposta: insieme vuoto, quindi nessun link");
+  ok((await getEventiConRisposta(chain({ data: [], error: null }), "u1", [])).size === 0, "…e con zero eventi non interroga nemmeno");
+
+  console.log(falliti === 0 ? "\n✅ tutto verde\n" : `\n❌ ${falliti} asserzioni rosse\n`);
+  process.exit(falliti === 0 ? 0 : 1);
+})();

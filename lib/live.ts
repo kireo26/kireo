@@ -44,6 +44,31 @@ export function consegnaAperta(dataInizio: string, dataFine: string | null, ora:
   return now >= fine && now < fine + ORE_FINESTRA_CONSEGNA * 60 * 60 * 1000;
 }
 
+// Finestra della DOMANDA finale, specchio lato client di
+// domanda_consegna_modificabile (20260929120000_finestra_domanda_consegna.sql):
+// dall'approvazione dell'evento fino alla fine della diretta. Si chiude
+// ESATTAMENTE dove si apre `consegnaAperta` — la stessa `fine` per entrambe, così
+// le due finestre non possono divergere e una domanda non cambia mai sotto a chi
+// sta già rispondendo.
+//
+// Lo `stato` dell'evento non entra qui, come non entra in `consegnaAperta`: lo
+// guarda chi chiama (il pannello si monta solo sugli approvati). Questo specchio
+// risponde alla sola metà che dipende dall'orologio.
+export function domandaModificabile(dataInizio: string, dataFine: string | null, ora: Date = new Date()): boolean {
+  const inizio = new Date(dataInizio).getTime();
+  const fine = dataFine ? new Date(dataFine).getTime() : inizio + DURATA_DEFAULT_MS;
+  return ora.getTime() < fine;
+}
+
+// Quando la diretta finisce: è l'istante che chiude la finestra della domanda e
+// apre quella della consegna. Esportato perché è un ORARIO CHE SI DICE A UNA
+// PERSONA («la diretta è finita il … alle …»), e un orario detto a qualcuno è una
+// cosa che si prova, non che si ricalcola in tre posti.
+export function fineDiretta(dataInizio: string, dataFine: string | null): string {
+  if (dataFine) return dataFine;
+  return new Date(new Date(dataInizio).getTime() + DURATA_DEFAULT_MS).toISOString();
+}
+
 // Un evento è già cominciato. Serve a decidere se OFFRIRE l'iscrizione: una
 // prenotazione per una cosa già iniziata non serve a niente e promette
 // qualcosa. Sta qui, con l'ora iniettabile come le sorelle, per due ragioni —

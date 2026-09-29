@@ -16,9 +16,13 @@ type Domanda = { id: string; testo: string; stato: string; creata_il: string; no
 export default function ControlloDirettaEvento({
   eventoId,
   domandaConsegna = null,
+  dataInizio,
+  dataFine,
 }: {
   eventoId: string;
   domandaConsegna?: string | null;
+  dataInizio: string;
+  dataFine: string | null;
 }) {
   const [presenti, setPresenti] = useState<number | null>(null);
   const [domande, setDomande] = useState<Domanda[]>([]);
@@ -111,7 +115,7 @@ export default function ControlloDirettaEvento({
         </div>
       )}
 
-      <DomandaConsegnaForm eventoId={eventoId} domandaAttuale={domandaConsegna} />
+      <DomandaConsegnaForm eventoId={eventoId} domandaAttuale={domandaConsegna} dataInizio={dataInizio} dataFine={dataFine} />
 
       {risultatoChiusura ? (
         <p className="rounded-lg border border-kireo-green/40 bg-kireo-green/10 px-4 py-3 text-sm text-kireo-light">

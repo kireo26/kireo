@@ -178,7 +178,12 @@ export default async function AdminPage() {
                     {e.hosting_diretta === "proprio" ? "canale dell'ente" : "KIREO"}
                   </p>
                   {e.hosting_diretta === "kireo" && <GestisciVideoDirettaForm eventoId={e.id} videoIdAttuale={e.youtube_video_id} />}
-                  <ControlloDirettaEvento eventoId={e.id} domandaConsegna={e.domanda_consegna} />
+                  <ControlloDirettaEvento
+                    eventoId={e.id}
+                    domandaConsegna={e.domanda_consegna}
+                    dataInizio={e.data_inizio}
+                    dataFine={e.data_fine}
+                  />
                   <div className="mt-3">
                     <a href={`/api/admin/presenze/${e.id}`} className="text-xs text-kireo-orange underline underline-offset-2">
                       Esporta presenze (CSV)

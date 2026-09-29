@@ -139,7 +139,12 @@ export default async function EnteEventiPage({ searchParams }: { searchParams: P
                     </p>
                     {e.stato === "approvato" && (
                       <>
-                        <ControlloDirettaEvento eventoId={e.id} domandaConsegna={e.domanda_consegna} />
+                        <ControlloDirettaEvento
+                          eventoId={e.id}
+                          domandaConsegna={e.domanda_consegna}
+                          dataInizio={e.data_inizio}
+                          dataFine={e.data_fine}
+                        />
                         <div className="mt-3">
                           <ReportEventoButton eventoId={e.id} />
                         </div>
