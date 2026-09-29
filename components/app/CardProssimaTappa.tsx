@@ -1,10 +1,17 @@
 import type { ProssimaTappa } from "@/lib/percorso/prossimaTappa";
 
 // «Il tuo percorso»: indica il PASSO SUCCESSIVO CONSIGLIATO (guida → test →
-// missioni → workshop). Consiglia, non impone — tutto resta aperto, questa è
-// solo la prossima cosa suggerita. Componente presentazionale: il testo (i sette
-// stati) è deciso a monte da getProssimaTappa, l'unica fonte di verità dello
-// stato del percorso.
+// missioni → workshop). Componente presentazionale: il testo (gli otto stati) è
+// deciso a monte da getProssimaTappa, l'unica fonte di verità dello stato del
+// percorso.
+//
+// QUI C'ERA UNA RIGA che dichiarava il percorso interamente aperto — «consiglia
+// e non impone, tutto è solo suggerito» — ed era vera fino al 2026-09-20. Da
+// quella data due dei gradini sono cancelli veri (le missioni si aprono con i
+// tre test, i workshop dopo un'esperienza): le prime cinque tappe restano
+// consigli, le ultime due no. La riga non si rimette, e non si riproduce
+// nemmeno per citarla — `npm run test:cancelli` la cerca alla lettera qui e nel
+// motore, quindi una citazione la farebbe diventare rossa su codice giusto.
 // `tappa` può essere null solo se la lettura del passo è andata in eccezione
 // (`getPassoCorrente` lo registra e lo dichiara). In pratica non succede:
 // `getProssimaTappa` degrada già da sé a «comincia da una guida» su qualunque

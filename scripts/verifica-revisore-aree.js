@@ -69,6 +69,7 @@ const {
 const { insiemeCifreCitabili } = require("@/lib/escape/cifreCitabili");
 const { MAX_MOTIVAZIONE } = require("@/lib/escape/chiamaEscape");
 const { AREE, getAreaBySlug } = require("@/data/aree");
+const { senzaCommenti } = require("./lib/senza-commenti");
 
 const SLUG_TUTTI = AREE.map((a) => a.slug);
 const nomeArea = (slug) => getAreaBySlug(slug)?.nome ?? slug;
@@ -441,8 +442,36 @@ function corpusAMano() {
   );
 }
 
+// ───────────────────────────────── D · la voce del ripiego terminale
+//
+// PERCHÉ È SORVEGLIATA. Fino al 29/09 `RIPIEGO_MOTIVAZIONE` diceva «Segnale
+// rilevato durante la missione.»: lingua da radar, in un riquadro che parla a un
+// ragazzo di quello che ha fatto. Non era un difetto nuovo — stava inline dal
+// primo giorno — ma dal 29/09 conta di più, perché quella frase è quella che
+// prende il posto dei paragrafi scartati dal tetto: comparirà più spesso di
+// quanto sia mai comparsa.
+//
+// LA PREMESSA SI VERIFICA, non si dà per buona: la proprietà «il ripiego non
+// ripete il nome dell'area» ha senso solo perché `AreeSfiorate` lo prefissa già.
+// Se quel componente smettesse di farlo, questo controllo starebbe gridando su
+// niente (è la regola già pagata il 19/09: un test che accetta una forma deve
+// verificare la premessa su cui la accetta).
+function voceDelRipiego() {
+  const src = senzaCommenti(fs.readFileSync(path.join(ROOT, "lib", "escape", "scoring.ts"), "utf8"));
+  const m = src.match(/const RIPIEGO_MOTIVAZIONE = "([^"]*)"/);
+  const rip = m ? m[1] : null;
+  ok(rip !== null, `D · il ripiego terminale si legge da scoring.ts${rip ? `: «${rip}»` : ""}`);
+  ok(rip !== null && !/segnale rilevat/i.test(rip), "D · non è lingua da radar («segnale rilevato» è una macchina che parla a una macchina)");
+  ok(rip !== null && /hai fatto/.test(rip), "D · e il soggetto è una cosa che lo studente ha fatto, come chiede la regola del prompt");
+
+  // La premessa: il componente che rende quella riga prefissa il nome dell'area.
+  const areeSfiorate = fs.readFileSync(path.join(ROOT, "components", "escape", "AreeSfiorate.tsx"), "utf8");
+  ok(/\{v\.nome\}<\/span> — \{v\.testo\}/.test(areeSfiorate), "D · premessa: AreeSfiorate rende «Nome area — testo», quindi un ripiego che nomina l'area la ripete");
+}
+
 (async () => {
   corpusAMano();
+  voceDelRipiego();
   for (const m of MISSIONI) await perMissione(m.slug);
 
   console.log("");

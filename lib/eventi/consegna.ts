@@ -142,7 +142,21 @@ export function leggiGiudizioConsegna(
       continue;
     }
     if (prove.some((p) => p.area_slug === a.area_slug)) continue; // una prova per area
-    const ripiego = `La tua risposta lavora su ${getAreaBySlug(a.area_slug)?.nome ?? a.area_slug}.`;
+    // IL RIPIEGO NON RIPETE IL NOME DELL'AREA, e non è una scelta di gusto.
+    // Fino al 29/09 diceva «La tua risposta lavora su <Nome area>.», e questa
+    // frase si legge dentro `components/escape/AreeSfiorate.tsx`, che rende ogni
+    // voce come «**Nome area** — <frase>»: il nome usciva DUE VOLTE sulla stessa
+    // riga. È la stessa ripetizione già corretta il 28/09 fra il titolo
+    // «Risposta consegnata» e il messaggio che lo ricopiava. Non è la lingua da
+    // radar del ripiego delle missioni — quello è un difetto diverso — ma arriva
+    // allo stesso posto, e per la stessa ragione conta di più da quando il tetto
+    // di `MAX_MOTIVAZIONE` fa comparire i ripieghi più spesso.
+    //
+    // Che ci arrivi davvero non è dedotto: `motivazioniPiuPesanti` (in
+    // lib/percorso/stato.ts) legge `evidence` senza filtrare su `fonte` e mostra
+    // la motivazione col peso maggiore — e una consegna pesa 1,0 contro gli 0,35
+    // di una risposta di test, quindi è spesso lei la più pesante.
+    const ripiego = "Qualcosa che hai scritto ha toccato quest'area.";
     const grezza = typeof a.motivazione === "string" && a.motivazione.trim() ? a.motivazione.trim() : ripiego;
     // Il TETTO prima della cifra, come nelle missioni (vedi `motivazioneSicura`
     // in lib/escape/scoring.ts): sopra il limite il testo non si spedisce, quindi

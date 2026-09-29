@@ -6,7 +6,21 @@ import { caricaContestoPercorso } from "./stato";
 // Il PASSO SUCCESSIVO del percorso studente. Percorso: guida → seconda guida →
 // T1 → T2 → T3 → missioni → workshop. La tappa è determinata dal traguardo PIÙ
 // AVANZATO raggiunto (così chi salta avanti non viene rimandato indietro),
-// sette esiti.
+// otto esiti.
+//
+// L'OTTAVO È L'ULTIMO GRADINO, e fino al 29/09 non c'era. La scala finiva su
+// «Prova un workshop», che era l'esito di chi ha completato una missione — e
+// sopra di lui niente: chi un workshop l'aveva già fatto continuava a leggere
+// quel consiglio per sempre. Nel primo corpus di pagine vere il caso si è
+// presentato con otto workshop alle spalle, ed era una scala senza stato
+// terminale, non un difetto di vocabolario.
+//
+// L'ultimo gradino non può dire «hai finito» (orientarsi non finisce) né
+// inventare un passo che non esiste: dice il vero, cioè che i passi sono
+// esauriti e la strada no. La destinazione è la stessa del primo gradino
+// (`/app/aree`) per la ragione che la frase dichiara — da qui il passo non è
+// nuovo, è lo stesso in un'area che non si è ancora toccata: si riparte dalla
+// scelta di un'area, con un motivo diverso.
 //
 // DUE DEI SETTE SONO CANCELLI VERI, dal 2026-09-20. Fino a quella data questo
 // commento diceva che il percorso si limitava a consigliare e che niente era
@@ -59,6 +73,23 @@ export async function getProssimaTappa(supabase: SupabaseClient, studentId: stri
   }
 
   // Ladder: dal traguardo più avanzato indietro — sempre un solo esito.
+  //
+  // ⚠️ ANCHE QUESTA FRASE HA UNA SCADENZA, e resta un commento di proposito: il
+  // giorno in cui qualcuno avrà attraversato tutti i passi in TUTTE E DICIOTTO
+  // le aree, «in un'area che non hai ancora toccato» diventa falsa. Non è un
+  // problema di oggi (nessuno studente vero ha finito un workshop), ma è la
+  // stessa specie del difetto che questo gradino chiude — una cosa scritta che
+  // dichiara uno stato diverso da quello vero — quindi la scadenza si scrive
+  // invece di lasciarla scoprire. Un `if` no: costerebbe contare le aree
+  // toccate a ogni caricamento della home per un caso che non esiste ancora, e
+  // il caso che non esiste è precisamente quello su cui una condizione si tara
+  // male.
+  if (haMissione && contesto.workshopConsegnati > 0)
+    return {
+      testo: "Li hai attraversati tutti almeno una volta. Da qui il passo non è nuovo: è lo stesso, in un'area che non hai ancora toccato.",
+      cta: "Esplora le aree",
+      href: "/app/aree",
+    };
   if (haMissione) return { testo: "Prova un workshop.", cta: "Prova un workshop", href: "/app/workshop" };
   if (cancelloMissioniAperto) return { testo: "Le missioni sono aperte.", cta: "Prova una missione", href: "/app/escape" };
   if (t1 && t2) return { testo: 'Fai "Più a fondo".', cta: "Fai «Più a fondo»", href: `/app/test/${SLUG_T3}` };

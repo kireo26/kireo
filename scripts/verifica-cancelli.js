@@ -50,6 +50,12 @@ const tappa = senzaCommenti(fs.readFileSync(path.join(ROOT, "lib/percorso/prossi
 // riga «nessun gate, tutto resta aperto» non ci sia più, perché oggi sarebbe
 // falsa. Su un sorgente spogliato sarebbe verde qualunque cosa ci fosse scritto.
 const tappaConCommenti = fs.readFileSync(path.join(ROOT, "lib/percorso/prossimaTappa.ts"), "utf8");
+// Stessa eccezione per il RENDERER: il 29/09 la sua intestazione diceva ancora
+// «consiglia, non impone — tutto resta aperto», cioè la stessa affermazione
+// falsa, in un file che il controllo non guardava. Due copie della stessa
+// dichiarazione e una sola sorvegliata: la seconda è quella che nessuno
+// aggiorna.
+const cardConCommenti = fs.readFileSync(path.join(ROOT, "components/app/CardProssimaTappa.tsx"), "utf8");
 
 console.log("\n═══ I due cancelli del percorso ═══\n");
 
@@ -120,6 +126,18 @@ ok(tappa.includes("ha_completato_i_tre_test"), "il rung delle missioni chiede al
 ok(!/if\s*\(t1 && t2 && t3\)/.test(tappa), "e non riscrive `t1 && t2 && t3` per conto suo");
 ok(/t1 && t2\b/.test(tappa), "i rung intermedi guardano ancora i test uno per uno (devono nominare il prossimo)");
 ok(!/nessun gate, tutto resta aperto/.test(tappaConCommenti), "il commento «nessun gate, tutto resta aperto» non c'è più: sarebbe falso");
+ok(!/tutto resta aperto/.test(cardConCommenti), "e nemmeno nel renderer della card, dove la stessa affermazione è vissuta fino al 29/09");
+
+// L'ULTIMO GRADINO (29/09). Due metà: la condizione — che guarda i workshop e
+// non solo la missione — e la frase, che deve dire che i passi sono esauriti e
+// non che il percorso è finito. Senza la prima la scala resta senza terminale e
+// chi ha fatto otto workshop continua a leggere «prova un workshop».
+ok(/workshopConsegnati > 0/.test(tappa), "l'ultimo gradino guarda anche i workshop consegnati, non solo la missione");
+ok(/in un'area che non hai ancora toccato/.test(tappa), "e la sua frase dice che il passo si rifà in un'area nuova");
+ok(!/hai finito|hai completato il percorso/i.test(tappa), "senza mai dire che il percorso è finito: orientarsi non finisce");
+// La scadenza della frase sta scritta, e resta un commento: il giorno in cui
+// qualcuno avrà fatto tutti i passi in tutte le aree diventa falsa anche lei.
+ok(/TUTTE E DICIOTTO/.test(tappaConCommenti), "la scadenza della frase è dichiarata accanto al gradino");
 
 // ── 6) controprove ──────────────────────────────────────────────────────────
 console.log("\n6) Controprove: il controllo si accorge davvero");

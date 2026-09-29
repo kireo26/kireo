@@ -636,5 +636,40 @@ ok(
 ok(!/interest/i.test(prompt), "il prompt non chiede interesse: è quello che rende la conseguenza sopra una scelta e non una svista");
 ok(/"performance"/.test(tsConsegna), "…e il tipo della prova ammette solo performance");
 
+// ── 14) IL RIPIEGO NON RIPETE IL NOME DELL'AREA ─────────────────────────────
+//
+// Fino al 29/09 il ripiego della motivazione era «La tua risposta lavora su
+// <Nome area>.», e la riga si legge dentro `AreeSfiorate`, che rende ogni voce
+// come «**Nome area** — <frase>»: il nome usciva due volte nella stessa riga. La
+// stessa ripetizione già corretta il 28/09 fra il titolo «Risposta consegnata» e
+// il messaggio che lo ricopiava.
+//
+// Conta di più dal 29/09, per la stessa ragione del ripiego delle missioni: con
+// il tetto di `MAX_MOTIVAZIONE` i ripieghi compaiono più spesso.
+console.log("\n14) Il ripiego della motivazione, e il nome dell'area");
+
+const mRip = /const ripiego = "([^"]*)"/.exec(tsConsegna);
+ok(mRip !== null, `il ripiego è un letterale, senza il nome dell'area interpolato${mRip ? `: «${mRip[1]}»` : ""}`);
+ok(mRip !== null && !/\$\{/.test(mRip[0]), "…nessuna interpolazione: un nome interpolato qui sarebbe il nome dell'area");
+ok(mRip !== null && /hai scritto/.test(mRip[1]), "…e il soggetto è una cosa che lo studente ha fatto, come chiede la regola del prompt");
+// LA PREMESSA SI VERIFICA: la proprietà sopra vale solo perché il componente
+// prefissa già il nome. Se smettesse, staremmo gridando su niente.
+ok(
+  /\{v\.nome\}<\/span> — \{v\.testo\}/.test(leggi("components/escape/AreeSfiorate.tsx")),
+  "premessa: AreeSfiorate rende «Nome area — testo», quindi nominare l'area nel ripiego la ripete",
+);
+// E che questa motivazione arrivi DAVVERO là non è dedotto: la lettura non
+// filtra su `fonte`, e una consegna pesa più di una risposta di test.
+//
+// L'ANCORA È IL CORPO DI `motivazioniPiuPesanti`, non il file: altrove in
+// stato.ts un `.eq("fonte", …)` c'è ed è legittimo (serve a `origine`, cioè a
+// dire se il ritratto nasce dai test o da una missione). Guardando tutto il file
+// questa asserzione era rossa su codice giusto — presa dal controllo stesso
+// prima del commit, che è il modo in cui si scopre una taratura larga.
+const statoTs = senzaCommenti(leggi("lib/percorso/stato.ts"));
+const iMot = statoTs.indexOf("async function motivazioniPiuPesanti");
+const corpoMot = iMot === -1 ? "" : statoTs.slice(iMot, statoTs.indexOf("\n}", iMot));
+ok(iMot !== -1 && !/\.eq\("fonte"/.test(corpoMot), "…e la lettura delle motivazioni non filtra su `fonte`: una consegna può essere la più pesante e comparire lì");
+
 console.log(falliti === 0 ? "\n✅ tutto verde\n" : `\n❌ ${falliti} asserzioni rosse\n`);
 process.exit(falliti === 0 ? 0 : 1);

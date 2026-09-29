@@ -57,10 +57,20 @@ const PESO_STILE_MISSIONE = 1.35;
 
 // L'ultimo ripiego di una motivazione: quello che uno studente legge quando non
 // c'è niente da dire (o quando il testo dell'AI è stato scartato dal terminale).
-// ⚠️ È TESTO CHE ARRIVA A SCHERMO nel blocco delle aree sfiorate, non una stringa
-// di servizio — stava inline fin dal primo giorno e la sua voce non l'ha mai
-// riletta nessuno. Onesta lo è; bella non particolarmente.
-const RIPIEGO_MOTIVAZIONE = "Segnale rilevato durante la missione.";
+// È TESTO CHE ARRIVA A SCHERMO nel blocco delle aree sfiorate, reso come
+// «Nome area — <questa frase>», non una stringa di servizio.
+//
+// FINO AL 29/09 DICEVA «Segnale rilevato durante la missione.», lingua da radar:
+// «segnale rilevato» è una cosa che una macchina dice a un'altra macchina, e sta
+// in un riquadro che parla a un ragazzo di quello che ha fatto. Stava inline dal
+// primo giorno e la sua voce non l'aveva mai riletta nessuno.
+//
+// E DAL 29/09 CONTA DI PIÙ: con il tetto di `MAX_MOTIVAZIONE` questo ripiego è
+// la frase che prende il posto dei paragrafi scartati, quindi comparirà più
+// spesso di quanto sia mai comparso. La forma nuova rispetta la regola del
+// prompt — il soggetto è una cosa che lo studente ha fatto — dice il vero senza
+// inventare quale, e non suona come un errore di sistema.
+const RIPIEGO_MOTIVAZIONE = "Qualcosa che hai fatto in questa missione ha toccato quest'area.";
 
 const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
 const nomeArea = (slug: string) => getAreaBySlug(slug)?.nome ?? slug;
