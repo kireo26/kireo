@@ -54,7 +54,8 @@
     "test:evento": "node scripts/verifica-evento-form.js",
     "test:pagine": "node scripts/verifica-pagine.js",
     "test:attivita": "node scripts/verifica-attivita.js",
-    "test:sonda": "node scripts/verifica-sonda-e-chiave.js"
+    "test:sonda": "node scripts/verifica-sonda-e-chiave.js",
+    "test:presenza": "node scripts/verifica-presenza-diretta.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.112.5",

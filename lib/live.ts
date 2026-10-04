@@ -69,6 +69,25 @@ export function fineDiretta(dataInizio: string, dataFine: string | null): string
   return new Date(new Date(dataInizio).getTime() + DURATA_DEFAULT_MS).toISOString();
 }
 
+// LA DIRETTA STA ANDANDO, specchio lato client di `evento_in_diretta`
+// (20261004130000_presenza_dentro_la_diretta.sql). È una funzione a sé e non un
+// ramo di `statoDiretta` per la ragione che l'ha resa necessaria: `statoDiretta`
+// dice `in_corso` da quindici minuti prima dell'inizio — ed è giusto, perché chi
+// arriva prima deve vedere il player comparire da sé — ma la presenza non si
+// conta lì. Il 4/10 quattro ping raccolti tutti nel pre-roll hanno certificato
+// una presenza a una diretta di cinque minuti che lo studente non ha visto: il
+// numeratore stava su venti minuti, il denominatore su cinque.
+//
+// Quindi: `statoDiretta` risponde a COSA MOSTRARE, questa a COSA CONTARE. Sono
+// due domande, e tenerle nella stessa funzione è il modo in cui sono tornate a
+// essere una.
+export function presenzaRilevabile(dataInizio: string, dataFine: string | null, ora: Date = new Date()): boolean {
+  const inizio = new Date(dataInizio).getTime();
+  const fine = dataFine ? new Date(dataFine).getTime() : inizio + DURATA_DEFAULT_MS;
+  const now = ora.getTime();
+  return now >= inizio && now < fine;
+}
+
 // Un evento è già cominciato. Serve a decidere se OFFRIRE l'iscrizione: una
 // prenotazione per una cosa già iniziata non serve a niente e promette
 // qualcosa. Sta qui, con l'ora iniettabile come le sorelle, per due ragioni —

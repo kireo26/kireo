@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { statoDiretta } from "@/lib/live";
+import { presenzaRilevabile, statoDiretta } from "@/lib/live";
 import { useHeartbeatDiretta } from "@/lib/useHeartbeatDiretta";
 import BoxDomandeLive, { type Domanda } from "./BoxDomandeLive";
 import { formattaDataOra } from "@/lib/formato";
@@ -47,7 +47,15 @@ export default function PannelloLive({
   // quei ping dicono «era qui a seguire», e da quei ping escono le ore PCTO.
   // La regola sta in `presenzaDaContare`, con il perché e con il motivo per
   // cui i ping già registrati non si scontano.
-  const contaLaPresenza = presenzaDaContare(esitoPlayer);
+  // DUE DOMANDE, DUE FUNZIONI. `stato` decide cosa si vede (e dice `in_corso`
+  // già quindici minuti prima, apposta); `presenzaRilevabile` decide cosa si
+  // conta, e comincia all'inizio vero. Accendere l'heartbeat su `stato` è il
+  // difetto del 4/10: quattro ping nel pre-roll hanno certificato una presenza
+  // a una diretta di cinque minuti mai vista. La guardia vera resta lato DB
+  // (`evento_in_diretta` dentro `ping_presenza_live`): questa è l'altra metà,
+  // quella che non manda un ping che verrebbe comunque respinto.
+  const inDiretta = presenzaRilevabile(dataInizio, dataFine, ora);
+  const contaLaPresenza = presenzaDaContare(esitoPlayer) && inDiretta;
   useHeartbeatDiretta(eventoId, stato === "in_corso" && contaLaPresenza);
   const videoRotto = esitoPlayer !== null && sondaBlocca(esitoPlayer);
   const segnalaErrorePlayer = useCallback((esito: EsitoSonda) => setEsitoPlayer(esito), []);
@@ -85,9 +93,18 @@ export default function PannelloLive({
         <h1 className="py-1 font-heading text-2xl font-bold leading-[1.25] text-kireo-light">{titolo}</h1>
         {/* La riga non dichiara un rilevamento che abbiamo appena fermato:
             quando il video non si vede smettiamo di contare, e dirlo
-            comunque sarebbe la stessa bugia un piano più in su. */}
+            comunque sarebbe la stessa bugia un piano più in su.
+            E non dice «In diretta» nei quindici minuti prima dell'inizio: il
+            player compare già (apposta, così chi arriva prima lo vede
+            comparire da sé) ma la diretta non è cominciata — e da quando la
+            presenza non si conta lì, lasciare «In diretta» sarebbe una
+            contraddizione nella stessa riga.
+            ⚠️ «Sta per iniziare» è un testo di servizio e va riletto (voce). */}
         <p className="mt-1 flex items-center gap-2 text-xs text-kireo-muted">
-          <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" /> In diretta
+          <span
+            className={`h-2 w-2 rounded-full ${inDiretta ? "animate-pulse bg-red-500" : "bg-kireo-muted"}`}
+          />{" "}
+          {inDiretta ? "In diretta" : "Sta per iniziare"}
           {contaLaPresenza ? " · presenza in rilevamento" : ""}
         </p>
       </div>

@@ -36,13 +36,21 @@
 // silenzi vorrebbe dire dichiarare di non aver guardato una cosa che abbiamo
 // guardato. `non_controllato` resta riservato all'assenza di risposta.
 //
-// ⚠️ QUELLO CHE NESSUNO HA ANCORA VISTO, e decide se la spunta si può
-// togliere del tutto: che la sonda RISPONDA davvero su un video YouTube
-// reale, e in particolare su una DIRETTA PROGRAMMATA non ancora iniziata,
-// che è il caso principale. Da qui non si può provare (nessun browser,
-// nessuna rete verso YouTube), quindi la spunta `incorporamento_attivo` non
-// è stata rimossa in assoluto: esce dove la sonda ha risposto e torna dove
-// non ha potuto. Le due cose non stanno mai insieme a schermo — una
+// LA SONDA HA RISPOSTO SU UN VIDEO VERO, la sera del 4/10 — e questo era il
+// ⚠️ che stava qui. Dalla riga in database dopo la prima diretta:
+// `incorporamento_sonda = "attivo"` con una checklist di TRE voci. Le due cose
+// insieme non si producono per caso — `"attivo"` esiste solo se `onReady` è
+// arrivato e ha retto la grazia, e la quarta voce sparisce solo se
+// `serveDichiarazioneIncorporamento` ha detto no — quindi ha girato, e su una
+// DIRETTA PROGRAMMATA non ancora cominciata, che era il caso principale.
+//
+// È UN DATO DI UNA RIGA SOLA, quindi la spunta `incorporamento_attivo` non è
+// stata rimossa in assoluto: esce dove la sonda ha risposto e torna dove
+// non ha potuto. Il segnale da leggere è l'opposto: se i referti «non abbiamo
+// potuto controllare» diventano la norma, la sonda su una diretta programmata
+// non risponde e il lavoro torna lì, non sulla casella.
+//
+// LE DUE COSE NON STANNO MAI INSIEME A SCHERMO — una
 // dichiarazione accanto a una misura è peggio di niente, perché la prima
 // volta che divergono nessuno sa a quale credere. Qui la dichiarazione è il
 // RIPIEGO di quando la misura manca, e la misura, quando c'è, vince.
