@@ -11,13 +11,32 @@ import { estraiIdYoutube } from "@/lib/youtube";
 import { messaggioErroreEvento } from "@/lib/ente/erroreEvento";
 import { istanteDaOrarioItaliano, millisecondiDaOrarioItaliano } from "@/lib/formato";
 import { eventoCominciato } from "@/lib/live";
+import { useSondaIncorporamento } from "@/lib/useSondaIncorporamento";
+import { serveDichiarazioneIncorporamento, sondaBlocca, testoSonda } from "@/lib/sondaYoutube";
+import EsitoSondaIncorporamento from "@/components/EsitoSondaIncorporamento";
 
-const VOCI_CHECKLIST: { chiave: "non_in_elenco" | "incorporamento_attivo" | "chat_disattivata" | "no_contenuti_terzi"; testo: string }[] = [
+type ChiaveChecklist = "non_in_elenco" | "incorporamento_attivo" | "chat_disattivata" | "no_contenuti_terzi";
+
+// LA SPUNTA DELL'INCORPORAMENTO È L'UNICA CHE SI PUÒ MISURARE, e per questo
+// è l'unica che vive in un elenco a parte: compare solo quando la sonda non
+// ha potuto rispondere (vedi `serveDichiarazioneIncorporamento`). Le altre
+// tre restano dichiarazioni perché non c'è modo di misurarle da qui — la
+// visibilità e la chat le vede solo chi ha il canale, e «non trasmetterò
+// musica» è una promessa sul futuro.
+//
+// Una dichiarazione accanto a una misura è peggio di niente: la prima volta
+// che divergono nessuno sa a quale credere. Qui non possono stare insieme a
+// schermo per costruzione.
+const VOCI_CHECKLIST: { chiave: ChiaveChecklist; testo: string }[] = [
   { chiave: "non_in_elenco", testo: "La diretta è impostata come \"non in elenco\" su YouTube (non pubblica, raggiungibile solo dal link)." },
-  { chiave: "incorporamento_attivo", testo: "L'incorporamento (embed) del video è attivo nelle impostazioni dello studio di YouTube." },
   { chiave: "chat_disattivata", testo: "La chat dal vivo di YouTube è disattivata (le domande passano solo dalla piattaforma KIREO)." },
   { chiave: "no_contenuti_terzi", testo: "Non trasmetterò musica di alcun tipo né contenuti audio/video di terzi non licenziati." },
 ];
+
+const VOCE_INCORPORAMENTO: { chiave: ChiaveChecklist; testo: string } = {
+  chiave: "incorporamento_attivo",
+  testo: "L'incorporamento (embed) del video è attivo nelle impostazioni dello studio di YouTube.",
+};
 
 const TIPI = [
   { value: "webinar", label: "Webinar" },
@@ -65,6 +84,15 @@ export default function CreaEventoForm({
   const [checklist, setChecklist] = useState<Record<string, boolean>>({});
 
   const eDiretta = tipo === "webinar";
+
+  // LA SONDA PARTE NEL MOMENTO IN CUI IL LINK VIENE INCOLLATO, giorni prima,
+  // non alle 17:01 con una classe davanti. Gira solo quando c'è un id vero da
+  // provare e solo sul ramo in cui il video lo fornisce l'ente.
+  const idYoutube = estraiIdYoutube(youtubeLink);
+  const { esito: esitoSonda, inCorso: sondaInCorso } = useSondaIncorporamento(
+    eDiretta && hostingDiretta === "proprio" ? idYoutube : null,
+  );
+  const vociChecklist = serveDichiarazioneIncorporamento(esitoSonda) ? [...VOCI_CHECKLIST, VOCE_INCORPORAMENTO] : VOCI_CHECKLIST;
 
   const [errori, setErrori] = useState<Record<string, string>>({});
   const [inviando, setInviando] = useState(false);
@@ -118,8 +146,12 @@ export default function CreaEventoForm({
     if (eDiretta) {
       if (!dataFine) next.dataFine = "Per un webinar in diretta la data e ora di fine sono obbligatorie (servono a calcolare le presenze).";
       if (hostingDiretta === "proprio") {
-        if (!estraiIdYoutube(youtubeLink)) next.youtubeLink = "Incolla il link della tua diretta YouTube (non in elenco).";
-        if (VOCI_CHECKLIST.some((v) => !checklist[v.chiave])) next.checklist = "Devi confermare tutte le voci della checklist per trasmettere dal tuo canale.";
+        if (!idYoutube) next.youtubeLink = "Incolla il link della tua diretta YouTube (non in elenco).";
+        // LA MISURA VINCE, e il no arriva sul campo del link: lì sta la cosa
+        // da cambiare. Non è un avviso — un video che non si riproduce dentro
+        // KIREO non è un rischio, è una diretta che una classe non vedrà.
+        if (idYoutube && esitoSonda && sondaBlocca(esitoSonda)) next.youtubeLink = testoSonda(esitoSonda).titolo;
+        if (vociChecklist.some((v) => !checklist[v.chiave])) next.checklist = "Devi confermare tutte le voci della checklist per trasmettere dal tuo canale.";
       }
     }
     return next;
@@ -160,6 +192,15 @@ export default function CreaEventoForm({
       const supabase = createClient();
       const usaChecklist = eDiretta && hostingDiretta === "proprio";
       const oraAccettazione = usaChecklist ? new Date().toISOString() : null;
+      // SI REGISTRA SOLO QUELLO CHE È STATO DAVVERO DICHIARATO: la voce
+      // dell'incorporamento entra nel jsonb solo se la spunta c'era (cioè
+      // solo se la sonda non ha potuto misurare). Scriverla anche dove la
+      // misura ha risposto vorrebbe dire registrare una dichiarazione che
+      // nessuno ha fatto — la specie esatta che questo giro chiude.
+      const checklistDaSalvare: Record<string, string> = {};
+      if (oraAccettazione) {
+        for (const voce of vociChecklist) checklistDaSalvare[voce.chiave] = oraAccettazione;
+      }
       const { data: evento, error } = await supabase
         .from("eventi")
         .insert({
@@ -178,16 +219,10 @@ export default function CreaEventoForm({
           pubblico: perDocenti ? "docenti" : "studenti",
           filone: perDocenti ? filone : null,
           hosting_diretta: eDiretta ? hostingDiretta : "kireo",
-          youtube_video_id: usaChecklist ? estraiIdYoutube(youtubeLink) : null,
-          checklist_diretta: usaChecklist
-            ? {
-                non_in_elenco: oraAccettazione,
-                incorporamento_attivo: oraAccettazione,
-                chat_disattivata: oraAccettazione,
-                no_contenuti_terzi: oraAccettazione,
-              }
-            : null,
+          youtube_video_id: usaChecklist ? idYoutube : null,
+          checklist_diretta: usaChecklist ? checklistDaSalvare : null,
           checklist_diretta_accettata_il: oraAccettazione,
+          incorporamento_sonda: usaChecklist ? esitoSonda : null,
           proposta_incontro_id: propostaIncontroId,
         })
         .select("id")
@@ -391,7 +426,13 @@ export default function CreaEventoForm({
                 />
                 <span>
                   <span className="block text-sm font-semibold text-kireo-light">Ospitata da KIREO</span>
-                  <span className="block text-xs text-kireo-muted">Nessun link da fornire ora: riceverai la chiave di trasmissione da KIREO prima dell&apos;evento.</span>
+                  {/* Dove la chiave comparirà, non solo che comparirà: la
+                      promessa generica è quella che lasciava l'ente a non
+                      sapere se stava aspettando noi o se aveva perso un
+                      passaggio. */}
+                  <span className="block text-xs text-kireo-muted">
+                    Nessun link da fornire ora: la chiave di trasmissione la prepara KIREO e la trovi qui, nella scheda di questo evento.
+                  </span>
                 </span>
               </label>
               <label className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 ${hostingDiretta === "proprio" ? "border-kireo-green bg-kireo-green/10" : "border-white/10"}`}>
@@ -442,10 +483,17 @@ export default function CreaEventoForm({
                   placeholder="https://youtube.com/watch?v=..."
                 />
                 {errori.youtubeLink && <p className="mt-1.5 text-sm text-red-400">{errori.youtubeLink}</p>}
+                {/*
+                  IL REFERTO DELLA SONDA, qui sotto il campo: è il momento in
+                  cui l'ente può ancora rimediare. Fino al 4/10 al suo posto
+                  c'era una spunta con cui l'ente dichiarava la stessa cosa, e
+                  noi la registravamo come se l'avessimo verificata.
+                */}
+                <EsitoSondaIncorporamento esito={esitoSonda} inCorso={sondaInCorso} />
               </div>
 
               <div className="space-y-2">
-                {VOCI_CHECKLIST.map((voce) => (
+                {vociChecklist.map((voce) => (
                   <label key={voce.chiave} className="flex items-start gap-3 text-sm text-kireo-light/90">
                     <input
                       type="checkbox"

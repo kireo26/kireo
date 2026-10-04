@@ -4,6 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import Logo from "@/components/Logo";
 import { createClient } from "@/lib/supabase/client";
+import NotificheBell from "@/components/app/NotificheBell";
 
 const NAV_ITEMS = [
   { href: "/ente", label: "Profilo", shortLabel: "Profilo", icon: IconProfilo },
@@ -96,7 +97,17 @@ function IconLogout({ className }: { className?: string }) {
   );
 }
 
-export default function EnteShell({ nome, children }: { nome: string; children: React.ReactNode }) {
+// LA CAMPANELLA ERA MONTATA SOLO IN DUE SHELL SU TRE, e l'ente era quella
+// che mancava: `crea_proposta_incontro` gli scrive una riga di
+// `notifiche_studenti` da fine luglio, e nessuno gliela mostrava. Una riga
+// scritta in un canale che nessuno apre non è una notifica, è un dato.
+// Dalla chiave di trasmissione (4/10) quel canale è l'unica strada con cui
+// una cosa preparata da KIREO raggiunge l'ente — e nel progetto non ne
+// esiste nessun'altra: nessuna email è mai partita verso un ente
+// [verificato: i tre chiamanti di `inviaEmail` sono il follow-up guida, la
+// richiesta di contatto e l'alert del cron]. Quindi non si è inventato un
+// secondo canale: si è finito quello che già scriveva.
+export default function EnteShell({ nome, userId, children }: { nome: string; userId: string; children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const sezioneCorrente = NAV_ITEMS.find((item) => isAttivo(pathname, item.href))?.label ?? "";
@@ -114,7 +125,13 @@ export default function EnteShell({ nome, children }: { nome: string; children: 
         <div className="px-2 pb-2">
           <Logo />
         </div>
-        <p className="truncate px-2 pb-6 text-xs text-kireo-muted">{nome}</p>
+        <div className="flex items-center justify-between gap-2 px-2 pb-6">
+          <p className="truncate text-xs text-kireo-muted">{nome}</p>
+          {/* `allineamento="sinistra"`: nella sidebar da 240px un pannello
+              `right-0` largo 320px finirebbe fuori dalla finestra (la
+              ragione completa sta in NotificheBell). */}
+          <NotificheBell userId={userId} allineamento="sinistra" />
+        </div>
         <nav className="flex flex-1 flex-col gap-1" aria-label="Navigazione area ente">
           {NAV_ITEMS.map((item) => {
             const attivo = isAttivo(pathname, item.href);
@@ -146,14 +163,17 @@ export default function EnteShell({ nome, children }: { nome: string; children: 
       <div className="flex min-h-screen flex-1 flex-col">
         <header className="flex items-center justify-between border-b border-white/5 px-4 py-3 md:hidden">
           <span className="font-heading text-base font-semibold text-kireo-light">{sezioneCorrente}</span>
-          <button
-            type="button"
-            onClick={handleLogout}
-            aria-label="Esci"
-            className="flex h-9 w-9 items-center justify-center rounded-full text-kireo-light/80 transition-colors hover:bg-white/5"
-          >
-            <IconLogout className="h-5 w-5" />
-          </button>
+          <div className="flex items-center gap-1">
+            <NotificheBell userId={userId} />
+            <button
+              type="button"
+              onClick={handleLogout}
+              aria-label="Esci"
+              className="flex h-9 w-9 items-center justify-center rounded-full text-kireo-light/80 transition-colors hover:bg-white/5"
+            >
+              <IconLogout className="h-5 w-5" />
+            </button>
+          </div>
         </header>
 
         <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-24 pt-6 sm:px-6 md:pb-10 md:pt-10">{children}</main>

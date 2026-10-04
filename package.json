@@ -53,7 +53,8 @@
     "test:date": "node scripts/verifica-date.js",
     "test:evento": "node scripts/verifica-evento-form.js",
     "test:pagine": "node scripts/verifica-pagine.js",
-    "test:attivita": "node scripts/verifica-attivita.js"
+    "test:attivita": "node scripts/verifica-attivita.js",
+    "test:sonda": "node scripts/verifica-sonda-e-chiave.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.112.5",

@@ -4,27 +4,18 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { formattaData } from "@/lib/formato";
+import { ETICHETTA_TIPO, LINK_TIPO, type TipoNotifica } from "@/lib/notifiche/etichette";
 
+// Le due liste (etichetta e link per tipo) vivono in lib/notifiche/etichette.ts:
+// qui dentro non si potevano provare da uno script Node, ed era proprio una
+// coppia di liste che nessuno aggiornava insieme — l'enum ne aveva sei valori
+// e qui ce n'erano quattro. Il perché per esteso sta là.
 type Notifica = {
   id: string;
-  tipo: "nuovo_post" | "nuovo_evento_ente" | "workshop_tappa_revisionata" | "workshop_tappa_aperta";
+  tipo: TipoNotifica;
   riferimento_id: string;
   letta: boolean;
   created_at: string;
-};
-
-const ETICHETTA_TIPO: Record<string, string> = {
-  nuovo_post: "Nuovo post di un ente che segui",
-  nuovo_evento_ente: "Nuovo evento di un ente che segui",
-  workshop_tappa_revisionata: "Il tuo workshop ha una nuova revisione",
-  workshop_tappa_aperta: "Si è aperta una nuova tappa del tuo workshop",
-};
-
-const LINK_TIPO: Record<string, string> = {
-  nuovo_post: "/app/bacheca",
-  nuovo_evento_ente: "/app/agenda",
-  workshop_tappa_revisionata: "/app/workshop",
-  workshop_tappa_aperta: "/app/workshop",
 };
 
 // Campanella con badge non-lette, solo in-app (nessun digest email, fuori

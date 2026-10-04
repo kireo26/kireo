@@ -5,6 +5,7 @@ import AttivaIstituzioneButton from "@/components/admin/AttivaIstituzioneButton"
 import AttivaScuolaControlli from "@/components/admin/AttivaScuolaControlli";
 import ToggleGestitaRichiesta from "@/components/admin/ToggleGestitaRichiesta";
 import GestisciVideoDirettaForm from "@/components/admin/GestisciVideoDirettaForm";
+import GestisciChiaveTrasmissioneForm from "@/components/admin/GestisciChiaveTrasmissioneForm";
 import ControlloDirettaEvento from "@/components/ente/ControlloDirettaEvento";
 import AzioneApprovazionePost from "@/components/admin/AzioneApprovazionePost";
 import AzioneChiudiConversazione from "@/components/admin/AzioneChiudiConversazione";
@@ -73,6 +74,22 @@ export default async function AdminPage() {
       .order("created_at", { ascending: false })
       .limit(50),
   ]);
+
+  // QUANDO È STATA PREPARATA, non la chiave: l'admin deve sapere se c'è e da
+  // quando, e un valore segreto ricaricato a schermo a ogni apertura della
+  // coda sarebbe esposto senza che nessuno l'abbia chiesto. L'errore si
+  // logga: una lettura muta qui farebbe dire «non preparata» su una chiave
+  // che c'è, e l'admin la sostituirebbe per niente.
+  const eventiKireo = (webinarApprovati ?? []).filter((e) => e.hosting_diretta === "kireo").map((e) => e.id);
+  const chiavePerEvento = new Map<string, string>();
+  if (eventiKireo.length > 0) {
+    const { data: chiavi, error: erroreChiavi } = await supabase
+      .from("chiavi_trasmissione")
+      .select("evento_id, aggiornata_il")
+      .in("evento_id", eventiKireo);
+    if (erroreChiavi) console.error("[admin] chiavi_trasmissione:", erroreChiavi);
+    for (const riga of chiavi ?? []) chiavePerEvento.set(riga.evento_id, riga.aggiornata_il);
+  }
 
   const { data: scuoleProfiloPerMessaggio } =
     messaggiScuola && messaggiScuola.length > 0
@@ -177,7 +194,16 @@ export default async function AdminPage() {
                     {formattaDataOra(e.data_inizio, "long")} · hosting:{" "}
                     {e.hosting_diretta === "proprio" ? "canale dell'ente" : "KIREO"}
                   </p>
-                  {e.hosting_diretta === "kireo" && <GestisciVideoDirettaForm eventoId={e.id} videoIdAttuale={e.youtube_video_id} />}
+                  {e.hosting_diretta === "kireo" && (
+                    <>
+                      <GestisciVideoDirettaForm eventoId={e.id} videoIdAttuale={e.youtube_video_id} />
+                      {/* La chiave sta accanto al video perché è lo stesso
+                          momento in cui l'admin prepara la diretta: altrove
+                          sarebbe un gesto in più da ricordare, e il gesto che
+                          si ricorda a parte è quello che si dimentica. */}
+                      <GestisciChiaveTrasmissioneForm eventoId={e.id} aggiornataIl={chiavePerEvento.get(e.id) ?? null} />
+                    </>
+                  )}
                   <ControlloDirettaEvento
                     eventoId={e.id}
                     domandaConsegna={e.domanda_consegna}

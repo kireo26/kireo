@@ -7,6 +7,8 @@ import RegistroPresenzeDocenti from "@/components/ente/RegistroPresenzeDocenti";
 import ControlloDirettaEvento from "@/components/ente/ControlloDirettaEvento";
 import ReportEventoButton from "@/components/ente/ReportEventoButton";
 import RispondiPropostaForm, { CreaEventoDaPropostaLink } from "@/components/ente/RispondiPropostaForm";
+import ChiaveTrasmissione from "@/components/ente/ChiaveTrasmissione";
+import { statoChiaveTrasmissione } from "@/lib/eventi/chiaveTrasmissione";
 import { getFiloneBySlug } from "@/data/filoniDocenti";
 import { formattaDataOra } from "@/lib/formato";
 
@@ -50,6 +52,21 @@ export default async function EnteEventiPage({ searchParams }: { searchParams: P
   }
 
   const propostaAccettataPerEvento = propostaIdParam ? (proposte ?? []).find((p) => p.id === propostaIdParam && p.stato === "accettata") : null;
+
+  // Le chiavi dei propri eventi ospitati da KIREO: la RLS fa già passare
+  // solo le proprie (chiavi_trasmissione_select_propria). L'errore si logga —
+  // una lettura muta qui direbbe «non ancora preparata» su una chiave che
+  // c'è, cioè farebbe aspettare qualcuno che non deve più aspettare.
+  const eventiKireo = (eventi ?? []).filter((e) => e.hosting_diretta === "kireo").map((e) => e.id);
+  const chiavi = new Map<string, { chiave: string; aggiornata_il: string }>();
+  if (eventiKireo.length > 0) {
+    const { data: righe, error: erroreChiavi } = await supabase
+      .from("chiavi_trasmissione")
+      .select("evento_id, chiave, aggiornata_il")
+      .in("evento_id", eventiKireo);
+    if (erroreChiavi) console.error("[ente/eventi] chiavi_trasmissione:", erroreChiavi);
+    for (const riga of righe ?? []) chiavi.set(riga.evento_id, { chiave: riga.chiave, aggiornata_il: riga.aggiornata_il });
+  }
 
   const eventiInRevisione = (eventi ?? []).filter((e) => e.stato === "in_approvazione").length;
   const quotaEvidenzaRimasta = quote.evidenzaTotali - quote.evidenzaUsate;
@@ -133,10 +150,27 @@ export default async function EnteEventiPage({ searchParams }: { searchParams: P
                         ? e.youtube_video_id
                           ? "Diretta sul tuo canale YouTube."
                           : "Diretta sul tuo canale YouTube (link in attesa di conferma)."
-                        : e.youtube_video_id
-                          ? "Diretta ospitata da KIREO — pronta."
-                          : "Diretta ospitata da KIREO: riceverai la chiave di trasmissione da KIREO prima dell'evento."}
+                        : "Diretta ospitata da KIREO."}
                     </p>
+                    {/*
+                      FINO AL 4/10 QUI C'ERA UNA PROMESSA: «riceverai la chiave
+                      di trasmissione da KIREO prima dell'evento» — e nel
+                      prodotto non c'era niente che gliela mandasse. L'ente che
+                      non l'aveva non sapeva se era in ritardo lui o noi.
+                      Adesso i tre momenti si distinguono, e il buco si vede
+                      (vedi lib/eventi/chiaveTrasmissione.ts).
+                    */}
+                    {e.hosting_diretta === "kireo" && (
+                      <ChiaveTrasmissione
+                        stato={statoChiaveTrasmissione({
+                          haChiave: chiavi.has(e.id),
+                          dataInizio: e.data_inizio,
+                          dataFine: e.data_fine,
+                        })}
+                        chiave={chiavi.get(e.id)?.chiave ?? null}
+                        aggiornataIl={chiavi.get(e.id)?.aggiornata_il ?? null}
+                      />
+                    )}
                     {e.stato === "approvato" && (
                       <>
                         <ControlloDirettaEvento

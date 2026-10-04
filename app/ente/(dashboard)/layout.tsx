@@ -23,7 +23,7 @@ export default async function EnteLayout({ children }: { children: React.ReactNo
   }
 
   return (
-    <EnteShell nome={contesto.nome}>
+    <EnteShell nome={contesto.nome} userId={contesto.userId}>
       {contesto.stato === "in_attesa" && (
         <div className="mb-6 rounded-xl border border-kireo-orange/40 bg-kireo-orange/10 px-4 py-3 text-sm text-kireo-orange">
           Il tuo profilo è in attesa di attivazione da parte di KIREO: puoi già completarlo, ma non è ancora visibile
