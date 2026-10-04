@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getAppContext } from "@/lib/app/studentContext";
 import { createClient } from "@/lib/supabase/server";
 import { getStoricoAttivita, getPercorsoEsplorazione, getSuggerimentiPerAree } from "@/lib/app/attivita";
-import { getOreCertificate, TRAGUARDO_ORE_PCTO } from "@/lib/app/pcto";
+import { getOreCertificate, testoOreCertificate } from "@/lib/app/pcto";
 import { formattaData } from "@/lib/formato";
 
 export default async function AttivitaAppPage() {
@@ -111,9 +111,10 @@ export default async function AttivitaAppPage() {
 
       <div className="rounded-2xl border border-white/5 bg-kireo-card p-6">
         <h2 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">PCTO</h2>
-        <p className="mt-1 text-sm text-kireo-muted">
-          {oreCertificate} ore certificate su {TRAGUARDO_ORE_PCTO}
-        </p>
+        {/* Stessa frase della card in home, dalla stessa funzione: vedi
+            `testoOreCertificate` per il singolare, il separatore e il rumore
+            della virgola mobile. */}
+        <p className="mt-1 text-sm text-kireo-muted">{testoOreCertificate(oreCertificate)}</p>
 
         {attivitaCertificate.length > 0 && (
           <ul className="mt-4 space-y-2">
