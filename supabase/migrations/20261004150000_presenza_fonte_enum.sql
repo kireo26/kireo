@@ -1,0 +1,21 @@
+-- Aggiunge il valore 'presenza' a escape_fonte: le prove che nascono da una
+-- presenza certificata a una diretta (vedi 20261004160000).
+--
+-- MIGRAZIONE ISOLATA per il vincolo Postgres su `ALTER TYPE ADD VALUE`: un
+-- valore appena creato non si usa nella stessa transazione in cui nasce.
+-- Stesso trattamento di 'test' (20260812100000) e di 'evento'
+-- (20260927110000).
+--
+-- PERCHÉ UN VALORE NUOVO E NON 'evento', CHE ESISTE GIÀ. Perché i fatti sono
+-- due e non uno: aver SEGUITO una diretta e aver RISPOSTO alla sua domanda
+-- finale sono due azioni diverse, con due pesi diversi e due dimensioni
+-- diverse (curiosity contro performance). Un nome solo su fatti che si
+-- comportano in modo diverso è `workshop_pcto` una terza volta — là abbiamo
+-- scoperto a settembre che tre strade avevano un nome, e che il cap
+-- giornaliero ne cancellava una senza che nessuno potesse dire quale.
+--
+-- E c'è una terza strada in arrivo sullo stesso oggetto (le registrazioni
+-- delle dirette, già decise da Mario e non ancora costruite): quando
+-- arriverà prenderà il suo nome accanto a questi due, non dentro uno di
+-- loro.
+alter type public.escape_fonte add value if not exists 'presenza';

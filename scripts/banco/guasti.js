@@ -50,6 +50,7 @@ const ORDINE = [
   "prove_consegna_evento",
   "scrittura_consegna_evento",
   "credito_area_evento",
+  "credito_area_fuso",
   "feedback_elaborato",
   "alert_email",
 ];
@@ -81,6 +82,8 @@ const COSA_VUOL_DIRE = {
   scrittura_consegna_evento: "le prove della consegna non si sono salvate: il profilo non le ha viste",
   credito_area_evento:
     "una diretta è stata chiusa e chi ha partecipato non ha ricevuto nessun credito d'area: l'evento non ha aree a cui accreditarlo (le ore PCTO e il certificato ci sono comunque)",
+  credito_area_fuso:
+    "due incontri della stessa area nello stesso giorno: il cap giornaliero ha soppresso il secondo credito d'esplorazione, e il dettaglio dice per quale studente e quale area (il cap è una scelta, questa riga esiste perché non sia anche un silenzio)",
   feedback_elaborato: "il feedback della consegna (v1) non è arrivato",
   alert_email: "l'email di osservabilità non è partita: i guasti di quel giorno non li ha visti nessuno",
 };

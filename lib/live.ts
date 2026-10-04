@@ -1,3 +1,5 @@
+import { formattaData, formattaOra, stessoGiornoItaliano } from "./formato";
+
 // Finestra della diretta, specchio lato client di evento_in_finestra_diretta
 // (vedi supabase/migrations/20260726110000_diretta_presenze_domande.sql):
 // da 15 minuti prima dell'inizio fino a data_fine (o, se assente, 3 ore
@@ -86,6 +88,28 @@ export function presenzaRilevabile(dataInizio: string, dataFine: string | null, 
   const fine = dataFine ? new Date(dataFine).getTime() : inizio + DURATA_DEFAULT_MS;
   const now = ora.getTime();
   return now >= inizio && now < fine;
+}
+
+// L'ATTESA HA UN ORARIO, non un «fra poco». La riga del pannello diceva «Sta
+// per iniziare» in tutti e quindici i minuti del pre-roll: chi arriva alle 19:01
+// per una diretta delle 19:15 legge una frase che promette «adesso» e aspetta
+// quattordici minuti davanti a un riquadro, senza sapere se è in anticipo lui o
+// in ritardo l'ente. Un'attesa con un orario è un'attesa; un'attesa senza è un
+// dubbio.
+//
+// L'ORA E NON LA DATA, tranne quando il giorno è diverso: il pre-roll dura un
+// quarto d'ora, quindi l'inizio è quasi sempre oggi — ma una diretta che
+// comincia alle 00:05, guardata alle 23:52, è domani, e «Comincia alle 00:05»
+// lì farebbe credere a un orario già passato.
+//
+// È UN VALORE e non tre rami dentro il JSX, per la ragione di casa: una frase
+// composta in un `.tsx` non si può provare da uno script Node, e una proprietà
+// dichiarata e non provata è un test che non c'è ancora.
+export function testoAttesaDiretta(dataInizio: string, ora: Date = new Date()): string {
+  const quando = stessoGiornoItaliano(dataInizio, ora)
+    ? `alle ${formattaOra(dataInizio)}`
+    : `il ${formattaData(dataInizio, "long")} alle ${formattaOra(dataInizio)}`;
+  return `Comincia ${quando}`;
 }
 
 // Un evento è già cominciato. Serve a decidere se OFFRIRE l'iscrizione: una

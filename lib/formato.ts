@@ -49,6 +49,21 @@ export function formattaDataOra(iso: string | Date, stile: StileData = "long"): 
   return quando(iso).toLocaleString("it-IT", { dateStyle: stile, timeStyle: "short", timeZone: ZONA });
 }
 
+/** Solo l'ora: «19:15». Serve a dire a che ora comincia una cosa che comincia oggi. */
+export function formattaOra(iso: string | Date): string {
+  return quando(iso).toLocaleTimeString("it-IT", { timeStyle: "short", timeZone: ZONA });
+}
+
+/**
+ * Due istanti cadono nello stesso giorno ITALIANO. Passa da `formattaData`
+ * invece di confrontare i componenti a mano: la zona resta scritta in un posto
+ * solo, e due istanti a cavallo della mezzanotte di Roma non risultano lo
+ * stesso giorno solo perché lo sono a Greenwich.
+ */
+export function stessoGiornoItaliano(a: string | Date, b: string | Date): boolean {
+  return formattaData(a, "short") === formattaData(b, "short");
+}
+
 // ─────────────────────────── L'ALTRA METÀ: L'INGRESSO ───────────────────────
 //
 // PERCHÉ ESISTE. Fissare la zona in USCITA lascia aperta la metà simmetrica:

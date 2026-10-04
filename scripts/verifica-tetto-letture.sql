@@ -241,6 +241,9 @@ end $$;
 select n, case when ok then '✓' else '✗' end as esito, proprieta, atteso, ottenuto
 from esiti order by n;
 
-select count(*) filter (where not ok) as rosse, count(*) as totali from esiti;
+-- `coalesce(ok, false)`: un `ok` NULL si legge ROTTO nella tabella qui sopra e
+-- NON si conterebbe fra le rosse — il riassunto direbbe meno rotte di quante se
+-- ne vedono, cioè la direzione comoda.
+select count(*) filter (where not coalesce(ok, false)) as rosse, count(*) as totali from esiti;
 
 rollback;

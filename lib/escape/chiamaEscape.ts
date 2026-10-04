@@ -119,6 +119,13 @@ export const RIPIEGHI_MOTIVAZIONE = {
   proposta: "Dalla proposta che hai scritto.",
   riflessione: "Dalla riflessione che hai scritto.",
   consegnaEvento: "Da qualcosa che hai scritto nella risposta.",
+  // La presenza certificata a una diretta. ⚠️ QUESTA STRINGA VIVE IN DUE POSTI:
+  // la scrive `chiudi_diretta_evento` (20261004160000), e una funzione SQL non
+  // può importare TypeScript. Sta anche qui perché è il posto in cui la forma è
+  // scritta e sorvegliata, e `npm run test:presenza` estrae il letterale dalla
+  // migrazione e lo confronta con questo — lo stesso patto già in uso per
+  // `TETTO_LETTURE_CONSEGNA` e per i tre slug dei test.
+  presenza: "Da un incontro che hai seguito per intero.",
 } as const;
 
 export function chiamaEscape(

@@ -55,6 +55,7 @@ export type SpecieGuasto =
   | "prove_consegna_evento" // il giudizio della risposta alla domanda finale
   | "scrittura_consegna_evento" // la persistenza di prove/valutazione
   | "credito_area_evento" // il credito d'esplorazione di una partecipazione certificata
+  | "credito_area_fuso" // il cap giornaliero ha soppresso un credito d'area vero
   | "consegna_esaurita" // le letture di una consegna sono finite e il testo resta non valutato
 
   // — artefatti del workshop fuori dal cron

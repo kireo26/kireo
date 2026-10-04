@@ -25,11 +25,12 @@
 
 const fs = require("fs");
 const path = require("path");
-const { senzaCommenti } = require("./lib/senza-commenti");
+const { senzaCommenti, senzaCommentiSql } = require("./lib/senza-commenti");
 const { abilitaTypeScript, ROOT } = require("./banco/ts");
 
 abilitaTypeScript();
-const { presenzaRilevabile, statoDiretta } = require("@/lib/live");
+const { presenzaRilevabile, statoDiretta, testoAttesaDiretta } = require("@/lib/live");
+const { RIPIEGHI_MOTIVAZIONE } = require("@/lib/escape/chiamaEscape");
 
 let falliti = 0;
 const ok = (cond, msg) => {
@@ -140,8 +141,12 @@ ok(
 console.log("\n4) «In diretta» solo quando lo è");
 
 ok(
-  /inDiretta \? "In diretta" : "Sta per iniziare"/.test(pannello),
-  "nei quindici minuti prima dell'inizio la riga non dice «In diretta»",
+  /inDiretta \? "In diretta" : testoAttesaDiretta\(dataInizio, ora\)/.test(pannello),
+  "nei quindici minuti prima dell'inizio la riga non dice «In diretta», dice l'ORARIO",
+);
+ok(
+  !/"Sta per iniziare"/.test(pannello),
+  "e non è tornata la frase senza orario: «Sta per iniziare» dura quindici minuti e non dice quanto manca",
 );
 ok(
   /inDiretta \? "animate-pulse bg-red-500" : "bg-kireo-muted"/.test(pannello),
@@ -207,6 +212,127 @@ ok(
 ok(
   !/presenzaRilevabile/.test(leggi("lib/useHeartbeatDiretta.ts")),
   "l'hook non la richiama da sé: riceve un booleano, e chi sa le date è il pannello",
+);
+
+// ── 7) l'attesa ha un orario ────────────────────────────────────────────────
+// Il pre-roll dura quindici minuti, e «Sta per iniziare» li copriva tutti: chi
+// arriva alle 19:01 per una diretta delle 19:15 leggeva una frase che promette
+// «adesso». Un'attesa con un orario è un'attesa; un'attesa senza è un dubbio.
+console.log("\n7) L'attesa ha un orario");
+
+ok(
+  testoAttesaDiretta(INIZIO, ist("2026-10-04T17:05:00Z")) === "Comincia alle 19:15",
+  "l'ora è quella di Roma, non quella della macchina: le 17:15 UTC si leggono «alle 19:15»",
+);
+ok(
+  !/ottobre/.test(testoAttesaDiretta(INIZIO, ist("2026-10-04T17:05:00Z"))),
+  "…e quando l'inizio è oggi non si nomina la data: nel pre-roll sarebbe rumore",
+);
+// Il bordo di mezzanotte: una diretta che comincia alle 00:05 italiane,
+// guardata alle 23:52, è DOMANI — «Comincia alle 00:05» da solo farebbe
+// credere a un orario già passato.
+const DOPO_MEZZANOTTE = "2026-10-05T22:05:00Z"; // 00:05 del 6 ottobre a Roma
+ok(
+  testoAttesaDiretta(DOPO_MEZZANOTTE, ist("2026-10-05T21:52:00Z")).includes("il 6 ottobre 2026"),
+  "il giorno diverso si nomina: altrimenti «alle 00:05» letto alle 23:52 sembra un orario passato",
+);
+ok(
+  testoAttesaDiretta(DOPO_MEZZANOTTE, ist("2026-10-05T21:52:00Z")).endsWith("alle 00:05"),
+  "…e l'ora resta in coda, dove la si cerca",
+);
+
+// ── 8) la motivazione della prova vive in due posti e non devono divergere ──
+// La scrive una funzione SQL (che non può importare TypeScript) e sta anche in
+// RIPIEGHI_MOTIVAZIONE, dov'è scritta e sorvegliata la forma. Senza questo
+// confronto le due copie divergono: è solo questione di quando.
+console.log("\n8) La motivazione: due copie, un confronto");
+
+const migrazioneProfilo = fs.readFileSync(
+  path.join(ROOT, "supabase/migrations/20261004160000_presenza_profilo.sql"),
+  "utf8",
+);
+// Spogliato dai commenti per le guardie NEGATIVE: `evento_marcatore` e
+// `'interest'` sono proprio le parole che i commenti CITANO per spiegare perché
+// non ci sono — leggendo il sorgente grezzo quelle asserzioni sarebbero rosse
+// su codice giusto. È la classe del 28/09, e si chiude al LETTORE.
+const sqlProfilo = senzaCommentiSql(migrazioneProfilo);
+ok(
+  typeof RIPIEGHI_MOTIVAZIONE.presenza === "string" && RIPIEGHI_MOTIVAZIONE.presenza.length > 0,
+  "la motivazione della presenza sta fra i ripieghi, dove vive la forma",
+);
+ok(
+  migrazioneProfilo.includes(`'${RIPIEGHI_MOTIVAZIONE.presenza}'`),
+  `la migrazione scrive ESATTAMENTE quella stringa («${RIPIEGHI_MOTIVAZIONE.presenza}»)`,
+);
+ok(
+  /^Da /.test(RIPIEGHI_MOTIVAZIONE.presenza) && RIPIEGHI_MOTIVAZIONE.presenza.endsWith("."),
+  "…e rispetta la forma dei ripieghi: un frammento che comincia per «Da », non una frase intera",
+);
+
+// ── 9) le quattro scelte del §2, dove sono strutturali ─────────────────────
+console.log("\n9) Le scelte del §2 stanno nel codice, non in un commento");
+
+ok(
+  /'curiosity'::public\.escape_dimensione/.test(sqlProfilo) &&
+    !/'interest'::public\.escape_dimensione/.test(sqlProfilo),
+  "la prova è curiosity e NON interest: nessuna affinità può nascere da una presenza",
+);
+ok(
+  /peso[\s\S]{0,40}0\.5/.test(migrazioneProfilo) || /\n\s+0\.5,/.test(migrazioneProfilo),
+  "il peso è 0,5 — sotto una risposta scritta (1,0)",
+);
+ok(
+  /round\(least\(1\.0, v_riga\.ping_totali::numeric \/ v_ping_attesi\), 3\)/.test(migrazioneProfilo),
+  "`valore` è la COPERTURA misurata, non una costante: viene da presenze_live e si può ricontare",
+);
+ok(
+  /'presenza'::public\.escape_fonte/.test(migrazioneProfilo),
+  "la fonte è `presenza` e non `evento`: seguire una diretta e risponderle sono due fatti",
+);
+// La scrittura sta DENTRO il ramo che certifica, cioè l'unico che scrive
+// 'sistema': la condizione è strutturale, non un filtro da ricordare.
+const dentroIlRamo = migrazioneProfilo.indexOf("'presenza'::public.escape_fonte");
+const ramoSistema = migrazioneProfilo.indexOf("certificata_da_tipo = 'sistema'");
+ok(
+  ramoSistema > -1 && dentroIlRamo > ramoSistema,
+  "la prova si scrive dopo la certificazione `sistema`, nello stesso ciclo: il discriminante è strutturale",
+);
+ok(
+  /if v_pubblico = 'docenti' then[\s\S]*?attestati[\s\S]*?else[\s\S]*?'presenza'::public\.escape_fonte/.test(
+    migrazioneProfilo,
+  ),
+  "un evento per docenti non ci passa: lì la certificazione produce un attestato, e un docente non ha un profilo d'area",
+);
+
+// ── 10) il cap registra quello che scarta, e guarda PRIMA ──────────────────
+console.log("\n10) Il cap dice quello che scarta");
+
+ok(
+  /credito_area_fuso/.test(migrazioneProfilo),
+  "il cap giornaliero registra un guasto con la sua specie, invece di tacere",
+);
+ok(
+  !/evento_marcatore/.test(sqlProfilo),
+  "…e non si appoggia a una colonna che non esiste (la prima stesura ne aveva inventata una)",
+);
+// La domanda si fa PRIMA dell'insert: dopo, `activity_log` non sa da quale
+// evento viene una riga, quindi non si saprebbe più quali aree sono state
+// soppresse.
+// ⚠️ SI ANCORA ALLA QUERY, NON AL NOME. La prima versione di questa
+// asserzione cercava `v_aree_studente`, che compare anche nella DICHIARAZIONE
+// della variabile in testa alla funzione — quindi misurava quella posizione e
+// restava VERDE anche spostando il blocco dopo l'insert. Stessa classe già
+// pagata il 27/09 (un'ancora su un nome condiviso con qualcos'altro): la
+// controprova l'ha mostrata, rileggerla non l'avrebbe fatto.
+const posIndagine = sqlProfilo.indexOf("select array_agg(format('%s:%s', v_riga.user_id");
+const posInsert = sqlProfilo.indexOf("insert into public.activity_log");
+ok(
+  posIndagine > -1 && posInsert > -1 && posIndagine < posInsert,
+  "la domanda si fa PRIMA dell'insert: dopo non si saprebbe più QUALI aree sono state soppresse",
+);
+ok(
+  /v_gia_certificato is not true then/.test(migrazioneProfilo),
+  "lato scuola la ri-certificazione dello stesso evento non produce un falso allarme",
 );
 
 console.log(falliti === 0 ? "\n✅ tutto verde\n" : `\n❌ ${falliti} asserzioni rosse\n`);

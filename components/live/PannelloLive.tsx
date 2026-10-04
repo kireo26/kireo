@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { presenzaRilevabile, statoDiretta } from "@/lib/live";
+import { presenzaRilevabile, statoDiretta, testoAttesaDiretta } from "@/lib/live";
 import { useHeartbeatDiretta } from "@/lib/useHeartbeatDiretta";
 import BoxDomandeLive, { type Domanda } from "./BoxDomandeLive";
 import { formattaDataOra } from "@/lib/formato";
@@ -98,13 +98,13 @@ export default function PannelloLive({
             player compare già (apposta, così chi arriva prima lo vede
             comparire da sé) ma la diretta non è cominciata — e da quando la
             presenza non si conta lì, lasciare «In diretta» sarebbe una
-            contraddizione nella stessa riga.
-            ⚠️ «Sta per iniziare» è un testo di servizio e va riletto (voce). */}
+            contraddizione nella stessa riga. Al suo posto l'ORARIO: vedi
+            `testoAttesaDiretta` in lib/live.ts per il perché. */}
         <p className="mt-1 flex items-center gap-2 text-xs text-kireo-muted">
           <span
             className={`h-2 w-2 rounded-full ${inDiretta ? "animate-pulse bg-red-500" : "bg-kireo-muted"}`}
           />{" "}
-          {inDiretta ? "In diretta" : "Sta per iniziare"}
+          {inDiretta ? "In diretta" : testoAttesaDiretta(dataInizio, ora)}
           {contaLaPresenza ? " · presenza in rilevamento" : ""}
         </p>
       </div>

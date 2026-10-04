@@ -263,12 +263,19 @@ begin
     insert into esiti (proprieta, atteso, trovato) values ('l''organizzatore pone la domanda durante la diretta', 'riuscito', sqlerrm);
   end;
 
-  -- a diretta finita: la consegna è già aperta, la domanda non si cambia
+  -- a diretta finita: la consegna è già aperta, la domanda non si cambia.
+  -- ⚠️ IL NOME DELL'ECCEZIONE È QUELLO DEL 29/09: quel giorno
+  -- `fuori_finestra_diretta` è stata divisa in DUE (vedi
+  -- 20260929120000_finestra_domanda_consegna.sql), perché un'attesa che si
+  -- risolve e una che non si risolve più sono due cose e un nome solo non le
+  -- distingueva. Questa attesa è rimasta ferma al nome vecchio fino al 4/10, e
+  -- lo script risultava rosso su un comportamento GIUSTO — che è il modo in cui
+  -- un controllo smette di essere creduto.
   begin
     perform public.imposta_domanda_consegna('eeeeeeee-0000-0000-0000-000000000001', 'Una domanda cambiata sotto a chi sta scrivendo.');
-    insert into esiti (proprieta, atteso, trovato) values ('…e non la cambia più a consegna aperta', 'fuori_finestra_diretta', 'NON HA SOLLEVATO');
+    insert into esiti (proprieta, atteso, trovato) values ('…e non la cambia più a consegna aperta', 'domanda_non_piu_modificabile', 'NON HA SOLLEVATO');
   exception when others then
-    insert into esiti (proprieta, atteso, trovato) values ('…e non la cambia più a consegna aperta', 'fuori_finestra_diretta', sqlerrm);
+    insert into esiti (proprieta, atteso, trovato) values ('…e non la cambia più a consegna aperta', 'domanda_non_piu_modificabile', sqlerrm);
   end;
 
   -- un evento senza aree: lo sa subito chi può rimediare

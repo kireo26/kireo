@@ -463,7 +463,7 @@ function corpusAMano() {
 // accetta una forma deve verificare la premessa su cui la accetta).
 function formaDeiRipieghi() {
   const voci = Object.entries(RIPIEGHI_MOTIVAZIONE);
-  ok(voci.length === 4, `D · i ripieghi vivono in un posto solo, e sono ${voci.length}`);
+  ok(voci.length === 5, `D · i ripieghi vivono in un posto solo, e sono ${voci.length}`);
 
   for (const [chiave, testo] of voci) {
     ok(/^Da(l|lla)? /.test(testo), `D · «${chiave}» è un frammento che completa il nome dopo il trattino: «${testo}»`);
@@ -482,6 +482,9 @@ function formaDeiRipieghi() {
   ok(/proposta/i.test(RIPIEGHI_MOTIVAZIONE.proposta), "D · il ripiego della proposta nomina la proposta");
   ok(/riflessione/i.test(RIPIEGHI_MOTIVAZIONE.riflessione), "D · quello della riflessione nomina la riflessione");
   ok(/risposta/i.test(RIPIEGHI_MOTIVAZIONE.consegnaEvento), "D · quello della consegna nomina la risposta");
+  // La presenza nomina l'INCONTRO: è l'unica delle cinque che non viene da
+  // qualcosa che lo studente ha scritto, e dirlo è quello che la distingue.
+  ok(/incontro/i.test(RIPIEGHI_MOTIVAZIONE.presenza), "D · quello della presenza nomina l'incontro");
 
   // I tre punti di produzione li USANO, invece di riscriverli: senza questa
   // metà, la forma sarebbe ferma su quattro stringhe che nessuno legge più.

@@ -273,6 +273,8 @@ end $$;
 select n, case when ok then '✓' else '✗ ROTTA' end as esito, proprieta, atteso, ottenuto
 from esiti order by n;
 
-select count(*) filter (where ok) || '/' || count(*) || ' proprietà verificate' as riepilogo from esiti;
+-- `coalesce(ok, false)`: una proprietà il cui confronto cade su un valore
+-- assente vale NULL, e non deve risultare verificata.
+select count(*) filter (where coalesce(ok, false)) || '/' || count(*) || ' proprietà verificate' as riepilogo from esiti;
 
 rollback;
