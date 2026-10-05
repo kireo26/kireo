@@ -57,7 +57,8 @@
     "test:sonda": "node scripts/verifica-sonda-e-chiave.js",
     "test:presenza": "node scripts/verifica-presenza-diretta.js",
     "test:fonti": "node scripts/verifica-fonti-dimensioni.js",
-    "test:ore": "node scripts/verifica-ore-pcto.js"
+    "test:ore": "node scripts/verifica-ore-pcto.js",
+    "test:studente": "node scripts/verifica-student-profiles.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.112.5",

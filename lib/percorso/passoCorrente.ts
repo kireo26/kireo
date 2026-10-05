@@ -6,13 +6,19 @@ import { passoDiHref, type ChiavePasso } from "./passi";
 // Il passo in cui lo studente è ADESSO, per il segno nella barra e per la card
 // della home.
 //
-// UNA CHIAMATA PER RICHIESTA, non due. `getProssimaTappa` fa tre letture, e da
-// oggi il risultato lo vogliono in due posti nella stessa pagina: il layout (per
-// il segno nella barra) e la home (per la card). Senza `cache()` sarebbero sei
-// letture; con `cache()` sono tre — ma solo se il client lo crea QUESTA funzione
-// invece di riceverlo, perché `cache()` distingue per argomenti e due
+// UNA CHIAMATA PER RICHIESTA, non due. `getProssimaTappa` fa una DECINA di
+// letture (in tre onde parallele), e il risultato lo vogliono in due posti nella
+// stessa pagina: il layout (per il segno nella barra) e la home (per la card).
+// Senza `cache()` sarebbero il doppio — ma solo se il client lo crea QUESTA
+// funzione invece di riceverlo, perché `cache()` distingue per argomenti e due
 // `createClient()` diversi sono due chiavi diverse. È lo stesso motivo per cui
 // `getAppContext` è fatto così.
+//
+// ⚠️ IL NUMERO NON SI SCRIVE PRECISO, di proposito. Qui c'era «tre letture», ed
+// era vero quando fu scritto: la scala è cresciuta e il commento è rimasto, e
+// nessuno se ne accorge rileggendo — il file non è cambiato, è cambiato quello
+// che descrive. Un ordine di grandezza dice la cosa che conta (il raddoppio che
+// `cache()` evita) e non invecchia a ogni gradino nuovo.
 //
 // DEGRADA VERSO IL NIENTE. Se la lettura non va, `chiave` resta null: la barra
 // non segna nessun passo, invece di segnarne uno a caso. Un segno sbagliato è

@@ -265,6 +265,63 @@ for (const frase of LEGITTIME) {
   ok(!falsoPositivo, falsoPositivo ? `grida a torto su «${frase}» (${falsoPositivo.cosa})` : `lascia passare «${frase.slice(0, 44)}…»`);
 }
 
+// ── 8) LA CARD: il primo gradino non nega una cosa vera ─────────────────────
+// Il 5/10, in produzione, uno studente certificato su due dirette leggeva
+// «Comincia da una guida»: «comincia» parla della PERSONA, e la persona aveva
+// già cominciato. «Il primo passo è» parla della SCALA, che davvero comincia lì
+// — e vale per tutti gli studenti, in tutti gli stati, senza nessuna query.
+console.log("\n8) Il primo gradino parla della scala, non della persona");
+
+const srcTappa = leggi("lib/percorso/prossimaTappa.ts");
+const srcCard = leggi("components/app/CardProssimaTappa.tsx");
+
+ok(/Il primo passo è una guida/.test(srcTappa), "il primo gradino dice «Il primo passo è una guida»");
+// LA FORMA VIETATA, non solo sostituita: ci si torna per abitudine, e il motivo
+// per cui non va bene non si vede rileggendo la frase.
+ok(
+  !/testo:\s*["'`]Comincia da una guida/.test(srcTappa),
+  "e non torna a «Comincia da una guida», che nega una cosa vera a chi ha già fatto qualcosa",
+);
+
+// LA NOTA È UN DI PIÙ: il primo gradino chiude il difetto da solo. Un testo che
+// si degrada bene vale più di un testo giusto in un caso solo.
+ok(/nota\?: string/.test(srcTappa), "la seconda riga è FACOLTATIVA nel tipo");
+ok(
+  /\{tappa\.nota && /.test(srcCard),
+  "e la card la rende solo se c'è, invece di lasciare una riga vuota",
+);
+// NOMINA L'ESPLORAZIONE, NON IL PROFILO: «contano nel tuo profilo» sarebbe vero
+// solo dopo 20261004160000 e solo per le presenze `certificata_da_tipo =
+// 'sistema'` — una frase falsa per alcuni, nel punto in cui gli diciamo che
+// quello che hanno fatto non è andato perso.
+ok(
+  /Dove hai esplorato finora/.test(srcTappa),
+  "la nota nomina «Dove hai esplorato finora», che è un riquadro sulla stessa pagina",
+);
+ok(
+  !/nota:[\s\S]{0,200}?nel tuo profilo/.test(srcTappa),
+  "e non nomina il profilo, dove una presenza entra solo dopo la migrazione e solo se certificata dal sistema",
+);
+// Il riquadro che la nota nomina deve esistere con QUEL nome: una frase
+// verificabile da chi legge vale solo se chi legge lo trova.
+ok(
+  /Dove hai esplorato finora/.test(leggi("app/app/page.tsx")),
+  "…e quel riquadro esiste in home con quel nome esatto",
+);
+
+// IL BOOLEANO: sì/no, nessun numero, e degrada verso il NO. Una lettura fallita
+// non deve produrre una nota che afferma una cosa su quello che lo studente ha
+// fatto.
+const corpoPresenze = srcTappa.slice(srcTappa.indexOf("async function leggiPresenzeCertificate("));
+ok(
+  /\.limit\(1\)/.test(corpoPresenze.slice(0, 700)),
+  "le presenze si leggono a sì/no (limit 1), non si contano",
+);
+ok(
+  /catch\s*\{\s*return false;/.test(corpoPresenze.slice(0, 900)),
+  "…e su errore la risposta è NO, non una nota a caso",
+);
+
 console.log("\n═══════════════════════════════════════════\n");
 if (falliti) {
   console.error(

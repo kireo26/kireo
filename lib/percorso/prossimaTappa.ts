@@ -50,13 +50,24 @@ import { caricaContestoPercorso } from "./stato";
 
 // testo: la frase (per la card della home, sola indicazione). cta+href: etichetta
 // e destinazione del passo, per chi vuole un bottone (gli esiti dei test).
-export type ProssimaTappa = { testo: string; cta: string; href: string };
+//
+// `nota`: una seconda riga, FACOLTATIVA, per il solo primo gradino — vedi la
+// ragione accanto a lui. Un testo che si degrada bene vale più di un testo
+// giusto in un caso solo: il primo gradino chiude il difetto da solo, e se la
+// nota non si può dire non si dice.
+export type ProssimaTappa = { testo: string; cta: string; href: string; nota?: string };
 
 export async function getProssimaTappa(supabase: SupabaseClient, studentId: string): Promise<ProssimaTappa> {
-  const [contesto, testCompletati, cancelloMissioniAperto] = await Promise.all([
+  // La lettura delle presenze sta NELL'ONDA CHE GIÀ C'È: in parallelo non costa
+  // latenza, e serve solo all'ultimo gradino. Metterla là dentro (invece di
+  // leggerla pigramente in quel ramo) costa una query a tutti e non aggiunge un
+  // giro di rete allo studente nuovo, che è precisamente quello la cui home
+  // dovrebbe essere la più veloce.
+  const [contesto, testCompletati, cancelloMissioniAperto, haPresenze] = await Promise.all([
     caricaContestoPercorso(supabase, studentId),
     leggiTestCompletati(supabase, studentId),
     leggiCancelloMissioni(supabase),
+    leggiPresenzeCertificate(supabase, studentId),
   ]);
 
   const t1 = testCompletati.has(SLUG_T1);
@@ -100,7 +111,55 @@ export async function getProssimaTappa(supabase: SupabaseClient, studentId: stri
     const nome = getAreaBySlug(slug)?.nome;
     return { testo: nome ? `Leggi la seconda guida di ${nome}.` : "Leggi la seconda guida dell'area che hai iniziato.", cta: "Leggi la seconda guida", href: `/app/guide/${slug}` };
   }
-  return { testo: "Comincia da una guida: scegli un'area che ti incuriosisce.", cta: "Esplora le aree", href: "/app/aree" };
+  // ⚠️ IL PRIMO GRADINO NEGAVA UNA COSA VERA. Fino al 5/10 diceva «Comincia da
+  // una guida», e uno studente certificato su due dirette lo leggeva dopo aver
+  // seguito due incontri per intero: «comincia» parla della PERSONA, e la
+  // persona aveva già cominciato. «Il primo passo è» parla della SCALA, che
+  // davvero comincia lì — quattro parole, e la frase smette di negare una cosa
+  // vera per tutti gli studenti, in tutti gli stati, senza nessuna query.
+  //
+  // LA NOTA È UN DI PIÙ, e nomina l'ESPLORAZIONE e non il profilo. «Contano nel
+  // tuo profilo» sarebbe vero solo dopo 20261004160000 e solo per le presenze
+  // con `certificata_da_tipo = 'sistema'` (una certificata a mano dalla scuola
+  // lascia il credito di esplorazione e nessuna prova): una frase falsa per
+  // alcuni, nel punto in cui gli stiamo dicendo che quello che hanno fatto non
+  // è andato perso. «Dove hai esplorato finora» è vera per tutte e due le
+  // certificazioni, e soprattutto è un riquadro che lo studente ha SULLA STESSA
+  // PAGINA — quindi la frase è verificabile da chi la legge invece di essere
+  // una promessa.
+  return {
+    testo: "Il primo passo è una guida: scegli un'area che ti incuriosisce.",
+    cta: "Esplora le aree",
+    href: "/app/aree",
+    nota: haPresenze
+      ? 'Gli incontri che hai seguito contano già in "Dove hai esplorato finora": il percorso è un\'altra strada.'
+      : undefined,
+  };
+}
+
+// Ha almeno una presenza certificata? SÌ/NO, nessun numero — è tutto quello che
+// serve alla nota, e un conteggio sarebbe un dato in più da non usare.
+//
+// NON discrimina `certificata_da_tipo`, di proposito: la nota parla
+// dell'esplorazione, che una certificazione manuale alimenta quanto una
+// automatica. Se un giorno la nota tornasse a nominare il profilo, allora sì —
+// lì il discriminante è `'sistema'`, ed è lo stesso di 20261004160000.
+//
+// Degrada verso il NO su qualunque errore: una lettura fallita non deve
+// produrre una nota che afferma una cosa su quello che lo studente ha fatto.
+async function leggiPresenzeCertificate(supabase: SupabaseClient, studentId: string): Promise<boolean> {
+  try {
+    const { data, error } = await supabase
+      .from("iscrizioni_eventi")
+      .select("evento_id")
+      .eq("student_id", studentId)
+      .eq("stato", "partecipato")
+      .limit(1);
+    if (error || !data) return false;
+    return data.length > 0;
+  } catch {
+    return false;
+  }
 }
 
 // Il cancello delle missioni, chiesto a chi lo definisce. Degrada verso

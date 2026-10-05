@@ -78,6 +78,30 @@
 -- 13/07, non una rilettura. Chi toccherà di nuovo questa funzione: il corpo si
 -- COPIA e si confronta, non si ricorda.
 --
+-- ══════ IL CONFRONTO COL CORPO VIVO È STATO FATTO, E IL CORPO È LO STESSO ══════
+--
+-- Il 5/10, prima di applicare: la versione viva fu applicata A MANO il 13/07 e
+-- il file del repo fu allineato DOPO — quindi nessuno aveva mai confrontato le
+-- due, ed è il caso esatto per cui la disciplina dell'impronta esiste.
+-- L'impronta grezza divergeva, e la differenza era UN BLOCCO DI COMMENTI:
+--
+--   corpo del repo (1514 car.)             → f8ecb7c9f7fc979166f93da392e34d38
+--   lo stesso senza le 4 righe di commento → 656ab88cf04268cc07211b187bb6110b
+--                                             ↑ ESATTAMENTE la produzione
+--   forma canonica, da tutte e due         → c373ee1a6a89c5d1beaf92c63518a210
+--
+-- Verificato riproducendo il calcolo sul corpo vivo della replica: lo spoglio
+-- che restituisce il valore di produzione mangia anche il newline delle righe
+-- di commento (4 righe → 4 caratteri in meno di uno spoglio che lascia la riga
+-- vuota). Quindi il codice è IDENTICO carattere per carattere e questa
+-- sostituzione non perde niente: cambia una riga (`security definer`) e rimette
+-- i commenti che il repo ha e la produzione non aveva.
+--
+-- L'impronta canonica la calcola `scripts/impronta-funzione.sql`, che è nato da
+-- qui: `md5(prosrc)` legge anche l'impaginazione, quindi una sua divergenza non
+-- vuol dire «il codice è diverso» — e un controllo che grida su una cosa giusta
+-- è un controllo che la terza volta nessuno guarda più.
+--
 -- Resta la guardia `if v_uid is null then raise`, che era già lì dal 13/07 ma
 -- da oggi fa un altro mestiere: in un DEFINER è l'unica cosa fra una chiamata
 -- senza identità e la creazione di un ente.
