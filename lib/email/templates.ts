@@ -1,8 +1,47 @@
 // Template email transazionali (HTML minimale, inline styles per
 // compatibilità coi client di posta — niente CSS esterno, niente dark
 // theme del sito: uno sfondo chiaro resta il più leggibile ovunque).
+//
+// ⚠️ OGNI VALORE INTERPOLATO PASSA DA `esc()`. Fino al 5/10/2026 nessuno ci
+// passava, e questi template interpolano stringhe che arrivano dal corpo di una
+// richiesta HTTP: `templateFollowUpGuida` era raggiungibile da chiunque senza
+// sessione (`/api/guida-email`), quindi il nome e il titolo in grassetto
+// potevano scrivere markup arbitrario dentro un'email mandata da
+// `noreply@kireo.it` con SPF e DKIM validi — cioè il contenuto visibile di
+// un'email autentica a nome nostro lo scriveva chi chiamava.
+//
+// Non si decide se le stringhe di un utente debbano poter scrivere markup: non
+// devono. `npm run test:email` pretende che ogni `${…}` dentro un template
+// passi da `esc()` o da un valore di cui si conosce la provenienza — così il
+// prossimo template non nasce senza.
 
 import { SITE_URL } from "@/lib/site";
+
+// Escape per il CONTESTO TESTO e per il CONTESTO ATTRIBUTO insieme: le
+// virgolette ci sono apposta, perché gli stessi valori finiscono dentro un
+// `href="…"` (vedi `bottone`), e là basta una virgoletta per uscire
+// dall'attributo.
+export function esc(valore: string | null | undefined): string {
+  return String(valore ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+// ⚠️ UN LINK IN UNA NOSTRA EMAIL È http O https, E NIENT'ALTRO. L'escape
+// impedisce di uscire dall'attributo, non di metterci dentro uno schema che
+// esegue (`javascript:`) o che apre un'app. Qui si FALLISCE invece di
+// degradare: chi compone l'email deve accorgersene e non mandarla, perché un
+// bottone rotto in un'email non si corregge dopo l'invio.
+export function linkSicuro(href: string): string {
+  const pulito = href.trim();
+  if (!/^https?:\/\//i.test(pulito)) {
+    throw new Error(`link non ammesso in un'email: lo schema deve essere http o https (ricevuto: ${pulito.slice(0, 40)})`);
+  }
+  return pulito;
+}
 
 function involucroEmail(contenuto: string): string {
   return `<!doctype html>
@@ -38,7 +77,7 @@ function involucroEmail(contenuto: string): string {
 }
 
 function bottone(testo: string, href: string): string {
-  return `<a href="${href}" style="display:inline-block;margin-top:16px;padding:12px 24px;background-color:#0F6E56;color:#F0EDE8;text-decoration:none;border-radius:999px;font-weight:600;font-size:14px;">${testo}</a>`;
+  return `<a href="${esc(linkSicuro(href))}" style="display:inline-block;margin-top:16px;padding:12px 24px;background-color:#0F6E56;color:#F0EDE8;text-decoration:none;border-radius:999px;font-weight:600;font-size:14px;">${esc(testo)}</a>`;
 }
 
 const ETICHETTA_ORIGINE: Record<"dirigenti" | "scuole" | "enti", string> = {
@@ -49,7 +88,7 @@ const ETICHETTA_ORIGINE: Record<"dirigenti" | "scuole" | "enti", string> = {
 
 export function templateConfermaRichiestaContatto(nome: string, origine: "dirigenti" | "scuole" | "enti"): string {
   return involucroEmail(`
-    <p>Ciao ${nome},</p>
+    <p>Ciao ${esc(nome)},</p>
     <p>Abbiamo ricevuto la tua richiesta di informazioni su KIREO per ${ETICHETTA_ORIGINE[origine]}. Ti ricontatteremo entro 24 ore.</p>
     <p>Nel frattempo, se hai altre domande, scrivici pure rispondendo a questa email.</p>
     <p>A presto,<br />Il team KIREO</p>
@@ -66,23 +105,23 @@ export function templateNotificaRichiestaContatto(dati: {
   messaggio: string;
 }): string {
   return involucroEmail(`
-    <p>Nuova richiesta di informazioni dalla landing <strong>${dati.origine}</strong>.</p>
+    <p>Nuova richiesta di informazioni dalla landing <strong>${esc(dati.origine)}</strong>.</p>
     <table role="presentation" style="width:100%;border-collapse:collapse;margin-top:8px;">
-      <tr><td style="padding:4px 0;color:#9A9890;">Nome</td><td style="padding:4px 0;">${dati.nome}</td></tr>
-      <tr><td style="padding:4px 0;color:#9A9890;">Ruolo</td><td style="padding:4px 0;">${dati.ruolo}</td></tr>
-      <tr><td style="padding:4px 0;color:#9A9890;">Istituto</td><td style="padding:4px 0;">${dati.istituto}</td></tr>
-      <tr><td style="padding:4px 0;color:#9A9890;">Codice meccanografico</td><td style="padding:4px 0;">${dati.codiceMeccanografico ?? "—"}</td></tr>
-      <tr><td style="padding:4px 0;color:#9A9890;">Email</td><td style="padding:4px 0;">${dati.email}</td></tr>
+      <tr><td style="padding:4px 0;color:#9A9890;">Nome</td><td style="padding:4px 0;">${esc(dati.nome)}</td></tr>
+      <tr><td style="padding:4px 0;color:#9A9890;">Ruolo</td><td style="padding:4px 0;">${esc(dati.ruolo)}</td></tr>
+      <tr><td style="padding:4px 0;color:#9A9890;">Istituto</td><td style="padding:4px 0;">${esc(dati.istituto)}</td></tr>
+      <tr><td style="padding:4px 0;color:#9A9890;">Codice meccanografico</td><td style="padding:4px 0;">${esc(dati.codiceMeccanografico ?? "—")}</td></tr>
+      <tr><td style="padding:4px 0;color:#9A9890;">Email</td><td style="padding:4px 0;">${esc(dati.email)}</td></tr>
     </table>
     <p style="margin-top:16px;color:#9A9890;">Messaggio</p>
-    <p style="white-space:pre-wrap;">${dati.messaggio}</p>
+    <p style="white-space:pre-wrap;">${esc(dati.messaggio)}</p>
   `);
 }
 
 export function templateFollowUpGuida(dati: { nome: string; titoloGuida: string; linkGuida: string }): string {
   return involucroEmail(`
-    <p>Ciao${dati.nome ? ` ${dati.nome}` : ""},</p>
-    <p>Ecco il link per riaprire la tua guida quando vuoi: <strong>${dati.titoloGuida}</strong>.</p>
+    <p>Ciao${dati.nome ? ` ${esc(dati.nome)}` : ""},</p>
+    <p>Ecco il link per riaprire la tua guida quando vuoi: <strong>${esc(dati.titoloGuida)}</strong>.</p>
     ${bottone("Apri la guida", dati.linkGuida)}
     <p style="margin-top:24px;">A presto,<br />Il team KIREO</p>
   `);

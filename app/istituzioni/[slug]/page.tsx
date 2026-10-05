@@ -165,7 +165,7 @@ export default async function IstituzionePubblicaPage({ params }: { params: Prom
             <p className="mx-auto mt-4 max-w-xl text-kireo-muted">{guidaPrincipale.titolo}</p>
           </div>
           <div className="mt-10">
-            <GuidaEnteForm istituzioneId={istituzione.id} istituzioneNome={istituzione.nome} pdfUrl={guidaPrincipale.pdf_url} />
+            <GuidaEnteForm istituzioneId={istituzione.id} istituzioneNome={istituzione.nome} guidaId={guidaPrincipale.id} pdfUrl={guidaPrincipale.pdf_url} />
           </div>
         </section>
       )}

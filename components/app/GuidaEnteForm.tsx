@@ -20,10 +20,24 @@ const CLASSI = [
 export default function GuidaEnteForm({
   istituzioneId,
   istituzioneNome,
+  guidaId,
   pdfUrl,
 }: {
   istituzioneId: string;
+  /** Solo per l'etichetta del bottone qui: NON viaggia più nel corpo. */
   istituzioneNome: string;
+  /**
+   * ⚠️ L'ID DELLA GUIDA, NON IL SUO URL NÉ IL NOME DELL'ENTE. Fino al
+   * 5/10/2026 questo form mandava a `/api/guida-email` il `pdfUrl` e
+   * l'`istituzioneNome`, cioè il link del bottone e il titolo in grassetto
+   * dell'email — e quella route non ha nessuna sessione: chiunque poteva
+   * chiamarla a mano e farci mandare un'email autentica da `noreply@kireo.it`
+   * con un link suo. Ora dal corpo parte una CHIAVE da verificare, e il
+   * contenuto dell'email la route lo legge dal database.
+   *
+   * `pdfUrl` resta perché serve qui: è il download che parte al submit.
+   */
+  guidaId: string;
   pdfUrl: string;
 }) {
   const [nome, setNome] = useState("");
@@ -70,7 +84,7 @@ export default function GuidaEnteForm({
     fetch("/api/guida-email", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nome, cognome, email: email.trim(), istituzioneId, istituzioneNome, pdfUrl }),
+      body: JSON.stringify({ nome, cognome, email: email.trim(), istituzioneId, guidaId }),
     }).catch(() => {});
 
     try {

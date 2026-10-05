@@ -46,6 +46,7 @@ const ORDINE = [
   "prove_missione",
   "prove_test",
   "guida_riservata",
+  "email_guida",
   "consegna_esaurita",
   "prove_consegna_evento",
   "scrittura_consegna_evento",
@@ -75,6 +76,8 @@ const COSA_VUOL_DIRE = {
   prove_test: "il test non ha prodotto nessuna prova: il profilo resta vuoto, e se ne accorge T3",
   guida_riservata:
     "una guida 2 o 3 non è stata consegnata a chi aveva il diritto di leggerla: di solito il PDF non è nel bundle della funzione (vedi outputFileTracingIncludes in next.config.ts)",
+  email_guida:
+    "il follow-up via email dopo il download di una guida non è partito: chi ha lasciato la mail non ha ricevuto il link per riaprirla. Due motivi diversi — `link_non_ammesso` è un `pdf_url` di un ente che non è http/https (un dato da correggere), `invio_non_riuscito` è Brevo",
   consegna_esaurita:
     "tutte le letture di una consegna sono finite senza riuscire: quel testo non sarà giudicato da solo, e lo studente non ha più un bottone da premere",
   prove_consegna_evento:

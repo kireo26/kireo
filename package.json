@@ -61,7 +61,8 @@
     "test:studente": "node scripts/verifica-student-profiles.js",
     "test:registri": "node scripts/verifica-due-registri.js",
     "quarantena": "node scripts/quarantena.js",
-    "test:quarantena": "node scripts/verifica-quarantena.js"
+    "test:quarantena": "node scripts/verifica-quarantena.js",
+    "test:email": "node scripts/verifica-email.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.112.5",
