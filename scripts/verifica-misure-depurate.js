@@ -167,6 +167,19 @@ const ESENTI = new Map([
     "scripts/quarantena/diario-portfolio-attempt-altrui.sql",
     "Sonda in quarantena: crea due studenti con un tentativo ciascuno dentro una transazione, prova che un diario o un portfolio non si appendano al tentativo di un altro (due rosse di proposito) e fa ROLLBACK. Nomina mission_attempt e journal_entry perché le sta PROVANDO.",
   ],
+  // `messaggio-scuola-ripuntato.sql` NON ha bisogno di un'esenzione, e l'ha
+  // detto la guardia degli orfani qui sotto quando gliene ho scritta una:
+  // nessuna delle tabelle che tocca (`student_profiles`,
+  // `messaggi_scuola_destinatari`, `messaggi_scuola`) sta in
+  // TABELLE_DI_STUDENTI, perché quell'elenco guarda le tabelle di
+  // PROFILAZIONE — quelle su cui una misura aggregherebbe un punteggio.
+  //
+  // ⚠️ E QUELLO È UN ELENCO, quindi ha i buchi che hanno gli elenchi: una
+  // misura futura su `iscrizioni_eventi` o su `student_profiles` («quanti
+  // studenti verificati per scuola», «quante partecipazioni») non verrebbe
+  // guardata da questo controllo. Non si allarga adesso — sarebbe un rosso su
+  // una decina di file che fanno la cosa giusta — ma il giorno in cui si
+  // scrive una misura su una di quelle, la riga va aggiunta qui.
   [
     "scripts/banco/robot/gioca.js",
     "È il robot che gioca, non un conteggio: legge le PROPRIE righe per sapere a che punto è il suo percorso. Escludere i profili di prova qui vorrebbe dire escludere se stesso.",

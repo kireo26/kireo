@@ -44,6 +44,16 @@ const QUARANTENA = [
     cura: "Una riga nel `with check`: l'`attempt_id`, quando c'è, deve essere di un tentativo del chiamante.",
     rosse_attese: 2,
   },
+  {
+    file: "messaggio-scuola-ripuntato.sql",
+    data: "2026-10-05",
+    falla:
+      "Due policy di `messaggi_scuola_destinatari` verificano DI CHI è la riga e non QUALE riga è: l'insert non vincola lo `student_id` (la scuola consegna a uno studente dichiarato e non verificato, o di un'altra scuola) e l'update non pinna il `messaggio_id` (lo studente ripunta la propria consegna su un altro messaggio e ne legge il corpo — misurato: «SEGRETO DI B» letto da uno studente della scuola A).",
+    perche_rossa:
+      "Tre delle quattro rosse sono dietro un uuid che l'attore non può ottenere [verificato: uno studente vede solo gli id dei messaggi che già riceve]. L'unica raggiungibile è la consegna a uno studente dichiarato non verificato: severità bassa (ha dichiarato quella scuola), ma scavalca il cancello della verifica.",
+    cura: "L'insert si chiude con una riga nel `with check` (studente VERIFICATO della propria scuola). L'update NO: in RLS `using` vede la riga vecchia e `with check` la nuova, e non si possono confrontare — pinnare il `messaggio_id` vuole un trigger o un `revoke update (messaggio_id) … from authenticated`.",
+    rosse_attese: 4,
+  },
 ];
 
 module.exports = { QUARANTENA };
