@@ -1,6 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getAreaBySlug } from "@/data/aree";
 import { guideDiArea } from "@/lib/guide/config";
+import { MISSIONI } from "@/lib/escape/config";
+import { TEST_META } from "@/lib/test/config";
 import type { TipoAttivita } from "./activityLog";
 
 export type VoceStorico = {
@@ -144,6 +146,105 @@ export async function getPercorsoEsplorazione(supabase: SupabaseClient, userId: 
         "Attività registrata";
       return { id: riga.id, testo, data: riga.created_at };
     });
+  } catch {
+    return [];
+  }
+}
+
+// ═════ IL SECONDO REGISTRO, quello che «Le mie attività» non leggeva ═════
+//
+// ⚠️ IL DIFETTO CHE CHIUDE, ed è la specie capostipite di questo progetto: uno
+// studente che aveva completato TRE MISSIONI apriva questa pagina e leggeva
+// «Non hai ancora nessuna attività registrata» — una cosa scritta che dichiara
+// uno stato diverso da quello vero, **nella pagina che esiste apposta per
+// dirgli cosa ha fatto, e in faccia a chi ha fatto di più**. Per settimane è
+// stata citata solo per spiegare altro (le missioni non scrivono
+// `activity_log`, che è la ragione per cui un `mission_attempt` fabbricato non
+// produce nessuna affermazione).
+//
+// PERCHÉ UN SECONDO BLOCCO E NON UNA LISTA SOLA. In KIREO i registri sono DUE
+// e contano cose diverse di proposito: `activity_log` → `score_aree` è
+// l'ESPLORAZIONE («dove hai messo piede, non le tue attitudini», dice la home
+// con le sue stesse parole), `evidence` → `area_signal` è il RITRATTO (le
+// affinità). Fonderli in un elenco unico cancellerebbe la distinzione che la
+// home spiega nella sua copy — e la contraddizione fra i due ritratti è una
+// PROVA che vogliamo restare visibile (vedi «Punti aperti»: il cross-feed
+// `activity`↔`evidence`).
+//
+// E IL BLOCCO DELL'ESPLORAZIONE NON MENTIVA: «non hai nessuna attività
+// registrata» è vero DEL SUO REGISTRO. La falsità nasceva dal fatto che era
+// l'unica voce della pagina. Quindi non si tocca il suo stato vuoto nel merito:
+// si smette di lasciarlo parlare da solo.
+//
+// COSA NON FA: non scrive niente, non tocca nessuna scala, nessuna migrazione.
+// È una lettura in più su una pagina che ne faceva una di meno — e lascia
+// aperta la domanda vera (se le missioni debbano alimentare anche il radar),
+// che è una decisione di prodotto con conseguenze sui pesi.
+//
+// I WORKSHOP NON SONO QUI, e non è una dimenticanza: la chiusura di un progetto
+// scrive `activity_log` (`workshop_progetto`, dalla separazione del 29/09),
+// quindi compaiono già nell'esplorazione.
+export async function getPercorsoRitratto(supabase: SupabaseClient, userId: string, limite = 10): Promise<VoceEsplorazione[]> {
+  // Ogni lettura degrada DA SÉ: un registro che non risponde toglie le sue
+  // voci, non la pagina. E un errore di lettura non diventa un'affermazione su
+  // una persona — nel dubbio il blocco mostra meno, mai qualcosa che non ha
+  // letto. (`consegne_evento` è la più giovane delle tre: se la sua migrazione
+  // non fosse applicata, qui semplicemente non compare.)
+  const [test, missioni, consegne] = await Promise.all([
+    leggi(supabase, "test_attempt", "id, test_slug, stato, completed_at, updated_at", userId),
+    leggi(supabase, "mission_attempt", "id, mission_slug, stato, completed_at, updated_at", userId),
+    leggi(supabase, "consegne_evento", "id, created_at, eventi(titolo)", userId),
+  ]);
+
+  const voci: VoceEsplorazione[] = [];
+
+  // IL FILTRO SU `stato` SI APPLICA QUI E NON NELLA QUERY, di proposito: se un
+  // domani quella colonna cambiasse nome, un `.eq()` nella query farebbe
+  // sparire il blocco IN SILENZIO (errore scartato → zero voci → la pagina
+  // torna a dire «niente»), cioè il difetto che questo blocco chiude. Letto
+  // dopo, un `stato` assente lascia passare la riga, e si vede a schermo che
+  // qualcosa è cambiato.
+  const completata = (r: Riga) => r.stato === undefined || r.stato === "completata";
+  const quando = (r: Riga) => String(r.completed_at ?? r.updated_at ?? "");
+
+  for (const r of test.filter(completata)) {
+    const titolo = TEST_META.find((t) => t.slug === r.test_slug)?.titolo;
+    voci.push({
+      id: `test-${r.id}`,
+      testo: titolo ? `Hai fatto il test «${titolo}»` : "Hai fatto un test",
+      data: quando(r),
+    });
+  }
+  for (const r of missioni.filter(completata)) {
+    const titolo = MISSIONI.find((m) => m.slug === r.mission_slug)?.titolo;
+    voci.push({
+      id: `missione-${r.id}`,
+      testo: titolo ? `Hai completato la missione «${titolo}»` : "Hai completato una missione",
+      data: quando(r),
+    });
+  }
+  for (const r of consegne) {
+    const rel = Array.isArray(r.eventi) ? r.eventi[0] : r.eventi;
+    const titolo = (rel as { titolo?: string } | null | undefined)?.titolo;
+    voci.push({
+      id: `consegna-${r.id}`,
+      testo: titolo ? `Hai risposto alla domanda di «${titolo}»` : "Hai risposto alla domanda di un incontro",
+      data: String(r.created_at ?? ""),
+    });
+  }
+
+  return voci
+    .filter((v) => v.data !== "")
+    .sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime())
+    .slice(0, limite);
+}
+
+type Riga = Record<string, unknown>;
+async function leggi(supabase: SupabaseClient, tabella: string, colonne: string, userId: string): Promise<Riga[]> {
+  try {
+    const { data, error } = await supabase.from(tabella).select(colonne).eq("student_id", userId);
+    if (error || !data) return [];
+    return data as unknown as Riga[];
   } catch {
     return [];
   }

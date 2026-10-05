@@ -49,6 +49,10 @@ const ok = (cond, msg) => {
 // Un controllo soddisfatto da una frase che descrive l'intenzione è la specie di
 // casa: un commento che dichiara quello che il codice dovrebbe fare.
 const { senzaCommenti } = require("./lib/senza-commenti");
+// ÀNCORE CON IL CONTO DICHIARATO: un nome che compare due volte fa misurare
+// l'occorrenza sbagliata, e non produce un rosso — produce un verde sul pezzo
+// di codice sbagliato. Vedi `scripts/lib/ancora.js` per le volte che è costato.
+const { ancora, fetta } = require("./lib/ancora");
 
 const leggi = (p) => senzaCommenti(fs.readFileSync(path.join(ROOT, p), "utf8"));
 const srcBarra = leggi("components/app/AppShell.tsx");
@@ -107,8 +111,8 @@ ok(
 ok(/GRUPPO_PERCORSO/.test(srcBarra) && /GRUPPO_RESTO/.test(srcBarra), "i due gruppi esistono e hanno un nome");
 ok(/<hr /.test(srcBarra), "…e una riga li separa nella barra desktop");
 // Agenda sta nel resto: gli eventi non sono un passo del viaggio.
-const iAgenda = srcBarra.indexOf('label: "Agenda"');
-const iGruppoResto = srcBarra.indexOf("const GRUPPO_RESTO");
+const iAgenda = ancora(srcBarra, 'label: "Agenda"', { volte: 1, dove: "la barra" });
+const iGruppoResto = ancora(srcBarra, "const GRUPPO_RESTO", { volte: 1, dove: "la barra" });
 ok(iAgenda > iGruppoResto && iGruppoResto !== -1, "Agenda sta nel gruppo «il resto», non fra i passi");
 
 // ── 3) NIENTE È DISABILITATO ────────────────────────────────────────────────
@@ -129,7 +133,7 @@ console.log("\n4) Il segno viene da prossimaTappa, e senza dato non si segna nie
 // La prop del COMPONENTE, non quella dell'helper interno: le due si chiamano
 // uguale, e una controprova ha mostrato che cercare la stringa nel file trovava
 // la seconda mentre la prima era già cambiata.
-const firmaShell = srcBarra.slice(srcBarra.indexOf("export default function AppShell("));
+const firmaShell = fetta(srcBarra, { nome: "export default function AppShell(", volte: 1, dove: "la barra" });
 ok(
   /passoCorrente: ChiavePasso \| null;/.test(firmaShell.slice(0, 600)),
   "la barra riceve il passo corrente e ammette di non saperlo (null è un valore ammesso, non un parametro assente)",
@@ -139,7 +143,11 @@ ok(
 // L'espressione che decide se accendere il segno compare due volte — desktop e
 // mobile — quindi cercarla una volta sola diceva «esiste», non «viene usata»:
 // spegnendo il render del desktop il controllo restava verde.
-const corpoVoceBarra = srcBarra.slice(srcBarra.indexOf("function VoceBarra("), srcBarra.indexOf("export default function AppShell("));
+const corpoVoceBarra = fetta(
+  srcBarra,
+  { nome: "function VoceBarra(", volte: 1, dove: "la barra" },
+  { nome: "export default function AppShell(", volte: 1, dove: "la barra" },
+);
 // IL SEGNO HA DUE METÀ, e si controllano entrambe: qualcosa che si VEDE (il
 // puntino arancione) e qualcosa che si LEGGE (il testo per chi usa un lettore di
 // schermo). Un segno fatto di solo colore non arriva a chi non lo vede — e una
@@ -154,7 +162,11 @@ const segno = (blocco, dove) => {
 segno(corpoVoceBarra, "desktop");
 // La barra mobile è l'ULTIMO blocco con `md:hidden` (il primo è l'header del
 // telefono): `indexOf` prendeva quello sbagliato e dava rosso su codice giusto.
-const barraMobile = srcBarra.slice(srcBarra.lastIndexOf("md:hidden"));
+// DUE occorrenze, e si vuole la SECONDA: la prima è l'header del telefono, e
+// prenderla dava rosso su codice giusto. Il conto è dichiarato, quindi il
+// giorno che `md:hidden` compare una terza volta il controllo lo dice invece
+// di spostarsi in silenzio.
+const barraMobile = fetta(srcBarra, { nome: "md:hidden", volte: 2, quale: 1, dove: "la barra" });
 segno(barraMobile, "mobile");
 
 ok(/getPassoCorrente/.test(srcLayout) && /passoCorrente=\{chiave\}/.test(srcLayout), "il layout lo calcola e lo passa alla barra");
@@ -312,7 +324,7 @@ ok(
 // IL BOOLEANO: sì/no, nessun numero, e degrada verso il NO. Una lettura fallita
 // non deve produrre una nota che afferma una cosa su quello che lo studente ha
 // fatto.
-const corpoPresenze = srcTappa.slice(srcTappa.indexOf("async function leggiPresenzeCertificate("));
+const corpoPresenze = fetta(srcTappa, { nome: "async function leggiPresenzeCertificate(", volte: 1, dove: "la scala" });
 ok(
   /\.limit\(1\)/.test(corpoPresenze.slice(0, 700)),
   "le presenze si leggono a sì/no (limit 1), non si contano",

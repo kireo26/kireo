@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getAppContext } from "@/lib/app/studentContext";
 import { createClient } from "@/lib/supabase/server";
-import { getStoricoAttivita, getPercorsoEsplorazione, getSuggerimentiPerAree } from "@/lib/app/attivita";
+import { getStoricoAttivita, getPercorsoEsplorazione, getPercorsoRitratto, getSuggerimentiPerAree } from "@/lib/app/attivita";
 import { getOreCertificate, testoOreCertificate } from "@/lib/app/pcto";
 import { formattaData } from "@/lib/formato";
 
@@ -15,10 +15,11 @@ export default async function AttivitaAppPage() {
     .eq("user_id", contesto.userId);
   const areeSlugs = (righeAree ?? []).map((r) => r.area_slug);
 
-  const [storico, oreCertificate, percorso, suggerimenti] = await Promise.all([
+  const [storico, oreCertificate, percorso, ritratto, suggerimenti] = await Promise.all([
     getStoricoAttivita(supabase, contesto.userId),
     getOreCertificate(supabase, contesto.userId),
     getPercorsoEsplorazione(supabase, contesto.userId),
+    getPercorsoRitratto(supabase, contesto.userId),
     getSuggerimentiPerAree(supabase, contesto.userId, areeSlugs),
   ]);
 
@@ -31,11 +32,41 @@ export default async function AttivitaAppPage() {
         <h1 className="py-1 font-heading text-3xl font-bold leading-[1.25] text-kireo-light sm:text-4xl">Il tuo percorso</h1>
       </div>
 
+      {/*
+        ⚠️ QUESTO BLOCCO PARLAVA DA SOLO, E PER QUESTO MENTIVA. Uno studente con
+        TRE MISSIONI completate leggeva «Non hai ancora nessuna attività
+        registrata»: vero del registro dell'esplorazione (`activity_log`, dove
+        una missione non scrive), falso della pagina, che esiste apposta per
+        dirgli cosa ha fatto. Il blocco accanto legge l'altro registro — vedi
+        `getPercorsoRitratto` per il perché sono due e non si fondono.
+      */}
+      {ritratto.length > 0 && (
+        <div className="rounded-2xl border border-white/5 bg-kireo-card p-6">
+          <h2 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">Quello che racconta come ti orienti</h2>
+          <p className="mt-1 text-xs text-kireo-muted">
+            Test, missioni e risposte: è da qui che nascono {"«Le tue affinità»"} in home.
+          </p>
+          <ul className="mt-4 space-y-2">
+            {ritratto.map((voce) => (
+              <li key={voce.id} className="flex flex-wrap items-baseline justify-between gap-2 text-sm text-kireo-light">
+                <span>{voce.testo}</span>
+                <span className="text-xs text-kireo-muted">{formattaData(voce.data, "medium")}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <div className="rounded-2xl border border-white/5 bg-kireo-card p-6">
         <h2 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">Il tuo percorso di esplorazione</h2>
         {percorso.length === 0 ? (
           <p className="mt-3 text-sm text-kireo-muted">
-            Non hai ancora nessuna attività registrata.{" "}
+            {/*
+              LO STATO VUOTO PARLA DELL'ESPLORAZIONE, NON DI TUTTO. Dice «qui»
+              invece di «non hai fatto niente»: se il blocco sopra c'è, questa
+              frase non deve smentirlo.
+            */}
+            {"Qui non c'è ancora niente: conta le aree in cui hai messo piede."}{" "}
             <Link href="/app/aree" className="text-kireo-orange underline underline-offset-2">
               Esplora le aree
             </Link>{" "}

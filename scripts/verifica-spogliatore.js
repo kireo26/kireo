@@ -29,9 +29,12 @@ const { senzaCommenti, senzaCommentiSql } = require("./lib/senza-commenti");
 
 const ROOT = path.join(__dirname, "..");
 let falliti = 0;
-const ok = (cond, msg) => {
+const ok = (cond, msg, extra) => {
   console.log(`  ${cond ? "✓" : "✗"} ${msg}`);
-  if (!cond) falliti++;
+  if (!cond) {
+    falliti++;
+    if (extra) console.log(`      → ${extra}`);
+  }
 };
 
 console.log("\n═══ Lo spogliatore dei commenti ═══\n");
@@ -100,6 +103,44 @@ ok(
     ? "nessun file di verifica definisce il proprio spogliatore: lo importano tutti da scripts/lib"
     : `copie locali trovate in: ${copie.join(", ")} — vanno sostituite con l'import, o divergeranno`,
 );
+
+// ── 4) LE ÀNCORE SUI NOMI: un cricchetto, non un avviso ─────────────────────
+// Un'àncora `indexOf("nome")` misura la prima occorrenza, e se quel nome
+// compare due volte misura quella sbagliata: non un rosso, un VERDE sul pezzo
+// di codice sbagliato. `scripts/lib/ancora.js` fa dichiarare il conto, e tiene
+// l'elenco delle volte che ci è costato.
+//
+// ⚠️ NON SI PRETENDE ZERO: le àncore grezze nel repo sono molte e quasi tutte
+// innocue, e un rosso su tutte sarebbe un rosso che qualcuno spegne. Si pretende
+// che NON CRESCANO: il numero scende quando si passa di lì, e il giorno che
+// qualcuno ne aggiunge una nuova il controllo lo dice — che è il momento in cui
+// conviene usare l'helper.
+//
+// Un AVVISO stampato a ogni giro invece di un cricchetto sarebbe la cosa che
+// questo progetto togliel da un mese: un numero che nessuno guarda più.
+console.log("\n4) Le àncore sui nomi non crescono");
+{
+  const { censimentoAncore } = require("./lib/ancora");
+  // LA LINEA DI BASE SI MISURA, NON SI INDOVINA: questo numero è stato messo a
+  // 62 a occhio e l'esecuzione ha detto 68 — la stessa regola che vale per i
+  // conti nei testi vale per i tetti nei controlli. Misurato il 5/10, dopo aver
+  // convertito le cinque àncore che avevano già morso in
+  // `verifica-barra-percorso.js`. Si ABBASSA quando se ne converte un'altra;
+  // non si alza.
+  const TETTO = 68;
+  const { grezze, perFile } = censimentoAncore(DIR);
+  const peggiori = [...perFile.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3);
+  ok(
+    grezze <= TETTO,
+    `${grezze} àncore grezze su literal (tetto ${TETTO}) — le più dense: ${peggiori.map(([f, n]) => `${f} (${n})`).join(", ")}`,
+    grezze > TETTO
+      ? "ne è stata aggiunta una nuova: usa `ancora()`/`fetta()` da scripts/lib/ancora.js, che fa dichiarare quante volte quel nome compare"
+      : undefined,
+  );
+  if (grezze < TETTO) {
+    console.log(`      → il tetto si può abbassare a ${grezze}: ne sono state convertite ${TETTO - grezze}`);
+  }
+}
 
 console.log(falliti === 0 ? "\n✅ Lo spogliatore fa quello che dichiara, e ce n'è uno.\n" : `\n❌ ${falliti} asserzioni rosse\n`);
 process.exit(falliti === 0 ? 0 : 1);
