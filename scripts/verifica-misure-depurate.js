@@ -140,6 +140,33 @@ const ESENTI = new Map([
     "scripts/verifica-badge-confidence.sql",
     "Stessa specie: crea il proprio studente finto e le proprie prove dentro una transazione, prova sei proprietà del badge «confermata» e fa ROLLBACK. Nomina area_signal perché la sta PROVANDO, non perché conti qualcosa su una popolazione di studenti.",
   ],
+  // ⚠️ LE TRE SONDE IN QUARANTENA (5/10/2026). Stessa specie delle undici
+  // sopra, e OTTAVA volta che un controllo lessicale viene letto come una
+  // misura da un altro controllo lessicale: la cura resta l'esenzione con la
+  // ragione scritta, non il pattern allargato.
+  //
+  // ⚠️ E UNA COSA DA NOMINARE INVECE DI SISTEMARE: dodici delle quindici voci
+  // di questo elenco dicono la stessa frase — «crea la propria fixture dentro
+  // una transazione, prova delle proprietà, fa ROLLBACK». Dodici copie della
+  // stessa ragione sono la traccia di una REGOLA che manca, non di dodici
+  // eccezioni. Non la si scrive qui perché la direzione dell'errore è quella
+  // sbagliata: un'esenzione di CLASSE («una sonda che fa rollback») sbaglierebbe
+  // verso il VERDE — una misura vera messa in `scripts/` con un `rollback;`
+  // dentro passerebbe senza che nessuno se ne accorga — mentre un elenco
+  // sbaglia verso il rosso, che si nota. Se un domani si vorrà la regola, la
+  // decisione è questa, e va presa sapendolo.
+  [
+    "scripts/quarantena/tentativo-completato-non-congelato.sql",
+    "Sonda in quarantena: crea i propri studenti e due tentativi di missione dentro una transazione, prova otto proprietà (tre rosse di proposito: un tentativo completato non è congelato) e fa ROLLBACK. Legge evidence, area_signal, mission_attempt e step_response perché sono esattamente le tabelle di cui sta provando il comportamento.",
+  ],
+  [
+    "scripts/quarantena/t3-candidate-congelate.sql",
+    "Sonda in quarantena: crea il proprio tentativo T3 e la riga sintetica `__t3_frozen__` dentro una transazione, prova che lo studente non la riscriva (rossa di proposito) e fa ROLLBACK. Nomina test_response perché la sta PROVANDO.",
+  ],
+  [
+    "scripts/quarantena/diario-portfolio-attempt-altrui.sql",
+    "Sonda in quarantena: crea due studenti con un tentativo ciascuno dentro una transazione, prova che un diario o un portfolio non si appendano al tentativo di un altro (due rosse di proposito) e fa ROLLBACK. Nomina mission_attempt e journal_entry perché le sta PROVANDO.",
+  ],
   [
     "scripts/banco/robot/gioca.js",
     "È il robot che gioca, non un conteggio: legge le PROPRIE righe per sapere a che punto è il suo percorso. Escludere i profili di prova qui vorrebbe dire escludere se stesso.",

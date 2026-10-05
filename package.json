@@ -59,7 +59,9 @@
     "test:fonti": "node scripts/verifica-fonti-dimensioni.js",
     "test:ore": "node scripts/verifica-ore-pcto.js",
     "test:studente": "node scripts/verifica-student-profiles.js",
-    "test:registri": "node scripts/verifica-due-registri.js"
+    "test:registri": "node scripts/verifica-due-registri.js",
+    "quarantena": "node scripts/quarantena.js",
+    "test:quarantena": "node scripts/verifica-quarantena.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.112.5",
