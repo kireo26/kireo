@@ -144,6 +144,10 @@ const ESENTI = new Map([
     "scripts/verifica-badge-confidence.sql",
     "Stessa specie: crea il proprio studente finto e le proprie prove dentro una transazione, prova sei proprietà del badge «confermata» e fa ROLLBACK. Nomina area_signal perché la sta PROVANDO, non perché conti qualcosa su una popolazione di studenti.",
   ],
+  [
+    "scripts/verifica-chiusura-diretta.sql",
+    "Stessa specie: crea il proprio ente finto, due studenti e quattro eventi dentro una transazione, prova diciassette proprietà della traccia di chiusura (la prima pressione, la seconda che dice QUANDO, i due moderatori) e fa ROLLBACK. Legge `evidence` e `activity_log` perché deve verificare che una seconda chiusura non scriva una seconda prova né un secondo credito — cioè lo sta PROVANDO, non contando su una popolazione. NONA volta che un controllo lessicale viene letto come una misura da un altro controllo lessicale: la cura resta l'esenzione con la ragione scritta, non il pattern allargato.",
+  ],
   // ⚠️ LE TRE SONDE IN QUARANTENA (5/10/2026). Stessa specie delle undici
   // sopra, e OTTAVA volta che un controllo lessicale viene letto come una
   // misura da un altro controllo lessicale: la cura resta l'esenzione con la

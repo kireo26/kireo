@@ -28,7 +28,9 @@ export default async function EnteEventiPage({ searchParams }: { searchParams: P
   const [{ data: eventi }, quote, { data: proposte }] = await Promise.all([
     supabase
       .from("eventi")
-      .select("id, titolo, tipo, data_inizio, data_fine, stato, in_evidenza, pubblico, filone, hosting_diretta, youtube_video_id, domanda_consegna")
+      .select(
+        "id, titolo, tipo, data_inizio, data_fine, stato, in_evidenza, pubblico, filone, hosting_diretta, youtube_video_id, domanda_consegna, diretta_chiusa_il, diretta_chiusa_da_tipo",
+      )
       .eq("organizzatore_id", contesto.istituzioneId)
       .order("created_at", { ascending: false }),
     getQuoteEnte(supabase, contesto.istituzioneId, contesto.pianoNome),
@@ -178,6 +180,8 @@ export default async function EnteEventiPage({ searchParams }: { searchParams: P
                           domandaConsegna={e.domanda_consegna}
                           dataInizio={e.data_inizio}
                           dataFine={e.data_fine}
+                          chiusaIl={e.diretta_chiusa_il}
+                          chiusaDaTipo={e.diretta_chiusa_da_tipo}
                         />
                         <div className="mt-3">
                           <ReportEventoButton eventoId={e.id} />

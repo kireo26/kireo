@@ -4,6 +4,13 @@ import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/Button";
 import DomandaConsegnaForm from "./DomandaConsegnaForm";
+import {
+  statoChiusura,
+  testoEsitoChiusura,
+  testoStatoChiusura,
+  type EsitoChiusura,
+  type StatoChiusura,
+} from "@/lib/eventi/chiusuraDiretta";
 
 type Domanda = { id: string; testo: string; stato: string; creata_il: string; nome_completo: string | null };
 
@@ -18,26 +25,44 @@ export default function ControlloDirettaEvento({
   domandaConsegna = null,
   dataInizio,
   dataFine,
+  chiusaIl = null,
+  chiusaDaTipo = null,
 }: {
   eventoId: string;
   domandaConsegna?: string | null;
   dataInizio: string;
   dataFine: string | null;
+  /** Dalla colonna `eventi.diretta_chiusa_il`: lo stato al caricamento della pagina. */
+  chiusaIl?: string | null;
+  chiusaDaTipo?: string | null;
 }) {
   const [presenti, setPresenti] = useState<number | null>(null);
   const [domande, setDomande] = useState<Domanda[]>([]);
   const [caricamento, setCaricamento] = useState(false);
   const [erroreChiusura, setErroreChiusura] = useState<string | null>(null);
-  const [risultatoChiusura, setRisultatoChiusura] = useState<{ presenti: number; certificati: number } | null>(null);
+  const [esitoChiusura, setEsitoChiusura] = useState<EsitoChiusura | null>(null);
+  const [chiusura, setChiusura] = useState<StatoChiusura>(statoChiusura({ chiusaIl, chiusaDaTipo }));
 
   const aggiorna = useCallback(async () => {
     const supabase = createClient();
-    const [{ data: n }, { data: d }] = await Promise.all([
+    // ⚠️ LA CHIUSURA ENTRA NEL POLL CHE C'È GIÀ, e non è una rifinitura: il
+    // prop del server è una fotografia del caricamento, quindi se l'altro
+    // moderatore chiude mentre questa pagina è aperta, qui si continuerebbe a
+    // vedere il bottone. Premendolo la risposta sarebbe comunque onesta («era
+    // già chiusa il…», vedi la funzione SQL), ma scoprirlo premendo è il
+    // difetto 1.2a in piccolo — e la risposta costa una `select` dentro un giro
+    // di rete che si fa comunque.
+    const [{ data: n }, { data: d }, { data: ev, error: erroreEv }] = await Promise.all([
       supabase.rpc("conteggio_presenti_live", { p_evento_id: eventoId }),
       supabase.rpc("domande_live_organizzatore", { p_evento_id: eventoId }),
+      supabase.from("eventi").select("diretta_chiusa_il, diretta_chiusa_da_tipo").eq("id", eventoId).maybeSingle(),
     ]);
     if (typeof n === "number") setPresenti(n);
     if (d) setDomande(d as Domanda[]);
+    // Una lettura fallita LASCIA quello che c'era: degradare verso «non chiusa»
+    // rimetterebbe il bottone su una diretta chiusa per un problema di rete.
+    if (erroreEv) console.error("ControlloDirettaEvento: lettura stato chiusura", erroreEv);
+    else if (ev) setChiusura(statoChiusura({ chiusaIl: ev.diretta_chiusa_il, chiusaDaTipo: ev.diretta_chiusa_da_tipo }));
   }, [eventoId]);
 
   useEffect(() => {
@@ -69,7 +94,15 @@ export default function ControlloDirettaEvento({
         }
         return;
       }
-      setRisultatoChiusura(riga);
+      // La terza colonna distingue «l'ho chiusa io adesso» da «era già chiusa»:
+      // senza, la seconda pressione rispondeva «0 nuove certificazioni», cioè
+      // un'affermazione sugli studenti al posto di «l'ho già fatto».
+      setEsitoChiusura(
+        riga.gia_chiusa_il
+          ? { tipo: "gia_chiusa", presenti: riga.presenti, quando: riga.gia_chiusa_il }
+          : { tipo: "chiusa", presenti: riga.presenti, certificati: riga.certificati },
+      );
+      aggiorna();
     } finally {
       setCaricamento(false);
     }
@@ -117,9 +150,17 @@ export default function ControlloDirettaEvento({
 
       <DomandaConsegnaForm eventoId={eventoId} domandaAttuale={domandaConsegna} dataInizio={dataInizio} dataFine={dataFine} />
 
-      {risultatoChiusura ? (
+      {/* Tre stati e non due. L'esito di una pressione viene prima perché sa
+          più cose (i conteggi) della riga di stato; la riga di stato prende il
+          posto del BOTTONE, che su una diretta chiusa sparisce — vedi
+          `lib/eventi/chiusuraDiretta.ts` per il perché non è disabilitato. */}
+      {esitoChiusura ? (
         <p className="rounded-lg border border-kireo-green/40 bg-kireo-green/10 px-4 py-3 text-sm text-kireo-light">
-          Diretta chiusa: {risultatoChiusura.presenti} presenti, {risultatoChiusura.certificati} nuove certificazioni automatiche.
+          {testoEsitoChiusura(esitoChiusura)}
+        </p>
+      ) : chiusura.tipo === "chiusa" ? (
+        <p className="rounded-lg border border-white/10 bg-kireo-dark px-4 py-3 text-sm text-kireo-light/90">
+          {testoStatoChiusura(chiusura)}
         </p>
       ) : (
         <div>

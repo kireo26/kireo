@@ -38,7 +38,15 @@ const { ancora } = require("./lib/ancora");
 
 const ROOT = path.join(__dirname, "..");
 let falliti = 0;
+// ⚠️ IL CONTO SI CONTA, NON SI DICHIARA: `fatte` si alza qui dentro e il
+// riepilogo lo interpola, così la proprietà in più lo cambia da sé. Un
+// letterale in testa sarebbe un numero che un giorno mente detto dallo
+// strumento che dovrebbe certificarlo — e la regola che lo chiede («un numero
+// in una riga Verificato va accompagnato dal comando che lo ristampa») è nata
+// scoprendo che di 51 suite questa era fra le 50 che non lo facevano.
+let fatte = 0;
 const ok = (cond, msg, extra) => {
+  fatte++;
   console.log(`  ${cond ? "✓" : "✗"} ${msg}`);
   if (!cond) {
     falliti++;
@@ -368,5 +376,9 @@ for (const p of chiamanti) {
   ok(sospette.length === 0, `${rel}: nessun link composto dal corpo della richiesta`, sospette.join(", "));
 }
 
-console.log(falliti === 0 ? "\n✅ Le email non portano markup né link scelti da chi chiama.\n" : `\n❌ ${falliti} asserzioni rosse\n`);
+console.log(
+  falliti === 0
+    ? `\n✅ ${fatte}/${fatte} proprietà — le email non portano markup né link scelti da chi chiama.\n`
+    : `\n❌ ${fatte - falliti}/${fatte} proprietà (${falliti} rosse)\n`,
+);
 process.exit(falliti === 0 ? 0 : 1);
