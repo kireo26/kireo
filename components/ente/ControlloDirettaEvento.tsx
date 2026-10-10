@@ -11,8 +11,18 @@ import {
   type EsitoChiusura,
   type StatoChiusura,
 } from "@/lib/eventi/chiusuraDiretta";
+import { rigaTocco } from "@/lib/eventi/tocco";
 
-type Domanda = { id: string; testo: string; stato: string; creata_il: string; nome_completo: string | null };
+type Domanda = {
+  id: string;
+  testo: string;
+  stato: string;
+  creata_il: string;
+  nome_completo: string | null;
+  /** Chi ha toccato la riga DA PARTE NOSTRA, e quando: serve ai due moderatori per vedersi (vedi `lib/eventi/tocco.ts`). */
+  stato_da_tipo: string | null;
+  stato_il: string | null;
+};
 
 // Pannello di controllo diretta per l'organizzatore: SOLO aggregati
 // (conteggio_presenti_live) e domande — mai una riga individuale di
@@ -42,6 +52,11 @@ export default function ControlloDirettaEvento({
   const [erroreChiusura, setErroreChiusura] = useState<string | null>(null);
   const [esitoChiusura, setEsitoChiusura] = useState<EsitoChiusura | null>(null);
   const [chiusura, setChiusura] = useState<StatoChiusura>(statoChiusura({ chiusaIl, chiusaDaTipo }));
+  // L'ora sta nello STATO e non si legge nel render: `new Date()` dentro un
+  // render è impuro (lo dice `react-hooks/purity`, e lo ha già detto su
+  // `CardEvento`). Si aggiorna col poll, che è l'unico momento in cui la riga
+  // di un tocco può cambiare comunque. Stesso idioma di `PannelloLive`.
+  const [ora, setOra] = useState(() => new Date());
 
   const aggiorna = useCallback(async () => {
     const supabase = createClient();
@@ -59,6 +74,7 @@ export default function ControlloDirettaEvento({
     ]);
     if (typeof n === "number") setPresenti(n);
     if (d) setDomande(d as Domanda[]);
+    setOra(new Date());
     // Una lettura fallita LASCIA quello che c'era: degradare verso «non chiusa»
     // rimetterebbe il bottone su una diretta chiusa per un problema di rete.
     if (erroreEv) console.error("ControlloDirettaEvento: lettura stato chiusura", erroreEv);
@@ -118,12 +134,20 @@ export default function ControlloDirettaEvento({
         <div>
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-kireo-muted">Domande ({domande.length})</p>
           <ul className="space-y-2">
-            {domande.map((d) => (
+            {domande.map((d) => {
+              // Chi l'ha toccata e quando: senza, due moderatori rispondono
+              // entrambi alla stessa domanda davanti a una classe, e alla
+              // successiva nessuno. Calcolata UNA volta: due chiamate sarebbero
+              // due copie della stessa cosa, e divergerebbero al primo che ne
+              // tocca una.
+              const tocco = rigaTocco(d, ora);
+              return (
               <li key={d.id} className="rounded-lg border border-white/5 bg-kireo-dark p-3">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     {d.nome_completo && <p className="text-xs font-semibold text-kireo-orange">{d.nome_completo}</p>}
                     <p className="text-sm text-kireo-light/90">{d.testo}</p>
+                    {tocco && <p className="mt-1 text-xs text-kireo-muted">{tocco}</p>}
                   </div>
                   <div className="flex flex-none gap-3">
                     {d.stato === "nuova" && (
@@ -143,7 +167,8 @@ export default function ControlloDirettaEvento({
                   </div>
                 </div>
               </li>
-            ))}
+              );
+            })}
           </ul>
         </div>
       )}
