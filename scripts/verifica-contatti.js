@@ -47,7 +47,15 @@ const { abilitaTypeScript } = require("./banco/ts");
 
 const ROOT = path.join(__dirname, "..");
 let falliti = 0;
+// `fatte` esiste perché il numero finisca nella riga di riepilogo. Una riga
+// «Verificato» di CLAUDE.md che dice «64 proprietà» va accompagnata dal comando
+// che lo RISTAMPA, e questa suite diceva solo «tutte verdi»: il 64 si otteneva
+// contando le righe con un grep, cioè non si otteneva. Il conto lo DICHIARA la
+// suite — dedurlo dall'output significherebbe contare anche le righe di prosa
+// indentate, con un errore di cui nessuno conosce la direzione.
+let fatte = 0;
 const ok = (cond, msg, extra) => {
+  fatte++;
   console.log(`  ${cond ? "✓" : "✗"} ${msg}`);
   if (!cond) {
     falliti++;
@@ -629,5 +637,7 @@ ok(fantasmi.length === 0,
   "ogni piano nominato in una pagina è uno di quelli che esistono",
   fantasmi.map((n) => `${n.f}: «${n.frase}» — «${n.nome}» non è fra ${nomiVeri.join("/")}`).join("\n       "));
 
-console.log(`\n${falliti === 0 ? "✓" : "❌"} ${falliti === 0 ? "tutte verdi" : `${falliti} asserzioni rosse`}\n`);
+console.log(
+  `\n${falliti === 0 ? "✓" : "❌"} ${falliti === 0 ? `${fatte}/${fatte} proprietà verificate` : `${falliti} asserzioni rosse su ${fatte}`}\n`,
+);
 process.exit(falliti === 0 ? 0 : 1);
