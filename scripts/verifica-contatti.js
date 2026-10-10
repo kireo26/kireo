@@ -310,6 +310,45 @@ ok(perdite.length === 0,
 ok(route.includes(PERSONALE),
   "…e nella route c'è ancora",
   "se sparisce da lì, le notifiche delle landing non arrivano più a nessuno e non se ne accorge nessuno");
+
+// ⚠️ `EMAIL_PUBBLICA` FRA I DESTINATARI DI OGNI ORIGINE: È LA PRECONDIZIONE
+// DEL `Reply-To` DELL'AVVISO, non una simmetria. Quell'header sistema il
+// DESTINATARIO di una risposta; il MITTENTE lo decide la casella in cui si sta
+// leggendo, e quello non lo scegliamo noi. Se un'origine mandasse l'avviso
+// solo alla copia personale, il gesto naturale farebbe partire la risposta
+// dall'indirizzo privato di Mario verso un dirigente scolastico che ha scritto
+// a kireo.it — il difetto per cui il 10/10/2026 è uscito il bottone
+// «Rispondi» della coda, ricreato da un'altra porta.
+//
+// Fino a quel giorno `dirigenti` e `scuole` avevano la sola copia personale, e
+// non era una decisione: i destinatari erano un ternario, quindi i due
+// indirizzi erano mutuamente esclusivi per costruzione. Una copia stantia nei
+// DESTINATARI invece che nel testo — e questa è la guardia che la tiene chiusa.
+//
+// L'appoggio è dichiarato anche sopra `ORIGINI` e accanto al `Reply-To`: una
+// cosa che regge perché un'altra è vera si scrive, o la prossima persona la
+// crede ovvia.
+const fettaOrigini = (() => {
+  try {
+    const apertura = "const ORIGINI = {";
+    const i = ancora(route, apertura, { volte: 1, dove: "route" });
+    const resto = route.slice(i + apertura.length);
+    const fine = resto.search(/\n\}/);
+    return resto.slice(0, fine === -1 ? resto.length : fine);
+  } catch {
+    return null;
+  }
+})();
+const destinatari = [...(fettaOrigini ?? "").matchAll(/^\s{2}([a-z_]+):\s*\{\s*notifica:\s*\[([^\]]*)\]/gm)]
+  .map(([, origine, lista]) => [origine, lista.split(",").map((s) => s.trim()).filter(Boolean)]);
+ok(destinatari.length >= 4,
+  `gli elenchi dei destinatari si leggono: ${destinatari.length} origini`,
+  "sotto quattro, l'estrattore non sta leggendo la tabella e la proprietà qui sotto è verde su un insieme vuoto");
+const senzaPubblica = destinatari.filter(([, lista]) => !lista.includes("EMAIL_PUBBLICA")).map(([o]) => o);
+ok(senzaPubblica.length === 0,
+  "ogni origine manda l'avviso anche a `EMAIL_PUBBLICA`",
+  `${senzaPubblica.join(", ")} — il \`Reply-To\` dell'avviso è corretto solo se la casella giusta è fra i ` +
+  "destinatari: senza, rispondere da dove si legge fa partire il messaggio dall'indirizzo privato");
 // ⚠️ LA PAGINA NON CONTIENE PIÙ IL LETTERALE, e non è un peggioramento: dal
 // 10/10/2026 l'indirizzo pubblico sta in `lib/site.ts`, accanto all'URL
 // canonico, perché viveva in cinque posti. Quindi la proprietà si prova in due

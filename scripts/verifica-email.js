@@ -188,6 +188,14 @@ ok(/rispondiA: emailStr/.test(avviso),
   "…e l'avviso interno porta come Reply-To l'indirizzo di chi ha scritto",
   "senza, «Rispondi» su quell'avviso scrive a `noreply@kireo.it` e il messaggio sparisce: " +
   "è successo l'11/10/2026, a Mario, sul primo messaggio vero");
+// ⚠️ DALL'11/10/2026 `EMAIL_PUBBLICA` STA NELLA TABELLA `ORIGINI`, QUALCHE
+// RIGA SOPRA — è fra i DESTINATARI di ogni origine, che è la precondizione del
+// `Reply-To` (vedi `npm run test:contatti`). Questa proprietà parla di un'altra
+// cosa: il VALORE dell'header, che deve restare l'indirizzo di chi ha scritto.
+// Riverificato per esecuzione dopo quel cambio: la fetta parte da
+// `conf.notifica.map`, cioè a valle della tabella, e non la contiene.
+// E la negazione non è verde sul vuoto perché è accoppiata alla positiva qui
+// sopra: una fetta che perdesse la chiamata farebbe diventare rossa quella.
 ok(!/EMAIL_PUBBLICA/.test(avviso),
   "…e non il nostro, che rimanderebbe l'avviso a sé stesso");
 const brevo = leggi("lib/email/brevo.ts");

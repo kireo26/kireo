@@ -22,6 +22,29 @@ const EMAIL_PERSONALE = "mario.izzo@hotmail.it";
  * QUARTA origine e cercare i posti da toccare è il modo in cui la quinta
  * dimenticherà qualcosa.
  *
+ * ⚠️ `EMAIL_PUBBLICA` È SEMPRE FRA I DESTINATARI, E NON È UNA SIMMETRIA: È LA
+ * PRECONDIZIONE DEL `Reply-To` QUI SOTTO. L'avviso porta come `Reply-To`
+ * l'indirizzo di chi ha scritto, quindi premere «rispondi» recapita alla
+ * persona giusta — ma il MITTENTE lo decide la casella da cui si sta leggendo,
+ * e quello non lo scegliamo noi. Se l'avviso arriva SOLO alla copia personale,
+ * il gesto naturale fa partire la risposta dall'indirizzo privato di Mario
+ * verso un dirigente scolastico che ha scritto a kireo.it: esattamente il
+ * difetto per cui il 10/10/2026 è uscito il bottone «Rispondi» della coda.
+ *
+ * Fino a quel giorno `dirigenti` e `scuole` avevano la sola copia personale, e
+ * NON era una decisione: prima di questa tabella i destinatari erano un
+ * ternario (`origine === "enti" ? EMAIL_NOTIFICA_ENTI : EMAIL_NOTIFICA_INTERNA`),
+ * quindi i due indirizzi erano mutuamente esclusivi per costruzione — e
+ * `info@` si chiamava «l'indirizzo degli enti» perché nasceva con quel canale
+ * (27/07), due giorni dopo le landing (25/07), quando l'unica casella era
+ * quella personale. La tabella ha permesso più destinatari, /contatti ne ha
+ * presi due, e le due landing hanno ereditato il loro ramo del ternario
+ * invariato: una copia stantia nei DESTINATARI invece che nel testo.
+ *
+ * Così la copia personale torna a essere una copia — una notifica sul telefono,
+ * non il posto da cui si risponde. `npm run test:contatti` pretende questo
+ * invariante per ogni origine: è un appoggio dichiarato, non una fortuna.
+ *
  * `istitutoObbligatorio` è falso solo per /contatti: la colonna è nullable
  * dal 10/10/2026, e chi scrive da lì può essere uno studente che un istituto
  * non ce l'ha nel senso in cui lo intendono le landing. Il database dice «può
@@ -29,8 +52,8 @@ const EMAIL_PERSONALE = "mario.izzo@hotmail.it";
  * cose diverse, apposta.
  */
 const ORIGINI = {
-  dirigenti: { notifica: [EMAIL_PERSONALE], istitutoObbligatorio: true },
-  scuole: { notifica: [EMAIL_PERSONALE], istitutoObbligatorio: true },
+  dirigenti: { notifica: [EMAIL_PUBBLICA, EMAIL_PERSONALE], istitutoObbligatorio: true },
+  scuole: { notifica: [EMAIL_PUBBLICA, EMAIL_PERSONALE], istitutoObbligatorio: true },
   enti: { notifica: [EMAIL_PUBBLICA], istitutoObbligatorio: true },
   contatti: { notifica: [EMAIL_PUBBLICA, EMAIL_PERSONALE], istitutoObbligatorio: false },
 } as const;
@@ -198,13 +221,21 @@ export async function POST(request: NextRequest) {
     // /admin e senza copiare un indirizzo**, e la risposta parte dalla casella
     // da cui la si sta leggendo.
     //
-    // ⚠️ LO STESSO TRATTAMENTO PER LA COPIA PERSONALE, e la ragione è un
-    // fatto della tabella qui sopra, non una simmetria: per `dirigenti` e
-    // `scuole` la copia personale è l'UNICO destinatario [verificato in
-    // `ORIGINI`]. Escluderla vorrebbe dire che le due origini dei dirigenti
-    // scolastici sono le sole in cui rispondere non funziona — cioè il buco
-    // esattamente dove pesa di più. E una copia che si comporta diversamente
-    // dall'originale è una cosa in più da ricordare.
+    // ⚠️ LO `Reply-To` SISTEMA IL DESTINATARIO; IL MITTENTE LO DECIDE LA
+    // CASELLA IN CUI SI STA LEGGENDO, e quello non lo scegliamo noi. Quindi
+    // questo header è corretto su OGNI destinatario solo perché
+    // `EMAIL_PUBBLICA` è sempre fra loro [l'invariante è scritto sopra
+    // `ORIGINI` e lo pretende `npm run test:contatti`]: è un appoggio
+    // dichiarato, non una cosa che regge per fortuna. Se un giorno un'origine
+    // mandasse l'avviso solo alla copia personale, il gesto naturale farebbe
+    // partire la risposta dall'indirizzo privato — il difetto per cui il
+    // 10/10/2026 è uscito il bottone «Rispondi» della coda.
+    //
+    // La copia personale lo riceve uguale, ed è la scelta meno peggio delle
+    // due: senza, chi premesse «rispondi» su quella scriverebbe a
+    // `noreply@kireo.it` e il messaggio sparirebbe in silenzio. Il prodotto
+    // non può impedire una risposta dalla casella sbagliata; può garantire che
+    // quella giusta ce l'abbia sempre, e che una risposta non si perda.
     ...conf.notifica.map((destinatario) =>
       inviaEmail(destinatario, oggettoNotifica, corpoNotifica, { rispondiA: emailStr }),
     ),
