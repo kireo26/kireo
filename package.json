@@ -54,6 +54,7 @@
     "test:chiusura": "node scripts/verifica-chiusura-diretta.js",
     "test:tocco": "node scripts/verifica-tocco-domanda.js",
     "test:avvisoore": "node scripts/verifica-avviso-ore.js",
+    "test:exportdc": "node scripts/verifica-export-domande-consegne.js",
     "test:evento": "node scripts/verifica-evento-form.js",
     "test:pagine": "node scripts/verifica-pagine.js",
     "test:attivita": "node scripts/verifica-attivita.js",
