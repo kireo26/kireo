@@ -13,7 +13,6 @@ import LogoutButton from "@/components/LogoutButton";
 import { ETICHETTA_PIANO } from "@/lib/ente/pianoSuccessivo";
 import { getFiloneBySlug } from "@/data/filoniDocenti";
 import { formattaData, formattaDataOra } from "@/lib/formato";
-import { mailtoRisposta } from "@/lib/contatti/testi";
 
 export default async function AdminPage() {
   const { supabase, nome } = await requireAdmin();
@@ -393,8 +392,14 @@ export default async function AdminPage() {
 
       <section className="mt-12">
         <h2 className="py-0.5 font-heading text-xl font-semibold leading-[1.25] text-kireo-light">Richieste di contatto</h2>
+        {/* ⚠️ NON ENUMERA LE ORIGINI, e non per brevità: diceva «Dalle landing
+            del funnel scuole (/dirigenti, /scuole)» e dal 10/10/2026 le origini
+            sono quattro — /istituzioni e /contatti erano arrivate senza che
+            questa riga lo sapesse. Il badge di ogni riga dice la sua origine,
+            quindi qui non c'è niente da elencare: una frase che può tacere una
+            lista è la versione che non invecchia. */}
         <p className="mt-1 text-xs text-kireo-muted">
-          Dalle landing del funnel scuole (/dirigenti, /scuole) — sparisce dalla coda una volta segnata come gestita.
+          Ogni riga porta la propria origine — e sparisce dalla coda una volta segnata come gestita.
         </p>
         {!richiesteContatto || richiesteContatto.length === 0 ? (
           <p className="mt-4 text-sm text-kireo-muted">Nessuna richiesta da gestire.</p>
@@ -419,7 +424,6 @@ export default async function AdminPage() {
                         r.istituto
                           ? `${r.istituto}${r.codice_meccanografico ? ` (${r.codice_meccanografico})` : ""}`
                           : r.codice_meccanografico,
-                        r.email,
                         // Data E ORA: una coda di contatti è un elenco di
                         // lavoro, e in un elenco di lavoro QUANDO è parte
                         // dell'informazione — dice cosa è urgente, cosa è
@@ -432,25 +436,43 @@ export default async function AdminPage() {
                         .filter(Boolean)
                         .join(" · ")}
                     </p>
+                    {/* ⚠️ QUI C'ERA UN BOTTONE «RISPONDI», E SI RISPONDE
+                        DALL'EMAIL. Apriva un `mailto:`, cioè il programma di
+                        posta predefinito del computer — che sul Mac di Mario è
+                        configurato con il suo indirizzo personale. Quindi il
+                        bottone costruito per rispondere a nome di KIREO
+                        componeva un messaggio da un indirizzo privato verso un
+                        dirigente scolastico che aveva scritto a kireo.it: non
+                        scomodo, SBAGLIATO. E un `mailto:` non può scegliere il
+                        mittente — lo decide il programma di posta, non noi —
+                        quindi non è una cosa che si aggiusta con un parametro.
+                        La strada vera è il `Reply-To` sull'avviso che arriva a
+                        info@kireo.it (vedi `app/api/richiesta-contatto`): si
+                        risponde da dove si sta leggendo.
+
+                        ⚠️ E NON SI COSTRUISCE QUI UNA RISPOSTA DENTRO KIREO,
+                        che è l'altra tentazione di questo punto esatto. Un
+                        testo mandato da qui partirebbe da `noreply@`, quindi
+                        chi lo riceve non potrebbe rispondere a sua volta; o gli
+                        si mette un Reply-To, e allora la controrisposta arriva
+                        in casella, fuori da qui. In tutti e due i casi la coda
+                        mostrerebbe quello che abbiamo scritto noi e non quello
+                        che ci ha risposto lui — un archivio che mostra un lato
+                        solo di uno scambio è peggio di nessun archivio, perché
+                        chi lo apre non sa che manca qualcosa. Varrà la pena il
+                        giorno in cui la coda la gestisce qualcuno oltre a
+                        Mario: allora «chi ha risposto cosa» serve a due persone
+                        e diventa un dato.
+
+                        Qui resta l'indirizzo, `select-all` così un clic lo
+                        prende tutto: serve a chi dalla coda vuole scrivere da
+                        zero, e non fa partire niente da nessuna identità. */}
+                    <p className="mt-1 text-xs">
+                      <span className="text-kireo-muted">Ha scritto da </span>
+                      <span className="select-all text-kireo-light/90">{r.email}</span>
+                    </p>
                   </div>
-                  {/* Due gesti distinti, e ⚠️ «Rispondi» NON segna la riga come
-                      gestita: aprire una bozza non è averla mandata, e KIREO
-                      non può saperlo — segnarla sarebbe scrivere uno stato che
-                      non abbiamo osservato. «Gestita» resta quello che è: una
-                      persona che dichiara di aver chiuso la cosa. */}
                   <div className="flex flex-wrap items-center gap-2">
-                    <a
-                      href={mailtoRisposta({
-                        origine: r.origine,
-                        nome: r.nome,
-                        email: r.email,
-                        messaggio: r.messaggio,
-                        quando: formattaDataOra(r.created_at, "long"),
-                      })}
-                      className="rounded-full border border-kireo-green/50 px-4 py-2 text-sm font-semibold text-kireo-light transition hover:border-kireo-green hover:bg-kireo-green/10"
-                    >
-                      Rispondi
-                    </a>
                     <ToggleGestitaRichiesta id={r.id} gestita={false} />
                   </div>
                 </div>

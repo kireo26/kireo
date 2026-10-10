@@ -42,7 +42,7 @@
 const fs = require("fs");
 const path = require("path");
 const { senzaCommenti, senzaCommentiSql } = require("./lib/senza-commenti");
-const { ancora, fetta } = require("./lib/ancora");
+const { ancora } = require("./lib/ancora");
 const { abilitaTypeScript } = require("./banco/ts");
 
 const ROOT = path.join(__dirname, "..");
@@ -379,8 +379,8 @@ ok(/confermaInviata: esitoConferma\.ok/.test(route),
   "la route dice al modulo se la conferma è partita",
   "senza questo, la pagina non ha modo di sapere cosa affermare e torna ad affermare sempre");
 
-// ── 7) la coda: quando, e un modo per rispondere ───────────────────────────
-console.log("\n7) La coda dice a che ora, e da lì si può rispondere");
+// ── 7) la coda: quando, e l'indirizzo di chi ha scritto ────────────────────
+console.log("\n7) La coda dice a che ora, e porta l'indirizzo di chi ha scritto");
 
 const admin = leggi("app/admin/page.tsx");
 // La fetta della coda: dalla sua query al riquadro. L'àncora dichiara il
@@ -392,58 +392,58 @@ try {
 } catch (e) {
   ok(false, "la fetta della coda si legge", e.message);
 }
-// ⚠️ IL POSITIVO NON BASTA, e l'ha detto una controprova: `formattaDataOra`
-// compare DUE volte in questa fetta — nella riga della data e dentro il
-// `quando` del bottone «Rispondi» — quindi un `test()` che cerca solo quella
-// restava VERDE con la riga riportata a `formattaData`. Mode 6: un'àncora su
-// un nome condiviso misura l'occorrenza sbagliata. Si prova il DIVIETO
-// insieme al positivo.
+// ⚠️ IL POSITIVO DA SOLO NON BASTAVA, e l'ha detto una controprova:
+// `formattaDataOra` compariva DUE volte in questa fetta — nella riga della
+// data e dentro il `quando` del bottone «Rispondi» — quindi un `test()` che
+// cercava solo quella restava VERDE con la riga riportata a `formattaData`.
+// Mode 6: un'àncora su un nome condiviso misura l'occorrenza sbagliata.
+//
+// Il bottone è uscito l'11/10/2026, quindi OGGI l'occorrenza è una e il
+// positivo basterebbe. Il divieto resta perché costa niente e perché il giorno
+// in cui una seconda `formattaDataOra` rientra in questa fetta il positivo
+// torna insufficiente — e quel giorno nessuno si ricorderebbe di aggiungerlo.
 ok(coda !== null && /formattaDataOra\(r\.created_at/.test(coda) && !/formattaData\(r\.created_at/.test(coda),
   "la riga porta data E ora, e non la sola data",
   "in un elenco di lavoro QUANDO è parte dell'informazione: dice cosa è urgente, cosa è vecchio, " +
   "e se due righe sono la stessa persona che ha riprovato. Il 10/10/2026 due messaggi a undici minuti " +
   "di distanza dicevano la stessa data e dalla coda non si distinguevano");
-ok(coda !== null && /href=\{mailtoRisposta\(\{/.test(coda),
-  "…e c'è un «Rispondi» che apre il programma di posta già pronto",
-  "il gesto vero è rispondere: senza, lo si fa altrove copiando l'indirizzo a mano");
+ok(coda !== null && /select-all[^}]*\{r\.email\}/.test(coda),
+  "…e porta l'indirizzo di chi ha scritto, che un clic prende tutto",
+  "serve a chi dalla coda vuole scrivere da zero: `select-all` è `user-select: all`, " +
+  "cioè un clic seleziona l'elemento intero invece di una parola");
 
-// ⚠️ LA COSA CHE IL BOTTONE NON DEVE FARE. Aprire una bozza non è averla
-// mandata, e KIREO non può saperlo: segnare la riga come gestita sarebbe
-// scrivere uno stato che non abbiamo osservato — la specie di casa, in un
-// bottone nuovo, il giorno in cui lo scriviamo.
+// ⚠️ LA FORMA VIETATA, E NON SOLO SOSTITUITA. Il 10/10/2026 la coda aveva un
+// bottone «Rispondi» con un `mailto:` — misurato: apre il programma di posta
+// PREDEFINITO del computer, che sul Mac di Mario è configurato col suo
+// indirizzo personale. Quindi il bottone costruito per rispondere a nome di
+// KIREO componeva un messaggio da un indirizzo privato verso un dirigente
+// scolastico che aveva scritto a kireo.it. E un `mailto:` NON PUÒ scegliere il
+// mittente: lo decide il programma di posta, non noi.
 //
-// La fetta va dal `mailtoRisposta` alla CHIUSURA DEL SUO ELEMENTO, non a
-// un'etichetta: la prima stesura tagliava su «Rispondi\n», e cambiando quella
-// parola la fetta diventava un carattere — cioè il controllo era verde su
-// qualunque cosa. Se la chiusura non si trova, è rosso e lo dice, invece di
-// misurare un vuoto.
-let fettaRispondi = null;
-let perche = "";
-try {
-  // Fra l'`href` del «Rispondi» e il bottone «Gestita», che nel JSX gli sta
-  // subito dopo: le due àncore dichiarano il loro conto, quindi se una si
-  // sdoppia il controllo grida, e se qualcuno le inverte `fetta` dice che sono
-  // invertite invece di restituire un vuoto.
-  fettaRispondi = fetta(
-    coda ?? "",
-    { nome: "href={mailtoRisposta({", volte: 1, dove: "coda admin" },
-    { nome: "<ToggleGestitaRichiesta", volte: 1, dove: "coda admin" },
-  );
-} catch (e) {
-  perche = e.message;
-}
-ok(fettaRispondi !== null,
-  "l'elemento di «Rispondi» si legge dall'`href` fino al bottone «Gestita»",
-  `${perche}\n       senza la fetta, l'asserzione qui sotto guarderebbe un vuoto e sarebbe verde su niente`);
-ok(fettaRispondi !== null && !/gestita|Toggle|onClick|\.update\(/.test(fettaRispondi),
-  "«Rispondi» non segna la riga come gestita, e non scrive niente",
-  "restano due gesti distinti, e «gestita» resta quello che è: una persona che dichiara di aver chiuso la cosa");
+// Il divieto è su /admin e non su tutto il sito, perché su una pagina PUBBLICA
+// un `mailto:` è giusto — là chi legge scrive dal proprio indirizzo, ed è
+// quello che vogliamo (`/contatti` ne ha uno, legittimo). Qui chi legge siamo
+// noi, e rispondere da un indirizzo privato è l'identità sbagliata.
+//
+// Ci si torna per abitudine — è il gesto che sembra ovvio in una coda di
+// contatti — e il motivo per cui non va non si vede rileggendo il codice: si
+// vede guardando chi preme.
+//
+// `leggi` SPOGLIA I COMMENTI, e qui non è un dettaglio: il commento che in
+// /admin spiega perché un `mailto:` non va bene **cita `mailto:`**, cioè la
+// forma vietata — modo 1, la classe curata il 28/09 al lettore e non alla
+// singola asserzione. Senza lo spoglio, questa guardia sarebbe rossa proprio
+// sul file che ha fatto la cosa giusta e l'ha scritta.
+const adminIntero = leggi("app/admin/page.tsx");
+const mailtoInAdmin = [...adminIntero.matchAll(/mailto:?[^\s"'`}]*/g)].map((m) => m[0]);
+ok(mailtoInAdmin.length === 0,
+  "nessun `mailto:` in /admin: da qui non parte niente dall'identità sbagliata",
+  `${mailtoInAdmin.join(" · ")} — la strada per rispondere è il Reply-To sull'avviso che arriva a ` +
+  "info@kireo.it: si risponde da dove si sta leggendo. Un `mailto:` qui compone dal programma di " +
+  "posta di chi guarda, che non è quella casella");
 
-// Il mailto si prova come VALORE: una regex dice che la funzione è chiamata,
-// non che produce un link che un client di posta apre.
 abilitaTypeScript();
 const {
-  mailtoRisposta,
   COSA_E_ARRIVATO,
   confermaPerOrigine,
   promessaRisposta,
@@ -539,48 +539,13 @@ ok(senzaEmail.length === 0,
   `${senzaEmail.join(", ")} — e non si scusa: dal punto di vista di chi scrive non è successo ` +
   "niente di male. Le landing dicevano «Controlla anche la posta indesiderata», che PRESUPPONE " +
   "l'email: detta a chi non ha ricevuto niente, lo manda a cercare una cosa che non esiste");
-const link = mailtoRisposta({
-  origine: "contatti",
-  nome: "Mario Izzo",
-  email: "mario@esempio.it",
-  messaggio: "Prima riga\nSeconda riga",
-  quando: "10 ottobre 2026 alle 13:26",
-});
-ok(link.startsWith("mailto:mario%40esempio.it?"), "il mailto porta l'indirizzo di chi ha scritto");
-ok(decodeURIComponent(link).includes("Re: il tuo messaggio a KIREO"),
-  "…l'oggetto richiama quello che è arrivato (un messaggio, su /contatti)");
-ok(decodeURIComponent(mailtoRisposta({ origine: "dirigenti", nome: "x", email: "a@b.it", messaggio: "m", quando: "oggi" }))
-     .includes("Re: la tua richiesta a KIREO"),
-  "…e una richiesta, sulle landing");
-ok(decodeURIComponent(link).includes("> Prima riga\n> Seconda riga"),
-  "…e il testo originale è citato riga per riga");
-// ⚠️ LA PRIMA STESURA DI QUESTA ASSERZIONE ERA VACUA, e vale la pena che
-// resti scritto: diceva `indexOf("body=".length)`, cioè cercava la stringa
-// «5», che non c'è — quindi provava soltanto che «---» esistesse, non che lo
-// spazio vuoto venisse PRIMA. Un'asserzione che non può fallire per il motivo
-// che dichiara è peggio di una che manca, perché la si conta.
-const corpoDelLink = decodeURIComponent((link.match(/&body=(.*)$/) ?? [, ""])[1]);
-ok(corpoDelLink.startsWith("\n\n---"),
-  "…sotto lo spazio vuoto per scrivere",
-  `il corpo comincia con «${corpoDelLink.slice(0, 12).replace(/\n/g, "\\n")}»: senza righe vuote in testa, chi risponde scrive dentro la citazione`);
-// ⚠️ IL TRONCAMENTO SI DICE. Mezzo messaggio con l'aria di essere intero è la
-// specie di casa, e i client di posta tagliano un mailto lungo ognuno a modo
-// suo.
-const lungo = decodeURIComponent(
-  mailtoRisposta({ origine: "contatti", nome: "x", email: "a@b.it", messaggio: "a".repeat(3000), quando: "oggi" }),
-);
-ok(lungo.includes("la citazione è accorciata"),
-  "un messaggio troppo lungo dice di essere stato accorciato",
-  "un taglio silenzioso mette mezzo messaggio davanti a chi risponde con l'aria di essere tutto");
-ok(!decodeURIComponent(link).includes("accorciata"),
-  "…e un messaggio corto non lo dice");
-// ⚠️ LA NOTA LA LEGGE CHI RICEVE. Fino al 10/10/2026 diceva «il testo completo
-// è nella coda su /admin»: una frase scritta per Mario, recapitata a un
-// estraneo, che rimanda a un indirizzo che non può aprire. In un `mailto:` non
-// esiste la distinzione fra nota per chi compone e testo per chi riceve.
-ok(!/admin|coda/i.test(lungo),
-  "…e la nota non rimanda a una coda interna che chi legge non può aprire",
-  "tutto quello che si scrive in un `mailto:` parte: non c'è un posto per gli appunti");
+// (Qui c'erano otto asserzioni sul valore del `mailto:` del bottone
+// «Rispondi» — l'oggetto, la citazione riga per riga, lo spazio vuoto in
+// testa, il troncamento che si dichiara. Sono uscite il 10/10/2026 col
+// bottone: erano tutte vere, e provavano le proprietà di una cosa che partiva
+// dall'identità sbagliata. **Una guardia su una cosa tolta si toglie; quella
+// che impedisce alla cosa di tornare si tiene** — è il divieto di `mailto:` in
+// /admin, qui sopra.)
 ok(Object.keys(COSA_E_ARRIVATO).length === 4,
   `COSA_E_ARRIVATO copre le ${Object.keys(COSA_E_ARRIVATO).length} origini`);
 

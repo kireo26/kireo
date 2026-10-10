@@ -166,6 +166,30 @@ const rc = leggi("app/api/richiesta-contatto/route.ts");
 ok(/rispondiA: EMAIL_PUBBLICA/.test(rc),
   "la conferma di una richiesta di contatto porta un Reply-To",
   "senza, chi premesse «rispondi» per abitudine scriverebbe a `noreply@`");
+
+// ⚠️ E L'AVVISO INTERNO PORTA L'INDIRIZZO DI CHI HA SCRITTO, che è la metà da
+// cui dipende una risposta vera. L'11/10/2026 Mario ha letto in webmail
+// l'avviso «Nuovo messaggio da /contatti» e ha premuto «Rispondi»: il mittente
+// è `noreply@kireo.it`, quindi la sua risposta è andata a una casella muta. Il
+// `Reply-To` fa atterrare il gesto naturale su chi ha scritto, **senza passare
+// da /admin e senza copiare un indirizzo** — e si risponde dalla casella da cui
+// si sta leggendo, che è il punto: un `mailto:` in /admin comporrebbe invece
+// dal programma di posta di chi guarda (misurato: l'indirizzo personale).
+//
+// Il valore si prova sulla FETTA dell'avviso e non sul file: `rispondiA`
+// compare due volte nella route con due valori diversi — `EMAIL_PUBBLICA` sulla
+// conferma, l'indirizzo di chi scrive qui — e una regex sul file intero sarebbe
+// verde con i due scambiati, che è precisamente il difetto peggiore dei due
+// (una conferma con il Reply-To di chi l'ha ricevuta non serve a nessuno; un
+// avviso con `info@` rimanda a sé stesso).
+const iAvviso = ancora(rc, "conf.notifica.map", { volte: 1, dove: "route richiesta-contatto" });
+const avviso = rc.slice(iAvviso, iAvviso + 300);
+ok(/rispondiA: emailStr/.test(avviso),
+  "…e l'avviso interno porta come Reply-To l'indirizzo di chi ha scritto",
+  "senza, «Rispondi» su quell'avviso scrive a `noreply@kireo.it` e il messaggio sparisce: " +
+  "è successo l'11/10/2026, a Mario, sul primo messaggio vero");
+ok(!/EMAIL_PUBBLICA/.test(avviso),
+  "…e non il nostro, che rimanderebbe l'avviso a sé stesso");
 const brevo = leggi("lib/email/brevo.ts");
 ok(/replyTo: opzioni\.rispondiA \? \{ email: opzioni\.rispondiA \} : undefined/.test(brevo),
   "…e il client lo mette davvero nel corpo della richiesta a Brevo",

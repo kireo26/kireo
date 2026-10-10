@@ -68,9 +68,15 @@ const RIFIUTO_LIMITE: Record<Origine, string> = {
 
 // L'oggetto della conferma è un ramo, perché è la riga più letta dell'email e
 // risparmiare su un `if` lì sarebbe risparmiare nel punto in cui si decide se
-// aprire. La distinzione («richiesta» o «messaggio») sta in
-// `NOME_RICHIESTA`, un posto solo, perché la stessa serve anche all'oggetto
-// della risposta che Mario manda dalla coda.
+// aprire. La distinzione («richiesta» o «messaggio») sta in `COSA_E_ARRIVATO`,
+// un posto solo, perché la stessa serve all'oggetto della conferma, al titolo
+// che compare al posto del modulo e al pronome della promessa dei tempi.
+//
+// (Questo commento nominava `NOME_RICHIESTA`, una tabella che non è mai
+// esistita con quel nome, e la riga di prima citava un quarto consumatore
+// uscito il 10/10/2026 — l'oggetto della risposta dalla coda, che se ne è
+// andato col bottone «Rispondi». Due copie stantie in cinque righe, trovate di
+// passaggio: la specie di casa non chiede il permesso.)
 
 function erroreDiCortesia(testo: string, status: number) {
   return NextResponse.json({ errore: testo }, { status });
@@ -183,7 +189,25 @@ export async function POST(request: NextRequest) {
       // Vedi `OpzioniInvioEmail.rispondiA` — e la prova dal vivo che manca.
       { nome: nomeStr, rispondiA: EMAIL_PUBBLICA },
     ),
-    ...conf.notifica.map((destinatario) => inviaEmail(destinatario, oggettoNotifica, corpoNotifica)),
+    // ⚠️ IL `Reply-To` DELL'AVVISO È L'INDIRIZZO DI CHI HA SCRITTO, e non è una
+    // rifinitura: è la strada per cui una risposta parte. Il 10/10/2026 Mario
+    // ha letto in webmail l'avviso «Nuovo messaggio da /contatti» e ha premuto
+    // «Rispondi»: il mittente è `noreply@kireo.it`, quindi la sua risposta è
+    // andata a una casella muta. Con questo header il gesto naturale — apri,
+    // rispondi, scrivi, manda — arriva a chi ha scritto, **senza passare da
+    // /admin e senza copiare un indirizzo**, e la risposta parte dalla casella
+    // da cui la si sta leggendo.
+    //
+    // ⚠️ LO STESSO TRATTAMENTO PER LA COPIA PERSONALE, e la ragione è un
+    // fatto della tabella qui sopra, non una simmetria: per `dirigenti` e
+    // `scuole` la copia personale è l'UNICO destinatario [verificato in
+    // `ORIGINI`]. Escluderla vorrebbe dire che le due origini dei dirigenti
+    // scolastici sono le sole in cui rispondere non funziona — cioè il buco
+    // esattamente dove pesa di più. E una copia che si comporta diversamente
+    // dall'originale è una cosa in più da ricordare.
+    ...conf.notifica.map((destinatario) =>
+      inviaEmail(destinatario, oggettoNotifica, corpoNotifica, { rispondiA: emailStr }),
+    ),
   ]);
 
   // ⚠️ UN INVIO FALLITO LASCIA UNA RIGA, e non è una rifinitura. Il

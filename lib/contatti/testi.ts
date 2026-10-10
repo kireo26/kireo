@@ -23,13 +23,15 @@ export type OrigineContatto = "dirigenti" | "scuole" | "enti" | "contatti";
  * RICHIESTA. Chi ha chiesto una bozza di convenzione ha fatto una richiesta;
  * chi ha scritto dal modulo ha scritto un messaggio.
  *
- * ⚠️ UNA TABELLA SOLA PER UN FATTO SOLO. La stessa distinzione serve in
- * QUATTRO punti — l'oggetto dell'email di conferma, l'oggetto della risposta
- * che Mario manda dalla coda, il titolo della conferma a schermo e il PRONOME
- * con cui la promessa dei tempi riprende la cosa — e quattro tabelle con la
- * stessa distinzione dentro sono quattro copie: divergono, è solo questione di
- * quando. Keyed sull'unione esatta, così una quinta origine deve dichiarare i
- * propri tre campi invece di prendere quelli di default.
+ * ⚠️ UNA TABELLA SOLA PER UN FATTO SOLO. La stessa distinzione serve in TRE
+ * punti — l'oggetto dell'email di conferma, il titolo della conferma a schermo
+ * e il PRONOME con cui la promessa dei tempi riprende la cosa — e tre tabelle
+ * con la stessa distinzione dentro sono tre copie: divergono, è solo questione
+ * di quando. Keyed sull'unione esatta, così una quinta origine deve dichiarare
+ * i propri tre campi invece di prendere quelli di default.
+ *
+ * (Erano quattro: il quarto era l'oggetto della risposta che Mario mandava dal
+ * bottone «Rispondi» della coda, uscito il 10/10/2026 insieme al bottone.)
  *
  * ⚠️ `pronome` esiste perché la promessa è UNA e il pronome con cui comincia
  * non può esserlo: «Lo leggiamo» dopo «Messaggio inviato» va, dopo «Richiesta
@@ -52,56 +54,33 @@ export function oggettoConferma(origine: OrigineContatto): string {
   return `Abbiamo ricevuto ${COSA_E_ARRIVATO[origine].nome} — KIREO`;
 }
 
-/**
- * Il `mailto:` del bottone «Rispondi» nella coda admin: destinatario, oggetto
- * che richiama il messaggio, e il testo originale citato sotto con lo spazio
- * vuoto sopra per scrivere.
+/*
+ * ⚠️ QUI C'ERA `mailtoRisposta`, IL `mailto:` DEL BOTTONE «RISPONDI» DELLA CODA
+ * ADMIN, ed è uscita il 10/10/2026 — il giorno dopo essere stata scritta,
+ * misurando come Mario lavora davvero invece di come avevamo immaginato.
  *
- * ⚠️ PERCHÉ UN `mailto:` E NON UNA RISPOSTA DENTRO KIREO. Un testo scritto da
- * qui partirebbe da `noreply@`, quindi chi lo riceve non potrebbe rispondere a
- * sua volta; o gli si mette un Reply-To, e allora la sua controrisposta
- * arriva in casella, fuori da qui. In tutti e due i casi la coda mostrerebbe
- * quello che abbiamo scritto noi e non quello che ci ha risposto lui: un
- * registro che sembra una conversazione e ne contiene metà. Un archivio che
- * mostra un lato solo di uno scambio è peggio di nessun archivio, perché chi
- * lo apre non sa che manca qualcosa. Così invece lo scambio intero —
- * richiesta, risposta, controrisposta — vive nella casella, in un posto solo.
+ * Un `mailto:` apre il programma di posta PREDEFINITO del computer, e quello
+ * del Mac di Mario è configurato con il suo indirizzo personale: il bottone
+ * costruito per rispondere a nome di KIREO componeva un messaggio da un
+ * indirizzo privato verso un dirigente scolastico che aveva scritto a
+ * kireo.it. **E un `mailto:` non può scegliere il mittente**: lo decide il
+ * programma di posta, non noi — quindi non è un difetto che si aggiusta
+ * aggiungendo un parametro.
  *
- * ⚠️ QUANDO VARRÀ LA PENA COSTRUIRLA DENTRO: il giorno in cui la coda la
- * gestisce qualcuno oltre a Mario. Allora «chi ha risposto cosa» serve a due
- * persone e diventa un dato. Scritto qui perché la decisione di oggi non
- * sembri una dimenticanza fra sei mesi.
+ * Nessuna guardia poteva prenderlo: non è un difetto del codice, è un difetto
+ * del modello che avevamo dell'utente. Avevamo assunto che chi apre la coda
+ * abbia `info@kireo.it` nel proprio programma di posta; lui quella casella la
+ * legge da webmail, nel browser. L'assunzione non era nemmeno nominata, quindi
+ * non c'era niente da verificare.
+ *
+ * La strada vera è il `Reply-To` sull'avviso che arriva a `info@kireo.it`
+ * (`app/api/richiesta-contatto/route.ts`): si risponde da dove si sta
+ * leggendo, senza passare da /admin e senza copiare niente. Nella coda resta
+ * l'indirizzo di chi ha scritto, `select-all`, per chi vuole scrivere da zero.
+ *
+ * Non si riscrive. Se un giorno servisse un gesto di risposta dalla coda, la
+ * domanda da fare PRIMA è da quale casella parte quello che manda.
  */
-export function mailtoRisposta(r: {
-  origine: string;
-  nome: string;
-  email: string;
-  messaggio: string;
-  quando: string;
-}): string {
-  // ⚠️ IL MESSAGGIO CITATO SI TRONCA DICENDOLO. Un `mailto:` lunghissimo lo
-  // troncano i client di posta, ognuno a modo suo: mezzo messaggio davanti a
-  // chi risponde, con l'aria di essere intero, è la specie di casa. Qui si
-  // taglia a una misura che sta in piedi ovunque e si DICE che è tagliato.
-  //
-  // ⚠️ E LA NOTA DEL TRONCAMENTO LA LEGGE CHI RICEVE, NON CHI COMPONE. Fino al
-  // 10/10/2026 diceva «il testo completo è nella coda su /admin»: una frase
-  // scritta per Mario, recapitata a un estraneo, con un riferimento a una
-  // coda interna e a un indirizzo che non può aprire. **In un `mailto:` non
-  // esiste la distinzione fra nota per chi compone e testo per chi riceve:
-  // tutto quello che ci scrivi parte.** La riga nuova va bene per tutti e due
-  // — innocua se Mario la lascia, e lui sa dove sta il testo intero.
-  const MAX_CITATO = 1200;
-  const troncato = r.messaggio.length > MAX_CITATO;
-  const citato = (troncato ? r.messaggio.slice(0, MAX_CITATO) : r.messaggio)
-    .split("\n")
-    .map((riga) => `> ${riga}`)
-    .join("\n");
-  const coda = troncato ? "\n>\n> […] (qui la citazione è accorciata)" : "";
-  const corpo = `\n\n---\nIl ${r.quando} ${r.nome} ha scritto:\n\n${citato}${coda}\n`;
-  const oggetto = `Re: ${COSA_E_ARRIVATO[r.origine as OrigineContatto]?.nome ?? "la tua richiesta"} a KIREO`;
-  return `mailto:${encodeURIComponent(r.email)}?subject=${encodeURIComponent(oggetto)}&body=${encodeURIComponent(corpo)}`;
-}
 
 /**
  * LA FINESTRA DEI TEMPI: l'unico pezzo che deve essere identico in tutti e
