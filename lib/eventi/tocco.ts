@@ -35,14 +35,35 @@ export type StatoDomanda = "nuova" | "letta" | "risposta_live";
  * qualcuno la tolga credendola ridondante.
  */
 const COSA: Record<Exclude<StatoDomanda, "nuova">, string> = {
-  letta: "letta",
-  risposta_live: "risposta",
+  letta: "Letta",
+  risposta_live: "Risposta in diretta",
 };
 
+// «dall'organizzatore» e non «dall'ente»: è la parola di Mario, e nomina il
+// ruolo invece della relazione con chi legge — questa riga la leggono tutti e
+// due i moderatori, quindi «l'hai letta tu» sarebbe falsa per uno dei due.
 const DA: Record<ToccoDaTipo, string> = {
   kireo: "da KIREO",
-  ente: "dall'ente",
+  ente: "dall'organizzatore",
 };
+
+/**
+ * ⚠️ IL TESTO DELLA QUINTA, e non è «sconosciuto»: una riga toccata prima
+ * dell'11/10/2026 ha uno stato e non un autore, perché allora non lo
+ * scrivevamo. «Sconosciuto» suona come un dato mancante per errore; «autore non
+ * registrato» dice il fatto — all'epoca quella cosa non si registrava.
+ *
+ * Tiene la STESSA POSIZIONE delle altre quattro (etichetta, poi chi e quando) e
+ * al posto di chi e quando mette la verità, così nessuno la scambia per una di
+ * loro.
+ *
+ * ⚠️ E QUESTA VARIANTE HA UNA SCADENZA: le righe senza autore sono poche e non
+ * cresceranno più. Fra un anno, se nel frattempo le domande di prima
+ * dell'11/10/2026 sono sparite, questo ramo si può togliere — e sta scritto qui
+ * perché altrimenti resta per sempre un ramo che nessuno sa perché c'è
+ * (l'ombra di un ternario, scritta da noi oggi).
+ */
+const SENZA_AUTORE = "autore non registrato";
 
 /**
  * La riga del tocco, o `null` quando non c'è niente da dire.
@@ -50,12 +71,15 @@ const DA: Record<ToccoDaTipo, string> = {
  * I CINQUE CASI, e il quinto è la ragione per cui questa funzione esiste
  * invece di un'interpolazione:
  *
- *   1-4. stato × parte: «letta da KIREO», «letta dall'ente», «risposta da
- *        KIREO», «risposta dall'ente» — con l'ora.
- *     5. STATO AVANZATO SENZA AUTORE. Una domanda toccata prima dell'11/10/2026
- *        ha `stato = 'letta'` e `stato_da_tipo` nullo, perché allora non si
- *        registrava. Si dice quello che si sa («letta») e non si inventa una
- *        parte: la stessa scelta della traccia di chiusura.
+ *   1-4. stato × parte: «Letta da KIREO · 19:14», «Letta dall'organizzatore ·
+ *        19:14», «Risposta in diretta da KIREO · 19:16», «Risposta in diretta
+ *        dall'organizzatore · 19:16».
+ *     5. STATO AVANZATO SENZA AUTORE → «Letta · autore non registrato». Una
+ *        domanda toccata prima dell'11/10/2026 ha `stato = 'letta'` e
+ *        `stato_da_tipo` nullo, perché allora non si registrava — e dire solo
+ *        «Letta» la farebbe leggere come le altre quattro, mentre è una riga di
+ *        cui non sappiamo niente. Vedi `SENZA_AUTORE` per il testo e la sua
+ *        scadenza.
  *
  * Su una domanda `nuova` torna `null`: non c'è nessuna transizione da
  * descrivere, e una riga che dicesse qualcosa lì sarebbe una riga su un fatto
@@ -80,10 +104,13 @@ export function rigaTocco(
   // `select` non lo sa): uno che non riconosciamo vale come assente — meglio
   // «letta» che «letta da» una parte che non sappiamo nominare.
   const parte = domanda.stato_da_tipo === "kireo" || domanda.stato_da_tipo === "ente" ? DA[domanda.stato_da_tipo] : null;
-  if (!domanda.stato_il || !parte) return cosa;
+  if (!domanda.stato_il || !parte) return `${cosa} · ${SENZA_AUTORE}`;
 
+  // L'ora da sola quando il tocco è di oggi: il «·» fa già da separatore, e
+  // «alle» dentro una riga che è già fatta di pezzi separati è una parola in
+  // più. La data compare per intero quando il giorno non è questo.
   const quando = stessoGiornoItaliano(domanda.stato_il, adesso)
-    ? `alle ${formattaOra(domanda.stato_il)}`
+    ? formattaOra(domanda.stato_il)
     : formattaDataOra(domanda.stato_il, "long");
-  return `${cosa} ${parte} ${quando}`;
+  return `${cosa} ${parte} · ${quando}`;
 }

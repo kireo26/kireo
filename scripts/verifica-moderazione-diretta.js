@@ -62,7 +62,14 @@ function caricaModulo(rel, risolvi) {
 const formato = caricaModulo("lib/formato.ts", () => {
   throw new Error("lib/formato.ts non deve importare niente");
 });
-const { rigaFreschezza, SECONDI_FRESCO } = caricaModulo("lib/eventi/freschezza.ts", (nome) => {
+const {
+  rigaFreschezza,
+  numeroStantio,
+  SECONDI_FRESCO,
+  FALLITI_PRIMA_DI_STANTIO,
+  SECONDI_STANTIO,
+  NUMERO_NON_AGGIORNATO,
+} = caricaModulo("lib/eventi/freschezza.ts", (nome) => {
   if (nome === "@/lib/formato") return formato;
   throw new Error(`import non previsto: ${nome}`);
 });
@@ -74,28 +81,42 @@ const dopo = (secondi) => new Date(QUANDO.getTime() + secondi * 1000);
 console.log("\n§1 — la freschezza dice quando, e dice quando non lo sa\n");
 
 {
-  const fresco = rigaFreschezza({ quando: QUANDO, fallito: false }, dopo(3));
-  const vecchio = rigaFreschezza({ quando: QUANDO, fallito: false }, dopo(90));
-  const rotto = rigaFreschezza({ quando: QUANDO, fallito: true }, dopo(130));
-  const vuoto = rigaFreschezza({ quando: null, fallito: false }, dopo(3));
-  const vuotoRotto = rigaFreschezza({ quando: null, fallito: true }, dopo(3));
+  const fresco = rigaFreschezza({ quando: QUANDO, falliti: 0 }, dopo(3));
+  const vecchio = rigaFreschezza({ quando: QUANDO, falliti: 0 }, dopo(90));
+  const rotto = rigaFreschezza({ quando: QUANDO, falliti: 1 }, dopo(130));
+  const vuoto = rigaFreschezza({ quando: null, falliti: 0 }, dopo(3));
+  const vuotoRotto = rigaFreschezza({ quando: null, falliti: 1 }, dopo(3));
 
   ok(new Set([fresco, vecchio, rotto, vuoto, vuotoRotto]).size === 5, "i cinque casi sono cinque testi diversi");
-  ok(fresco === "Aggiornato alle 19:07.", "appena arrivato: l'ora, senza un'età che cambia sotto gli occhi", fresco);
-  ok(vecchio.includes("19:07") && vecchio.includes("1 minuto fa"), "qualche tempo fa: l'ora E l'età", vecchio);
+  // ⚠️ I QUATTRO TESTI SONO DI MARIO, PAROLA PER PAROLA. Il primo non dice
+  // l'ora: «Aggiornato alle 19:07» quando sono le 19:07 è una precisione che
+  // non serve a nessuno.
+  ok(fresco === "Aggiornato adesso.", "appena arrivato: «adesso», senza un orologio che non serve", fresco);
+  ok(vecchio === "Aggiornato alle 19:07, 1 minuto fa.", "qualche tempo fa: l'ora E l'età", vecchio);
   // ⚠️ LA PROPRIETÀ PER CUI ESISTE: un giro fallito non lascia i numeri a
   // sembrare freschi.
-  ok(rotto.includes("non è andato a buon fine"), "ultimo giro fallito: lo dice", rotto);
-  ok(rotto.includes("2 minuti fa"), "e dice di quanto sono vecchi i numeri a schermo", rotto);
+  ok(
+    rotto === "⚠ L'ultimo aggiornamento non è riuscito. Questi numeri sono delle 19:07, 2 minuti fa.",
+    "ultimo giro fallito: lo dice, con l'ora e l'età",
+    rotto,
+  );
   ok(rotto.includes("⚠"), "e si distingue a vista da una riga normale", rotto);
+  ok(!/non è andato a buon fine/.test(rotto), "«non è riuscito»: più corto, stessa cosa", rotto);
   ok(vuoto === "In attesa dei dati…", "niente ancora arrivato: lo dice invece di tacere", vuoto);
   ok(
     vuotoRotto.includes("non c'è ancora niente da mostrare"),
     "e se il primo giro è fallito, dice che non c'è niente — non «aggiornato»",
     vuotoRotto,
   );
-  // L'ora è quella di Roma: 17:07 UTC sono le 19:07. È l'unica asserzione di
-  // questo file che vede la zona.
+  // ⚠️ L'ORA E L'ETÀ STANNO INSIEME in tutti e due i casi che hanno un dato:
+  // servono a due domande diverse — l'ora per capire cosa è successo nel
+  // frattempo, il «due minuti fa» per decidere se fidarsi.
+  for (const [nome, riga] of [
+    ["aggiornato", vecchio],
+    ["fallito", rotto],
+  ]) {
+    ok(/19:07/.test(riga) && /\bfa\./.test(riga), `${nome}: l'ora e l'età, non una delle due`, riga);
+  }
   ok(!fresco.includes("17:07"), "l'ora è quella di Roma, non UTC", fresco);
 }
 
@@ -103,17 +124,98 @@ console.log("\n§1 — la freschezza dice quando, e dice quando non lo sa\n");
   // Il confine della freschezza, provato al bordo: una soglia che nessuno
   // prova al bordo è una soglia che nessuno sa dove sia.
   ok(SECONDI_FRESCO === 20, "la soglia è 20 secondi (il poll gira ogni 15)");
-  ok(!rigaFreschezza({ quando: QUANDO, fallito: false }, dopo(20)).includes("fa"), "a 20 secondi esatti: ancora «adesso»");
-  ok(rigaFreschezza({ quando: QUANDO, fallito: false }, dopo(21)).includes("fa"), "a 21: compare l'età");
+  ok(!rigaFreschezza({ quando: QUANDO, falliti: 0 }, dopo(20)).includes("fa"), "a 20 secondi esatti: ancora «adesso»");
+  ok(rigaFreschezza({ quando: QUANDO, falliti: 0 }, dopo(21)).includes("fa"), "a 21: compare l'età");
   // Gli accordi: l'uno capita, ed è il difetto dei plurali del 4/10.
-  ok(rigaFreschezza({ quando: QUANDO, fallito: true }, dopo(1)).includes("1 secondo fa"), "«1 secondo» al singolare");
-  ok(rigaFreschezza({ quando: QUANDO, fallito: true }, dopo(60)).includes("1 minuto fa"), "«1 minuto» al singolare");
-  ok(rigaFreschezza({ quando: QUANDO, fallito: true }, dopo(120)).includes("2 minuti fa"), "«2 minuti» al plurale");
-  ok(rigaFreschezza({ quando: QUANDO, fallito: true }, dopo(2)).includes("2 secondi fa"), "«2 secondi» al plurale");
+  ok(rigaFreschezza({ quando: QUANDO, falliti: 1 }, dopo(1)).includes("1 secondo fa"), "«1 secondo» al singolare");
+  ok(rigaFreschezza({ quando: QUANDO, falliti: 1 }, dopo(60)).includes("1 minuto fa"), "«1 minuto» al singolare");
+  ok(rigaFreschezza({ quando: QUANDO, falliti: 1 }, dopo(120)).includes("2 minuti fa"), "«2 minuti» al plurale");
+  ok(rigaFreschezza({ quando: QUANDO, falliti: 1 }, dopo(2)).includes("2 secondi fa"), "«2 secondi» al plurale");
   // Un'orologio del browser spostato indietro fra due letture non produce
   // «aggiornato fra 3 secondi».
-  const negativo = rigaFreschezza({ quando: QUANDO, fallito: false }, dopo(-5));
+  const negativo = rigaFreschezza({ quando: QUANDO, falliti: 0 }, dopo(-5));
   ok(!negativo.includes("-"), "un'età negativa non si stampa", negativo);
+}
+
+console.log("\n§1bis — oltre una soglia il NUMERO si degrada\n");
+
+// ⚠️ LA CORREZIONE DI MARIO DELL'11/10, e vale più dei testi: «un moderatore
+// che guarda lo schermo per due secondi, in mezzo a una diretta, legge
+// "Presenti: 12". Non legge la riga sopra. Dopo qualche tentativo fallito di
+// fila, non basta avvisare accanto al numero: deve cambiare il numero».
+//
+// La riga di freschezza resta e non basta: l'unica cosa che la freschezza deve
+// impedire è che a colpo d'occhio un numero vecchio somigli a uno fresco.
+{
+  ok(FALLITI_PRIMA_DI_STANTIO === 3, "tre giri falliti di fila (il poll gira ogni 15 secondi: 45 secondi)");
+  ok(FALLITI_PRIMA_DI_STANTIO * 15 < 60, "cioè sotto il minuto che Mario ha fissato come limite");
+  ok(FALLITI_PRIMA_DI_STANTIO > 1, "e più di uno: un giro fallito è rumore di rete, e non deve far lampeggiare niente");
+
+  // Il confine sui fallimenti, provato al bordo.
+  ok(!numeroStantio({ quando: QUANDO, falliti: 2 }, dopo(30)), "a due falliti il numero regge ancora");
+  ok(numeroStantio({ quando: QUANDO, falliti: 3 }, dopo(45)), "al terzo si degrada");
+
+  // ⚠️ LA SECONDA STRADA, E NON È PRUDENZA GENERICA: una `fetch` può restare
+  // APPESA — nessun errore, nessuna risoluzione — e allora `falliti` resta 0
+  // mentre l'età cresce senza limite. È lo stesso caso per cui l'orologio ha un
+  // intervallo suo (§2), e un degrado basato sui soli fallimenti lo
+  // mancherebbe: la riga direbbe «2 minuti fa» accanto a un numero che sembra
+  // appena arrivato.
+  ok(SECONDI_STANTIO === 60, "oltre un minuto si degrada comunque, anche con zero fallimenti");
+  ok(!numeroStantio({ quando: QUANDO, falliti: 0 }, dopo(SECONDI_STANTIO - 1)), "a 59 secondi senza errori: regge");
+  ok(numeroStantio({ quando: QUANDO, falliti: 0 }, dopo(SECONDI_STANTIO)), "a 60: si degrada, perché il poll non sta tornando");
+
+  // Niente da degradare quando non c'è nessun numero: il componente mostra «…»
+  // e la riga dice che si è in attesa.
+  ok(!numeroStantio({ quando: null, falliti: 9 }, dopo(300)), "senza nessun dato non c'è niente da degradare");
+  // Un successo azzera: il numero appena arrivato è fresco qualunque cosa sia
+  // successa prima.
+  ok(!numeroStantio({ quando: dopo(300), falliti: 0 }, dopo(301)), "un successo azzera il conto: il dato nuovo è fresco");
+}
+
+{
+  const src = leggi("components/ente/ControlloDirettaEvento.tsx");
+  ok(src.includes("numeroStantio(freschezza, ora)"), "il componente chiede il degrado alla funzione invece di deciderlo da sé");
+  ok(src.split("numeroStantio(").length - 1 === 1, "e la chiama UNA volta sola: due chiamate sarebbero due copie della stessa decisione");
+  ok(/const stantio = numeroStantio/.test(src), "in un valore, non dentro il JSX");
+
+  // ⚠️ IL DATO NON SI DISTRUGGE: era vero, alle 19:07. Il numero resta
+  // leggibile e cambia ASPETTO — il ternario sta sulla classe, non sul
+  // contenuto. Un trattino al suo posto chiuderebbe il difetto buttando via
+  // l'informazione.
+  ok(/className=\{stantio \?/.test(src), "il degrado è sull'aspetto del numero");
+  ok(/\{presenti \?\? "…"\}/.test(src), "e il numero resta: era vero, alla sua ora");
+  ok(src.split('{presenti ?? "…"}').length - 1 === 1, "reso una volta sola: due rami sarebbero due copie");
+  ok(/line-through/.test(src), "barrato, perché a colpo d'occhio non somigli a uno fresco");
+
+  // ⚠️ E IL BARRATO NON ARRIVA A TUTTI: una linea sopra una cifra non la vede
+  // chi usa un lettore di schermo, e per quella persona il numero resterebbe
+  // identico a uno fresco — cioè il difetto, per lei, non sarebbe chiuso.
+  ok(
+    src.split("NUMERO_NON_AGGIORNATO").length - 1 === 2,
+    "il degrado ha anche un testo, per chi non vede il barrato (l'import PIÙ l'uso: il solo import non lo rende)",
+  );
+  ok(/sr-only/.test(src), "reso solo per il lettore di schermo");
+  // Le due posizioni con il conto dichiarato: un `indexOf` grezzo misura la
+  // prima occorrenza qualunque essa sia, e qui `NUMERO_NON_AGGIORNATO` ne ha
+  // due (l'import e l'uso) — è esattamente il caso in cui un'àncora grezza
+  // guarda quella sbagliata.
+  const dove = (nome, opzioni) => {
+    try {
+      return ancora(src, nome, opzioni);
+    } catch (e) {
+      ok(false, `l'àncora «${nome}» non è ambigua`, e.message);
+      return -1;
+    }
+  };
+  const i = dove('{presenti ?? "…"}', { dove: "il numero dei presenti" });
+  const j = dove("NUMERO_NON_AGGIORNATO", { volte: 2, quale: 1, dove: "l'uso accanto al numero, non l'import" });
+  ok(i >= 0 && j > i, "e ACCANTO al numero, non al posto suo");
+  ok(NUMERO_NON_AGGIORNATO === "(non aggiornato)", "«(non aggiornato)»", NUMERO_NON_AGGIORNATO);
+
+  // La riga di freschezza si accende anche sulla strada dell'età: senza, il
+  // numero sarebbe barrato e la riga sotto muta.
+  ok(/freschezza\.falliti > 0 \|\| stantio/.test(src), "e la riga accanto si accende su tutte e due le strade");
 }
 
 console.log("\n§2 — due orologi, e due intervalli\n");
@@ -152,8 +254,8 @@ console.log("\n§3 — basta una lettura fallita su tre\n");
   const src = leggi("components/ente/ControlloDirettaEvento.tsx");
   ok(/const andata = !e\w+ && !e\w+ && !erroreEv;/.test(src), "il giro è «andato» solo se TUTTE E TRE le letture sono arrivate");
   ok(
-    /catch \(e\) \{[\s\S]{0,300}setFreschezza\(\(f\) => \(\{ quando: f\.quando, fallito: true \}\)\)/.test(src),
-    "e un rigetto (una fetch che non arriva, non un errore restituito) marca il giro come fallito",
+    /catch \(e\) \{[\s\S]{0,300}setFreschezza\(\(f\) => \(\{ quando: f\.quando, falliti: f\.falliti \+ 1 \}\)\)/.test(src),
+    "e un rigetto (una fetch che non arriva, non un errore restituito) conta come un giro fallito",
   );
   // ⚠️ IL `try` DEVE COMPRENDERE LE TRE LETTURE: `Promise.all` rigetta quando
   // una qualunque lancia, e fuori da un try quel caso lascia la freschezza a
@@ -180,7 +282,7 @@ console.log("\n§3 — basta una lettura fallita su tre\n");
   // Un fallimento non azzera `quando`: dire «non c'è niente» su dei numeri che
   // ci sono (vecchi) è l'altra metà della stessa bugia.
   ok(
-    !/fallito: true, quando: null/.test(src) && !/quando: null, fallito: true/.test(src),
+    !/falliti: f\.falliti \+ 1, quando: null/.test(src) && !/quando: null, falliti: f\.falliti/.test(src),
     "un fallimento non azzera l'ora dell'ultimo dato buono",
   );
 }

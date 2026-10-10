@@ -134,7 +134,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           ),
       seNonCeNiente: erroreDomande
         ? "Non è stato possibile leggere le domande: questa sezione manca per un problema nostro, non perché non ce ne fossero."
-        : "Nessuno ha fatto domande durante questa diretta.",
+        : "Nessuno ha fatto domande durante la diretta.",
     },
     {
       titolo: "Risposte alla domanda finale (anonime)",
@@ -153,8 +153,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       seNonCeNiente: erroreConsegne
         ? "Non è stato possibile leggere le risposte: questa sezione manca per un problema nostro, non perché non ce ne fossero."
         : evento.domanda_consegna
-          ? "Nessuno ha risposto alla domanda finale."
-          : "Per questo incontro non è stata posta nessuna domanda finale, quindi non c'era niente a cui rispondere.",
+          ? "La domanda finale è stata posta, e nessuno ha risposto."
+          : "Per questo incontro non è stata posta nessuna domanda finale, quindi non ci sono risposte.",
     },
   ];
 

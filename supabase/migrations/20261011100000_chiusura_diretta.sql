@@ -18,9 +18,10 @@
 --   2. Due moderatori (KIREO e l'ente) non vedono il gesto l'uno dell'altro.
 --   3. Nessuno, a posteriori, può dire se una diretta è stata chiusa.
 --
--- COSA FA QUESTA MIGRAZIONE: tre colonne (quando, da chi, da che parte), la
--- chiusura che diventa IDEMPOTENTE E LO DICE, e la scrittura della traccia che
--- fa da lucchetto. Nessun dato trasformato: le colonne nascono nulle su tutti
+-- COSA FA QUESTA MIGRAZIONE: cinque colonne (quando, da chi, da che parte, e i
+-- due numeri della ricevuta), la chiusura che diventa IDEMPOTENTE E LO DICE, e
+-- la scrittura della traccia che fa da lucchetto. Nessun dato trasformato: le
+-- colonne nascono nulle su tutti
 -- gli eventi esistenti, e una diretta già chiusa prima di oggi resta
 -- indistinguibile da una non chiusa — non si prova a indovinarlo a posteriori
 -- (le certificazioni `sistema` ci sono, ma non dicono chi premette né quando
@@ -46,12 +47,31 @@
 -- Chi ci tornerà ha quindi bisogno di tutte e due le cose: una chiusura
 -- anticipata ammessa (con il suo pavimento) **e** questa traccia. Oggi c'è la
 -- seconda.
+--
+-- ⚠️⚠️ QUESTO FILE È STATO RISCRITTO L'11/10 DOPO LA PRIMA STESURA, per
+-- aggiungere i due conteggi della RICEVUTA (correzione di Mario). **Si
+-- rilancia**: ogni istruzione è guardata (`add column if not exists`, `drop
+-- constraint if exists`, `drop policy if exists`, `drop function if exists`),
+-- quindi se la prima versione è già stata applicata basta rieseguirlo tutto.
+--
+-- ⚠️ PERCHÉ I DUE NUMERI SI SCRIVONO INVECE DI RIDERIVARLI, e non è una
+-- preferenza: `certificati` NON è stabile a posteriori. `certifica_presenza` è
+-- un upsert INCONDIZIONATO, quindi una certificazione manuale della scuola può
+-- sovrascrivere una riga `certificata_da_tipo='sistema'` — e allora un conteggio
+-- rifatto oggi sarebbe PIÙ BASSO di quello che la chiusura ha prodotto. Una
+-- ricevuta che cambia da sola non è una ricevuta.
+--   (E la strada del conteggio al volo non era comunque aperta: `presenze_live`
+--   non ha nessuna policy di lettura per l'organizzatore — di proposito, vedi
+--   `20260726110000` — quindi una `select count(*)` dalla sessione dell'ente
+--   avrebbe risposto **zero**, cioè un numero falso in silenzio.)
 
--- ============ 1) le tre colonne ============
+-- ============ 1) le cinque colonne ============
 alter table public.eventi
   add column if not exists diretta_chiusa_il timestamptz,
   add column if not exists diretta_chiusa_da_tipo text,
-  add column if not exists diretta_chiusa_da_user uuid references public.profiles(id);
+  add column if not exists diretta_chiusa_da_user uuid references public.profiles(id),
+  add column if not exists diretta_chiusa_presenti integer,
+  add column if not exists diretta_chiusa_certificati integer;
 
 -- Stessa forma della catena di responsabilità di `iscrizioni_eventi`
 -- (`certificata_da_tipo`/`certificata_da_user`/`certificata_il`): il TIPO si
@@ -62,21 +82,45 @@ alter table public.eventi
   add constraint eventi_chiusa_da_tipo_valido
   check (diretta_chiusa_da_tipo is null or diretta_chiusa_da_tipo in ('kireo', 'ente'));
 
--- Le tre stanno insieme o non stanno: una traccia con l'ora e senza l'autore
--- non risponde alla domanda per cui esiste.
+-- Le cinque stanno insieme o non stanno: una traccia con l'ora e senza l'autore
+-- non risponde alla domanda per cui esiste, e una senza i due numeri è la
+-- versione che perde il conto — cioè il difetto da cui nasce il giro.
+--
+-- ⚠️ PERCHÉ `diretta_chiusa_certificati` PARTE DA ZERO E NON DA NULL, ed è il
+-- vincolo che decide la forma della funzione: un CHECK non è differibile in
+-- Postgres (lo sono solo FK e unique), quindi la riga deve essere completa a
+-- OGNI statement. `certificati` però si conosce solo DOPO il ciclo, mentre il
+-- lucchetto deve stare PRIMA — quindi l'update del lucchetto scrive 0 e un
+-- secondo update in coda mette il numero vero. Nella stessa transazione:
+-- se il ciclo si interrompe, non resta niente.
 alter table public.eventi
   drop constraint if exists eventi_chiusura_completa;
 alter table public.eventi
   add constraint eventi_chiusura_completa
   check (
-    (diretta_chiusa_il is null and diretta_chiusa_da_tipo is null and diretta_chiusa_da_user is null)
-    or (diretta_chiusa_il is not null and diretta_chiusa_da_tipo is not null and diretta_chiusa_da_user is not null)
+    (diretta_chiusa_il is null and diretta_chiusa_da_tipo is null and diretta_chiusa_da_user is null
+      and diretta_chiusa_presenti is null and diretta_chiusa_certificati is null)
+    or (diretta_chiusa_il is not null and diretta_chiusa_da_tipo is not null and diretta_chiusa_da_user is not null
+      and diretta_chiusa_presenti is not null and diretta_chiusa_certificati is not null)
+  );
+
+alter table public.eventi
+  drop constraint if exists eventi_chiusura_conteggi_non_negativi;
+alter table public.eventi
+  add constraint eventi_chiusura_conteggi_non_negativi
+  check (
+    (diretta_chiusa_presenti is null or diretta_chiusa_presenti >= 0)
+    and (diretta_chiusa_certificati is null or diretta_chiusa_certificati >= 0)
   );
 
 comment on column public.eventi.diretta_chiusa_il is
   'Quando la diretta è stata chiusa (scritto SOLO da chiudi_diretta_evento). Null = non chiusa, oppure chiusa prima dell''11/10/2026, quando la chiusura non lasciava traccia: i due casi non sono distinguibili e non si prova a indovinarlo.';
 comment on column public.eventi.diretta_chiusa_da_tipo is
   'Da che parte è arrivata la chiusura: kireo (admin) o ente (l''organizzatore). Congelato come certificata_da_tipo — il ruolo della persona può cambiare, il fatto no.';
+comment on column public.eventi.diretta_chiusa_presenti is
+  'LA RICEVUTA: quante persone si erano collegate (righe di presenze_live) al momento della chiusura. Si SCRIVE e non si rideriva — vedi la testa del file: `certifica_presenza` è un upsert incondizionato, quindi un conteggio rifatto a posteriori può essere più basso di quello che la chiusura ha prodotto, e una ricevuta che cambia da sola non è una ricevuta.';
+comment on column public.eventi.diretta_chiusa_certificati is
+  'LA RICEVUTA: quanti sono stati certificati DA QUELLA chiusura (certificata_da_tipo=sistema scritto in quella transazione). Parte da 0 nello stesso update del lucchetto e viene completato in coda al ciclo: un CHECK non è differibile, quindi la riga deve essere completa a ogni statement.';
 comment on column public.eventi.diretta_chiusa_da_user is
   'Chi ha premuto. La FK BLOCCA la cancellazione del profilo, come le altre dieci colonne di responsabilità (certificata_da_user, verificato_da, approvato_da…): una chiusura deve sapere chi l''ha firmata anche dopo. Allunga di uno i motivi per cui una persona di un ente non riesce a cancellare il proprio account — vedi il punto aperto in CLAUDE.md.';
 
@@ -105,6 +149,8 @@ create policy eventi_update_propria_non_revisionato
     and diretta_chiusa_il is null
     and diretta_chiusa_da_tipo is null
     and diretta_chiusa_da_user is null
+    and diretta_chiusa_presenti is null
+    and diretta_chiusa_certificati is null
   );
 
 -- ============ 3) la chiusura, idempotente e che lo dice ============
@@ -220,7 +266,12 @@ begin
   update public.eventi
   set diretta_chiusa_il = now(),
       diretta_chiusa_da_tipo = v_chiusa_da_tipo,
-      diretta_chiusa_da_user = auth.uid()
+      diretta_chiusa_da_user = auth.uid(),
+      -- La ricevuta: `presenti` si sa già, `certificati` lo sa solo il ciclo —
+      -- parte da 0 perché il CHECK di completezza non è differibile, e viene
+      -- completato in coda. Vedi il vincolo per il ragionamento intero.
+      diretta_chiusa_presenti = v_presenti,
+      diretta_chiusa_certificati = 0
   where id = p_evento_id and diretta_chiusa_il is null;
   get diagnostics v_righe_traccia = row_count;
 
@@ -318,6 +369,17 @@ begin
     end if;
   end loop;
 
+  -- ============ la ricevuta si completa ============
+  -- ⚠️ SENZA QUESTA RIGA LA RICEVUTA DICE SEMPRE ZERO, cioè «nessuno ha
+  -- raggiunto la soglia di presenza» su una chiusura che ha certificato nove
+  -- persone: l'affermazione falsa sugli studenti che questo file esiste per
+  -- togliere, ricreata un giro più in là. Si scrive senza condizioni, anche con
+  -- `v_certificati = 0`: uno statement sempre, invece di un ramo che su un
+  -- caso non passa.
+  update public.eventi
+  set diretta_chiusa_certificati = v_certificati
+  where id = p_evento_id;
+
   -- ============ l'allarme del 27/09: l'evento non ha aree ============
   -- `is distinct from` e non `<>`: la condizione deve essere ESATTAMENTE quella
   -- del ramo che ha scritto (o non scritto) il credito qui sopra, e quel ramo è
@@ -367,7 +429,7 @@ end;
 $$;
 
 comment on function public.chiudi_diretta_evento(uuid) is
-  'Chiude la diretta: certifica chi ha superato la soglia di presenza, scrive la traccia sull''evento e restituisce (presenti, certificati, gia_chiusa_il). gia_chiusa_il non nullo = non ha fatto niente perché era già chiusa quel giorno a quell''ora: è l''unico modo di distinguere «nessuno si è qualificato» da «l''ho già fatto».';
+  'Chiude la diretta: certifica chi ha superato la soglia di presenza, scrive la traccia E LA RICEVUTA sull''evento (diretta_chiusa_presenti/_certificati, così il conto si rilegge dopo un F5 invece di vivere nello stato del browser di chi ha premuto) e restituisce (presenti, certificati, gia_chiusa_il). gia_chiusa_il non nullo = non ha fatto niente perché era già chiusa quel giorno a quell''ora: è l''unico modo di distinguere «nessuno si è qualificato» da «l''ho già fatto».';
 
 revoke all on function public.chiudi_diretta_evento(uuid) from public, anon;
 grant execute on function public.chiudi_diretta_evento(uuid) to authenticated;

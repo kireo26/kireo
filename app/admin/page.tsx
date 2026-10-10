@@ -60,7 +60,7 @@ export default async function AdminPage() {
     supabase
       .from("eventi")
       .select(
-        "id, titolo, pubblico, hosting_diretta, youtube_video_id, data_inizio, data_fine, domanda_consegna, diretta_chiusa_il, diretta_chiusa_da_tipo, istituzioni(nome)",
+        "id, titolo, pubblico, hosting_diretta, youtube_video_id, data_inizio, data_fine, domanda_consegna, diretta_chiusa_il, diretta_chiusa_da_tipo, diretta_chiusa_presenti, diretta_chiusa_certificati, istituzioni(nome)",
       )
       .eq("tipo", "webinar")
       .eq("stato", "approvato")
@@ -226,6 +226,8 @@ export default async function AdminPage() {
                     dataFine={e.data_fine}
                     chiusaIl={e.diretta_chiusa_il}
                     chiusaDaTipo={e.diretta_chiusa_da_tipo}
+                    chiusaPresenti={e.diretta_chiusa_presenti}
+                    chiusaCertificati={e.diretta_chiusa_certificati}
                   />
                   <div className="mt-3">
                     <a href={`/api/admin/presenze/${e.id}`} className="text-xs text-kireo-orange underline underline-offset-2">

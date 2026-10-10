@@ -144,17 +144,83 @@ const QUANDO = "2026-10-04T17:20:00.000Z"; // 19:20 a Roma
 console.log("\n§3 — lo stato al caricamento: il bottone sparisce\n");
 
 {
-  const riga = testoStatoChiusura({ tipo: "chiusa", quando: QUANDO, daTipo: "kireo" });
-  const rigaEnte = testoStatoChiusura({ tipo: "chiusa", quando: QUANDO, daTipo: "ente" });
+  // ⚠️ LA FIXTURE PORTA LA RICEVUTA, E NON È UN DETTAGLIO: fino all'11/10
+  // questo blocco costruiva lo stato A MANO senza il campo `ricevuta`, e
+  // quando quel campo è nato la guardia è restata VERDE — perché la funzione
+  // DEGRADA (senza ricevuta dice solo quando e da chi), quindi il test stava
+  // provando il ramo di RIPIEGO e lo chiamava comportamento. Un ripiego
+  // elegante rende verdi le fixture che non sanno del campo nuovo.
+  //
+  // Da qui il costruttore: una fixture che si scrive in un posto solo è una
+  // fixture che si completa in un posto solo.
+  const chiusa = (daTipo, ricevuta = { presenti: 12, certificati: 9 }) => ({ tipo: "chiusa", quando: QUANDO, daTipo, ricevuta });
+  const riga = testoStatoChiusura(chiusa("kireo"));
+  const rigaEnte = testoStatoChiusura(chiusa("ente"));
   ok(riga.includes("19:20") && riga.includes("4 ottobre"), "la riga di stato dice quando", riga);
   ok(riga !== rigaEnte, "e dice da che parte è arrivata la chiusura: i due testi non sono lo stesso");
   ok(riga.includes("KIREO"), "KIREO si nomina", riga);
   ok(rigaEnte.includes("organizzatore"), "l'ente si nomina", rigaEnte);
-  ok(
-    !/certificat/i.test(riga),
-    "e NON dice niente sulle certificazioni: al caricamento non sappiamo quante sono, e «sono state certificate» è falso quando nessuno era sopra soglia",
-    riga,
-  );
+  // ⚠️ «il» E NON «dal» (Mario): una diretta non è chiusa DA un momento, è
+  // stata chiusa IN un momento — «dal» suggerisce uno stato che dura, e qui il
+  // fatto è un gesto.
+  ok(riga.startsWith("Diretta chiusa il 4 ottobre"), "«Diretta chiusa il …», non «dal»", riga);
+
+  // ⚠️⚠️ LA RIGA PORTA LA RICEVUTA, ed è la correzione dell'11/10: il difetto
+  // da cui nasce l'1.1 NON era «non si sa se è chiusa» — era che il conto
+  // (presenti, certificazioni) viveva solo nello stato React di chi aveva
+  // premuto, e un F5 lo cancellava. Una riga che dice solo «è chiusa» lascia il
+  // conto perso com'era.
+  ok(riga.includes("Presenti: 12."), "e dice quanti erano presenti", riga);
+  ok(riga.includes("Certificazioni automatiche: 9."), "e quante certificazioni ha prodotto", riga);
+  // Senza «Nuove»: alla rilettura non sono nuove. È l'unica differenza con
+  // l'esito di una pressione (vedi §3bis).
+  ok(!/Nuove/.test(riga), "senza «Nuove»: alla rilettura quelle certificazioni non sono nuove", riga);
+  // Lo zero ha la sua frase, la stessa dell'esito: «Certificazioni
+  // automatiche: 0» si leggerebbe come «nessuno si è qualificato» detto con un
+  // numero, che è il difetto da cui nasce tutto il giro.
+  const rigaZero = testoStatoChiusura(chiusa("ente", { presenti: 12, certificati: 0 }));
+  ok(rigaZero.includes("Nessuno ha raggiunto la soglia di presenza."), "e con zero certificati lo dice a parole", rigaZero);
+  ok(!/Certificazioni automatiche: 0/.test(rigaZero), "mai «Certificazioni automatiche: 0»", rigaZero);
+
+  // ⚠️ E LA SECONDA FRASE È USCITA: «La chiusura si fa una volta sola: qui non
+  // c'è più niente da premere» spiegava l'assenza del bottone, e la ricevuta la
+  // rende inutile — «un bottone grigio invita a chiedersi perché; una riga che
+  // dice cosa è successo no» (Mario).
+  ok(!/niente da premere/.test(riga), "e non spiega più l'assenza del bottone: la ricevuta lo fa da sé", riga);
+
+  // IL RIPIEGO, adesso nominato come tale: se uno dei due conteggi non arriva
+  // non si stampa un numero inventato, si dice meno.
+  // ⚠️⚠️ LE DUE FRASI SONO LO STESSO FATTO IN DUE MOMENTI, e Mario l'ha chiesto
+  // esplicitamente: «le due frasi devono restare identiche nelle parole». La
+  // coda viene da un posto solo (`codaRicevuta`), e la sola differenza ammessa è
+  // «Nuove» — vera al momento della pressione, falsa alla rilettura. Si prova
+  // togliendola: se le due code divergono per qualunque altra cosa, sono due
+  // copie e divergeranno ancora.
+  for (const [nome, certificati] of [
+    ["con certificazioni", 9],
+    ["con zero", 0],
+  ]) {
+    const e = testoEsitoChiusura({ tipo: "chiusa", presenti: 12, certificati });
+    const st = testoStatoChiusura(chiusa("kireo", { presenti: 12, certificati }));
+    // `split` e non `indexOf`: prova anche che la coda compaia UNA volta sola,
+    // e un'assenza torna `null` invece di uno `slice(-1)` che sembra un testo.
+    const coda = (t) => {
+      const parti = t.split("Presenti:");
+      return parti.length === 2 ? `Presenti:${parti[1]}` : null;
+    };
+    const codaE = coda(e);
+    const codaS = coda(st);
+    ok(codaE !== null && codaS !== null, `${nome}: le due frasi hanno entrambe la coda (il confronto non è vacuo)`, `${codaE} / ${codaS}`);
+    ok(
+      codaE !== null && codaS !== null && codaE.replace("Nuove certificazioni", "Certificazioni") === codaS,
+      `${nome}: le due code coincidono a meno di «Nuove»`,
+      `«${codaE}» ≠ «${codaS}»`,
+    );
+  }
+
+  const senzaRicevuta = testoStatoChiusura(chiusa("kireo", null));
+  ok(!/Presenti/.test(senzaRicevuta), "senza i due conteggi la riga dice solo quando e da chi", senzaRicevuta);
+  ok(senzaRicevuta !== riga, "e il confronto non è vacuo: con la ricevuta il testo è un altro");
 
   const src = leggi("components/ente/ControlloDirettaEvento.tsx");
   const bloccoChiusura = fettaOppureRosso(
@@ -237,6 +303,36 @@ console.log("\n§5 — lo stato non si indovina\n");
     statoChiusura({ chiusaIl: "", chiusaDaTipo: "ente" }).tipo === "da_chiudere",
     "stringa vuota: da chiudere (una `select` può restituirla, e `new Date(\"\")` è Invalid Date)",
   );
+  // ⚠️ I DUE CONTEGGI ARRIVANO FINO ALLO STATO, O LA RICEVUTA NON ESISTE: è la
+  // metà che si dimentica — una colonna in più nel database e un campo in più
+  // nel tipo non fanno comparire niente a schermo se nessuno li passa.
+  const conRicevuta = statoChiusura({ chiusaIl: QUANDO, chiusaDaTipo: "ente", presenti: 12, certificati: 9 });
+  ok(
+    conRicevuta.tipo === "chiusa" && conRicevuta.ricevuta && conRicevuta.ricevuta.presenti === 12,
+    "i due conteggi arrivano fino allo stato",
+    JSON.stringify(conRicevuta),
+  );
+  ok(
+    conRicevuta.tipo === "chiusa" && conRicevuta.ricevuta.certificati === 9,
+    "tutti e due, non uno",
+  );
+  // E uno solo dei due non è una ricevuta: meglio dire meno che stampare un
+  // numero inventato accanto a uno vero.
+  for (const [nome, extra] of [
+    ["senza presenti", { certificati: 9 }],
+    ["senza certificati", { presenti: 12 }],
+    ["con un presenti nullo", { presenti: null, certificati: 9 }],
+  ]) {
+    const st = statoChiusura({ chiusaIl: QUANDO, chiusaDaTipo: "ente", ...extra });
+    ok(st.tipo === "chiusa" && st.ricevuta === null, `${nome}: nessuna ricevuta, invece di mezza`, JSON.stringify(st));
+  }
+  // ⚠️ E LA RICEVUTA NON CANCELLA LA CHIUSURA: senza i conteggi lo stato resta
+  // «chiusa», altrimenti il bottone tornerebbe su una diretta chiusa — che è il
+  // difetto di partenza, ricreato da un ripiego.
+  ok(
+    statoChiusura({ chiusaIl: QUANDO, chiusaDaTipo: "ente" }).tipo === "chiusa",
+    "e senza conteggi la diretta resta chiusa: il bottone non torna",
+  );
 }
 
 console.log("\n§6 — il poll non degrada verso «non chiusa»\n");
@@ -260,6 +356,56 @@ console.log("\n§6 — il poll non degrada verso «non chiusa»\n");
     "una lettura fallita lascia quello che c'era invece di rimettere il bottone",
   );
   ok(dentro(pollata, "console.error"), "e la lettura fallita lascia una traccia invece di sparire");
+}
+
+console.log("\n§7 — la ricevuta arriva a tutti i posti che la rendono\n");
+
+// ⚠️ LA PROPRIETÀ CHE PRENDE «NE HA DIMENTICATO UNO»: quattro punti passano
+// questi prop al pannello e quattro `select` leggono le colonne. Aggiungere due
+// colonne vuol dire toccarli tutti, e il modo in cui questa classe di difetti
+// nasce è che uno resti indietro — con il risultato che su una pagina la
+// ricevuta compare e su un'altra no, senza che niente si rompa.
+{
+  // Le due metà si contano separate perché sono due dimenticanze diverse: la
+  // `select` che non legge la colonna (e allora il prop è sempre null) e il
+  // prop che non si passa (e allora la colonna si legge per niente).
+  const LETTORI = [
+    "components/ente/ControlloDirettaEvento.tsx",
+    "lib/eventi/moderazione.ts",
+    "app/admin/page.tsx",
+    "app/ente/(dashboard)/eventi/page.tsx",
+  ];
+  const RENDITORI = ["app/diretta/[id]/page.tsx", "app/admin/page.tsx", "app/ente/(dashboard)/eventi/page.tsx"];
+  ok(LETTORI.length === 4 && RENDITORI.length === 3, "quattro lettori e tre punti che rendono (il conto è dichiarato)");
+  // ⚠️ SI GUARDA DENTRO LA `select`, NON IL FILE — e l'ha detto una controprova
+  // che non ha morso: togliendo i due conteggi dalla `select` del poll, un
+  // `src.includes("diretta_chiusa_presenti")` resta VERDE, perché quel nome
+  // compare anche nel `setChiusura` che legge la riga. È il modo 6: un'àncora
+  // su un nome condiviso con qualcos'altro misura l'occorrenza sbagliata.
+  const selects = [];
+  for (const rel of LETTORI) {
+    const src = leggi(rel);
+    for (const m of src.matchAll(/\.select\(\s*"([^"]*)"/g)) selects.push([rel, m[1]]);
+  }
+  // Soglia dichiarata: sotto quattro l'estrattore non sta leggendo, e la
+  // proprietà qui sotto sarebbe verde su un insieme vuoto.
+  ok(selects.length >= 4, `le ${selects.length} \`select\` si leggono (sotto quattro l'estrattore non sta leggendo)`);
+  const conTraccia = selects.filter(([, q]) => q.includes("diretta_chiusa_il"));
+  ok(conTraccia.length === 4, "e quattro di loro leggono la traccia", `${conTraccia.length}`);
+  for (const [rel, q] of conTraccia) {
+    ok(
+      q.includes("diretta_chiusa_presenti") && q.includes("diretta_chiusa_certificati"),
+      `${rel}: la \`select\` che legge la traccia legge anche i due conteggi — senza, la ricevuta è sempre vuota lì`,
+    );
+  }
+  for (const rel of RENDITORI) {
+    const src = leggi(rel);
+    ok(src.includes("chiusaIl={"), `${rel}: passa la traccia al pannello`);
+    ok(
+      src.includes("chiusaPresenti={") && src.includes("chiusaCertificati={"),
+      `${rel}: e passa anche la ricevuta`,
+    );
+  }
 }
 
 console.log("");

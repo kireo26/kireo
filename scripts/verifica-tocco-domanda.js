@@ -90,25 +90,49 @@ console.log("\n§1 — i cinque casi sono cinque\n");
   };
 
   ok(new Set(Object.values(righe)).size === 5, "le cinque righe sono cinque testi diversi", JSON.stringify(righe));
-  // Le due parole di Mario, parola per parola.
-  ok(righe.lettaKireo.startsWith("letta da KIREO"), "«letta da KIREO»", righe.lettaKireo);
-  ok(righe.rispostaEnte.startsWith("risposta dall'ente"), "«risposta dall'ente»", righe.rispostaEnte);
-  ok(righe.lettaEnte.startsWith("letta dall'ente"), "«letta dall'ente»", righe.lettaEnte);
-  ok(righe.rispostaKireo.startsWith("risposta da KIREO"), "«risposta da KIREO»", righe.rispostaKireo);
-
-  // Il quinto: una domanda toccata prima dell'11/10 ha lo stato avanzato e
-  // nessun autore. Si dice quello che si sa.
-  ok(righe.senzaAutore === "letta", "stato avanzato senza autore: si dice solo «letta»", righe.senzaAutore);
+  // ⚠️ LE QUATTRO ETICHETTE SONO DI MARIO, PAROLA PER PAROLA, nella forma
+  // «etichetta chi · quando» — e «dall'organizzatore» e non «dall'ente»: nomina
+  // il RUOLO invece della relazione con chi legge, perché questa riga la
+  // leggono tutti e due i moderatori.
+  ok(righe.lettaKireo === "Letta da KIREO · 19:05", "«Letta da KIREO · 19:05»", righe.lettaKireo);
+  ok(righe.lettaEnte === "Letta dall'organizzatore · 19:05", "«Letta dall'organizzatore · 19:05»", righe.lettaEnte);
+  ok(righe.rispostaKireo === "Risposta in diretta da KIREO · 19:05", "«Risposta in diretta da KIREO · 19:05»", righe.rispostaKireo);
   ok(
-    !/KIREO|ente/i.test(righe.senzaAutore),
+    righe.rispostaEnte === "Risposta in diretta dall'organizzatore · 19:05",
+    "«Risposta in diretta dall'organizzatore · 19:05»",
+    righe.rispostaEnte,
+  );
+  // E «dall'ente» non deve tornare: è la forma di prima, e ci si torna per
+  // abitudine.
+  ok(!Object.values(righe).some((r) => /dall'ente/.test(r)), "e nessuna dice «dall'ente»: è il ruolo, non la relazione");
+
+  // ⚠️ IL QUINTO, e il testo è di Mario: una domanda toccata prima dell'11/10
+  // ha lo stato avanzato e nessun autore. Dire solo «Letta» la farebbe leggere
+  // come le altre quattro, mentre è una riga di cui non sappiamo niente — e
+  // «autore non registrato» dice il fatto, mentre «sconosciuto» suonerebbe come
+  // un dato mancante per errore.
+  ok(righe.senzaAutore === "Letta · autore non registrato", "«Letta · autore non registrato»", righe.senzaAutore);
+  ok(
+    !/KIREO|ente|organizzatore/i.test(righe.senzaAutore),
     "e NON si inventa una parte: è la stessa scelta della traccia di chiusura",
     righe.senzaAutore,
   );
+  // TIENE LA STESSA POSIZIONE delle altre — etichetta, poi chi e quando — così
+  // nessuno la scambia per una di loro.
+  ok(righe.senzaAutore.startsWith("Letta ·"), "e tiene la posizione delle altre: etichetta, poi il resto");
   // E un tipo che non riconosciamo vale come assente, non come autore ignoto.
-  ok(rigaTocco(d("letta", "sistema"), OGGI) === "letta", "un tipo che non riconosciamo vale come assente");
+  ok(
+    rigaTocco(d("letta", "sistema"), OGGI) === "Letta · autore non registrato",
+    "un tipo che non riconosciamo vale come assente",
+    String(rigaTocco(d("letta", "sistema"), OGGI)),
+  );
   // Una parte senza l'ora non compone la riga intera: il DB lo vieta con un
   // CHECK, ma una `select` può restituire qualunque cosa.
-  ok(rigaTocco(d("letta", "ente", null), OGGI) === "letta", "una parte senza l'ora degrada su «letta»");
+  ok(
+    rigaTocco(d("letta", "ente", null), OGGI) === "Letta · autore non registrato",
+    "una parte senza l'ora degrada sul quinto caso",
+    String(rigaTocco(d("letta", "ente", null), OGGI)),
+  );
 }
 
 console.log("\n§2 — niente su una domanda nuova\n");
@@ -140,7 +164,8 @@ console.log("\n§3 — l'ora senza la data se è di oggi\n");
 {
   const oggi = rigaTocco(d("letta", "ente"), OGGI);
   const domani = rigaTocco(d("letta", "ente"), DOMANI);
-  ok(oggi.includes("alle 19:05"), "oggi: l'ora e basta", oggi);
+  ok(oggi.endsWith("· 19:05"), "oggi: l'ora e basta, dopo il separatore", oggi);
+  ok(!/\balle\b/.test(oggi), "e senza «alle»: il «·» fa già da separatore", oggi);
   ok(!/ottobre|\d{2}\/\d{2}/.test(oggi), "oggi: nessuna data, che durante una diretta è rumore", oggi);
   ok(domani.includes("4 ottobre") && domani.includes("19:05"), "un altro giorno: la data compare", domani);
   ok(oggi !== domani, "i due casi sono due testi diversi (il confronto non è vacuo)");
@@ -164,7 +189,7 @@ console.log("\n§4 — il componente la chiama, e una volta sola\n");
   ok(chiamate === 1, "`rigaTocco` è chiamata UNA volta per riga", `${chiamate} chiamate`);
   ok(lista.includes("rigaTocco(d, ora)"), "e riceve l'ora invece di leggerla da sé");
   ok(
-    !/letta da|risposta dall|risposta da KIREO/i.test(src),
+    !/letta da|risposta in diretta|autore non registrato/i.test(src),
     "nessuna copia del testo nel componente: una seconda copia divergerebbe",
   );
   // Le due colonne arrivano fino al componente: il tipo le dichiara, e senza

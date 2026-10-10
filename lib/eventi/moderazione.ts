@@ -36,6 +36,8 @@ export type ContestoModerazione = {
     domanda_consegna: string | null;
     diretta_chiusa_il: string | null;
     diretta_chiusa_da_tipo: string | null;
+    diretta_chiusa_presenti: number | null;
+    diretta_chiusa_certificati: number | null;
     ore_pcto: number | null;
     organizzatore: string | null;
   };
@@ -53,7 +55,7 @@ export async function getContestoModerazione(eventoId: string): Promise<Contesto
   const { data: evento, error } = await supabase
     .from("eventi")
     .select(
-      "id, titolo, tipo, pubblico, filone, data_inizio, data_fine, stato, hosting_diretta, youtube_video_id, domanda_consegna, diretta_chiusa_il, diretta_chiusa_da_tipo, ore_pcto, organizzatore_id, istituzioni(nome)",
+      "id, titolo, tipo, pubblico, filone, data_inizio, data_fine, stato, hosting_diretta, youtube_video_id, domanda_consegna, diretta_chiusa_il, diretta_chiusa_da_tipo, diretta_chiusa_presenti, diretta_chiusa_certificati, ore_pcto, organizzatore_id, istituzioni(nome)",
     )
     .eq("id", eventoId)
     .maybeSingle();
@@ -98,6 +100,8 @@ export async function getContestoModerazione(eventoId: string): Promise<Contesto
       domanda_consegna: evento.domanda_consegna,
       diretta_chiusa_il: evento.diretta_chiusa_il,
       diretta_chiusa_da_tipo: evento.diretta_chiusa_da_tipo,
+      diretta_chiusa_presenti: evento.diretta_chiusa_presenti,
+      diretta_chiusa_certificati: evento.diretta_chiusa_certificati,
       ore_pcto: evento.ore_pcto,
       organizzatore: istituzione?.nome ?? null,
     },

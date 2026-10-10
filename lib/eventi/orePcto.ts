@@ -71,27 +71,37 @@ export function durataLeggibile(ore: number): string {
   return m === 0 ? parteOre : `${parteOre} e ${m} minut${m === 1 ? "o" : "i"}`;
 }
 
+/** «8 ore» / «1 ora» / «0,5 ore»: l'uno capita, perché la soglia lo ammette. */
+function oreLeggibili(ore: number): string {
+  return `${conLaVirgola(ore)} or${ore === 1 ? "a" : "e"}`;
+}
+
 /**
- * L'avviso, o `null` quando non c'è niente da dire.
+ * L'avviso, o `null` quando non c'è niente da dire. Il testo è di Mario, parola
+ * per parola.
  *
- * ⚠️ IL TESTO DICE I DUE NUMERI, così chi legge può rifare il conto: un numero
- * che il lettore non può rifare gli toglie fiducia in tutto il resto. E dice
- * cosa fare, perché l'avviso non sta dicendo che è sbagliato.
- *
- * ⚠️ TESTO PROVVISORIO, MIO: Mario ha chiesto di mandargli la soglia per
- * scrivere lui la frase.
+ * ⚠️ TRE COSE NELLA FORMA, tutte volute. (1) DICE I DUE NUMERI invece di dire
+ * «troppe»: chi li legge vede da sé, e un numero che il lettore non può rifare
+ * gli toglie fiducia in tutto il resto. (2) DICE PERCHÉ CI INTERESSA — senza
+ * quello sembra un capriccio del modulo, e invece quelle ore finiscono su un
+ * documento che la scuola conserva. (3) LASCIA ANDARE AVANTI, perché un evento
+ * può legittimamente valere più della sua diretta e non siamo noi a saperlo.
  */
 export function avvisoOrePcto(ore: number, dataInizio: string, dataFine: string): string | null {
   // ⚠️ QUESTA RIGA NON TIENE LO ZERO, e l'ha detto una controprova che non ha
-  // morso: togliendola, le 33 proprietà restano VERDI, perché `0 <= durata * 2`
-  // è vero su qualunque durata positiva e il confronto più in basso lo prende
+  // morso: togliendola, le proprietà restano VERDI, perché `0 <= durata * 2` è
+  // vero su qualunque durata positiva e il confronto più in basso lo prende
   // comunque. Quello che tiene DAVVERO è il `!(…)`, che è falso anche per
   // `NaN` — e `NaN <= qualunque cosa` è falso, quindi senza questa riga un
-  // `Number("abc")` produrrebbe «dichiara NaN ore di PCTO». Resta anche perché
-  // dice l'intenzione, ma la proprietà provata è quella.
+  // `Number("abc")` produrrebbe «Stai dichiarando NaN ore».
+  //
+  // ⚠️ MA UN CAMPO CHE NON CONTIENE UN NUMERO NON È UN NUMERO SOSPETTO: NON È
+  // UN NUMERO (Mario). Quindi tacere qui è giusto e non basta — il rifiuto sta
+  // nel modulo, su quel campo, con il testo degli errori di campo. Vedi
+  // `validate()` in `components/ente/CreaEventoForm.tsx`.
   if (!(ore > 0)) return null;
   const durata = durataOre(dataInizio, dataFine);
   if (durata === null) return null;
   if (ore <= durata * FATTORE_ORE_SOSPETTE) return null;
-  return `Questo evento dura ${durataLeggibile(durata)} e dichiara ${conLaVirgola(ore)} ore di PCTO. Può andare bene se il lavoro continua dopo l'incontro: in quel caso scrivilo nella descrizione, perché è quella che la scuola legge.`;
+  return `Stai dichiarando ${oreLeggibili(ore)} per un incontro di ${durataLeggibile(durata)}. Le ore PCTO finiscono su un documento che la scuola conserva: se il numero è giusto vai avanti, altrimenti correggilo.`;
 }

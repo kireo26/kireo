@@ -128,6 +128,19 @@ export default function CreaEventoForm({
     if (!perDocenti && aree.length === 0) {
       next.aree = "Scegli almeno un'area: è così che l'incontro raggiunge gli studenti giusti, e senza un'area chi partecipa non se ne porta niente nel profilo.";
     }
+    // ⚠️ UN CAMPO ORE CHE NON CONTIENE UN NUMERO NON È UN NUMERO SOSPETTO: NON
+    // È UN NUMERO (Mario). L'avviso sulla durata tace su `NaN` — e tace
+    // giustamente, perché non ha niente da confrontare — ma tacere non è una
+    // risposta: il rifiuto sta qui, sul campo, con il testo degli errori di
+    // campo. Lo stesso vale per un numero negativo, che il database rifiuterebbe
+    // con `eventi_ore_pcto_check` (un 23514 tradotto in «il dato non va», senza
+    // dire quale).
+    //
+    // Il campo vuoto NON è un errore: `Number("")` è 0, e l'invio manda 0 —
+    // «0 se non applicabile» è quello che dice l'etichetta.
+    if (orePcto.trim() !== "" && !(Number.isFinite(Number(orePcto)) && Number(orePcto) >= 0)) {
+      next.orePcto = "Le ore devono essere un numero, zero o più.";
+    }
     // Un orario che non si sa leggere non si scrive con un ripiego: si dice
     // qui, dove l'ente può ancora correggerlo. Il browser produce sempre la
     // forma giusta, quindi questo ramo è una rete — ma una rete che parla.
@@ -336,8 +349,10 @@ export default function CreaEventoForm({
             step="0.5"
             value={orePcto}
             onChange={(e) => setOrePcto(e.target.value)}
-            className={`${inputClass} ${fieldBorder(false)}`}
+            aria-invalid={Boolean(errori.orePcto)}
+            className={`${inputClass} ${fieldBorder(Boolean(errori.orePcto))}`}
           />
+          {errori.orePcto && <p className="mt-1.5 text-sm text-red-400">{errori.orePcto}</p>}
         </div>
       </div>
 

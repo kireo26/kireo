@@ -150,9 +150,19 @@ console.log("\n§3 — il confine è esatto, e si prova al bordo\n");
   // E il caso che l'avviso prende pur essendo legittimo: va detto, non nascosto.
   const workshop = avvisoOrePcto(4, "2026-10-04T09:00", "2026-10-04T10:00");
   ok(workshop !== null, "un workshop di un'ora che dichiara 4 ore viene nominato (4×)");
+  // ⚠️ IL TESTO LO LASCIA ANDARE AVANTI, ed è la proprietà che conta su un
+  // caso legittimo: «se il numero è giusto vai avanti». Un avviso che dicesse
+  // che è sbagliato starebbe prendendo una decisione che non è nostra.
+  ok(workshop !== null && /vai avanti/.test(workshop), "e il testo lo lascia andare avanti", String(workshop));
   ok(
-    workshop !== null && /descrizione/.test(workshop),
-    "e il testo gli dice cosa fare invece di dire che è sbagliato",
+    workshop !== null && !/sbagliat|errat|non puoi|non è ammess/i.test(workshop),
+    "senza dire che è sbagliato: non lo sappiamo",
+    String(workshop),
+  );
+  // E DICE PERCHÉ CI INTERESSA: senza, sembra un capriccio del modulo.
+  ok(
+    workshop !== null && /documento che la scuola conserva/.test(workshop),
+    "e dice perché quelle ore ci interessano",
     String(workshop),
   );
 }
@@ -174,6 +184,20 @@ console.log("\n§4 — il testo dice i due numeri, e in italiano\n");
   ok(mezza !== null && mezza.includes("0,5") && !mezza.includes("0.5"), "le ore con la virgola, non col punto", String(mezza));
   const intere = avvisoOrePcto(4, "2026-10-04T09:00", "2026-10-04T10:00");
   ok(intere !== null && intere.includes("4 ore") && !intere.includes("4,0"), "e un intero senza decimali inutili", String(intere));
+  // ⚠️ L'ORDINE È QUELLO DI MARIO: prima quello che l'ente ha scritto, poi
+  // quello che il prodotto sa. «Stai dichiarando X per un incontro di Y» mette
+  // il soggetto sulla sua scelta; l'inverso sembra il modulo che si lamenta.
+  ok(
+    intere !== null && /^Stai dichiarando 4 ore per un incontro di 1 ora\./.test(intere),
+    "i due numeri in quest'ordine: le ore dichiarate, poi la durata",
+    String(intere),
+  );
+  // ⚠️ «1 ora» AL SINGOLARE, e il caso capita: con 20 minuti di durata la
+  // soglia è 0,67 ore, quindi un'ora sola la supera. È il difetto dei plurali
+  // del 4/10, che qui nasceva di nuovo dentro il testo nuovo.
+  const unOra = avvisoOrePcto(1, "2026-10-04T19:00", "2026-10-04T19:20");
+  ok(unOra !== null && unOra.includes("1 ora per"), "«1 ora» al singolare quando è una", String(unOra));
+  ok(unOra !== null && !/\b1 ore\b/.test(unOra), "e mai «1 ore»", String(unOra));
 }
 
 console.log("\n§5 — è un avviso, non un errore\n");
@@ -197,7 +221,28 @@ console.log("\n§5 — è un avviso, non un errore\n");
     }
   })();
   ok(!validate.includes("avvisoOrePcto"), "e NON compare in `validate()`: un avviso non blocca l'invio");
-  ok(!validate.includes("orePcto"), "né `validate` guarda le ore in nessun altro modo");
+  // ⚠️ RISCRITTA L'11/10: prima pretendeva che `validate` non guardasse le ore
+  // in NESSUN modo, e dall'11/10 è falso — il campo non numerico si respinge lì
+  // (vedi §6). La proprietà vera è più stretta e non è cambiata: l'AVVISO non
+  // entra nella validazione. Riscritta invece di allentata: una proprietà che
+  // diventa falsa perché il prodotto è migliorato si riscrive.
+  ok(
+    !/avvisoOre\b/.test(validate) && !validate.includes("durataOre"),
+    "né nessun'altra forma dell'avviso: è un avviso, non un errore",
+  );
+
+  // §6 — IL CAMPO CHE NON È UN NUMERO, invece, È UN RIFIUTO (Mario): «un campo
+  // ore che non contiene un numero non è un numero sospetto — non è un
+  // numero». L'avviso tace su `NaN` (e tace giustamente, non ha niente da
+  // confrontare), ma tacere non è una risposta.
+  ok(validate.includes("next.orePcto"), "un campo ore non numerico viene respinto SUL CAMPO, non in generale");
+  ok(/Number\.isFinite\(Number\(orePcto\)\)/.test(validate), "e il rifiuto chiede un numero finito");
+  ok(/Number\(orePcto\) >= 0/.test(validate), "e non negativo: il database lo rifiuterebbe senza dire quale campo");
+  ok(/orePcto\.trim\(\) !== ""/.test(validate), "il campo vuoto NON è un errore: vale zero, come dice l'etichetta");
+  ok(
+    src.includes("fieldBorder(Boolean(errori.orePcto))") && src.includes("{errori.orePcto}"),
+    "e il rifiuto si vede sul campo: bordo e messaggio, come gli altri",
+  );
   // E non c'è una seconda copia del testo nel componente.
   ok(!/ore di PCTO\./.test(src), "nessuna copia del testo nel form");
   // L'avviso tace sui campi già rossi: un secondo messaggio su un campo rosso

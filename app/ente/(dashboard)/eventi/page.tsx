@@ -30,7 +30,7 @@ export default async function EnteEventiPage({ searchParams }: { searchParams: P
     supabase
       .from("eventi")
       .select(
-        "id, titolo, tipo, data_inizio, data_fine, stato, in_evidenza, pubblico, filone, hosting_diretta, youtube_video_id, domanda_consegna, diretta_chiusa_il, diretta_chiusa_da_tipo",
+        "id, titolo, tipo, data_inizio, data_fine, stato, in_evidenza, pubblico, filone, hosting_diretta, youtube_video_id, domanda_consegna, diretta_chiusa_il, diretta_chiusa_da_tipo, diretta_chiusa_presenti, diretta_chiusa_certificati",
       )
       .eq("organizzatore_id", contesto.istituzioneId)
       .order("created_at", { ascending: false }),
@@ -191,6 +191,8 @@ export default async function EnteEventiPage({ searchParams }: { searchParams: P
                           dataFine={e.data_fine}
                           chiusaIl={e.diretta_chiusa_il}
                           chiusaDaTipo={e.diretta_chiusa_da_tipo}
+                          chiusaPresenti={e.diretta_chiusa_presenti}
+                          chiusaCertificati={e.diretta_chiusa_certificati}
                         />
                         <div className="mt-3">
                           <ReportEventoButton eventoId={e.id} />

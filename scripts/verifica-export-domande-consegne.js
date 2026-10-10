@@ -119,7 +119,7 @@ console.log("\n§2 — le due cause del vuoto sono due\n");
       src.includes('erroreDomande\n        ? "Non è stato possibile leggere le domande'),
     "le domande: una lettura fallita ha la sua frase, diversa da «nessuno ne ha fatte»",
   );
-  ok(src.includes("Nessuno ha fatto domande durante questa diretta."), "e il vuoto vero ha la sua");
+  ok(src.includes("Nessuno ha fatto domande durante la diretta."), "e il vuoto vero ha la sua");
   ok(
     src.includes("non perché non ce ne fossero"),
     "e la frase del guasto dice esplicitamente che non è un'affermazione sugli studenti",
@@ -127,10 +127,24 @@ console.log("\n§2 — le due cause del vuoto sono due\n");
   // ⚠️ IL TERZO CASO, che nessuno aveva chiesto: nessuna domanda finale POSTA.
   // Senza, una sezione vuota direbbe «nessuno ha risposto» su un evento in cui
   // non c'era niente a cui rispondere.
-  ok(
-    src.includes("non è stata posta nessuna domanda finale"),
-    "le consegne: «nessuno ha risposto» e «non è stata posta nessuna domanda» sono due cose diverse",
-  );
+  // ⚠️ LE TRE FRASI SI PROVANO TUTTE E TRE, parola per parola (sono di Mario),
+  // E SI PROVA CHE SIANO TRE. La prima stesura di questa proprietà guardava la
+  // presenza di UNA sola e si chiamava «sono due cose diverse»: una frase che
+  // esiste non dice niente sull'altra, e il secondo e il terzo caso sono
+  // esattamente quelli che collassano se qualcuno li unifica.
+  const VUOTI = [
+    "Nessuno ha fatto domande durante la diretta.",
+    "La domanda finale è stata posta, e nessuno ha risposto.",
+    "Per questo incontro non è stata posta nessuna domanda finale, quindi non ci sono risposte.",
+  ];
+  for (const frase of VUOTI) ok(src.includes(frase), `la frase del vuoto c'è parola per parola: «${frase}»`);
+  ok(new Set(VUOTI).size === 3, "e sono TRE frasi distinte: tre cause del vuoto, tre cose da dire");
+  // ⚠️ IL DISCRIMINE FRA LA SECONDA E LA TERZA, che è la ragione per cui la
+  // terza esiste: nella seconda l'ente ha fatto il suo pezzo e nessuno ha
+  // risposto; nella terza il pezzo mancante è dell'ente. Chi apre il file fra
+  // un mese, senza quella riga, dà la colpa ai ragazzi.
+  ok(/^La domanda finale è stata posta/.test(VUOTI[1]), "la seconda dice che la domanda C'ERA");
+  ok(/non è stata posta nessuna domanda finale/.test(VUOTI[2]), "la terza dice che non c'era");
   ok(src.includes("domanda_consegna"), "e la route legge la colonna che le distingue");
   // E un errore su una delle due sezioni nuove NON butta via le presenze.
   ok(

@@ -85,6 +85,8 @@ export default async function ModerazioneDirettaPage({ params }: { params: Promi
           dataFine={evento.data_fine}
           chiusaIl={evento.diretta_chiusa_il}
           chiusaDaTipo={evento.diretta_chiusa_da_tipo}
+          chiusaPresenti={evento.diretta_chiusa_presenti}
+          chiusaCertificati={evento.diretta_chiusa_certificati}
         />
       </section>
 

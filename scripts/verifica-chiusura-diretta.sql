@@ -125,15 +125,24 @@ end $$;
 --    del 4/10 — prima il messaggio verde viveva solo nel browser di chi aveva
 --    premuto, e un F5 lo cancellava.
 do $$
-declare v_il timestamptz; v_tipo text; v_user uuid;
+declare v_il timestamptz; v_tipo text; v_user uuid; v_pres integer; v_cert integer;
 begin
-  select diretta_chiusa_il, diretta_chiusa_da_tipo, diretta_chiusa_da_user
-    into v_il, v_tipo, v_user
+  select diretta_chiusa_il, diretta_chiusa_da_tipo, diretta_chiusa_da_user,
+         diretta_chiusa_presenti, diretta_chiusa_certificati
+    into v_il, v_tipo, v_user, v_pres, v_cert
   from public.eventi where id = 'e0000000-0000-0000-0000-0000000000aa';
   insert into esiti values (3, 'la traccia è scritta: ora, tipo ente, chi ha premuto',
     'non null/ente/ente-user',
     format('%s/%s/%s', coalesce(v_il::text, 'null'), coalesce(v_tipo, 'null'), coalesce(v_user::text, 'null')),
     v_il is not null and v_tipo = 'ente' and v_user = '11111111-0000-0000-0000-000000000001');
+  -- ⚠️ E LA RICEVUTA: gli stessi due numeri che la 2 ha letto dal valore di
+  -- ritorno. Senza, la riga di stato dice solo «è chiusa» e il conto resta
+  -- perso com'era — che è il difetto da cui nasce questo file, non «non si sa
+  -- se è chiusa».
+  insert into esiti values (18, 'la ricevuta è scritta: gli stessi numeri che la funzione ha restituito',
+    '2 presenti / 1 certificato',
+    format('%s / %s', coalesce(v_pres::text, 'null'), coalesce(v_cert::text, 'null')),
+    v_pres = 2 and v_cert = 1);
 end $$;
 
 -- 4) ⚠️ LA PROPRIETÀ CHE CONTA. La seconda pressione NON dice «0 nuove
@@ -174,7 +183,7 @@ end $$;
 --    COSTANTE, e la traccia è stata scritta con quello stesso `now()`. Che
 --    l'ora non si sia mossa lo prova già la 4, che la legge prima e dopo.)
 do $$
-declare v_gia timestamptz; v_tipo text; v_user uuid;
+declare v_gia timestamptz; v_tipo text; v_user uuid; v_cert integer;
 begin
   set local role authenticated;
   perform set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-000000000003', true);
@@ -182,8 +191,16 @@ begin
     from public.chiudi_diretta_evento('e0000000-0000-0000-0000-0000000000aa');
   perform set_config('request.jwt.claim.sub', '', true);
   reset role;
-  select diretta_chiusa_da_tipo, diretta_chiusa_da_user into v_tipo, v_user
+  select diretta_chiusa_da_tipo, diretta_chiusa_da_user, diretta_chiusa_certificati
+    into v_tipo, v_user, v_cert
   from public.eventi where id = 'e0000000-0000-0000-0000-0000000000aa';
+  -- ⚠️ NEMMENO LA RICEVUTA SI RISCRIVE: la seconda pressione certifica zero, e
+  -- se quello zero finisse in `diretta_chiusa_certificati` la riga di stato
+  -- direbbe «Nessuno ha raggiunto la soglia di presenza» su una chiusura che
+  -- aveva certificato qualcuno — l'affermazione falsa sugli studenti, per
+  -- un'altra strada.
+  insert into esiti values (19, 'la seconda pressione non riscrive la ricevuta con il suo zero',
+    '1 certificato (quello della prima)', coalesce(v_cert::text, 'null'), v_cert = 1);
   insert into esiti values (6, 'l''admin preme su una diretta già chiusa dall''ente: la traccia resta dell''ente',
     'già chiusa, ente/ente-user',
     format('%s, %s/%s', case when v_gia is null then 'NON dice che era chiusa' else 'già chiusa' end,

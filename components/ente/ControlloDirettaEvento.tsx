@@ -12,7 +12,7 @@ import {
   type StatoChiusura,
 } from "@/lib/eventi/chiusuraDiretta";
 import { rigaTocco } from "@/lib/eventi/tocco";
-import { rigaFreschezza, type Freschezza } from "@/lib/eventi/freschezza";
+import { rigaFreschezza, numeroStantio, NUMERO_NON_AGGIORNATO, type Freschezza } from "@/lib/eventi/freschezza";
 
 type Domanda = {
   id: string;
@@ -38,6 +38,8 @@ export default function ControlloDirettaEvento({
   dataFine,
   chiusaIl = null,
   chiusaDaTipo = null,
+  chiusaPresenti = null,
+  chiusaCertificati = null,
 }: {
   eventoId: string;
   domandaConsegna?: string | null;
@@ -46,13 +48,18 @@ export default function ControlloDirettaEvento({
   /** Dalla colonna `eventi.diretta_chiusa_il`: lo stato al caricamento della pagina. */
   chiusaIl?: string | null;
   chiusaDaTipo?: string | null;
+  /** La ricevuta: i due numeri che la chiusura ha prodotto, riletti dopo un F5. */
+  chiusaPresenti?: number | null;
+  chiusaCertificati?: number | null;
 }) {
   const [presenti, setPresenti] = useState<number | null>(null);
   const [domande, setDomande] = useState<Domanda[]>([]);
   const [caricamento, setCaricamento] = useState(false);
   const [erroreChiusura, setErroreChiusura] = useState<string | null>(null);
   const [esitoChiusura, setEsitoChiusura] = useState<EsitoChiusura | null>(null);
-  const [chiusura, setChiusura] = useState<StatoChiusura>(statoChiusura({ chiusaIl, chiusaDaTipo }));
+  const [chiusura, setChiusura] = useState<StatoChiusura>(
+    statoChiusura({ chiusaIl, chiusaDaTipo, presenti: chiusaPresenti, certificati: chiusaCertificati }),
+  );
   // L'ora sta nello STATO e non si legge nel render: `new Date()` dentro un
   // render è impuro (lo dice `react-hooks/purity`, e lo ha già detto su
   // `CardEvento`). Stesso idioma di `PannelloLive`.
@@ -64,7 +71,7 @@ export default function ControlloDirettaEvento({
   // arrivato. È precisamente il difetto che la riga di freschezza esiste per
   // chiudere.
   const [ora, setOra] = useState(() => new Date());
-  const [freschezza, setFreschezza] = useState<Freschezza>({ quando: null, fallito: false });
+  const [freschezza, setFreschezza] = useState<Freschezza>({ quando: null, falliti: 0 });
 
   const aggiorna = useCallback(async () => {
     const supabase = createClient();
@@ -85,24 +92,45 @@ export default function ControlloDirettaEvento({
       const [{ data: n, error: eN }, { data: d, error: eD }, { data: ev, error: erroreEv }] = await Promise.all([
         supabase.rpc("conteggio_presenti_live", { p_evento_id: eventoId }),
         supabase.rpc("domande_live_organizzatore", { p_evento_id: eventoId }),
-        supabase.from("eventi").select("diretta_chiusa_il, diretta_chiusa_da_tipo").eq("id", eventoId).maybeSingle(),
+        supabase
+          .from("eventi")
+          .select("diretta_chiusa_il, diretta_chiusa_da_tipo, diretta_chiusa_presenti, diretta_chiusa_certificati")
+          .eq("id", eventoId)
+          .maybeSingle(),
       ]);
       if (typeof n === "number") setPresenti(n);
       if (d) setDomande(d as Domanda[]);
       // Una lettura fallita LASCIA quello che c'era: degradare verso «non chiusa»
       // rimetterebbe il bottone su una diretta chiusa per un problema di rete.
       if (erroreEv) console.error("ControlloDirettaEvento: lettura stato chiusura", erroreEv);
-      else if (ev) setChiusura(statoChiusura({ chiusaIl: ev.diretta_chiusa_il, chiusaDaTipo: ev.diretta_chiusa_da_tipo }));
+      else if (ev)
+        setChiusura(
+          statoChiusura({
+            chiusaIl: ev.diretta_chiusa_il,
+            chiusaDaTipo: ev.diretta_chiusa_da_tipo,
+            // ⚠️ LA RICEVUTA ARRIVA ANCHE DAL POLL, non solo dai prop: se è
+            // l'ALTRO moderatore a chiudere mentre questa pagina è aperta, qui
+            // la riga di stato deve portare i due numeri come li porta a lui —
+            // senza, uno dei due vedrebbe «chiusa» e l'altro «chiusa, presenti
+            // 12, certificazioni 9».
+            presenti: ev.diretta_chiusa_presenti,
+            certificati: ev.diretta_chiusa_certificati,
+          }),
+        );
       // ⚠️ BASTA UNO DEI TRE PER DIRE CHE IL GIRO NON È ANDATO: i numeri a
       // schermo sono tre, e dichiararli freschi perché DUE sono arrivati è la
       // stessa bugia in forma più piccola.
       const andata = !eN && !eD && !erroreEv;
       if (eN) console.error("ControlloDirettaEvento: conteggio presenti", eN);
       if (eD) console.error("ControlloDirettaEvento: domande", eD);
-      setFreschezza(andata ? { quando: new Date(), fallito: false } : (f) => ({ quando: f.quando, fallito: true }));
+      // Un successo AZZERA il conto dei falliti: il numero che arriva è fresco
+      // qualunque cosa sia successa prima. Un fallimento lo alza di uno — serve
+      // a sapere quanti giri di fila non tornano, che è la soglia oltre la
+      // quale il numero stesso si degrada.
+      setFreschezza(andata ? { quando: new Date(), falliti: 0 } : (f) => ({ quando: f.quando, falliti: f.falliti + 1 }));
     } catch (e) {
       console.error("ControlloDirettaEvento: giro di aggiornamento non riuscito", e);
-      setFreschezza((f) => ({ quando: f.quando, fallito: true }));
+      setFreschezza((f) => ({ quando: f.quando, falliti: f.falliti + 1 }));
     }
   }, [eventoId]);
 
@@ -117,6 +145,12 @@ export default function ControlloDirettaEvento({
     const intervallo = setInterval(() => setOra(new Date()), 5000);
     return () => clearInterval(intervallo);
   }, []);
+
+  // Calcolato UNA volta e non a ogni uso: due chiamate sarebbero due copie
+  // della stessa decisione, e nel giro di un render potrebbero perfino dare due
+  // risposte diverse (l'ora la legge `ora`, che è stato, quindi non succede —
+  // ma la ragione per cui non succede è questa).
+  const stantio = numeroStantio(freschezza, ora);
 
   async function segnaStato(domandaId: string, stato: string) {
     const supabase = createClient();
@@ -159,14 +193,22 @@ export default function ControlloDirettaEvento({
     <div className="mt-4 space-y-4 border-t border-white/5 pt-4">
       <div>
         <p className="text-sm text-kireo-light">
-          Presenti ora: <strong>{presenti ?? "…"}</strong>
+          Presenti ora:{" "}
+          {/* ⚠️ IL NUMERO SI DEGRADA, e non è una rifinitura della riga qui
+              sotto: chi guarda lo schermo due secondi in mezzo a una diretta
+              legge il numero e non la nota piccola accanto. Oltre la soglia il
+              numero NON deve più somigliare a uno fresco — il barrato lo dice a
+              chi guarda, `NUMERO_NON_AGGIORNATO` a chi usa un lettore di
+              schermo. Il dato resta leggibile: era vero, alle 19:07. */}
+          <strong className={stantio ? "text-kireo-muted line-through" : undefined}>{presenti ?? "…"}</strong>
+          {stantio && <span className="sr-only"> {NUMERO_NON_AGGIORNATO}</span>}
         </p>
         {/* ⚠️ QUANDO QUESTI NUMERI SONO ARRIVATI. «Presenti ora: 12» è
             un'affermazione sul presente, e se l'ultimo giro è fallito due
             minuti fa è un'affermazione sul passato travestita — su cui qualcuno
             sta prendendo decisioni mentre modera. Vedi `lib/eventi/freschezza.ts`. */}
         <p
-          className={`mt-1 text-xs ${freschezza.fallito ? "text-kireo-orange" : "text-kireo-muted"}`}
+          className={`mt-1 text-xs ${freschezza.falliti > 0 || stantio ? "text-kireo-orange" : "text-kireo-muted"}`}
           aria-live="polite"
         >
           {rigaFreschezza(freschezza, ora)}
