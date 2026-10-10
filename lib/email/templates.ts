@@ -80,13 +80,27 @@ function bottone(testo: string, href: string): string {
   return `<a href="${esc(linkSicuro(href))}" style="display:inline-block;margin-top:16px;padding:12px 24px;background-color:#0F6E56;color:#F0EDE8;text-decoration:none;border-radius:999px;font-weight:600;font-size:14px;">${esc(testo)}</a>`;
 }
 
-const ETICHETTA_ORIGINE: Record<"dirigenti" | "scuole" | "enti", string> = {
+type OrigineRichiesta = "dirigenti" | "scuole" | "enti" | "contatti";
+
+const ETICHETTA_ORIGINE: Record<OrigineRichiesta, string> = {
   dirigenti: "Dirigenti Scolastici",
   scuole: "referenti orientamento e docenti",
   enti: "istituzioni formative",
+  contatti: "chi ci scrive",
 };
 
-export function templateConfermaRichiestaContatto(nome: string, origine: "dirigenti" | "scuole" | "enti"): string {
+export function templateConfermaRichiestaContatto(nome: string, origine: OrigineRichiesta): string {
+  // ⚠️ Su /contatti la frase delle landing («la tua richiesta di informazioni
+  // su KIREO per …») non regge: chi scrive da lì può aver chiesto qualunque
+  // cosa. Ramo suo, e il testo è provvisorio — da rivedere con Mario.
+  if (origine === "contatti") {
+    return involucroEmail(`
+      <p>Ciao ${esc(nome)},</p>
+      <p>Abbiamo ricevuto il tuo messaggio. Lo leggiamo e ti rispondiamo il prima possibile — di solito entro un giorno o due.</p>
+      <p>Se nel frattempo vuoi aggiungere qualcosa, rispondi pure a questa email.</p>
+      <p>A presto,<br />Il team KIREO</p>
+    `);
+  }
   return involucroEmail(`
     <p>Ciao ${esc(nome)},</p>
     <p>Abbiamo ricevuto la tua richiesta di informazioni su KIREO per ${ETICHETTA_ORIGINE[origine]}. Ti ricontatteremo entro 24 ore.</p>
@@ -96,22 +110,29 @@ export function templateConfermaRichiestaContatto(nome: string, origine: "dirige
 }
 
 export function templateNotificaRichiestaContatto(dati: {
-  origine: "dirigenti" | "scuole" | "enti";
+  origine: OrigineRichiesta;
   nome: string;
   ruolo: string;
-  istituto: string;
+  /** null per origine=contatti: la colonna è nullable, chi scrive può non avere un istituto da dichiarare. */
+  istituto: string | null;
   codiceMeccanografico: string | null;
   email: string;
   messaggio: string;
 }): string {
+  // Il riquadro scappa i suoi due argomenti DENTRO, non fuori: un aiutante
+  // che si fa passare valori già scappati è la forma che un giorno qualcuno
+  // chiama con un valore grezzo, e `npm run test:email` farebbe bene a
+  // gridare — gli argomenti passano crudi e li scappa lui.
+  const riga = (etichetta: string, valore: string) =>
+    `<tr><td style="padding:4px 0;color:#9A9890;">${esc(etichetta)}</td><td style="padding:4px 0;">${esc(valore)}</td></tr>`;
   return involucroEmail(`
-    <p>Nuova richiesta di informazioni dalla landing <strong>${esc(dati.origine)}</strong>.</p>
+    <p>Nuova richiesta di informazioni da <strong>${esc(dati.origine)}</strong>.</p>
     <table role="presentation" style="width:100%;border-collapse:collapse;margin-top:8px;">
-      <tr><td style="padding:4px 0;color:#9A9890;">Nome</td><td style="padding:4px 0;">${esc(dati.nome)}</td></tr>
-      <tr><td style="padding:4px 0;color:#9A9890;">Ruolo</td><td style="padding:4px 0;">${esc(dati.ruolo)}</td></tr>
-      <tr><td style="padding:4px 0;color:#9A9890;">Istituto</td><td style="padding:4px 0;">${esc(dati.istituto)}</td></tr>
-      <tr><td style="padding:4px 0;color:#9A9890;">Codice meccanografico</td><td style="padding:4px 0;">${esc(dati.codiceMeccanografico ?? "—")}</td></tr>
-      <tr><td style="padding:4px 0;color:#9A9890;">Email</td><td style="padding:4px 0;">${esc(dati.email)}</td></tr>
+      ${riga("Nome", dati.nome)}
+      ${riga("Ruolo", dati.ruolo)}
+      ${dati.istituto ? riga("Istituto", dati.istituto) : ""}
+      ${dati.codiceMeccanografico ? riga("Codice meccanografico", dati.codiceMeccanografico) : ""}
+      ${riga("Email", dati.email)}
     </table>
     <p style="margin-top:16px;color:#9A9890;">Messaggio</p>
     <p style="white-space:pre-wrap;">${esc(dati.messaggio)}</p>

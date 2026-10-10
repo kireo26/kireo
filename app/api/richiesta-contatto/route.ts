@@ -5,16 +5,54 @@ import { templateConfermaRichiestaContatto, templateNotificaRichiestaContatto } 
 
 export const runtime = "nodejs";
 
-const EMAIL_NOTIFICA_INTERNA = "mario.izzo@hotmail.it";
-const EMAIL_NOTIFICA_ENTI = "info@kireo.it";
+// ⚠️ `EMAIL_PERSONALE` è la copia personale di Mario e NON COMPARE DA NESSUNA
+// PARTE SUL SITO: sta qui, in un file che gira solo sul server, e in nessun
+// componente né pagina. `npm run test:contatti` lo pretende.
+const EMAIL_PERSONALE = "mario.izzo@hotmail.it";
+const EMAIL_PUBBLICA = "info@kireo.it";
+
+/**
+ * Una riga per origine: dove va la notifica, e se `istituto` è obbligatorio.
+ *
+ * Una tabella invece di `if` sparsi, perché il 10/10/2026 è stata aggiunta la
+ * QUARTA origine e cercare i posti da toccare è il modo in cui la quinta
+ * dimenticherà qualcosa.
+ *
+ * `istitutoObbligatorio` è falso solo per /contatti: la colonna è nullable
+ * dal 10/10/2026, e chi scrive da lì può essere uno studente che un istituto
+ * non ce l'ha nel senso in cui lo intendono le landing. Il database dice «può
+ * mancare», questa tabella dice «per queste origini no»: due livelli, due
+ * cose diverse, apposta.
+ */
+const ORIGINI = {
+  dirigenti: { notifica: [EMAIL_PERSONALE], istitutoObbligatorio: true },
+  scuole: { notifica: [EMAIL_PERSONALE], istitutoObbligatorio: true },
+  enti: { notifica: [EMAIL_PUBBLICA], istitutoObbligatorio: true },
+  contatti: { notifica: [EMAIL_PUBBLICA, EMAIL_PERSONALE], istitutoObbligatorio: false },
+} as const;
+
+type Origine = keyof typeof ORIGINI;
+
+// Il limite di cortesia è lo stesso trigger per tutte le origini (10 minuti
+// per email), ma quello che si dice a chi lo incontra no: su una landing la
+// cosa vera è «ti ricontatteremo», su /contatti è che il secondo messaggio
+// NON è arrivato — e non dirlo sarebbe la bugia di prima con un'altra faccia.
+const RIFIUTO_LIMITE: Record<Origine, string> = {
+  dirigenti: "Hai già inviato una richiesta di recente: ti ricontatteremo presto!",
+  scuole: "Hai già inviato una richiesta di recente: ti ricontatteremo presto!",
+  enti: "Hai già inviato una richiesta di recente: ti ricontatteremo presto!",
+  contatti:
+    "Questo messaggio non è stato inviato: ne abbiamo già ricevuto uno da questo indirizzo pochi minuti fa. Aspetta una decina di minuti, oppure scrivici direttamente a info@kireo.it.",
+};
 
 function erroreDiCortesia(testo: string, status: number) {
   return NextResponse.json({ errore: testo }, { status });
 }
 
-// Form "Richiedi informazioni" delle landing del funnel scuole
-// (/dirigenti, /scuole). Insert pubblico (RLS: anon può solo inserire, mai
-// leggere — vedi la migration), poi due email best-effort: conferma al
+// Il punto unico da cui passa ogni richiesta di contatto del sito: le due
+// landing del funnel scuole (/dirigenti, /scuole), /istituzioni e — dal
+// 10/10/2026 — /contatti. Insert pubblico (RLS: anon può solo inserire, mai
+// leggere — vedi la migration), poi le email best-effort: conferma al
 // richiedente e notifica interna. Un fallimento email non fa fallire la
 // richiesta: i dati sono già al sicuro in DB, l'admin li vede comunque in
 // coda su /admin.
@@ -36,68 +74,96 @@ export async function POST(request: NextRequest) {
 
   const { origine, nome, ruolo, istituto, email, messaggio, codiceMeccanografico } = body;
 
-  if (typeof origine !== "string" || (origine !== "dirigenti" && origine !== "scuole" && origine !== "enti")) {
+  if (typeof origine !== "string" || !Object.prototype.hasOwnProperty.call(ORIGINI, origine)) {
     return erroreDiCortesia("Richiesta non valida.", 400);
   }
-  const campiTesto = [nome, ruolo, istituto, email, messaggio];
+  const conf = ORIGINI[origine as Origine];
+
+  const campiTesto = [nome, ruolo, email, messaggio, ...(conf.istitutoObbligatorio ? [istituto] : [])];
   if (campiTesto.some((v) => typeof v !== "string" || !v.trim())) {
     return erroreDiCortesia("Compila tutti i campi obbligatori.", 400);
   }
   const nomeStr = (nome as string).trim();
   const ruoloStr = (ruolo as string).trim();
-  const istitutoStr = (istituto as string).trim();
+  const istitutoStr = typeof istituto === "string" && istituto.trim() ? istituto.trim() : null;
   const emailStr = (email as string).trim();
   const messaggioStr = (messaggio as string).trim();
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailStr)) {
     return erroreDiCortesia("Inserisci un indirizzo email valido.", 400);
   }
-  if (nomeStr.length > 200 || ruoloStr.length > 200 || istitutoStr.length > 300 || messaggioStr.length > 3000) {
+  if (nomeStr.length > 200 || ruoloStr.length > 200 || (istitutoStr?.length ?? 0) > 300 || messaggioStr.length > 3000) {
     return erroreDiCortesia("Uno dei campi supera la lunghezza massima consentita.", 400);
   }
   const codice = typeof codiceMeccanografico === "string" && codiceMeccanografico.trim() ? codiceMeccanografico.trim() : null;
 
-  const supabase = await createClient();
-  const { error } = await supabase.from("richieste_contatto").insert({
-    origine,
-    nome: nomeStr,
-    ruolo: ruoloStr,
-    istituto: istitutoStr,
-    codice_meccanografico: codice,
-    email: emailStr,
-    messaggio: messaggioStr,
-  });
+  // ⚠️ `createClient()` LANCIA quando Supabase non è configurato, e fuori da
+  // un try produce un 500 grezzo: nessun corpo, nessuna traccia — cioè il
+  // modo 7, un guasto sul percorso eccezionale che `npm run test:log5xx` non
+  // vede, perché quella guardia guarda i 5xx che RITORNIAMO e non quelli che
+  // lasciamo accadere. Misurato su build di produzione il 10/10/2026 (POST
+  // valido senza env: `500` con corpo vuoto). Dentro il try il caso fallisce
+  // chiuso dicendolo.
+  let error: { message?: string } | null = null;
+  try {
+    const supabase = await createClient();
+    ({ error } = await supabase.from("richieste_contatto").insert({
+      origine,
+      nome: nomeStr,
+      ruolo: ruoloStr,
+      istituto: istitutoStr,
+      codice_meccanografico: codice,
+      email: emailStr,
+      messaggio: messaggioStr,
+    }));
+  } catch (eccezione) {
+    console.error("Errore insert richieste_contatto (eccezione):", eccezione);
+    return erroreDiCortesia("Non è stato possibile inviare la richiesta. Riprova tra qualche istante.", 500);
+  }
 
   if (error) {
     if (error.message?.includes("richiesta_recente")) {
-      return erroreDiCortesia("Hai già inviato una richiesta di recente: ti ricontatteremo presto!", 429);
+      return erroreDiCortesia(RIFIUTO_LIMITE[origine as Origine], 429);
     }
     console.error("Errore insert richieste_contatto:", error);
     return erroreDiCortesia("Non è stato possibile inviare la richiesta. Riprova tra qualche istante.", 500);
   }
 
-  const emailNotificaDestinatario = origine === "enti" ? EMAIL_NOTIFICA_ENTI : EMAIL_NOTIFICA_INTERNA;
-  const oggettoNotifica = origine === "enti" ? "Richiesta informazione ente formativo" : `Nuova richiesta (${origine}) da ${istitutoStr}`;
+  const oggettoNotifica =
+    origine === "enti"
+      ? "Richiesta informazione ente formativo"
+      : origine === "contatti"
+        ? `Nuovo messaggio da /contatti — ${nomeStr}`
+        : `Nuova richiesta (${origine}) da ${istitutoStr}`;
 
-  const [esitoConferma, esitoNotifica] = await Promise.all([
-    inviaEmail(emailStr, "Abbiamo ricevuto la tua richiesta — KIREO", templateConfermaRichiestaContatto(nomeStr, origine), nomeStr),
+  const corpoNotifica = templateNotificaRichiestaContatto({
+    origine: origine as Origine,
+    nome: nomeStr,
+    ruolo: ruoloStr,
+    istituto: istitutoStr,
+    codiceMeccanografico: codice,
+    email: emailStr,
+    messaggio: messaggioStr,
+  });
+
+  const [esitoConferma, ...esitiNotifica] = await Promise.all([
     inviaEmail(
-      emailNotificaDestinatario,
-      oggettoNotifica,
-      templateNotificaRichiestaContatto({
-        origine,
-        nome: nomeStr,
-        ruolo: ruoloStr,
-        istituto: istitutoStr,
-        codiceMeccanografico: codice,
-        email: emailStr,
-        messaggio: messaggioStr,
-      }),
+      emailStr,
+      // ⚠️ Un oggetto solo per tutte e quattro le origini: su /contatti «la
+      // tua richiesta» è un po' largo per chi ha scritto un messaggio, ma è
+      // l'oggetto già vivo delle altre tre e cambiarlo qui lo cambierebbe
+      // anche per loro. Segnalato fra i testi da rivedere.
+      "Abbiamo ricevuto la tua richiesta — KIREO",
+      templateConfermaRichiestaContatto(nomeStr, origine as Origine),
+      nomeStr,
     ),
+    ...conf.notifica.map((destinatario) => inviaEmail(destinatario, oggettoNotifica, corpoNotifica)),
   ]);
 
   if (!esitoConferma.ok) console.error("Email di conferma richiesta contatto non inviata:", esitoConferma.motivo);
-  if (!esitoNotifica.ok) console.error("Email di notifica richiesta contatto non inviata:", esitoNotifica.motivo);
+  esitiNotifica.forEach((esito, i) => {
+    if (!esito.ok) console.error(`Notifica richiesta contatto non inviata a ${conf.notifica[i]}:`, esito.motivo);
+  });
 
   return NextResponse.json({ ok: true });
 }

@@ -4,24 +4,44 @@ import { useState } from "react";
 import { Button } from "@/components/Button";
 import { inputClass, fieldBorder } from "@/lib/formStyles";
 
-// Form condiviso dalle due landing del funnel scuole (/dirigenti,
-// /scuole): stessi campi, differenziati solo per origine (usata dal
-// server per il messaggio di conferma e la coda admin) e per le opzioni
-// del select ruolo. Insert + invio email avvengono lato server
-// (app/api/richiesta-contatto/route.ts): la chiave Brevo non deve mai
-// arrivare al client.
+/** La conferma delle landing. /contatti ne passa una sua: lì non è una richiesta di informazioni, è un messaggio. */
+export const CONFERMA_RICHIESTA = {
+  titolo: "Richiesta inviata",
+  testo: "Grazie! Ti risponderemo entro 24 ore. Controlla anche la posta indesiderata.",
+};
+
+// Form condiviso da ogni punto del sito che manda una richiesta di contatto:
+// le due landing del funnel scuole (/dirigenti, /scuole), /istituzioni e —
+// dal 10/10/2026 — /contatti. Stessi campi, differenziati solo per origine
+// (usata dal server per il messaggio di conferma, il destinatario della
+// notifica e la coda admin) e per le opzioni del select ruolo. Insert +
+// invio email avvengono lato server (app/api/richiesta-contatto/route.ts):
+// la chiave Brevo non deve mai arrivare al client.
+//
+// ⚠️ /contatti USA QUESTO FORM invece di averne uno suo, e la ragione non è
+// l'economia di righe: il suo vecchio form (`components/ContactForm.tsx`,
+// cancellato) faceva `setInviato(true)` senza nessuna chiamata di rete e la
+// pagina rispondeva «Messaggio inviato!». Un secondo form che parla alla
+// stessa route sarebbe una seconda copia della validazione, della gestione
+// degli errori e del messaggio di conferma — e due copie divergono: è solo
+// questione di quando. Qualunque punto nuovo passa da qui.
 export default function RichiestaContattoForm({
   origine,
   ruoliOpzioni,
   etichettaBottone,
   etichettaIstituto = "Istituto",
   mostraCodiceMeccanografico = true,
+  mostraIstituto = true,
+  conferma = CONFERMA_RICHIESTA,
 }: {
-  origine: "dirigenti" | "scuole" | "enti";
+  origine: "dirigenti" | "scuole" | "enti" | "contatti";
   ruoliOpzioni: string[];
   etichettaBottone: string;
   etichettaIstituto?: string;
   mostraCodiceMeccanografico?: boolean;
+  /** false su /contatti: chi scrive può essere uno studente senza un istituto da dichiarare. */
+  mostraIstituto?: boolean;
+  conferma?: { titolo: string; testo: string };
 }) {
   const [nome, setNome] = useState("");
   const [ruolo, setRuolo] = useState("");
@@ -49,7 +69,7 @@ export default function RichiestaContattoForm({
     const next: Record<string, string> = {};
     if (!nome.trim()) next.nome = "Inserisci il tuo nome.";
     if (!ruolo) next.ruolo = "Seleziona il tuo ruolo.";
-    if (!istituto.trim()) next.istituto = "Inserisci il nome dell'istituto.";
+    if (mostraIstituto && !istituto.trim()) next.istituto = "Inserisci il nome dell'istituto.";
     if (!email.trim()) {
       next.email = "Inserisci un'email.";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
@@ -76,7 +96,7 @@ export default function RichiestaContattoForm({
           origine,
           nome: nome.trim(),
           ruolo,
-          istituto: istituto.trim(),
+          istituto: mostraIstituto ? istituto.trim() : null,
           codiceMeccanografico: codiceMeccanografico.trim() || null,
           email: email.trim(),
           messaggio: messaggio.trim(),
@@ -101,11 +121,9 @@ export default function RichiestaContattoForm({
     return (
       <div className="rounded-2xl border border-kireo-green/40 bg-kireo-card p-8 text-center">
         <h3 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">
-          Richiesta inviata
+          {conferma.titolo}
         </h3>
-        <p className="mt-2 text-sm text-kireo-muted">
-          Grazie! Ti risponderemo entro 24 ore. Controlla anche la posta indesiderata.
-        </p>
+        <p className="mt-2 text-sm text-kireo-muted">{conferma.testo}</p>
       </div>
     );
   }
@@ -159,39 +177,43 @@ export default function RichiestaContattoForm({
         {errors.ruolo && <p className="mt-1.5 text-sm text-red-400">{errors.ruolo}</p>}
       </div>
 
-      <div className={mostraCodiceMeccanografico ? "grid gap-5 sm:grid-cols-2" : ""}>
-        <div>
-          <label htmlFor="istituto" className="mb-1.5 block text-sm font-medium text-kireo-light">
-            {etichettaIstituto}
-          </label>
-          <input
-            id="istituto"
-            value={istituto}
-            onChange={(e) => {
-              setIstituto(e.target.value);
-              clearError("istituto");
-            }}
-            aria-invalid={Boolean(errors.istituto)}
-            className={`${inputClass} ${fieldBorder(Boolean(errors.istituto))}`}
-            placeholder={`Nome dell${etichettaIstituto === "Ente" ? "'ente" : "'istituto"}`}
-          />
-          {errors.istituto && <p className="mt-1.5 text-sm text-red-400">{errors.istituto}</p>}
+      {(mostraIstituto || mostraCodiceMeccanografico) && (
+        <div className={mostraIstituto && mostraCodiceMeccanografico ? "grid gap-5 sm:grid-cols-2" : ""}>
+          {mostraIstituto && (
+            <div>
+              <label htmlFor="istituto" className="mb-1.5 block text-sm font-medium text-kireo-light">
+                {etichettaIstituto}
+              </label>
+              <input
+                id="istituto"
+                value={istituto}
+                onChange={(e) => {
+                  setIstituto(e.target.value);
+                  clearError("istituto");
+                }}
+                aria-invalid={Boolean(errors.istituto)}
+                className={`${inputClass} ${fieldBorder(Boolean(errors.istituto))}`}
+                placeholder={`Nome dell${etichettaIstituto === "Ente" ? "'ente" : "'istituto"}`}
+              />
+              {errors.istituto && <p className="mt-1.5 text-sm text-red-400">{errors.istituto}</p>}
+            </div>
+          )}
+          {mostraCodiceMeccanografico && (
+            <div>
+              <label htmlFor="codiceMeccanografico" className="mb-1.5 block text-sm font-medium text-kireo-light">
+                Codice meccanografico (facoltativo)
+              </label>
+              <input
+                id="codiceMeccanografico"
+                value={codiceMeccanografico}
+                onChange={(e) => setCodiceMeccanografico(e.target.value)}
+                className={`${inputClass} ${fieldBorder(false)}`}
+                placeholder="Es. MIXX00000X"
+              />
+            </div>
+          )}
         </div>
-        {mostraCodiceMeccanografico && (
-          <div>
-            <label htmlFor="codiceMeccanografico" className="mb-1.5 block text-sm font-medium text-kireo-light">
-              Codice meccanografico (facoltativo)
-            </label>
-            <input
-              id="codiceMeccanografico"
-              value={codiceMeccanografico}
-              onChange={(e) => setCodiceMeccanografico(e.target.value)}
-              className={`${inputClass} ${fieldBorder(false)}`}
-              placeholder="Es. MIXX00000X"
-            />
-          </div>
-        )}
-      </div>
+      )}
 
       <div>
         <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-kireo-light">

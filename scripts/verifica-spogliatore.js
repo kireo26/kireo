@@ -127,7 +127,15 @@ console.log("\n4) Le àncore sui nomi non crescono");
   // convertito le cinque àncore che avevano già morso in
   // `verifica-barra-percorso.js`. Si ABBASSA quando se ne converte un'altra;
   // non si alza.
-  const TETTO = 68;
+  //
+  // ⚠️ 68 → 67 il 10/10/2026, e NON perché ne sia stata convertita una: il
+  // censimento leggeva il sorgente coi commenti, quindi contava anche un
+  // `lastIndexOf("…")` CITATO in un commento che spiegava perché quella forma
+  // non va usata — il modo 1, un rosso su un file che aveva fatto la cosa
+  // giusta. Curato il lettore (`censimentoAncore` spoglia), il numero è
+  // scoperto essere 67 da sempre. Chi lo rilegge non deve credere che una
+  // conversione sia avvenuta.
+  const TETTO = 67;
   const { grezze, perFile } = censimentoAncore(DIR);
   const peggiori = [...perFile.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3);
   ok(

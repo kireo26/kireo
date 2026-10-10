@@ -1,6 +1,13 @@
 import type { Metadata } from "next";
-import ContactForm from "@/components/ContactForm";
+import RichiestaContattoForm from "@/components/landing/RichiestaContattoForm";
 import SectionHeading from "@/components/SectionHeading";
+
+// ⚠️ L'indirizzo pubblico di KIREO, e l'unico che compare sul sito: la copia
+// personale di Mario sta solo in `app/api/richiesta-contatto/route.ts`, che
+// gira sul server. `npm run test:contatti` lo pretende.
+const EMAIL_PUBBLICA = "info@kireo.it";
+
+const RUOLI = ["Studente", "Istituzione formativa", "Docente", "Altro"];
 
 export const metadata: Metadata = {
   title: "Contatti — KIREO",
@@ -62,9 +69,34 @@ export default function Contatti() {
                 </div>
               ))}
             </div>
+
+            {/* L'indirizzo c'è perché una persona deve poter scrivere anche
+                senza passare da un modulo — e perché i testi che si scusano
+                («scrivici da Contatti») devono atterrare su qualcosa di vero
+                anche il giorno in cui il modulo si rompe. */}
+            <p className="mt-8 text-sm text-kireo-muted">
+              Preferisci scrivere direttamente?{" "}
+              <a
+                href={`mailto:${EMAIL_PUBBLICA}`}
+                className="text-kireo-orange underline underline-offset-2"
+              >
+                {EMAIL_PUBBLICA}
+              </a>
+            </p>
           </div>
 
-          <ContactForm />
+          <RichiestaContattoForm
+            origine="contatti"
+            ruoliOpzioni={RUOLI}
+            etichettaBottone="Invia messaggio"
+            mostraIstituto={false}
+            mostraCodiceMeccanografico={false}
+            conferma={{
+              titolo: "Messaggio inviato",
+              testo:
+                "Grazie! Lo leggiamo e ti rispondiamo il prima possibile. Ti abbiamo mandato un'email di conferma: se non la vedi, controlla la posta indesiderata.",
+            }}
+          />
         </div>
       </section>
     </>

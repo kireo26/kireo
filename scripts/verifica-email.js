@@ -63,6 +63,7 @@ const PROVENIENZA_NOTA = [
   "contenuto", // HTML già composto, passato a involucroEmail
   "bottone(", // compone a sua volta, e passa da esc()+linkSicuro()
   "involucroEmail(",
+  "riga(", // una riga della tabella di notifica: scappa i suoi DUE argomenti dentro — verificato sotto
 ];
 
 // ⚠️ SOLO LE INTERPOLAZIONI CHE COMPONGONO MARKUP. La prima stesura leggeva
@@ -85,6 +86,17 @@ ok(
     ? "nessuna interpolazione scoperta: tutte passano da esc() o hanno provenienza nota"
     : `interpolazioni scoperte: ${scoperte.map((s) => `\${${s}}`).join(", ")}`,
   "una stringa che arriva dal corpo di una richiesta e finisce in un'email senza esc() scrive il markup di un'email a nome nostro",
+);
+
+// ⚠️ LA PREMESSA DELL'ESENZIONE SI VERIFICA, altrimenti non l'abbiamo
+// accettata: l'abbiamo solo allargata. `riga(` è in PROVENIENZA_NOTA perché
+// scappa i suoi due argomenti DENTRO — se smettesse di farlo, l'esenzione
+// coprirebbe due interpolazioni crude e questo file resterebbe verde.
+const defRiga = tmpl.match(/const riga = \([^)]*\) =>[\s\S]*?;\n/);
+ok(
+  Boolean(defRiga) && /esc\(etichetta\)/.test(defRiga[0]) && /esc\(valore\)/.test(defRiga[0]),
+  "`riga(` scappa etichetta e valore dentro di sé",
+  "è la premessa su cui sta in PROVENIENZA_NOTA: senza, l'esenzione copre il vuoto",
 );
 
 // ── 2) l'escape copre il contesto attributo, non solo il testo ──────────────

@@ -409,10 +409,20 @@ export default async function AdminPage() {
                     <p className="mt-1 font-heading text-sm font-semibold text-kireo-light">
                       {r.nome} · {r.ruolo}
                     </p>
+                    {/* `istituto` è nullable dal 10/10/2026 (origine=contatti):
+                        le parti si uniscono invece di essere incollate a mano,
+                        altrimenti un istituto assente lascia un « · » orfano in
+                        testa alla riga. */}
                     <p className="mt-1 text-xs text-kireo-muted">
-                      {r.istituto}
-                      {r.codice_meccanografico ? ` (${r.codice_meccanografico})` : ""} · {r.email} ·{" "}
-                      {formattaData(r.created_at, "long")}
+                      {[
+                        r.istituto
+                          ? `${r.istituto}${r.codice_meccanografico ? ` (${r.codice_meccanografico})` : ""}`
+                          : r.codice_meccanografico,
+                        r.email,
+                        formattaData(r.created_at, "long"),
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
                     </p>
                   </div>
                   <ToggleGestitaRichiesta id={r.id} gestita={false} />

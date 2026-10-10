@@ -44,6 +44,7 @@
 
 const fs = require("fs");
 const path = require("path");
+const { senzaCommenti } = require("./senza-commenti");
 
 // L'indice di `nome` in `src`, dichiarando quante volte ci si aspetta che
 // compaia. `quale` sceglie l'occorrenza (0 = la prima) quando sono più di una e
@@ -87,7 +88,12 @@ function censimentoAncore(dirScripts) {
   let grezze = 0;
   const perFile = new Map();
   for (const n of fs.readdirSync(dir).filter((f) => /^verifica-.*\.js$/.test(f))) {
-    const src = fs.readFileSync(path.join(dir, n), "utf8");
+    // ⚠️ SPOGLIATO DAI COMMENTI. Il 10/10/2026 il conto è salito di uno per
+    // un `lastIndexOf("try {", …)` citato DENTRO un commento che spiegava
+    // perché quella forma non va usata — cioè il censimento gridava su un
+    // file che aveva fatto la cosa giusta e l'aveva scritta. È il modo 1, e
+    // la cura è al lettore: una guardia negativa legge il sorgente spogliato.
+    const src = senzaCommenti(fs.readFileSync(path.join(dir, n), "utf8"));
     // Solo le àncore su un LETTERALE: `indexOf(variabile)` non si può contare
     // staticamente, e `indexOf` su un array (una lista di stringhe) non è
     // un'àncora su un sorgente.
