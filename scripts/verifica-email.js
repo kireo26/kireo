@@ -59,7 +59,6 @@ const tmpl = leggi("lib/email/templates.ts");
 // aggiunta è una stringa che potrà scrivere markup.
 const PROVENIENZA_NOTA = [
   "SITE_URL", // lib/site.ts, costante nostra
-  "EMAIL_PUBBLICA", // lib/site.ts, costante nostra: l'indirizzo a cui si risponde
   "ETICHETTA_ORIGINE[origine]", // mappa chiusa qui dentro
   "contenuto", // HTML già composto, passato a involucroEmail
   "bottone(", // compone a sua volta, e passa da esc()+linkSicuro()
@@ -70,9 +69,9 @@ const PROVENIENZA_NOTA = [
   // nessuno — e dal 10/10/2026 è una funzione e non una costante perché il
   // pronome con cui comincia dipende dall'origine.
   "promessaRisposta(origine)",
-  // Composta qui sopra da EMAIL_PUBBLICA, che è già in questo elenco: è la
-  // frase che ha sostituito «rispondi pure a questa email», che prometteva una
-  // casella che non riceve.
+  // Una costante di testo scritta qui dentro, senza niente che arrivi da
+  // fuori: è la frase «rispondi pure a questa email», tornata l'11/10/2026
+  // dopo la prova dal vivo del Reply-To (vedi §2bis).
   "COME_AGGIUNGERE_QUALCOSA",
 ];
 
@@ -113,7 +112,13 @@ ok(
 console.log("\n2) esc() copre anche il contesto attributo, e linkSicuro rifiuta gli schemi");
 
 require("./banco/ts").abilitaTypeScript();
-const { esc, linkSicuro } = require("@/lib/email/templates");
+const {
+  esc,
+  linkSicuro,
+  templateConfermaRichiestaContatto,
+  templateNotificaRichiestaContatto,
+  templateFollowUpGuida,
+} = require("@/lib/email/templates");
 
 ok(esc("<b>x</b>") === "&lt;b&gt;x&lt;/b&gt;", "i tag si neutralizzano");
 ok(esc('a"b') === "a&quot;b", "…e le VIRGOLETTE, che sono quelle che fanno uscire da un href=\"…\"");
@@ -139,33 +144,118 @@ for (const cattivo of ["javascript:alert(1)", "data:text/html,x", "//kireo.it/x"
   ok(alzato, `«${cattivo || "(vuoto)"}» viene rifiutato`);
 }
 
-// ── 2bis) nessuna email promette una casella che non riceve ────────────────
-console.log("\n2bis) Nessun template dice «rispondi a questa email»");
+// ── 2bis) un invito a rispondere solo dove il Reply-To riceve ──────────────
+console.log("\n2bis) Una email invita a rispondere solo dove il Reply-To riceve");
 
-// ⚠️ IL MITTENTE È `noreply@kireo.it`, CHE NON RICEVE. Fino al 10/10/2026 due
-// rami su due dicevano di rispondere a quell'email — quello delle landing dal
-// 25 luglio: chi rispondeva scriveva a una casella muta e non lo scopriva.
+// ⚠️ NON È UNA PROPRIETÀ DEL TEMPLATE: È DI TEMPLATE **PIÙ** INVIO. Il mittente
+// di ogni nostra email è `noreply@kireo.it`, che NON RICEVE — quindi «rispondi
+// pure a questa email» è vera solo se chi la manda passa un `rispondiA`, e il
+// template da sé non può saperlo. Fino al 10/10/2026 la frase c'era senza
+// nessun Reply-To, in tutti e due i rami, e in quello delle landing dal 25
+// luglio: chi rispondeva scriveva a una casella muta e non lo scopriva.
 //
-// Adesso `inviaEmail` manda un `Reply-To: info@kireo.it`, quindi chi premesse
-// «rispondi» passerebbe comunque — ma la frase che lo PROMETTE si scrive dopo
-// una prova dal vivo, non prima: se Brevo ignorasse quel campo, quella frase
-// fallirebbe in silenzio, e un'email mandata non si ritira. Finché la prova
-// non c'è, questa guardia tiene chiusa la porta.
-const promesse = [...tmpl.matchAll(/rispond\w*[^.<]{0,40}a questa email/gi)].map((m) => m[0]);
-ok(promesse.length === 0,
-  "nessun template invita a rispondere all'indirizzo da cui parte",
-  `${promesse.join(" · ")} — il mittente non riceve: quella risposta parte e sparisce. ` +
-  "Prima la prova (mandare, premere rispondi, vedere se arriva), poi la frase");
-ok(tmpl.includes(`scrivici a ${"$"}{EMAIL_PUBBLICA}`) || /scrivici a \$\{EMAIL_PUBBLICA\}/.test(tmpl),
-  "…e al suo posto c'è l'indirizzo, che è vero in ogni caso",
-  "togliere la promessa senza dare una strada lascia chi vuole aggiungere qualcosa senza niente");
+// L'11/10, dopo la prova dal vivo (vedi `OpzioniInvioEmail.rispondiA`), la
+// frase è tornata — e questa guardia è passata da «nessuno la dice» a «la dice
+// solo chi può». Il divieto secco non serve più e sarebbe peggio: terrebbe
+// chiusa una porta che adesso è vera, cioè griderebbe su una cosa giusta.
+const INVITO_A_RISPONDERE = /rispond\w*[^.<]{0,40}a questa email/i;
+const ORIGINI_CONTATTO = ["dirigenti", "scuole", "enti", "contatti"];
 
-// E il Reply-To c'è davvero, su chi lo promette: la metà che il template non
-// può provare da sé.
+// ⚠️ OGNI TEMPLATE DICHIARA SE PUÒ INVITARE, E CHI LO MANDA. Un template nuovo
+// che non sta qui fa diventare rossa la proprietà sotto: nasce senza una
+// risposta, che è il momento giusto per chiederla — l'unico in cui qualcuno ci
+// sta pensando.
+const TEMPLATE_EMAIL = [
+  {
+    nome: "templateConfermaRichiestaContatto",
+    // Tutti e quattro i rami, e la frase deve esserci in OGNUNO: il 10/10 il
+    // corpo era uno per le landing e un altro per /contatti, e la cura è stata
+    // che non possano divergere. Renderli tutti e quattro è la metà che se ne
+    // accorgerebbe.
+    rende: () => ORIGINI_CONTATTO.map((o) => templateConfermaRichiestaContatto("Mario", o)),
+    invito: "deve",
+    invio: {
+      file: "app/api/richiesta-contatto/route.ts",
+      ancora: "templateConfermaRichiestaContatto(nomeStr",
+    },
+  },
+  {
+    nome: "templateFollowUpGuida",
+    rende: () => [
+      templateFollowUpGuida({ nome: "Mario", titoloGuida: "Guida", linkGuida: "https://kireo.it/g.pdf" }),
+    ],
+    // «Può», non «deve»: il suo invio porta il Reply-To, quindi la frase lì
+    // sarebbe vera — ma non c'è, e aggiungerla è una decisione sui testi, non
+    // una conseguenza di questo lavoro. Se un domani ci va, è già coperta.
+    invito: "puo",
+    invio: { file: "app/api/guida-email/route.ts", ancora: "inviaEmail(corpo.email" },
+  },
+  {
+    nome: "templateNotificaRichiestaContatto",
+    rende: () => [
+      templateNotificaRichiestaContatto({
+        origine: "contatti",
+        nome: "Mario",
+        ruolo: "studente",
+        istituto: null,
+        codiceMeccanografico: null,
+        email: "chi.scrive@esempio.it",
+        messaggio: "ciao",
+      }),
+    ],
+    invito: "mai",
+    perche:
+      "il destinatario siamo noi, e il suo Reply-To è l'indirizzo di CHI HA SCRITTO: " +
+      "un invito a rispondere qui sarebbe rivolto a noi, che lo sappiamo già",
+  },
+];
+
+const esportati = [...tmpl.matchAll(/export function (template\w+)/g)].map((m) => m[1]);
+ok(esportati.length >= 3, `i template esportati sono ${esportati.length}`, "sotto tre, l'estrattore non sta leggendo");
+const fuoriTabella = esportati.filter((n) => !TEMPLATE_EMAIL.some((t) => t.nome === n));
+ok(
+  fuoriTabella.length === 0,
+  fuoriTabella.length === 0
+    ? "ogni template dichiara se può invitare a rispondere"
+    : `template non dichiarati: ${fuoriTabella.join(", ")}`,
+  "un template nuovo deve dire se invita a rispondere, e chi lo manda: la frase è vera solo con un Reply-To",
+);
+
 const rc = leggi("app/api/richiesta-contatto/route.ts");
-ok(/rispondiA: EMAIL_PUBBLICA/.test(rc),
-  "la conferma di una richiesta di contatto porta un Reply-To",
-  "senza, chi premesse «rispondi» per abitudine scriverebbe a `noreply@`");
+
+for (const t of TEMPLATE_EMAIL) {
+  const corpi = t.rende();
+  const conInvito = corpi.filter((c) => INVITO_A_RISPONDERE.test(c)).length;
+  if (t.invito === "deve") {
+    ok(
+      conInvito === corpi.length,
+      `${t.nome}: tutti e ${corpi.length} i rami invitano a rispondere (${conInvito})`,
+      "la frase è tornata l'11/10 dopo la prova: se sparisce, chi vuole aggiungere qualcosa resta senza strada",
+    );
+  } else if (t.invito === "mai") {
+    ok(conInvito === 0, `${t.nome}: non invita a rispondere`, t.perche);
+  }
+  // ⚠️ L'INVIO SI VERIFICA SEMPRE, anche dove la frase oggi non c'è. È la
+  // BASE su cui la tabella dichiara «può invitare»: una voce `puo` il cui
+  // invio non si guarda è una dichiarazione che nessuno ha controllato — e
+  // l'àncora resterebbe lì a invecchiare, per poi far saltare il controllo il
+  // giorno in cui qualcuno aggiunge la frase, cioè nel momento peggiore.
+  //
+  // Àncora sulla CHIAMATA, con il conto dichiarato: nella route di contatti
+  // `rispondiA` compare due volte con due valori diversi, e una regex sul file
+  // intero sarebbe verde con i due scambiati.
+  if (t.invio) {
+    const src = t.invio.file === "app/api/richiesta-contatto/route.ts" ? rc : leggi(t.invio.file);
+    const i = ancora(src, t.invio.ancora, { volte: 1, dove: t.invio.file });
+    const invio = src.slice(i, i + 300);
+    ok(
+      /rispondiA: EMAIL_PUBBLICA/.test(invio),
+      `…e il suo invio porta un Reply-To che riceve (${t.invio.file})`,
+      "senza, un invito a rispondere promette una casella muta: la risposta parte e sparisce, " +
+        "che è il modo peggiore in cui può fallire una cosa irreversibile",
+    );
+  }
+}
 
 // ⚠️ E L'AVVISO INTERNO PORTA L'INDIRIZZO DI CHI HA SCRITTO, che è la metà da
 // cui dipende una risposta vera. L'11/10/2026 Mario ha letto in webmail
@@ -202,6 +292,27 @@ const brevo = leggi("lib/email/brevo.ts");
 ok(/replyTo: opzioni\.rispondiA \? \{ email: opzioni\.rispondiA \} : undefined/.test(brevo),
   "…e il client lo mette davvero nel corpo della richiesta a Brevo",
   "un'opzione che nessuno inoltra è un Reply-To che non esiste: la metà che si dimentica");
+
+// ⚠️ E L'OGGETTO DELL'AVVISO LO LEGGONO IN DUE, dal `Reply-To` in poi. Per noi
+// è la riga di una coda; per chi ha scritto diventa l'oggetto della risposta,
+// con un «Re: » davanti. Il caso vero: diceva «Nuovo messaggio da /contatti —
+// Mario», e `/contatti` è un percorso del sito — per lui niente.
+//
+// La proprietà è sul PERCORSO e non sulla parola, ed è tarata sul testo vero:
+// oggi nessuno dei quattro oggetti ha una barra, mentre «(dirigenti)» è una
+// parola italiana che si legge come una categoria anche da fuori. Una guardia
+// che gridasse anche su quella sarebbe una guardia che qualcuno disattiva.
+const { oggettoNotifica } = require("@/lib/contatti/testi");
+const oggetti = ORIGINI_CONTATTO.map((o) => oggettoNotifica(o, { nome: "Mario", istituto: "ITIS Fermi" }));
+ok(oggetti.length === 4, `gli oggetti dell'avviso sono ${oggetti.length}`, "sotto quattro, l'estrattore non sta leggendo");
+const conPercorso = oggetti.filter((o) => o.includes("/"));
+ok(
+  conPercorso.length === 0,
+  conPercorso.length === 0
+    ? "nessun oggetto dell'avviso porta un percorso del sito"
+    : `oggetti con un percorso: ${conPercorso.join(" · ")}`,
+  "col Reply-To quell'oggetto diventa l'oggetto di una risposta a chi ha scritto: un percorso lì non vuol dire niente",
+);
 
 // ── 3) LA PROPRIETÀ CHE CONTA: il contenuto non viene dal corpo ─────────────
 console.log("\n3) Le route che mandano email non prendono link né titolo dal corpo");

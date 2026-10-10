@@ -21,15 +21,19 @@ export type OpzioniInvioEmail = {
    * parte e sparisce. La promessa di un canale è il pezzo che nessuno
    * verifica, e quella era la terza volta.
    *
-   * ⚠️ E NON È ANCORA PROVATO DAL VIVO. Che Brevo rispetti questo campo è
-   * documentato; che una risposta arrivi davvero in casella lo dice solo una
-   * prova, e dal sandbox non si può fare (nessuna `BREVO_API_KEY`, nessuna
-   * posta in uscita). Finché la prova non c'è, i template NON dicono
-   * «rispondi a questa email»: dicono l'indirizzo. Il Reply-To resta perché è
-   * gratis ed è strettamente meglio — chi premesse «rispondi» passerebbe
-   * comunque — ma la frase che lo promette si scrive dopo la prova, non
-   * prima: se Brevo lo ignorasse, quella frase fallirebbe IN SILENZIO, che è
-   * la direzione peggiore in cui può fallire una cosa irreversibile.
+   * ✅ PROVATO DAL VIVO L'11/10/2026, da Mario: ha letto in Roundcube l'avviso
+   * interno di un messaggio vero e ha premuto «Rispondi» — il messaggio
+   * composto parte da `info@kireo.it` e va a chi aveva scritto. Quindi Brevo
+   * manda l'header, il client di posta lo usa, e il gesto naturale atterra
+   * dove deve. Con quella prova la frase «rispondi pure a questa email» è
+   * tornata nel template della conferma.
+   *
+   * ⚠️ L'ORDINE ERA DELIBERATO, e vale per la prossima promessa di questo
+   * tipo: la frase che promette un canale si scrive DOPO la prova, non prima.
+   * Un «rispondi a questa email» su un header ignorato fallisce IN SILENZIO —
+   * la risposta parte e sparisce — che è la direzione peggiore in cui può
+   * fallire una cosa irreversibile. Il Reply-To invece si mette subito: è
+   * gratis ed è strettamente meglio, anche senza nessuna frase che lo nomini.
    */
   rispondiA?: string;
 };

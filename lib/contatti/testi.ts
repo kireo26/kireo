@@ -54,6 +54,38 @@ export function oggettoConferma(origine: OrigineContatto): string {
   return `Abbiamo ricevuto ${COSA_E_ARRIVATO[origine].nome} — KIREO`;
 }
 
+/**
+ * L'oggetto dell'AVVISO INTERNO, quello che arriva a noi.
+ *
+ * ⚠️ LO LEGGONO IN DUE, E IL SECONDO NON C'ERA QUANDO È STATO SCRITTO. Per noi
+ * è la riga di una coda: dice chi ha scritto e di che si tratta. Ma dall'11/10
+ * l'avviso porta un `Reply-To` verso chi ha scritto, quindi premere «rispondi»
+ * **fa diventare questa riga l'oggetto di una risposta a lui** — con un «Re: »
+ * davanti. Quindi qui non va niente che sia nostro e solo nostro.
+ *
+ * Il caso vero: diceva «Nuovo messaggio da /contatti — Mario», e `/contatti` è
+ * un percorso del sito, che per chi lo riceve non vuol dire niente. Non è una
+ * perdita: l'origine sta già nel CORPO dell'avviso e nel badge della coda, e
+ * ripeterla nell'oggetto era una cosa in più da leggere per noi e una cosa
+ * incomprensibile per lui. (Stessa specie della nota del troncamento: un testo
+ * scritto per noi che, cambiando chi lo riceve, è uscito di casa senza che
+ * nessuno lo riscrivesse.)
+ *
+ * ⚠️ GLI ALTRI DUE RAMI PORTANO UNA PAROLA, NON UN IDENTIFICATORE, ed è la
+ * ragione per cui restano: «dirigenti» in «Nuova richiesta (dirigenti) da …» si
+ * legge come una categoria anche da fuori. La riga che un domani non deve
+ * rientrare è un percorso, un id, uno slug — e `npm run test:email` la
+ * pretende, su tutti e tre i rami.
+ */
+export function oggettoNotifica(
+  origine: OrigineContatto,
+  dati: { nome: string; istituto: string | null },
+): string {
+  if (origine === "enti") return "Richiesta informazione ente formativo";
+  if (origine === "contatti") return `Nuovo messaggio da ${dati.nome}`;
+  return `Nuova richiesta (${origine}) da ${dati.istituto ?? dati.nome}`;
+}
+
 /*
  * ⚠️ QUI C'ERA `mailtoRisposta`, IL `mailto:` DEL BOTTONE «RISPONDI» DELLA CODA
  * ADMIN, ed è uscita il 10/10/2026 — il giorno dopo essere stata scritta,

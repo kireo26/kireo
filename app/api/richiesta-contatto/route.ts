@@ -4,7 +4,7 @@ import { inviaEmail } from "@/lib/email/brevo";
 import { templateConfermaRichiestaContatto, templateNotificaRichiestaContatto } from "@/lib/email/templates";
 import { EMAIL_PUBBLICA } from "@/lib/site";
 import { segnalaGuasto } from "@/lib/guasti/registra";
-import { oggettoConferma } from "@/lib/contatti/testi";
+import { oggettoConferma, oggettoNotifica } from "@/lib/contatti/testi";
 
 export const runtime = "nodejs";
 
@@ -185,12 +185,7 @@ export async function POST(request: NextRequest) {
     return erroreDiCortesia("Non è stato possibile inviare la richiesta. Riprova tra qualche istante.", 500);
   }
 
-  const oggettoNotifica =
-    origine === "enti"
-      ? "Richiesta informazione ente formativo"
-      : origine === "contatti"
-        ? `Nuovo messaggio da /contatti — ${nomeStr}`
-        : `Nuova richiesta (${origine}) da ${istitutoStr}`;
+  const oggetto = oggettoNotifica(origine as Origine, { nome: nomeStr, istituto: istitutoStr });
 
   const corpoNotifica = templateNotificaRichiestaContatto({
     origine: origine as Origine,
@@ -209,7 +204,10 @@ export async function POST(request: NextRequest) {
       templateConfermaRichiestaContatto(nomeStr, origine as Origine),
       // ⚠️ Il mittente è `noreply@kireo.it`, che non riceve: senza questo, chi
       // premesse «rispondi» scriverebbe a una casella muta senza accorgersene.
-      // Vedi `OpzioniInvioEmail.rispondiA` — e la prova dal vivo che manca.
+      // E questa è l'email che DICE «rispondi pure a questa email» (vedi
+      // `COME_AGGIUNGERE_QUALCOSA` in `lib/email/templates.ts`): toglierlo da
+      // qui renderebbe falsa una frase, non solo scomodo un gesto. Provato dal
+      // vivo l'11/10/2026 — vedi `OpzioniInvioEmail.rispondiA`.
       { nome: nomeStr, rispondiA: EMAIL_PUBBLICA },
     ),
     // ⚠️ IL `Reply-To` DELL'AVVISO È L'INDIRIZZO DI CHI HA SCRITTO, e non è una
@@ -237,7 +235,7 @@ export async function POST(request: NextRequest) {
     // non può impedire una risposta dalla casella sbagliata; può garantire che
     // quella giusta ce l'abbia sempre, e che una risposta non si perda.
     ...conf.notifica.map((destinatario) =>
-      inviaEmail(destinatario, oggettoNotifica, corpoNotifica, { rispondiA: emailStr }),
+      inviaEmail(destinatario, oggetto, corpoNotifica, { rispondiA: emailStr }),
     ),
   ]);
 

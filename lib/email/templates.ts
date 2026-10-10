@@ -15,7 +15,7 @@
 // passi da `esc()` o da un valore di cui si conosce la provenienza — così il
 // prossimo template non nasce senza.
 
-import { SITE_URL, EMAIL_PUBBLICA } from "@/lib/site";
+import { SITE_URL } from "@/lib/site";
 import { promessaRisposta } from "@/lib/contatti/testi";
 
 // Escape per il CONTESTO TESTO e per il CONTESTO ATTRIBUTO insieme: le
@@ -90,24 +90,36 @@ const ETICHETTA_ORIGINE: Record<OrigineRichiesta, string> = {
   contatti: "chi ci scrive",
 };
 
-// ⚠️ LA FRASE CHE DICEVA «RISPONDI PURE A QUESTA EMAIL», E PERCHÉ NON LA DICE
-// PIÙ (10/10/2026). Il mittente è `noreply@kireo.it`, che non riceve: chi
-// rispondeva scriveva a una casella muta e non lo scopriva — l'email parte e
-// sparisce. Era in TUTTI E DUE i rami, e in quello delle landing dal 25
-// luglio: la cura sta sulla classe, non sull'istanza che qualcuno ha notato.
+// ⚠️ LA FRASE È TORNATA L'11/10/2026, DOPO LA PROVA, E NON PRIMA — e la storia
+// serve perché non si riapra la porta dalla parte sbagliata.
 //
-// Adesso `inviaEmail` manda un `Reply-To: info@kireo.it`, quindi chi premesse
-// «rispondi» passerebbe comunque — ma la frase che lo PROMETTE si scrive dopo
-// la prova dal vivo, non prima: se Brevo ignorasse quel campo, un «rispondi a
-// questa email» fallirebbe in silenzio, che è la direzione peggiore per una
-// cosa che non si può ritirare. Un indirizzo da copiare è vero in ogni caso.
+// Il mittente di ogni nostra email è `noreply@kireo.it`, che NON RICEVE. Fino
+// al 10/10 questa frase c'era comunque, in tutti e due i rami, e in quello
+// delle landing dal 25 luglio: chi rispondeva scriveva a una casella muta e non
+// lo scopriva — l'email parte e sparisce. È stata tolta dalla CLASSE e non
+// dall'istanza che qualcuno aveva notato, e al suo posto era andato un
+// indirizzo da copiare, vero in ogni caso.
 //
-// ⚠️ L'INDIRIZZO È TESTO E NON UN LINK, di proposito: `linkSicuro` rifiuta
-// ogni schema che non sia http/https — `mailto:` compreso, e c'è
-// un'asserzione che lo pretende — perché uno schema che apre un'app in
-// un'email nostra è la cosa da cui quella funzione protegge. I client di
-// posta linkificano un indirizzo da soli.
-const COME_AGGIUNGERE_QUALCOSA = `Se vuoi aggiungere qualcosa, scrivici a ${EMAIL_PUBBLICA}.`;
+// Poi è arrivato il `Reply-To: info@kireo.it` (vedi `OpzioniInvioEmail`), e la
+// frase è restata fuori un giorno di più di proposito: una promessa di questo
+// tipo fallisce IN SILENZIO — se Brevo ignorasse quel campo, la risposta parte
+// e sparisce come prima, e un'email mandata non si ritira. **Prima la prova,
+// poi la frase.**
+//
+// LA PROVA, fatta da Mario l'11/10/2026: ha letto in Roundcube l'avviso interno
+// e ha premuto «Rispondi» — il messaggio composto parte da `info@kireo.it` e va
+// a chi aveva scritto. Quindi Brevo manda l'header, il client lo usa, e il
+// gesto naturale atterra dove deve. Su questa conferma il valore dell'header è
+// `info@kireo.it`, cioè la stessa casella in cui quell'avviso è arrivato: che
+// riceva è un fatto osservato, non una deduzione.
+//
+// ⚠️ L'INDIRIZZO DA COPIARE È USCITO INSIEME, e non per economia: con la
+// risposta che funziona, il gesto da fare è uno solo, e due strade offerte
+// nella stessa riga non sono più informative — sono più da leggere. Chi
+// cancella l'email e vuole scrivere un mese dopo passa da /contatti, oppure
+// risponde a quell'email comunque, perché il `Reply-To` sta nei suoi header per
+// sempre.
+const COME_AGGIUNGERE_QUALCOSA = `Se vuoi aggiungere qualcosa, rispondi pure a questa email.`;
 
 export function templateConfermaRichiestaContatto(nome: string, origine: OrigineRichiesta): string {
   // Su /contatti la frase delle landing («la tua richiesta di informazioni su
