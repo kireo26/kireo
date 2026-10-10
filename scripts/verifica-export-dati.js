@@ -42,7 +42,13 @@ const { fetta } = require("./lib/ancora.js");
 const { abilitaTypeScript, ROOT } = require("./banco/ts");
 
 abilitaTypeScript();
-const { SEZIONI_EXPORT, assemblaEsportazione } = require("@/lib/app/esportaDati");
+const {
+  SEZIONI_EXPORT,
+  assemblaEsportazione,
+  ATTESE,
+  FAMIGLIE_DEL_TESTO,
+  TESTO_DEBITO,
+} = require("@/lib/app/esportaDati");
 
 let rossi = 0;
 let fatti = 0;
@@ -145,7 +151,53 @@ ok(attese.length + fuori.length + sezioni.length - 1 === cascata.size,
   "i tre elenchi coprono la cascata esattamente, senza somme che non tornano",
   `${sezioni.length - 1} + ${attese.length} + ${fuori.length} ≠ ${cascata.size}`);
 
-console.log("\n§6 · La forma del file");
+console.log("\n§6 · La riga del debito, e le famiglie che nomina");
+// `TESTO_DEBITO` è scritta a mano e `ATTESE` cresce. Senza questo controllo,
+// il giorno in cui una tabella nuova entra nel debito la frase resta quella
+// di prima e nessuno lo sa — e la forma in cui diventa falsa è la peggiore,
+// perché un elenco si legge come esaustivo: una famiglia mancante non è
+// un'omissione, è un'affermazione che tutto il resto c'è.
+//
+// Qui si importa invece di rileggere il sorgente, perché queste sono
+// proprietà di VALORI: che `nominataDa` sia riempito e che le famiglie
+// compaiano nella frase. Il conto incrociato con il lettore lessicale di §2
+// è gratis e sorveglia l'estrattore.
+ok(attese.length === ATTESE.length,
+  `i due estrattori di ATTESE concordano (${attese.length})`,
+  `il lettore lessicale dice ${attese.length} e l'import ${ATTESE.length}: uno dei due ha smesso di leggere`);
+
+for (const f of FAMIGLIE_DEL_TESTO) {
+  ok(TESTO_DEBITO.includes(f), `la frase nomina «${f}»`,
+    "la frase e `FAMIGLIE_DEL_TESTO` sono due copie: se la frase cambia e i dati no, " +
+    "questo controllo guarda famiglie che nessuno legge più");
+}
+
+const nominate = [...new Set(ATTESE.map((a) => a.nominataDa).filter(Boolean))];
+const nonNominate = ATTESE.filter((a) => a.nominataDa === null).map((a) => a.tabella).sort();
+const inventate = nominate.filter((f) => !FAMIGLIE_DEL_TESTO.includes(f)).sort();
+ok(inventate.length === 0,
+  "nessuna tabella è nominata da una famiglia che la frase non ha",
+  `${inventate.join(", ")} — o la frase le nomina, o quelle tabelle restano senza famiglia`);
+ok(nominate.length === FAMIGLIE_DEL_TESTO.length,
+  "ogni famiglia della frase copre almeno una tabella",
+  `la frase nomina ${FAMIGLIE_DEL_TESTO.length} famiglie e solo ${nominate.length} coprono qualcosa: ` +
+  `${FAMIGLIE_DEL_TESTO.filter((f) => !nominate.includes(f)).join(", ")}`);
+
+// Il cricchetto. NON è «zero», perché oggi non è zero: è il numero di oggi,
+// dichiarato, così il silenzio cresce solo se qualcuno lo decide. Rosso nei
+// due versi, e i due versi vogliono due cose opposte.
+const NON_NOMINATE_ATTESE = 15;
+ok(nonNominate.length === NON_NOMINATE_ATTESE,
+  `${nonNominate.length} tabelle del debito che la frase non nomina (dichiarate: ${NON_NOMINATE_ATTESE})`,
+  nonNominate.length > NON_NOMINATE_ATTESE
+    ? `il debito è cresciuto e la frase è rimasta quella: ${nonNominate.join(", ")}\n       ` +
+      "→ o la frase le nomina, o si alza il numero qui sapendo che il file tace su di loro."
+    : `la frase è migliorata: porta il numero a ${nonNominate.length}. ` +
+      `Restano fuori: ${nonNominate.join(", ") || "nessuna"}`);
+console.log(`  · la frase nomina ${ATTESE.length - nonNominate.length} delle ${ATTESE.length} tabelle del debito`);
+console.log(`  · non nominate: ${nonNominate.join(", ")}`);
+
+console.log("\n§7 · La forma del file");
 // Si chiede al modulo, non si rilegge il sorgente: una regex su un testo dice
 // che è scritto, non che arriva a chi legge.
 const ULTIMA = SEZIONI_EXPORT.length - 1;
@@ -159,32 +211,42 @@ const esitoIncompleto = assemblaEsportazione(unaPersa, adesso);
 const esitoVuoto = assemblaEsportazione(nessuna, adesso);
 
 const chiavi = SEZIONI_EXPORT.map((s) => s.chiave);
-const completo = JSON.parse(esitoCompleto.file);
-const incompleto = JSON.parse(esitoIncompleto.file);
+const fileOk = JSON.parse(esitoCompleto.file);
+const fileRotto = JSON.parse(esitoIncompleto.file);
 const mancante = chiavi[ULTIMA];
 
-ok(completo.completo === true && Array.isArray(completo.nonSiamoRiusciti) && completo.nonSiamoRiusciti.length === 0,
-  "un file completo porta comunque `completo` e `nonSiamoRiusciti`",
+ok(fileOk.tutteLePartiRichiesteOttenute === true &&
+   Array.isArray(fileOk.nonSiamoRiusciti) && fileOk.nonSiamoRiusciti.length === 0,
+  "un file completo porta comunque `tutteLePartiRichiesteOttenute` e `nonSiamoRiusciti`",
   "un campo che compare solo quando le cose vanno male è un campo che nessuno impara a cercare");
-ok(completo.avviso === undefined, "un file completo non porta un avviso di incompletezza");
-const primeTre = Object.keys(completo).slice(0, 3);
-ok(primeTre.join(",") === "esportatoIl,completo,nonSiamoRiusciti",
-  `l'intestazione sta in cima, prima dei dati (${primeTre.join(", ")})`);
+// Il nome vecchio prometteva più della cosa che afferma: non deve rientrare,
+// e nemmeno restare accanto al nuovo.
+ok(!("completo" in fileOk) && !("completo" in fileRotto),
+  "nessun campo si chiama `completo`",
+  "rispondeva a «le query sono riuscite?» e si leggeva come «questo è tutto quello che avete su di me»");
+ok(fileOk.avviso === undefined, "un file completo non porta un avviso di incompletezza");
+const intestazione = Object.keys(fileOk).slice(0, 4);
+ok(intestazione.join(",") === "esportatoIl,cosaContiene,tutteLePartiRichiesteOttenute,nonSiamoRiusciti",
+  `l'intestazione sta in cima, prima dei dati (${intestazione.join(", ")})`);
 
-ok(incompleto.completo === false && incompleto.nonSiamoRiusciti.join() === mancante,
+ok(fileOk.cosaContiene === TESTO_DEBITO && fileRotto.cosaContiene === TESTO_DEBITO,
+  "la riga del debito c'è su tutti e due i file, completo e incompleto",
+  "il debito non è un guasto: è quello che l'export non copre ancora, e vale anche quando tutto è andato bene");
+
+ok(fileRotto.tutteLePartiRichiesteOttenute === false && fileRotto.nonSiamoRiusciti.join() === mancante,
   `un file incompleto nomina la sezione mancante (${mancante})`);
-ok(!(mancante in incompleto),
+ok(!(mancante in fileRotto),
   `la sezione mancante NON compare nel file`,
   "né `[]`, che è una bugia, né un segnaposto, che è rumore in mezzo ai dati");
-ok(typeof incompleto.avviso === "string" && incompleto.avviso.includes("non vuol dire che siano vuote"),
+ok(typeof fileRotto.avviso === "string" && fileRotto.avviso.includes("non vuol dire che siano vuote"),
   "l'avviso dice che un vuoto non è un «non lo so»",
   "è la frase che porta il peso: la regola di casa detta a un sedicenne");
-ok(chiavi.filter((c) => c !== mancante).every((c) => c in incompleto),
+ok(chiavi.filter((c) => c !== mancante).every((c) => c in fileRotto),
   "le altre sezioni restano nel file");
 ok(esitoVuoto.file === null, "se non si ottiene niente, non si scarica nessun file",
   "un file con la sola intestazione si apre e sembra «non ho niente su KIREO»");
 
-console.log("\n§7 · Il componente non ricompone il file a mano");
+console.log("\n§8 · Il componente non ricompone il file a mano");
 const form = senzaCommenti(fs.readFileSync(path.join(ROOT, "components/app/ProfiloForm.tsx"), "utf8"));
 // Il corpo dell'export: dalla sua funzione a quella che la segue. Le due
 // àncore dichiarano il proprio conto — ognuna compare nella dichiarazione e

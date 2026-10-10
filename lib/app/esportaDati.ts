@@ -33,18 +33,32 @@
 //     (che è una bugia), non un oggetto segnaposto (che è rumore in mezzo ai
 //     dati): assente, e nominata in cima;
 //   • l'intestazione c'è SEMPRE, anche quando è tutto a posto, con
-//     `completo: true` e `nonSiamoRiusciti: []`. Due ragioni: chi apre il
-//     file due volte in momenti diversi vede la stessa struttura e nota la
-//     differenza, e un campo che compare solo quando le cose vanno male è un
-//     campo che nessuno impara a cercare;
+//     `tutteLePartiRichiesteOttenute: true` e `nonSiamoRiusciti: []`. Due
+//     ragioni: chi apre il file due volte in momenti diversi vede la stessa
+//     struttura e nota la differenza, e un campo che compare solo quando le
+//     cose vanno male è un campo che nessuno impara a cercare;
 //   • se non si è ottenuto NIENTE, non si scarica niente: un file che
 //     contiene solo `esportatoIl` si apre e sembra «non ho niente su KIREO».
+//
+// ⚠️ IL CAMPO SI CHIAMAVA `completo`, E IL NOME ERA UNA PROMESSA PIÙ GRANDE
+// DELLA COSA CHE AFFERMA (10/10/2026). Risponde a «tutte le query che ho
+// fatto sono riuscite?»; chi legge risponde a «questo è tutto quello che
+// avete su di me?» — e la seconda è la domanda per cui quel bottone esiste.
+// Con quattro sezioni su trentacinque tabelle, `completo: true` era la specie
+// di casa dentro la cura della specie di casa. Il nome nuovo è brutto e dice
+// esattamente quello che afferma: le parti che QUESTO file chiede, non tutto
+// quello che abbiamo.
+//
+// E il nome da solo non basta, perché nessuno legge un nome di campo come una
+// limitazione: il file DICE al ragazzo cosa non contiene ancora
+// (`cosaContiene`, sempre presente). Una frase che dice il debito si cancella
+// quando il debito finisce; una che lo tace resta falsa per sempre.
 //
 // ⚠️ L'unica cosa che NON è sempre presente è `avviso`, e la ragione è che il
 // suo testo è un'affermazione sull'incompletezza: tenerlo su un file completo
 // vorrebbe dire scriverci una frase diversa, cioè inventare una voce che
-// nessuno ha scritto. `completo` e `nonSiamoRiusciti`, che sono i due campi
-// che si imparano a cercare, ci sono sempre.
+// nessuno ha scritto. `tutteLePartiRichiesteOttenute` e `nonSiamoRiusciti`,
+// che sono i due campi che si imparano a cercare, ci sono sempre.
 
 /** Una sezione del file: una tabella, la colonna con cui si filtra, il nome che prende nel file. */
 export type SezioneExport = {
@@ -83,53 +97,78 @@ export const SEZIONI_EXPORT: SezioneExport[] = [
 export type NaturaDato = "scritto" | "fatto" | "dedotto" | "terzo" | "nostro";
 
 /**
+ * Le famiglie che `TESTO_DEBITO` nomina al ragazzo, come DATI.
+ *
+ * Esistono per una ragione sola: la frase è scritta a mano e `ATTESE` cresce,
+ * quindi senza qualcosa che tenga ferme le due cose la frase diventa falsa
+ * senza che niente lo dica — e la forma in cui diventa falsa è la peggiore,
+ * perché un elenco si legge come esaustivo: chi legge «non contiene ancora
+ * X, Y, Z» conclude che tutto il resto c'è.
+ *
+ * `npm run test:export` pretende che ognuna compaia LETTERALMENTE nella
+ * frase, e conta le tabelle di `ATTESE` che nessuna di loro copre.
+ */
+export const FAMIGLIE_DEL_TESTO = [
+  "le missioni",
+  "i workshop",
+  "le iscrizioni agli eventi",
+  "le presenze",
+  "i messaggi",
+] as const;
+
+/**
  * Le tabelle che discendono da uno studente e che l'export OGGI NON DÀ.
  *
  * Non sono esclusioni: sono un debito dichiarato, in attesa della decisione
  * su cosa il file debba contenere. La `natura` è la ragione per tabella — e
  * insieme sono l'inventario su cui quella decisione si prende.
+ *
+ * `nominataDa` è la famiglia di `TESTO_DEBITO` sotto cui il ragazzo la
+ * troverebbe, oppure `null` se la frase non la nomina affatto. Dove due
+ * famiglie andrebbero bene si sceglie quella dove uno andrebbe a cercare: al
+ * controllo interessa solo la differenza fra «nominata» e «no».
  */
-export const ATTESE: { tabella: string; natura: NaturaDato; cosa: string }[] = [
+export const ATTESE: { tabella: string; natura: NaturaDato; nominataDa: string | null; cosa: string }[] = [
   // ── scritto da lui
-  { tabella: "consegne_evento", natura: "scritto", cosa: "la risposta alla domanda finale di una diretta" },
-  { tabella: "domande_live", natura: "scritto", cosa: "le domande fatte durante una diretta" },
-  { tabella: "workshop_elaborati", natura: "scritto", cosa: "l'elaborato a tappe (più il giudizio finale e la fiducia, che sono dedotti)" },
-  { tabella: "step_response", natura: "scritto", cosa: "le risposte alle stanze di una missione, aperte e strutturate" },
-  { tabella: "test_response", natura: "scritto", cosa: "le risposte ai tre test" },
-  { tabella: "journal_entry", natura: "scritto", cosa: "il diario di una missione" },
-  { tabella: "portfolio_item", natura: "scritto", cosa: "l'artefatto salvato da una missione" },
-  { tabella: "workshop_consegne", natura: "scritto", cosa: "i file consegnati col motore workshop v1" },
-  { tabella: "workshop_chat_cliente", natura: "scritto", cosa: "le sue domande al cliente simulato (le risposte le scrive un modello)" },
+  { tabella: "consegne_evento", natura: "scritto", nominataDa: null, cosa: "la risposta alla domanda finale di una diretta" },
+  { tabella: "domande_live", natura: "scritto", nominataDa: null, cosa: "le domande fatte durante una diretta" },
+  { tabella: "workshop_elaborati", natura: "scritto", nominataDa: "i workshop", cosa: "l'elaborato a tappe (più il giudizio finale e la fiducia, che sono dedotti)" },
+  { tabella: "step_response", natura: "scritto", nominataDa: "le missioni", cosa: "le risposte alle stanze di una missione, aperte e strutturate" },
+  { tabella: "test_response", natura: "scritto", nominataDa: null, cosa: "le risposte ai tre test" },
+  { tabella: "journal_entry", natura: "scritto", nominataDa: "le missioni", cosa: "il diario di una missione" },
+  { tabella: "portfolio_item", natura: "scritto", nominataDa: "le missioni", cosa: "l'artefatto salvato da una missione" },
+  { tabella: "workshop_consegne", natura: "scritto", nominataDa: "i workshop", cosa: "i file consegnati col motore workshop v1" },
+  { tabella: "workshop_chat_cliente", natura: "scritto", nominataDa: "i workshop", cosa: "le sue domande al cliente simulato (le risposte le scrive un modello)" },
 
   // ── fatto da lui
-  { tabella: "activity_log", natura: "fatto", cosa: "dove ha messo piede, area per area" },
-  { tabella: "iscrizioni_eventi", natura: "fatto", cosa: "a cosa si è iscritto (lo stato e la certificazione sono di un terzo)" },
-  { tabella: "presenze_live", natura: "fatto", cosa: "i battiti di presenza di una diretta" },
-  { tabella: "seguiti", natura: "fatto", cosa: "gli enti che segue" },
-  { tabella: "manifestazioni_interesse", natura: "fatto", cosa: "gli enti a cui ha manifestato interesse" },
-  { tabella: "assistente_conversazioni", natura: "fatto", cosa: "quante conversazioni ha aperto con l'assistente — mai il contenuto, che non si salva" },
-  { tabella: "workshop_iscrizioni", natura: "fatto", cosa: "i ruoli di workshop presi, lasciati, completati" },
-  { tabella: "test_attempt", natura: "fatto", cosa: "i tentativi dei tre test" },
-  { tabella: "mission_attempt", natura: "fatto", cosa: "le missioni giocate" },
-  { tabella: "recinto_enti", natura: "fatto", cosa: "le guide di un ente che ha scaricato" },
-  { tabella: "newsletter_iscrizioni", natura: "fatto", cosa: "le newsletter di un ente a cui si è iscritto" },
-  { tabella: "workshop_tutor_log", natura: "fatto", cosa: "quante volte ha chiesto aiuto al tutor — mai il contenuto" },
+  { tabella: "activity_log", natura: "fatto", nominataDa: null, cosa: "dove ha messo piede, area per area" },
+  { tabella: "iscrizioni_eventi", natura: "fatto", nominataDa: "le iscrizioni agli eventi", cosa: "a cosa si è iscritto (lo stato e la certificazione sono di un terzo)" },
+  { tabella: "presenze_live", natura: "fatto", nominataDa: "le presenze", cosa: "i battiti di presenza di una diretta" },
+  { tabella: "seguiti", natura: "fatto", nominataDa: null, cosa: "gli enti che segue" },
+  { tabella: "manifestazioni_interesse", natura: "fatto", nominataDa: null, cosa: "gli enti a cui ha manifestato interesse" },
+  { tabella: "assistente_conversazioni", natura: "fatto", nominataDa: null, cosa: "quante conversazioni ha aperto con l'assistente — mai il contenuto, che non si salva" },
+  { tabella: "workshop_iscrizioni", natura: "fatto", nominataDa: "i workshop", cosa: "i ruoli di workshop presi, lasciati, completati" },
+  { tabella: "test_attempt", natura: "fatto", nominataDa: null, cosa: "i tentativi dei tre test" },
+  { tabella: "mission_attempt", natura: "fatto", nominataDa: "le missioni", cosa: "le missioni giocate" },
+  { tabella: "recinto_enti", natura: "fatto", nominataDa: null, cosa: "le guide di un ente che ha scaricato" },
+  { tabella: "newsletter_iscrizioni", natura: "fatto", nominataDa: null, cosa: "le newsletter di un ente a cui si è iscritto" },
+  { tabella: "workshop_tutor_log", natura: "fatto", nominataDa: "i workshop", cosa: "quante volte ha chiesto aiuto al tutor — mai il contenuto" },
 
   // ── dedotto da noi: la categoria che pesa, perché è quello che pensiamo di lui
-  { tabella: "evidence", natura: "dedotto", cosa: "le prove, ognuna con la sua motivazione leggibile — scritta apposta per poter essere letta da lui" },
-  { tabella: "area_signal", natura: "dedotto", cosa: "i quattro punteggi per area, la confidence e lo status" },
-  { tabella: "style_signal", natura: "dedotto", cosa: "il profilo di stile dei quattro assi" },
-  { tabella: "workshop_fasi_stato", natura: "dedotto", cosa: "la revisione di ogni tappa e la reazione del cliente" },
+  { tabella: "evidence", natura: "dedotto", nominataDa: null, cosa: "le prove, ognuna con la sua motivazione leggibile — scritta apposta per poter essere letta da lui" },
+  { tabella: "area_signal", natura: "dedotto", nominataDa: null, cosa: "i quattro punteggi per area, la confidence e lo status" },
+  { tabella: "style_signal", natura: "dedotto", nominataDa: null, cosa: "il profilo di stile dei quattro assi" },
+  { tabella: "workshop_fasi_stato", natura: "dedotto", nominataDa: "i workshop", cosa: "la revisione di ogni tappa e la reazione del cliente" },
 
   // ── coinvolge un terzo
-  { tabella: "conversazioni_enti", natura: "terzo", cosa: "le conversazioni con un ente" },
-  { tabella: "messaggi_enti", natura: "terzo", cosa: "i messaggi scambiati con un ente — metà li ha scritti l'ente" },
-  { tabella: "workshop_messaggi", natura: "terzo", cosa: "i messaggi con i compagni di progetto: l'altro è un altro minorenne" },
-  { tabella: "messaggi_scuola_destinatari", natura: "terzo", cosa: "le comunicazioni ricevute dalla scuola — il corpo è della scuola" },
-  { tabella: "classi_studenti", natura: "terzo", cosa: "la classe a cui la scuola lo ha assegnato" },
+  { tabella: "conversazioni_enti", natura: "terzo", nominataDa: "i messaggi", cosa: "le conversazioni con un ente" },
+  { tabella: "messaggi_enti", natura: "terzo", nominataDa: "i messaggi", cosa: "i messaggi scambiati con un ente — metà li ha scritti l'ente" },
+  { tabella: "workshop_messaggi", natura: "terzo", nominataDa: "i messaggi", cosa: "i messaggi con i compagni di progetto: l'altro è un altro minorenne" },
+  { tabella: "messaggi_scuola_destinatari", natura: "terzo", nominataDa: "i messaggi", cosa: "le comunicazioni ricevute dalla scuola — il corpo è della scuola" },
+  { tabella: "classi_studenti", natura: "terzo", nominataDa: null, cosa: "la classe a cui la scuola lo ha assegnato" },
 
   // ── mandato da noi
-  { tabella: "notifiche_studenti", natura: "nostro", cosa: "le notifiche che gli abbiamo mandato" },
+  { tabella: "notifiche_studenti", natura: "nostro", nominataDa: null, cosa: "le notifiche che gli abbiamo mandato" },
 ];
 
 /**
@@ -151,7 +190,24 @@ export const FUORI: { tabella: string; perche: string }[] = [
   { tabella: "school_staff", perche: "è la riga di un referente o di un tutor dentro il proprio istituto" },
 ];
 
-// ── I due testi. Sono voce, e li ha scritti Mario.
+// ── I tre testi. Sono voce, e li ha scritti Mario.
+
+/**
+ * La riga che dice il debito, SEMPRE presente nel file — anche quando tutte
+ * le parti richieste sono arrivate, perché il debito non è un guasto: è
+ * quello che l'export non copre ancora.
+ *
+ * ⚠️ È scritta a mano e `ATTESE` cresce. La guardia tiene fermo quello che si
+ * può tenere fermo meccanicamente (che le famiglie di `FAMIGLIE_DEL_TESTO`
+ * compaiano qui dentro, e quante tabelle del debito nessuna di loro copra);
+ * cosa nominare resta una decisione di voce.
+ *
+ * Al 10/10/2026 la frase nomina 16 delle 31 tabelle di `ATTESE`: restano
+ * fuori, fra le altre, i tre test e i quattro punteggi che pensiamo di lui —
+ * segnalato a Mario, in attesa della sua revisione.
+ */
+export const TESTO_DEBITO =
+  "Questo file contiene: il tuo profilo, le aree che hai scelto, le tue attività. Non contiene ancora le missioni, i workshop, le iscrizioni agli eventi, le presenze e i messaggi: stiamo completando l'esportazione, e nel frattempo puoi chiederceli scrivendoci.";
 
 export const TESTO_AVVISO_INCOMPLETO =
   "Questo file non è completo. Le parti elencate qui sopra non siamo riusciti a recuperarle: non vuol dire che siano vuote, vuol dire che non lo sappiamo. Le altre parti del file sono complete. Riprova più tardi, e se succede ancora scrivici da Contatti: te le mandiamo a mano.";
@@ -163,8 +219,8 @@ export const TESTO_NESSUN_FILE =
 export type EsitoSezione = { ottenuta: true; dati: unknown } | { ottenuta: false; motivo: string };
 
 export type Esportazione =
-  | { file: string; completo: boolean; nonSiamoRiusciti: string[] }
-  | { file: null; completo: false; nonSiamoRiusciti: string[] };
+  | { file: string; tutteLePartiRichiesteOttenute: boolean; nonSiamoRiusciti: string[] }
+  | { file: null; tutteLePartiRichiesteOttenute: false; nonSiamoRiusciti: string[] };
 
 /**
  * Compone il file dagli esiti delle sezioni. Puro: nessuna rete, nessun DOM —
@@ -179,17 +235,21 @@ export function assemblaEsportazione(esiti: EsitoSezione[], adesso: Date = new D
   // sembra «non ho niente su KIREO», che è la bugia di partenza con un'altra
   // faccia.
   if (nonSiamoRiusciti.length === SEZIONI_EXPORT.length) {
-    return { file: null, completo: false, nonSiamoRiusciti };
+    return { file: null, tutteLePartiRichiesteOttenute: false, nonSiamoRiusciti };
   }
 
-  const completo = nonSiamoRiusciti.length === 0;
+  const tutteLePartiRichiesteOttenute = nonSiamoRiusciti.length === 0;
 
   const contenuto: Record<string, unknown> = {
     esportatoIl: adesso.toISOString(),
-    completo,
+    // La riga del debito viene prima dei due campi sull'esito, perché
+    // risponde alla domanda che il ragazzo si sta facendo aprendo il file; i
+    // due campi rispondono a una domanda nostra.
+    cosaContiene: TESTO_DEBITO,
+    tutteLePartiRichiesteOttenute,
     nonSiamoRiusciti,
   };
-  if (!completo) contenuto.avviso = TESTO_AVVISO_INCOMPLETO;
+  if (!tutteLePartiRichiesteOttenute) contenuto.avviso = TESTO_AVVISO_INCOMPLETO;
 
   // La sezione non ottenuta NON compare: né `[]`, né un segnaposto.
   SEZIONI_EXPORT.forEach((s, i) => {
@@ -197,5 +257,5 @@ export function assemblaEsportazione(esiti: EsitoSezione[], adesso: Date = new D
     if (esito?.ottenuta) contenuto[s.chiave] = esito.dati;
   });
 
-  return { file: JSON.stringify(contenuto, null, 2), completo, nonSiamoRiusciti };
+  return { file: JSON.stringify(contenuto, null, 2), tutteLePartiRichiesteOttenute, nonSiamoRiusciti };
 }
