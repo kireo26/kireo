@@ -62,7 +62,8 @@
     "test:registri": "node scripts/verifica-due-registri.js",
     "quarantena": "node scripts/quarantena.js",
     "test:quarantena": "node scripts/verifica-quarantena.js",
-    "test:email": "node scripts/verifica-email.js"
+    "test:email": "node scripts/verifica-email.js",
+    "test:export": "node scripts/verifica-export-dati.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.112.5",
