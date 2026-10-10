@@ -11,6 +11,7 @@ import { estraiIdYoutube } from "@/lib/youtube";
 import { messaggioErroreEvento } from "@/lib/ente/erroreEvento";
 import { istanteDaOrarioItaliano, millisecondiDaOrarioItaliano } from "@/lib/formato";
 import { eventoCominciato } from "@/lib/live";
+import { avvisoOrePcto } from "@/lib/eventi/orePcto";
 import { useSondaIncorporamento } from "@/lib/useSondaIncorporamento";
 import { serveDichiarazioneIncorporamento, sondaBlocca, testoSonda } from "@/lib/sondaYoutube";
 import EsitoSondaIncorporamento from "@/components/EsitoSondaIncorporamento";
@@ -162,6 +163,12 @@ export default function CreaEventoForm({
   // di libreria, così nel render non compare nessuna chiamata impura.
   const inizioItaliano = dataInizio ? istanteDaOrarioItaliano(dataInizio) : null;
   const inizioGiaPassato = inizioItaliano !== null && eventoCominciato(inizioItaliano);
+
+  // Le ore PCTO contro la durata programmata. Funzione pura (nessun orologio:
+  // confronta due campi del form fra loro), quindi si può chiamare nel render.
+  // Avviso e non errore: un evento può legittimamente valere più della sua
+  // diretta — vedi `lib/eventi/orePcto.ts` per la soglia e il suo perché.
+  const avvisoOre = avvisoOrePcto(Number(orePcto), dataInizio, dataFine);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -388,6 +395,21 @@ export default function CreaEventoForm({
           {errori.dataFine && <p className="mt-1.5 text-sm text-red-400">{errori.dataFine}</p>}
         </div>
       </div>
+
+      {/*
+        DOPO le due date e non sotto il campo delle ore, perché è un'affermazione
+        sulla RELAZIONE fra tre campi, non su uno: qui compare appena l'ente ha
+        finito di riempire l'ultimo dei tre, mentre sotto le ore starebbe sopra
+        le date che la frase nomina — una riga che parla di una durata che chi
+        legge non ha ancora scritto.
+
+        `!errori.dataFine` e `!errori.dataInizio`: su un campo già rosso un
+        secondo messaggio è rumore, e `durataOre` tace comunque su una durata
+        non positiva.
+      */}
+      {avvisoOre && !errori.dataInizio && !errori.dataFine && (
+        <p className="rounded-lg border border-kireo-orange/40 bg-kireo-orange/10 px-4 py-3 text-sm text-kireo-orange">{avvisoOre}</p>
+      )}
 
       <div className="grid gap-5 sm:grid-cols-2">
         <div>
