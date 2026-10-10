@@ -22,7 +22,7 @@
 const { readFileSync } = require("node:fs");
 const { join } = require("node:path");
 const { senzaCommenti } = require("./lib/senza-commenti.js");
-const { ancora, fetta } = require("./lib/ancora.js");
+const { ancora, creaFetta } = require("./lib/ancora.js");
 const ts = require("typescript");
 
 const RADICE = join(__dirname, "..");
@@ -41,14 +41,13 @@ function ok(condizione, cosa, dettaglio) {
 
 const leggi = (rel) => senzaCommenti(readFileSync(join(RADICE, rel), "utf8"));
 
-function fettaOppureRosso(src, da, a, nome) {
-  try {
-    return fetta(src, da, a);
-  } catch (e) {
-    ok(false, `la fetta «${nome}» si ritaglia`, e.message);
-    return "";
-  }
-}
+// La fetta che non esplode e che non mente: `fetta()` SOLLEVA quando l'àncora è
+// ambigua (ed è il suo mestiere), ma qui un throw fermerebbe la suite su una
+// riga sola — quindi l'eccezione diventa un rosso che nomina il motivo, e la
+// fetta mancante è `null`. `dentro`/`fuori` la trattano come un no nei due
+// versi: con `""` le proprietà che la leggevano restavano verdi proprio quando
+// il controllo non aveva potuto guardare (vedi `creaFetta` in lib/ancora.js).
+const { fettaOppureRosso, dentro, fuori } = creaFetta(ok);
 
 // Il modulo si CHIAMA, non si legge: una regex su un letterale dice che la
 // frase è scritta, non che arriva a chi legge. `lib/formato` è l'import vero e
@@ -179,21 +178,37 @@ console.log("\n§5 — l'ora non si legge nel render\n");
 {
   const src = leggi("components/ente/ControlloDirettaEvento.tsx");
   ok(src.includes("useState(() => new Date())"), "l'ora sta nello stato, non in una lettura dentro il render");
-  const pollata = fettaOppureRosso(
-    src,
-    { nome: "const aggiorna = useCallback", dove: "l'inizio del poll" },
-    { nome: "useEffect(() =>", dove: "l'effetto che lo monta" },
-    "il poll",
-  );
-  ok(pollata.includes("setOra(new Date())"), "e si aggiorna col poll, che è quando una riga può cambiare comunque");
-  // La proprietà vera: `new Date()` compare SOLO dentro `useState(() => …)` e
-  // dentro il poll, mai nel corpo del render. Due occorrenze, dichiarate.
+  // ⚠️ L'ORA SI AGGIORNA DA SÉ, E NON COL POLL — e questa proprietà è stata
+  // RISCRITTA l'11/10 perché il mondo attorno è cambiato in meglio, non perché
+  // fosse sbagliata. Fino a quel giorno `setOra` stava dentro il poll, e la
+  // proprietà diceva «si aggiorna col poll, che è quando una riga può cambiare
+  // comunque»: vera, e più debole del necessario — se una `fetch` resta appesa
+  // il poll non ritorna, l'ora non avanza, e l'età dei dati a schermo non
+  // cresce proprio quando serve che cresca. Adesso l'orologio ha un intervallo
+  // suo, e la proprietà dei DUE intervalli la prova `npm run test:moderazione`
+  // (§2). Qui resta la metà che riguarda questa riga: l'ora esiste e avanza.
+  ok(src.includes("setOra(new Date())"), "e avanza da sé: l'età di un tocco cresce anche se il poll non ritorna");
+  // La proprietà vera è che `new Date()` non compaia NEL RENDER: contare le
+  // occorrenze è un cricchetto (forza a guardare quando ne nasce una), ma si
+  // indebolisce a ogni occorrenza legittima aggiunta — quindi accanto c'è la
+  // proprietà che non si indebolisce, sulla fetta del JSX.
   try {
-    ancora(src, "new Date()", { volte: 2, dove: "lo stato iniziale e il poll" });
-    ok(true, "`new Date()` compare due volte sole: lo stato iniziale e il poll");
+    ancora(src, "new Date()", { volte: 3, dove: "lo stato iniziale, la freschezza e l'orologio" });
+    ok(true, "`new Date()` compare tre volte sole: lo stato iniziale, la freschezza, l'orologio");
   } catch (e) {
-    ok(false, "`new Date()` compare due volte sole: lo stato iniziale e il poll", e.message);
+    ok(false, "`new Date()` compare tre volte sole: lo stato iniziale, la freschezza, l'orologio", e.message);
   }
+  // ⚠️ L'ÀNCORA NON È `return (`: con due spazi davanti fa match anche sui
+  // `return (` annidati dentro una `.map` (quattro occorrenze), e con `quale`
+  // sarebbe fragile — basta un ramo in più dentro la lista. Si àncora al primo
+  // tag del JSX, che è uno.
+  const render = fettaOppureRosso(
+    src,
+    { nome: '<div className="mt-4 space-y-4 border-t border-white/5 pt-4">', dove: "il primo tag del JSX" },
+    null,
+    "il render",
+  );
+  ok(fuori(render, "new Date()"), "e nessuna sta nel render: un'ora letta là è impura (react-hooks/purity)");
 }
 
 console.log("\n§6 — la funzione SQL scrive le due colonne\n");

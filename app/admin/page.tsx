@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireAdmin } from "@/lib/admin/context";
 import AzioneApprovazione from "@/components/admin/AzioneApprovazione";
 import AzioneApprovazioneUpgrade from "@/components/admin/AzioneApprovazioneUpgrade";
@@ -206,6 +207,18 @@ export default async function AdminPage() {
                       <GestisciChiaveTrasmissioneForm eventoId={e.id} aggiornataIl={chiavePerEvento.get(e.id) ?? null} />
                     </>
                   )}
+                  {/* ⚠️ LA PORTA VERSO LA PAGINA DI QUELL'EVENTO, e sta in
+                      cima: durante una diretta si modera da lì, non scorrendo
+                      questa lista mentre la pagina attorno parla di istituzioni
+                      in attesa. Una funzione che esiste e non si raggiunge è il
+                      difetto del 28/09 («la consegna, completa e senza porta»):
+                      il pannello qui sotto resta per chi apre questa pagina per
+                      altro, ma il posto in cui si sta quaranta minuti è l'altro. */}
+                  <div className="mt-3">
+                    <Link href={`/diretta/${e.id}`} className="text-sm font-semibold text-kireo-orange underline underline-offset-2">
+                      Apri la pagina di questa diretta →
+                    </Link>
+                  </div>
                   <ControlloDirettaEvento
                     eventoId={e.id}
                     domandaConsegna={e.domanda_consegna}

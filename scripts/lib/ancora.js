@@ -82,6 +82,38 @@ function fetta(src, da, a = null) {
   return src.slice(inizio, fine);
 }
 
+// ⚠️ UNA FETTA CHE NON SI RITAGLIA NON È UNA FETTA VUOTA: È UN «NON HO
+// GUARDATO».
+//
+// Il 11/10/2026 una controprova ha mostrato il difetto in tre copie dello
+// stesso helper, scritte a mano in tre file di verifica: quando l'àncora
+// diventava ambigua l'helper ritornava `""`, e le proprietà che leggevano la
+// fetta restavano VERDI — perché `!"".includes("setOra(")` è vero. Cioè verdi
+// esattamente nel caso in cui il controllo non aveva potuto guardare: il modo 2
+// dei dodici (verde su un insieme vuoto), dentro l'attrezzo che serve a evitare
+// il modo 6.
+//
+// LA FORMA: la fetta mancante è `null`, e `dentro`/`fuori` la trattano come un
+// no in tutti e due i versi — una fetta che non c'è non prova né la presenza né
+// l'assenza di niente. L'`ok` del chiamante si passa qui, perché i contatori
+// delle proprietà sono suoi.
+function creaFetta(ok) {
+  /** La fetta fra due àncore, o `null` dopo aver segnato rossa la proprietà «si ritaglia». */
+  function fettaOppureRosso(src, da, a, nome) {
+    try {
+      return fetta(src, da, a);
+    } catch (e) {
+      ok(false, `la fetta «${nome}» si ritaglia`, e.message);
+      return null;
+    }
+  }
+  /** Vero solo se la fetta c'è E contiene `cosa`. Una fetta mancante non è un sì. */
+  const dentro = (f, cosa) => f !== null && f.includes(cosa);
+  /** Vero solo se la fetta c'è E non contiene `cosa`. Una fetta mancante non è un no. */
+  const fuori = (f, cosa) => f !== null && !f.includes(cosa);
+  return { fettaOppureRosso, dentro, fuori };
+}
+
 // Quante àncore grezze restano nei controlli: il numero da far scendere.
 function censimentoAncore(dirScripts) {
   const dir = dirScripts ?? path.join(__dirname, "..");
@@ -104,4 +136,4 @@ function censimentoAncore(dirScripts) {
   return { grezze, perFile };
 }
 
-module.exports = { ancora, fetta, censimentoAncore };
+module.exports = { ancora, fetta, creaFetta, censimentoAncore };

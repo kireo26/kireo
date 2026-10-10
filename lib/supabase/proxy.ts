@@ -1,7 +1,13 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const AREE_PROTETTE = ["/app", "/ente", "/admin", "/scuola", "/docente"];
+// ⚠️ `/diretta` È L'UNICA AREA CONDIVISA FRA DUE RUOLI, e non è una svista:
+// la pagina di moderazione di una diretta la usano KIREO e l'ente, e due
+// pagine gemelle divergono sempre (vincolo di Mario). Il prefisso sta qui
+// perché la guardia del middleware è per prefisso; chi dei due sia lo decide la
+// pagina (`lib/eventi/moderazione.ts`), e le RPC rifiutano comunque chiunque
+// non sia admin o l'organizzatore.
+const AREE_PROTETTE = ["/app", "/ente", "/admin", "/scuola", "/docente", "/diretta"];
 
 function redirectAccedi(request: NextRequest) {
   const url = request.nextUrl.clone();

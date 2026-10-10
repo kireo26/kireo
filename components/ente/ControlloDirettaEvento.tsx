@@ -12,6 +12,7 @@ import {
   type StatoChiusura,
 } from "@/lib/eventi/chiusuraDiretta";
 import { rigaTocco } from "@/lib/eventi/tocco";
+import { rigaFreschezza, type Freschezza } from "@/lib/eventi/freschezza";
 
 type Domanda = {
   id: string;
@@ -54,9 +55,16 @@ export default function ControlloDirettaEvento({
   const [chiusura, setChiusura] = useState<StatoChiusura>(statoChiusura({ chiusaIl, chiusaDaTipo }));
   // L'ora sta nello STATO e non si legge nel render: `new Date()` dentro un
   // render è impuro (lo dice `react-hooks/purity`, e lo ha già detto su
-  // `CardEvento`). Si aggiorna col poll, che è l'unico momento in cui la riga
-  // di un tocco può cambiare comunque. Stesso idioma di `PannelloLive`.
+  // `CardEvento`). Stesso idioma di `PannelloLive`.
+  //
+  // ⚠️ L'OROLOGIO HA UN INTERVALLO SUO, SEPARATO DAL POLL, e non è una
+  // rifinitura: se una `fetch` resta appesa, il poll non ritorna — e un
+  // `setOra` dentro di lui non scatterebbe, quindi l'età dei numeri non
+  // crescerebbe e un dato vecchio di due minuti si leggerebbe come appena
+  // arrivato. È precisamente il difetto che la riga di freschezza esiste per
+  // chiudere.
   const [ora, setOra] = useState(() => new Date());
+  const [freschezza, setFreschezza] = useState<Freschezza>({ quando: null, fallito: false });
 
   const aggiorna = useCallback(async () => {
     const supabase = createClient();
@@ -67,18 +75,35 @@ export default function ControlloDirettaEvento({
     // già chiusa il…», vedi la funzione SQL), ma scoprirlo premendo è il
     // difetto 1.2a in piccolo — e la risposta costa una `select` dentro un giro
     // di rete che si fa comunque.
-    const [{ data: n }, { data: d }, { data: ev, error: erroreEv }] = await Promise.all([
-      supabase.rpc("conteggio_presenti_live", { p_evento_id: eventoId }),
-      supabase.rpc("domande_live_organizzatore", { p_evento_id: eventoId }),
-      supabase.from("eventi").select("diretta_chiusa_il, diretta_chiusa_da_tipo").eq("id", eventoId).maybeSingle(),
-    ]);
-    if (typeof n === "number") setPresenti(n);
-    if (d) setDomande(d as Domanda[]);
-    setOra(new Date());
-    // Una lettura fallita LASCIA quello che c'era: degradare verso «non chiusa»
-    // rimetterebbe il bottone su una diretta chiusa per un problema di rete.
-    if (erroreEv) console.error("ControlloDirettaEvento: lettura stato chiusura", erroreEv);
-    else if (ev) setChiusura(statoChiusura({ chiusaIl: ev.diretta_chiusa_il, chiusaDaTipo: ev.diretta_chiusa_da_tipo }));
+    // ⚠️ IL `try` COMPRENDE LE TRE LETTURE, non solo la terza: `Promise.all`
+    // RIGETTA quando una qualunque delle tre lancia (una `fetch` che non
+    // arriva, non un errore restituito), e fuori da un try quel caso lascia
+    // `freschezza` a quello che era — cioè «aggiornato alle 19:07» su dei
+    // numeri che da allora nessuno ha più riletto. È il difetto che questa
+    // riga esiste per chiudere, nella sua forma meno visibile.
+    try {
+      const [{ data: n, error: eN }, { data: d, error: eD }, { data: ev, error: erroreEv }] = await Promise.all([
+        supabase.rpc("conteggio_presenti_live", { p_evento_id: eventoId }),
+        supabase.rpc("domande_live_organizzatore", { p_evento_id: eventoId }),
+        supabase.from("eventi").select("diretta_chiusa_il, diretta_chiusa_da_tipo").eq("id", eventoId).maybeSingle(),
+      ]);
+      if (typeof n === "number") setPresenti(n);
+      if (d) setDomande(d as Domanda[]);
+      // Una lettura fallita LASCIA quello che c'era: degradare verso «non chiusa»
+      // rimetterebbe il bottone su una diretta chiusa per un problema di rete.
+      if (erroreEv) console.error("ControlloDirettaEvento: lettura stato chiusura", erroreEv);
+      else if (ev) setChiusura(statoChiusura({ chiusaIl: ev.diretta_chiusa_il, chiusaDaTipo: ev.diretta_chiusa_da_tipo }));
+      // ⚠️ BASTA UNO DEI TRE PER DIRE CHE IL GIRO NON È ANDATO: i numeri a
+      // schermo sono tre, e dichiararli freschi perché DUE sono arrivati è la
+      // stessa bugia in forma più piccola.
+      const andata = !eN && !eD && !erroreEv;
+      if (eN) console.error("ControlloDirettaEvento: conteggio presenti", eN);
+      if (eD) console.error("ControlloDirettaEvento: domande", eD);
+      setFreschezza(andata ? { quando: new Date(), fallito: false } : (f) => ({ quando: f.quando, fallito: true }));
+    } catch (e) {
+      console.error("ControlloDirettaEvento: giro di aggiornamento non riuscito", e);
+      setFreschezza((f) => ({ quando: f.quando, fallito: true }));
+    }
   }, [eventoId]);
 
   useEffect(() => {
@@ -86,6 +111,12 @@ export default function ControlloDirettaEvento({
     const intervallo = setInterval(aggiorna, 15000);
     return () => clearInterval(intervallo);
   }, [aggiorna]);
+
+  // L'orologio, separato: deve avanzare anche quando il poll non ritorna.
+  useEffect(() => {
+    const intervallo = setInterval(() => setOra(new Date()), 5000);
+    return () => clearInterval(intervallo);
+  }, []);
 
   async function segnaStato(domandaId: string, stato: string) {
     const supabase = createClient();
@@ -126,9 +157,21 @@ export default function ControlloDirettaEvento({
 
   return (
     <div className="mt-4 space-y-4 border-t border-white/5 pt-4">
-      <p className="text-sm text-kireo-light">
-        Presenti ora: <strong>{presenti ?? "…"}</strong>
-      </p>
+      <div>
+        <p className="text-sm text-kireo-light">
+          Presenti ora: <strong>{presenti ?? "…"}</strong>
+        </p>
+        {/* ⚠️ QUANDO QUESTI NUMERI SONO ARRIVATI. «Presenti ora: 12» è
+            un'affermazione sul presente, e se l'ultimo giro è fallito due
+            minuti fa è un'affermazione sul passato travestita — su cui qualcuno
+            sta prendendo decisioni mentre modera. Vedi `lib/eventi/freschezza.ts`. */}
+        <p
+          className={`mt-1 text-xs ${freschezza.fallito ? "text-kireo-orange" : "text-kireo-muted"}`}
+          aria-live="polite"
+        >
+          {rigaFreschezza(freschezza, ora)}
+        </p>
+      </div>
 
       {domande.length > 0 && (
         <div>

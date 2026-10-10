@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getEnteContext } from "@/lib/ente/context";
 import { getQuoteEnte } from "@/lib/ente/quote";
 import { createClient } from "@/lib/supabase/server";
@@ -175,6 +176,14 @@ export default async function EnteEventiPage({ searchParams }: { searchParams: P
                     )}
                     {e.stato === "approvato" && (
                       <>
+                        {/* La porta verso la pagina di quell'evento: è lì che si
+                            sta durante la diretta, non in questa lista. Vedi
+                            app/diretta/[id]/page.tsx. */}
+                        <div className="mt-3">
+                          <Link href={`/diretta/${e.id}`} className="text-sm font-semibold text-kireo-orange underline underline-offset-2">
+                            Apri la pagina di questa diretta →
+                          </Link>
+                        </div>
                         <ControlloDirettaEvento
                           eventoId={e.id}
                           domandaConsegna={e.domanda_consegna}

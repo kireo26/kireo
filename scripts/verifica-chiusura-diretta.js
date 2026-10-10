@@ -27,7 +27,7 @@
 const { readFileSync } = require("node:fs");
 const { join } = require("node:path");
 const { senzaCommenti } = require("./lib/senza-commenti.js");
-const { ancora, fetta } = require("./lib/ancora.js");
+const { ancora, creaFetta } = require("./lib/ancora.js");
 
 const RADICE = join(__dirname, "..");
 let fatte = 0;
@@ -47,20 +47,13 @@ function leggi(rel) {
   return senzaCommenti(readFileSync(join(RADICE, rel), "utf8"));
 }
 
-/**
- * Una fetta che non esplode: `fetta()` condivisa SOLLEVA quando l'àncora è
- * ambigua (ed è il suo mestiere — un conto sbagliato è il difetto che quel
- * file esiste per prendere), ma qui un throw fermerebbe la suite su una riga
- * sola. L'eccezione diventa un rosso che nomina il motivo.
- */
-function fettaOppureRosso(src, da, a, nome) {
-  try {
-    return fetta(src, da, a);
-  } catch (e) {
-    ok(false, `la fetta «${nome}» si ritaglia`, e.message);
-    return "";
-  }
-}
+// La fetta che non esplode e che non mente: `fetta()` SOLLEVA quando l'àncora è
+// ambigua (ed è il suo mestiere), ma qui un throw fermerebbe la suite su una
+// riga sola — quindi l'eccezione diventa un rosso che nomina il motivo, e la
+// fetta mancante è `null`. `dentro`/`fuori` la trattano come un no nei due
+// versi: con `""` le proprietà che la leggevano restavano verdi proprio quando
+// il controllo non aveva potuto guardare (vedi `creaFetta` in lib/ancora.js).
+const { fettaOppureRosso, dentro, fuori } = creaFetta(ok);
 
 // Le funzioni si CHIAMANO, non si legge il sorgente: una regex su un letterale
 // dice che la frase è scritta, non che arriva a chi legge. Si compila il solo
@@ -253,18 +246,20 @@ console.log("\n§6 — il poll non degrada verso «non chiusa»\n");
   const pollata = fettaOppureRosso(
     src,
     { nome: "const aggiorna = useCallback", dove: "l'inizio del poll" },
-    { nome: "useEffect(() =>", dove: "l'effetto che lo monta, subito dopo" },
+    // I due `useEffect(() =>` sono il poll e l'orologio della freschezza
+    // (11/10): la fetta del poll finisce al PRIMO.
+    { nome: "useEffect(() =>", volte: 2, quale: 0, dove: "l'effetto che lo monta, subito dopo" },
     "il poll",
   );
   ok(
-    pollata.includes("diretta_chiusa_il, diretta_chiusa_da_tipo"),
+    dentro(pollata, "diretta_chiusa_il, diretta_chiusa_da_tipo"),
     "il poll rilegge lo stato della chiusura: l'altro moderatore si vede in 15s invece che premendo",
   );
   ok(
-    /if \(erroreEv\)[\s\S]{0,200}else if \(ev\)/.test(pollata),
+    pollata !== null && /if \(erroreEv\)[\s\S]{0,200}else if \(ev\)/.test(pollata),
     "una lettura fallita lascia quello che c'era invece di rimettere il bottone",
   );
-  ok(pollata.includes("console.error"), "e la lettura fallita lascia una traccia invece di sparire");
+  ok(dentro(pollata, "console.error"), "e la lettura fallita lascia una traccia invece di sparire");
 }
 
 console.log("");
