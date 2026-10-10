@@ -38,13 +38,31 @@ const ORIGINI = {
 type Origine = keyof typeof ORIGINI;
 
 // Il limite di cortesia è lo stesso trigger per tutte le origini (10 minuti
-// per email), ma quello che si dice a chi lo incontra no: su una landing la
-// cosa vera è «ti ricontatteremo», su /contatti è che il secondo messaggio
-// NON è arrivato — e non dirlo sarebbe la bugia di prima con un'altra faccia.
+// per email), ma la parola con cui si nomina quello che è stato respinto no:
+// su una landing è una «richiesta», su /contatti un «messaggio».
+//
+// ⚠️ IL TESTO DELLE LANDING BUTTAVA VIA IL SECONDO MESSAGGIO E NON LO DICEVA,
+// dal 25 luglio. Diceva «Hai già inviato una richiesta di recente: ti
+// ricontatteremo presto!» — vero, e vero della PRIMA richiesta: non della cosa
+// che era appena successa, cioè che la seconda era stata respinta. Una frase
+// rassicurante al posto del fatto, con il punto esclamativo sopra.
+//
+// E conta, perché chi scrive due volte di solito scrive per AGGIUNGERE
+// qualcosa: un numero di telefono, una correzione, «in realtà siamo un
+// istituto tecnico». Quella cosa sparisce, e la persona esce convinta di
+// averla mandata. È lo stesso difetto appena tolto da /contatti, in una
+// pagina di vendita — e lo si è visto solo mettendo i due testi accanto.
+//
+// Il testo nuovo tiene il «ti ricontatteremo» (vero, e rassicura sulla
+// prima), dice che la seconda non è passata, e dà la strada per la cosa che
+// la persona stava cercando di aggiungere. Niente punto esclamativo: non c'è
+// niente da festeggiare in un messaggio che non è arrivato.
+const RIFIUTO_LANDING = `Questa richiesta non è stata inviata: ne abbiamo già ricevuta una da questo indirizzo pochi minuti fa, e ti ricontatteremo su quella. Se devi aggiungere qualcosa, scrivici a ${EMAIL_PUBBLICA}.`;
+
 const RIFIUTO_LIMITE: Record<Origine, string> = {
-  dirigenti: "Hai già inviato una richiesta di recente: ti ricontatteremo presto!",
-  scuole: "Hai già inviato una richiesta di recente: ti ricontatteremo presto!",
-  enti: "Hai già inviato una richiesta di recente: ti ricontatteremo presto!",
+  dirigenti: RIFIUTO_LANDING,
+  scuole: RIFIUTO_LANDING,
+  enti: RIFIUTO_LANDING,
   contatti: `Questo messaggio non è stato inviato: ne abbiamo già ricevuto uno da questo indirizzo pochi minuti fa. Aspetta una decina di minuti, oppure scrivici direttamente a ${EMAIL_PUBBLICA}.`,
 };
 

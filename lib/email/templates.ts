@@ -16,7 +16,7 @@
 // prossimo template non nasce senza.
 
 import { SITE_URL, EMAIL_PUBBLICA } from "@/lib/site";
-import { PROMESSA_RISPOSTA } from "@/lib/contatti/testi";
+import { promessaRisposta } from "@/lib/contatti/testi";
 
 // Escape per il CONTESTO TESTO e per il CONTESTO ATTRIBUTO insieme: le
 // virgolette ci sono apposta, perché gli stessi valori finiscono dentro un
@@ -117,15 +117,15 @@ export function templateConfermaRichiestaContatto(nome: string, origine: Origine
   if (origine === "contatti") {
     return involucroEmail(`
       <p>Ciao ${esc(nome)},</p>
-      <p>Abbiamo ricevuto il tuo messaggio. ${PROMESSA_RISPOSTA}</p>
+      <p>Abbiamo ricevuto il tuo messaggio. ${promessaRisposta(origine)}</p>
       <p>${COME_AGGIUNGERE_QUALCOSA}</p>
       <p>A presto,<br />Il team KIREO</p>
     `);
   }
   return involucroEmail(`
     <p>Ciao ${esc(nome)},</p>
-    <p>Abbiamo ricevuto la tua richiesta di informazioni su KIREO per ${ETICHETTA_ORIGINE[origine]}. Ti ricontatteremo entro 24 ore.</p>
-    <p>Nel frattempo, se hai altre domande, scrivici a ${EMAIL_PUBBLICA}.</p>
+    <p>Abbiamo ricevuto la tua richiesta di informazioni su KIREO per ${ETICHETTA_ORIGINE[origine]}. ${promessaRisposta(origine)}</p>
+    <p>${COME_AGGIUNGERE_QUALCOSA}</p>
     <p>A presto,<br />Il team KIREO</p>
   `);
 }

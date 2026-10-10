@@ -66,8 +66,10 @@ const PROVENIENZA_NOTA = [
   "involucroEmail(",
   "riga(", // una riga della tabella di notifica: scappa i suoi DUE argomenti dentro — verificato sotto
   // lib/contatti/testi.ts: la promessa dei tempi, la stessa che la pagina
-  // mostra a schermo. Costante nostra, nessun input di nessuno.
-  "PROMESSA_RISPOSTA",
+  // mostra a schermo. Funzione nostra su un'unione chiusa, nessun input di
+  // nessuno — e dal 10/10/2026 è una funzione e non una costante perché il
+  // pronome con cui comincia dipende dall'origine.
+  "promessaRisposta(origine)",
   // Composta qui sopra da EMAIL_PUBBLICA, che è già in questo elenco: è la
   // frase che ha sostituito «rispondi pure a questa email», che prometteva una
   // casella che non riceve.

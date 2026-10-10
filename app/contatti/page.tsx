@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import RichiestaContattoForm from "@/components/landing/RichiestaContattoForm";
 import SectionHeading from "@/components/SectionHeading";
-import { CONFERMA_CONTATTI } from "@/lib/contatti/testi";
 import { EMAIL_PUBBLICA } from "@/lib/site";
 
 // ⚠️ `EMAIL_PUBBLICA` è l'unico indirizzo che compare sul sito: la copia
@@ -101,7 +100,6 @@ export default function Contatti() {
             etichettaBottone="Invia messaggio"
             mostraIstituto={false}
             mostraCodiceMeccanografico={false}
-            conferma={CONFERMA_CONTATTI}
           />
         </div>
       </section>

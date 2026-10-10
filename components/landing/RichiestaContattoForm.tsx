@@ -3,24 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/Button";
 import { inputClass, fieldBorder } from "@/lib/formStyles";
-
-/**
- * La conferma delle landing. /contatti ne passa una sua: lì non è una
- * richiesta di informazioni, è un messaggio.
- *
- * ⚠️ `testoSenzaConferma` è il testo di quando l'email di conferma NON è
- * partita (vedi `lib/contatti/testi.ts` per il caso vero del 10/10/2026). Qui
- * la frase che presume l'email è «Controlla anche la posta indesiderata»:
- * detta a chi non ha ricevuto niente, lo manda a cercare una cosa che non
- * esiste. La cura sta sulla CLASSE e non sull'istanza che qualcuno ha notato —
- * le landing hanno lo stesso difetto di /contatti, più mite perché non
- * affermano l'invio, solo lo presuppongono.
- */
-export const CONFERMA_RICHIESTA = {
-  titolo: "Richiesta inviata",
-  testo: "Grazie! Ti risponderemo entro 24 ore. Controlla anche la posta indesiderata.",
-  testoSenzaConferma: "Grazie! Ti risponderemo entro 24 ore.",
-};
+import { confermaPerOrigine, type OrigineContatto } from "@/lib/contatti/testi";
 
 // Form condiviso da ogni punto del sito che manda una richiesta di contatto:
 // le due landing del funnel scuole (/dirigenti, /scuole), /istituzioni e —
@@ -44,21 +27,21 @@ export default function RichiestaContattoForm({
   etichettaIstituto = "Istituto",
   mostraCodiceMeccanografico = true,
   mostraIstituto = true,
-  conferma = CONFERMA_RICHIESTA,
 }: {
-  origine: "dirigenti" | "scuole" | "enti" | "contatti";
+  origine: OrigineContatto;
   ruoliOpzioni: string[];
   etichettaBottone: string;
   etichettaIstituto?: string;
   mostraCodiceMeccanografico?: boolean;
   /** false su /contatti: chi scrive può essere uno studente senza un istituto da dichiarare. */
   mostraIstituto?: boolean;
-  /**
-   * `testoSenzaConferma` è obbligatorio perché il caso esiste: senza, la
-   * pagina tornerebbe ad affermare un'email che può non essere partita.
-   */
-  conferma?: { titolo: string; testo: string; testoSenzaConferma: string };
 }) {
+  // ⚠️ LA CONFERMA NON È PIÙ UNA PROP. È una funzione pura dell'origine, che
+  // questo form ha già: passarla da fuori lasciava a una pagina la
+  // possibilità di passare quella sbagliata — /contatti che dice «Richiesta
+  // inviata», o una landing che nomina un messaggio. E teneva due testi in
+  // due file, con due promesse dei tempi diverse (vedi `lib/contatti/testi.ts`).
+  const conferma = confermaPerOrigine(origine);
   const [nome, setNome] = useState("");
   const [ruolo, setRuolo] = useState("");
   const [istituto, setIstituto] = useState("");

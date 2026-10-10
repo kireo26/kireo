@@ -188,7 +188,7 @@ const dalleEtichette = chiaviDi(
 // coda. Un quinto posto che le nomina è un quinto posto da tenere in passo.
 const daiNomi = chiaviDi(
   leggi("lib/contatti/testi.ts"),
-  "const NOME_RICHIESTA: Record<OrigineContatto, string> = {",
+  "export const COSA_E_ARRIVATO: Record<",
   1,
   "contatti/testi",
 );
@@ -198,7 +198,7 @@ const elenchi = [
   ["ORIGINI (route)", dalleOrigini],
   ["RIFIUTO_LIMITE (route)", daiRifiuti],
   ["ETICHETTA_ORIGINE (templates)", dalleEtichette],
-  ["NOME_RICHIESTA (contatti/testi)", daiNomi],
+  ["COSA_E_ARRIVATO (contatti/testi)", daiNomi],
 ];
 for (const [nome, lista] of elenchi) {
   ok(Array.isArray(lista) && lista.length >= 4 && lista.length === new Set(lista).size,
@@ -217,6 +217,47 @@ for (const [nome, lista] of elenchi.slice(1)) {
     "      → una origine senza riga in RIFIUTO_LIMITE fa leggere «undefined» a una persona; " +
     "una accettata dalla route e non dal CHECK la fa rifiutare dal database");
 }
+
+// ⚠️ IL RIFIUTO DEVE DIRE CHE LA COSA NON È PASSATA, e fino al 10/10/2026 le
+// landing non lo dicevano: «Hai già inviato una richiesta di recente: ti
+// ricontatteremo presto!» è vero, ed è vero della PRIMA richiesta — non della
+// cosa appena successa, cioè che la seconda è stata buttata via. Chi scrive
+// due volte scrive per AGGIUNGERE qualcosa, e quella cosa sparisce mentre la
+// persona esce convinta di averla mandata. Con il punto esclamativo sopra.
+// L'estrattore legge TUTTE E TRE le forme di letterale, non solo quella che
+// il codice usa oggi: se leggesse solo i template literal, una riscrittura fra
+// doppie virgolette farebbe fallire il LETTORE invece delle due proprietà sulla
+// sostanza — e un rosso che nomina il difetto sbagliato manda a riparare la
+// cosa giusta. (Misurato: succedeva, con la controprova del 10/10.)
+const letterale = (nome) =>
+  new RegExp(`${nome}\\s*[:=]\\s*(?:\`([^\`]*)\`|"([^"]*)"|'([^']*)')`);
+const rifiuti = [
+  ["landing", "RIFIUTO_LANDING"],
+  ["contatti", "contatti"],
+].map(([dove, nome]) => {
+  const m = route.match(letterale(nome));
+  return [dove, m ? (m[1] ?? m[2] ?? m[3]) : null];
+});
+ok(rifiuti.every(([, t]) => typeof t === "string" && t.length > 40),
+  `i ${rifiuti.length} testi del rifiuto si leggono`,
+  "se non si leggono, le tre proprietà qui sotto sono verdi su un insieme vuoto");
+const taccionoSulRifiuto = rifiuti
+  .filter(([, t]) => !/non è stat[ao] inviat[ao]/.test(t ?? ""))
+  .map(([d]) => d);
+ok(taccionoSulRifiuto.length === 0,
+  "ogni rifiuto dice che quello che la persona ha scritto NON è stato inviato",
+  `${taccionoSulRifiuto.join(", ")} — una frase rassicurante al posto del fatto lascia credere ` +
+  "che sia andato tutto bene, e quello che la persona stava aggiungendo sparisce");
+const festeggiano = rifiuti.filter(([, t]) => (t ?? "").includes("!")).map(([d]) => d);
+ok(festeggiano.length === 0,
+  "…e nessuno lo festeggia con un punto esclamativo",
+  `${festeggiano.join(", ")} — non c'è niente da festeggiare in un messaggio che non è arrivato`);
+const senzaStrada = rifiuti
+  .filter(([, t]) => !/EMAIL_PUBBLICA/.test(t ?? ""))
+  .map(([d]) => d);
+ok(senzaStrada.length === 0,
+  "…e ognuno dà la strada per la cosa che la persona stava cercando di aggiungere",
+  `${senzaStrada.join(", ")} — un no che non dice cosa fare manda a cercare`);
 
 // L'istituto: nullable nel database, obbligatorio dove lo era.
 const migrazioniTesto = migrazioni
@@ -321,7 +362,7 @@ ok(/specie: "email_contatto"/.test(route),
 for (const motivo of ["conferma_non_inviata", "notifica_non_inviata"]) {
   ok(route.includes(`motivo: "${motivo}"`), `…e distingue il motivo «${motivo}»`,
     "la cortesia a chi scrive e l'avviso a noi non mancano nello stesso modo: " +
-    "nel primo caso la riga è comunque in coda, nel secondo a mancare è il pizzico");
+    "nel primo caso la riga è comunque in coda, nel secondo a mancare è l'avviso che ci farebbe guardare");
 }
 ok(/segnalaGuasto\(/.test(route),
   "…in un gesto solo con la riga di log",
@@ -393,35 +434,103 @@ ok(fettaRispondi !== null && !/gestita|Toggle|onClick|\.update\(/.test(fettaRisp
 // Il mailto si prova come VALORE: una regex dice che la funzione è chiamata,
 // non che produce un link che un client di posta apre.
 abilitaTypeScript();
-const { mailtoRisposta, NOME_RICHIESTA, CONFERMA_CONTATTI, PROMESSA_RISPOSTA } = require("@/lib/contatti/testi");
+const {
+  mailtoRisposta,
+  COSA_E_ARRIVATO,
+  confermaPerOrigine,
+  promessaRisposta,
+} = require("@/lib/contatti/testi");
 const { templateConfermaRichiestaContatto } = require("@/lib/email/templates");
 
-// ── 7bis) la promessa dei tempi, detta uguale nei due posti ────────────────
-console.log("\n7bis) La promessa dei tempi è la stessa a schermo e nell'email");
+// ── 7bis) la promessa dei tempi, su TUTTE E DIECI le superfici ──────────────
+console.log("\n7bis) Una promessa sola, su tutte e dieci le superfici che la mostrano");
 
-// Lo schermo diceva «ti rispondiamo il prima possibile» e l'email «…— di
-// solito entro un giorno o due»: la stessa promessa detta due volte, e detta
-// diversa. Chi legge solo lo schermo riceve meno; chi legge tutti e due si
-// chiede quale vale. La cura per due copie non è tenerle in passo a mano: è
-// che ce ne sia una — e questa è la guardia che lo tiene vero, perché la
-// costante si può importare e poi non usare.
-ok(CONFERMA_CONTATTI.testo.includes(PROMESSA_RISPOSTA),
-  "la conferma a schermo monta la promessa dalla costante",
-  "riscritta a mano, le due copie divergono al primo che ne tocca una");
+// ⚠️ IL 10/10 QUESTO BLOCCO GUARDAVA DUE POSTI E LE PROMESSE ERANO DUE. Lo
+// schermo di /contatti e la sua email erano allineati; le tre landing
+// dicevano «Ti risponderemo entro 24 ore» a schermo e «Ti ricontatteremo
+// entro 24 ore» nell'email, cioè una promessa diversa per lo stesso gesto —
+// e la stessa persona può vedere tutte e due (un dirigente che scrive da
+// /dirigenti e un mese dopo da /contatti). Non potevano essere vere entrambe.
+// Mario ha deciso di allineare tutto a «di solito entro un giorno o due».
+//
+// Quindi la guardia non guarda più «i due posti»: guarda LE SEI SUPERFICI che
+// una promessa di risposta raggiunge — quattro conferme a schermo e i due
+// rami dell'email — e pretende che portino la stessa finestra. È la specie
+// nuova: *un testo si legge accanto agli altri che la stessa persona può
+// vedere, e quello che sbaglia non è quasi mai la frase — è il fatto che ce ne
+// sia un'altra.* Nessuna guardia può prendere due stringhe corrette che si
+// contraddicono; questa può, perché confronta.
+const ORIGINI_TUTTE = Object.keys(COSA_E_ARRIVATO);
 // L'email si prova CHIAMANDOLA: una regex dice che la costante è interpolata,
 // non che la frase arriva a chi apre il messaggio.
-const htmlConferma = templateConfermaRichiestaContatto("Mario", "contatti");
-ok(htmlConferma.includes(PROMESSA_RISPOSTA),
-  "…e l'email di conferma la porta davvero nel corpo",
-  "è la metà che un controllo lessicale non vede: il template potrebbe interpolare e non renderla");
-ok(!/il prima possibile/.test(CONFERMA_CONTATTI.testo) && !/il prima possibile/.test(htmlConferma),
-  "…e nessuno dei due la annacqua con un «il prima possibile»",
-  "davanti a una finestra concreta quella frase la indebolisce invece di rafforzarla");
-ok(CONFERMA_CONTATTI.testo.includes("email di conferma") &&
-   !CONFERMA_CONTATTI.testoSenzaConferma.includes("email"),
-  "il testo di quando l'email non parte non la nomina affatto",
-  "e non si scusa: dal punto di vista di chi scrive non è successo niente di male — " +
-  "«non siamo riusciti a mandarti la conferma» lo farebbe dubitare di una cosa che ha funzionato");
+// ⚠️ DIECI, NON SEI. La prima stesura di questo blocco (10/10) guardava i soli
+// `testo` e la controprova «24 ore rimesse sulle landing» NON ha morso: anche
+// `testoSenzaConferma` è una superficie che una persona legge — è quella che
+// vede quando l'email non parte, cioè il caso che il 10/10 è successo davvero —
+// e porta la promessa anche lei. Un controllo che non vede un ingresso è verde
+// su quell'ingresso, e lo dice con lo stesso verde di uno che lo guarda.
+const superfici = [
+  ...ORIGINI_TUTTE.flatMap((o) => [
+    [`conferma a schermo (${o})`, confermaPerOrigine(o).testo],
+    [`conferma senza email (${o})`, confermaPerOrigine(o).testoSenzaConferma],
+  ]),
+  ...["contatti", "dirigenti"].map((o) => [
+    `email di conferma (${o === "contatti" ? "ramo /contatti" : "ramo landing"})`,
+    templateConfermaRichiestaContatto("Mario", o),
+  ]),
+];
+ok(superfici.length === 10, `${superfici.length} superfici guardate`,
+  "sotto dieci, questo blocco ha smesso di leggerne una e tace su quella");
+const FINESTRA = "di solito entro un giorno o due";
+const senzaFinestra = superfici.filter(([, t]) => !t.includes(FINESTRA)).map(([d]) => d);
+ok(senzaFinestra.length === 0,
+  `tutte e ${superfici.length} portano la stessa finestra («${FINESTRA}»)`,
+  `${senzaFinestra.join(", ")} — una promessa diversa per lo stesso gesto, e la stessa persona può vederle tutte e due`);
+// La finestra vecchia è VIETATA, non solo sostituita: «entro 24 ore» è una
+// promessa rigida fatta da un progetto di una persona sola, e il primo
+// messaggio che arriva il venerdì sera la rompe senza che nessuno se ne
+// accorga, perché nessuno conta le ore.
+const con24 = superfici.filter(([, t]) => /24\s*ore/.test(t)).map(([d]) => d);
+ok(con24.length === 0, "…e nessuna promette più «entro 24 ore»",
+  `${con24.join(", ")} — se torna a essere un impegno, si cambia la finestra in un posto solo`);
+const annacquate = superfici.filter(([, t]) => /il prima possibile/.test(t)).map(([d]) => d);
+ok(annacquate.length === 0, "…e nessuna la annacqua con un «il prima possibile»",
+  `${annacquate.join(", ")} — davanti a una finestra concreta quella frase la indebolisce`);
+// Il pronome, in DUE METÀ perché una sola sarebbe circolare: confrontare la
+// frase resa con `COSA_E_ARRIVATO[o].pronome` prova solo che la funzione legga
+// la tabella, non che la tabella abbia ragione.
+//
+// La metà che conta è l'ACCORDO con quello che il lettore ha appena letto: il
+// `nome` dice «il tuo messaggio» o «la tua richiesta», e da lì il pronome è
+// determinato. «Lo leggiamo» dopo «Richiesta inviata» non regge, ed è il
+// prezzo che si pagherebbe per una costante invece di una funzione.
+const disaccordi = ORIGINI_TUTTE.filter((o) => {
+  const { nome, pronome, titoloConferma } = COSA_E_ARRIVATO[o];
+  const atteso = nome.startsWith("il ") ? "Lo" : nome.startsWith("la ") ? "La" : null;
+  const titoloConcorda = nome.startsWith("il ")
+    ? /^Messaggio/.test(titoloConferma)
+    : /^Richiesta/.test(titoloConferma);
+  return atteso === null || pronome !== atteso || !titoloConcorda;
+}).map((o) => `${o} (${COSA_E_ARRIVATO[o].nome} / «${COSA_E_ARRIVATO[o].pronome}» / ${COSA_E_ARRIVATO[o].titoloConferma})`);
+ok(disaccordi.length === 0,
+  "…e il pronome concorda con quello che il lettore ha appena letto",
+  `${disaccordi.join("; ")} — il pronome, il nome e il titolo della conferma parlano della stessa cosa`);
+const nonLeggono = ORIGINI_TUTTE.filter(
+  (o) => !promessaRisposta(o).startsWith(`${COSA_E_ARRIVATO[o].pronome} leggiamo`),
+);
+ok(nonLeggono.length === 0,
+  "…e la promessa lo prende dalla tabella invece di cablarlo",
+  `${nonLeggono.join(", ")} — un pronome cablato nella funzione è il pronome di una sola origine`);
+
+const senzaEmail = ORIGINI_TUTTE.filter((o) => {
+  const c = confermaPerOrigine(o);
+  return !c.testo.includes("email di conferma") || c.testoSenzaConferma.includes("email");
+});
+ok(senzaEmail.length === 0,
+  "per tutte e quattro, il testo di quando l'email non parte non la nomina affatto",
+  `${senzaEmail.join(", ")} — e non si scusa: dal punto di vista di chi scrive non è successo ` +
+  "niente di male. Le landing dicevano «Controlla anche la posta indesiderata», che PRESUPPONE " +
+  "l'email: detta a chi non ha ricevuto niente, lo manda a cercare una cosa che non esiste");
 const link = mailtoRisposta({
   origine: "contatti",
   nome: "Mario Izzo",
@@ -452,12 +561,34 @@ ok(corpoDelLink.startsWith("\n\n---"),
 const lungo = decodeURIComponent(
   mailtoRisposta({ origine: "contatti", nome: "x", email: "a@b.it", messaggio: "a".repeat(3000), quando: "oggi" }),
 );
-ok(lungo.includes("messaggio troncato"),
-  "un messaggio troppo lungo dice di essere stato troncato",
+ok(lungo.includes("la citazione è accorciata"),
+  "un messaggio troppo lungo dice di essere stato accorciato",
   "un taglio silenzioso mette mezzo messaggio davanti a chi risponde con l'aria di essere tutto");
-ok(!decodeURIComponent(link).includes("troncato"),
+ok(!decodeURIComponent(link).includes("accorciata"),
   "…e un messaggio corto non lo dice");
-ok(Object.keys(NOME_RICHIESTA).length === 4, `NOME_RICHIESTA copre le ${Object.keys(NOME_RICHIESTA).length} origini`);
+// ⚠️ LA NOTA LA LEGGE CHI RICEVE. Fino al 10/10/2026 diceva «il testo completo
+// è nella coda su /admin»: una frase scritta per Mario, recapitata a un
+// estraneo, che rimanda a un indirizzo che non può aprire. In un `mailto:` non
+// esiste la distinzione fra nota per chi compone e testo per chi riceve.
+ok(!/admin|coda/i.test(lungo),
+  "…e la nota non rimanda a una coda interna che chi legge non può aprire",
+  "tutto quello che si scrive in un `mailto:` parte: non c'è un posto per gli appunti");
+ok(Object.keys(COSA_E_ARRIVATO).length === 4,
+  `COSA_E_ARRIVATO copre le ${Object.keys(COSA_E_ARRIVATO).length} origini`);
+
+// ⚠️ LA CONFERMA NON È PIÙ UNA PROP, e questa è la metà che lo tiene vero. Era
+// un testo nel componente e uno in `lib/contatti/testi.ts`, con due promesse
+// dei tempi diverse; e passarla da fuori lasciava a una pagina la possibilità
+// di passare quella sbagliata — /contatti che dice «Richiesta inviata».
+const formContatto = senzaCommenti(
+  fs.readFileSync(path.join(ROOT, "components/landing/RichiestaContattoForm.tsx"), "utf8"),
+);
+ok(/confermaPerOrigine\(origine\)/.test(formContatto),
+  "il form chiede la conferma all'origine che ha già",
+  "una conferma passata da fuori è una conferma che una pagina può passare sbagliata");
+ok(!/conferma\??:\s*\{/.test(formContatto) && !/titolo:\s*"/.test(formContatto),
+  "…e non ne tiene una propria né la riceve come prop",
+  "due testi in due file sono due copie: divergono, è solo questione di quando");
 
 // ── 8) i nomi dei piani: quelli veri, in ogni pagina che li nomina ─────────
 console.log("\n8) Un piano nominato in una pagina è uno di quelli che esistono");
