@@ -13,6 +13,7 @@ import LogoutButton from "@/components/LogoutButton";
 import { ETICHETTA_PIANO } from "@/lib/ente/pianoSuccessivo";
 import { getFiloneBySlug } from "@/data/filoniDocenti";
 import { formattaData, formattaDataOra } from "@/lib/formato";
+import { mailtoRisposta } from "@/lib/contatti/testi";
 
 export default async function AdminPage() {
   const { supabase, nome } = await requireAdmin();
@@ -419,13 +420,39 @@ export default async function AdminPage() {
                           ? `${r.istituto}${r.codice_meccanografico ? ` (${r.codice_meccanografico})` : ""}`
                           : r.codice_meccanografico,
                         r.email,
-                        formattaData(r.created_at, "long"),
+                        // Data E ORA: una coda di contatti è un elenco di
+                        // lavoro, e in un elenco di lavoro QUANDO è parte
+                        // dell'informazione — dice cosa è urgente, cosa è
+                        // vecchio, e se due righe sono la stessa persona che ha
+                        // riprovato. Il 10/10/2026 due messaggi arrivati a
+                        // undici minuti di distanza dicevano la stessa data e
+                        // dalla coda non si distinguevano.
+                        formattaDataOra(r.created_at, "long"),
                       ]
                         .filter(Boolean)
                         .join(" · ")}
                     </p>
                   </div>
-                  <ToggleGestitaRichiesta id={r.id} gestita={false} />
+                  {/* Due gesti distinti, e ⚠️ «Rispondi» NON segna la riga come
+                      gestita: aprire una bozza non è averla mandata, e KIREO
+                      non può saperlo — segnarla sarebbe scrivere uno stato che
+                      non abbiamo osservato. «Gestita» resta quello che è: una
+                      persona che dichiara di aver chiuso la cosa. */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <a
+                      href={mailtoRisposta({
+                        origine: r.origine,
+                        nome: r.nome,
+                        email: r.email,
+                        messaggio: r.messaggio,
+                        quando: formattaDataOra(r.created_at, "long"),
+                      })}
+                      className="rounded-full border border-kireo-green/50 px-4 py-2 text-sm font-semibold text-kireo-light transition hover:border-kireo-green hover:bg-kireo-green/10"
+                    >
+                      Rispondi
+                    </a>
+                    <ToggleGestitaRichiesta id={r.id} gestita={false} />
+                  </div>
                 </div>
                 <p className="mt-2 whitespace-pre-wrap text-sm text-kireo-light/90">{r.messaggio}</p>
               </li>

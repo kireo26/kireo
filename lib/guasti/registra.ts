@@ -52,6 +52,8 @@ export type SpecieGuasto =
   // — artefatti delle guide
   | "guida_riservata" // il PDF di una guida 2/3 non è stato consegnato
   | "email_guida" // il follow-up via email dopo il download non è partito
+  // — artefatti delle richieste di contatto
+  | "email_contatto" // la conferma a chi ha scritto, o la notifica interna, non è partita
   // — artefatti della consegna di una diretta
   | "prove_consegna_evento" // il giudizio della risposta alla domanda finale
   | "scrittura_consegna_evento" // la persistenza di prove/valutazione

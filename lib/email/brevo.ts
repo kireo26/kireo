@@ -3,6 +3,37 @@ const MITTENTE = { name: "KIREO", email: "noreply@kireo.it" };
 
 export type EsitoInvioEmail = { ok: true } | { ok: false; motivo: string };
 
+/**
+ * Le opzioni di un invio. Un oggetto invece di due parametri posizionali in
+ * coda: `rispondiA` decide se una FRASE dell'email è vera, e un quinto
+ * argomento posizionale è il posto in cui un domani qualcuno mette il nome.
+ */
+export type OpzioniInvioEmail = {
+  /** Il nome del destinatario, per l'intestazione. */
+  nome?: string;
+  /**
+   * L'indirizzo dell'header `Reply-To`.
+   *
+   * ⚠️ PERCHÉ ESISTE (10/10/2026). Il mittente di ogni nostra email è
+   * `noreply@kireo.it`, che NON RICEVE — e l'email di conferma di una
+   * richiesta di contatto diceva «rispondi pure a questa email». Chi
+   * rispondeva scriveva a una casella muta e non lo scopriva: il messaggio
+   * parte e sparisce. La promessa di un canale è il pezzo che nessuno
+   * verifica, e quella era la terza volta.
+   *
+   * ⚠️ E NON È ANCORA PROVATO DAL VIVO. Che Brevo rispetti questo campo è
+   * documentato; che una risposta arrivi davvero in casella lo dice solo una
+   * prova, e dal sandbox non si può fare (nessuna `BREVO_API_KEY`, nessuna
+   * posta in uscita). Finché la prova non c'è, i template NON dicono
+   * «rispondi a questa email»: dicono l'indirizzo. Il Reply-To resta perché è
+   * gratis ed è strettamente meglio — chi premesse «rispondi» passerebbe
+   * comunque — ma la frase che lo promette si scrive dopo la prova, non
+   * prima: se Brevo lo ignorasse, quella frase fallirebbe IN SILENZIO, che è
+   * la direzione peggiore in cui può fallire una cosa irreversibile.
+   */
+  rispondiA?: string;
+};
+
 // Client riusabile per l'invio email transazionale via Brevo — server-only,
 // legge BREVO_API_KEY da process.env (mai esposta al client, mai in un file
 // versionato). Non lancia mai: ogni chiamante riceve un esito tipizzato e
@@ -12,7 +43,7 @@ export async function inviaEmail(
   destinatario: string,
   oggetto: string,
   html: string,
-  nomeDestinatario?: string,
+  opzioni: OpzioniInvioEmail = {},
 ): Promise<EsitoInvioEmail> {
   const apiKey = process.env.BREVO_API_KEY;
   if (!apiKey) {
@@ -30,7 +61,10 @@ export async function inviaEmail(
       },
       body: JSON.stringify({
         sender: MITTENTE,
-        to: [{ email: destinatario, name: nomeDestinatario || undefined }],
+        to: [{ email: destinatario, name: opzioni.nome || undefined }],
+        // `undefined` lo lascia cadere `JSON.stringify`: senza `rispondiA` il
+        // corpo è identico a prima.
+        replyTo: opzioni.rispondiA ? { email: opzioni.rispondiA } : undefined,
         subject: oggetto,
         htmlContent: html,
       }),

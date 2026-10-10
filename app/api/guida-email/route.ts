@@ -4,7 +4,7 @@ import { inviaEmail } from "@/lib/email/brevo";
 import { templateFollowUpGuida } from "@/lib/email/templates";
 import { getAreaBySlug } from "@/data/aree";
 import { percorsoGuidaUno } from "@/lib/guide/config";
-import { SITE_URL } from "@/lib/site";
+import { SITE_URL, EMAIL_PUBBLICA } from "@/lib/site";
 import { segnalaGuasto } from "@/lib/guasti/registra";
 
 // Follow-up via email dopo il download di una guida (area o ente), collegato al
@@ -136,7 +136,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, inviata: false });
   }
 
-  const esito = await inviaEmail(corpo.email, "La tua guida KIREO", corpoHtml, nomeDestinatario || undefined);
+  const esito = await inviaEmail(corpo.email, "La tua guida KIREO", corpoHtml, {
+    nome: nomeDestinatario || undefined,
+    rispondiA: EMAIL_PUBBLICA,
+  });
 
   // L'artefatto che non arriva è lo stesso — il follow-up — quindi è la stessa
   // specie con un motivo diverso: `link_non_ammesso` è un dato da correggere,

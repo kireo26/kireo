@@ -783,7 +783,7 @@ where avvenuto_il &gt; now() - interval '24 hours' and not di_prova
 order by avvenuto_il desc;</pre>
 <p><code>specie</code> dice <strong>cosa non è arrivato</strong> — <code>revisione</code>, <code>feedback_finale</code>, <code>modo_di_lavorare</code>, <code>reazione_cliente</code>, le <code>scrittura_*</code> — e <code>motivo</code> dice cosa fare: <code>troncata</code> = la risposta si è fermata al tetto dei token, si alza il tetto nel chiamante; <code>chiamata</code> = l'API non ha risposto; <code>estrazione</code> = ha risposto ma senza JSON dentro, ed è l'unico dei tre che riguarda il prompt; <code>forma_non_valida</code> = JSON buono con i campi sbagliati, cioè prompt e validatore disallineati.</p>
 <p>Una cosa che quella tabella <strong>non</strong> sa dire: se il codice non parte affatto, nessuna riga viene scritta — e una tabella vuota si legge come «tutto bene» proprio quando va peggio. Per quella classe il guardiano resta <code>npm run test:log5xx</code>.</p>`;
-    const esitoMail = await inviaEmail(EMAIL_ADMIN, `KIREO — osservabilità (24h): ${totaleFalliti} revisori, ${testSenzaEsito} test senza esito`, html, "Mario");
+    const esitoMail = await inviaEmail(EMAIL_ADMIN, `KIREO — osservabilità (24h): ${totaleFalliti} revisori, ${testSenzaEsito} test senza esito`, html, { nome: "Mario" });
     // L'UNICO guasto diagnostico che si registra, e la ragione è che nasconde
     // tutti gli altri: se la mail non parte, di quella giornata non si sa più
     // niente — a meno che non resti scritto qui, che è il posto dove si va a

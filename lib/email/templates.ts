@@ -15,7 +15,8 @@
 // passi da `esc()` o da un valore di cui si conosce la provenienza — così il
 // prossimo template non nasce senza.
 
-import { SITE_URL } from "@/lib/site";
+import { SITE_URL, EMAIL_PUBBLICA } from "@/lib/site";
+import { PROMESSA_RISPOSTA } from "@/lib/contatti/testi";
 
 // Escape per il CONTESTO TESTO e per il CONTESTO ATTRIBUTO insieme: le
 // virgolette ci sono apposta, perché gli stessi valori finiscono dentro un
@@ -89,22 +90,42 @@ const ETICHETTA_ORIGINE: Record<OrigineRichiesta, string> = {
   contatti: "chi ci scrive",
 };
 
+// ⚠️ LA FRASE CHE DICEVA «RISPONDI PURE A QUESTA EMAIL», E PERCHÉ NON LA DICE
+// PIÙ (10/10/2026). Il mittente è `noreply@kireo.it`, che non riceve: chi
+// rispondeva scriveva a una casella muta e non lo scopriva — l'email parte e
+// sparisce. Era in TUTTI E DUE i rami, e in quello delle landing dal 25
+// luglio: la cura sta sulla classe, non sull'istanza che qualcuno ha notato.
+//
+// Adesso `inviaEmail` manda un `Reply-To: info@kireo.it`, quindi chi premesse
+// «rispondi» passerebbe comunque — ma la frase che lo PROMETTE si scrive dopo
+// la prova dal vivo, non prima: se Brevo ignorasse quel campo, un «rispondi a
+// questa email» fallirebbe in silenzio, che è la direzione peggiore per una
+// cosa che non si può ritirare. Un indirizzo da copiare è vero in ogni caso.
+//
+// ⚠️ L'INDIRIZZO È TESTO E NON UN LINK, di proposito: `linkSicuro` rifiuta
+// ogni schema che non sia http/https — `mailto:` compreso, e c'è
+// un'asserzione che lo pretende — perché uno schema che apre un'app in
+// un'email nostra è la cosa da cui quella funzione protegge. I client di
+// posta linkificano un indirizzo da soli.
+const COME_AGGIUNGERE_QUALCOSA = `Se vuoi aggiungere qualcosa, scrivici a ${EMAIL_PUBBLICA}.`;
+
 export function templateConfermaRichiestaContatto(nome: string, origine: OrigineRichiesta): string {
-  // ⚠️ Su /contatti la frase delle landing («la tua richiesta di informazioni
-  // su KIREO per …») non regge: chi scrive da lì può aver chiesto qualunque
-  // cosa. Ramo suo, e il testo è provvisorio — da rivedere con Mario.
+  // Su /contatti la frase delle landing («la tua richiesta di informazioni su
+  // KIREO per …») non regge: chi scrive da lì può aver chiesto qualunque cosa.
+  // Ramo suo, e la promessa dei tempi arriva da `lib/contatti/testi.ts`, lo
+  // stesso posto da cui la prende la conferma a schermo.
   if (origine === "contatti") {
     return involucroEmail(`
       <p>Ciao ${esc(nome)},</p>
-      <p>Abbiamo ricevuto il tuo messaggio. Lo leggiamo e ti rispondiamo il prima possibile — di solito entro un giorno o due.</p>
-      <p>Se nel frattempo vuoi aggiungere qualcosa, rispondi pure a questa email.</p>
+      <p>Abbiamo ricevuto il tuo messaggio. ${PROMESSA_RISPOSTA}</p>
+      <p>${COME_AGGIUNGERE_QUALCOSA}</p>
       <p>A presto,<br />Il team KIREO</p>
     `);
   }
   return involucroEmail(`
     <p>Ciao ${esc(nome)},</p>
     <p>Abbiamo ricevuto la tua richiesta di informazioni su KIREO per ${ETICHETTA_ORIGINE[origine]}. Ti ricontatteremo entro 24 ore.</p>
-    <p>Nel frattempo, se hai altre domande, scrivici pure rispondendo a questa email.</p>
+    <p>Nel frattempo, se hai altre domande, scrivici a ${EMAIL_PUBBLICA}.</p>
     <p>A presto,<br />Il team KIREO</p>
   `);
 }

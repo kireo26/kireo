@@ -1,12 +1,17 @@
 import type { Metadata } from "next";
 import RichiestaContattoForm from "@/components/landing/RichiestaContattoForm";
 import SectionHeading from "@/components/SectionHeading";
+import { CONFERMA_CONTATTI } from "@/lib/contatti/testi";
+import { EMAIL_PUBBLICA } from "@/lib/site";
 
-// ⚠️ L'indirizzo pubblico di KIREO, e l'unico che compare sul sito: la copia
+// ⚠️ `EMAIL_PUBBLICA` è l'unico indirizzo che compare sul sito: la copia
 // personale di Mario sta solo in `app/api/richiesta-contatto/route.ts`, che
 // gira sul server. `npm run test:contatti` lo pretende.
-const EMAIL_PUBBLICA = "info@kireo.it";
 
+// ⚠️ LE VOCI DEL SELECT NON SI TOCCANO. Finiscono nella coda admin e
+// nell'email di notifica come le ha scelte chi scrive, ed è giusto: è una cosa
+// che la persona dichiara di sé, non una classificazione nostra. Se un giorno
+// quel campo servirà a instradare, allora diventa un dato e si rivede.
 const RUOLI = ["Studente", "Istituzione formativa", "Docente", "Altro"];
 
 export const metadata: Metadata = {
@@ -22,8 +27,13 @@ const TARGET = [
   },
   {
     titolo: "Istituzioni formative",
+    // ⚠️ I piani sono Free/Plus/Premium dal 13 luglio 2026: qui c'era
+    // «Standard e Premium», una copia stantia ferma tre mesi su una pagina
+    // pubblica. L'unico posto che elenca i nomi è `ETICHETTA_PIANO`
+    // (`lib/ente/pianoSuccessivo.ts`), e `npm run test:contatti` controlla che
+    // un nome di piano nominato in una pagina sia uno di quelli.
     testo:
-      "Vuoi presentare la tua offerta formativa su KIREO o richiedere informazioni sui piani Standard e Premium? Contattaci.",
+      "Vuoi presentare la tua offerta formativa su KIREO o richiedere informazioni sui piani Plus e Premium? Contattaci.",
   },
   {
     titolo: "Docenti",
@@ -91,11 +101,7 @@ export default function Contatti() {
             etichettaBottone="Invia messaggio"
             mostraIstituto={false}
             mostraCodiceMeccanografico={false}
-            conferma={{
-              titolo: "Messaggio inviato",
-              testo:
-                "Grazie! Lo leggiamo e ti rispondiamo il prima possibile. Ti abbiamo mandato un'email di conferma: se non la vedi, controlla la posta indesiderata.",
-            }}
+            conferma={CONFERMA_CONTATTI}
           />
         </div>
       </section>

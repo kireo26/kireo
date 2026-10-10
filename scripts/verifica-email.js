@@ -59,11 +59,19 @@ const tmpl = leggi("lib/email/templates.ts");
 // aggiunta è una stringa che potrà scrivere markup.
 const PROVENIENZA_NOTA = [
   "SITE_URL", // lib/site.ts, costante nostra
+  "EMAIL_PUBBLICA", // lib/site.ts, costante nostra: l'indirizzo a cui si risponde
   "ETICHETTA_ORIGINE[origine]", // mappa chiusa qui dentro
   "contenuto", // HTML già composto, passato a involucroEmail
   "bottone(", // compone a sua volta, e passa da esc()+linkSicuro()
   "involucroEmail(",
   "riga(", // una riga della tabella di notifica: scappa i suoi DUE argomenti dentro — verificato sotto
+  // lib/contatti/testi.ts: la promessa dei tempi, la stessa che la pagina
+  // mostra a schermo. Costante nostra, nessun input di nessuno.
+  "PROMESSA_RISPOSTA",
+  // Composta qui sopra da EMAIL_PUBBLICA, che è già in questo elenco: è la
+  // frase che ha sostituito «rispondi pure a questa email», che prometteva una
+  // casella che non riceve.
+  "COME_AGGIUNGERE_QUALCOSA",
 ];
 
 // ⚠️ SOLO LE INTERPOLAZIONI CHE COMPONGONO MARKUP. La prima stesura leggeva
@@ -128,6 +136,38 @@ for (const cattivo of ["javascript:alert(1)", "data:text/html,x", "//kireo.it/x"
   }
   ok(alzato, `«${cattivo || "(vuoto)"}» viene rifiutato`);
 }
+
+// ── 2bis) nessuna email promette una casella che non riceve ────────────────
+console.log("\n2bis) Nessun template dice «rispondi a questa email»");
+
+// ⚠️ IL MITTENTE È `noreply@kireo.it`, CHE NON RICEVE. Fino al 10/10/2026 due
+// rami su due dicevano di rispondere a quell'email — quello delle landing dal
+// 25 luglio: chi rispondeva scriveva a una casella muta e non lo scopriva.
+//
+// Adesso `inviaEmail` manda un `Reply-To: info@kireo.it`, quindi chi premesse
+// «rispondi» passerebbe comunque — ma la frase che lo PROMETTE si scrive dopo
+// una prova dal vivo, non prima: se Brevo ignorasse quel campo, quella frase
+// fallirebbe in silenzio, e un'email mandata non si ritira. Finché la prova
+// non c'è, questa guardia tiene chiusa la porta.
+const promesse = [...tmpl.matchAll(/rispond\w*[^.<]{0,40}a questa email/gi)].map((m) => m[0]);
+ok(promesse.length === 0,
+  "nessun template invita a rispondere all'indirizzo da cui parte",
+  `${promesse.join(" · ")} — il mittente non riceve: quella risposta parte e sparisce. ` +
+  "Prima la prova (mandare, premere rispondi, vedere se arriva), poi la frase");
+ok(tmpl.includes(`scrivici a ${"$"}{EMAIL_PUBBLICA}`) || /scrivici a \$\{EMAIL_PUBBLICA\}/.test(tmpl),
+  "…e al suo posto c'è l'indirizzo, che è vero in ogni caso",
+  "togliere la promessa senza dare una strada lascia chi vuole aggiungere qualcosa senza niente");
+
+// E il Reply-To c'è davvero, su chi lo promette: la metà che il template non
+// può provare da sé.
+const rc = leggi("app/api/richiesta-contatto/route.ts");
+ok(/rispondiA: EMAIL_PUBBLICA/.test(rc),
+  "la conferma di una richiesta di contatto porta un Reply-To",
+  "senza, chi premesse «rispondi» per abitudine scriverebbe a `noreply@`");
+const brevo = leggi("lib/email/brevo.ts");
+ok(/replyTo: opzioni\.rispondiA \? \{ email: opzioni\.rispondiA \} : undefined/.test(brevo),
+  "…e il client lo mette davvero nel corpo della richiesta a Brevo",
+  "un'opzione che nessuno inoltra è un Reply-To che non esiste: la metà che si dimentica");
 
 // ── 3) LA PROPRIETÀ CHE CONTA: il contenuto non viene dal corpo ─────────────
 console.log("\n3) Le route che mandano email non prendono link né titolo dal corpo");

@@ -2,14 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { inviaEmail } from "@/lib/email/brevo";
 import { templateConfermaRichiestaContatto, templateNotificaRichiestaContatto } from "@/lib/email/templates";
+import { EMAIL_PUBBLICA } from "@/lib/site";
+import { segnalaGuasto } from "@/lib/guasti/registra";
+import { oggettoConferma } from "@/lib/contatti/testi";
 
 export const runtime = "nodejs";
 
 // ⚠️ `EMAIL_PERSONALE` è la copia personale di Mario e NON COMPARE DA NESSUNA
 // PARTE SUL SITO: sta qui, in un file che gira solo sul server, e in nessun
-// componente né pagina. `npm run test:contatti` lo pretende.
+// componente né pagina. `npm run test:contatti` lo pretende. L'indirizzo
+// PUBBLICO invece arriva da `lib/site.ts`, accanto all'URL canonico: è l'altra
+// coordinata pubblica del prodotto, e al 10/10/2026 viveva in cinque posti.
 const EMAIL_PERSONALE = "mario.izzo@hotmail.it";
-const EMAIL_PUBBLICA = "info@kireo.it";
 
 /**
  * Una riga per origine: dove va la notifica, e se `istituto` è obbligatorio.
@@ -41,9 +45,14 @@ const RIFIUTO_LIMITE: Record<Origine, string> = {
   dirigenti: "Hai già inviato una richiesta di recente: ti ricontatteremo presto!",
   scuole: "Hai già inviato una richiesta di recente: ti ricontatteremo presto!",
   enti: "Hai già inviato una richiesta di recente: ti ricontatteremo presto!",
-  contatti:
-    "Questo messaggio non è stato inviato: ne abbiamo già ricevuto uno da questo indirizzo pochi minuti fa. Aspetta una decina di minuti, oppure scrivici direttamente a info@kireo.it.",
+  contatti: `Questo messaggio non è stato inviato: ne abbiamo già ricevuto uno da questo indirizzo pochi minuti fa. Aspetta una decina di minuti, oppure scrivici direttamente a ${EMAIL_PUBBLICA}.`,
 };
+
+// L'oggetto della conferma è un ramo, perché è la riga più letta dell'email e
+// risparmiare su un `if` lì sarebbe risparmiare nel punto in cui si decide se
+// aprire. La distinzione («richiesta» o «messaggio») sta in
+// `NOME_RICHIESTA`, un posto solo, perché la stessa serve anche all'oggetto
+// della risposta che Mario manda dalla coda.
 
 function erroreDiCortesia(testo: string, status: number) {
   return NextResponse.json({ errore: testo }, { status });
@@ -149,21 +158,51 @@ export async function POST(request: NextRequest) {
   const [esitoConferma, ...esitiNotifica] = await Promise.all([
     inviaEmail(
       emailStr,
-      // ⚠️ Un oggetto solo per tutte e quattro le origini: su /contatti «la
-      // tua richiesta» è un po' largo per chi ha scritto un messaggio, ma è
-      // l'oggetto già vivo delle altre tre e cambiarlo qui lo cambierebbe
-      // anche per loro. Segnalato fra i testi da rivedere.
-      "Abbiamo ricevuto la tua richiesta — KIREO",
+      oggettoConferma(origine as Origine),
       templateConfermaRichiestaContatto(nomeStr, origine as Origine),
-      nomeStr,
+      // ⚠️ Il mittente è `noreply@kireo.it`, che non riceve: senza questo, chi
+      // premesse «rispondi» scriverebbe a una casella muta senza accorgersene.
+      // Vedi `OpzioniInvioEmail.rispondiA` — e la prova dal vivo che manca.
+      { nome: nomeStr, rispondiA: EMAIL_PUBBLICA },
     ),
     ...conf.notifica.map((destinatario) => inviaEmail(destinatario, oggettoNotifica, corpoNotifica)),
   ]);
 
-  if (!esitoConferma.ok) console.error("Email di conferma richiesta contatto non inviata:", esitoConferma.motivo);
-  esitiNotifica.forEach((esito, i) => {
-    if (!esito.ok) console.error(`Notifica richiesta contatto non inviata a ${conf.notifica[i]}:`, esito.motivo);
-  });
+  // ⚠️ UN INVIO FALLITO LASCIA UNA RIGA, e non è una rifinitura. Il
+  // 10/10/2026 Brevo ha bloccato l'email di conferma di un messaggio vero
+  // (l'IP di Vercel non era fra quelli autorizzati) e lo abbiamo scoperto solo
+  // perché Mario stava guardando se arrivava. Gli IP autorizzati erano UNDICI:
+  // è già successo dieci volte, quindi un invio fallito qui è un evento
+  // NORMALE — e il prodotto deve saperlo registrare senza che nessuno stia
+  // guardando. `segnalaGuasto` stampa e scrive in un gesto solo: due chiamate
+  // separate si dimenticano una alla volta, proprio nel ramo d'errore.
+  if (!esitoConferma.ok) {
+    await segnalaGuasto(
+      {
+        processo: "api/richiesta-contatto",
+        specie: "email_contatto",
+        motivo: "conferma_non_inviata",
+        dettaglio: esitoConferma.motivo,
+      },
+      `Errore email di conferma richiesta contatto (${origine}) non inviata:`,
+    );
+  }
+  for (const [i, esito] of esitiNotifica.entries()) {
+    if (!esito.ok) {
+      await segnalaGuasto(
+        {
+          processo: "api/richiesta-contatto",
+          specie: "email_contatto",
+          motivo: "notifica_non_inviata",
+          dettaglio: `${conf.notifica[i]}: ${esito.motivo}`,
+        },
+        `Errore notifica richiesta contatto non inviata a ${conf.notifica[i]}:`,
+      );
+    }
+  }
 
-  return NextResponse.json({ ok: true });
+  // `confermaInviata` lo legge il modulo per scegliere cosa dire: con l'email
+  // partita nomina la conferma, senza TACE su di lei — non si scusa, perché
+  // dal punto di vista di chi scrive non è successo niente di male.
+  return NextResponse.json({ ok: true, confermaInviata: esitoConferma.ok });
 }

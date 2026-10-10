@@ -46,8 +46,8 @@ const {
   SEZIONI_EXPORT,
   assemblaEsportazione,
   ATTESE,
-  FAMIGLIE_DEL_TESTO,
-  TESTO_DEBITO,
+  VOCI_DEBITO,
+  COSA_CONTIENE,
 } = require("@/lib/app/esportaDati");
 
 let rossi = 0;
@@ -88,6 +88,16 @@ function leggiElenchi() {
 // la sola tabella ammessa in un elenco senza esservi dentro, e la si nomina
 // qui invece di lasciarla passare per caso.
 const RADICE = "profiles";
+
+function tuttiIFileTs(dir) {
+  const out = [];
+  for (const v of fs.readdirSync(dir, { withFileTypes: true })) {
+    const p = path.join(dir, v.name);
+    if (v.isDirectory()) out.push(...tuttiIFileTs(p));
+    else if (/\.(ts|tsx)$/.test(v.name)) out.push(p);
+  }
+  return out;
+}
 
 console.log("\n§1 · La derivazione legge davvero qualcosa");
 const { cascata, tabelle } = cascataDaProfili();
@@ -151,51 +161,94 @@ ok(attese.length + fuori.length + sezioni.length - 1 === cascata.size,
   "i tre elenchi coprono la cascata esattamente, senza somme che non tornano",
   `${sezioni.length - 1} + ${attese.length} + ${fuori.length} ≠ ${cascata.size}`);
 
-console.log("\n§6 · La riga del debito, e le famiglie che nomina");
-// `TESTO_DEBITO` è scritta a mano e `ATTESE` cresce. Senza questo controllo,
-// il giorno in cui una tabella nuova entra nel debito la frase resta quella
-// di prima e nessuno lo sa — e la forma in cui diventa falsa è la peggiore,
-// perché un elenco si legge come esaustivo: una famiglia mancante non è
-// un'omissione, è un'affermazione che tutto il resto c'è.
+console.log("\n§6 · I due elenchi, e le tabelle che nessuna voce nomina");
+// I due elenchi sono scritti a mano (sono voce) e `ATTESE` cresce. Senza
+// questo controllo, il giorno in cui una tabella nuova entra nel debito gli
+// elenchi restano quelli e nessuno lo sa — e la forma in cui diventano falsi è
+// la peggiore, perché un elenco si legge come esaustivo: una voce mancante non
+// è un'omissione, è un'affermazione che tutto il resto c'è.
 //
-// Qui si importa invece di rileggere il sorgente, perché queste sono
-// proprietà di VALORI: che `nominataDa` sia riempito e che le famiglie
-// compaiano nella frase. Il conto incrociato con il lettore lessicale di §2
-// è gratis e sorveglia l'estrattore.
+// Qui si importa invece di rileggere il sorgente, perché queste sono proprietà
+// di VALORI. Il conto incrociato con il lettore lessicale di §2 è gratis e
+// sorveglia l'estrattore.
 ok(attese.length === ATTESE.length,
   `i due estrattori di ATTESE concordano (${attese.length})`,
   `il lettore lessicale dice ${attese.length} e l'import ${ATTESE.length}: uno dei due ha smesso di leggere`);
 
-for (const f of FAMIGLIE_DEL_TESTO) {
-  ok(TESTO_DEBITO.includes(f), `la frase nomina «${f}»`,
-    "la frase e `FAMIGLIE_DEL_TESTO` sono due copie: se la frase cambia e i dati no, " +
-    "questo controllo guarda famiglie che nessuno legge più");
-}
+// Il primo elenco: una voce per sezione, e non può essere altrimenti perché è
+// derivato — quello che si prova è che ogni sezione ce l'abbia davvero, e che
+// nessuna sia il nome di una tabella buttato lì.
+const senzaVoce = SEZIONI_EXPORT.filter((s) => !s.voce || s.voce.trim().length < 10).map((s) => s.chiave);
+ok(senzaVoce.length === 0,
+  `tutte le ${SEZIONI_EXPORT.length} sezioni del file hanno la loro voce nel primo elenco`,
+  `${senzaVoce.join(", ")} — una sezione senza voce è una sezione che il file dà e non nomina`);
+ok(COSA_CONTIENE.inQuestoFile.length === SEZIONI_EXPORT.length &&
+   COSA_CONTIENE.nonAncoraInQuestoFile.length === VOCI_DEBITO.length,
+  `i due elenchi hanno una voce per cosa (${COSA_CONTIENE.inQuestoFile.length} + ${COSA_CONTIENE.nonAncoraInQuestoFile.length})`,
+  "se divergono dai dati da cui nascono, non sono derivati: sono una copia");
+// ⚠️ IL CONTO NON BASTA: un elenco scritto a mano con lo stesso numero di voci
+// passerebbe il confronto di sopra e divergerebbe al primo che ne tocca una.
+// La proprietà è che siano DERIVATI, e quella si legge solo nel sorgente.
+const moduloExport = senzaCommenti(fs.readFileSync(path.join(ROOT, "lib/app/esportaDati.ts"), "utf8"));
+ok(/inQuestoFile:\s*SEZIONI_EXPORT\.map\(/.test(moduloExport) &&
+   /nonAncoraInQuestoFile:\s*VOCI_DEBITO\.map\(/.test(moduloExport),
+  "…e sono derivati dai dati, non elencati a mano",
+  "una lista a mano accanto a quella vera è la copia che nessuno rilegge: " +
+  "il primo elenco nasce dalle `voce` delle sezioni, il secondo dai `testo` delle voci del debito");
 
+// LA QUARTA VOCE DICHIARA DI ESSERE VUOTA, e le due metà vanno insieme: che la
+// voce lo dica, e che nessuno scriva quella tabella. Il giorno in cui qualcuno
+// la scrive, quella frase diventa falsa e questo controllo è l'unica cosa che
+// lo dice — altrimenti un ragazzo legge «è vuota per tutti» su una sezione che
+// ha dei dati dentro.
+const voceAttivita = SEZIONI_EXPORT.find((s) => s.tabella === "student_activities");
+ok(Boolean(voceAttivita) && /vuota per tutti/.test(voceAttivita.voce),
+  "la voce di `student_activities` dichiara di essere vuota",
+  "è `[]` per tutti, e un elenco di «cosa contiene» che la nomina senza dirlo fa concludere a un ragazzo di non aver fatto niente");
+const scritture = [];
+for (const dir of ["app", "components", "lib"]) {
+  for (const f of tuttiIFileTs(path.join(ROOT, dir))) {
+    const src = senzaCommenti(fs.readFileSync(f, "utf8"));
+    if (/from\("student_activities"\)[\s\S]{0,120}?\.(insert|update|upsert|delete)\(/.test(src)) {
+      scritture.push(path.relative(ROOT, f));
+    }
+  }
+}
+ok(scritture.length === 0,
+  "…e nessun codice dell'app scrive quella tabella, quindi la frase è vera",
+  `${scritture.join(", ")} — adesso si riempie: quella voce dice una cosa falsa e va riscritta`);
+
+const idVoci = VOCI_DEBITO.map((v) => v.id);
 const nominate = [...new Set(ATTESE.map((a) => a.nominataDa).filter(Boolean))];
 const nonNominate = ATTESE.filter((a) => a.nominataDa === null).map((a) => a.tabella).sort();
-const inventate = nominate.filter((f) => !FAMIGLIE_DEL_TESTO.includes(f)).sort();
+const inventate = nominate.filter((v) => !idVoci.includes(v)).sort();
 ok(inventate.length === 0,
-  "nessuna tabella è nominata da una famiglia che la frase non ha",
-  `${inventate.join(", ")} — o la frase le nomina, o quelle tabelle restano senza famiglia`);
-ok(nominate.length === FAMIGLIE_DEL_TESTO.length,
-  "ogni famiglia della frase copre almeno una tabella",
-  `la frase nomina ${FAMIGLIE_DEL_TESTO.length} famiglie e solo ${nominate.length} coprono qualcosa: ` +
-  `${FAMIGLIE_DEL_TESTO.filter((f) => !nominate.includes(f)).join(", ")}`);
+  "nessuna tabella punta a una voce che non esiste",
+  `${inventate.join(", ")} — o la voce si scrive, o quelle tabelle restano senza`);
+ok(nominate.length === idVoci.length,
+  "ogni voce del secondo elenco copre almeno una tabella",
+  `${idVoci.length} voci e solo ${nominate.length} coprono qualcosa: ` +
+  `${idVoci.filter((v) => !nominate.includes(v)).join(", ")} — una voce che non copre niente ` +
+  "promette al ragazzo una cosa che non abbiamo");
 
 // Il cricchetto. NON è «zero», perché oggi non è zero: è il numero di oggi,
 // dichiarato, così il silenzio cresce solo se qualcuno lo decide. Rosso nei
 // due versi, e i due versi vogliono due cose opposte.
-const NON_NOMINATE_ATTESE = 15;
+//
+// Le due di oggi sono `recinto_enti` (le guide scaricate da un ente: la voce
+// degli enti enumera follow, interesse e messaggi, e una guida non è nessuna
+// delle tre) e `style_signal` (la voce dei punteggi si limita «sulle aree», e
+// lo stile non è un'area). Segnalate a Mario il 10/10/2026.
+const NON_NOMINATE_ATTESE = 2;
 ok(nonNominate.length === NON_NOMINATE_ATTESE,
-  `${nonNominate.length} tabelle del debito che la frase non nomina (dichiarate: ${NON_NOMINATE_ATTESE})`,
+  `${nonNominate.length} tabelle del debito che nessuna voce nomina (dichiarate: ${NON_NOMINATE_ATTESE})`,
   nonNominate.length > NON_NOMINATE_ATTESE
-    ? `il debito è cresciuto e la frase è rimasta quella: ${nonNominate.join(", ")}\n       ` +
-      "→ o la frase le nomina, o si alza il numero qui sapendo che il file tace su di loro."
-    : `la frase è migliorata: porta il numero a ${nonNominate.length}. ` +
+    ? `il debito è cresciuto e gli elenchi sono rimasti quelli: ${nonNominate.join(", ")}\n       ` +
+      "→ o una voce le nomina, o si alza il numero qui sapendo che il file tace su di loro."
+    : `gli elenchi sono migliorati: porta il numero a ${nonNominate.length}. ` +
       `Restano fuori: ${nonNominate.join(", ") || "nessuna"}`);
-console.log(`  · la frase nomina ${ATTESE.length - nonNominate.length} delle ${ATTESE.length} tabelle del debito`);
-console.log(`  · non nominate: ${nonNominate.join(", ")}`);
+console.log(`  · il secondo elenco nomina ${ATTESE.length - nonNominate.length} delle ${ATTESE.length} tabelle del debito`);
+console.log(`  · non nominate: ${nonNominate.join(", ") || "nessuna"}`);
 
 console.log("\n§7 · La forma del file");
 // Si chiede al modulo, non si rilegge il sorgente: una regex su un testo dice
@@ -229,9 +282,18 @@ const intestazione = Object.keys(fileOk).slice(0, 4);
 ok(intestazione.join(",") === "esportatoIl,cosaContiene,tutteLePartiRichiesteOttenute,nonSiamoRiusciti",
   `l'intestazione sta in cima, prima dei dati (${intestazione.join(", ")})`);
 
-ok(fileOk.cosaContiene === TESTO_DEBITO && fileRotto.cosaContiene === TESTO_DEBITO,
-  "la riga del debito c'è su tutti e due i file, completo e incompleto",
-  "il debito non è un guasto: è quello che l'export non copre ancora, e vale anche quando tutto è andato bene");
+for (const [nome, f] of [["completo", fileOk], ["incompleto", fileRotto]]) {
+  ok(Array.isArray(f.cosaContiene?.inQuestoFile) && f.cosaContiene.inQuestoFile.length === SEZIONI_EXPORT.length &&
+     Array.isArray(f.cosaContiene?.nonAncoraInQuestoFile) && f.cosaContiene.nonAncoraInQuestoFile.length === VOCI_DEBITO.length &&
+     typeof f.cosaContiene?.nota === "string",
+    `i due elenchi ci sono nel file ${nome}, con la nota`,
+    "il debito non è un guasto: è quello che l'export non copre ancora, e vale anche quando tutto è andato bene");
+}
+// ⚠️ UNA FRASE SOLA, NO. È la forma che afferma: elencare quello che non c'è
+// fa credere che tutto il resto ci sia.
+ok(typeof fileOk.cosaContiene !== "string",
+  "`cosaContiene` non è tornato a essere una frase sola",
+  "con quattro sezioni su trentacinque tabelle, una frase che elenca le mancanze afferma che il resto è dentro");
 
 ok(fileRotto.tutteLePartiRichiesteOttenute === false && fileRotto.nonSiamoRiusciti.join() === mancante,
   `un file incompleto nomina la sezione mancante (${mancante})`);

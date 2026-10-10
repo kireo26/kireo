@@ -4,10 +4,22 @@ import { useState } from "react";
 import { Button } from "@/components/Button";
 import { inputClass, fieldBorder } from "@/lib/formStyles";
 
-/** La conferma delle landing. /contatti ne passa una sua: lì non è una richiesta di informazioni, è un messaggio. */
+/**
+ * La conferma delle landing. /contatti ne passa una sua: lì non è una
+ * richiesta di informazioni, è un messaggio.
+ *
+ * ⚠️ `testoSenzaConferma` è il testo di quando l'email di conferma NON è
+ * partita (vedi `lib/contatti/testi.ts` per il caso vero del 10/10/2026). Qui
+ * la frase che presume l'email è «Controlla anche la posta indesiderata»:
+ * detta a chi non ha ricevuto niente, lo manda a cercare una cosa che non
+ * esiste. La cura sta sulla CLASSE e non sull'istanza che qualcuno ha notato —
+ * le landing hanno lo stesso difetto di /contatti, più mite perché non
+ * affermano l'invio, solo lo presuppongono.
+ */
 export const CONFERMA_RICHIESTA = {
   titolo: "Richiesta inviata",
   testo: "Grazie! Ti risponderemo entro 24 ore. Controlla anche la posta indesiderata.",
+  testoSenzaConferma: "Grazie! Ti risponderemo entro 24 ore.",
 };
 
 // Form condiviso da ogni punto del sito che manda una richiesta di contatto:
@@ -41,7 +53,11 @@ export default function RichiestaContattoForm({
   mostraCodiceMeccanografico?: boolean;
   /** false su /contatti: chi scrive può essere uno studente senza un istituto da dichiarare. */
   mostraIstituto?: boolean;
-  conferma?: { titolo: string; testo: string };
+  /**
+   * `testoSenzaConferma` è obbligatorio perché il caso esiste: senza, la
+   * pagina tornerebbe ad affermare un'email che può non essere partita.
+   */
+  conferma?: { titolo: string; testo: string; testoSenzaConferma: string };
 }) {
   const [nome, setNome] = useState("");
   const [ruolo, setRuolo] = useState("");
@@ -54,7 +70,11 @@ export default function RichiestaContattoForm({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [erroreGenerale, setErroreGenerale] = useState<string | null>(null);
   const [caricamento, setCaricamento] = useState(false);
-  const [inviato, setInviato] = useState(false);
+  // ⚠️ NON un booleano: la pagina deve dire SOLO quello che è successo, e che
+  // l'email di conferma sia partita è una cosa che sa solo la route. `null`
+  // vuol dire «non ancora inviato»; `false` dentro vuol dire «la riga c'è, la
+  // conferma no» — che è un caso normale, non un guasto per chi scrive.
+  const [inviato, setInviato] = useState<{ confermaInviata: boolean } | null>(null);
 
   function clearError(field: string) {
     setErrors((prev) => {
@@ -103,13 +123,17 @@ export default function RichiestaContattoForm({
         }),
       });
 
+      const dati = await risposta.json().catch(() => null);
+
       if (!risposta.ok) {
-        const dati = await risposta.json().catch(() => null);
         setErroreGenerale(dati?.errore ?? "Qualcosa è andato storto. Riprova tra qualche istante.");
         return;
       }
 
-      setInviato(true);
+      // Se la risposta non dice niente sull'email, si assume che NON sia
+      // partita: la direzione giusta in cui sbagliare è tacere su una cortesia
+      // che c'è stata, non affermarne una che non c'è.
+      setInviato({ confermaInviata: dati?.confermaInviata === true });
     } catch {
       setErroreGenerale("Qualcosa è andato storto. Riprova tra qualche istante.");
     } finally {
@@ -123,7 +147,9 @@ export default function RichiestaContattoForm({
         <h3 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">
           {conferma.titolo}
         </h3>
-        <p className="mt-2 text-sm text-kireo-muted">{conferma.testo}</p>
+        <p className="mt-2 text-sm text-kireo-muted">
+          {inviato.confermaInviata ? conferma.testo : conferma.testoSenzaConferma}
+        </p>
       </div>
     );
   }
