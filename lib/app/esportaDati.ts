@@ -179,24 +179,45 @@ export type NaturaDato = "scritto" | "fatto" | "dedotto" | "terzo" | "nostro";
  * essere una copia che diverge.
  *
  * ⚠️ IL LIMITE, dichiarato: il controllo tiene fermo che ogni `nominataDa`
- * punti a una voce che esiste e che ogni voce copra almeno una tabella. Che il
- * TESTO di una voce nomini davvero la cosa — se qualcuno riscrive la voce dei
- * workshop togliendo «consegne», `workshop_consegne` resta agganciata a una
- * voce che non la nomina più — è semantico, e nessuna guardia lessicale lo
- * vede. Si trova leggendo.
+ * punti a una voce che esiste, che ogni voce copra almeno una tabella, che
+ * nessuna tabella del debito resti senza voce, e che nessuna voce PROMETTA una
+ * cosa classificata in `FUORI` (vedi `termine` là sotto). Che il TESTO di una
+ * voce nomini davvero la cosa — se qualcuno riscrive la voce dei workshop
+ * togliendo «consegne», `workshop_consegne` resta agganciata a una voce che
+ * non la nomina più — è semantico, e nessuna guardia lessicale lo vede. Si
+ * trova leggendo.
+ *
+ * ⚠️ E LEGGENDO SI È TROVATO, il 10/10/2026: delle nove voci della prima
+ * stesura QUATTRO sbagliavano, e tutte e quattro per eccesso di fiducia nella
+ * propria memoria del prodotto invece che nell'elenco qui sotto. Non
+ * nominavano il diario e gli artefatti; dicevano «da quelle risposte» come se
+ * le deduzioni venissero solo dai test, e tacevano lo stile; non distinguevano
+ * le due chat dei workshop, né il tutor, né le revisioni di tappa; e la voce
+ * delle classi nominava «gli attestati», che è la riga di un DOCENTE. Le nove
+ * qui sotto sono la riscrittura di Mario, verbatim.
+ *
+ * Il senso di quell'errore è il motivo per cui `termine` esiste: **una voce
+ * che enumera si chiude da sé, e tutto quello che resta fuori dall'elenco lo
+ * esclude attivamente — non è una dimenticanza, è un'affermazione.** Quindi
+ * una voce che nomina una cosa non sua non è imprecisa: promette.
  */
 export const VOCI_DEBITO = [
-  { id: "test_missioni", testo: "I test e le missioni che hai fatto, con le risposte che hai dato" },
+  { id: "test_missioni", testo: "I test e le missioni che hai fatto: le risposte che hai dato, il diario che hai scritto e le cose che hai salvato" },
   // Staccata dai test di proposito: è la categoria che pesa, ed è l'unica di
   // tutte che un ragazzo ha il diritto di vedere e non immaginerebbe mai che
   // esista. Quando entrerà nel file, entrerà con la `motivazione` leggibile
   // che è stata scritta apposta per poter essere letta da lui.
-  { id: "dedotto", testo: "Quello che KIREO ha dedotto da quelle risposte: i punteggi e le ipotesi sulle aree" },
+  //
+  // «il ritratto del tuo modo di lavorare» è `style_signal`, ed è
+  // deliberatamente inquietante: deve esserlo. Questo pezzo di testo è
+  // letteralmente l'unico posto del prodotto in cui diciamo a uno studente che
+  // quel ritratto esiste.
+  { id: "dedotto", testo: "Quello che KIREO ha dedotto da quello che hai fatto: i punteggi e le ipotesi sulle aree, e il ritratto del tuo modo di lavorare" },
   { id: "conto_attivita", testo: "Il conto delle attività che hai fatto in ogni area" },
-  { id: "workshop", testo: "I workshop: iscrizioni, elaborati, consegne, chat e messaggi" },
+  { id: "workshop", testo: "I workshop: iscrizioni, elaborati, consegne, le chat con il cliente e con i compagni, quello che hai chiesto al tutor e le revisioni di ogni tappa" },
   { id: "eventi", testo: "Gli eventi: le iscrizioni, le presenze, le domande in diretta e le risposte alla domanda finale" },
-  { id: "enti", testo: "Gli enti: chi segui, a chi hai manifestato interesse, i messaggi che vi siete scritti" },
-  { id: "classi_attestati", testo: "Le classi a cui la scuola ti ha assegnato e gli attestati" },
+  { id: "enti", testo: "Gli enti: chi segui, a chi hai manifestato interesse, i messaggi che vi siete scritti e le guide che hai scaricato" },
+  { id: "classi", testo: "Le classi a cui la scuola ti ha assegnato" },
   { id: "notifiche", testo: "Le notifiche che ti abbiamo mandato e le comunicazioni della scuola" },
   { id: "assistente_newsletter", testo: "Quante volte hai usato l'assistente, e le iscrizioni alla newsletter" },
 ] as const;
@@ -213,9 +234,15 @@ export type IdVoceDebito = (typeof VOCI_DEBITO)[number]["id"];
  * `nominataDa` è l'`id` della voce di `VOCI_DEBITO` sotto cui il ragazzo la
  * troverebbe, oppure `null` se nessuna la nomina. Dove due voci andrebbero
  * bene si sceglie quella dove uno andrebbe a cercare; dove le PAROLE di una
- * voce escludono la cosa (la voce dei punteggi dice «sulle aree», e lo stile
- * non è un'area) si mette `null` e si conta fra le scoperte, perché il senso
- * del cricchetto è che quello che manca non possa mancare in silenzio.
+ * voce escludono la cosa si mette `null` e si conta fra le scoperte, perché il
+ * senso del cricchetto è che quello che manca non possa mancare in silenzio.
+ *
+ * Dal 10/10/2026 nessuna è `null`: le due che lo erano (`recinto_enti` e
+ * `style_signal`) le ha prese la riscrittura delle voci, e il cricchetto è a
+ * zero. Quindi oggi è un invariante — ogni tabella del debito ha la sua voce —
+ * e il campo resta nullable per il caso che un giorno non si possa nominare,
+ * perché allora quel `null` va scritto e contato invece di sembrare un
+ * aggancio sbagliato.
  */
 export const ATTESE: { tabella: string; natura: NaturaDato; nominataDa: IdVoceDebito | null; cosa: string }[] = [
   // ── scritto da lui
@@ -224,9 +251,9 @@ export const ATTESE: { tabella: string; natura: NaturaDato; nominataDa: IdVoceDe
   { tabella: "workshop_elaborati", natura: "scritto", nominataDa: "workshop", cosa: "l'elaborato a tappe (più il giudizio finale e la fiducia, che sono dedotti)" },
   { tabella: "step_response", natura: "scritto", nominataDa: "test_missioni", cosa: "le risposte alle stanze di una missione, aperte e strutturate" },
   { tabella: "test_response", natura: "scritto", nominataDa: "test_missioni", cosa: "le risposte ai tre test" },
-  // La voce dice «con le risposte che hai dato», e un diario e un artefatto
-  // non sono risposte: stanno dentro il suo PERIMETRO («le missioni che hai
-  // fatto») ma non fra le cose che enumera. Segnalato a Mario.
+  // Nominate dalla voce dal 10/10/2026 («il diario che hai scritto e le cose
+  // che hai salvato»): prima stavano dentro il suo perimetro e fuori da quello
+  // che enumerava, cioè escluse dalle sue stesse parole.
   { tabella: "journal_entry", natura: "scritto", nominataDa: "test_missioni", cosa: "il diario di una missione" },
   { tabella: "portfolio_item", natura: "scritto", nominataDa: "test_missioni", cosa: "l'artefatto salvato da una missione" },
   { tabella: "workshop_consegne", natura: "scritto", nominataDa: "workshop", cosa: "i file consegnati col motore workshop v1" },
@@ -242,26 +269,25 @@ export const ATTESE: { tabella: string; natura: NaturaDato; nominataDa: IdVoceDe
   { tabella: "workshop_iscrizioni", natura: "fatto", nominataDa: "workshop", cosa: "i ruoli di workshop presi, lasciati, completati" },
   { tabella: "test_attempt", natura: "fatto", nominataDa: "test_missioni", cosa: "i tentativi dei tre test" },
   { tabella: "mission_attempt", natura: "fatto", nominataDa: "test_missioni", cosa: "le missioni giocate" },
-  // ⚠️ SCOPERTA. La voce degli enti enumera chi segui, a chi hai manifestato
-  // interesse e i messaggi: una guida scaricata da un ente non è nessuna delle
-  // tre, e nessun'altra voce la tocca.
-  { tabella: "recinto_enti", natura: "fatto", nominataDa: null, cosa: "le guide di un ente che ha scaricato" },
+  // Era una delle due SCOPERTE del 10/10: la voce degli enti enumerava chi
+  // segui, a chi hai manifestato interesse e i messaggi, e una guida scaricata
+  // non è nessuna delle tre. Ora la nomina («e le guide che hai scaricato»).
+  { tabella: "recinto_enti", natura: "fatto", nominataDa: "enti", cosa: "le guide di un ente che ha scaricato" },
+  // ⚠️ «le iscrizioni alla newsletter» è la newsletter DI UN ENTE, cioè una
+  // riga sua. `newsletter_docenti` è in `FUORI` ed è un'altra cosa: per questo
+  // la parola «newsletter» non può essere un `termine` di sorveglianza.
   { tabella: "newsletter_iscrizioni", natura: "fatto", nominataDa: "assistente_newsletter", cosa: "le newsletter di un ente a cui si è iscritto" },
-  // La voce dei workshop enumera «chat», che in quel contesto è la chat col
-  // cliente: il conto delle richieste al tutor sta nel perimetro e non fra le
-  // cose nominate. Segnalato.
   { tabella: "workshop_tutor_log", natura: "fatto", nominataDa: "workshop", cosa: "quante volte ha chiesto aiuto al tutor — mai il contenuto" },
 
   // ── dedotto da noi: la categoria che pesa, perché è quello che pensiamo di lui
   { tabella: "evidence", natura: "dedotto", nominataDa: "dedotto", cosa: "le prove, ognuna con la sua motivazione leggibile — scritta apposta per poter essere letta da lui" },
   { tabella: "area_signal", natura: "dedotto", nominataDa: "dedotto", cosa: "i quattro punteggi per area, la confidence e lo status" },
-  // ⚠️ SCOPERTA, e di quelle che contano: la voce si limita con le proprie
-  // parole («le ipotesi sulle aree»), e lo stile non è un'area — sono i
-  // quattro assi di COME lavora. Un ragazzo che legge quella voce non impara
-  // che abbiamo anche un profilo del suo modo di lavorare.
-  { tabella: "style_signal", natura: "dedotto", nominataDa: null, cosa: "il profilo di stile dei quattro assi" },
-  // Dentro il perimetro dei workshop, ma la voce non nomina la revisione di
-  // tappa né la reazione del cliente. Segnalato.
+  // Era la seconda SCOPERTA del 10/10, e quella che pesava: la voce si
+  // limitava con le proprie parole («le ipotesi sulle aree») e lo stile non è
+  // un'area — sono i quattro assi di COME lavora. Un ragazzo leggeva quella
+  // voce e non imparava che esiste. Ora la nomina, e la nomina con le parole
+  // giuste: «il ritratto del tuo modo di lavorare».
+  { tabella: "style_signal", natura: "dedotto", nominataDa: "dedotto", cosa: "il profilo di stile dei quattro assi" },
   { tabella: "workshop_fasi_stato", natura: "dedotto", nominataDa: "workshop", cosa: "la revisione di ogni tappa e la reazione del cliente" },
 
   // ── coinvolge un terzo
@@ -269,7 +295,7 @@ export const ATTESE: { tabella: string; natura: NaturaDato; nominataDa: IdVoceDe
   { tabella: "messaggi_enti", natura: "terzo", nominataDa: "enti", cosa: "i messaggi scambiati con un ente — metà li ha scritti l'ente" },
   { tabella: "workshop_messaggi", natura: "terzo", nominataDa: "workshop", cosa: "i messaggi con i compagni di progetto: l'altro è un altro minorenne" },
   { tabella: "messaggi_scuola_destinatari", natura: "terzo", nominataDa: "notifiche", cosa: "le comunicazioni ricevute dalla scuola — il corpo è della scuola" },
-  { tabella: "classi_studenti", natura: "terzo", nominataDa: "classi_attestati", cosa: "la classe a cui la scuola lo ha assegnato" },
+  { tabella: "classi_studenti", natura: "terzo", nominataDa: "classi", cosa: "la classe a cui la scuola lo ha assegnato" },
 
   // ── mandato da noi
   { tabella: "notifiche_studenti", natura: "nostro", nominataDa: "notifiche", cosa: "le notifiche che gli abbiamo mandato" },
@@ -285,13 +311,65 @@ export const ATTESE: { tabella: string; natura: NaturaDato; nominataDa: IdVoceDe
  * `/docente`, `/ente` o `/scuola` ne ha uno, né ha un «elimina il mio
  * account»: l'unico posto in tutto il prodotto è questo. È una domanda a sé,
  * e più grande di questa.
+ *
+ * ── `termine`, e perché non è un vezzo ──
+ *
+ * Il 10/10/2026 la voce delle classi diceva «e gli attestati», e un attestato
+ * è la riga di un DOCENTE. Non era un aggancio sbagliato — nessuna riga di
+ * `ATTESE` puntava ad `attestati`, perché `attestati` sta qui — erano le
+ * PAROLE: la voce prometteva a un ragazzo una cosa che avevamo già deciso non
+ * essere sua. Nessuno dei controlli di allora poteva vederlo, perché
+ * guardavano gli agganci e non il testo.
+ *
+ * `termine` è la stringa che, trovata dentro una voce di `cosaContiene`, è
+ * quella promessa. `npm run test:export` la cerca in tutti e due gli elenchi.
+ * Non controlla che le parole siano giuste: controlla che non promettano una
+ * cosa classificata qui.
+ *
+ * ⚠️ `null` VUOL DIRE «questa non si sorveglia», e la ragione va scritta: la
+ * parola che la nominerebbe compare legittimamente in una voce vera, quindi un
+ * termine qui griderebbe su un testo giusto — e un controllo che grida su una
+ * cosa giusta è un controllo che qualcuno disattiva. Il campo è obbligatorio
+ * nel tipo apposta: una sesta riga non si può aggiungere senza decidere.
  */
-export const FUORI: { tabella: string; perche: string }[] = [
-  { tabella: "teacher_profiles", perche: "è la riga di un docente (o di un referente scuola), non di uno studente — e l'area docente non ha un proprio export" },
-  { tabella: "newsletter_docenti", perche: "è l'iscrizione alla newsletter di un docente" },
-  { tabella: "attestati", perche: "è l'attestato di partecipazione di un docente a un webinar" },
-  { tabella: "institution_profiles", perche: "è il collegamento fra una persona e l'ente per cui lavora" },
-  { tabella: "school_staff", perche: "è la riga di un referente o di un tutor dentro il proprio istituto" },
+export const FUORI: { tabella: string; perche: string; termine: string[] | null }[] = [
+  {
+    tabella: "teacher_profiles",
+    perche: "è la riga di un docente (o di un referente scuola), non di uno studente — e l'area docente non ha un proprio export",
+    termine: ["docent"],
+  },
+  {
+    tabella: "newsletter_docenti",
+    perche: "è l'iscrizione alla newsletter di un docente",
+    // ⚠️ NON «newsletter»: la voce dell'assistente dice «le iscrizioni alla
+    // newsletter» e intende `newsletter_iscrizioni`, che è la newsletter di un
+    // ENTE, cioè una riga sua. Quello che distingue questa è il docente.
+    termine: ["docent"],
+  },
+  {
+    tabella: "attestati",
+    perche: "è l'attestato di partecipazione di un docente a un webinar",
+    // La riga per cui questa guardia esiste. Sul lato studente non c'è niente
+    // che si chiami attestato, quindi la parola è univoca.
+    termine: ["attestat"],
+  },
+  {
+    tabella: "institution_profiles",
+    perche: "è il collegamento fra una persona e l'ente per cui lavora",
+    // NON sorvegliabile: la parola che la nominerebbe è «ente», e la voce
+    // degli enti si apre con «Gli enti: chi segui…». La frase che davvero la
+    // promette sarebbe «l'ente per cui lavori», che nessuno scriverebbe in un
+    // elenco rivolto a uno studente.
+    termine: null,
+  },
+  {
+    tabella: "school_staff",
+    perche: "è la riga di un referente o di un tutor dentro il proprio istituto",
+    // Solo «referente»: «tutor» compare legittimamente nella voce dei
+    // workshop («quello che hai chiesto al tutor»), che è l'AI-tutor
+    // dell'elaborato e non un tutor di scuola. Copertura parziale, dichiarata.
+    termine: ["referente"],
+  },
 ];
 
 // ── I tre testi. Sono voce, e li ha scritti Mario.

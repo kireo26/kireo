@@ -47,6 +47,7 @@ const {
   assemblaEsportazione,
   ATTESE,
   VOCI_DEBITO,
+  FUORI,
   COSA_CONTIENE,
 } = require("@/lib/app/esportaDati");
 
@@ -231,15 +232,16 @@ ok(nominate.length === idVoci.length,
   `${idVoci.filter((v) => !nominate.includes(v)).join(", ")} — una voce che non copre niente ` +
   "promette al ragazzo una cosa che non abbiamo");
 
-// Il cricchetto. NON è «zero», perché oggi non è zero: è il numero di oggi,
-// dichiarato, così il silenzio cresce solo se qualcuno lo decide. Rosso nei
-// due versi, e i due versi vogliono due cose opposte.
+// Il cricchetto, che dal 10/10/2026 è a ZERO: le due che non erano nominate
+// (`recinto_enti` e `style_signal`) le ha prese la riscrittura delle voci.
+// Resta un numero dichiarato invece di uno zero cablato, perché il giorno in
+// cui una tabella del debito non si potesse nominare quel `null` va SCRITTO
+// qui e contato — altrimenti si riaprirebbe il silenzio alzando una riga.
 //
-// Le due di oggi sono `recinto_enti` (le guide scaricate da un ente: la voce
-// degli enti enumera follow, interesse e messaggi, e una guida non è nessuna
-// delle tre) e `style_signal` (la voce dei punteggi si limita «sulle aree», e
-// lo stile non è un'area). Segnalate a Mario il 10/10/2026.
-const NON_NOMINATE_ATTESE = 2;
+// A zero il ramo «gli elenchi sono migliorati» è irraggiungibile, ed è giusto:
+// zero è il fondo. Quello che resta è l'invariante — ogni tabella del debito
+// ha la sua voce — e cresce solo se qualcuno lo decide.
+const NON_NOMINATE_ATTESE = 0;
 ok(nonNominate.length === NON_NOMINATE_ATTESE,
   `${nonNominate.length} tabelle del debito che nessuna voce nomina (dichiarate: ${NON_NOMINATE_ATTESE})`,
   nonNominate.length > NON_NOMINATE_ATTESE
@@ -249,6 +251,59 @@ ok(nonNominate.length === NON_NOMINATE_ATTESE,
       `Restano fuori: ${nonNominate.join(", ") || "nessuna"}`);
 console.log(`  · il secondo elenco nomina ${ATTESE.length - nonNominate.length} delle ${ATTESE.length} tabelle del debito`);
 console.log(`  · non nominate: ${nonNominate.join(", ") || "nessuna"}`);
+
+console.log("\n§6bis · Nessuna voce promette una cosa che non è di uno studente");
+// IL DIFETTO CHE L'HA FATTA SCRIVERE (10/10/2026): la voce delle classi diceva
+// «e gli attestati», e un attestato è la riga di un DOCENTE. Non era un
+// aggancio sbagliato — `attestati` sta in `FUORI`, quindi nessuna riga di
+// `ATTESE` ci puntava — erano le PAROLE: la voce prometteva a un ragazzo una
+// cosa che avevamo già deciso non essere sua. I controlli di allora guardavano
+// gli agganci, e un aggancio pulito con le parole sbagliate ha lo stesso
+// aspetto di uno giusto.
+//
+// Si guardano TUTTI E DUE gli elenchi più la nota, cioè quello che arriva
+// davvero a chi legge (si chiede a `COSA_CONTIENE`, non si rileggono i dati da
+// cui nasce): una promessa nel PRIMO elenco sarebbe peggio, perché quello dice
+// cosa c'è DENTRO il file.
+//
+// ⚠️ Non è una guardia semantica: non sa se le parole di una voce descrivono
+// bene la sua tabella. Sa solo che non nominano una cosa classificata altrove.
+const testiMostrati = [
+  ...COSA_CONTIENE.inQuestoFile.map((t, i) => [`inQuestoFile[${i}]`, t]),
+  ...COSA_CONTIENE.nonAncoraInQuestoFile.map((t, i) => [`nonAncoraInQuestoFile[${i}]`, t]),
+  [`nota`, COSA_CONTIENE.nota],
+];
+// La guardia della guardia: se i termini si svuotano, questo controllo diventa
+// verde su qualunque cosa e nessuno va a ricontrollare una buona notizia.
+const conTermine = FUORI.filter((f) => Array.isArray(f.termine) && f.termine.length > 0);
+const senzaCampo = FUORI.filter((f) => f.termine !== null && !Array.isArray(f.termine)).map((f) => f.tabella);
+ok(senzaCampo.length === 0,
+  "ogni riga di FUORI dichiara il proprio `termine` (anche quando è `null`)",
+  `${senzaCampo.join(", ")} — un campo assente non è una decisione: è una riga aggiunta senza farsi la domanda`);
+ok(conTermine.length >= 3,
+  `${conTermine.length} delle ${FUORI.length} righe di FUORI hanno un termine sorvegliabile`,
+  "sotto tre, i termini si sono svuotati e questa guardia è verde su qualunque testo");
+console.log(`  · non sorvegliabili (la parola compare legittimamente in una voce vera): ` +
+  `${FUORI.filter((f) => f.termine === null).map((f) => f.tabella).join(", ") || "nessuna"}`);
+
+const promesse = [];
+for (const f of conTermine) {
+  for (const termine of f.termine) {
+    for (const [dove, testo] of testiMostrati) {
+      if (testo.toLowerCase().includes(termine.toLowerCase())) {
+        promesse.push(`${f.tabella} (termine «${termine}») in ${dove}: «${testo}»`);
+      }
+    }
+  }
+}
+ok(promesse.length === 0,
+  "nessuna voce di `cosaContiene` nomina una tabella di FUORI",
+  promesse.length
+    ? `${promesse.join("\n       ")}\n       ` +
+      "→ quella cosa l'abbiamo già classificata come NON di uno studente: o la voce non la nomina, " +
+      "o la tabella non sta in FUORI. Una voce che enumera si chiude da sé, quindi nominare " +
+      "è promettere."
+    : null);
 
 console.log("\n§7 · La forma del file");
 // Si chiede al modulo, non si rilegge il sorgente: una regex su un testo dice
