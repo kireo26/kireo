@@ -147,9 +147,20 @@ console.log("\n§2 — le due cause del vuoto sono due\n");
   ok(/non è stata posta nessuna domanda finale/.test(VUOTI[2]), "la terza dice che non c'era");
   ok(src.includes("domanda_consegna"), "e la route legge la colonna che le distingue");
   // E un errore su una delle due sezioni nuove NON butta via le presenze.
+  //
+  // ⚠️ RIESAMINATA L'11/10 E RISCRITTA, NON ALLENTATA: cercava il letterale
+  // `status: 500`, che non c'è più perché lo stato lo decide `rifiutoExport`
+  // (403 se la guardia respinge, 500 se il guasto è nostro — vedi
+  // `lib/eventi/rifiutoExport.ts`). La proprietà non è cambiata; era la sua
+  // ÀNCORA a essere un letterale. Ora si guarda la cosa che conta davvero:
+  // che il ramo RITORNI invece di proseguire a costruire un CSV.
   ok(
-    /if \(error\) \{[\s\S]{0,200}status: 500/.test(src),
+    /if \(error\) \{[\s\S]{0,400}return NextResponse\.json/.test(src),
     "un fallimento delle PRESENZE resta bloccante: è la ragione per cui l'export esiste",
+  );
+  ok(
+    /if \(error\) \{[\s\S]{0,400}rifiutoExport\(error\)/.test(src),
+    "e lo stato della risposta non è inventato lì: viene dall'unico posto che distingue le due cause",
   );
   ok(
     !/if \(erroreDomande\)[\s\S]{0,120}status: 500/.test(src),

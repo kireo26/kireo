@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getAreaBySlug } from "@/data/aree";
 import { buildSystemPrompt } from "@/lib/assistente/prompt";
 import { isAreaAttiva, MODELLO_ASSISTENTE, MAX_MESSAGGI_CONVERSAZIONE, MAX_CARATTERI_MESSAGGIO } from "@/lib/assistente/config";
+import { descriviErrore } from "@/lib/erroreSupabase";
 
 export const runtime = "nodejs";
 
@@ -96,7 +97,7 @@ export async function POST(request: NextRequest) {
           429,
         );
       }
-      console.error("Errore insert assistente_conversazioni:", erroreConversazione.message ?? erroreConversazione);
+      console.error("Errore insert assistente_conversazioni:", descriviErrore(erroreConversazione));
       return erroreDiCortesia("Non è stato possibile avviare una nuova conversazione. Riprova più tardi.", 500);
     }
   }

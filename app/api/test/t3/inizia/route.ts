@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { SLUG_T3 } from "@/lib/test/config";
 import { selezionaCandidate, T3_FROZEN_ITEM_ID, type CandidateCongelate } from "@/lib/test/assembla-t3";
 import type { AsseStile } from "@/lib/escape/tipi";
+import { descriviErrore } from "@/lib/erroreSupabase";
 
 export const runtime = "nodejs";
 
@@ -60,7 +61,7 @@ export async function POST() {
       .select("id")
       .single();
     if (error || !creato) {
-      console.error("Errore insert test_attempt (T3):", error?.message ?? error ?? "nessuna riga creata");
+      console.error("Errore insert test_attempt (T3):", error ? descriviErrore(error) : "nessuna riga creata");
       return NextResponse.json({ errore: "Non è stato possibile avviare il test. Riprova." }, { status: 500 });
     }
     attemptId = creato.id;
@@ -71,7 +72,7 @@ export async function POST() {
     .from("test_response")
     .upsert({ attempt_id: attemptId, item_id: T3_FROZEN_ITEM_ID, payload: congelate }, { onConflict: "attempt_id,item_id" });
   if (erroreFreeze) {
-    console.error("Errore congelamento candidate T3:", erroreFreeze.message ?? erroreFreeze);
+    console.error("Errore congelamento candidate T3:", descriviErrore(erroreFreeze));
     return NextResponse.json({ errore: "Non è stato possibile avviare il test. Riprova." }, { status: 500 });
   }
 

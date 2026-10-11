@@ -15,6 +15,15 @@
 -- ║                                                                         ║
 -- ║     La replica mente ESATTAMENTE dove non ha promesso di dire la        ║
 -- ║     verità. Il perimetro di quella promessa mancata è questo elenco.    ║
+-- ║                                                                         ║
+-- ║ ⚠️⚠️ E UN TIPO DI COLONNA NON STA IN QUELL'ELENCO, ANZI: È L'UNICA      ║
+-- ║     COSA CHE QUESTO FILE DEVE AZZECCARE (11/10/2026). Le colonne        ║
+-- ║     finte qui sotto portano i TIPI DI PRODUZIONE, non quelli comodi.    ║
+-- ║     Vedi `auth.users.email`: per tre mesi era `text` mentre in          ║
+-- ║     Supabase è `character varying`, e l'export presenze dell'admin è    ║
+-- ║     stato ROTTO IN PRODUZIONE dal 26 luglio con 19 proprietà verdi      ║
+-- ║     sulla replica. Un tipo sbagliato qui non fa mentire una prova su    ║
+-- ║     un dettaglio dell'ambiente: la fa mentire sul prodotto.             ║
 -- ╚════════════════════════════════════════════════════════════════════════╝
 --
 -- IL CASO CHE L'HA FATTA SCRIVERE (5/10/2026, e ha quasi prodotto una cura
@@ -81,13 +90,33 @@ grant anon, authenticated, service_role to postgres;
 create schema if not exists auth;
 grant usage on schema auth to anon, authenticated, service_role;
 
+-- ⚠️ I TIPI SONO QUELLI DI SUPABASE, NON QUELLI COMODI — e le tre colonne
+-- `varchar` sono la ragione per cui questo commento esiste.
+--
+-- In PL/pgSQL un `return query` confronta i tipi delle colonne della query con
+-- quelli dichiarati nel `returns table (...)`, e il confronto è STRETTO: non
+-- ammette nemmeno la conversione `character varying` → `text`, che altrove
+-- passa senza che nessuno se ne accorga. Quindi una funzione che dichiara
+-- `email text` e seleziona `u.email` solleva «structure of query does not match
+-- function result type» — in produzione.
+--
+-- Finché qui `email` era `text`, quella funzione era CORRETTA sulla replica, e
+-- nessuna prova poteva vedere il difetto: non per un buco di una prova, ma
+-- perché la replica le mostrava un sistema diverso. È il modo 4 dei tredici (una
+-- guardia che misura l'ambiente invece del sistema), applicato a una classe
+-- intera invece che a una proprietà.
+--
+-- ⚠️ E NON LO PRENDE «SEMINARE UNA RIGA», che era l'ipotesi: il controllo di
+-- PL/pgSQL scatta all'esecuzione del `return query`, NON all'emissione della
+-- prima riga — misurato, zero righe solleva uguale. Su una replica con i tipi
+-- giusti, basta che una prova CHIAMI la funzione.
 create table if not exists auth.users (
   id uuid primary key default gen_random_uuid(),
-  email text,
-  encrypted_password text,
+  email character varying(255),
+  encrypted_password character varying(255),
   email_confirmed_at timestamptz,
   confirmed_at timestamptz,
-  confirmation_token text,
+  confirmation_token character varying(255),
   raw_user_meta_data jsonb default '{}'::jsonb,
   created_at timestamptz not null default now()
 );

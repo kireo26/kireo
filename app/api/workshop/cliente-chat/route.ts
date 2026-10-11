@@ -9,6 +9,7 @@ import {
   REGOLE_CONVERSAZIONE_CLIENTE,
 } from "@/lib/workshop/config";
 import { getStatoChatTappa, esitoDelProssimoMessaggio } from "@/lib/workshop/chatTappa";
+import { descriviErrore } from "@/lib/erroreSupabase";
 
 export const runtime = "nodejs";
 
@@ -107,7 +108,7 @@ export async function POST(request: NextRequest) {
     // loggano), ed è quello che il 13/09 ha fermato due ruoli del robot
     // lasciando nei log di Vercel 447 righe e nessuna traccia. Il messaggio
     // della RPC è l'unica cosa che dice perché il database ha rifiutato.
-    console.error("Errore invia_messaggio_chat_cliente:", erroreInvio.message ?? erroreInvio);
+    console.error("Errore invia_messaggio_chat_cliente:", descriviErrore(erroreInvio));
     return erroreDiCortesia("Non è stato possibile inviare il messaggio. Riprova.", 500);
   }
 

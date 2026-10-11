@@ -16,6 +16,7 @@ import {
   TESTO_NESSUN_FILE,
   type EsitoSezione,
 } from "@/lib/app/esportaDati";
+import { descriviErrore } from "@/lib/erroreSupabase";
 
 const MAX_AREE_INTERESSE = 3;
 type StatoSalvataggio = "idle" | "salvando" | "ok" | "errore";
@@ -305,7 +306,7 @@ function BloccoPrivacy({ userId }: { userId: string }) {
             // Il browser non può registrare un guasto (`registra_guasto` è
             // solo service-role), quindi questa riga è l'unica traccia che
             // resta: senza, una query morta vive tre mesi.
-            console.error(`Export dati, sezione ${s.chiave} (${s.tabella}):`, error.code, error.message);
+            console.error(`Export dati, sezione ${s.chiave} (${s.tabella}):`, descriviErrore(error));
             return { ottenuta: false, motivo: error.code ?? "errore" };
           }
           return { ottenuta: true, dati: data };

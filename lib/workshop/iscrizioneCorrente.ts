@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { descriviErrore } from "@/lib/erroreSupabase";
 
 // QUALE ISCRIZIONE STAI GUARDANDO: una regola del prodotto, in un posto solo.
 //
@@ -77,7 +78,7 @@ export async function getIscrizioniWorkshop(
 
   // L'errore si stampa: è esattamente quello che è mancato il 2026-08-31,
   // quando `maybeSingle()` falliva su due righe e nessuno guardava il motivo.
-  if (error) console.error("[workshop] lettura iscrizioni:", error.message);
+  if (error) console.error("[workshop] lettura iscrizioni:", descriviErrore(error));
 
   return (data ?? []).map((r) => ({ ...r, workshop_ruoli: unRuolo(r.workshop_ruoli) }) as IscrizioneWorkshop);
 }

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { generaCsvSezioni, type SezioneCsv } from "@/lib/csv";
+import { descriviErrore } from "@/lib/erroreSupabase";
+import { rifiutoExport } from "@/lib/eventi/rifiutoExport";
 
 // Solo admin, generazione server-side, nessun endpoint pubblico: la vera
 // autorizzazione è comunque nella RPC esporta_presenze_admin (SECURITY
@@ -44,11 +46,17 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       supabase.rpc("esporta_consegne_evento", { p_evento_id: id }),
     ]);
   if (error) {
-    console.error("Errore esporta_presenze_admin:", error.message ?? error);
-    return NextResponse.json({ errore: "Non è stato possibile generare l'export." }, { status: 500 });
+    // ⚠️ IL TESTO VIENE DA UN POSTO SOLO (vedi `lib/eventi/rifiutoExport.ts`):
+    // le due route dicono la stessa cosa, e due copie divergerebbero. Qui il
+    // ramo «non hai il permesso» non si presenta — il controllo del ruolo admin
+    // è già passato qui sopra — ma chiamare l'helper costa zero e non lascia
+    // una seconda versione della frase.
+    const rifiuto = rifiutoExport(error);
+    if (rifiuto.nostro) console.error("Errore esporta_presenze_admin:", descriviErrore(error));
+    return NextResponse.json({ errore: rifiuto.testo }, { status: rifiuto.stato });
   }
-  if (erroreDomande) console.error("Errore esporta_domande_evento:", erroreDomande.message ?? erroreDomande);
-  if (erroreConsegne) console.error("Errore esporta_consegne_evento:", erroreConsegne.message ?? erroreConsegne);
+  if (erroreDomande) console.error("Errore esporta_domande_evento:", descriviErrore(erroreDomande));
+  if (erroreConsegne) console.error("Errore esporta_consegne_evento:", descriviErrore(erroreConsegne));
 
   const perDocenti = evento.pubblico === "docenti";
   const intestazioni = perDocenti

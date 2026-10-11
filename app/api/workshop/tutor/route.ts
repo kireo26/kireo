@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { MODELLO_CLIENTE_WORKSHOP, MAX_CARATTERI_MESSAGGIO_WORKSHOP } from "@/lib/workshop/config";
 import { WORKSHOP_ELABORATO, WORKSHOP_TUTOR_CONTESTO } from "@/lib/workshop/elaborato-config";
 import { buildTutorSystemPrompt } from "@/lib/workshop/tutorPrompt";
+import { descriviErrore } from "@/lib/erroreSupabase";
 
 export const runtime = "nodejs";
 
@@ -96,7 +97,7 @@ export async function POST(request: NextRequest) {
     if (erroreLog.message?.includes("troppe_richieste_tutor_oggi")) {
       return erroreDiCortesia("Hai raggiunto il numero massimo di richieste al tutor per oggi. Riprova domani!", 429);
     }
-    console.error("Errore insert workshop_tutor_log:", erroreLog.message ?? erroreLog);
+    console.error("Errore insert workshop_tutor_log:", descriviErrore(erroreLog));
     return erroreDiCortesia("Non è stato possibile contattare il tutor. Riprova.", 500);
   }
 

@@ -14,6 +14,7 @@
 // scrive solo un aggregato giornaliero: nessun dato di nessuno studente.
 
 import { createServiceRoleClient } from "@/lib/supabase/serviceRole";
+import { descriviErrore } from "@/lib/erroreSupabase";
 
 // `diProva` è l'unica dimensione che questa riga porta: la tabella non ha (e
 // non deve avere) un riferimento allo studente, quindi il flag non può
@@ -26,7 +27,7 @@ export async function registraGuardiaLingua(ancoraAccordato: boolean, diProva = 
   try {
     const supabase = createServiceRoleClient();
     const { error } = await supabase.rpc("registra_guardia_lingua", { p_ancora_accordato: ancoraAccordato, p_di_prova: diProva });
-    if (error) console.error("Guardia lingua — contatore non scritto:", error.message);
+    if (error) console.error("Guardia lingua — contatore non scritto:", descriviErrore(error));
   } catch (errore) {
     console.error("Guardia lingua — contatore non scritto (eccezione):", errore);
   }

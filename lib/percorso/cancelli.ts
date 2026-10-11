@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { descriviErrore } from "@/lib/erroreSupabase";
 
 // I due cancelli del percorso, letti dal lato TypeScript.
 //
@@ -30,7 +31,7 @@ async function predicato(supabase: SupabaseClient, nome: string): Promise<boolea
   try {
     const { data, error } = await supabase.rpc(nome);
     if (error) {
-      console.error(`Errore lettura cancello ${nome}:`, error.message ?? error);
+      console.error(`Errore lettura cancello ${nome}:`, descriviErrore(error));
       return null;
     }
     return data === true;

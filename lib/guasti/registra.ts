@@ -24,6 +24,7 @@
 // tornano a dire la stessa cosa.
 
 import { createServiceRoleClient } from "@/lib/supabase/serviceRole";
+import { descriviErrore } from "@/lib/erroreSupabase";
 
 // L'ARTEFATTO CHE NON È ARRIVATO, non «è fallita una chiamata».
 //
@@ -118,7 +119,7 @@ export async function registraGuasto(g: Guasto): Promise<void> {
       p_fase_id: g.faseId ?? null,
       p_di_prova: g.diProva ?? false,
     });
-    if (error) console.error("Guasto non registrato:", error.message);
+    if (error) console.error("Guasto non registrato:", descriviErrore(error));
   } catch (errore) {
     console.error("Guasto non registrato (eccezione):", errore);
   }

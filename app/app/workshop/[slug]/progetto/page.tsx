@@ -7,6 +7,7 @@ import { WORKSHOP_CLIENTE_NOME } from "@/lib/workshop/config";
 import type { FaseStatoRiga, FeedbackFinale, ValoreSezione } from "@/lib/workshop/elaboratoValore";
 import ElaboratoEditor from "@/components/workshop/elaborato/ElaboratoEditor";
 import { getIscrizioniWorkshop, scegliIscrizione, STATI_APRIBILI } from "@/lib/workshop/iscrizioneCorrente";
+import { descriviErrore } from "@/lib/erroreSupabase";
 
 export const metadata = { title: "Il tuo progetto — KIREO" };
 
@@ -47,7 +48,7 @@ export default async function ProgettoWorkshopPage({ params }: { params: Promise
     // un giorno: quando una scrittura non dice se è riuscita, il difetto che
     // ne segue non ha un posto dove essere cercato.
     if (erroreInit) {
-      console.error(`Errore inizializza_fasi_workshop (iscrizione ${iscrizione.id}):`, erroreInit.message ?? erroreInit);
+      console.error(`Errore inizializza_fasi_workshop (iscrizione ${iscrizione.id}):`, descriviErrore(erroreInit));
     }
   }
 
@@ -55,7 +56,7 @@ export default async function ProgettoWorkshopPage({ params }: { params: Promise
     .from("workshop_fasi_stato")
     .select(COLONNE_FASI_STATO)
     .eq("iscrizione_id", iscrizione.id);
-  if (erroreFasi) console.error(`Errore lettura workshop_fasi_stato (iscrizione ${iscrizione.id}):`, erroreFasi.message ?? erroreFasi);
+  if (erroreFasi) console.error(`Errore lettura workshop_fasi_stato (iscrizione ${iscrizione.id}):`, descriviErrore(erroreFasi));
 
   const fasiStato: FaseStatoRiga[] = (fasiStatoRighe ?? []).map((r) => ({
     faseId: r.fase_id,

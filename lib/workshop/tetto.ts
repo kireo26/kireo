@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { descriviErrore } from "@/lib/erroreSupabase";
 
 // Il tetto dei workshop, letto dal lato TypeScript.
 //
@@ -43,7 +44,7 @@ export async function leggiTettoWorkshop(supabase: SupabaseClient): Promise<Stat
   try {
     const { data, error } = await supabase.rpc("stato_tetto_workshop");
     if (error) {
-      console.error("Errore lettura tetto workshop:", error.message ?? error);
+      console.error("Errore lettura tetto workshop:", descriviErrore(error));
       return null;
     }
     const r = Array.isArray(data) ? data[0] : data;

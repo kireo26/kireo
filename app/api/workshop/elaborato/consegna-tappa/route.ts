@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { WORKSHOP_ELABORATO } from "@/lib/workshop/elaborato-config";
 import { sezioniIncomplete, type ValoreSezione } from "@/lib/workshop/elaboratoValore";
+import { descriviErrore } from "@/lib/erroreSupabase";
 
 export const runtime = "nodejs";
 
@@ -83,7 +84,7 @@ export async function POST(request: NextRequest) {
     if (erroreConsegna.message?.includes("fase_non_aperta")) {
       return erroreDiCortesia("Questa tappa non è (più) aperta.", 400);
     }
-    console.error("Errore consegna_fase_workshop:", erroreConsegna.message ?? erroreConsegna);
+    console.error("Errore consegna_fase_workshop:", descriviErrore(erroreConsegna));
     return erroreDiCortesia("Non è stato possibile consegnare la tappa. Riprova.", 500);
   }
 

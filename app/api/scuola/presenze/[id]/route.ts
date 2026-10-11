@@ -1,13 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { generaCsv } from "@/lib/csv";
+import { descriviErrore } from "@/lib/erroreSupabase";
+import { rifiutoExport } from "@/lib/eventi/rifiutoExport";
 
 // Referente/tutor con permesso certificazione_presenze, solo i propri
 // studenti verificati (garantito dalla RPC esporta_presenze_scuola,
 // SECURITY DEFINER, scoped a current_scuola_id()). Nessun controllo di
 // ruolo esplicito qui oltre l'autenticazione: la RPC stessa nega
-// (non_autorizzato) a chiunque non sia staff con quel permesso — un
-// eventuale errore diventa un 403 di cortesia.
+// (non_autorizzato) a chiunque non sia staff con quel permesso.
+//
+// ⚠️⚠️ FINO ALL'11/10/2026 QUESTA ROUTE DICEVA UNA COSA FALSA E NON LASCIAVA
+// NESSUNA TRACCIA. Qualunque errore della RPC — compreso un difetto nostro —
+// diventava un 403 «Non è stato possibile generare l'export», cioè «non hai il
+// permesso»: e per tre mesi il difetto c'è stato per davvero
+// (`esporta_presenze_scuola` sollevava SEMPRE per un tipo disallineato, vedi
+// `20261011130000`). Nessun `console.error`, quindi nessuno poteva saperlo —
+// questa route non l'aveva mai premuta nessuno.
+//
+// Adesso le due cause hanno due risposte: un rifiuto della guardia resta un
+// 403, tutto il resto è un 500 nostro e lascia la riga nel log.
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
@@ -21,7 +33,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
   const { data: righe, error } = await supabase.rpc("esporta_presenze_scuola", { p_evento_id: id });
   if (error) {
-    return NextResponse.json({ errore: "Non è stato possibile generare l'export." }, { status: 403 });
+    const rifiuto = rifiutoExport(error);
+    if (rifiuto.nostro) console.error("Errore esporta_presenze_scuola:", descriviErrore(error));
+    return NextResponse.json({ errore: rifiuto.testo }, { status: rifiuto.stato });
   }
 
   const intestazioni = ["Nome", "Cognome", "Email", "Classe", "Primo ingresso", "Ultima presenza", "Minuti presenza", "Copertura %", "Stato", "Certificata da", "Certificata da (nome)"];

@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { getAreaBySlug } from "@/data/aree";
 import { SLUG_T1, SLUG_T2, SLUG_T3 } from "@/lib/test/config";
 import { caricaContestoPercorso } from "./stato";
+import { descriviErrore } from "@/lib/erroreSupabase";
 
 // Il PASSO SUCCESSIVO del percorso studente. Percorso: guida → seconda guida →
 // T1 → T2 → T3 → missioni → workshop. La tappa è determinata dal traguardo PIÙ
@@ -170,7 +171,7 @@ async function leggiCancelloMissioni(supabase: SupabaseClient): Promise<boolean>
   try {
     const { data, error } = await supabase.rpc("ha_completato_i_tre_test");
     if (error) {
-      console.error("Errore lettura cancello missioni (prossima tappa):", error.message ?? error);
+      console.error("Errore lettura cancello missioni (prossima tappa):", descriviErrore(error));
       return true;
     }
     return data === true;
