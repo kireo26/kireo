@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { generaCsv } from "@/lib/csv";
+import { generaCsvSezioni } from "@/lib/csv";
+import { istantePerExport, minutiPerExport, notaMinuti } from "@/lib/eventi/exportPresenze";
 import { descriviErrore } from "@/lib/erroreSupabase";
 import { rifiutoExport } from "@/lib/eventi/rifiutoExport";
 
@@ -31,44 +32,91 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({ errore: "Non autenticato." }, { status: 401 });
   }
 
-  const { data: righe, error } = await supabase.rpc("esporta_presenze_scuola", { p_evento_id: id });
+  const [{ data: righe, error }, { data: evento, error: erroreEvento }] = await Promise.all([
+    supabase.rpc("esporta_presenze_scuola", { p_evento_id: id }),
+    // `data_fine` serve a dire «non calcolabile» invece di lasciare vuota la
+    // cella dei minuti (vedi `lib/eventi/exportPresenze.ts`), e il titolo a
+    // dire di quale incontro sono queste righe.
+    supabase.from("eventi").select("titolo, data_fine").eq("id", id).maybeSingle(),
+  ]);
   if (error) {
     const rifiuto = rifiutoExport(error);
     if (rifiuto.nostro) console.error("Errore esporta_presenze_scuola:", descriviErrore(error));
     return NextResponse.json({ errore: rifiuto.testo }, { status: rifiuto.stato });
   }
+  // Se l'evento non si legge, non sappiamo se i minuti vuoti sono «non c'era» o
+  // «non calcolabile»: e scegliere a caso sarebbe stampare una delle due bugie.
+  // È un guasto nostro — la RPC lo ha appena letto per noi.
+  if (erroreEvento || !evento) {
+    if (erroreEvento) console.error("Errore lettura evento (export scuola):", descriviErrore(erroreEvento));
+    else console.error("Errore lettura evento (export scuola): nessuna riga per", id);
+    const rifiuto = rifiutoExport(erroreEvento ?? new Error("evento non leggibile"));
+    return NextResponse.json({ errore: rifiuto.testo }, { status: rifiuto.stato });
+  }
 
-  const intestazioni = ["Nome", "Cognome", "Email", "Classe", "Primo ingresso", "Ultima presenza", "Minuti presenza", "Copertura %", "Stato", "Certificata da", "Certificata da (nome)"];
+  const intestazioni = [
+    "Nome",
+    "Cognome",
+    "Email",
+    "Classe",
+    "Primo ingresso (ora italiana)",
+    "Ultima presenza (ora italiana)",
+    "Minuti presenza",
+    "Copertura %",
+    "Stato",
+    "Certificata da",
+    "Certificata da (nome)",
+  ];
 
-  const corpo = (righe ?? []).map(
-    (r: {
-      nome: string;
-      cognome: string;
-      email: string | null;
-      classe_nome: string | null;
-      primo_ping: string | null;
-      ultimo_ping: string | null;
-      minuti_presenza: number | null;
-      copertura_percento: number | null;
-      stato_finale: string;
-      certificata_da_tipo: string | null;
-      certificata_da_nome: string | null;
-    }) => [
-      r.nome,
-      r.cognome,
-      r.email,
-      r.classe_nome,
-      r.primo_ping,
-      r.ultimo_ping,
-      r.minuti_presenza,
-      r.copertura_percento,
-      r.stato_finale,
-      r.certificata_da_tipo,
-      r.certificata_da_nome,
-    ],
-  );
+  type Riga = {
+    nome: string;
+    cognome: string;
+    email: string | null;
+    classe_nome: string | null;
+    primo_ping: string | null;
+    ultimo_ping: string | null;
+    minuti_presenza: number | null;
+    copertura_percento: number | null;
+    stato_finale: string;
+    certificata_da_tipo: string | null;
+    certificata_da_nome: string | null;
+  };
+  const elenco = (righe ?? []) as Riga[];
+  const corpo = elenco.map((r) => [
+    r.nome,
+    r.cognome,
+    r.email,
+    r.classe_nome,
+    istantePerExport(r.primo_ping),
+    istantePerExport(r.ultimo_ping),
+    minutiPerExport(r, evento.data_fine),
+    r.copertura_percento,
+    r.stato_finale,
+    r.certificata_da_tipo,
+    r.certificata_da_nome,
+  ]);
 
-  const csv = generaCsv(intestazioni, corpo);
+  // Stesso `try` della route admin: `generaCsvSezioni` lancia su un istante non
+  // formattato, e fuori da qui sarebbe un 500 del framework senza traccia.
+  // ⚠️ Una sezione sola, e non più `generaCsv`: la nota sui minuti «non
+  // calcolabili» ha bisogno di una riga sotto il titolo, che un CSV a tabella
+  // unica non ha.
+  let csv: string;
+  try {
+    csv = generaCsvSezioni([
+      {
+        titolo: `Presenze — ${evento.titolo}`,
+        intestazioni,
+        righe: corpo,
+        seNonCeNiente: "Nessuno studente della tua scuola risulta iscritto a questo incontro.",
+        nota: notaMinuti(evento.data_fine, elenco),
+      },
+    ]);
+  } catch (e) {
+    console.error("Errore generazione CSV presenze (scuola):", descriviErrore(e));
+    const rifiuto = rifiutoExport(e);
+    return NextResponse.json({ errore: rifiuto.testo }, { status: rifiuto.stato });
+  }
 
   return new NextResponse(csv, {
     headers: {

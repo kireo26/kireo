@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { generaCsv } from "@/lib/csv";
+import { righeCoperturaOltreCento } from "@/lib/eventi/exportPresenze";
 
 // Report aggregato per l'organizzatore: MAI un nome, MAI un id. Le due RPC
 // (report_evento_aggregato/report_evento_distribuzione) fanno già tutto il
@@ -34,6 +35,9 @@ export default function ReportEventoButton({ eventoId }: { eventoId: string }) {
         ["Totale iscritti", riga.totale_iscritti],
         ["Totale presenti", riga.totale_presenti],
         ["Copertura media (%)", riga.copertura_media],
+        // ⚠️ Una media senza tetto può superare il 100 (`20261011150000`): lo si
+        // spiega invece di nasconderlo. Solo quando succede.
+        ...righeCoperturaOltreCento(riga.copertura_media),
         ["Numero domande", riga.numero_domande],
         [],
         ["Distribuzione per provincia e tipo istituto (solo gruppi con almeno 5 presenti)"],

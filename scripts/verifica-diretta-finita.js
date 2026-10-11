@@ -61,20 +61,32 @@ const rifiuto = caricaModulo("lib/eventi/rifiutoExport.ts", () => {
 // ─────────────────────────────────────────────────────────────────────────────
 console.log("\n§4a — tre fasi, e solo la prima ha un numero\n");
 
-const { faseContatore, testoFinitaNonChiusa, avvisoChiusuraTardiva } = chiusura;
+const { faseContatore, testoFinitaNonChiusa, avvisoChiusuraTardiva, testoPrimaDellaDiretta } = chiusura;
+const INIZIO = "2026-10-04T17:15:00Z"; // 19:15 a Roma
 const FINE = "2026-10-04T17:20:00Z"; // 19:20 a Roma
 const t = (iso) => new Date(iso);
+// ⚠️ LA FIXTURE SI COSTRUISCE IN UN POSTO SOLO, e non è stile: il 11/10 il
+// quarto stato ha aggiunto `dataInizio` alla firma, e le chiamate di questa
+// suite NON lo passavano — `new Date(undefined)` è NaN, il confronto è falso,
+// e la funzione cadeva in «viva». Il rosso previsto non è arrivato: la suite
+// stava provando il ripiego (il modo 13). Con un costruttore, completare la
+// fixture è una riga.
+const fase = (adesso, { dataInizio = INIZIO, dataFine = FINE, chiusa = false } = {}) =>
+  faseContatore({ dataInizio, dataFine, chiusa, adesso: t(adesso) });
 
-ok(faseContatore({ dataFine: FINE, chiusa: false, adesso: t("2026-10-04T17:10:00Z") }) === "viva", "dentro la finestra → viva");
-ok(
-  faseContatore({ dataFine: FINE, chiusa: false, adesso: t("2026-10-04T17:20:00Z") }) === "finita_non_chiusa",
-  "all'istante della fine → finita, non chiusa (lo stesso confine di `chiudi_diretta_evento`)",
-);
-ok(faseContatore({ dataFine: FINE, chiusa: true, adesso: t("2026-10-11T08:00:00Z") }) === "chiusa", "chiusa vince sul tempo");
-ok(
-  faseContatore({ dataFine: null, chiusa: false, adesso: t("2030-01-01T00:00:00Z") }) === "viva",
-  "senza data di fine non finisce mai (e non si può nemmeno chiudere): resta com'era",
-);
+ok(fase("2026-10-04T17:13:00Z") === "prima", "due minuti prima dell'inizio → prima: nessun contatore che può valere solo zero");
+ok(fase("2026-10-04T17:15:00Z") === "viva", "all'istante dell'inizio → viva (lo stesso confine di `evento_in_diretta`)");
+ok(fase("2026-10-04T17:18:00Z") === "viva", "dentro la finestra → viva");
+ok(fase("2026-10-04T17:20:00Z") === "finita_non_chiusa", "all'istante della fine → finita, non chiusa (lo stesso confine di `chiudi_diretta_evento`)");
+ok(fase("2026-10-11T08:00:00Z", { chiusa: true }) === "chiusa", "chiusa vince sul tempo");
+ok(fase("2026-10-04T17:00:00Z", { chiusa: true }) === "chiusa", "…anche prima dell'inizio (un admin che ha già chiuso non rivede «comincia alle»)");
+ok(fase("2030-01-01T00:00:00Z", { dataFine: null }) === "viva", "senza data di fine non finisce mai (e non si può nemmeno chiudere): resta viva");
+
+const primaOggi = testoPrimaDellaDiretta(INIZIO, t("2026-10-04T17:13:00Z"));
+ok(primaOggi === "La diretta comincia alle 19:15. I presenti si contano da quel momento.", "prima, lo stesso giorno: il testo di Mario parola per parola", primaOggi);
+const primaAltroGiorno = testoPrimaDellaDiretta(INIZIO, t("2026-10-03T08:00:00Z"));
+ok(primaAltroGiorno.includes("il 4 ottobre 2026") && primaAltroGiorno.includes("19:15"), "prima, un altro giorno: la data per intero («alle 19:15» da solo sembrerebbe di oggi)", primaAltroGiorno);
+ok(!/\d+\s*present/i.test(primaOggi) && !/Presenti/.test(primaOggi), "…e non stampa nessun numero di presenti", primaOggi);
 
 const finita = testoFinitaNonChiusa(FINE);
 ok(finita.includes("4 ottobre 2026") && finita.includes("19:20"), "il testo dice giorno e ora della fine, a Roma", finita);
@@ -133,6 +145,8 @@ ok(
   "una pressione appena riuscita conta come chiusa anche prima che il poll lo rilegga",
 );
 ok(comp.includes("testoFinitaNonChiusa(dataFine)"), "nella fase finita, non chiusa, si rende il testo di Mario");
+ok(comp.includes('{fase === "prima" && ') && comp.includes("testoPrimaDellaDiretta(dataInizio, ora)"), "prima dell'inizio si rende il testo di Mario, con l'ora che è stato e non `new Date()` nel render");
+ok(/faseContatore\(\{\s*dataInizio,/.test(comp), "il componente passa `dataInizio`: senza, il quarto stato non esisterebbe e nessuno lo vedrebbe");
 const bottone = fettaOppureRosso(comp, { nome: "{avvisoTardivo && " }, { nome: "<Button type=\"button\" variant=\"outline\" onClick={chiudiDiretta}" }, "avviso prima del bottone");
 ok(bottone !== null, "l'avviso sulla chiusura tardiva sta PRIMA del bottone, non sotto (si legge prima di premere)");
 
@@ -194,6 +208,44 @@ for (const fn of ["esporta_presenze_admin", "esporta_presenze_scuola"]) {
     `${fn}: i minuti sono la sovrapposizione con [data_inizio, data_fine]`,
   );
   ok(nonContiene("(pl.ultimo_ping - pl.primo_ping)"), `${fn}: «ultimo − primo» non c'è più`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+console.log("\n§1c — «non calcolabile» e non una cella vuota; la media oltre il 100 si spiega\n");
+
+const exportP = caricaModulo("lib/eventi/exportPresenze.ts", daFormato);
+ok(
+  exportP.minutiPerExport({ minuti_presenza: null, primo_ping: "2026-10-04T17:00:00Z" }, null) === "non calcolabile",
+  "collegato, ma l'incontro non ha una fine → «non calcolabile», non vuoto",
+);
+ok(exportP.minutiPerExport({ minuti_presenza: null, primo_ping: null }, null) === null, "mai collegato → vuoto: lì «non c'era» è la verità");
+ok(exportP.minutiPerExport({ minuti_presenza: 2.4, primo_ping: "x" }, FINE) === 2.4, "un numero vero esce com'è");
+ok(
+  exportP.notaMinuti(null, [{ primo_ping: "x" }]) ===
+    "«non calcolabile» nei minuti significa che l'incontro non ha un orario di fine: la presenza non si può delimitare.",
+  "la nota sotto l'intestazione, di Mario parola per parola",
+);
+ok(exportP.notaMinuti(FINE, [{ primo_ping: "x" }]) === null, "…e c'è SOLO quando la parola compare: una nota che c'è sempre smette di essere letta");
+ok(exportP.istantePerExport("2026-10-04T15:08:31+00:00") === "04/10/2026 17:08:31", "un battito delle 17:08 a Roma si legge 17:08, non 15:08");
+ok(exportP.righeCoperturaOltreCento(120).length === 1 && exportP.righeCoperturaOltreCento("120.0").length === 1, "una media oltre il 100 porta la spiegazione (anche se `numeric` arriva come stringa)");
+ok(exportP.righeCoperturaOltreCento(100).length === 0 && exportP.righeCoperturaOltreCento(null).length === 0, "…a 100 o senza media, niente");
+ok(
+  exportP.SPIEGAZIONE_COPERTURA_OLTRE_CENTO ===
+    "Una copertura oltre il 100% significa che per qualcuno abbiamo registrato più battiti di quanti la durata dell'incontro ne preveda. È un difetto nostro, non una presenza migliore.",
+  "la spiegazione è di Mario, parola per parola",
+);
+const report = senzaCommenti(readFileSync(join(RADICE, "components/ente/ReportEventoButton.tsx"), "utf8"));
+ok(report.includes("...righeCoperturaOltreCento(riga.copertura_media)"), "il report dell'ente la usa, sotto la riga della copertura");
+for (const rel of ["app/api/admin/presenze/[id]/route.ts", "app/api/scuola/presenze/[id]/route.ts"]) {
+  const r = senzaCommenti(readFileSync(join(RADICE, rel), "utf8"));
+  ok(r.includes("minutiPerExport(r, evento.data_fine)") && r.includes("nota: notaMinuti(evento.data_fine,"), `${rel}: minuti e nota dallo stesso modulo`);
+}
+{
+  const agg = file.filter((f) => senzaCommentiSql(readFileSync(join(DIR, f), "utf8")).includes("create or replace function public.report_evento_aggregato("));
+  const ultima = agg[agg.length - 1];
+  ok(ultima === "20261011150000_report_aggregato_senza_tetto.sql", "report_evento_aggregato: l'ultima definizione è quella senza tetto", ultima);
+  const def = (senzaCommentiSql(readFileSync(join(DIR, ultima), "utf8")).split("create or replace function public.report_evento_aggregato(")[1] ?? "").split("$$;")[0];
+  ok(def.length > 0 && !def.includes("least(1.0") && def.includes("avg(pl.ping_totali::numeric / v_ping_attesi)"), "…e la media non ha più il `least`");
 }
 
 console.log(`\n${falliti === 0 ? "✓" : "✗"} ${fatte - falliti}/${fatte} proprietà verificate.`);

@@ -18,7 +18,9 @@
 -- LA CONTROPROVA va fatta su una replica NATA SENZA la migrazione (un
 -- `create or replace` riapplicato su una replica già sistemata non disfa
 -- niente): con le funzioni di `20261011130000` diventano rosse 1, 3, 4, 5, 6,
--- 7, 8 e 11 (3/11) — e la 1 stampa 8.9, cioè il numero del CSV di Mario.
+-- 7, 8 e 11 — e la 1 stampa 8.9, cioè il numero del CSV di Mario. Con la
+-- funzione aggregata di luglio (senza `20261011150000`) è rossa la 12, che
+-- stampa 85.0.
 
 begin;
 
@@ -100,6 +102,11 @@ select set_config('request.jwt.claim.sub', 'f1000000-0000-0000-0000-000000000002
 create temp table scuola_righe on commit drop as
   select cognome, minuti_presenza, copertura_percento from public.esporta_presenze_scuola('f3000000-0000-0000-0000-000000000001');
 
+-- report aggregato dell'ente (20261011150000): la media senza tetto
+select set_config('request.jwt.claim.sub', 'f1000000-0000-0000-0000-000000000001', true);
+create temp table aggregato on commit drop as
+  select copertura_media from public.report_evento_aggregato('f3000000-0000-0000-0000-000000000001');
+
 reset role;
 select set_config('request.jwt.claim.sub', '', true);
 
@@ -149,6 +156,13 @@ insert into esiti
   select 10, 'la fixture ha prodotto righe in tutti e due gli export (admin 5, scuola 5)', '5/5',
          (select count(*) from admin_righe)::text || '/' || (select count(*) from scuola_righe)::text,
          (select count(*) from admin_righe) = 5 and (select count(*) from scuola_righe) = 5;
+
+-- 4 righe in presenze_live: 4/5, 6/5, 3/5, 6/5 → media (0,8+1,2+0,6+1,2)/4 = 0,95.
+-- Con il tetto sarebbe stata (0,8+1+0,6+1)/4 = 0,85: la differenza è la prova.
+insert into esiti
+  select 12, 'report ente · la media della copertura non ha più il tetto (95, non 85)', '95.0',
+         (select copertura_media::text from aggregato),
+         (select copertura_media = 95 from aggregato);
 
 select n, cosa, atteso, trovato, case when coalesce(ok, false) then 'ok' else 'ROTTO' end as esito from esiti order by n;
 select count(*) filter (where coalesce(ok, false)) || '/' || count(*) || ' verificate' as riassunto from esiti;

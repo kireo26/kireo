@@ -237,7 +237,11 @@ console.log("\n§5 — la route compone le tre sezioni\n");
   const sezioni = fettaOppureRosso(
     src,
     { nome: "const sezioni: SezioneCsv[]", dove: "l'elenco delle sezioni" },
-    { nome: "const csv = generaCsvSezioni", dove: "la composizione, subito dopo" },
+    // ⚠️ RIESAMINATA l'11/10 (la regola di casa): la composizione è entrata in
+    // un `try`, perché `generaCsvSezioni` ora LANCIA su un istante non
+    // formattato — e `const csv =` è diventato `let csv` + un'assegnazione.
+    // La proprietà non è cambiata: l'àncora era sulla forma della dichiarazione.
+    { nome: "csv = generaCsvSezioni(sezioni)", dove: "la composizione, subito dopo" },
     "l'elenco delle sezioni",
   );
   ok((sezioni.match(/titolo:/g) ?? []).length === 3, "tre sezioni", `${(sezioni.match(/titolo:/g) ?? []).length}`);

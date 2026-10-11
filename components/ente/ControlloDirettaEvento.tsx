@@ -7,6 +7,7 @@ import DomandaConsegnaForm from "./DomandaConsegnaForm";
 import {
   avvisoChiusuraTardiva,
   faseContatore,
+  testoPrimaDellaDiretta,
   statoChiusura,
   testoEsitoChiusura,
   testoFinitaNonChiusa,
@@ -162,7 +163,7 @@ export default function ControlloDirettaEvento({
   // `lib/eventi/chiusuraDiretta.ts`): il contatore e la freschezza esistono
   // solo nella fase viva. Una pressione appena riuscita conta come chiusa
   // anche prima che il poll lo rilegga.
-  const fase = faseContatore({ dataFine, chiusa: chiusura.tipo === "chiusa" || esitoChiusura !== null, adesso: ora });
+  const fase = faseContatore({ dataInizio, dataFine, chiusa: chiusura.tipo === "chiusa" || esitoChiusura !== null, adesso: ora });
   const avvisoTardivo = avvisoChiusuraTardiva(dataFine, ora);
 
   async function segnaStato(domandaId: string, stato: string) {
@@ -204,6 +205,7 @@ export default function ControlloDirettaEvento({
 
   return (
     <div className="mt-4 space-y-4 border-t border-white/5 pt-4">
+      {fase === "prima" && <p className="text-sm text-kireo-light/90">{testoPrimaDellaDiretta(dataInizio, ora)}</p>}
       {fase === "finita_non_chiusa" && dataFine && <p className="text-sm text-kireo-light/90">{testoFinitaNonChiusa(dataFine)}</p>}
       {fase === "viva" && (
       <div>

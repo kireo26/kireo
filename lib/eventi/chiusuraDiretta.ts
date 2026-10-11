@@ -37,7 +37,7 @@
 // è successo no* (Mario). Spiegare l'assenza del bottone serviva solo finché la
 // riga non diceva niente.
 
-import { formattaData, formattaDataOra, giorniDiCalendarioItaliani } from "@/lib/formato";
+import { formattaData, formattaDataOra, formattaOra, giorniDiCalendarioItaliani, stessoGiornoItaliano } from "@/lib/formato";
 
 /** Chi ha chiuso: congelato come `certificata_da_tipo`, perché il ruolo di una persona cambia e il fatto no. */
 export type ChiusuraDaTipo = "kireo" | "ente";
@@ -178,7 +178,9 @@ export function testoStatoChiusura(stato: Extract<StatoChiusura, { tipo: "chiusa
 // un bottone identico a quello di una diretta finita da venti minuti. Non due
 // difetti: UNO, e la sua cornice è di Mario.
 //
-// TRE FASI, e solo la prima ha un numero:
+// QUATTRO FASI, e solo una ha un numero:
+//   • prima           → NESSUN contatore, `testoPrimaDellaDiretta` (11/10, il
+//                       quarto stato: vedi sotto)
 //   • viva            → «Presenti ora: 12» + la riga di freschezza
 //   • finita, non chiusa → NESSUN contatore e NESSUNA freschezza (senza un
 //                         numero vivo la freschezza non sorveglia più niente),
@@ -191,18 +193,44 @@ export function testoStatoChiusura(stato: Extract<StatoChiusura, { tipo: "chiusa
 // proposito). Stamparci uno zero sarebbe la terza volta in quattro giorni che
 // uno zero dice «non c'era niente» dove la verità è «non è questa la domanda».
 //
-// «Viva» comprende anche il PRIMA della diretta: lì il contatore resta com'era
-// (e dice zero, vero — nessuno può battere prima dell'inizio dal 4/10). Mario
-// non ne ha parlato e non l'ho toccato.
+// ⚠️ IL QUARTO STATO, deciso da Mario l'11/10 (era un buco, e l'ho segnalato
+// invece di sceglierlo): prima di `data_inizio` il battito non conta PER
+// COSTRUZIONE (`20261004130000`), quindi «Presenti ora» lì può valere solo
+// zero — e un numero che può avere un solo valore non è un'informazione, è un
+// rumore che somiglia a una. Il moderatore che apre la pagina due minuti prima
+// legge «nessuno» e sente «non sta funzionando» o «non è venuto nessuno»: due
+// cose false, nel momento in cui è più in ansia. «Il contatore esiste solo
+// finché può significare qualcosa.»
 
-export type FaseContatore = "viva" | "finita_non_chiusa" | "chiusa";
+export type FaseContatore = "prima" | "viva" | "finita_non_chiusa" | "chiusa";
 
-export function faseContatore(dati: { dataFine: string | null; chiusa: boolean; adesso: Date }): FaseContatore {
+export function faseContatore(dati: {
+  dataInizio: string;
+  dataFine: string | null;
+  chiusa: boolean;
+  adesso: Date;
+}): FaseContatore {
   if (dati.chiusa) return "chiusa";
+  // Lo stesso confine di `evento_in_diretta` (`now() >= data_inizio`): da
+  // quell'istante il battito conta, e il contatore può dire qualcosa.
+  if (dati.adesso.getTime() < new Date(dati.dataInizio).getTime()) return "prima";
   // Senza una fine la diretta non può finire (e non si può nemmeno chiudere:
   // `chiudi_diretta_evento` lo rifiuta). Resta viva, cioè com'era.
   if (dati.dataFine && dati.adesso.getTime() >= new Date(dati.dataFine).getTime()) return "finita_non_chiusa";
   return "viva";
+}
+
+/**
+ * Il testo che prende il posto del contatore PRIMA dell'inizio. Di Mario, con
+ * la stessa deviazione degli altri due: se l'inizio non è oggi, la data
+ * compare per intero («alle 19:15» da solo sembrerebbe di oggi — stessa ragione
+ * della riga del tocco e dell'attesa di `lib/live.ts`).
+ */
+export function testoPrimaDellaDiretta(dataInizio: string, adesso: Date): string {
+  const quando = stessoGiornoItaliano(dataInizio, adesso)
+    ? `alle ${formattaOra(dataInizio)}`
+    : `il ${formattaDataOra(dataInizio, "long")}`;
+  return `La diretta comincia ${quando}. I presenti si contano da quel momento.`;
 }
 
 /**

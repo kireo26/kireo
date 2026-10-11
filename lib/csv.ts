@@ -3,9 +3,26 @@
 // server-side (route handler) sia client-side (download diretto da una
 // RPC già aggregata/anonimizzata) — nessuna dipendenza da fs o da altri
 // moduli solo-server.
+// ⚠️ UN ISTANTE GREZZO NON ENTRA IN UN CSV (11/10/2026). Il file delle presenze
+// stampava «2026-10-04T15:08:31+00:00», cioè l'ora di Greenwich, accanto a ore
+// PCTO su un documento che una scuola conserva — e chi lo legge in un foglio di
+// calcolo non ha modo di accorgersi del fuso. Un CSV qui lo apre sempre una
+// persona, quindi un istante va formattato con `formattaIstante` PRIMA di
+// arrivare qui; questo controllo è il terminale, e fallisce A VOCE ALTA invece
+// di consegnare un orario sbagliato di due ore su un atto. Una data senza ora
+// («2008-01-01») passa: non ha un fuso da sbagliare.
+const ISTANTE_GREZZO = /^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}/;
+
+export class IstanteGrezzoInCsv extends Error {
+  constructor(valore: string) {
+    super(`istante non formattato in un CSV: «${valore}» — passalo da formattaIstante`);
+  }
+}
+
 function escapiCampo(valore: unknown): string {
   if (valore === null || valore === undefined) return "";
   const testo = String(valore);
+  if (ISTANTE_GREZZO.test(testo)) throw new IstanteGrezzoInCsv(testo);
   if (/[",\n;]/.test(testo)) {
     return `"${testo.replace(/"/g, '""')}"`;
   }
@@ -32,6 +49,12 @@ export type SezioneCsv = {
    * «nessun dato» che va bene per tutto.
    */
   seNonCeNiente: string;
+  /**
+   * Una riga sotto il titolo che spiega una parola che compare nelle celle
+   * (oggi: «non calcolabile» nei minuti). Facoltativa, e si stampa SOLO quando
+   * serve: una nota che c'è sempre smette di essere letta.
+   */
+  nota?: string | null;
 };
 
 /**
@@ -51,6 +74,7 @@ export type SezioneCsv = {
 export function generaCsvSezioni(sezioni: SezioneCsv[]): string {
   const blocchi = sezioni.map((s) => {
     const linee = [escapiCampo(s.titolo)];
+    if (s.nota) linee.push(escapiCampo(s.nota));
     if (s.righe.length === 0) {
       linee.push(escapiCampo(s.seNonCeNiente));
     } else {

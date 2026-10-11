@@ -49,6 +49,32 @@ export function formattaDataOra(iso: string | Date, stile: StileData = "long"): 
   return quando(iso).toLocaleString("it-IT", { dateStyle: stile, timeStyle: "short", timeZone: ZONA });
 }
 
+/**
+ * Un istante in un FILE che una persona apre (il CSV delle presenze):
+ * «04/10/2026 17:08:31», ora di Roma, con i secondi — perché lì l'istante è la
+ * prova che uno studente era collegato, e il minuto da solo non basta a
+ * metterlo in ordine con gli altri.
+ *
+ * ⚠️ IL DIFETTO DA CUI NASCE (11/10/2026): il CSV stampava l'istante così come
+ * arriva da PostgREST, «2026-10-04T15:08:31+00:00» — cioè in UTC. Un referente
+ * leggeva 15:08 per un battito delle 17:08, accanto a delle ore PCTO, su un
+ * documento che una scuola conserva. Non passava da nessun `toLocale`, quindi
+ * `test:date` non poteva vederlo: vedi `scripts/verifica-istanti-file.js`.
+ */
+export function formattaIstante(iso: string | Date): string {
+  return quando(iso)
+    .toLocaleString("it-IT", {
+      timeZone: ZONA,
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    })
+    .replace(", ", " ");
+}
+
 /** Solo l'ora: «19:15». Serve a dire a che ora comincia una cosa che comincia oggi. */
 export function formattaOra(iso: string | Date): string {
   return quando(iso).toLocaleTimeString("it-IT", { timeStyle: "short", timeZone: ZONA });

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { generaCsvSezioni, type SezioneCsv } from "@/lib/csv";
+import { istantePerExport, minutiPerExport, notaMinuti } from "@/lib/eventi/exportPresenze";
 import { descriviErrore } from "@/lib/erroreSupabase";
 import { rifiutoExport } from "@/lib/eventi/rifiutoExport";
 import { toccataDaPerExport } from "@/lib/eventi/tocco";
@@ -29,7 +30,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   // stata posta nessuna domanda»: senza, la sezione vuota direbbe la prima su
   // un evento in cui la seconda è la verità — cioè un'affermazione sugli
   // studenti al posto di una su di noi.
-  const { data: evento } = await supabase.from("eventi").select("titolo, pubblico, domanda_consegna").eq("id", id).maybeSingle();
+  const { data: evento } = await supabase.from("eventi").select("titolo, pubblico, domanda_consegna, data_fine").eq("id", id).maybeSingle();
   if (!evento) {
     return NextResponse.json({ errore: "Evento non trovato." }, { status: 404 });
   }
@@ -69,8 +70,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         "Scuola",
         "Codice meccanografico",
         "Classe",
-        "Primo ingresso",
-        "Ultima presenza",
+        "Primo ingresso (ora italiana)",
+        "Ultima presenza (ora italiana)",
         "Minuti presenza",
         "Copertura %",
         "Stato",
@@ -97,7 +98,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       attestato_codice: string | null;
     }) =>
       perDocenti
-        ? [r.nome, r.cognome, r.email, r.minuti_presenza, r.copertura_percento, r.stato_finale, r.attestato_emesso ? "Sì" : "No", r.attestato_codice]
+        ? [r.nome, r.cognome, r.email, minutiPerExport(r, evento.data_fine), r.copertura_percento, r.stato_finale, r.attestato_emesso ? "Sì" : "No", r.attestato_codice]
         : [
             r.nome,
             r.cognome,
@@ -105,9 +106,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             r.scuola_denominazione,
             r.scuola_codice,
             r.classe_nome,
-            r.primo_ping,
-            r.ultimo_ping,
-            r.minuti_presenza,
+            istantePerExport(r.primo_ping),
+            istantePerExport(r.ultimo_ping),
+            minutiPerExport(r, evento.data_fine),
             r.copertura_percento,
             r.stato_finale,
             r.certificata_da_tipo,
@@ -126,19 +127,20 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       intestazioni,
       righe: corpo,
       seNonCeNiente: "Nessuno si è collegato a questa diretta.",
+      nota: notaMinuti(evento.data_fine, righe ?? []),
     },
     {
       titolo: "Domande fatte durante la diretta (anonime)",
-      intestazioni: ["Fatta il", "Testo", "Stato", "Toccata da", "Toccata il"],
+      intestazioni: ["Fatta il (ora italiana)", "Testo", "Stato", "Toccata da", "Toccata il (ora italiana)"],
       righe: erroreDomande
         ? []
         : (domande ?? []).map(
             (q: { creata_il: string; testo: string; stato: string; toccata_da: string | null; toccata_il: string | null }) => [
-              q.creata_il,
+              istantePerExport(q.creata_il),
               q.testo,
               q.stato,
               toccataDaPerExport(q),
-              q.toccata_il,
+              istantePerExport(q.toccata_il),
             ],
           ),
       seNonCeNiente: erroreDomande
@@ -147,15 +149,15 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     },
     {
       titolo: "Risposte alla domanda finale (anonime)",
-      intestazioni: ["Consegnata il", "Testo", "Giudizio arrivato", "Giudicata il", "Caratteri"],
+      intestazioni: ["Consegnata il (ora italiana)", "Testo", "Giudizio arrivato", "Giudicata il (ora italiana)", "Caratteri"],
       righe: erroreConsegne
         ? []
         : (consegne ?? []).map(
             (c: { consegnata_il: string; testo: string; valutata: boolean; valutata_il: string | null; caratteri: number }) => [
-              c.consegnata_il,
+              istantePerExport(c.consegnata_il),
               c.testo,
               c.valutata ? "Sì" : "No",
-              c.valutata_il,
+              istantePerExport(c.valutata_il),
               c.caratteri,
             ],
           ),
@@ -167,7 +169,18 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     },
   ];
 
-  const csv = generaCsvSezioni(sezioni);
+  // ⚠️ IL `try` STA QUI perché `generaCsvSezioni` LANCIA su un istante non
+  // formattato (vedi `lib/csv.ts`): fuori da un try quel caso diventerebbe un
+  // 500 grezzo del framework, senza corpo e senza traccia — il modo 7. Dentro,
+  // è un guasto nostro detto con il testo di Mario e una riga nel log.
+  let csv: string;
+  try {
+    csv = generaCsvSezioni(sezioni);
+  } catch (e) {
+    console.error("Errore generazione CSV presenze (admin):", descriviErrore(e));
+    const rifiuto = rifiutoExport(e);
+    return NextResponse.json({ errore: rifiuto.testo }, { status: rifiuto.stato });
+  }
 
   return new NextResponse(csv, {
     headers: {
