@@ -64,6 +64,24 @@ export function stessoGiornoItaliano(a: string | Date, b: string | Date): boolea
   return formattaData(a, "short") === formattaData(b, "short");
 }
 
+/**
+ * Quanti giorni DI CALENDARIO ITALIANO separano due istanti (b − a): 0 se cadono
+ * nello stesso giorno di Roma, 1 se `b` è il giorno dopo, anche se fra i due ci
+ * sono dieci minuti a cavallo della mezzanotte. Non è una durata divisa per 24
+ * ore — quella sbaglierebbe proprio il caso «ieri sera alle 23:50».
+ *
+ * La data di ogni istante si legge NELLA ZONA (formato ISO di `en-CA`, che è
+ * l'unico locale che restituisce YYYY-MM-DD), poi la differenza si fa fra due
+ * mezzanotti UTC, dove non ci sono cambi d'ora a sbagliarla.
+ */
+export function giorniDiCalendarioItaliani(a: string | Date, b: string | Date): number {
+  const giorno = (x: string | Date) => {
+    const [anno, mese, g] = quando(x).toLocaleDateString("en-CA", { timeZone: ZONA }).split("-").map(Number);
+    return Date.UTC(anno, mese - 1, g);
+  };
+  return Math.round((giorno(b) - giorno(a)) / 86_400_000);
+}
+
 // ─────────────────────────── L'ALTRA METÀ: L'INGRESSO ───────────────────────
 //
 // PERCHÉ ESISTE. Fissare la zona in USCITA lascia aperta la metà simmetrica:

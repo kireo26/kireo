@@ -37,7 +37,7 @@
 // è successo no* (Mario). Spiegare l'assenza del bottone serviva solo finché la
 // riga non diceva niente.
 
-import { formattaDataOra } from "@/lib/formato";
+import { formattaData, formattaDataOra, giorniDiCalendarioItaliani } from "@/lib/formato";
 
 /** Chi ha chiuso: congelato come `certificata_da_tipo`, perché il ruolo di una persona cambia e il fatto no. */
 export type ChiusuraDaTipo = "kireo" | "ente";
@@ -168,4 +168,97 @@ export function testoStatoChiusura(stato: Extract<StatoChiusura, { tipo: "chiusa
   const testa = `Diretta chiusa il ${formattaDataOra(stato.quando, "long")}, ${CHI[stato.daTipo]}.`;
   if (!stato.ricevuta) return testa;
   return `${testa} ${codaRicevuta(stato.ricevuta.presenti, stato.ricevuta.certificati, false)}`;
+}
+
+// ─────────────────────────── «LA PAGINA NON SA CHE LA DIRETTA È FINITA» ──────
+//
+// ⚠️ IL DIFETTO (§4 del giro a schermo di Mario, 11/10/2026): su una diretta
+// finita da una settimana la pagina diceva «Presenti ora: 0» — vero e falso
+// insieme, perché si legge «a questo incontro non è venuto nessuno» — e accanto
+// un bottone identico a quello di una diretta finita da venti minuti. Non due
+// difetti: UNO, e la sua cornice è di Mario.
+//
+// TRE FASI, e solo la prima ha un numero:
+//   • viva            → «Presenti ora: 12» + la riga di freschezza
+//   • finita, non chiusa → NESSUN contatore e NESSUNA freschezza (senza un
+//                         numero vivo la freschezza non sorveglia più niente),
+//                         al loro posto `testoFinitaNonChiusa`
+//   • chiusa          → la ricevuta, che c'era già
+//
+// ⚠️ PERCHÉ NON UN ALTRO NUMERO al posto del contatore: sarebbe o un doppione
+// della ricevuta, o — a diretta finita e non chiusa — un numero che l'ente non
+// può calcolare (`presenze_live` non ha policy di lettura per lui, di
+// proposito). Stamparci uno zero sarebbe la terza volta in quattro giorni che
+// uno zero dice «non c'era niente» dove la verità è «non è questa la domanda».
+//
+// «Viva» comprende anche il PRIMA della diretta: lì il contatore resta com'era
+// (e dice zero, vero — nessuno può battere prima dell'inizio dal 4/10). Mario
+// non ne ha parlato e non l'ho toccato.
+
+export type FaseContatore = "viva" | "finita_non_chiusa" | "chiusa";
+
+export function faseContatore(dati: { dataFine: string | null; chiusa: boolean; adesso: Date }): FaseContatore {
+  if (dati.chiusa) return "chiusa";
+  // Senza una fine la diretta non può finire (e non si può nemmeno chiudere:
+  // `chiudi_diretta_evento` lo rifiuta). Resta viva, cioè com'era.
+  if (dati.dataFine && dati.adesso.getTime() >= new Date(dati.dataFine).getTime()) return "finita_non_chiusa";
+  return "viva";
+}
+
+/**
+ * Il testo che prende il posto del contatore su una diretta finita e non chiusa.
+ * Di Mario, con una sola deviazione: la data porta l'anno e «alle ore», perché
+ * è il solo stile giorno+ora che `lib/formato.ts` sa scrivere (stessa scelta,
+ * stessa ragione, di `testoEsitoChiusura`).
+ */
+export function testoFinitaNonChiusa(dataFine: string): string {
+  return `La diretta è finita il ${formattaDataOra(dataFine, "long")}. Le presenze si contano chiudendola.`;
+}
+
+// I giorni in lettere fino a dieci, poi in cifre: «sette giorni fa» si legge,
+// «diciannove giorni fa» comincia a non leggersi più. Uno non c'è: per un
+// giorno si dice «ieri», e «un giorno fa» sarebbe l'unico caso al singolare.
+const GIORNI_IN_LETTERE: Record<number, string> = {
+  2: "due",
+  3: "tre",
+  4: "quattro",
+  5: "cinque",
+  6: "sei",
+  7: "sette",
+  8: "otto",
+  9: "nove",
+  10: "dieci",
+};
+
+function quantoTempoFa(giorni: number): string {
+  if (giorni === 1) return "ieri";
+  return `${GIORNI_IN_LETTERE[giorni] ?? String(giorni)} giorni fa`;
+}
+
+/**
+ * La riga sopra il bottone quando la diretta è finita in un GIORNO DIVERSO da
+ * oggi, oppure `null`. Il bottone resta com'è: la riga fa il lavoro, dice il
+ * vero e lascia decidere (Mario, §4b).
+ *
+ * ⚠️ LA CONDIZIONE NON È UNA SOGLIA A NUMERO TONDO: è il giorno di calendario
+ * italiano. È esattamente il momento in cui una chiusura datata oggi diventa
+ * straniante, ed è nominabile senza arbitrio.
+ *
+ * ⚠️ E DICE IL VERO PERCHÉ È STATO MISURATO, non dedotto: la ricevuta di una
+ * chiusura tardiva non è falsa — `v_presenti` conta righe storiche, la
+ * copertura viene dalla durata PROGRAMMATA, e `diretta_chiusa_il = now()`
+ * registra il momento del gesto. Quindi «i presenti e le ore restano quelli di
+ * allora, la data del gesto è questa» è letteralmente quello che la funzione fa.
+ */
+export function avvisoChiusuraTardiva(dataFine: string | null, adesso: Date): string | null {
+  if (!dataFine) return null;
+  const giorni = giorniDiCalendarioItaliani(dataFine, adesso);
+  // Zero è oggi; un numero negativo vorrebbe dire una fine nel futuro, dove
+  // il bottone non chiude comunque niente.
+  if (giorni < 1) return null;
+  const giorno = formattaData(dataFine, "long");
+  return (
+    `Questa diretta è finita il ${giorno}, ${quantoTempoFa(giorni)}. ` +
+    `Se la chiudi adesso, la chiusura risulterà fatta oggi: i presenti e le ore restano quelli del ${giorno}, la data del gesto è questa.`
+  );
 }

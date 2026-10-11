@@ -29,7 +29,17 @@
 // legittimo costa una riga di log in più; sbagliare al contrario rimette in
 // piedi il difetto dell'11/10, cioè accusare l'utente di un nostro guasto.
 //
-// I due testi sono PROVVISORI e miei: Mario ha chiesto di mandargli i casi.
+// ⚠️ I DUE TESTI SONO DI MARIO (11/10/2026), parola per parola. Il 403 dice CHI
+// può, invece di dire che tu non puoi — e manda a Contatti, che da quel giorno
+// esiste davvero e risponde dalla casella giusta. Il 500 apre con «Non dipende
+// da te», perché è la cosa da sapere per prima; e chiede L'ORA perché i nostri
+// registri sono indicizzati sul tempo. NON promette che ci siamo accorti: il
+// guasto qui va in un log del fornitore, non in `guasti` — dirlo sarebbe una
+// promessa che non manteniamo.
+//
+// «Un rifiuto che attribuisce all'utente la causa di un difetto nostro costa
+// più di un guasto dichiarato, perché un guasto manda la persona da noi e
+// un'accusa la manda via» (Mario).
 
 /** Il messaggio con cui le funzioni di export respingono chi non ha il permesso. */
 const RIFIUTO_DELLA_GUARDIA = "non_autorizzato";
@@ -51,7 +61,7 @@ export function rifiutoExport(errore: unknown): RifiutoExport {
   if (messaggio.includes(RIFIUTO_DELLA_GUARDIA)) {
     return {
       testo:
-        "Per scaricare le presenze serve il permesso di certificare le presenze, e il tuo profilo non ce l'ha. Puoi chiederlo al referente della tua scuola, che lo assegna da Staff.",
+        "Questo export lo scarica chi certifica le presenze per questa scuola. Se credi di doverlo poter fare, scrivici da Contatti: lo sistemiamo noi.",
       stato: 403,
       nostro: false,
     };
@@ -59,7 +69,7 @@ export function rifiutoExport(errore: unknown): RifiutoExport {
 
   return {
     testo:
-      "Non siamo riusciti a generare il file, e non è un problema del tuo profilo né dei dati di questo incontro: è un guasto nostro, e ne abbiamo lasciato traccia. Riprova fra qualche minuto; se succede ancora, scrivici da Contatti.",
+      "Non dipende da te: qualcosa si è rotto da parte nostra. Riprova fra qualche minuto; se continua, scrivici da Contatti dicendo l'ora esatta — con quella ritroviamo l'errore.",
     stato: 500,
     nostro: true,
   };

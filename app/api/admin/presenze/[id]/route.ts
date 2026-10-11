@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { generaCsvSezioni, type SezioneCsv } from "@/lib/csv";
 import { descriviErrore } from "@/lib/erroreSupabase";
 import { rifiutoExport } from "@/lib/eventi/rifiutoExport";
+import { toccataDaPerExport } from "@/lib/eventi/tocco";
 
 // Solo admin, generazione server-side, nessun endpoint pubblico: la vera
 // autorizzazione è comunque nella RPC esporta_presenze_admin (SECURITY
@@ -136,7 +137,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
               q.creata_il,
               q.testo,
               q.stato,
-              q.toccata_da,
+              toccataDaPerExport(q),
               q.toccata_il,
             ],
           ),

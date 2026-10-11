@@ -114,3 +114,24 @@ export function rigaTocco(
     : formattaDataOra(domanda.stato_il, "long");
   return `${cosa} ${parte} · ${quando}`;
 }
+
+/**
+ * La colonna «Toccata da» dell'export CSV.
+ *
+ * ⚠️ IL DIFETTO DA CUI NASCE (§0c, 11/10/2026, sul primo CSV mai sceso): una
+ * domanda `risposta_live` senza autore usciva con la cella VUOTA, mentre a
+ * schermo la stessa domanda dice «Risposta in diretta · autore non registrato».
+ * Due superfici, lo stesso fatto, una lo dice e l'altra tace — e in un file il
+ * vuoto si legge «nessuno l'ha toccata», che è il contrario. «Se l'abbiamo
+ * scritta è perché il vuoto da solo mentiva» (Mario).
+ *
+ * Usa `SENZA_AUTORE`, la stessa costante dello schermo: due copie della stessa
+ * frase divergerebbero. Su una domanda `nuova` resta vuota, ed è giusto: lì
+ * nessuno l'ha toccata davvero. Un valore registrato esce com'è nel database
+ * (`kireo`/`ente`), come prima.
+ */
+export function toccataDaPerExport(domanda: { stato: string; toccata_da: string | null }): string | null {
+  if (domanda.toccata_da) return domanda.toccata_da;
+  if (domanda.stato === "nuova") return null;
+  return SENZA_AUTORE;
+}

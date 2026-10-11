@@ -5,8 +5,11 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/Button";
 import DomandaConsegnaForm from "./DomandaConsegnaForm";
 import {
+  avvisoChiusuraTardiva,
+  faseContatore,
   statoChiusura,
   testoEsitoChiusura,
+  testoFinitaNonChiusa,
   testoStatoChiusura,
   type EsitoChiusura,
   type StatoChiusura,
@@ -155,6 +158,12 @@ export default function ControlloDirettaEvento({
   // da degradare, quindi una condizione sola governa il suo rendering invece di
   // due (`stantio && freschezza.quando && …`).
   const fermo = stantio ? numeroFermoAlle(freschezza) : null;
+  // ⚠️ «LA PAGINA NON SA CHE LA DIRETTA È FINITA» (§4, vedi
+  // `lib/eventi/chiusuraDiretta.ts`): il contatore e la freschezza esistono
+  // solo nella fase viva. Una pressione appena riuscita conta come chiusa
+  // anche prima che il poll lo rilegga.
+  const fase = faseContatore({ dataFine, chiusa: chiusura.tipo === "chiusa" || esitoChiusura !== null, adesso: ora });
+  const avvisoTardivo = avvisoChiusuraTardiva(dataFine, ora);
 
   async function segnaStato(domandaId: string, stato: string) {
     const supabase = createClient();
@@ -195,6 +204,8 @@ export default function ControlloDirettaEvento({
 
   return (
     <div className="mt-4 space-y-4 border-t border-white/5 pt-4">
+      {fase === "finita_non_chiusa" && dataFine && <p className="text-sm text-kireo-light/90">{testoFinitaNonChiusa(dataFine)}</p>}
+      {fase === "viva" && (
       <div>
         <p className="text-sm text-kireo-light">
           {/* ⚠️ IL NUMERO SI DEGRADA, e non è una rifinitura della riga qui
@@ -226,6 +237,7 @@ export default function ControlloDirettaEvento({
           {rigaFreschezza(freschezza, ora)}
         </p>
       </div>
+      )}
 
       {domande.length > 0 && (
         <div>
@@ -286,6 +298,7 @@ export default function ControlloDirettaEvento({
         </p>
       ) : (
         <div>
+          {avvisoTardivo && <p className="mb-2 text-sm text-kireo-orange">{avvisoTardivo}</p>}
           <Button type="button" variant="outline" onClick={chiudiDiretta} disabled={caricamento}>
             {caricamento ? "Chiusura…" : "Concludi diretta e certifica presenze"}
           </Button>
