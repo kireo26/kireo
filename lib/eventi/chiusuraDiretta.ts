@@ -142,13 +142,27 @@ export function testoEsitoChiusura(esito: EsitoChiusura): string {
  * chiusa tu» sarebbe falsa per uno dei due — è la stessa ragione per cui questa
  * pagina è una sola invece di due gemelle.
  *
- * ⚠️ E NON IL NOME DELLA PERSONA, che Mario proponeva dove c'è: `chiusa_da_user`
- * c'è, ma leggere `profiles.nome` per quell'id NON è possibile in modo
- * simmetrico — `profiles_select_admin` fa vedere tutti i profili a un admin, e
- * nessuna policy fa vedere all'ente il profilo dell'admin che ha chiuso. Quindi
- * il nome comparirebbe per un ruolo e non per l'altro, sulla pagina costruita
- * apposta perché i due vedano la stessa cosa. Aprirla è una policy nuova, cioè
- * una decisione: vedi il rapporto.
+ * ⚠️⚠️ E NON IL NOME DELLA PERSONA — DECISO DA MARIO L'11/10, il ruolo. Lui lo
+ * proponeva dove c'è («da Giulia C.»), e la ragione che lo ha chiuso è che il
+ * nome comparirebbe per UN RUOLO E NON PER L'ALTRO: `chiusa_da_user` c'è, ma
+ * `profiles_select_admin` fa vedere tutti i profili a un admin e nessuna policy
+ * fa vedere all'ente il profilo dell'admin che ha chiuso. Sulla pagina
+ * costruita apposta perché i due vedano la stessa cosa, «la ricevuta
+ * diventerebbe due ricevute diverse dello stesso fatto — il difetto che la
+ * pagina gemella doveva evitare, ricostruito dentro una riga». E una policy
+ * nuova non si apre per questo: si cura dove il permesso è concesso, non dove
+ * la riga è scritta, e qui non c'è niente da curare.
+ *
+ * ⚠️ LA CONDIZIONE CHE LA RIAPRE, e si può nominare: il giorno in cui un ente
+ * ha DUE persone che possono chiudere una diretta, «dall'organizzatore» smette
+ * di disambiguare — ed è esattamente il caso per cui esiste l'1.2a (due
+ * moderatori ciechi l'uno dell'altro), applicato alla chiusura. Quel nome è di
+ * un collega dello stesso ente, quindi si vede senza aprire nessuna policy.
+ *
+ * ⚠️ E LA DISTINZIONE DA TENERE, perché fra sei mesi la domanda si riapre dalla
+ * parte sbagliata: **il nome serve dentro un ruolo, non fra i ruoli.** Il nome
+ * dell'admin non diventa necessario mai — all'ente serve sapere che non è stato
+ * lui, e «da KIREO» lo dice.
  */
 export function testoStatoChiusura(stato: Extract<StatoChiusura, { tipo: "chiusa" }>): string {
   const testa = `Diretta chiusa il ${formattaDataOra(stato.quando, "long")}, ${CHI[stato.daTipo]}.`;

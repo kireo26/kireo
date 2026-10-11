@@ -115,16 +115,30 @@ export function numeroStantio(f: Freschezza, adesso: Date = new Date()): boolean
  *      differenza fra un numero stantio e uno fresco, che è tutto il punto.
  *   4. primo caricamento  → «In attesa dei dati…»
  *
- * ⚠️ E UN QUINTO CASO CHE NON È NELLA SUA LISTA, mio e provvisorio: niente è
- * ancora arrivato E il tentativo è fallito. «In attesa dei dati…» lì sarebbe una
- * bugia — dice «aspetta» mentre niente sta arrivando — quindi si dice che si è
- * provato. Resta da rileggere.
+ * ⚠️ E UN QUINTO CASO CHE NON ERA NELLA SUA LISTA — niente è ancora arrivato E
+ * il tentativo è fallito — poi scritto da lui. «In attesa dei dati…» lì sarebbe
+ * la stessa specie del 1.2c: un dato corretto che si legge come un altro, perché
+ * un'attesa legittima e un'attesa senza fine vengono dette con la stessa frase.
+ * E capita nel momento peggiore: il moderatore ha appena aperto la pagina, la
+ * diretta sta per cominciare, ed è fermo davanti a tre puntini.
+ *
+ * Due cose volute, nelle sue parole: dice che sta ancora provando, «così non
+ * chiude la pagina al primo spavento», e gli dà la cosa da fare, «perché lì, a
+ * differenza del numero vecchio, non ha niente in mano da cui decidere».
+ *
+ * ⚠️⚠️ E LA SOGLIA QUI È IL PRIMO TENTATIVO FALLITO, NON TRE, ed è una decisione
+ * sua: «la soglia dei tre giri esiste per non screditare un numero buono per un
+ * singhiozzo di rete — se sullo schermo non c'è nessun numero, non c'è niente da
+ * screditare, e aspettare quarantacinque secondi serve solo a prolungare
+ * un'attesa falsa». Le due soglie sono indipendenti per costruzione:
+ * `numeroStantio` torna falso senza `quando`, quindi questo caso non passa mai
+ * dai tre giri.
  */
 export function rigaFreschezza(f: Freschezza, adesso: Date = new Date()): string {
   const secondi = etaSecondi(f.quando, adesso);
   if (f.quando === null || secondi === null) {
     return f.falliti > 0
-      ? "Non è stato possibile leggere questi dati: non c'è ancora niente da mostrare."
+      ? "I dati non sono ancora arrivati e l'ultimo tentativo non è riuscito. Continuo a provare; se non cambia, ricarica la pagina."
       : "In attesa dei dati…";
   }
   const ora = formattaOra(f.quando);
@@ -136,14 +150,31 @@ export function rigaFreschezza(f: Freschezza, adesso: Date = new Date()): string
 }
 
 /**
- * Il testo che accompagna un numero degradato.
+ * Il testo che accompagna un numero degradato, per chi non vede il barrato.
+ * `null` quando non c'è nessun numero da degradare.
  *
  * ⚠️ ESISTE PERCHÉ IL BARRATO NON ARRIVA A TUTTI: una linea sopra una cifra non
  * la vede chi usa un lettore di schermo, e per quella persona il numero
  * resterebbe identico a uno fresco — cioè il difetto, per lei, non sarebbe
  * chiuso affatto. Va reso accanto al numero (`sr-only`), non al posto suo.
  *
- * ⚠️ TESTO PROVVISORIO, MIO: Mario ha chiesto di mandargli il caso per
- * scriverlo.
+ * ⚠️⚠️ DICE L'ORA, E VA LETTO PRIMA DELLA CIFRA. Sono le due correzioni di Mario
+ * al mio «(non aggiornato)», e nessuna delle due è una rifinitura:
+ *
+ *   — L'ORA. Sullo schermo il quando sta nella riga sopra e l'occhio lo prende
+ *     insieme al numero; per un lettore di schermo «la riga sopra» non esiste —
+ *     c'è solo un prima e un dopo, quindi l'adiacenza spaziale, che è tutto il
+ *     disegno dell'1.2b, lì non è disponibile. Il testo se la porta dentro.
+ *   — PRIMA. «Un avviso dopo un numero arriva quando il numero è già stato
+ *     sentito e creduto.» Letto prima: «Numero fermo alle 19:07. Presenti ora:
+ *     12.» — chi ascolta sa cosa sta per arrivare mentre arriva.
+ *
+ * ⚠️ E UNA VOLTA SOLA: la riga della freschezza sta già accanto, con
+ * `aria-live`. Ripetere qui tutto quello che dice sarebbe la stessa cosa detta
+ * due volte, «che è il modo in cui si smette di ascoltare» — quindi questo
+ * testo porta l'ora e si ferma lì.
  */
-export const NUMERO_NON_AGGIORNATO = "(non aggiornato)";
+export function numeroFermoAlle(f: Freschezza): string | null {
+  if (!f.quando) return null;
+  return `Numero fermo alle ${formattaOra(f.quando)}.`;
+}

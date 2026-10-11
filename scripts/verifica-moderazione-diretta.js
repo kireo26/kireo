@@ -68,7 +68,7 @@ const {
   SECONDI_FRESCO,
   FALLITI_PRIMA_DI_STANTIO,
   SECONDI_STANTIO,
-  NUMERO_NON_AGGIORNATO,
+  numeroFermoAlle,
 } = caricaModulo("lib/eventi/freschezza.ts", (nome) => {
   if (nome === "@/lib/formato") return formato;
   throw new Error(`import non previsto: ${nome}`);
@@ -103,11 +103,29 @@ console.log("\n§1 — la freschezza dice quando, e dice quando non lo sa\n");
   ok(rotto.includes("⚠"), "e si distingue a vista da una riga normale", rotto);
   ok(!/non è andato a buon fine/.test(rotto), "«non è riuscito»: più corto, stessa cosa", rotto);
   ok(vuoto === "In attesa dei dati…", "niente ancora arrivato: lo dice invece di tacere", vuoto);
+  // ⚠️ IL QUINTO CASO È DI MARIO, parola per parola, e ha DUE pezzi che non
+  // sono ornamenti: dice che sta ancora provando (così chi legge non chiude la
+  // pagina al primo spavento) e dà la cosa da fare — «perché lì, a differenza
+  // del numero vecchio, non ha niente in mano da cui decidere».
   ok(
-    vuotoRotto.includes("non c'è ancora niente da mostrare"),
-    "e se il primo giro è fallito, dice che non c'è niente — non «aggiornato»",
+    vuotoRotto ===
+      "I dati non sono ancora arrivati e l'ultimo tentativo non è riuscito. Continuo a provare; se non cambia, ricarica la pagina.",
+    "niente arrivato E tentativo fallito: lo dice, e dice cosa fare",
     vuotoRotto,
   );
+  ok(/[Cc]ontinuo a provare/.test(vuotoRotto), "dice che sta ancora provando: non si chiude la pagina", vuotoRotto);
+  ok(/ricarica la pagina/.test(vuotoRotto), "e dà la cosa da fare, perché lì non c'è niente in mano", vuotoRotto);
+  ok(vuotoRotto !== vuoto, "e non è «In attesa dei dati…»: un'attesa vera e una falsa non sono la stessa frase");
+  // ⚠️ LA SOGLIA QUI È IL PRIMO TENTATIVO FALLITO, NON TRE, ed è una decisione
+  // di Mario: «se sullo schermo non c'è nessun numero, non c'è niente da
+  // screditare, e aspettare quarantacinque secondi serve solo a prolungare
+  // un'attesa falsa». Le due soglie sono indipendenti per costruzione, e la
+  // seconda asserzione è la metà che lo prova.
+  ok(
+    rigaFreschezza({ quando: null, falliti: 1 }, dopo(3)) === rigaFreschezza({ quando: null, falliti: 9 }, dopo(300)),
+    "un fallimento basta: la soglia dei tre giri non vale dove non c'è nessun numero",
+  );
+  ok(!numeroStantio({ quando: null, falliti: 1 }, dopo(3)), "e il numero non si degrada: non ce n'è nessuno");
   // ⚠️ L'ORA E L'ETÀ STANNO INSIEME in tutti e due i casi che hanno un dato:
   // servono a due domande diverse — l'ora per capire cosa è successo nel
   // frattempo, il «due minuti fa» per decidere se fidarsi.
@@ -192,14 +210,14 @@ console.log("\n§1bis — oltre una soglia il NUMERO si degrada\n");
   // chi usa un lettore di schermo, e per quella persona il numero resterebbe
   // identico a uno fresco — cioè il difetto, per lei, non sarebbe chiuso.
   ok(
-    src.split("NUMERO_NON_AGGIORNATO").length - 1 === 2,
+    src.split("numeroFermoAlle").length - 1 === 2,
     "il degrado ha anche un testo, per chi non vede il barrato (l'import PIÙ l'uso: il solo import non lo rende)",
   );
   ok(/sr-only/.test(src), "reso solo per il lettore di schermo");
-  // Le due posizioni con il conto dichiarato: un `indexOf` grezzo misura la
-  // prima occorrenza qualunque essa sia, e qui `NUMERO_NON_AGGIORNATO` ne ha
-  // due (l'import e l'uso) — è esattamente il caso in cui un'àncora grezza
-  // guarda quella sbagliata.
+  // Le posizioni con il conto dichiarato: un `indexOf` grezzo misura la prima
+  // occorrenza qualunque essa sia, e qui `numeroFermoAlle` ne ha due (l'import e
+  // l'uso) — è esattamente il caso in cui un'àncora grezza guarda quella
+  // sbagliata (il modo 6 dei tredici).
   const dove = (nome, opzioni) => {
     try {
       return ancora(src, nome, opzioni);
@@ -209,9 +227,26 @@ console.log("\n§1bis — oltre una soglia il NUMERO si degrada\n");
     }
   };
   const i = dove('{presenti ?? "…"}', { dove: "il numero dei presenti" });
-  const j = dove("NUMERO_NON_AGGIORNATO", { volte: 2, quale: 1, dove: "l'uso accanto al numero, non l'import" });
-  ok(i >= 0 && j > i, "e ACCANTO al numero, non al posto suo");
-  ok(NUMERO_NON_AGGIORNATO === "(non aggiornato)", "«(non aggiornato)»", NUMERO_NON_AGGIORNATO);
+  const j = dove("{fermo && <span", { dove: "lo span per il lettore di schermo" });
+  // ⚠️⚠️ L'ORDINE È LA PROPRIETÀ, non la presenza del testo — ed è la
+  // correzione di Mario: per un lettore di schermo non esiste «la riga sopra»,
+  // esiste solo un prima e un dopo, e «un avviso dopo un numero arriva quando il
+  // numero è già stato sentito e creduto». Chi ascolta deve sentire «vecchio»
+  // PRIMA della cifra.
+  ok(i >= 0 && j >= 0 && j < i, "e PRIMA della cifra, non dopo: dopo arriva a numero già creduto");
+  // UNA VOLTA SOLA: la riga della freschezza sta già accanto, con `aria-live`.
+  ok(src.split("{fermo &&").length - 1 === 1, "reso una volta sola: la riga accanto lo dice già");
+  ok(/const fermo = stantio \?/.test(src), "e in un valore, non dentro il JSX");
+
+  // ⚠️ IL TESTO È DI MARIO, parola per parola, e PORTA L'ORA: sullo schermo il
+  // quando sta nella riga sopra e l'occhio lo prende insieme al numero, ma per
+  // un lettore di schermo quell'adiacenza non è disponibile.
+  const fermo = numeroFermoAlle({ quando: QUANDO, falliti: 3 });
+  ok(fermo === "Numero fermo alle 19:07.", "«Numero fermo alle 19:07.»", fermo);
+  ok(/19:07/.test(fermo), "dice QUANDO: la riga sopra, per chi ascolta, non esiste", fermo);
+  ok(!/non aggiornato/.test(fermo), "e non il mio «(non aggiornato)», che non diceva quando", fermo);
+  // Niente da dire dove non c'è nessun numero: il componente mostra «…».
+  ok(numeroFermoAlle({ quando: null, falliti: 9 }) === null, "e `null` dove non c'è nessun numero da degradare");
 
   // La riga di freschezza si accende anche sulla strada dell'età: senza, il
   // numero sarebbe barrato e la riga sotto muta.

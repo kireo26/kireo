@@ -1,5 +1,24 @@
 -- CHIUDERE UNA DIRETTA LASCIA UNA TRACCIA SULL'EVENTO (11/10/2026)
 --
+-- ⚠️⚠️ APPLICATA IN PRODUZIONE L'11/10/2026, nella versione che sta in `3ad1bc1`.
+-- DA ADESSO QUESTO FILE NON SI RISCRIVE PIÙ IN PLACE: ogni cambiamento alla
+-- chiusura va in una migrazione NUOVA.
+--
+-- La riscrittura di stamattina era lecita — il file era in attesa, è stato
+-- avvisato, e ogni istruzione è guardata (`if not exists`, `drop … if exists`),
+-- quindi rieseguibile. Ma vale la pena dire da cosa dipendeva: **dal fatto che
+-- una persona rilanciasse il file, e niente lo sorveglia.** La replica che si
+-- ricostruisce da zero ha sempre la versione corrente dei file; la produzione ha
+-- quella che Mario ha eseguito l'ultima volta. Se le due divergono, le
+-- controprove SQL misurano la replica e la chiamano sistema — è il modo 4 dei
+-- tredici, con l'aggravante che il divario **non lascia traccia da nessuna
+-- parte.**
+--
+-- La regola, che vale per ogni migrazione e non solo per questa: *una migrazione
+-- applicata in produzione smette di essere un file e diventa un fatto.* Se un
+-- giorno serve davvero riscriverne una già applicata, l'avviso a Mario non è una
+-- cortesia: è l'unico meccanismo che c'è.
+--
 -- ⚠️ IL DIFETTO, osservato da Mario dopo la prima diretta vera (4/10): `eventi`
 -- ha ventotto colonne e NESSUNA dice che la diretta è stata chiusa. `stato`
 -- resta `approvato`, il badge legge APPROVATO, e il messaggio verde «Diretta

@@ -12,7 +12,7 @@ import {
   type StatoChiusura,
 } from "@/lib/eventi/chiusuraDiretta";
 import { rigaTocco } from "@/lib/eventi/tocco";
-import { rigaFreschezza, numeroStantio, NUMERO_NON_AGGIORNATO, type Freschezza } from "@/lib/eventi/freschezza";
+import { rigaFreschezza, numeroStantio, numeroFermoAlle, type Freschezza } from "@/lib/eventi/freschezza";
 
 type Domanda = {
   id: string;
@@ -151,6 +151,10 @@ export default function ControlloDirettaEvento({
   // risposte diverse (l'ora la legge `ora`, che è stato, quindi non succede —
   // ma la ragione per cui non succede è questa).
   const stantio = numeroStantio(freschezza, ora);
+  // Il testo per chi non vede il barrato. È `null` quando non c'è nessun numero
+  // da degradare, quindi una condizione sola governa il suo rendering invece di
+  // due (`stantio && freschezza.quando && …`).
+  const fermo = stantio ? numeroFermoAlle(freschezza) : null;
 
   async function segnaStato(domandaId: string, stato: string) {
     const supabase = createClient();
@@ -193,15 +197,23 @@ export default function ControlloDirettaEvento({
     <div className="mt-4 space-y-4 border-t border-white/5 pt-4">
       <div>
         <p className="text-sm text-kireo-light">
-          Presenti ora:{" "}
           {/* ⚠️ IL NUMERO SI DEGRADA, e non è una rifinitura della riga qui
               sotto: chi guarda lo schermo due secondi in mezzo a una diretta
               legge il numero e non la nota piccola accanto. Oltre la soglia il
               numero NON deve più somigliare a uno fresco — il barrato lo dice a
-              chi guarda, `NUMERO_NON_AGGIORNATO` a chi usa un lettore di
-              schermo. Il dato resta leggibile: era vero, alle 19:07. */}
+              chi guarda, `numeroFermoAlle` a chi usa un lettore di schermo. Il
+              dato resta leggibile: era vero, alle 19:07.
+
+              ⚠️⚠️ E L'AVVISO VA PRIMA DELLA CIFRA, non accanto: per un lettore
+              di schermo esiste solo un prima e un dopo, e «un avviso dopo un
+              numero arriva quando il numero è già stato sentito e creduto»
+              (Mario). Chi ascolta sente «Numero fermo alle 19:07. Presenti ora:
+              12.» e sa cosa sta per arrivare mentre arriva. L'ORDINE È LA
+              PROPRIETÀ, non la presenza del testo: `npm run test:moderazione`
+              pretende che lo `<span>` stia prima dello `<strong>`. */}
+          {fermo && <span className="sr-only">{fermo} </span>}
+          Presenti ora:{" "}
           <strong className={stantio ? "text-kireo-muted line-through" : undefined}>{presenti ?? "…"}</strong>
-          {stantio && <span className="sr-only"> {NUMERO_NON_AGGIORNATO}</span>}
         </p>
         {/* ⚠️ QUANDO QUESTI NUMERI SONO ARRIVATI. «Presenti ora: 12» è
             un'affermazione sul presente, e se l'ultimo giro è fallito due
