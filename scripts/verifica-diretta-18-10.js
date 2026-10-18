@@ -15,6 +15,7 @@ const fs = require("fs");
 const path = require("path");
 const { abilitaTypeScript, ROOT } = require("./banco/ts");
 const { senzaCommenti } = require("./lib/senza-commenti");
+const { ancora, creaFetta } = require("./lib/ancora");
 
 abilitaTypeScript();
 const { eventoNonFinito } = require("@/lib/app/eventi");
@@ -186,12 +187,19 @@ console.log("\n§5 — «Iscriviti» torna mentre la diretta è in corso (Mario,
   const card = leggi("components/app/CardEvento.tsx");
   ok(/faseIscrizione\(evento\.data_inizio, evento\.data_fine\)/.test(card), "la card dello studente decide sulla fase");
   ok(/fase === "in_corso" && evento\.tipo === "webinar" && !iscritto \? \(/.test(card), "a diretta in corso, a chi non è iscritto, un bottone — solo per un webinar, dove c'è una diretta in cui entrare");
-  const ramoInCorso = card.slice(card.indexOf('fase === "in_corso"'), card.indexOf(") : null;"));
-  ok(/entraHref=\{hrefDiretta\}/.test(ramoInCorso), "…ed è «Iscriviti ed entra»: porta alla diretta in un gesto solo");
+  const { fettaOppureRosso, dentro } = creaFetta(ok);
+  const ramoInCorso = fettaOppureRosso(card, { nome: 'fase === "in_corso"' }, { nome: ") : null;", volte: 2, quale: 0 }, "ramo in corso della card");
+  ok(dentro(ramoInCorso, "entraHref={hrefDiretta}"), "…ed è «Iscriviti ed entra»: porta alla diretta in un gesto solo");
   ok(!/fase === "finita" \? \(/.test(card), "a evento finito niente, come prima");
   const bottone = leggi("components/app/IscrivitiEventoButton.tsx");
   ok(/if \(entraHref\) \{\s*router\.push\(entraHref\);\s*return;/.test(bottone), "iscritti, si entra: nessun secondo bottone da cercare");
-  ok(bottone.indexOf("router.push(entraHref)") > bottone.indexOf("setIscritto(true)"), "…e solo DOPO che l'iscrizione è riuscita (entrare senza iscrizione porterebbe a «non risulti iscritto»)");
+  let dopo = false;
+  try {
+    dopo = ancora(bottone, "router.push(entraHref)", { dove: "bottone" }) > ancora(bottone, "setIscritto(true)", { dove: "bottone" });
+  } catch (e) {
+    console.log(`    ${e.message}`);
+  }
+  ok(dopo, "…e solo DOPO che l'iscrizione è riuscita (entrare senza iscrizione porterebbe a «non risulti iscritto»)");
   ok(/setErrore\(true\)/.test(bottone), "un'iscrizione che non riesce lo dice, invece di lasciare di nuovo una card muta");
   const docente = leggi("components/docente/CardWebinarDocente.tsx");
   ok(/faseIscrizione\(/.test(docente) && /entraHref=\{hrefDiretta\}/.test(docente) && /fase === "prima"/.test(docente), "lo stesso nell'area docente (dove fino al 18/10 «Iscriviti» compariva anche su un webinar finito)");
