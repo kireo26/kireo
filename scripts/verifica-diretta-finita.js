@@ -87,6 +87,12 @@ ok(chiusuraDisponibile(fase("2026-10-04T17:20:00Z")), "…e c'è all'istante del
 ok(!chiusuraDisponibile(fase("2026-10-04T17:21:00Z", { chiusa: true })), "…e non c'è più su una diretta chiusa");
 ok(/alle \d\d:\d\d/.test(testoChiusuraNonAncora(FINE, t("2026-10-04T10:00:00Z"))), "al suo posto, quando comparirà", testoChiusuraNonAncora(FINE, t("2026-10-04T10:00:00Z")));
 {
+  const oggi = testoChiusuraNonAncora(FINE, t("2026-10-04T10:00:00Z"));
+  ok(/^La diretta si chiude quando è finita: il bottone comparirà alle \d\d:\d\d\.$/.test(oggi), "il testo di Mario, parola per parola", oggi);
+  const altroGiorno = testoChiusuraNonAncora(FINE, t("2026-10-02T10:00:00Z"));
+  ok(/comparirà il .*2026/.test(altroGiorno), "…con la data davanti quando non è oggi", altroGiorno);
+}
+{
   const comp = senzaCommenti(readFileSync(join(RADICE, "components/ente/ControlloDirettaEvento.tsx"), "utf8"));
   const iGate = ancora(comp, "!chiusuraDisponibile(fase)");
   const iBottone = ancora(comp, "Concludi diretta e certifica presenze");

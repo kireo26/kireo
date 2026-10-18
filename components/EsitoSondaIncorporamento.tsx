@@ -1,6 +1,6 @@
 "use client";
 
-import { type EsitoSonda, testoSonda } from "@/lib/sondaYoutube";
+import { APERTURA_SENZA_LINK, type EsitoSonda, testoSonda } from "@/lib/sondaYoutube";
 
 const CLASSI_TONO: Record<"ok" | "errore" | "incerto", string> = {
   ok: "border-kireo-green/40 bg-kireo-green/10 text-kireo-light",
@@ -32,10 +32,19 @@ export default function EsitoSondaIncorporamento({
     <div className={`mt-2 rounded-lg border px-3 py-2 text-xs ${CLASSI_TONO[testo.tono]}`}>
       <p className="font-semibold">{testo.titolo}</p>
       <p className="mt-0.5 opacity-90">{testo.dettaglio}</p>
-      {testo.azione && (
-        <a href={testo.azione.href} target="_blank" rel="noopener noreferrer" className="mt-1 inline-block font-semibold underline underline-offset-2">
-          {testo.azione.etichetta} →
-        </a>
+      {testo.azione ? (
+        <p className="mt-1 opacity-90">
+          <a href={testo.azione.href} target="_blank" rel="noopener noreferrer" className="font-semibold underline underline-offset-2">
+            {testo.azione.etichetta}
+          </a>
+          {testo.percorso ? ` → ${testo.percorso}` : " →"}
+        </p>
+      ) : (
+        testo.percorso && (
+          <p className="mt-1 opacity-90">
+            {APERTURA_SENZA_LINK} → {testo.percorso}
+          </p>
+        )
       )}
     </div>
   );

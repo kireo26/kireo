@@ -126,8 +126,8 @@ ok(new Set(testi.map((t) => t.titolo)).size === 4, "quattro titoli distinti: due
 // La frase di Mario, parola per parola: dice la conseguenza invece della
 // regola, che è la forma che in questo progetto funziona.
 ok(
-  testoSonda("incorporamento_disattivato").dettaglio.includes("un riquadro nero al posto di te"),
-  "«un riquadro nero al posto di te» resta la frase di Mario, parola per parola",
+  testoSonda("incorporamento_disattivato").dettaglio.includes("un riquadro nero al posto tuo"),
+  "«un riquadro nero al posto tuo» resta la frase di Mario, parola per parola",
 );
 // Il referto del silenzio non deve rassicurare: la risposta comoda è quella
 // che nessuno torna a ricontrollare.
@@ -377,6 +377,30 @@ console.log("\n§9 — 18/10: il montaggio della diretta vera");
   ok(/or checklist_diretta \? 'incorporamento_non_verificato'/.test(sqlNonSo), "il vincolo ammette «non verificato» come risposta");
   ok(/or coalesce\(/.test(sqlNonSo), "…dentro lo stesso coalesce che chiude il buco del NULL");
   ok(/checklist_diretta \? 'incorporamento_attivo'/.test(sqlNonSo) && /or incorporamento_sonda = 'attivo'/.test(sqlNonSo), "…e le altre due risposte restano");
+}
+
+// (d) I testi di Mario del 18/10 pomeriggio, e le due cose che portano.
+{
+  const t = testoSonda("incorporamento_disattivato", "abcDEF12345");
+  ok(t.azione && t.azione.etichetta === "Aprilo qui", "il link si chiama «Aprilo qui», e il percorso lo segue", JSON.stringify(t.azione));
+  // I NOMI IN DUE LINGUE: lo Studio di Mario, account italiano, è in inglese.
+  // Un testo coi soli nomi italiani falliva per chiunque l'abbia così.
+  for (const [it, en] of [["Mostra altro", "Show more"], ["Licenza e distribuzione", "License and distribution"], ["Consenti incorporamento", "Allow embedding"]]) {
+    ok(t.percorso && t.percorso.includes(`«${it}» (${en})`), `il percorso nomina «${it}» e, fra parentesi, «${en}»`, t.percorso);
+  }
+  ok(t.percorso && /reincolla il link qui/.test(t.percorso), "…e finisce con cosa fare dopo");
+  // Senza id non c'è un «qui» da aprire: il percorso resta, con un punto di
+  // partenza che non promette un link.
+  const s = testoSonda("incorporamento_disattivato");
+  ok(!s.azione && s.percorso === t.percorso, "senza id il percorso resta lo stesso, e nessun link");
+  ok(/APERTURA_SENZA_LINK/.test(senzaCommenti(leggi("components/EsitoSondaIncorporamento.tsx"))), "…e il componente gli dà un punto di partenza invece di lasciarlo orfano");
+  const nc = testoSonda("non_controllato").dettaglio;
+  ok(nc.includes("Succede spesso in incognito, dove il nostro controllo non riesce a partire: se è il tuo caso, riapri questa pagina in una finestra normale."), "«non controllato»: il testo di Mario, parola per parola", nc);
+  // Le due risposte sull'incorporamento, e la promessa che NON fanno.
+  ok(form.includes("Ho guardato su YouTube Studio: «Consenti incorporamento» è attivo."), "la prima risposta nomina l'opzione esatta, non la categoria");
+  ok(form.includes("resta segnato come non verificato: se l'incorporamento è chiuso, i ragazzi vedranno un riquadro nero al posto tuo."), "la seconda dice la conseguenza per i ragazzi, non per il nostro archivio");
+  ok(!/registriamo come non verificato/.test(form), "…e non è più una frase su di noi");
+  ok(!/te lo dic|ti avvis/i.test(form), "nessuna promessa di avvisare l'ente prima della diretta: nessuno lo fa");
 }
 
 // =====================================================================

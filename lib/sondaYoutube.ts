@@ -101,7 +101,16 @@ export type TestoSonda = {
   tono: "ok" | "errore" | "incerto";
   // Un link dove si FA la cosa che il testo chiede, quando c'è.
   azione?: { href: string; etichetta: string };
+  // Il percorso da seguire DOPO aver aperto il link, reso in coda all'azione
+  // («Aprilo qui → in fondo alla pagina…»). Senza un link (nessun id) si rende
+  // dopo `aperturaSenzaLink`, così il percorso non resta senza un punto di
+  // partenza.
+  percorso?: string;
 };
+
+// ⚠️ TESTO MIO (Mario ha scritto solo la versione col link): quando non c'è un
+// id non c'è un «qui» da aprire, e «Aprilo qui» punterebbe a niente.
+export const APERTURA_SENZA_LINK = "Apri la scheda del video su YouTube Studio";
 
 /**
  * Dove si attiva l'incorporamento di UN video: la sua scheda su YouTube
@@ -117,9 +126,9 @@ export function urlStudioVideo(idVideo: string): string {
   return `https://studio.youtube.com/video/${encodeURIComponent(idVideo)}/edit`;
 }
 
-// ⚠️ TESTI DA RILEGGERE (voce). «un riquadro nero al posto di te» è di Mario
-// e resta sua parola per parola: dice la conseguenza invece della regola, che
-// è la forma che in questo progetto funziona.
+// Testi di Mario (18/10) dove dichiarato. «Un riquadro nero al posto tuo» dice
+// la conseguenza invece della regola, che è la forma che in questo progetto
+// funziona (la prima stesura diceva «al posto di te»: l'ha riscritta lui).
 const TESTI: Record<EsitoSonda, TestoSonda> = {
   attivo: {
     titolo: "L'incorporamento è attivo.",
@@ -128,12 +137,16 @@ const TESTI: Record<EsitoSonda, TestoSonda> = {
   },
   incorporamento_disattivato: {
     titolo: "L'incorporamento è disattivato.",
-    // ⚠️ TESTO MIO, provvisorio: la sostanza (il link diretto alla scheda del
-    // video) è di Mario, le parole no. I nomi delle voci di Studio sono quelli
-    // dell'interfaccia in italiano e NON li ho visti a schermo: in inglese sono
-    // «Show more» → «License and distribution» → «Allow embedding».
-    dettaglio:
-      "Così i ragazzi vedrebbero un riquadro nero al posto di te. Si attiva nella scheda di questo video su YouTube Studio: «Mostra altro», poi «Licenza e distribuzione», poi «Consenti incorporamento». Dopo incolla di nuovo il link qui.",
+    // Testo di Mario. I NOMI DELLE VOCI SONO IN DUE LINGUE, e non per scrupolo:
+    // lo Studio di Mario — italiano, account italiano — è in INGLESE. La lingua
+    // dell'interfaccia è una preferenza di account che nessuno ricorda di aver
+    // scelto, quindi un testo con i soli nomi italiani falliva per chiunque
+    // l'abbia in inglese. Quattro parole fra parentesi tolgono l'unico modo in
+    // cui questo testo può fallire di nuovo. ⚠️ I nomi ITALIANI restano non
+    // visti a schermo da nessuno di noi; quelli inglesi sì.
+    dettaglio: "Così i ragazzi vedrebbero un riquadro nero al posto tuo.",
+    percorso:
+      "in fondo alla pagina, «Mostra altro» (Show more) → «Licenza e distribuzione» (License and distribution) → «Consenti incorporamento» (Allow embedding). Poi torna e reincolla il link qui.",
     tono: "errore",
   },
   non_disponibile: {
@@ -144,13 +157,14 @@ const TESTI: Record<EsitoSonda, TestoSonda> = {
   },
   non_controllato: {
     titolo: "Non abbiamo potuto controllare il video da qui.",
-    // ⚠️ TESTO MIO, provvisorio. La riga sulla finestra normale è di sostanza
-    // di Mario: la causa più comune di questo silenzio è un browser che blocca
-    // gli script di YouTube, e chi legge «non abbiamo potuto controllare» non
-    // ha nessun motivo di sospettare della propria finestra. Un'azione che può
-    // compiere, al posto di un'informazione su cui non può fare niente.
+    // Testo di Mario (18/10). La causa più comune di questo silenzio è un
+    // browser che blocca gli script di YouTube, e chi legge «non abbiamo potuto
+    // controllare» non ha nessun motivo di sospettare della propria finestra:
+    // un'azione che può compiere, al posto di un'informazione su cui non può
+    // fare niente. «Succede spesso», non «quasi sempre»: è la causa che
+    // conosciamo, non l'unica.
     dettaglio:
-      "Non vuol dire che ci sia un problema: vuol dire che non lo sappiamo. Succede quasi sempre in una finestra in incognito o con un blocco degli script: riapri questa pagina in una finestra normale e il controllo riparte.",
+      "Non vuol dire che ci sia un problema: vuol dire che non lo sappiamo. Succede spesso in incognito, dove il nostro controllo non riesce a partire: se è il tuo caso, riapri questa pagina in una finestra normale.",
     tono: "incerto",
   },
 };
@@ -165,7 +179,7 @@ export function testoSonda(esito: EsitoSonda, idVideo: string | null = null, con
   const testo = TESTI[esito];
   if (esito === "non_controllato" && conDomanda) return { ...testo, dettaglio: testo.dettaglio + RIMANDO_ALLA_DOMANDA };
   if (esito === "incorporamento_disattivato" && idVideo) {
-    return { ...testo, azione: { href: urlStudioVideo(idVideo), etichetta: "Apri questo video su YouTube Studio" } };
+    return { ...testo, azione: { href: urlStudioVideo(idVideo), etichetta: "Aprilo qui" } };
   }
   return testo;
 }

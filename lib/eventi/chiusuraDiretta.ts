@@ -316,13 +316,28 @@ export function chiusuraDisponibile(fase: FaseContatore): boolean {
 
 /**
  * Il testo al posto del bottone quando la chiusura non è ancora possibile.
- * ⚠️ TESTO MIO, provvisorio (voce): dice QUANDO il bottone comparirà, perché un
- * bottone che manca senza spiegazione si legge come una cosa non caricata.
+ * Testo di Mario (18/10), con la data davanti quando non è oggi come nelle
+ * righe sorelle. Dice QUANDO il bottone comparirà, perché un bottone che manca
+ * senza spiegazione si legge come una cosa non caricata.
+ *
+ * ⚠️ SENZA `data_fine` il bottone non arriva MAI, ed è vero: il database
+ * rifiuta (`evento_senza_data_fine`). Per i webinar non succede (il form la
+ * pretende dal 26/07); per gli altri tipi sì. Quella riga resta mia.
+ *
+ * ⚠️ E CHIUDERE IN ANTICIPO RESTA IMPOSSIBILE, di proposito finché non c'è un
+ * denominatore vero: la copertura si calcola sulla durata PROGRAMMATA
+ * (`ping_attesi_evento`), quindi chiudere alle 17:30 una diretta prevista fino
+ * alle 17:45 non accorcerebbe niente — chi è rimasto fino alla fine vera
+ * avrebbe 30 minuti su 45 (67%) e resterebbe sotto soglia. Aprire la
+ * chiusura anticipata richiede due cose insieme: un denominatore che sia la
+ * fine VERA (cioè il momento della chiusura) e un pavimento sotto cui non si
+ * certifica (altrimenti una chiusura al primo minuto certifica chiunque abbia
+ * caricato la pagina). Decisione di prodotto, aperta.
  */
 export function testoChiusuraNonAncora(dataFine: string | null, adesso: Date): string {
   if (!dataFine) return "Questo evento non ha un orario di fine: la diretta non si può chiudere da qui.";
   const quando = stessoGiornoItaliano(dataFine, adesso)
     ? `alle ${formattaOra(dataFine)}`
     : `il ${formattaDataOra(dataFine, "long")}`;
-  return `Potrai chiudere la diretta e certificare le presenze ${quando}, quando l'incontro finisce.`;
+  return `La diretta si chiude quando è finita: il bottone comparirà ${quando}.`;
 }

@@ -41,14 +41,28 @@ const VOCI_CHECKLIST: { chiave: ChiaveChecklist; testo: string }[] = [
 // registra come tale (`incorporamento_non_verificato`, migrazione
 // `20261018100000`). Alla sonda concediamo «non ho guardato»: alla persona
 // lo stesso.
-// ⚠️ TESTI MIEI, provvisori (voce): li scrive Mario.
+// Testi di Mario (18/10). La prima risposta nomina l'opzione ESATTA di Studio
+// invece della categoria: «Consenti incorporamento» chiede di riconoscere una
+// cosa vista, «l'incorporamento è attivo» si spunta per riflesso. La seconda
+// dice la conseguenza per i ragazzi, non per il nostro archivio.
+// ⚠️ E NON promette che avviseremo l'ente prima della diretta: nessuno lo fa.
+// Una promessa così sarebbe «Scrivici da Contatti» su una pagina che non
+// mandava niente.
+// ⚠️ DUE risposte e non tre, deciso (Mario, 18/10): «ho controllato ed è
+// disattivato» NON si costruisce — salveremmo un evento con un difetto noto a
+// chi lo salva, e chi lo sa ha davanti il link per aprirlo (`urlStudioVideo`):
+// quella è la strada, non un'altra casella. LA CONDIZIONE CHE LA RIAPRE, perché
+// il fatto si nomina: se vediamo enti che rispondono «non lo so» subito dopo un
+// referto «disattivato», quella risposta sta coprendo un caso diverso, e allora
+// la terza serve. Oggi non esiste.
 type RispostaIncorporamento = "attivo" | "non_so";
 const RISPOSTE_INCORPORAMENTO: { valore: RispostaIncorporamento; chiave: string; testo: string }[] = [
-  { valore: "attivo", chiave: "incorporamento_attivo", testo: "Ho controllato su YouTube Studio: l'incorporamento è attivo." },
+  { valore: "attivo", chiave: "incorporamento_attivo", testo: "Ho guardato su YouTube Studio: «Consenti incorporamento» è attivo." },
   {
     valore: "non_so",
     chiave: "incorporamento_non_verificato",
-    testo: "Non lo so, o non sono riuscito a controllarlo. L'evento si salva lo stesso, e lo registriamo come non verificato.",
+    testo:
+      "Non lo so, o non sono riuscito a controllarlo. L'evento si salva lo stesso e resta segnato come non verificato: se l'incorporamento è chiuso, i ragazzi vedranno un riquadro nero al posto tuo.",
   },
 ];
 
