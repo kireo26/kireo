@@ -348,5 +348,37 @@ ok(/allineamento="sinistra"/.test(enteShell), "…e nella sidebar da 240px il pa
 ok(/userId/.test(senzaCommenti(leggi("app/ente/(dashboard)/layout.tsx"))), "il layout le passa l'utente");
 
 // =====================================================================
+console.log("\n§9 — 18/10: il montaggio della diretta vera");
+// =====================================================================
+// (a) Il testo del rifiuto mandava «nelle impostazioni della diretta», dove
+// l'opzione non c'è. Adesso dà il link alla scheda del video.
+{
+  const t = testoSonda("incorporamento_disattivato", "abcDEF12345");
+  ok(!/impostazioni della diretta/i.test(t.dettaglio), "il rifiuto non manda più «nelle impostazioni della diretta»", t.dettaglio);
+  ok(t.azione && t.azione.href === "https://studio.youtube.com/video/abcDEF12345/edit", "…dà il link diretto alla scheda del video su Studio", JSON.stringify(t.azione));
+  ok(!testoSonda("incorporamento_disattivato").azione, "…e senza un id non inventa un link");
+  ok(!testoSonda("attivo", "abcDEF12345").azione, "…e il link c'è solo dove serve (sull'esito che chiede di agire)");
+}
+// (b) Il silenzio della sonda ha una causa comune: la finestra in incognito.
+{
+  const nc = testoSonda("non_controllato").dettaglio;
+  ok(/incognito/i.test(nc) && /finestra normale/i.test(nc), "«non controllato» dice di riprovare in una finestra normale", nc);
+  ok(!/qui sotto/.test(nc), "…e senza domanda sotto (pannello admin) non manda a cercarla");
+  ok(/qui sotto/.test(testoSonda("non_controllato", null, true).dettaglio), "…mentre nel form dell'ente rimanda alla domanda");
+  ok(/conDomanda/.test(form) && !/conDomanda/.test(admin), "il form dell'ente chiede la riga, l'admin no");
+  ok(/idVideo=\{idDigitato\}/.test(admin) && /idVideo=\{idYoutube\}/.test(form), "tutti e due passano l'id, così il link c'è anche lì");
+}
+// (c) «Non lo so» è una risposta ammessa, registrata come tale.
+{
+  ok(/incorporamento_non_verificato/.test(form), "il form ha la risposta «non lo so», con la sua chiave");
+  ok(!/Devi confermare[^"]*incorporamento/.test(form), "…e non c'è più una spunta obbligatoria sull'incorporamento");
+  ok(/checklistDaSalvare\[risposta\.chiave\]/.test(form), "…nel jsonb finisce la chiave di quello che è stato risposto");
+  const sqlNonSo = senzaCommentiSql(leggi("supabase/migrations/20261018100000_incorporamento_non_verificato.sql"));
+  ok(/or checklist_diretta \? 'incorporamento_non_verificato'/.test(sqlNonSo), "il vincolo ammette «non verificato» come risposta");
+  ok(/or coalesce\(/.test(sqlNonSo), "…dentro lo stesso coalesce che chiude il buco del NULL");
+  ok(/checklist_diretta \? 'incorporamento_attivo'/.test(sqlNonSo) && /or incorporamento_sonda = 'attivo'/.test(sqlNonSo), "…e le altre due risposte restano");
+}
+
+// =====================================================================
 console.log(`\n${falliti === 0 ? "Tutto verde." : `${falliti} asserzioni rosse.`}`);
 process.exit(falliti === 0 ? 0 : 1);

@@ -44,11 +44,20 @@
 // `serveDichiarazioneIncorporamento` ha detto no — quindi ha girato, e su una
 // DIRETTA PROGRAMMATA non ancora cominciata, che era il caso principale.
 //
-// È UN DATO DI UNA RIGA SOLA, quindi la spunta `incorporamento_attivo` non è
-// stata rimossa in assoluto: esce dove la sonda ha risposto e torna dove
-// non ha potuto. Il segnale da leggere è l'opposto: se i referti «non abbiamo
-// potuto controllare» diventano la norma, la sonda su una diretta programmata
-// non risponde e il lavoro torna lì, non sulla casella.
+// E IL 18/10 HA RISPOSTO DUE VOLTE IN PIÙ, sullo stesso video: `disattivato`
+// prima della cura e `attivo` dopo. Tre risposte, tre cause nominabili. L'unico
+// silenzio osservato (`non_controllato`) aveva una ragione ESTERNA: la stessa
+// pagina in una finestra in incognito, dove l'IFrame API non si carica perché
+// gli script di terze parti sono bloccati (incognito, blocco dei cookie,
+// estensioni). Quindi la sonda non è «inaffidabile su una diretta
+// programmata»: il suo silenzio ha una causa comune, e il testo la nomina.
+//
+// DOVE LA SONDA NON HA POTUTO, la domanda torna alla persona — e dal 18/10
+// con DUE risposte invece di una spunta obbligatoria: «ho controllato, è
+// attivo» oppure «non lo so». La spunta obbligatoria costringeva a dichiarare
+// il falso chi non sapeva (Mario l'ha fatto, montando la diretta, perché non
+// c'era un'altra strada per salvare). Alla sonda concediamo «non ho guardato»:
+// alla persona lo stesso. Vedi `20261018100000_incorporamento_non_verificato.sql`.
 //
 // LE DUE COSE NON STANNO MAI INSIEME A SCHERMO — una
 // dichiarazione accanto a una misura è peggio di niente, perché la prima
@@ -86,7 +95,27 @@ export function serveDichiarazioneIncorporamento(esito: EsitoSonda | null): bool
   return esito === null || esito === "non_controllato";
 }
 
-export type TestoSonda = { titolo: string; dettaglio: string; tono: "ok" | "errore" | "incerto" };
+export type TestoSonda = {
+  titolo: string;
+  dettaglio: string;
+  tono: "ok" | "errore" | "incerto";
+  // Un link dove si FA la cosa che il testo chiede, quando c'è.
+  azione?: { href: string; etichetta: string };
+};
+
+/**
+ * Dove si attiva l'incorporamento di UN video: la sua scheda su YouTube
+ * Studio. ⚠️ NON «le impostazioni della diretta», che era il testo di prima e
+ * mandava nel posto sbagliato: Mario ci è andato il 18/10 e il riquadro
+ * «Settings» delle dirette contiene solo l'overlay delle pause. L'opzione sta
+ * nella scheda del video, sotto «Mostra altro» → «Licenza e distribuzione».
+ * Ci abbiamo perso mezz'ora in due sapendo cosa cercavamo; un ente avrebbe
+ * concluso che il problema era suo. L'id ce l'abbiamo già in mano quando
+ * scriviamo il testo: si dà il link, non un percorso da seguire a memoria.
+ */
+export function urlStudioVideo(idVideo: string): string {
+  return `https://studio.youtube.com/video/${encodeURIComponent(idVideo)}/edit`;
+}
 
 // ⚠️ TESTI DA RILEGGERE (voce). «un riquadro nero al posto di te» è di Mario
 // e resta sua parola per parola: dice la conseguenza invece della regola, che
@@ -99,8 +128,12 @@ const TESTI: Record<EsitoSonda, TestoSonda> = {
   },
   incorporamento_disattivato: {
     titolo: "L'incorporamento è disattivato.",
+    // ⚠️ TESTO MIO, provvisorio: la sostanza (il link diretto alla scheda del
+    // video) è di Mario, le parole no. I nomi delle voci di Studio sono quelli
+    // dell'interfaccia in italiano e NON li ho visti a schermo: in inglese sono
+    // «Show more» → «License and distribution» → «Allow embedding».
     dettaglio:
-      "Così i ragazzi vedrebbero un riquadro nero al posto di te. Aprilo da YouTube Studio, nelle impostazioni della diretta, poi incolla di nuovo il link qui.",
+      "Così i ragazzi vedrebbero un riquadro nero al posto di te. Si attiva nella scheda di questo video su YouTube Studio: «Mostra altro», poi «Licenza e distribuzione», poi «Consenti incorporamento». Dopo incolla di nuovo il link qui.",
     tono: "errore",
   },
   non_disponibile: {
@@ -111,14 +144,30 @@ const TESTI: Record<EsitoSonda, TestoSonda> = {
   },
   non_controllato: {
     titolo: "Non abbiamo potuto controllare il video da qui.",
+    // ⚠️ TESTO MIO, provvisorio. La riga sulla finestra normale è di sostanza
+    // di Mario: la causa più comune di questo silenzio è un browser che blocca
+    // gli script di YouTube, e chi legge «non abbiamo potuto controllare» non
+    // ha nessun motivo di sospettare della propria finestra. Un'azione che può
+    // compiere, al posto di un'informazione su cui non può fare niente.
     dettaglio:
-      "Non vuol dire che ci sia un problema: vuol dire che non lo sappiamo. Controlla tu che l'incorporamento sia attivo e confermalo qui sotto.",
+      "Non vuol dire che ci sia un problema: vuol dire che non lo sappiamo. Succede quasi sempre in una finestra in incognito o con un blocco degli script: riapri questa pagina in una finestra normale e il controllo riparte.",
     tono: "incerto",
   },
 };
 
-export function testoSonda(esito: EsitoSonda): TestoSonda {
-  return TESTI[esito];
+// La riga che rimanda alla domanda «qui sotto» vale SOLO dove la domanda c'è,
+// cioè nel form dell'ente: nel pannello dell'admin sotto il referto non c'è
+// nessuna domanda, e la stessa frase lì manderebbe a cercare una cosa che non
+// esiste. Il resto del referto è uguale nei due posti.
+const RIMANDO_ALLA_DOMANDA = " Se non basta, dicci qui sotto cosa sai: anche «non lo so» è una risposta.";
+
+export function testoSonda(esito: EsitoSonda, idVideo: string | null = null, conDomanda = false): TestoSonda {
+  const testo = TESTI[esito];
+  if (esito === "non_controllato" && conDomanda) return { ...testo, dettaglio: testo.dettaglio + RIMANDO_ALLA_DOMANDA };
+  if (esito === "incorporamento_disattivato" && idVideo) {
+    return { ...testo, azione: { href: urlStudioVideo(idVideo), etichetta: "Apri questo video su YouTube Studio" } };
+  }
+  return testo;
 }
 
 // ⚠️ TESTO DA RILEGGERE (voce): è quello che legge uno STUDENTE in diretta,

@@ -135,3 +135,21 @@ export function toccataDaPerExport(domanda: { stato: string; toccata_da: string 
   if (domanda.stato === "nuova") return null;
   return SENZA_AUTORE;
 }
+
+/**
+ * La colonna «Toccata il» dell'export, accanto a quella sopra (Mario, 11/10/2026:
+ * «stessa cura, due centimetri più a destra»). Sulla riga che risulta toccata
+ * senza autore anche l'ora manca, e la cella vuota tornava a dire «nessuno
+ * l'ha toccata» proprio accanto alla colonna che ormai diceva il contrario.
+ * ⚠️ «non registrato» e non `SENZA_AUTORE`: qui manca un'ora, non un autore.
+ */
+export const ORA_NON_REGISTRATA = "non registrato";
+
+export function toccataIlPerExport(
+  domanda: { stato: string; toccata_il: string | null },
+  formatta: (iso: string) => string,
+): string | null {
+  if (domanda.toccata_il) return formatta(domanda.toccata_il);
+  if (domanda.stato === "nuova") return null;
+  return ORA_NON_REGISTRATA;
+}

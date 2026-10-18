@@ -7,6 +7,8 @@ import DomandaConsegnaForm from "./DomandaConsegnaForm";
 import {
   avvisoChiusuraTardiva,
   faseContatore,
+  chiusuraDisponibile,
+  testoChiusuraNonAncora,
   testoPrimaDellaDiretta,
   statoChiusura,
   testoEsitoChiusura,
@@ -298,6 +300,10 @@ export default function ControlloDirettaEvento({
         <p className="rounded-lg border border-white/10 bg-kireo-dark px-4 py-3 text-sm text-kireo-light/90">
           {testoStatoChiusura(chiusura)}
         </p>
+      ) : !chiusuraDisponibile(fase) ? (
+        // Prima della fine il bottone non c'è: il database lo rifiuterebbe
+        // (`evento_ancora_in_corso`). Vedi `chiusuraDisponibile`.
+        <p className="text-xs text-kireo-muted">{testoChiusuraNonAncora(dataFine, ora)}</p>
       ) : (
         <div>
           {avvisoTardivo && <p className="mb-2 text-sm text-kireo-orange">{avvisoTardivo}</p>}

@@ -78,6 +78,20 @@ ok(fase("2026-10-04T17:13:00Z") === "prima", "due minuti prima dell'inizio → p
 ok(fase("2026-10-04T17:15:00Z") === "viva", "all'istante dell'inizio → viva (lo stesso confine di `evento_in_diretta`)");
 ok(fase("2026-10-04T17:18:00Z") === "viva", "dentro la finestra → viva");
 ok(fase("2026-10-04T17:20:00Z") === "finita_non_chiusa", "all'istante della fine → finita, non chiusa (lo stesso confine di `chiudi_diretta_evento`)");
+// ⚠️ IL BOTTONE DI CHIUSURA SOLO QUANDO PUÒ CHIUDERE (Mario, 18/10): prima e
+// durante, il database rifiuta (`evento_ancora_in_corso`).
+const { chiusuraDisponibile, testoChiusuraNonAncora } = chiusura;
+ok(!chiusuraDisponibile(fase("2026-10-04T10:00:00Z")), "alle 12 di un evento delle 17 il bottone non c'è");
+ok(!chiusuraDisponibile(fase("2026-10-04T17:18:00Z")), "…né durante la diretta");
+ok(chiusuraDisponibile(fase("2026-10-04T17:20:00Z")), "…e c'è all'istante della fine, lo stesso confine del database");
+ok(!chiusuraDisponibile(fase("2026-10-04T17:21:00Z", { chiusa: true })), "…e non c'è più su una diretta chiusa");
+ok(/alle \d\d:\d\d/.test(testoChiusuraNonAncora(FINE, t("2026-10-04T10:00:00Z"))), "al suo posto, quando comparirà", testoChiusuraNonAncora(FINE, t("2026-10-04T10:00:00Z")));
+{
+  const comp = senzaCommenti(readFileSync(join(RADICE, "components/ente/ControlloDirettaEvento.tsx"), "utf8"));
+  const iGate = ancora(comp, "!chiusuraDisponibile(fase)");
+  const iBottone = ancora(comp, "Concludi diretta e certifica presenze");
+  ok(iGate !== null && iBottone !== null && iGate < iBottone, "nel componente il bottone sta DOPO il ramo che lo esclude");
+}
 ok(fase("2026-10-11T08:00:00Z", { chiusa: true }) === "chiusa", "chiusa vince sul tempo");
 ok(fase("2026-10-04T17:00:00Z", { chiusa: true }) === "chiusa", "…anche prima dell'inizio (un admin che ha già chiuso non rivede «comincia alle»)");
 ok(fase("2030-01-01T00:00:00Z", { dataFine: null }) === "viva", "senza data di fine non finisce mai (e non si può nemmeno chiudere): resta viva");
@@ -100,8 +114,10 @@ ok(avvisoChiusuraTardiva(FINE, t("2026-10-04T21:00:00Z")) === null, "stessa gior
 ok(avvisoChiusuraTardiva(null, t("2026-10-11T08:00:00Z")) === null, "senza data di fine → nessun avviso");
 const sette = avvisoChiusuraTardiva(FINE, t("2026-10-11T08:00:00Z"));
 const ATTESO_SETTE =
-  "Questa diretta è finita il 4 ottobre 2026, sette giorni fa. Se la chiudi adesso, la chiusura risulterà fatta oggi: i presenti e le ore restano quelli del 4 ottobre 2026, la data del gesto è questa.";
+  "Questa diretta è finita il 4 ottobre 2026, sette giorni fa. Se la chiudi adesso, la chiusura risulterà fatta oggi: i presenti e le ore restano quelli della diretta, la data del gesto è questa.";
 ok(sette === ATTESO_SETTE, "il caso di Mario, parola per parola (con l'anno: vedi `testoFinitaNonChiusa`)", sette);
+// La data UNA volta: «quello che è già scritto accanto non si ripete» (Mario, 11/10).
+ok((sette.match(/4 ottobre 2026/g) || []).length === 1, "…e la data compare una volta sola", sette);
 // ⚠️ IL CASO CHE UNA DURATA DIVISA PER 24 ORE SBAGLIEREBBE: fine alle 23:50 di
 // Roma, si guarda alle 00:10 del giorno dopo. Venti minuti, e un giorno di
 // calendario.
@@ -184,6 +200,13 @@ ok(toccataDaPerExport({ stato: "nuova", toccata_da: null }) === null, "una doman
 ok(toccataDaPerExport({ stato: "letta", toccata_da: "ente" }) === "ente", "un autore registrato esce com'è");
 const route = senzaCommenti(readFileSync(join(RADICE, "app/api/admin/presenze/[id]/route.ts"), "utf8"));
 ok(route.includes("toccataDaPerExport(q)") && !route.includes("q.toccata_da,"), "la route dell'export la chiama invece di stampare il campo grezzo");
+// «Toccata il»: stessa cura, due centimetri più a destra (Mario, 11/10).
+const { toccataIlPerExport, ORA_NON_REGISTRATA } = tocco;
+const fmt = (iso) => `F(${iso})`;
+ok(toccataIlPerExport({ stato: "risposta_live", toccata_il: null }, fmt) === ORA_NON_REGISTRATA && ORA_NON_REGISTRATA === "non registrato", "toccata e senza ora → «non registrato», non vuoto");
+ok(toccataIlPerExport({ stato: "nuova", toccata_il: null }, fmt) === null, "…una domanda nuova resta vuota");
+ok(toccataIlPerExport({ stato: "letta", toccata_il: "X" }, fmt) === "F(X)", "…un'ora registrata passa dal formattatore");
+ok(route.includes("toccataIlPerExport(q, formattaIstante)") && !route.includes("istantePerExport(q.toccata_il)"), "la route usa la funzione per «Toccata il»");
 
 // ─────────────────────────────────────────────────────────────────────────────
 console.log("\n§0a/§0b — la definizione VIVA delle due funzioni di export\n");
@@ -215,11 +238,30 @@ console.log("\n§1c — «non calcolabile» e non una cella vuota; la media oltr
 
 const exportP = caricaModulo("lib/eventi/exportPresenze.ts", daFormato);
 ok(
-  exportP.minutiPerExport({ minuti_presenza: null, primo_ping: "2026-10-04T17:00:00Z" }, null) === "non calcolabile",
+  exportP.minutiPerExport({ minuti_presenza: null, primo_ping: "2026-10-04T17:00:00Z" }) === "non calcolabile",
   "collegato, ma l'incontro non ha una fine → «non calcolabile», non vuoto",
 );
-ok(exportP.minutiPerExport({ minuti_presenza: null, primo_ping: null }, null) === null, "mai collegato → vuoto: lì «non c'era» è la verità");
-ok(exportP.minutiPerExport({ minuti_presenza: 2.4, primo_ping: "x" }, FINE) === 2.4, "un numero vero esce com'è");
+// ⚠️ ZERO, non vuoto (Mario, 11/10): una cella vuota non afferma niente.
+ok(exportP.minutiPerExport({ minuti_presenza: null, primo_ping: null }) === 0, "mai collegato → 0: il fatto è «zero minuti», e lo zero è un'affermazione");
+// Nessuno dei casi resta vuoto: la colonna ha tre stati e tre forme.
+for (const [riga] of [
+  [{ minuti_presenza: 2.4, primo_ping: INIZIO }, FINE],
+  [{ minuti_presenza: null, primo_ping: INIZIO }, null],
+  [{ minuti_presenza: null, primo_ping: null }, null],
+  [{ minuti_presenza: null, primo_ping: INIZIO }, FINE],
+]) {
+  const v = exportP.minutiPerExport(riga);
+  ok(v !== null && v !== undefined && v !== "", "nessuna combinazione produce una cella vuota", JSON.stringify(riga));
+}
+// La nota sulla finestra: solo se qualcuno si è collegato PRIMA dell'inizio.
+ok(exportP.notaFinestra(INIZIO, [{ primo_ping: "2026-10-04T17:08:31Z" }]) === exportP.NOTA_MINUTI_FINESTRA, "un ingresso prima dell'inizio → la nota sulla finestra");
+ok(exportP.notaFinestra(INIZIO, [{ primo_ping: "2026-10-04T17:16:00Z" }, { primo_ping: null }]) === null, "nessun ingresso prima dell'inizio → nessuna nota (una che c'è sempre smette di essere letta)");
+ok(
+  exportP.NOTA_MINUTI_FINESTRA ===
+    "I minuti di presenza si contano dentro la finestra dell'incontro: se qualcuno si è collegato prima dell'inizio, non coincidono con la differenza fra le due colonne.",
+  "la nota sulla finestra è di Mario, parola per parola",
+);
+ok(exportP.minutiPerExport({ minuti_presenza: 2.4, primo_ping: "x" }) === 2.4, "un numero vero esce com'è");
 ok(
   exportP.notaMinuti(null, [{ primo_ping: "x" }]) ===
     "«non calcolabile» nei minuti significa che l'incontro non ha un orario di fine: la presenza non si può delimitare.",
@@ -238,7 +280,8 @@ const report = senzaCommenti(readFileSync(join(RADICE, "components/ente/ReportEv
 ok(report.includes("...righeCoperturaOltreCento(riga.copertura_media)"), "il report dell'ente la usa, sotto la riga della copertura");
 for (const rel of ["app/api/admin/presenze/[id]/route.ts", "app/api/scuola/presenze/[id]/route.ts"]) {
   const r = senzaCommenti(readFileSync(join(RADICE, rel), "utf8"));
-  ok(r.includes("minutiPerExport(r, evento.data_fine)") && r.includes("nota: notaMinuti(evento.data_fine,"), `${rel}: minuti e nota dallo stesso modulo`);
+  ok(r.includes("minutiPerExport(r)") && r.includes("nota: [notaMinuti(evento.data_fine,"), `${rel}: minuti e nota dallo stesso modulo`);
+  ok(/notaFinestra\(evento\.data_inizio,/.test(r) && /select\("titolo, [^"]*data_inizio/.test(r), `${rel}: la nota sulla finestra, con l'inizio davvero letto`);
 }
 {
   const agg = file.filter((f) => senzaCommentiSql(readFileSync(join(DIR, f), "utf8")).includes("create or replace function public.report_evento_aggregato("));

@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { generaCsvSezioni, type SezioneCsv } from "@/lib/csv";
-import { istantePerExport, minutiPerExport, notaMinuti } from "@/lib/eventi/exportPresenze";
+import { istantePerExport, minutiPerExport, notaFinestra, notaMinuti } from "@/lib/eventi/exportPresenze";
 import { descriviErrore } from "@/lib/erroreSupabase";
 import { rifiutoExport } from "@/lib/eventi/rifiutoExport";
-import { toccataDaPerExport } from "@/lib/eventi/tocco";
+import { toccataDaPerExport, toccataIlPerExport } from "@/lib/eventi/tocco";
+import { formattaIstante } from "@/lib/formato";
 
 // Solo admin, generazione server-side, nessun endpoint pubblico: la vera
 // autorizzazione è comunque nella RPC esporta_presenze_admin (SECURITY
@@ -30,7 +31,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   // stata posta nessuna domanda»: senza, la sezione vuota direbbe la prima su
   // un evento in cui la seconda è la verità — cioè un'affermazione sugli
   // studenti al posto di una su di noi.
-  const { data: evento } = await supabase.from("eventi").select("titolo, pubblico, domanda_consegna, data_fine").eq("id", id).maybeSingle();
+  const { data: evento } = await supabase.from("eventi").select("titolo, pubblico, domanda_consegna, data_inizio, data_fine").eq("id", id).maybeSingle();
   if (!evento) {
     return NextResponse.json({ errore: "Evento non trovato." }, { status: 404 });
   }
@@ -98,7 +99,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       attestato_codice: string | null;
     }) =>
       perDocenti
-        ? [r.nome, r.cognome, r.email, minutiPerExport(r, evento.data_fine), r.copertura_percento, r.stato_finale, r.attestato_emesso ? "Sì" : "No", r.attestato_codice]
+        ? [r.nome, r.cognome, r.email, minutiPerExport(r), r.copertura_percento, r.stato_finale, r.attestato_emesso ? "Sì" : "No", r.attestato_codice]
         : [
             r.nome,
             r.cognome,
@@ -108,7 +109,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             r.classe_nome,
             istantePerExport(r.primo_ping),
             istantePerExport(r.ultimo_ping),
-            minutiPerExport(r, evento.data_fine),
+            minutiPerExport(r),
             r.copertura_percento,
             r.stato_finale,
             r.certificata_da_tipo,
@@ -127,7 +128,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       intestazioni,
       righe: corpo,
       seNonCeNiente: "Nessuno si è collegato a questa diretta.",
-      nota: notaMinuti(evento.data_fine, righe ?? []),
+      // La nota sulla finestra solo dove le due colonne degli orari ci sono.
+      nota: [notaMinuti(evento.data_fine, righe ?? []), perDocenti ? null : notaFinestra(evento.data_inizio, righe ?? [])],
     },
     {
       titolo: "Domande fatte durante la diretta (anonime)",
@@ -140,7 +142,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
               q.testo,
               q.stato,
               toccataDaPerExport(q),
-              istantePerExport(q.toccata_il),
+              toccataIlPerExport(q, formattaIstante),
             ],
           ),
       seNonCeNiente: erroreDomande

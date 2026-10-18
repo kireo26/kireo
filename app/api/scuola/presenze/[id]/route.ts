@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { generaCsvSezioni } from "@/lib/csv";
-import { istantePerExport, minutiPerExport, notaMinuti } from "@/lib/eventi/exportPresenze";
+import { istantePerExport, minutiPerExport, notaFinestra, notaMinuti } from "@/lib/eventi/exportPresenze";
 import { descriviErrore } from "@/lib/erroreSupabase";
 import { rifiutoExport } from "@/lib/eventi/rifiutoExport";
 
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     // `data_fine` serve a dire «non calcolabile» invece di lasciare vuota la
     // cella dei minuti (vedi `lib/eventi/exportPresenze.ts`), e il titolo a
     // dire di quale incontro sono queste righe.
-    supabase.from("eventi").select("titolo, data_fine").eq("id", id).maybeSingle(),
+    supabase.from("eventi").select("titolo, data_inizio, data_fine").eq("id", id).maybeSingle(),
   ]);
   if (error) {
     const rifiuto = rifiutoExport(error);
@@ -89,7 +89,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     r.classe_nome,
     istantePerExport(r.primo_ping),
     istantePerExport(r.ultimo_ping),
-    minutiPerExport(r, evento.data_fine),
+    minutiPerExport(r),
     r.copertura_percento,
     r.stato_finale,
     r.certificata_da_tipo,
@@ -109,7 +109,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         intestazioni,
         righe: corpo,
         seNonCeNiente: "Nessuno studente della tua scuola risulta iscritto a questo incontro.",
-        nota: notaMinuti(evento.data_fine, elenco),
+        nota: [notaMinuti(evento.data_fine, elenco), notaFinestra(evento.data_inizio, elenco)],
       },
     ]);
   } catch (e) {

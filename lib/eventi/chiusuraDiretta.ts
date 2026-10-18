@@ -277,6 +277,10 @@ function quantoTempoFa(giorni: number): string {
  * copertura viene dalla durata PROGRAMMATA, e `diretta_chiusa_il = now()`
  * registra il momento del gesto. Quindi «i presenti e le ore restano quelli di
  * allora, la data del gesto è questa» è letteralmente quello che la funzione fa.
+ *
+ * La data compare UNA volta (Mario, 11/10): la seconda «del 4 ottobre 2026»
+ * ripeteva quella scritta nella frase prima, e quello che è già scritto
+ * accanto non si ripete.
  */
 export function avvisoChiusuraTardiva(dataFine: string | null, adesso: Date): string | null {
   if (!dataFine) return null;
@@ -287,6 +291,38 @@ export function avvisoChiusuraTardiva(dataFine: string | null, adesso: Date): st
   const giorno = formattaData(dataFine, "long");
   return (
     `Questa diretta è finita il ${giorno}, ${quantoTempoFa(giorni)}. ` +
-    `Se la chiudi adesso, la chiusura risulterà fatta oggi: i presenti e le ore restano quelli del ${giorno}, la data del gesto è questa.`
+    `Se la chiudi adesso, la chiusura risulterà fatta oggi: i presenti e le ore restano quelli della diretta, la data del gesto è questa.`
   );
+}
+
+/**
+ * IL BOTTONE DI CHIUSURA ESISTE SOLO QUANDO PUÒ CHIUDERE (Mario, montando la
+ * diretta del 18/10): alle 12 di un evento delle 17 la riga di stato diceva
+ * correttamente «La diretta comincia alle 17:00» e sotto c'era «Concludi
+ * diretta e certifica presenze», attivo. La pagina sapeva in che fase era, il
+ * bottone no — lo stesso buco del bottone su una diretta già chiusa, preso
+ * dall'altro capo.
+ *
+ * ⚠️ PREMERLO NON AVREBBE PRODOTTO UNA RICEVUTA A ZERO, e va detto perché la
+ * cura non è quella: `chiudi_diretta_evento` rifiuta prima di `data_fine`
+ * (`evento_ancora_in_corso`). Il danno era un bottone che invita a un gesto e
+ * poi risponde no — anche DURANTE la diretta, non solo prima. Quindi la
+ * condizione non è «dopo l'inizio» ma la stessa del database: dopo la fine.
+ * Lo specchio è `faseContatore`, che usa lo stesso confine.
+ */
+export function chiusuraDisponibile(fase: FaseContatore): boolean {
+  return fase === "finita_non_chiusa";
+}
+
+/**
+ * Il testo al posto del bottone quando la chiusura non è ancora possibile.
+ * ⚠️ TESTO MIO, provvisorio (voce): dice QUANDO il bottone comparirà, perché un
+ * bottone che manca senza spiegazione si legge come una cosa non caricata.
+ */
+export function testoChiusuraNonAncora(dataFine: string | null, adesso: Date): string {
+  if (!dataFine) return "Questo evento non ha un orario di fine: la diretta non si può chiudere da qui.";
+  const quando = stessoGiornoItaliano(dataFine, adesso)
+    ? `alle ${formattaOra(dataFine)}`
+    : `il ${formattaDataOra(dataFine, "long")}`;
+  return `Potrai chiudere la diretta e certificare le presenze ${quando}, quando l'incontro finisce.`;
 }

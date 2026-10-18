@@ -118,7 +118,7 @@ export default function GestisciVideoDirettaForm({ eventoId, videoIdAttuale }: {
           </button>
         )}
       </div>
-      <EsitoSondaIncorporamento esito={esitoSonda} inCorso={sondaInCorso} />
+      <EsitoSondaIncorporamento esito={esitoSonda} inCorso={sondaInCorso} idVideo={idDigitato} />
       {bloccata && (
         <button
           type="button"

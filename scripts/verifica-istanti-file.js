@@ -32,8 +32,19 @@
 //     un istante non formattato. Si prova chiamandolo.
 //
 // ⚠️ I LIMITI, dichiarati: è lessicale, quindi vede un campo dal suo NOME — un
-// istante in una variabile chiamata `quando` gli sfugge (lì resta il terminale
-// del CSV, che guarda il VALORE). E le pagine JSX non stanno nel sovrainsieme:
+// istante in una variabile chiamata `quando` gli sfugge. Lì resta il terminale
+// del CSV, che guarda il VALORE — ⚠️ MA SOLO PER IL CSV. Le altre due superfici
+// non hanno un terminale, quindi il varco non è chiuso, è spostato:
+//
+//     UN ISTANTE CHE ARRIVA A UNA PERSONA IN UN'EMAIL O IN UN PDF, IN UN CAMPO
+//     CON UN NOME CHE LA DERIVAZIONE NON RICONOSCE, NON LO PRENDE NESSUNO.
+//
+// Le difese non si sommano: due guardie con un buco in comune lasciano passare
+// la mossa che le attraversa tutte e due (Mario, 11/10). Non si cura oggi; si
+// scrive qui perché «lo prende il CSV» non faccia sembrare chiuso anche quello
+// che il CSV non tocca. La cura, quando servirà, è un terminale in
+// `lib/email/templates.ts` e in `lib/pdf/core.ts` come quello di `lib/csv.ts`.
+// E le pagine JSX non stanno nel sovrainsieme:
 // lì un istante si rende solo passando da un formattatore, e quello lo guarda
 // già `test:date`.
 //
@@ -99,7 +110,7 @@ const CAMPO_ISTANTE = /\.(\w*_il|\w*_at|\w*_ping|data_inizio|data_fine|created_a
 // Chi può ricevere un campo-istante come argomento: i formattatori (che lo
 // rendono nell'ora di Roma) e due funzioni che lo usano per DECIDERE, senza
 // stamparlo (`minutiPerExport`/`notaMinuti` guardano se `data_fine` esiste).
-const CONSUMATORI = /^(formatta\w*|istantePerExport|minutiPerExport|notaMinuti)$/;
+const CONSUMATORI = /^(formatta\w*|istantePerExport|minutiPerExport|notaMinuti|notaFinestra)$/;
 
 // La funzione nella cui chiamata sta un punto della riga: si risale fino alla
 // prima parentesi aperta non chiusa e si legge il nome davanti.

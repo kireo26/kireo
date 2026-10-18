@@ -52,9 +52,10 @@ export type SezioneCsv = {
   /**
    * Una riga sotto il titolo che spiega una parola che compare nelle celle
    * (oggi: «non calcolabile» nei minuti). Facoltativa, e si stampa SOLO quando
-   * serve: una nota che c'è sempre smette di essere letta.
+   * serve: una nota che c'è sempre smette di essere letta. Più note, una per
+   * riga, nell'ordine dato.
    */
-  nota?: string | null;
+  nota?: string | (string | null)[] | null;
 };
 
 /**
@@ -74,7 +75,8 @@ export type SezioneCsv = {
 export function generaCsvSezioni(sezioni: SezioneCsv[]): string {
   const blocchi = sezioni.map((s) => {
     const linee = [escapiCampo(s.titolo)];
-    if (s.nota) linee.push(escapiCampo(s.nota));
+    const note = Array.isArray(s.nota) ? s.nota : [s.nota];
+    for (const n of note) if (n) linee.push(escapiCampo(n));
     if (s.righe.length === 0) {
       linee.push(escapiCampo(s.seNonCeNiente));
     } else {
