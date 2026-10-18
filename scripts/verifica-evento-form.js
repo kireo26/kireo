@@ -95,15 +95,19 @@ ok(
 
 // LA CURA VERA sta sull'EVENTO, non sul form che lo ha creato: vale per uno
 // caricato a posteriori e per uno normale il giorno dopo.
-ok(/eventoCominciato\(/.test(card), "CardEvento sa se l'evento è già cominciato");
+// Dal 18/10 i casi sono TRE e non due (decisione di Mario): un evento FINITO
+// non chiede a nessuno di prenotarsi, uno IN CORSO sì — lì iscriversi è la
+// porta. La regola e le sue prove stanno in `npm run test:diretta1810` (§4);
+// qui resta la metà del 28/09: niente bottone a evento finito.
+ok(/faseIscrizione\(/.test(card), "CardEvento sa in che fase è l'evento (prima / in corso / finito)");
 ok(
-  /\{cominciato \? null : \(/.test(card) && /<IscrivitiEventoButton/.test(card),
-  "…e allora non offre l'iscrizione: prenotarsi per una cosa già iniziata non serve a niente",
+  /fase === "prima" \? \(/.test(card) && !/fase === "finita" \? \(\s*<IscrivitiEventoButton/.test(card),
+  "…e a evento finito non offre l'iscrizione: prenotarsi per una cosa già finita non serve a niente",
 );
 // «Eri iscritto» era la prima stesura, e l'ha presa il tripwire della lingua
 // invariante: un participio con *essere* in seconda persona concorda col genere
 // di chi legge. «Avevi un posto» dice la stessa cosa e si legge uguale.
-ok(/Avevi un posto/.test(card), "…mentre chi era iscritto continua a vederlo, ora che il bottone non c'è");
+ok(/iscritto && fase === "finita" && \(/.test(card) && /Avevi un posto/.test(card), "…mentre chi era iscritto lo vede — solo a evento FINITO: «Avevi» è un passato, e a diretta in corso il posto ce l'ha adesso");
 
 // Il comportamento, con un'ora fissa invece dell'orologio della macchina.
 const ORA = new Date("2026-10-01T12:00:00.000Z");

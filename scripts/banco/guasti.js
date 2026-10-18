@@ -49,6 +49,7 @@ const ORDINE = [
   "email_guida",
   "email_contatto",
   "video_diretta",
+  "misura_avvio_video",
   "consegna_esaurita",
   "prove_consegna_evento",
   "scrittura_consegna_evento",
@@ -84,6 +85,8 @@ const COSA_VUOL_DIRE = {
     "un'email di una richiesta di contatto non è partita. Due motivi diversi — `conferma_non_inviata` è la cortesia a chi ha scritto (la sua riga è in coda su /admin, quindi il messaggio c'è: la pagina smette di nominare l'email e nessuno perde niente), `notifica_non_inviata` è l'avviso a noi, e lì a mancare è proprio quello: la richiesta esiste e la vede solo chi apre la coda. Spesso è Brevo che blocca l'IP di Vercel, che va autorizzato a mano",
   video_diretta:
     "durante una diretta il player di uno studente non riproduceva il video (incorporamento spento o video non riproducibile): chi era collegato vedeva un riquadro rosso. Una riga per evento, all'ora al massimo: il motivo dice quale dei due, il dettaglio quale evento. La console del moderatore mostra in quel momento quanti non stanno vedendo",
+  misura_avvio_video:
+    "lo script di YouTube non si è caricato e lo studente ha visto il riquadro semplice: da lì non sappiamo se il video è partito, quindi la presenza NON è avanzata (decisione di Mario del 18/10) e la pagina gli ha detto di ricaricare o uscire dall'incognito. Una riga per caricamento di pagina, non per studente: il numero che serve è quante volte capita, perché la decisione si possa ripensare con un dato invece che per inerzia",
   consegna_esaurita:
     "tutte le letture di una consegna sono finite senza riuscire: quel testo non sarà giudicato da solo, e lo studente non ha più un bottone da premere",
   prove_consegna_evento:

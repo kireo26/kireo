@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/Button";
 import { createClient } from "@/lib/supabase/client";
 import { registraAttivita } from "@/lib/app/activityLog";
+import { ETICHETTA_ISCRIVITI, ETICHETTA_ISCRIVITI_ED_ENTRA } from "@/lib/live";
 
 export default function IscrivitiEventoButton({
   eventoId,
@@ -13,17 +14,23 @@ export default function IscrivitiEventoButton({
   organizzatoreId,
   userId,
   iscrittoIniziale,
+  entraHref,
 }: {
   eventoId: string;
   areaSlug: string | null;
   organizzatoreId?: string | null;
   userId: string | null;
   iscrittoIniziale: boolean;
+  /** Diretta IN CORSO: il bottone dice «Iscriviti ed entra» e, iscritti, porta
+   *  qui in un gesto solo (decisione di Mario, vedi `faseIscrizione` in lib/live.ts). */
+  entraHref?: string;
 }) {
   const router = useRouter();
   const pathname = usePathname();
   const [iscritto, setIscritto] = useState(iscrittoIniziale);
   const [caricamento, setCaricamento] = useState(false);
+  const [errore, setErrore] = useState(false);
+  const etichetta = entraHref ? ETICHETTA_ISCRIVITI_ED_ENTRA : ETICHETTA_ISCRIVITI;
 
   // Visitatore non autenticato: non possiamo scrivere iscrizioni_eventi
   // (RLS richiede auth.uid()), lo mandiamo ad accedere prima.
@@ -33,13 +40,14 @@ export default function IscrivitiEventoButton({
         href={`/accedi?redirectedFrom=${encodeURIComponent(pathname)}`}
         className="inline-flex flex-none items-center justify-center rounded-full bg-kireo-green px-6 py-3 font-sans text-sm font-semibold text-kireo-light transition-colors hover:bg-kireo-green-light"
       >
-        Iscriviti
+        {etichetta}
       </Link>
     );
   }
 
   async function handleClick() {
     setCaricamento(true);
+    setErrore(false);
     try {
       const supabase = createClient();
       if (iscritto) {
@@ -53,7 +61,13 @@ export default function IscrivitiEventoButton({
         const { error } = await supabase
           .from("iscrizioni_eventi")
           .insert({ student_id: userId, evento_id: eventoId });
-        if (!error) {
+        if (error) {
+          // Un'iscrizione che non riesce non resta muta: per un ritardatario
+          // a diretta cominciata il silenzio è di nuovo una card che non dice
+          // niente.
+          console.error("IscrivitiEventoButton: iscrizione non riuscita", error);
+          setErrore(true);
+        } else {
           setIscritto(true);
           if (areaSlug) registraAttivita(areaSlug, "iscrizione_webinar");
           if (organizzatoreId) {
@@ -64,6 +78,11 @@ export default function IscrivitiEventoButton({
                 { onConflict: "student_id,istituzione_id", ignoreDuplicates: true },
               );
           }
+          // Un gesto solo: iscritti, si entra.
+          if (entraHref) {
+            router.push(entraHref);
+            return;
+          }
         }
       }
       router.refresh();
@@ -73,8 +92,11 @@ export default function IscrivitiEventoButton({
   }
 
   return (
-    <Button type="button" variant={iscritto ? "outline" : "primary"} onClick={handleClick} disabled={caricamento} className="flex-none">
-      {caricamento ? "Un momento…" : iscritto ? "Iscritto ✓" : "Iscriviti"}
-    </Button>
+    <div className="flex flex-none flex-col items-end gap-1">
+      <Button type="button" variant={iscritto ? "outline" : "primary"} onClick={handleClick} disabled={caricamento} className="flex-none">
+        {caricamento ? "Un momento…" : iscritto ? "Iscritto ✓" : etichetta}
+      </Button>
+      {errore && <p className="text-xs text-red-400">Non siamo riusciti a iscriverti. Riprova fra un momento.</p>}
+    </div>
   );
 }

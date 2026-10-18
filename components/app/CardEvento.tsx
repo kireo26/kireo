@@ -4,7 +4,7 @@ import EntraDirettaLink from "@/components/EntraDirettaLink";
 import type { Evento } from "@/lib/app/eventi";
 import { formattaDataOra } from "@/lib/formato";
 import { numeroOre } from "@/lib/eventi/orePcto";
-import { eventoCominciato } from "@/lib/live";
+import { faseIscrizione } from "@/lib/live";
 
 const ETICHETTA_TIPO: Record<Evento["tipo"], string> = {
   webinar: "Webinar",
@@ -27,17 +27,38 @@ export default function CardEvento({
   // studente — solo un'etichetta informativa, il bottone resta invariato.
   origineIscrizione?: "studente" | "scuola" | null;
 }) {
-  // UN EVENTO GIÀ COMINCIATO NON SI PRENOTA. `getEventiPerArea` non filtra per
-  // data — di proposito, un'area mostra anche quello che è già stato — quindi
-  // fino al 28/09 su /aree/[slug] un incontro finito mostrava comunque
-  // «Iscriviti»: un bottone che non serve a niente e promette qualcosa.
+  // TRE STATI, NON DUE (decisione di Mario, 18/10 — vedi `faseIscrizione` in
+  // lib/live.ts). Prima dell'inizio «Iscriviti»; a diretta IN CORSO «Iscriviti
+  // ed entra», un gesto solo; a evento finito niente.
   //
-  // È anche la risposta alla domanda «si può caricare un evento già tenuto?».
-  // Sì, e resta lecito: quello che non deve succedere è che la pagina poi
-  // chieda agli studenti di prenotarsi. Il fatto sta sull'EVENTO, non sul form
-  // che lo ha creato, quindi vale per un evento caricato a posteriori e per uno
-  // normale il giorno dopo.
-  const cominciato = eventoCominciato(evento.data_inizio);
+  // La metà del 28/09 resta: `getEventiPerArea` non filtra per data — di
+  // proposito, un'area mostra anche quello che è già stato — e un incontro
+  // FINITO non deve chiedere a nessuno di prenotarsi. Quello che è cambiato è
+  // l'evento in corso: lì iscriversi è la porta, e senza bottone la card era
+  // muta per chi arrivava in ritardo.
+  // ⚠️ «Entra» solo dove c'è una diretta in cui entrare: un webinar. Un
+  // incontro in presenza già cominciato resta senza bottone, come prima.
+  const fase = faseIscrizione(evento.data_inizio, evento.data_fine);
+  const hrefDiretta = `/app/eventi/${evento.id}/live`;
+  const iscrizione =
+    fase === "prima" ? (
+      <IscrivitiEventoButton
+        eventoId={evento.id}
+        areaSlug={areeSlugs[0] ?? null}
+        organizzatoreId={evento.organizzatore_id}
+        userId={userId}
+        iscrittoIniziale={iscritto}
+      />
+    ) : fase === "in_corso" && evento.tipo === "webinar" && !iscritto ? (
+      <IscrivitiEventoButton
+        eventoId={evento.id}
+        areaSlug={areeSlugs[0] ?? null}
+        organizzatoreId={evento.organizzatore_id}
+        userId={userId}
+        iscrittoIniziale={false}
+        entraHref={hrefDiretta}
+      />
+    ) : null;
 
   return (
     <li className="rounded-2xl border border-white/5 bg-kireo-card p-6">
@@ -55,7 +76,9 @@ export default function CardEvento({
                 {numeroOre(evento.ore_pcto)}h PCTO
               </span>
             )}
-            {iscritto && cominciato && (
+            {/* «Avevi» è un passato: vero solo a evento FINITO. A diretta in
+                corso il posto ce l'ha adesso, e il link per entrare è qui sotto. */}
+            {iscritto && fase === "finita" && (
               <span className="rounded-full bg-white/10 px-2.5 py-0.5 text-xs text-kireo-light/80">Avevi un posto</span>
             )}
             {iscritto && origineIscrizione === "scuola" && (
@@ -87,22 +110,14 @@ export default function CardEvento({
             </a>
           )}
           <EntraDirettaLink
-            href={`/app/eventi/${evento.id}/live`}
+            href={hrefDiretta}
             dataInizio={evento.data_inizio}
             dataFine={evento.data_fine}
             youtubeVideoId={evento.youtube_video_id}
             iscritto={iscritto}
           />
         </div>
-        {cominciato ? null : (
-          <IscrivitiEventoButton
-            eventoId={evento.id}
-            areaSlug={areeSlugs[0] ?? null}
-            organizzatoreId={evento.organizzatore_id}
-            userId={userId}
-            iscrittoIniziale={iscritto}
-          />
-        )}
+        {iscrizione}
       </div>
     </li>
   );

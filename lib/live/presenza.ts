@@ -90,6 +90,23 @@ export function testoRientro({
   return `Hai passato ${minuti(minutiFuori)} fuori da qui: in quel tempo la presenza non è stata contata.${riprende ? " Adesso riprende." : ""}`;
 }
 
+// ⚠️⚠️ IL RIQUADRO SEMPLICE NON CONTA COME VIDEO PARTITO (decisione di Mario,
+// 18/10, che rovescia la mia). Quando lo script di YouTube non si carica la
+// pagina mostra un iframe grezzo, che non dice niente: non sappiamo se il video
+// parte. Fino al 18/10 lo davamo per partito — «dove non sappiamo, conta».
+// La ragione per cui non regge è l'ASIMMETRIA DEL DANNO: darlo per partito può
+// certificare ore PCTO, su un documento che una scuola conserva, a qualcuno che
+// non ha visto niente — un errore irreversibile e silenzioso. Darlo per non
+// partito toglie dei minuti a qualcuno che forse guardava — reversibile, SE
+// LA PERSONA LO SA. Quindi la decisione vale solo con questa frase a schermo:
+// dove non sappiamo non assumiamo e non tacciamo, diciamo che non sappiamo e
+// diamo la cosa da fare. Testo di Mario, parola per parola. E ogni volta che
+// capita si registra (`/api/live/ripiego`, specie `misura_avvio_video`): una
+// decisione presa senza conoscere la frequenza deve portarsi dietro il modo di
+// impararla.
+export const TESTO_RIPIEGO =
+  "Non riusciamo a sapere se il video è partito, quindi la presenza non avanza. Ricarica la pagina — e se la stai guardando in una finestra in incognito, riaprila in una normale.";
+
 // SOPRA IL PLAYER (testi di Mario). La seconda riga solo sul telefono, dove
 // «Guarda su YouTube» sta dentro il video ed è il gesto più naturale quando il
 // video non parte.

@@ -6,7 +6,10 @@
 //      passati, dove non c'è nessun «Entra»);
 //   §2 chi trasmette sa quanti non vedono il video, e la console riprova la
 //      sonda finché la diretta è viva;
-//   §3 la finestra si sposta dal prodotto, e i testi dicono la cosa vera.
+//   §3 la finestra si sposta dal prodotto, e i testi dicono la cosa vera;
+//   §4 il riquadro semplice (script di YouTube non caricato) NON conta come
+//      video partito, lo studente lo legge, e ogni volta si conta;
+//   §5 «Iscriviti» torna a diretta in corso, come «Iscriviti ed entra».
 // Le metà SQL stanno in `scripts/verifica-player-e-finestra.sql`.
 const fs = require("fs");
 const path = require("path");
@@ -19,6 +22,7 @@ const { rigaPlayerRotti } = require("@/lib/eventi/videoDiretta");
 const { messaggioSpostaFinestra } = require("@/lib/eventi/spostaFinestra");
 const { istanteDaOrarioItaliano, orarioItalianoDaIstante } = require("@/lib/formato");
 const P = require("@/lib/live/presenza");
+const L = require("@/lib/live");
 const { trovaAccordi } = require("@/lib/lingua/accordoGenere");
 
 let fatte = 0;
@@ -132,7 +136,65 @@ console.log("\n§4 — la presenza comincia quando il video parte (18/10 sera)\n
   ok(/\{AVVISO_PLAYER\}/.test(pannello) && /sm:hidden">\{AVVISO_PLAYER_TELEFONO\}/.test(pannello), "l'avviso sopra il player, e la riga in più solo sul telefono");
   const player = leggi("components/live/PlayerDiretta.tsx");
   ok(/e\.data === 1\) onAvvioRef\.current/.test(player), "il player dice «partito» sullo stato in riproduzione");
-  ok(/if \(ripiego\) onAvvioRef\.current/.test(player), "nel ripiego (nessuna misura) si dichiara partito: dove non sappiamo, conta");
+}
+
+console.log("\n§4 — il riquadro semplice non conta come video partito (Mario, 18/10)\n");
+{
+  const player = leggi("components/live/PlayerDiretta.tsx");
+  const pannello = leggi("components/live/PannelloLive.tsx");
+  // ⚠️ La regola rovesciata: fino al 18/10 qui stava «nel ripiego si dichiara
+  // partito». Il primo errore (ore PCTO certificate a chi non ha visto niente)
+  // è irreversibile e silenzioso; il secondo è reversibile, se la persona lo sa.
+  ok(!/onAvvioRef\.current\?\.\(\)[^;]*;\s*\}, \[ripiego\]/.test(player) && !/if \(ripiego\) onAvvioRef/.test(player), "nel ripiego il player NON dichiara il video partito");
+  ok(/if \(ripiego\) onRipiegoRef\.current/.test(player), "…dice invece al genitore che siamo nel riquadro semplice");
+  ok((player.match(/onAvvioRef\.current\?\.\(\)/g) || []).length === 1, "«partito» ha UNA sola strada: lo stato in riproduzione dell'IFrame API");
+  ok(/onRipiego=\{segnaRipiego\}/.test(pannello), "il pannello ascolta il ripiego");
+  // …e la condizione senza cui la decisione non vale: dirlo, con la cosa da fare.
+  ok(P.TESTO_RIPIEGO === "Non riusciamo a sapere se il video è partito, quindi la presenza non avanza. Ricarica la pagina — e se la stai guardando in una finestra in incognito, riaprila in una normale.", "il testo è quello di Mario, parola per parola");
+  ok(/\{ripiego && \(/.test(pannello) && /\{TESTO_RIPIEGO\}/.test(pannello), "lo studente nel ripiego legge la frase");
+  ok(/\{!ripiego && inDiretta && necessari !== null/.test(pannello), "…al posto del contatore, che direbbe «finché il video non si vede» (qui falso: si vede, non sappiamo se è partito)");
+  ok(trovaAccordi(P.TESTO_RIPIEGO).length === 0, "il testo non concorda col genere di chi legge");
+  // Il ripiego non accende la presenza per nessuna strada: `avviato` resta falso.
+  ok(!P.presenzaConta({ inDiretta: true, videoRotto: false, avviato: false }), "senza avvio la presenza non conta — ed è l'unica cosa che il ripiego lascia");
+  // E la frequenza si impara: una riga per caricamento di pagina, mai di più.
+  ok(/fetch\("\/api\/live\/ripiego"/.test(pannello) && /if \(ripiegoContato\.current\) return;/.test(pannello), "ogni ripiego si conta, una volta per pagina");
+  const route = leggi("app/api/live/ripiego/route.ts");
+  ok(/specie: "misura_avvio_video"/.test(route), "…in `guasti`, con una specie sua");
+  ok(/from\("iscrizioni_eventi"\)/.test(route) && /motivo: "non_iscritto"/.test(route), "…solo per chi è iscritto all'evento: la riga conta studenti davanti a una diretta");
+  ok(/diProva: profilo\?\.di_prova === true/.test(route), "…e separa il robot dagli studenti veri");
+  // Nota 3: «Adesso riprende» solo se il conteggio riparte davvero — nel
+  // ripiego non riparte, e `riprende` nasce da `contaRef`, cioè da `contaLaPresenza`.
+  ok(/riprende: !finita && contaRef\.current/.test(pannello), "«Adesso riprende» nasce dal conteggio vero, non da una speranza");
+}
+
+console.log("\n§5 — «Iscriviti» torna mentre la diretta è in corso (Mario, 18/10)\n");
+{
+  const ev = ["2026-10-18T15:00:00Z", "2026-10-18T15:45:00Z"];
+  const a = (iso) => new Date(iso);
+  ok(L.faseIscrizione(...ev, a("2026-10-18T14:50:00Z")) === "prima", "dieci minuti prima: «prima» (nel pre-roll l'evento non è cominciato)");
+  ok(L.faseIscrizione(...ev, a("2026-10-18T15:00:00Z")) === "in_corso", "all'inizio esatto: in corso");
+  ok(L.faseIscrizione(...ev, a("2026-10-18T15:03:00Z")) === "in_corso", "alle 17:03: in corso — iscriversi è la porta");
+  ok(L.faseIscrizione(...ev, a("2026-10-18T15:45:00Z")) === "finita", "alla fine esatta: finita (stesso confine di `eventoNonFinito`)");
+  ok(L.faseIscrizione("2026-10-18T15:00:00Z", null, a("2026-10-18T17:59:00Z")) === "in_corso" && L.faseIscrizione("2026-10-18T15:00:00Z", null, a("2026-10-18T18:00:00Z")) === "finita", "senza fine: tre ore, come `fineDiretta`");
+  // La stessa fine di `eventoNonFinito`: due confini diversi sono due Agende diverse.
+  for (const t of ["2026-10-18T15:44:59Z", "2026-10-18T15:45:00Z", "2026-10-18T14:00:00Z"]) {
+    const coincide = (L.faseIscrizione(...ev, a(t)) !== "finita") === eventoNonFinito({ data_inizio: ev[0], data_fine: ev[1] }, a(t));
+    ok(coincide, `«non finita» coincide con \`eventoNonFinito\` alle ${t}`);
+  }
+  ok(L.ETICHETTA_ISCRIVITI_ED_ENTRA === "Iscriviti ed entra" && L.ETICHETTA_ISCRIVITI === "Iscriviti", "le due etichette di Mario");
+
+  const card = leggi("components/app/CardEvento.tsx");
+  ok(/faseIscrizione\(evento\.data_inizio, evento\.data_fine\)/.test(card), "la card dello studente decide sulla fase");
+  ok(/fase === "in_corso" && evento\.tipo === "webinar" && !iscritto \? \(/.test(card), "a diretta in corso, a chi non è iscritto, un bottone — solo per un webinar, dove c'è una diretta in cui entrare");
+  const ramoInCorso = card.slice(card.indexOf('fase === "in_corso"'), card.indexOf(") : null;"));
+  ok(/entraHref=\{hrefDiretta\}/.test(ramoInCorso), "…ed è «Iscriviti ed entra»: porta alla diretta in un gesto solo");
+  ok(!/fase === "finita" \? \(/.test(card), "a evento finito niente, come prima");
+  const bottone = leggi("components/app/IscrivitiEventoButton.tsx");
+  ok(/if \(entraHref\) \{\s*router\.push\(entraHref\);\s*return;/.test(bottone), "iscritti, si entra: nessun secondo bottone da cercare");
+  ok(bottone.indexOf("router.push(entraHref)") > bottone.indexOf("setIscritto(true)"), "…e solo DOPO che l'iscrizione è riuscita (entrare senza iscrizione porterebbe a «non risulti iscritto»)");
+  ok(/setErrore\(true\)/.test(bottone), "un'iscrizione che non riesce lo dice, invece di lasciare di nuovo una card muta");
+  const docente = leggi("components/docente/CardWebinarDocente.tsx");
+  ok(/faseIscrizione\(/.test(docente) && /entraHref=\{hrefDiretta\}/.test(docente) && /fase === "prima"/.test(docente), "lo stesso nell'area docente (dove fino al 18/10 «Iscriviti» compariva anche su un webinar finito)");
 }
 
 console.log(`\n${falliti === 0 ? "✓" : "✗"} ${fatte - falliti}/${fatte} proprietà verificate`);

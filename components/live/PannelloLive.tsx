@@ -17,6 +17,7 @@ import {
   presenzaConta,
   testoContatore,
   testoRientro,
+  TESTO_RIPIEGO,
 } from "@/lib/live/presenza";
 
 // Ogni quanto il player rotto si RIPROVA (e la segnalazione alla console si
@@ -77,6 +78,28 @@ export default function PannelloLive({
   // stanno in `presenzaConta` (lib/live/presenza.ts).
   const [avviato, setAvviato] = useState(false);
   const segnaAvvio = useCallback(() => setAvviato(true), []);
+  // IL RIQUADRO SEMPLICE: lo script di YouTube non si è caricato, il video
+  // forse si vede ma il suo avvio non lo sappiamo — quindi `avviato` resta
+  // falso e la presenza non avanza (decisione di Mario, vedi `TESTO_RIPIEGO`).
+  // Si registra una volta per caricamento della pagina: è la frequenza che la
+  // decisione deve poter imparare. Un fallimento si logga e basta — la frase
+  // allo studente non dipende da questa riga.
+  const [ripiego, setRipiego] = useState(false);
+  const ripiegoContato = useRef(false);
+  const segnaRipiego = useCallback(() => {
+    setRipiego(true);
+    if (ripiegoContato.current) return;
+    ripiegoContato.current = true;
+    fetch("/api/live/ripiego", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ eventoId }),
+    })
+      .then((r) => {
+        if (!r.ok) console.error("PannelloLive: ripiego del player non registrato", r.status);
+      })
+      .catch((e) => console.error("PannelloLive: ripiego del player non registrato", e));
+  }, [eventoId]);
   const contaLaPresenza = presenzaConta({ inDiretta, videoRotto: !presenzaDaContare(esitoPlayer), avviato });
   useHeartbeatDiretta(eventoId, stato === "in_corso" && contaLaPresenza);
 
@@ -233,7 +256,15 @@ export default function PannelloLive({
           {inDiretta ? "In diretta" : testoAttesaDiretta(dataInizio, ora)}
           {contaLaPresenza && contati === null ? " · presenza in rilevamento" : ""}
         </p>
-        {inDiretta && necessari !== null && contati !== null && (
+        {/* Nel riquadro semplice il contatore direbbe «finché il video non si
+            vede», che qui è falso: il video forse si vede, è il suo avvio che non
+            sappiamo. Al suo posto la frase di Mario, che dice anche cosa fare. */}
+        {ripiego && (
+          <p className="mt-2 rounded-lg border border-kireo-orange/40 bg-kireo-orange/10 px-3 py-2 text-sm text-kireo-light" role="status">
+            {TESTO_RIPIEGO}
+          </p>
+        )}
+        {!ripiego && inDiretta && necessari !== null && contati !== null && (
           <p className="mt-1 text-sm text-kireo-light/90" aria-live="polite">
             {testoContatore(contati, necessari, contaLaPresenza)}
           </p>
@@ -269,6 +300,7 @@ export default function PannelloLive({
               onErrore={segnalaErrorePlayer}
               onPronto={segnalaPlayerPronto}
               onAvvio={segnaAvvio}
+              onRipiego={segnaRipiego}
             />
           </div>
           {videoRotto && (

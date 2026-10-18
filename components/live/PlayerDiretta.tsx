@@ -11,9 +11,9 @@ import { type EsitoSonda, esitoDaCodiceErrore } from "@/lib/sondaYoutube";
 //
 // SE L'API NON SI CARICA SI TORNA ALL'IFRAME, che è quello che c'era fino al
 // 4/10 e funziona: un bloccante di script o una rete che non arriva a
-// youtube.com non devono lasciare uno studente senza video. In quel ramo non
-// si dichiara niente — nessun errore, quindi la presenza continua a contare,
-// che è la direzione giusta dove non sappiamo.
+// youtube.com non devono lasciare uno studente senza video. ⚠️ Ma in quel ramo
+// la presenza NON conta (dal 18/10, decisione di Mario): il video si vede, il
+// suo avvio no, e la pagina lo dice.
 
 // Dopo `onReady` si concede un momento prima di dire «si vede»: per un video
 // con l'incorporamento bloccato il player può dirsi pronto e poi sollevare
@@ -26,6 +26,7 @@ export default function PlayerDiretta({
   onErrore,
   onPronto,
   onAvvio,
+  onRipiego,
 }: {
   videoId: string;
   titolo: string;
@@ -37,6 +38,9 @@ export default function PlayerDiretta({
   /** Il video è partito (stato «in riproduzione») almeno una volta. Dal 18/10
    *  la presenza comincia da qui: prima non c'è niente da seguire. */
   onAvvio?: () => void;
+  /** Lo script di YouTube non si è caricato e la pagina mostra il riquadro
+   *  semplice: da qui non sappiamo se il video parte. */
+  onRipiego?: () => void;
 }) {
   const contenitoreRef = useRef<HTMLDivElement>(null);
   // La callback in un ref: così l'effetto non dipende da lei e il player non
@@ -49,19 +53,21 @@ export default function PlayerDiretta({
   const onErroreRef = useRef(onErrore);
   const onProntoRef = useRef(onPronto);
   const onAvvioRef = useRef(onAvvio);
+  const onRipiegoRef = useRef(onRipiego);
   useEffect(() => {
     onErroreRef.current = onErrore;
     onProntoRef.current = onPronto;
     onAvvioRef.current = onAvvio;
-  }, [onErrore, onPronto, onAvvio]);
+    onRipiegoRef.current = onRipiego;
+  }, [onErrore, onPronto, onAvvio, onRipiego]);
   const [ripiego, setRipiego] = useState(false);
 
-  // NEL RIPIEGO NON SAPPIAMO SE IL VIDEO PARTE: un iframe grezzo non dice
-  // niente. Si dichiara avviato — la regola di sempre, «dove non sappiamo, la
-  // presenza conta» — invece di togliere le ore a chi ha un bloccante di script
-  // e magari sta guardando benissimo.
+  // NEL RIPIEGO NON SAPPIAMO SE IL VIDEO PARTE, e dal 18/10 NON SI DICHIARA
+  // PARTITO (decisione di Mario: vedi `TESTO_RIPIEGO` in lib/live/presenza.ts
+  // per il perché). `onAvvio` qui non si chiama mai: si avvisa il genitore che
+  // siamo nel riquadro semplice, e lui lo dice allo studente e lo conta.
   useEffect(() => {
-    if (ripiego) onAvvioRef.current?.();
+    if (ripiego) onRipiegoRef.current?.();
   }, [ripiego]);
 
   useEffect(() => {

@@ -121,6 +121,34 @@ export function eventoCominciato(dataInizio: string, ora: Date = new Date()): bo
   return new Date(dataInizio).getTime() <= ora.getTime();
 }
 
+// L'ISCRIZIONE HA TRE STATI, NON DUE (decisione di Mario, 18/10). La scelta del
+// 28/09 — «una prenotazione per una cosa già iniziata non serve» — vale per un
+// evento FINITO, non per uno in corso: alle 17:03 iscriversi a una diretta non è
+// una prenotazione, è la porta. Fino al 18/10 chi arrivava in ritardo e non era
+// iscritto trovava una card muta, senza bottone e senza spiegazione.
+//
+//   prima     «Iscriviti»
+//   in_corso  «Iscriviti ed entra» — UN GESTO SOLO: chiedere a un ritardatario
+//             di premere «Iscriviti» e poi cercare «Entra» è la stessa trappola
+//             spostata di dieci secondi
+//   finita    niente, come prima
+//
+// La fine è la stessa di `eventoNonFinito` (lib/app/eventi.ts) e di
+// `fineDiretta`: senza `data_fine`, tre ore dopo l'inizio. «In corso» comincia
+// all'inizio VERO e non quindici minuti prima: nel pre-roll l'evento non è
+// cominciato, e «Iscriviti» resta la parola giusta.
+// ⚠️ «Entra» ha senso solo dove c'è una diretta in cui entrare: lo decide chi
+// chiama (un webinar sì, un incontro in presenza no), non questa funzione.
+export type FaseIscrizione = "prima" | "in_corso" | "finita";
+
+export function faseIscrizione(dataInizio: string, dataFine: string | null, ora: Date = new Date()): FaseIscrizione {
+  if (!eventoCominciato(dataInizio, ora)) return "prima";
+  return new Date(fineDiretta(dataInizio, dataFine)).getTime() > ora.getTime() ? "in_corso" : "finita";
+}
+
+export const ETICHETTA_ISCRIVITI = "Iscriviti";
+export const ETICHETTA_ISCRIVITI_ED_ENTRA = "Iscriviti ed entra";
+
 // Il link "Entra nella diretta" appare da 15 minuti prima dell'inizio fino
 // alla chiusura, indipendentemente da youtube_video_id: se l'id manca
 // ancora la pagina live mostra comunque uno stato onesto ("diretta in

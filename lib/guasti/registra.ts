@@ -63,6 +63,7 @@ export type SpecieGuasto =
   | "consegna_esaurita" // le letture di una consegna sono finite e il testo resta non valutato
   // — artefatti della diretta stessa
   | "video_diretta" // il player di uno studente non riproduce il video (scritta da `segnala_player_live`)
+  | "misura_avvio_video" // il riquadro semplice: non sappiamo se il video è partito, la presenza non avanza
 
   // — artefatti del workshop fuori dal cron
   | "feedback_elaborato" // il feedback finale della route consegna (v1)
