@@ -3,6 +3,7 @@ import IscrivitiEventoButton from "./IscrivitiEventoButton";
 import EntraDirettaLink from "@/components/EntraDirettaLink";
 import type { Evento } from "@/lib/app/eventi";
 import { formattaDataOra } from "@/lib/formato";
+import { numeroOre } from "@/lib/eventi/orePcto";
 import { eventoCominciato } from "@/lib/live";
 
 const ETICHETTA_TIPO: Record<Evento["tipo"], string> = {
@@ -51,7 +52,7 @@ export default function CardEvento({
             </span>
             {evento.ore_pcto > 0 && (
               <span className="rounded-full bg-kireo-green/15 px-2.5 py-0.5 text-xs font-semibold text-kireo-green-light">
-                {evento.ore_pcto}h PCTO
+                {numeroOre(evento.ore_pcto)}h PCTO
               </span>
             )}
             {iscritto && cominciato && (

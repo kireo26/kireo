@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getDettaglioStudente } from "@/lib/scuola/studenteDettaglio";
 import { etichettaPrincipaleStudente, nomeCompletoStudente } from "@/lib/scuola/formatStudente";
 import { formattaData } from "@/lib/formato";
+import { numeroOre } from "@/lib/eventi/orePcto";
 
 const ETICHETTA_CERTIFICATORE: Record<string, string> = {
   sistema: "Certificato automaticamente",
@@ -56,7 +57,7 @@ export default async function ScuolaStudenteDettaglioPage({ params }: { params: 
         </div>
         <div className="rounded-2xl border border-white/5 bg-kireo-card p-5">
           <p className="text-xs font-semibold uppercase tracking-wide text-kireo-muted">Ore PCTO certificate</p>
-          <p className="mt-1 font-heading text-lg font-semibold text-kireo-light">{studente.totaleOrePcto}</p>
+          <p className="mt-1 font-heading text-lg font-semibold text-kireo-light">{numeroOre(studente.totaleOrePcto)}</p>
         </div>
       </div>
 
@@ -71,7 +72,7 @@ export default async function ScuolaStudenteDettaglioPage({ params }: { params: 
                 <p className="font-heading text-sm font-semibold text-kireo-light">{p.titolo}</p>
                 <p className="mt-1 text-xs text-kireo-muted">
                   {p.dataInizio && formattaData(p.dataInizio, "long")}
-                  {p.orePcto > 0 && ` · ${p.orePcto}h PCTO`}
+                  {p.orePcto > 0 && ` · ${numeroOre(p.orePcto)}h PCTO`}
                 </p>
                 <p className="mt-1 text-xs text-kireo-muted">
                   {(p.certificataDaTipo && ETICHETTA_CERTIFICATORE[p.certificataDaTipo]) ?? "Certificato"}

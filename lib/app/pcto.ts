@@ -44,8 +44,8 @@ export const TRAGUARDO_ORE_PCTO = 90;
 // CHIAMANO: `npm run test:ore` pretende che nessun `.tsx` se la riscriva, così
 // la terza copia non nasce domani.
 export function testoOreCertificate(ore: number): string {
-  // Un decimale, la precisione vera delle colonne.
-  const mostrate = Math.round(ore * 10) / 10;
+  // Due decimali, la precisione vera delle colonne dal 18/10 (`20261018110000`).
+  const mostrate = Math.round(ore * 100) / 100;
   const unita = mostrate === 1 ? "ora certificata" : "ore certificate";
   return `${formattaNumero(mostrate)} ${unita} su ${formattaNumero(TRAGUARDO_ORE_PCTO)}`;
 }

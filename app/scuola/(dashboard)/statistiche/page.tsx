@@ -1,6 +1,7 @@
 import { getScuolaContext } from "@/lib/scuola/context";
 import { createClient } from "@/lib/supabase/server";
 import { getAreaBySlug } from "@/data/aree";
+import { numeroOre } from "@/lib/eventi/orePcto";
 
 export default async function ScuolaStatistichePage() {
   const contesto = await getScuolaContext();
@@ -33,7 +34,7 @@ export default async function ScuolaStatistichePage() {
         </div>
         <div className="rounded-2xl border border-white/5 bg-kireo-card p-5">
           <p className="text-xs font-semibold uppercase tracking-wide text-kireo-muted">Ore PCTO totali</p>
-          <p className="mt-1 font-heading text-3xl font-bold text-kireo-light">{stats?.ore_pcto_totali ?? 0}</p>
+          <p className="mt-1 font-heading text-3xl font-bold text-kireo-light">{numeroOre(stats?.ore_pcto_totali)}</p>
         </div>
       </div>
 

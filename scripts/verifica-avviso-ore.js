@@ -63,7 +63,7 @@ function caricaModulo(rel, risolvi) {
 const formato = caricaModulo("lib/formato.ts", () => {
   throw new Error("lib/formato.ts non deve importare niente");
 });
-const { avvisoOrePcto, durataOre, durataLeggibile, FATTORE_ORE_SOSPETTE } = caricaModulo(
+const { avvisoOrePcto, durataOre, durataLeggibile, FATTORE_ORE_SOSPETTE, erroreOrePcto, numeroOre } = caricaModulo(
   "lib/eventi/orePcto.ts",
   (nome) => {
     if (nome === "@/lib/formato") return formato;
@@ -236,9 +236,48 @@ console.log("\n§5 — è un avviso, non un errore\n");
   // numero». L'avviso tace su `NaN` (e tace giustamente, non ha niente da
   // confrontare), ma tacere non è una risposta.
   ok(validate.includes("next.orePcto"), "un campo ore non numerico viene respinto SUL CAMPO, non in generale");
-  ok(/Number\.isFinite\(Number\(orePcto\)\)/.test(validate), "e il rifiuto chiede un numero finito");
-  ok(/Number\(orePcto\) >= 0/.test(validate), "e non negativo: il database lo rifiuterebbe senza dire quale campo");
-  ok(/orePcto\.trim\(\) !== ""/.test(validate), "il campo vuoto NON è un errore: vale zero, come dice l'etichetta");
+  // Dal 18/10 la regola sta in `erroreOrePcto` (lib), e le proprietà la
+  // CHIAMANO invece di leggerne il sorgente nel form: la prima stesura leggeva
+  // `Number.isFinite(Number(orePcto))` dentro `validate`, ed è diventata rossa
+  // su codice giusto il giorno in cui la regola è uscita dal componente.
+  ok(/erroreOrePcto\(orePcto\)/.test(validate), "il form chiede la regola a `erroreOrePcto`, non la riscrive");
+  ok(erroreOrePcto("abc") !== null && erroreOrePcto("Infinity") !== null, "e il rifiuto chiede un numero finito");
+  ok(erroreOrePcto("-1") !== null, "e non negativo: il database lo rifiuterebbe senza dire quale campo");
+  ok(erroreOrePcto("") === null && erroreOrePcto("  ") === null, "il campo vuoto NON è un errore: vale zero, come dice l'etichetta");
+  // §6bis — IL TERZO DECIMALE (Mario, 18/10): se il database non può tenere il
+  // numero che una persona ha scritto, o lo rifiutiamo o glielo diciamo — mai
+  // cambiarlo in silenzio. Le colonne sono `numeric(6,2)`.
+  ok(erroreOrePcto("0.75") === null, "quarantacinque minuti si dichiarano (0,75)");
+  ok(erroreOrePcto("0.750") === null, "…e gli zeri in coda non sono decimali persi");
+  {
+    const e = erroreOrePcto("0.755");
+    ok(e !== null && /due decimali/.test(e), "un terzo decimale si RIFIUTA, invece di diventare 0,76 in silenzio", String(e));
+  }
+  ok(/step="0\.25"/.test(src) && !/step="0\.5"/.test(src), "il campo va a quarti d'ora, l'unità naturale del PCTO");
+  ok(numeroOre(0.75) === "0,75" && numeroOre("1.50") === "1,5" && numeroOre(1.1 + 2.2) === "3,3", "le ore si stampano con la virgola e senza rumore (anche da stringa)");
+  // NESSUNA ORA GREZZA NELLE PAGINE: sei posti stampavano `{x.ore_pcto}h` col
+  // punto. Si cerca la forma, non i sei file: il settimo nascerebbe uguale.
+  {
+    const { readdirSync, statSync } = require("node:fs");
+    const grezze = [];
+    const scorri = (dir) => {
+      for (const n of readdirSync(join(RADICE, dir))) {
+        const rel = join(dir, n);
+        if (statSync(join(RADICE, rel)).isDirectory()) { if (n !== "node_modules") scorri(rel); continue; }
+        if (!/\.tsx$/.test(n)) continue;
+        const t = senzaCommenti(readFileSync(join(RADICE, rel), "utf8"));
+        // Esclusi per forma, non per file: `value={orePcto}` è la stringa che
+        // l'ente sta digitando, `{errori.orePcto}` è un messaggio d'errore.
+        for (const m of t.matchAll(/\{\s*[\w?.]*(?:ore_pcto|orePcto|totaleOrePcto|ore_pcto_totali)[\w?. ]*(?:\?\?\s*0)?\s*\}/g)) {
+          if (/errori\./.test(m[0]) || /value=$/.test(t.slice(Math.max(0, m.index - 6), m.index))) continue;
+          grezze.push(`${rel}: ${m[0]}`);
+        }
+        for (const m of t.matchAll(/\$\{\s*[\w?.]*(?:ore_pcto|orePcto)\s*\}h/g)) grezze.push(`${rel}: ${m[0]}`);
+      }
+    };
+    scorri("app"); scorri("components");
+    ok(grezze.length === 0, "nessuna pagina stampa un numero di ore senza passare da `numeroOre`", grezze.join(" | "));
+  }
   ok(
     src.includes("fieldBorder(Boolean(errori.orePcto))") && src.includes("{errori.orePcto}"),
     "e il rifiuto si vede sul campo: bordo e messaggio, come gli altri",

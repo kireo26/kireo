@@ -5,6 +5,7 @@ import IscriviClasseEventoForm from "@/components/scuola/IscriviClasseEventoForm
 import IscriviTuttiVerificatiButton from "@/components/scuola/IscriviTuttiVerificatiButton";
 import RegistroPresenzeEvento from "@/components/scuola/RegistroPresenzeEvento";
 import { formattaData, formattaDataOra } from "@/lib/formato";
+import { numeroOre } from "@/lib/eventi/orePcto";
 
 export default async function ScuolaEventiPage() {
   const contesto = await getScuolaContext();
@@ -51,7 +52,7 @@ export default async function ScuolaEventiPage() {
                 <p className="font-heading text-sm font-semibold text-kireo-light">{e.titolo}</p>
                 <p className="mt-1 text-xs text-kireo-muted">
                   {formattaDataOra(e.data_inizio, "long")}
-                  {e.ore_pcto > 0 && ` · ${e.ore_pcto}h PCTO`}
+                  {e.ore_pcto > 0 && ` · ${numeroOre(e.ore_pcto)}h PCTO`}
                 </p>
                 {contesto.puoGestireClassi ? (
                   <>

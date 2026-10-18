@@ -11,7 +11,7 @@ import { estraiIdYoutube } from "@/lib/youtube";
 import { messaggioErroreEvento } from "@/lib/ente/erroreEvento";
 import { istanteDaOrarioItaliano, millisecondiDaOrarioItaliano } from "@/lib/formato";
 import { eventoCominciato } from "@/lib/live";
-import { avvisoOrePcto } from "@/lib/eventi/orePcto";
+import { avvisoOrePcto, erroreOrePcto } from "@/lib/eventi/orePcto";
 import { useSondaIncorporamento } from "@/lib/useSondaIncorporamento";
 import { serveDichiarazioneIncorporamento, sondaBlocca, testoSonda } from "@/lib/sondaYoutube";
 import EsitoSondaIncorporamento from "@/components/EsitoSondaIncorporamento";
@@ -167,9 +167,8 @@ export default function CreaEventoForm({
     //
     // Il campo vuoto NON è un errore: `Number("")` è 0, e l'invio manda 0 —
     // «0 se non applicabile» è quello che dice l'etichetta.
-    if (orePcto.trim() !== "" && !(Number.isFinite(Number(orePcto)) && Number(orePcto) >= 0)) {
-      next.orePcto = "Le ore devono essere un numero, zero o più.";
-    }
+    const erroreOre = erroreOrePcto(orePcto);
+    if (erroreOre) next.orePcto = erroreOre;
     // Un orario che non si sa leggere non si scrive con un ripiego: si dice
     // qui, dove l'ente può ancora correggerlo. Il browser produce sempre la
     // forma giusta, quindi questo ramo è una rete — ma una rete che parla.
@@ -383,7 +382,7 @@ export default function CreaEventoForm({
             id="orePcto"
             type="number"
             min="0"
-            step="0.5"
+            step="0.25"
             value={orePcto}
             onChange={(e) => setOrePcto(e.target.value)}
             aria-invalid={Boolean(errori.orePcto)}

@@ -75,13 +75,18 @@ for (const [n, atteso] of rumorosi) {
 // direbbe «1 ore certificate» — il difetto di partenza, ricreato dalla cura.
 console.log("\n4) Il singolare segue il numero come viene mostrato");
 
-for (const n of [0.99, 1.02, 0.9999999999, 1 - Number.EPSILON]) {
+for (const n of [0.996, 1.004, 0.9999999999, 1 - Number.EPSILON]) {
   const t = testoOreCertificate(n);
   ok(t === "1 ora certificata su 90", `${n} → «${t}»`);
 }
-// E il confine: a 0,95 si arrotonda a 1,0 (singolare), a 0,94 a 0,9 (plurale).
-ok(testoOreCertificate(0.95) === "1 ora certificata su 90", `0,95 → «${testoOreCertificate(0.95)}»`);
-ok(testoOreCertificate(0.94) === "0,9 ore certificate su 90", `0,94 → «${testoOreCertificate(0.94)}»`);
+// E il confine, a DUE decimali dal 18/10 (le colonne sono `numeric(6,2)`):
+// 0,995 si arrotonda a 1,00 (singolare), 0,994 a 0,99 (plurale). Prima il
+// confine stava a 0,95/0,94, e una colonna a un decimale lo giustificava.
+ok(testoOreCertificate(0.995) === "1 ora certificata su 90", `0,995 → «${testoOreCertificate(0.995)}»`);
+ok(testoOreCertificate(0.994) === "0,99 ore certificate su 90", `0,994 → «${testoOreCertificate(0.994)}»`);
+// IL CASO CHE HA APERTO IL LAVORO: quarantacinque minuti. Con un decimale si
+// stampava 0,8 — un numero che l'ente non aveva mai scritto.
+ok(testoOreCertificate(0.75) === "0,75 ore certificate su 90", `0,75 → «${testoOreCertificate(0.75)}» (era «0,8»)`);
 
 // ── 5) il traguardo non ha una seconda strada ───────────────────────────────
 console.log("\n5) Il traguardo passa dallo stesso formattatore");

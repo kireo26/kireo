@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Evento } from "@/lib/app/eventi";
 import { formattaData } from "@/lib/formato";
+import { numeroOre } from "@/lib/eventi/orePcto";
 
 export default function CardEventiPerTe({ eventi }: { eventi: Evento[] }) {
   return (
@@ -29,7 +30,7 @@ export default function CardEventiPerTe({ eventi }: { eventi: Evento[] }) {
               </div>
               {e.ore_pcto > 0 && (
                 <span className="flex-none rounded-full bg-kireo-green/15 px-2.5 py-0.5 text-xs font-semibold text-kireo-green-light">
-                  {e.ore_pcto}h PCTO
+                  {numeroOre(e.ore_pcto)}h PCTO
                 </span>
               )}
             </li>

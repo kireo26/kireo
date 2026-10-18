@@ -35,7 +35,7 @@
 // evento di tre ore che ne vale una è normale (ne conta una parte), e zero ore
 // è il caso più comune di tutti. Avvisare lì sarebbe un avviso che suona sempre.
 
-import { millisecondiDaOrarioItaliano } from "@/lib/formato";
+import { formattaNumero, millisecondiDaOrarioItaliano } from "@/lib/formato";
 
 /** Quante volte la durata programmata le ore possono superare prima che si dica qualcosa. */
 export const FATTORE_ORE_SOSPETTE = 2;
@@ -57,8 +57,10 @@ export function durataOre(dataInizio: string, dataFine: string): number | null {
 }
 
 /** Il numero come lo scrive un italiano: «0,5», «1,5», «12». */
+// Una strada sola per scrivere un numero di ore: `numeroOre`, più sotto (prima
+// qui c'era una seconda copia, `String(…).replace(".", ",")`).
 function conLaVirgola(n: number): string {
-  return String(Math.round(n * 100) / 100).replace(".", ",");
+  return numeroOre(n);
 }
 
 /** Una durata come la leggerebbe una persona: «5 minuti», «1 ora e 30 minuti», «2 ore». */
@@ -104,4 +106,47 @@ export function avvisoOrePcto(ore: number, dataInizio: string, dataFine: string)
   if (durata === null) return null;
   if (ore <= durata * FATTORE_ORE_SOSPETTE) return null;
   return `Stai dichiarando ${oreLeggibili(ore)} per un incontro di ${durataLeggibile(durata)}. Le ore PCTO finiscono su un documento che la scuola conserva: se il numero è giusto vai avanti, altrimenti correggilo.`;
+}
+
+// ─────────────────── LE ORE COME LE LEGGE UNA PERSONA ───────────────────────
+//
+// Sei posti stampavano le ore grezze — `{e.ore_pcto}h PCTO` — cioè col PUNTO
+// in una pagina in italiano, e due (il totale della scheda studente e le
+// statistiche della scuola) sommavano in JavaScript, quindi col rumore della
+// virgola mobile. Lo stesso difetto già chiuso il 4/10 sul contatore dello
+// studente (`testoOreCertificate`), che lì non era arrivato.
+//
+// Due decimali, la precisione delle colonne dal 18/10 (`20261018110000`):
+// l'arrotondamento esplicito toglie il rumore, `formattaNumero` mette la
+// virgola. `numeric` arriva da PostgREST come stringa: si accetta.
+export function numeroOre(ore: number | string | null | undefined): string {
+  const n = Number(ore ?? 0);
+  return formattaNumero(Number.isFinite(n) ? Math.round(n * 100) / 100 : 0);
+}
+
+// ─────────────────── IL CAMPO, E LA REGOLA DEL TERZO DECIMALE ───────────────
+//
+// ⚠️ SE IL DATABASE NON PUÒ TENERE IL NUMERO CHE UNA PERSONA HA SCRITTO, O LO
+// RIFIUTIAMO O GLIELO DICIAMO — MAI CAMBIARLO IN SILENZIO (Mario, 18/10). Fino
+// a oggi la colonna era a un decimale e 0,75 diventava 0,8 senza che nessuno
+// lo dicesse all'ente. Da `20261018110000` la colonna tiene due decimali, e il
+// troncamento si è solo SPOSTATO al terzo: un 0,333 diventerebbe 0,33. Quindi
+// lo rifiutiamo qui, dove l'ente può ancora scrivere quello che intende.
+//
+// Il campo vuoto NON è un errore: «0 se non applicabile» è quello che dice
+// l'etichetta, e l'invio manda 0.
+export const DECIMALI_ORE_PCTO = 2;
+
+export function erroreOrePcto(valore: string): string | null {
+  const v = valore.trim();
+  if (v === "") return null;
+  const n = Number(v);
+  if (!(Number.isFinite(n) && n >= 0)) return "Le ore devono essere un numero, zero o più.";
+  // Si guarda la STRINGA, non il numero: `Number("0.750")` è 0,75 ed è
+  // legittimo, `0.755` no. Gli zeri in coda non sono decimali persi.
+  const decimali = (v.split(".")[1] ?? "").replace(/0+$/, "");
+  if (decimali.length > DECIMALI_ORE_PCTO) {
+    return "Le ore si scrivono con al massimo due decimali, per esempio 0,75 per quarantacinque minuti.";
+  }
+  return null;
 }
