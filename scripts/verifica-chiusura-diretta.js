@@ -342,9 +342,9 @@ console.log("\n§6 — il poll non degrada verso «non chiusa»\n");
   const pollata = fettaOppureRosso(
     src,
     { nome: "const aggiorna = useCallback", dove: "l'inizio del poll" },
-    // I due `useEffect(() =>` sono il poll e l'orologio della freschezza
-    // (11/10): la fetta del poll finisce al PRIMO.
-    { nome: "useEffect(() =>", volte: 2, quale: 0, dove: "l'effetto che lo monta, subito dopo" },
+    // I tre `useEffect(() =>` sono il poll, l'orologio della freschezza
+    // (11/10) e il giro della sonda (18/10): la fetta del poll finisce al PRIMO.
+    { nome: "useEffect(() =>", volte: 3, quale: 0, dove: "l'effetto che lo monta, subito dopo" },
     "il poll",
   );
   ok(

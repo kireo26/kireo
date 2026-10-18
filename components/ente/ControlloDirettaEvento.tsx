@@ -19,6 +19,17 @@ import {
 } from "@/lib/eventi/chiusuraDiretta";
 import { rigaTocco } from "@/lib/eventi/tocco";
 import { rigaFreschezza, numeroStantio, numeroFermoAlle, type Freschezza } from "@/lib/eventi/freschezza";
+import { statoDiretta } from "@/lib/live";
+import { useSondaIncorporamento } from "@/lib/useSondaIncorporamento";
+import { sondaBlocca, testoSonda } from "@/lib/sondaYoutube";
+import { formattaOra } from "@/lib/formato";
+import { rigaPlayerRotti } from "@/lib/eventi/videoDiretta";
+
+// Ogni quanto la console RIFA la sonda sull'incorporamento finché la finestra
+// della diretta è aperta (18/10: «Allow embedding» si è spento da solo al Go
+// live). Due minuti: abbastanza spesso da accorgersene prima che una classe lo
+// faccia notare, abbastanza di rado da non costruire un player a ogni giro.
+const MS_SONDA_DURANTE_DIRETTA = 120000;
 
 type Domanda = {
   id: string;
@@ -46,8 +57,11 @@ export default function ControlloDirettaEvento({
   chiusaDaTipo = null,
   chiusaPresenti = null,
   chiusaCertificati = null,
+  youtubeVideoId = null,
 }: {
   eventoId: string;
+  /** Il video della diretta: la console lo riprova da sé finché la finestra è aperta. */
+  youtubeVideoId?: string | null;
   domandaConsegna?: string | null;
   dataInizio: string;
   dataFine: string | null;
@@ -78,6 +92,14 @@ export default function ControlloDirettaEvento({
   // chiudere.
   const [ora, setOra] = useState(() => new Date());
   const [freschezza, setFreschezza] = useState<Freschezza>({ quando: null, falliti: 0 });
+  // ⚠️ QUANTI STUDENTI NON VEDONO IL VIDEO, ADESSO (18/10). La pagina dello
+  // studente lo sa nell'istante in cui il player fallisce, e fino a quel giorno
+  // lo diceva solo a lui. `null` = non lo sappiamo (lettura fallita, o migrazione
+  // non ancora applicata): NON è zero, e la riga non si mostra. Fuori dal giro
+  // di freschezza apposta: un guasto di questa lettura non deve far dichiarare
+  // stantii i presenti.
+  const [rotti, setRotti] = useState<number | null>(null);
+  const [giroSonda, setGiroSonda] = useState(0);
 
   const aggiorna = useCallback(async () => {
     const supabase = createClient();
@@ -140,11 +162,32 @@ export default function ControlloDirettaEvento({
     }
   }, [eventoId]);
 
+  const leggiRotti = useCallback(async () => {
+    try {
+      const { data, error } = await createClient().rpc("conteggio_player_rotti_live", { p_evento_id: eventoId });
+      if (error) {
+        console.error("ControlloDirettaEvento: conteggio player rotti", error);
+        setRotti(null);
+      } else setRotti(typeof data === "number" ? data : null);
+    } catch (e) {
+      console.error("ControlloDirettaEvento: conteggio player rotti", e);
+      setRotti(null);
+    }
+  }, [eventoId]);
+
+  // Un intervallo solo per le due letture: stesso ritmo, e la lettura dei
+  // player rotti resta FUORI dal conto della freschezza (vedi `rotti`).
   useEffect(() => {
     aggiorna();
-    const intervallo = setInterval(aggiorna, 15000);
+    leggiRotti();
+    const intervallo = setInterval(() => {
+      aggiorna();
+      leggiRotti();
+    }, 15000);
     return () => clearInterval(intervallo);
-  }, [aggiorna]);
+  }, [aggiorna, leggiRotti]);
+
+
 
   // L'orologio, separato: deve avanzare anche quando il poll non ritorna.
   useEffect(() => {
@@ -167,6 +210,18 @@ export default function ControlloDirettaEvento({
   // anche prima che il poll lo rilegga.
   const fase = faseContatore({ dataInizio, dataFine, chiusa: chiusura.tipo === "chiusa" || esitoChiusura !== null, adesso: ora });
   const avvisoTardivo = avvisoChiusuraTardiva(dataFine, ora);
+  // La finestra in cui la sonda ha senso: dal pre-roll (quindici minuti prima)
+  // alla fine — è dove la pagina dello studente mostra il player.
+  const finestraAperta = chiusura.tipo !== "chiusa" && statoDiretta(dataInizio, dataFine, ora) === "in_corso";
+  const sonda = useSondaIncorporamento(finestraAperta ? youtubeVideoId : null, giroSonda);
+  useEffect(() => {
+    if (!finestraAperta || !youtubeVideoId) return;
+    const intervallo = setInterval(() => setGiroSonda((g) => g + 1), MS_SONDA_DURANTE_DIRETTA);
+    return () => clearInterval(intervallo);
+  }, [finestraAperta, youtubeVideoId]);
+  const sondaRotta = sonda.esito !== null && sondaBlocca(sonda.esito);
+  const referto = sondaRotta && sonda.esito ? testoSonda(sonda.esito, youtubeVideoId) : null;
+  const rigaRotti = rigaPlayerRotti(rotti);
 
   async function segnaStato(domandaId: string, stato: string) {
     const supabase = createClient();
@@ -207,6 +262,26 @@ export default function ControlloDirettaEvento({
 
   return (
     <div className="mt-4 space-y-4 border-t border-white/5 pt-4">
+      {/* ⚠️ IN CIMA, E ROSSO: è la cosa che il 18/10 è mancata per un'ora.
+          Chi modera deve saperlo prima di tutto il resto, perché tutto il resto
+          (presenti, domande) è inutile se il video non arriva a nessuno. */}
+      {(rigaRotti || referto) && (
+        <div className="rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-kireo-light" role="alert">
+          {rigaRotti && <p className="font-semibold">{rigaRotti}</p>}
+          {referto && (
+            <p className={rigaRotti ? "mt-2" : undefined}>
+              {referto.titolo} {referto.dettaglio}{" "}
+              {referto.azione && (
+                <a href={referto.azione.href} target="_blank" rel="noreferrer" className="text-kireo-orange underline underline-offset-2">
+                  {referto.azione.etichetta}
+                </a>
+              )}
+              {referto.azione && referto.percorso && <span> → {referto.percorso}</span>}
+              {sonda.quando && <span className="text-kireo-muted"> (controllato alle {formattaOra(sonda.quando)})</span>}
+            </p>
+          )}
+        </div>
+      )}
       {fase === "prima" && <p className="text-sm text-kireo-light/90">{testoPrimaDellaDiretta(dataInizio, ora)}</p>}
       {fase === "finita_non_chiusa" && dataFine && <p className="text-sm text-kireo-light/90">{testoFinitaNonChiusa(dataFine)}</p>}
       {fase === "viva" && (

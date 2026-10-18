@@ -22,14 +22,15 @@
 --     DIPENDE dalla colonna, e Postgres non lascia cambiare il tipo di una
 --     colonna usata da una vista: si droppa e si ricrea verbatim da
 --     `20260715160000` (unica definizione nel repo). La pagina
---     `/scuola/statistiche` ora formatta con `formattaNumero`.
+--     `/scuola/statistiche` ora formatta con `numeroOre`.
 --   • `lib/app/pcto.ts` (contatore dello studente: somma delle due colonne) —
 --     arrotonda a due decimali invece di uno.
 --   • `lib/app/eventi.ts` `getOrePctoDaEventi` — somma in JS: invariato.
 --   • `lib/scuola/studenteDettaglio.ts` — legge e somma: invariato.
---   • i quattro posti che stampavano `{ore_pcto}h PCTO` grezzo, col PUNTO
---     (`CardEvento`, `CardEventiPerTe`, `/scuola/eventi`, scheda studente) —
---     ora `formattaNumero`. Stesso numero, stesso difetto.
+--   • i SEI posti che stampavano ore grezze, col PUNTO (`CardEvento`,
+--     `CardEventiPerTe`, `/scuola/eventi`, la scheda studente — riga e totale —
+--     e `/scuola/statistiche`) — ora `numeroOre` (`lib/eventi/orePcto.ts`). Stesso
+--     numero, stesso difetto.
 --   • `lib/eventi/orePcto.ts` (l'avviso sulle ore sproporzionate) — confronta
 --     un Number: invariato.
 --   • `chiudi_diretta_evento`, `certifica_presenza` — non leggono le ore (le

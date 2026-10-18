@@ -193,11 +193,24 @@ export function testoSonda(esito: EsitoSonda, idVideo: string | null = null, con
 // domande in diretta e la consegna finale funzionano lo stesso, e sono le
 // sole cose che da quel momento possono ancora produrre qualcosa. Chiudere
 // la pagina toglierebbe anche a lui il modo di dire qualcosa.
-export const TESTO_DIRETTA_ROTTA: { titolo: string; dettaglio: string } = {
-  titolo: "La diretta non si vede qui",
-  dettaglio:
-    "Non è colpa tua e non è il tuo collegamento: il video è stato pubblicato in modo che non si possa riprodurre dentro KIREO. Lo stiamo segnalando a chi lo trasmette. Le domande qui sotto funzionano comunque.",
-};
+//
+// ⚠️⚠️ «LO STIAMO SEGNALANDO A CHI LO TRASMETTE» ERA FALSO FINO AL 18/10: la
+// pagina lo diceva allo studente e a chi trasmetteva non arrivava niente — per
+// un'ora, durante una diretta vera, con Mario che trasmetteva davanti a nessuno
+// credendo che funzionasse. Da allora la frase è VERA PER COSTRUZIONE: compare
+// solo se `segnala_player_live` è andata a buon fine, cioè se la console del
+// moderatore conta questo studente fra quelli che non vedono. Se la
+// segnalazione non riesce, la frase NON si dice — `testoDirettaRotta(false)`.
+// ⚠️ La seconda frase («riproviamo da soli…») è mia e va riletta (voce).
+export function testoDirettaRotta(segnalato: boolean): { titolo: string; dettaglio: string } {
+  const base =
+    "Non è colpa tua e non è il tuo collegamento: il video è stato pubblicato in modo che non si possa riprodurre dentro KIREO.";
+  const segnalazione = segnalato ? " Lo stiamo segnalando a chi lo trasmette." : "";
+  return {
+    titolo: "La diretta non si vede qui",
+    dettaglio: `${base}${segnalazione} Riproviamo da soli ogni minuto: se il problema si risolve, il video compare qui senza ricaricare. Le domande qui sotto funzionano comunque.`,
+  };
+}
 
 // SMETTIAMO DI CONTARE, ed è la parte che conta più del resto. Tenere
 // qualcuno su una pagina dove il video non si vede e registrargli una

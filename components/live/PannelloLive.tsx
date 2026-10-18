@@ -1,13 +1,21 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { presenzaRilevabile, statoDiretta, testoAttesaDiretta } from "@/lib/live";
 import { useHeartbeatDiretta } from "@/lib/useHeartbeatDiretta";
 import BoxDomandeLive, { type Domanda } from "./BoxDomandeLive";
 import { formattaDataOra } from "@/lib/formato";
 import PlayerDiretta from "./PlayerDiretta";
-import { type EsitoSonda, TESTO_DIRETTA_ROTTA, presenzaDaContare, sondaBlocca } from "@/lib/sondaYoutube";
+import { type EsitoSonda, presenzaDaContare, sondaBlocca, testoDirettaRotta } from "@/lib/sondaYoutube";
+
+// Ogni quanto il player rotto si RIPROVA (e la segnalazione alla console si
+// rinnova: `conteggio_player_rotti_live` conta solo le righe degli ultimi tre
+// minuti). Il 18/10 l'incorporamento si è spento al Go live e riacceso a mano
+// sette minuti dopo: senza un nuovo tentativo, lo studente restava davanti al
+// riquadro rosso fino a un ricaricamento che nessuno gli aveva detto di fare.
+const MS_RIPROVA_PLAYER = 60000;
 
 // Pannello condiviso studenti/docenti (stessa meccanica, l'unica differenza
 // — nome visibile o meno all'organizzatore nelle domande — è decisa lato
@@ -58,7 +66,52 @@ export default function PannelloLive({
   const contaLaPresenza = presenzaDaContare(esitoPlayer) && inDiretta;
   useHeartbeatDiretta(eventoId, stato === "in_corso" && contaLaPresenza);
   const videoRotto = esitoPlayer !== null && sondaBlocca(esitoPlayer);
-  const segnalaErrorePlayer = useCallback((esito: EsitoSonda) => setEsitoPlayer(esito), []);
+  // Se la console del moderatore sa che questo studente non vede: è l'unica
+  // condizione a cui la pagina può dire «lo stiamo segnalando» (18/10).
+  const [segnalato, setSegnalato] = useState(false);
+  // Il numero del tentativo è la `key` del player: cambiarlo lo rimonta, cioè lo
+  // riprova da capo.
+  const [tentativo, setTentativo] = useState(0);
+  const eraRotto = useRef(false);
+
+  const segnalaErrorePlayer = useCallback(
+    (esito: EsitoSonda) => {
+      setEsitoPlayer(esito);
+      if (!sondaBlocca(esito)) return;
+      eraRotto.current = true;
+      // ⚠️ La segnalazione passa dalla funzione che controlla iscrizione e
+      // finestra; un fallimento si logga e NON fa dire alla pagina che stiamo
+      // segnalando — la frase sta in piedi solo se questa riga è riuscita.
+      createClient()
+        .rpc("segnala_player_live", { p_evento_id: eventoId, p_esito: esito })
+        .then(({ error }) => {
+          if (error) console.error("PannelloLive: segnalazione del player rotto non riuscita", error);
+          setSegnalato(!error);
+        });
+    },
+    [eventoId],
+  );
+
+  // Il player riprovato si vede: la presenza torna a contare da adesso (i
+  // minuti persi non si recuperano, vedi `presenzaDaContare`) e la console del
+  // moderatore smette di contare questo studente fra chi non vede.
+  const segnalaPlayerPronto = useCallback(() => {
+    setEsitoPlayer(null);
+    setSegnalato(false);
+    if (!eraRotto.current) return;
+    eraRotto.current = false;
+    createClient()
+      .rpc("segnala_player_live", { p_evento_id: eventoId, p_esito: null })
+      .then(({ error }) => {
+        if (error) console.error("PannelloLive: ripresa del player non segnalata", error);
+      });
+  }, [eventoId]);
+
+  useEffect(() => {
+    if (!videoRotto) return;
+    const intervallo = setInterval(() => setTentativo((t) => t + 1), MS_RIPROVA_PLAYER);
+    return () => clearInterval(intervallo);
+  }, [videoRotto]);
 
   if (stato === "non_ancora") {
     return (
@@ -109,23 +162,30 @@ export default function PannelloLive({
         </p>
       </div>
 
-      {youtubeVideoId && !videoRotto ? (
-        <div className="aspect-video overflow-hidden rounded-2xl border border-white/5">
-          <PlayerDiretta videoId={youtubeVideoId} titolo={titolo} onErrore={segnalaErrorePlayer} />
-        </div>
-      ) : youtubeVideoId && videoRotto ? (
+      {youtubeVideoId ? (
         /*
-          IL VIDEO C'È E NON SI RIPRODUCE. La pagina RESTA APERTA e non
-          dichiara l'evento non seguibile: le domande qui sotto e la consegna
-          finale funzionano lo stesso, e da questo momento sono le sole cose
-          che possono ancora produrre qualcosa — chiudere la pagina
-          toglierebbe allo studente anche il modo di dire qualcosa.
-          ⚠️ Il testo è di servizio e va riletto (voce): vedi
-          TESTO_DIRETTA_ROTTA in lib/sondaYoutube.ts.
+          IL PLAYER RESTA MONTATO ANCHE QUANDO È ROTTO, nascosto sotto il
+          riquadro: è il modo in cui si riprova (la `key` cambia ogni minuto) e
+          il modo in cui ci si accorge che adesso si vede. La pagina RESTA
+          APERTA e non dichiara l'evento non seguibile: le domande qui sotto e la
+          consegna finale funzionano lo stesso.
         */
-        <div className="flex aspect-video flex-col items-center justify-center rounded-2xl border border-red-500/30 bg-red-500/5 px-6 text-center">
-          <p className="font-heading text-lg font-semibold text-kireo-light">{TESTO_DIRETTA_ROTTA.titolo}</p>
-          <p className="mt-2 max-w-md text-sm text-kireo-muted">{TESTO_DIRETTA_ROTTA.dettaglio}</p>
+        <div className="relative aspect-video overflow-hidden rounded-2xl border border-white/5">
+          <div className={videoRotto ? "invisible h-full w-full" : "h-full w-full"} aria-hidden={videoRotto}>
+            <PlayerDiretta
+              key={tentativo}
+              videoId={youtubeVideoId}
+              titolo={titolo}
+              onErrore={segnalaErrorePlayer}
+              onPronto={segnalaPlayerPronto}
+            />
+          </div>
+          {videoRotto && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center rounded-2xl border border-red-500/30 bg-red-500/5 px-6 text-center">
+              <p className="font-heading text-lg font-semibold text-kireo-light">{testoDirettaRotta(segnalato).titolo}</p>
+              <p className="mt-2 max-w-md text-sm text-kireo-muted">{testoDirettaRotta(segnalato).dettaglio}</p>
+            </div>
+          )}
         </div>
       ) : (
         <div className="flex aspect-video flex-col items-center justify-center rounded-2xl border border-white/5 bg-kireo-card text-center">

@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { eventoNonFinito } from "@/lib/app/eventi";
 
 export type WebinarDocente = {
   id: string;
@@ -38,17 +39,19 @@ function mappaRiga(riga: Record<string, unknown>): WebinarDocente {
 // nelle liste studente, vedi lib/app/eventi.ts).
 export async function getProssimiWebinar(supabase: SupabaseClient, limite?: number): Promise<WebinarDocente[]> {
   try {
-    let query = supabase
+    const query = supabase
       .from("eventi")
       .select(COLONNE_WEBINAR)
       .eq("pubblico", "docenti")
       .eq("stato", "approvato")
-      .gte("data_inizio", new Date().toISOString())
+      // Stesso confine dell'Agenda studenti (18/10): un webinar IN CORSO è un
+      // webinar prossimo — ci si entra ancora. Vedi `eventoNonFinito`.
+      .gte("data_inizio", new Date(Date.now() - 31 * 24 * 60 * 60 * 1000).toISOString())
       .order("data_inizio", { ascending: true });
-    if (limite) query = query.limit(limite);
     const { data, error } = await query;
     if (error) return [];
-    return (data ?? []).map(mappaRiga);
+    const prossimi = (data ?? []).map(mappaRiga).filter((w) => eventoNonFinito(w));
+    return limite ? prossimi.slice(0, limite) : prossimi;
   } catch {
     return [];
   }
@@ -63,9 +66,9 @@ export async function getWebinarPassati(supabase: SupabaseClient, limite = 20): 
       .eq("stato", "approvato")
       .lt("data_inizio", new Date().toISOString())
       .order("data_inizio", { ascending: false })
-      .limit(limite);
+      .limit(limite + 5);
     if (error) return [];
-    return (data ?? []).map(mappaRiga);
+    return (data ?? []).map(mappaRiga).filter((w) => !eventoNonFinito(w)).slice(0, limite);
   } catch {
     return [];
   }

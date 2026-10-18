@@ -228,6 +228,7 @@ export default async function AdminPage() {
                     chiusaDaTipo={e.diretta_chiusa_da_tipo}
                     chiusaPresenti={e.diretta_chiusa_presenti}
                     chiusaCertificati={e.diretta_chiusa_certificati}
+                    youtubeVideoId={e.youtube_video_id}
                   />
                   <div className="mt-3">
                     <a href={`/api/admin/presenze/${e.id}`} className="text-xs text-kireo-orange underline underline-offset-2">

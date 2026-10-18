@@ -193,6 +193,7 @@ export default async function EnteEventiPage({ searchParams }: { searchParams: P
                           chiusaDaTipo={e.diretta_chiusa_da_tipo}
                           chiusaPresenti={e.diretta_chiusa_presenti}
                           chiusaCertificati={e.diretta_chiusa_certificati}
+                          youtubeVideoId={e.youtube_video_id}
                         />
                         <div className="mt-3">
                           <ReportEventoButton eventoId={e.id} />

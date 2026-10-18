@@ -22,7 +22,18 @@ const MS_GRAZIA_DOPO_READY = 1500;
 // Non torna mai un esito inventato: finché non c'è una risposta l'esito è
 // `null` (sonda mai partita) oppure `non_controllato` (partita e muta), che
 // sono due cose diverse da «va bene».
-export function useSondaIncorporamento(videoId: string | null): { esito: EsitoSonda | null; inCorso: boolean } {
+// `giro` FA RIPARTIRE LA SONDA (18/10). Fino a quel giorno la sonda girava una
+// volta sola, quando si incollava il link — e quella sera «Allow embedding» si
+// è SPENTO da solo al Go live e di nuovo a un salvataggio in Studio: il fatto
+// misurato a mezzogiorno non era più vero alle cinque. La console della diretta
+// passa un numero che cresce ogni pochi minuti finché la diretta è viva; chi non
+// lo passa ha il comportamento di prima. Mentre la sonda rigira, a schermo resta
+// l'ultima risposta (con la sua ora in `quando`): un «non lo so» ogni due minuti
+// sarebbe rumore, una risposta vecchia di due minuti con la sua ora no.
+export function useSondaIncorporamento(
+  videoId: string | null,
+  giro = 0,
+): { esito: EsitoSonda | null; inCorso: boolean; quando: Date | null } {
   // LA RISPOSTA PORTA CON SÉ L'ID A CUI SI RIFERISCE, e l'esito si DERIVA
   // invece di azzerarlo quando il link cambia. Non è una rifinitura: con un
   // azzeramento, fra il cambio del link e il reset ci sarebbe un istante in
@@ -30,7 +41,7 @@ export function useSondaIncorporamento(videoId: string | null): { esito: EsitoSo
   // sbagliata, che è molto peggio di nessuna risposta. Così non può
   // succedere per costruzione, e sparisce anche il setState sincrono
   // nell'effetto.
-  const [risposta, setRisposta] = useState<{ id: string; esito: EsitoSonda } | null>(null);
+  const [risposta, setRisposta] = useState<{ id: string; esito: EsitoSonda; quando: Date } | null>(null);
 
   useEffect(() => {
     if (!videoId) return;
@@ -48,7 +59,7 @@ export function useSondaIncorporamento(videoId: string | null): { esito: EsitoSo
     function concludi(nuovo: EsitoSonda) {
       if (!vivo || risposto) return;
       risposto = true;
-      setRisposta({ id, esito: nuovo });
+      setRisposta({ id, esito: nuovo, quando: new Date() });
     }
 
     timer.push(
@@ -90,12 +101,13 @@ export function useSondaIncorporamento(videoId: string | null): { esito: EsitoSo
       }
       contenitore?.remove();
     };
-  }, [videoId]);
+  }, [videoId, giro]);
 
   // `inCorso` è vero quando c'è un id da provare e non c'è ancora una
   // risposta PER QUELL'ID: comprende anche l'attesa della digitazione, ed è
   // onesto — da quel momento la sonda sta per partire e non sappiamo ancora
   // niente.
-  const esito = risposta !== null && risposta.id === videoId ? risposta.esito : null;
-  return { esito, inCorso: videoId !== null && esito === null };
+  const valida = risposta !== null && risposta.id === videoId ? risposta : null;
+  const esito = valida?.esito ?? null;
+  return { esito, inCorso: videoId !== null && esito === null, quando: valida?.quando ?? null };
 }

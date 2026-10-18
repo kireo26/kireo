@@ -257,18 +257,21 @@ console.log("\n§2 — due orologi, e due intervalli\n");
 
 {
   const src = leggi("components/ente/ControlloDirettaEvento.tsx");
-  // LA PROPRIETÀ: due `setInterval`, uno per il poll e uno per l'orologio. Se
+  // LA PROPRIETÀ: l'orologio ha un `setInterval` suo, separato dal poll. Se
   // l'orologio stesse dentro il poll, una `fetch` appesa lo fermerebbe — e
-  // l'età non crescerebbe proprio quando serve che cresca.
+  // l'età non crescerebbe proprio quando serve che cresca. Dal 18/10 gli
+  // intervalli sono TRE: il terzo è il giro della sonda durante la diretta, e
+  // non tocca né il poll né l'orologio (riesaminata, la proprietà non cambia).
   const intervalli = (src.match(/setInterval\(/g) ?? []).length;
-  ok(intervalli === 2, "due intervalli: il poll e l'orologio", `${intervalli}`);
+  ok(intervalli === 3, "tre intervalli: il poll, l'orologio e il giro della sonda", `${intervalli}`);
+  ok(src.includes("setInterval(() => setGiroSonda("), "il terzo è il giro della sonda, non un secondo poll");
   ok(src.includes("setInterval(() => setOra(new Date())"), "l'orologio ha il suo");
-  // I due `useEffect(() =>` sono il poll e l'orologio: la fetta del poll
-  // finisce al PRIMO, cioè all'effetto che lo monta.
+  // I tre `useEffect(() =>` sono il poll, l'orologio e il giro della sonda: la
+  // fetta del poll finisce al PRIMO, cioè all'effetto che lo monta.
   const poll = fettaOppureRosso(
     src,
     { nome: "const aggiorna = useCallback", dove: "l'inizio del poll" },
-    { nome: "useEffect(() =>", volte: 2, quale: 0, dove: "il primo effetto, subito dopo" },
+    { nome: "useEffect(() =>", volte: 3, quale: 0, dove: "il primo effetto, subito dopo" },
     "il poll",
   );
   ok(fuori(poll, "setOra("), "e NON sta dentro il poll: una fetch appesa lo fermerebbe");
@@ -296,10 +299,11 @@ console.log("\n§3 — basta una lettura fallita su tre\n");
   // una qualunque lancia, e fuori da un try quel caso lascia la freschezza a
   // quello che era — «aggiornato alle 19:07» su numeri che nessuno ha più
   // riletto, cioè il difetto nella sua forma meno visibile.
-  // I due `try {` sono quello del poll (il primo) e quello della chiusura.
+  // I tre `try {` sono quello del poll (il primo), quello della lettura dei
+  // player rotti (18/10) e quello della chiusura.
   const i = (() => {
     try {
-      return ancora(src, "try {", { volte: 2, quale: 0, dove: "il try del poll" });
+      return ancora(src, "try {", { volte: 3, quale: 0, dove: "il try del poll" });
     } catch (e) {
       ok(false, "l'àncora del try non è ambigua", e.message);
       return -1;

@@ -41,7 +41,7 @@ const {
   serveDichiarazioneIncorporamento,
   presenzaDaContare,
   testoSonda,
-  TESTO_DIRETTA_ROTTA,
+  testoDirettaRotta,
   MS_ATTESA_SONDA,
 } = require("@/lib/sondaYoutube");
 const { statoChiaveTrasmissione, testoChiaveTrasmissione } = require("@/lib/eventi/chiaveTrasmissione");
@@ -139,7 +139,12 @@ ok(testoSonda("non_controllato").tono !== "ok", "…e non ha il tono di una buon
 ok(MS_ATTESA_SONDA >= 5000, "l'attesa è larga: scadere presto produrrebbe un «non ho guardato» che era un «non ho aspettato»");
 
 // Il testo che legge lo studente non dà la colpa a lui e non chiude la pagina.
-const frasiRotta = `${TESTO_DIRETTA_ROTTA.titolo} ${TESTO_DIRETTA_ROTTA.dettaglio}`;
+const frasiRotta = [true, false].map((x) => `${testoDirettaRotta(x).titolo} ${testoDirettaRotta(x).dettaglio}`).join(" ");
+// ⚠️ 18/10: «Lo stiamo segnalando a chi lo trasmette» era FALSO — la pagina lo
+// diceva e alla console non arrivava niente. Si dice SOLO se la segnalazione
+// è riuscita.
+ok(/stiamo segnalando/i.test(testoDirettaRotta(true).dettaglio), "con la segnalazione riuscita, la pagina dice che stiamo segnalando");
+ok(!/segnal/i.test(testoDirettaRotta(false).dettaglio), "…e senza, NON lo dice: la frase sta in piedi solo se è vera");
 ok(/non è colpa tua/i.test(frasiRotta), "allo studente si dice che non è colpa sua");
 ok(/domande/i.test(frasiRotta), "…e che quello che può fare lo può fare comunque");
 // ⚠️ Nessun accordo col genere di chi legge: KIREO non lo sa e non lo chiede.
@@ -191,7 +196,11 @@ ok(
 );
 ok(/presenzaDaContare\(esitoPlayer\)/.test(pannello), "…e la regola la decide `presenzaDaContare`, non una condizione riscritta qui");
 ok(/contaLaPresenza \?/.test(pannello), "la riga «presenza in rilevamento» non dichiara un rilevamento che abbiamo fermato");
-ok(/TESTO_DIRETTA_ROTTA/.test(pannello), "al posto del video compare il nostro testo, non il riquadro nero di YouTube");
+ok(/testoDirettaRotta\(segnalato\)/.test(pannello), "al posto del video compare il nostro testo, e dipende dall'esito della segnalazione");
+ok(/rpc\("segnala_player_live"/.test(pannello), "il player rotto si segnala alla console del moderatore (18/10)");
+ok(/setSegnalato\(!error\)/.test(pannello), "…e «stiamo segnalando» si accende solo se la segnalazione è riuscita");
+ok(/key=\{tentativo\}/.test(pannello) && /MS_RIPROVA_PLAYER/.test(pannello), "il player rotto si riprova da solo: l'incorporamento può tornare a diretta in onda");
+ok(/onPronto=\{segnalaPlayerPronto\}/.test(pannello), "…e quando si vede di nuovo, la presenza torna a contare e la console smette di contarlo");
 ok(/BoxDomandeLive/.test(pannello), "la pagina resta aperta: le domande funzionano comunque");
 
 const player = senzaCommenti(leggi("components/live/PlayerDiretta.tsx"));

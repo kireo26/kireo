@@ -34,18 +34,49 @@ function confrontaConEvidenzaPrima(a: Evento, b: Evento): number {
 // risultato vuoto, mai un crash o un errore mostrato allo studente — stesso
 // principio già applicato a lib/app/webinars.ts nella sessione precedente.
 
+// ⚠️⚠️ «PROSSIMO» E «PASSATO» SI DECIDONO SULLA FINE, NON SULL'INIZIO (18/10).
+// Fino a quel giorno l'Agenda divideva gli eventi su `data_inizio`: alle 17:07,
+// con una diretta 17:00 → 17:45, l'evento stava già fra i PASSATI — dove non c'è
+// nessun «Entra nella diretta» — e uno studente iscritto, che apriva l'Agenda
+// in quel momento, non poteva entrare. Gli altri due dispositivi lo vedevano
+// perché avevano caricato la pagina PRIMA delle 17:00. Non era il PC, il fuso o
+// la cache: era una divisione sbagliata, deterministica, che colpiva chiunque
+// aprisse l'Agenda a diretta cominciata.
+//
+// Un evento IN CORSO è un evento prossimo: ci si può ancora entrare. La fine è
+// `data_fine`, o — senza — tre ore dopo l'inizio, la stessa regola di
+// `fineDiretta`/`statoDiretta` (lib/live.ts): una regola sola per «è finito».
+const DURATA_DEFAULT_MS = 3 * 60 * 60 * 1000;
+
+// ⚠️ IL CONFINE SI APPLICA IN JS, non con un `.or()` di PostgREST, e la ragione
+// è la direzione dell'errore: queste funzioni degradano a lista VUOTA su
+// qualunque errore, quindi un filtro scritto male non darebbe un rosso — darebbe
+// un'Agenda vuota a tutti, senza che nessuno se ne accorga. La query prende una
+// fetta larga e sicura (eventi cominciati da al più MARGINE giorni) e il confine
+// vero lo decide `eventoNonFinito`, che si prova da uno script.
+const MARGINE_MS = 31 * 24 * 60 * 60 * 1000;
+
+/** Il confine: l'evento non è ancora finito a `ora` (uno in corso NON è finito). Usato anche dall'area docente. */
+export function eventoNonFinito(e: { data_inizio: string; data_fine: string | null }, ora: Date = new Date()): boolean {
+  const fine = e.data_fine ? new Date(e.data_fine).getTime() : new Date(e.data_inizio).getTime() + DURATA_DEFAULT_MS;
+  return fine > ora.getTime();
+}
+
 export async function getProssimiEventi(supabase: SupabaseClient, limite?: number): Promise<Evento[]> {
   try {
-    let query = supabase
+    const query = supabase
       .from("eventi")
       .select(COLONNE_EVENTO)
       .eq("pubblico", "studenti")
-      .gte("data_inizio", new Date().toISOString())
+      .gte("data_inizio", new Date(Date.now() - MARGINE_MS).toISOString())
       .order("data_inizio", { ascending: true });
-    if (limite) query = query.limit(limite);
     const { data, error } = await query;
-    if (error) return [];
-    return (data ?? []) as Evento[];
+    if (error) {
+      console.error("getProssimiEventi:", error);
+      return [];
+    }
+    const prossimi = ((data ?? []) as Evento[]).filter((e) => eventoNonFinito(e));
+    return limite ? prossimi.slice(0, limite) : prossimi;
   } catch {
     return [];
   }
@@ -59,9 +90,14 @@ export async function getEventiPassati(supabase: SupabaseClient, limite = 20): P
       .eq("pubblico", "studenti")
       .lt("data_inizio", new Date().toISOString())
       .order("data_inizio", { ascending: false })
-      .limit(limite);
-    if (error) return [];
-    return (data ?? []) as Evento[];
+      // Uno in più per ogni evento ancora in corso che il filtro sotto toglierà:
+      // abbondare di poco costa meno che mostrarne diciannove.
+      .limit(limite + 5);
+    if (error) {
+      console.error("getEventiPassati:", error);
+      return [];
+    }
+    return ((data ?? []) as Evento[]).filter((e) => !eventoNonFinito(e)).slice(0, limite);
   } catch {
     return [];
   }
@@ -153,7 +189,7 @@ export async function getIscrizioniStudenteConOrigine(
   }
 }
 
-// Prossimi eventi (già iniziati esclusi) taggati su una qualunque delle
+// Prossimi eventi (già FINITI esclusi: uno in corso resta, ci si può entrare) taggati su una qualunque delle
 // aree passate, deduplicati (un evento può avere più aree in comune),
 // ordinati per data. Usata dalla card "Prossimi eventi per te" in Home.
 export async function getProssimiEventiPerAree(supabase: SupabaseClient, areeSlugs: string[], limite = 3): Promise<Evento[]> {
@@ -168,7 +204,7 @@ export async function getProssimiEventiPerAree(supabase: SupabaseClient, areeSlu
     const eventi = ((data ?? []) as { eventi: Evento | Evento[] | null }[])
       .map((riga) => (Array.isArray(riga.eventi) ? riga.eventi[0] : riga.eventi))
       .filter((e): e is Evento => Boolean(e))
-      .filter((e) => new Date(e.data_inizio) >= new Date());
+      .filter((e) => eventoNonFinito(e));
 
     const unici = Array.from(new Map(eventi.map((e) => [e.id, e])).values());
     return unici.sort(confrontaConEvidenzaPrima).slice(0, limite);

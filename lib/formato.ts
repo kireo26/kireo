@@ -177,6 +177,30 @@ export function istanteDaOrarioItaliano(locale: string): string | null {
 }
 
 /**
+ * L'inverso: da un istante al valore che un `<input type="datetime-local">`
+ * deve MOSTRARE perché un ente legga l'orario italiano (18/10, il form che
+ * sposta la finestra di una diretta). Senza, il campo si precompilerebbe
+ * nell'ora del browser — la stessa metà che `istanteDaOrarioItaliano` chiude in
+ * ingresso. `istanteDaOrarioItaliano(orarioItalianoDaIstante(x))` torna a x
+ * (a meno dei secondi, che il campo non mostra).
+ */
+export function orarioItalianoDaIstante(iso: string | Date): string {
+  const p: Record<string, string> = {};
+  for (const parte of new Intl.DateTimeFormat("en-CA", {
+    timeZone: ZONA,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(quando(iso))) {
+    p[parte.type] = parte.value;
+  }
+  return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`;
+}
+
+/**
  * Lo stesso valore come numero di millisecondi, per i confronti. `NaN` quando
  * la stringa non è un orario: un confronto con `NaN` è sempre falso, quindi un
  * campo malformato non fa scattare un avviso per sbaglio.

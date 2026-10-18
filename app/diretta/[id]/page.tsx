@@ -3,6 +3,7 @@ import { getContestoModerazione } from "@/lib/eventi/moderazione";
 import ControlloDirettaEvento from "@/components/ente/ControlloDirettaEvento";
 import ReportEventoButton from "@/components/ente/ReportEventoButton";
 import GestisciVideoDirettaForm from "@/components/admin/GestisciVideoDirettaForm";
+import SpostaFinestraForm from "@/components/ente/SpostaFinestraForm";
 import { formattaDataOra } from "@/lib/formato";
 import { getFiloneBySlug } from "@/data/filoniDocenti";
 
@@ -77,6 +78,17 @@ export default async function ModerazioneDirettaPage({ params }: { params: Promi
         </section>
       )}
 
+      {/* SPOSTARE L'ORARIO, per tutti e due i ruoli (18/10): quella sera la
+          finestra si è spostata due volte in SQL perché non c'era nessuna
+          strada nel prodotto. A diretta chiusa non si mostra: la funzione lo
+          rifiuterebbe, e un bottone che invita a un gesto per poi dire no è
+          il difetto che il bottone di chiusura ha già avuto. */}
+      {!evento.diretta_chiusa_il && (
+        <section className="mt-6 rounded-xl border border-white/5 bg-kireo-card p-4">
+          <SpostaFinestraForm eventoId={evento.id} dataInizio={evento.data_inizio} dataFine={evento.data_fine} />
+        </section>
+      )}
+
       <section className="mt-6 rounded-xl border border-white/5 bg-kireo-card p-4">
         <ControlloDirettaEvento
           eventoId={evento.id}
@@ -87,6 +99,7 @@ export default async function ModerazioneDirettaPage({ params }: { params: Promi
           chiusaDaTipo={evento.diretta_chiusa_da_tipo}
           chiusaPresenti={evento.diretta_chiusa_presenti}
           chiusaCertificati={evento.diretta_chiusa_certificati}
+          youtubeVideoId={evento.youtube_video_id}
         />
       </section>
 

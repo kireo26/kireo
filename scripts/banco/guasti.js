@@ -48,6 +48,7 @@ const ORDINE = [
   "guida_riservata",
   "email_guida",
   "email_contatto",
+  "video_diretta",
   "consegna_esaurita",
   "prove_consegna_evento",
   "scrittura_consegna_evento",
@@ -81,6 +82,8 @@ const COSA_VUOL_DIRE = {
     "il follow-up via email dopo il download di una guida non è partito: chi ha lasciato la mail non ha ricevuto il link per riaprirla. Due motivi diversi — `link_non_ammesso` è un `pdf_url` di un ente che non è http/https (un dato da correggere), `invio_non_riuscito` è Brevo",
   email_contatto:
     "un'email di una richiesta di contatto non è partita. Due motivi diversi — `conferma_non_inviata` è la cortesia a chi ha scritto (la sua riga è in coda su /admin, quindi il messaggio c'è: la pagina smette di nominare l'email e nessuno perde niente), `notifica_non_inviata` è l'avviso a noi, e lì a mancare è proprio quello: la richiesta esiste e la vede solo chi apre la coda. Spesso è Brevo che blocca l'IP di Vercel, che va autorizzato a mano",
+  video_diretta:
+    "durante una diretta il player di uno studente non riproduceva il video (incorporamento spento o video non riproducibile): chi era collegato vedeva un riquadro rosso. Una riga per evento, all'ora al massimo: il motivo dice quale dei due, il dettaglio quale evento. La console del moderatore mostra in quel momento quanti non stanno vedendo",
   consegna_esaurita:
     "tutte le letture di una consegna sono finite senza riuscire: quel testo non sarà giudicato da solo, e lo studente non ha più un bottone da premere",
   prove_consegna_evento:

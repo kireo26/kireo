@@ -263,6 +263,7 @@ export const ATTESE: { tabella: string; natura: NaturaDato; nominataDa: IdVoceDe
   { tabella: "activity_log", natura: "fatto", nominataDa: "conto_attivita", cosa: "dove ha messo piede, area per area" },
   { tabella: "iscrizioni_eventi", natura: "fatto", nominataDa: "eventi", cosa: "a cosa si è iscritto (lo stato e la certificazione sono di un terzo)" },
   { tabella: "presenze_live", natura: "fatto", nominataDa: "eventi", cosa: "i battiti di presenza di una diretta" },
+  { tabella: "player_live_stato", natura: "fatto", nominataDa: "eventi", cosa: "il segnale che il suo player non riproduceva il video di una diretta (18/10)" },
   { tabella: "seguiti", natura: "fatto", nominataDa: "enti", cosa: "gli enti che segue" },
   { tabella: "manifestazioni_interesse", natura: "fatto", nominataDa: "enti", cosa: "gli enti a cui ha manifestato interesse" },
   { tabella: "assistente_conversazioni", natura: "fatto", nominataDa: "assistente_newsletter", cosa: "quante conversazioni ha aperto con l'assistente — mai il contenuto, che non si salva" },

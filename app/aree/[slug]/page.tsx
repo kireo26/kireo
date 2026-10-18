@@ -13,7 +13,7 @@ import CtaAssistenteDigitale from "@/components/app/CtaAssistenteDigitale";
 import TracciaVisita from "@/components/app/TracciaVisita";
 import { AREE, getAreaBySlug } from "@/data/aree";
 import { getArticoliPerArea } from "@/lib/news";
-import { getEventiPerArea, getAreeDegliEventi, getIscrizioniStudente } from "@/lib/app/eventi";
+import { getEventiPerArea, getAreeDegliEventi, getIscrizioniStudente, eventoNonFinito } from "@/lib/app/eventi";
 import { cercaEnti } from "@/lib/app/esplora";
 import { createClient } from "@/lib/supabase/server";
 
@@ -48,7 +48,7 @@ export default async function AreaPage({ params }: { params: Promise<{ slug: str
   } = await supabase.auth.getUser();
 
   const tuttiEventi = await getEventiPerArea(supabase, area.slug);
-  const eventiFuturi = tuttiEventi.filter((e) => new Date(e.data_inizio) >= new Date());
+  const eventiFuturi = tuttiEventi.filter((e) => eventoNonFinito(e));
   const areeEventi = await getAreeDegliEventi(
     supabase,
     eventiFuturi.map((e) => e.id),

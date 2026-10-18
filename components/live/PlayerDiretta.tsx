@@ -14,14 +14,25 @@ import { type EsitoSonda, esitoDaCodiceErrore } from "@/lib/sondaYoutube";
 // youtube.com non devono lasciare uno studente senza video. In quel ramo non
 // si dichiara niente — nessun errore, quindi la presenza continua a contare,
 // che è la direzione giusta dove non sappiamo.
+
+// Dopo `onReady` si concede un momento prima di dire «si vede»: per un video
+// con l'incorporamento bloccato il player può dirsi pronto e poi sollevare
+// l'errore (stessa grazia della sonda, `useSondaIncorporamento`).
+const MS_GRAZIA_DOPO_READY = 1500;
+
 export default function PlayerDiretta({
   videoId,
   titolo,
   onErrore,
+  onPronto,
 }: {
   videoId: string;
   titolo: string;
   onErrore: (esito: EsitoSonda) => void;
+  /** Il player si è caricato e per la grazia successiva non ha sollevato errori.
+   *  Serve a dire che il video, riprovato, ADESSO si vede (18/10: l'incorporamento
+   *  si spegne e si riaccende mentre la diretta è in onda). */
+  onPronto?: () => void;
 }) {
   const contenitoreRef = useRef<HTMLDivElement>(null);
   // La callback in un ref: così l'effetto non dipende da lei e il player non
@@ -32,9 +43,11 @@ export default function PlayerDiretta({
   // player, così al primo giro il valore è già quello buono (e lo sarebbe
   // comunque, perché `useRef` parte dal primo `onErrore`).
   const onErroreRef = useRef(onErrore);
+  const onProntoRef = useRef(onPronto);
   useEffect(() => {
     onErroreRef.current = onErrore;
-  }, [onErrore]);
+    onProntoRef.current = onPronto;
+  }, [onErrore, onPronto]);
   const [ripiego, setRipiego] = useState(false);
 
   useEffect(() => {
@@ -42,6 +55,8 @@ export default function PlayerDiretta({
     if (!contenitore || ripiego) return;
 
     let vivo = true;
+    let errato = false;
+    let grazia: ReturnType<typeof setTimeout> | null = null;
     let player: PlayerYoutube | null = null;
     // L'API SOSTITUISCE l'elemento che le si passa: le si dà un figlio usa e
     // getta, non il nodo che React possiede — altrimenti al prossimo render
@@ -60,7 +75,13 @@ export default function PlayerDiretta({
           height: "100%",
           events: {
             onError: (e) => {
+              errato = true;
               if (vivo) onErroreRef.current(esitoDaCodiceErrore(e.data));
+            },
+            onReady: () => {
+              grazia = setTimeout(() => {
+                if (vivo && !errato) onProntoRef.current?.();
+              }, MS_GRAZIA_DOPO_READY);
             },
           },
         });
@@ -71,6 +92,7 @@ export default function PlayerDiretta({
 
     return () => {
       vivo = false;
+      if (grazia) clearTimeout(grazia);
       try {
         player?.destroy();
       } catch {

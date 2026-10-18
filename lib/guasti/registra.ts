@@ -61,6 +61,8 @@ export type SpecieGuasto =
   | "credito_area_evento" // il credito d'esplorazione di una partecipazione certificata
   | "credito_area_fuso" // il cap giornaliero ha soppresso un credito d'area vero
   | "consegna_esaurita" // le letture di una consegna sono finite e il testo resta non valutato
+  // — artefatti della diretta stessa
+  | "video_diretta" // il player di uno studente non riproduce il video (scritta da `segnala_player_live`)
 
   // — artefatti del workshop fuori dal cron
   | "feedback_elaborato" // il feedback finale della route consegna (v1)
