@@ -118,8 +118,8 @@ ok(
   "`PannelloLive` accende l'heartbeat su `contaLaPresenza`",
 );
 ok(
-  /contaLaPresenza\s*=\s*presenzaDaContare\([^)]*\)\s*&&\s*inDiretta/.test(pannello),
-  "…e `contaLaPresenza` richiede `inDiretta`, cioè `presenzaRilevabile`",
+  /contaLaPresenza\s*=\s*presenzaConta\(\{\s*inDiretta,\s*videoRotto: !presenzaDaContare\(esitoPlayer\),\s*avviato\s*\}\)/.test(pannello),
+  "…e `contaLaPresenza` richiede `inDiretta` (cioè `presenzaRilevabile`), il video non rotto e — dal 18/10 sera — partito almeno una volta",
 );
 ok(
   /inDiretta\s*=\s*presenzaRilevabile\(dataInizio,\s*dataFine,\s*ora\)/.test(pannello),
@@ -153,7 +153,7 @@ ok(
   "…e nemmeno il pallino rosso che lampeggia lo dice (un segno fatto di solo colore è un segno in meno, ma un segno falso è peggio)",
 );
 ok(
-  /contaLaPresenza \? " · presenza in rilevamento" : ""/.test(pannello),
+  /contaLaPresenza && contati === null \? " · presenza in rilevamento" : ""/.test(pannello),
   "il rilevamento si dichiara solo mentre c'è: la riga non promette un conteggio che abbiamo fermato",
 );
 

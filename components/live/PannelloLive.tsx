@@ -9,6 +9,15 @@ import BoxDomandeLive, { type Domanda } from "./BoxDomandeLive";
 import { formattaDataOra } from "@/lib/formato";
 import PlayerDiretta from "./PlayerDiretta";
 import { type EsitoSonda, presenzaDaContare, sondaBlocca, testoDirettaRotta } from "@/lib/sondaYoutube";
+import {
+  AVVISO_PLAYER,
+  AVVISO_PLAYER_TELEFONO,
+  MS_MINIMO_ASSENZA,
+  minutiNecessari,
+  presenzaConta,
+  testoContatore,
+  testoRientro,
+} from "@/lib/live/presenza";
 
 // Ogni quanto il player rotto si RIPROVA (e la segnalazione alla console si
 // rinnova: `conteggio_player_rotti_live` conta solo le righe degli ultimi tre
@@ -63,8 +72,71 @@ export default function PannelloLive({
   // (`evento_in_diretta` dentro `ping_presenza_live`): questa è l'altra metà,
   // quella che non manda un ping che verrebbe comunque respinto.
   const inDiretta = presenzaRilevabile(dataInizio, dataFine, ora);
-  const contaLaPresenza = presenzaDaContare(esitoPlayer) && inDiretta;
+  // ⚠️ E DAL 18/10 SERA, LA PRESENZA COMINCIA QUANDO IL VIDEO PARTE LA PRIMA
+  // VOLTA: venti minuti di player nero contavano. La regola e il suo perché
+  // stanno in `presenzaConta` (lib/live/presenza.ts).
+  const [avviato, setAvviato] = useState(false);
+  const segnaAvvio = useCallback(() => setAvviato(true), []);
+  const contaLaPresenza = presenzaConta({ inDiretta, videoRotto: !presenzaDaContare(esitoPlayer), avviato });
   useHeartbeatDiretta(eventoId, stato === "in_corso" && contaLaPresenza);
+
+  // IL CONTATORE: lo studente vede a che punto è. La cosa che decide le sue ore
+  // era invisibile proprio a lui. Legge la propria riga di `presenze_live`
+  // (policy `select_own`); una lettura fallita lascia il valore di prima.
+  const necessari = minutiNecessari(dataInizio, dataFine);
+  const [contati, setContati] = useState<number | null>(null);
+  useEffect(() => {
+    if (!inDiretta) return;
+    let vivo = true;
+    const leggi = async () => {
+      const { data, error } = await createClient()
+        .from("presenze_live")
+        .select("ping_totali")
+        .eq("evento_id", eventoId)
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (!vivo) return;
+      if (error) console.error("PannelloLive: lettura della propria presenza", error);
+      else setContati(data?.ping_totali ?? 0);
+    };
+    const primo = setTimeout(leggi, 2000);
+    const intervallo = setInterval(leggi, 30000);
+    return () => {
+      vivo = false;
+      clearTimeout(primo);
+      clearInterval(intervallo);
+    };
+  }, [eventoId, userId, inDiretta]);
+
+  // IL RIENTRO: quando la pagina torna in primo piano, si dice cosa si è perso
+  // — solo se in quel momento la presenza si stava contando, e solo sopra il
+  // minuto (sotto è rumore).
+  const contaRef = useRef(contaLaPresenza);
+  useEffect(() => {
+    contaRef.current = contaLaPresenza;
+  }, [contaLaPresenza]);
+  const [rientro, setRientro] = useState<string | null>(null);
+  useEffect(() => {
+    let uscita: { t: number; contava: boolean } | null = null;
+    const fine = dataFine ? new Date(dataFine).getTime() : null;
+    function cambio() {
+      if (document.visibilityState === "hidden") {
+        uscita = { t: Date.now(), contava: contaRef.current };
+        return;
+      }
+      if (!uscita) return;
+      const { t, contava } = uscita;
+      uscita = null;
+      if (!contava) return;
+      const adesso = Date.now();
+      const finita = fine !== null && adesso >= fine;
+      const persi = (finita && fine !== null ? fine : adesso) - t;
+      if (persi < MS_MINIMO_ASSENZA) return;
+      setRientro(testoRientro({ minutiFuori: Math.floor(persi / 60000), direttaFinita: finita, riprende: !finita && contaRef.current }));
+    }
+    document.addEventListener("visibilitychange", cambio);
+    return () => document.removeEventListener("visibilitychange", cambio);
+  }, [dataFine]);
   const videoRotto = esitoPlayer !== null && sondaBlocca(esitoPlayer);
   // Se la console del moderatore sa che questo studente non vede: è l'unica
   // condizione a cui la pagina può dire «lo stiamo segnalando» (18/10).
@@ -133,6 +205,7 @@ export default function PannelloLive({
       <div className="rounded-2xl border border-white/5 bg-kireo-card p-8 text-center">
         <p className="font-heading text-lg font-semibold text-kireo-light">La diretta è terminata</p>
         <p className="mt-2 text-sm text-kireo-muted">Grazie per aver partecipato.</p>
+        {rientro && <p className="mt-2 text-sm text-kireo-orange">{rientro}</p>}
         <Link href={hrefRitorno} className="mt-4 inline-block text-sm text-kireo-orange underline underline-offset-2">
           ← Torna indietro
         </Link>
@@ -158,9 +231,26 @@ export default function PannelloLive({
             className={`h-2 w-2 rounded-full ${inDiretta ? "animate-pulse bg-red-500" : "bg-kireo-muted"}`}
           />{" "}
           {inDiretta ? "In diretta" : testoAttesaDiretta(dataInizio, ora)}
-          {contaLaPresenza ? " · presenza in rilevamento" : ""}
+          {contaLaPresenza && contati === null ? " · presenza in rilevamento" : ""}
         </p>
+        {inDiretta && necessari !== null && contati !== null && (
+          <p className="mt-1 text-sm text-kireo-light/90" aria-live="polite">
+            {testoContatore(contati, necessari, contaLaPresenza)}
+          </p>
+        )}
+        {rientro && (
+          <p className="mt-2 rounded-lg border border-kireo-orange/40 bg-kireo-orange/10 px-3 py-2 text-sm text-kireo-light" role="status">
+            {rientro}
+          </p>
+        )}
       </div>
+
+      {youtubeVideoId && (
+        <div className="text-xs text-kireo-muted">
+          <p>{AVVISO_PLAYER}</p>
+          <p className="sm:hidden">{AVVISO_PLAYER_TELEFONO}</p>
+        </div>
+      )}
 
       {youtubeVideoId ? (
         /*
@@ -178,6 +268,7 @@ export default function PannelloLive({
               titolo={titolo}
               onErrore={segnalaErrorePlayer}
               onPronto={segnalaPlayerPronto}
+              onAvvio={segnaAvvio}
             />
           </div>
           {videoRotto && (

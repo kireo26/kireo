@@ -25,6 +25,7 @@ export default function PlayerDiretta({
   titolo,
   onErrore,
   onPronto,
+  onAvvio,
 }: {
   videoId: string;
   titolo: string;
@@ -33,6 +34,9 @@ export default function PlayerDiretta({
    *  Serve a dire che il video, riprovato, ADESSO si vede (18/10: l'incorporamento
    *  si spegne e si riaccende mentre la diretta è in onda). */
   onPronto?: () => void;
+  /** Il video è partito (stato «in riproduzione») almeno una volta. Dal 18/10
+   *  la presenza comincia da qui: prima non c'è niente da seguire. */
+  onAvvio?: () => void;
 }) {
   const contenitoreRef = useRef<HTMLDivElement>(null);
   // La callback in un ref: così l'effetto non dipende da lei e il player non
@@ -44,11 +48,21 @@ export default function PlayerDiretta({
   // comunque, perché `useRef` parte dal primo `onErrore`).
   const onErroreRef = useRef(onErrore);
   const onProntoRef = useRef(onPronto);
+  const onAvvioRef = useRef(onAvvio);
   useEffect(() => {
     onErroreRef.current = onErrore;
     onProntoRef.current = onPronto;
-  }, [onErrore, onPronto]);
+    onAvvioRef.current = onAvvio;
+  }, [onErrore, onPronto, onAvvio]);
   const [ripiego, setRipiego] = useState(false);
+
+  // NEL RIPIEGO NON SAPPIAMO SE IL VIDEO PARTE: un iframe grezzo non dice
+  // niente. Si dichiara avviato — la regola di sempre, «dove non sappiamo, la
+  // presenza conta» — invece di togliere le ore a chi ha un bloccante di script
+  // e magari sta guardando benissimo.
+  useEffect(() => {
+    if (ripiego) onAvvioRef.current?.();
+  }, [ripiego]);
 
   useEffect(() => {
     const contenitore = contenitoreRef.current;
@@ -77,6 +91,9 @@ export default function PlayerDiretta({
             onError: (e) => {
               errato = true;
               if (vivo) onErroreRef.current(esitoDaCodiceErrore(e.data));
+            },
+            onStateChange: (e) => {
+              if (vivo && e.data === 1) onAvvioRef.current?.();
             },
             onReady: () => {
               grazia = setTimeout(() => {

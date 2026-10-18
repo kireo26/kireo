@@ -38,7 +38,6 @@ abilitaTypeScript();
 const {
   esitoDaCodiceErrore,
   sondaBlocca,
-  serveDichiarazioneIncorporamento,
   presenzaDaContare,
   testoSonda,
   testoDirettaRotta,
@@ -84,14 +83,11 @@ ok(!sondaBlocca("attivo"), "un video che si riproduce non blocca");
 // sonda non si è caricata sarebbe un no dato per un difetto nostro.
 ok(!sondaBlocca("non_controllato"), "«non ho guardato» non blocca: sarebbe un no dato per un difetto nostro");
 
-// LA PROPRIETÀ 1, e il suo contrario: la dichiarazione esiste SOLO dove la
-// misura manca. Se un giorno comparissero insieme, la prima volta che
-// divergono nessuno saprebbe a quale credere.
-ok(serveDichiarazioneIncorporamento(null), "sonda mai partita → serve la dichiarazione");
-ok(serveDichiarazioneIncorporamento("non_controllato"), "sonda muta → serve la dichiarazione");
-ok(!serveDichiarazioneIncorporamento("attivo"), "sonda che ha risposto «attivo» → NESSUNA dichiarazione da chiedere");
-ok(!serveDichiarazioneIncorporamento("incorporamento_disattivato"), "sonda bloccante → nessuna dichiarazione (il form rifiuta)");
-ok(!serveDichiarazioneIncorporamento("non_disponibile"), "video non disponibile → nessuna dichiarazione (il form rifiuta)");
+// ⚠️ DAL 18/10 SERA LA DICHIARAZIONE NON ESISTE PIÙ (Mario): il fatto che
+// faceva dichiarare scade fra la dichiarazione e il momento in cui serve — si
+// è spento al Go live. La misura si ripete a diretta aperta; la dichiarazione
+// non ha più niente da coprire.
+ok(require("@/lib/sondaYoutube").serveDichiarazioneIncorporamento === undefined, "la funzione che decideva quando chiedere la dichiarazione non c'è più");
 
 // =====================================================================
 console.log("\n§3 — la presenza non si conta se il video non si vede");
@@ -169,7 +165,8 @@ ok(
   !/VOCI_CHECKLIST[\s\S]{0,400}incorporamento_attivo/.test(form),
   "la voce dell'incorporamento NON è nell'elenco fisso della checklist",
 );
-ok(/serveDichiarazioneIncorporamento\(esitoSonda\)/.test(form), "…compare solo quando la sonda non ha potuto rispondere");
+ok(!/RISPOSTE_INCORPORAMENTO|rispostaIncorporamento/.test(form), "nessuna domanda sull'incorporamento: è un fatto che scade (18/10 sera)");
+ok(/if \(esitoSonda !== "attivo"\) checklistDaSalvare\.incorporamento_non_verificato/.test(form), "…dove la sonda non ha detto «attivo» si registra un fatto nostro: non verificato");
 ok(/vociChecklist\.map/.test(form) && !/VOCI_CHECKLIST\.map/.test(form), "il render usa l'elenco calcolato, non quello fisso");
 ok(/vociChecklist\.some/.test(form), "…e la validazione chiede solo le voci davvero mostrate");
 ok(/sondaBlocca\(esitoSonda\)/.test(form) && /next\.youtubeLink =/.test(form), "un esito bloccante rifiuta, e il no arriva sul campo del link");
@@ -195,7 +192,7 @@ ok(
   "l'heartbeat si ferma quando il video non si vede",
 );
 ok(/presenzaDaContare\(esitoPlayer\)/.test(pannello), "…e la regola la decide `presenzaDaContare`, non una condizione riscritta qui");
-ok(/contaLaPresenza \?/.test(pannello), "la riga «presenza in rilevamento» non dichiara un rilevamento che abbiamo fermato");
+ok(/contaLaPresenza && contati === null \?/.test(pannello), "la riga «presenza in rilevamento» non dichiara un rilevamento che abbiamo fermato (e lascia il posto al contatore)");
 ok(/testoDirettaRotta\(segnalato\)/.test(pannello), "al posto del video compare il nostro testo, e dipende dall'esito della segnalazione");
 ok(/rpc\("segnala_player_live"/.test(pannello), "il player rotto si segnala alla console del moderatore (18/10)");
 ok(/setSegnalato\(!error\)/.test(pannello), "…e «stiamo segnalando» si accende solo se la segnalazione è riuscita");
@@ -372,16 +369,14 @@ console.log("\n§9 — 18/10: il montaggio della diretta vera");
 {
   const nc = testoSonda("non_controllato").dettaglio;
   ok(/incognito/i.test(nc) && /finestra normale/i.test(nc), "«non controllato» dice di riprovare in una finestra normale", nc);
-  ok(!/qui sotto/.test(nc), "…e senza domanda sotto (pannello admin) non manda a cercarla");
-  ok(/qui sotto/.test(testoSonda("non_controllato", null, true).dettaglio), "…mentre nel form dell'ente rimanda alla domanda");
-  ok(/conDomanda/.test(form) && !/conDomanda/.test(admin), "il form dell'ente chiede la riga, l'admin no");
+  ok(!/qui sotto/.test(nc), "…e non manda a cercare una domanda che non c'è più");
+  ok(!/conDomanda/.test(form) && !/conDomanda/.test(admin), "nessuno dei due rende più un rimando alla domanda");
   ok(/idVideo=\{idDigitato\}/.test(admin) && /idVideo=\{idYoutube\}/.test(form), "tutti e due passano l'id, così il link c'è anche lì");
 }
 // (c) «Non lo so» è una risposta ammessa, registrata come tale.
 {
-  ok(/incorporamento_non_verificato/.test(form), "il form ha la risposta «non lo so», con la sua chiave");
-  ok(!/Devi confermare[^"]*incorporamento/.test(form), "…e non c'è più una spunta obbligatoria sull'incorporamento");
-  ok(/checklistDaSalvare\[risposta\.chiave\]/.test(form), "…nel jsonb finisce la chiave di quello che è stato risposto");
+  ok(/incorporamento_non_verificato/.test(form), "il form registra «non verificato» quando la sonda non ha misurato");
+  ok(!/Devi confermare[^"]*incorporamento/.test(form), "…e non c'è nessuna spunta sull'incorporamento");
   const sqlNonSo = senzaCommentiSql(leggi("supabase/migrations/20261018100000_incorporamento_non_verificato.sql"));
   ok(/or checklist_diretta \? 'incorporamento_non_verificato'/.test(sqlNonSo), "il vincolo ammette «non verificato» come risposta");
   ok(/or coalesce\(/.test(sqlNonSo), "…dentro lo stesso coalesce che chiude il buco del NULL");
@@ -405,10 +400,8 @@ console.log("\n§9 — 18/10: il montaggio della diretta vera");
   ok(/APERTURA_SENZA_LINK/.test(senzaCommenti(leggi("components/EsitoSondaIncorporamento.tsx"))), "…e il componente gli dà un punto di partenza invece di lasciarlo orfano");
   const nc = testoSonda("non_controllato").dettaglio;
   ok(nc.includes("Succede spesso in incognito, dove il nostro controllo non riesce a partire: se è il tuo caso, riapri questa pagina in una finestra normale."), "«non controllato»: il testo di Mario, parola per parola", nc);
-  // Le due risposte sull'incorporamento, e la promessa che NON fanno.
-  ok(form.includes("Ho guardato su YouTube Studio: «Consenti incorporamento» è attivo."), "la prima risposta nomina l'opzione esatta, non la categoria");
-  ok(form.includes("resta segnato come non verificato: se l'incorporamento è chiuso, i ragazzi vedranno un riquadro nero al posto tuo."), "la seconda dice la conseguenza per i ragazzi, non per il nostro archivio");
-  ok(!/registriamo come non verificato/.test(form), "…e non è più una frase su di noi");
+  // Le due risposte sull'incorporamento sono uscite il 18/10 sera.
+  ok(!form.includes("Ho guardato su YouTube Studio"), "le risposte sull'incorporamento non ci sono più (18/10 sera)");
   ok(!/te lo dic|ti avvis/i.test(form), "nessuna promessa di avvisare l'ente prima della diretta: nessuno lo fa");
 }
 

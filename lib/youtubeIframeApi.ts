@@ -26,6 +26,8 @@ export type OpzioniPlayer = {
   events?: {
     onReady?: () => void;
     onError?: (e: EventoPlayer) => void;
+    // `data` 1 = in riproduzione (YT.PlayerState.PLAYING).
+    onStateChange?: (e: EventoPlayer) => void;
   };
 };
 

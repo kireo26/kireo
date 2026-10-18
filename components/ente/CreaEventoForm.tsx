@@ -13,57 +13,34 @@ import { istanteDaOrarioItaliano, millisecondiDaOrarioItaliano } from "@/lib/for
 import { eventoCominciato } from "@/lib/live";
 import { avvisoOrePcto, erroreOrePcto } from "@/lib/eventi/orePcto";
 import { useSondaIncorporamento } from "@/lib/useSondaIncorporamento";
-import { serveDichiarazioneIncorporamento, sondaBlocca, testoSonda } from "@/lib/sondaYoutube";
+import { sondaBlocca, testoSonda } from "@/lib/sondaYoutube";
 import EsitoSondaIncorporamento from "@/components/EsitoSondaIncorporamento";
 
 type ChiaveChecklist = "non_in_elenco" | "chat_disattivata" | "no_contenuti_terzi";
 
-// LA SPUNTA DELL'INCORPORAMENTO È L'UNICA CHE SI PUÒ MISURARE, e per questo
-// è l'unica che vive in un elenco a parte: compare solo quando la sonda non
-// ha potuto rispondere (vedi `serveDichiarazioneIncorporamento`). Le altre
-// tre restano dichiarazioni perché non c'è modo di misurarle da qui — la
-// visibilità e la chat le vede solo chi ha il canale, e «non trasmetterò
-// musica» è una promessa sul futuro.
+// ⚠️⚠️ L'INCORPORAMENTO NON SI DICHIARA PIÙ (Mario, 18/10 sera). Quella
+// domanda faceva dichiarare un fatto che SCADE fra la dichiarazione e il
+// momento in cui serve: «Allow embedding» attivato alle 12:08 era vero, e alle
+// 17:07, al Go live, era spento senza che nessuno avesse toccato niente — e di
+// nuovo a un salvataggio in Studio. Una dichiarazione che non può restare vera
+// non è una dichiarazione debole: è rumore con la forma di una garanzia.
+// Da quella sera la MISURA si ripete (la console rifà la sonda ogni due minuti
+// a diretta aperta, il player di ogni studente segnala), quindi la
+// dichiarazione non ha più niente da coprire.
 //
-// Una dichiarazione accanto a una misura è peggio di niente: la prima volta
-// che divergono nessuno sa a quale credere. Qui non possono stare insieme a
-// schermo per costruzione.
+// Quello che resta nel jsonb, quando la sonda qui non ha potuto rispondere, è
+// `incorporamento_non_verificato`: un fatto su di NOI (non abbiamo potuto
+// misurare), non una risposta dell'ente — ed è quello che il vincolo
+// `eventi_diretta_proprio_coerente` già ammette.
+//
+// LE ALTRE TRE RESTANO dichiarazioni, non perché siano più solide ma perché su
+// quelle non abbiamo nessuna misura: la visibilità e la chat le vede solo chi
+// ha il canale, e «non trasmetterò musica» è una promessa sul futuro. Lì la
+// spunta è l'unica cosa che c'è, e il suo limite è dichiarato.
 const VOCI_CHECKLIST: { chiave: ChiaveChecklist; testo: string }[] = [
   { chiave: "non_in_elenco", testo: "La diretta è impostata come \"non in elenco\" su YouTube (non pubblica, raggiungibile solo dal link)." },
   { chiave: "chat_disattivata", testo: "La chat dal vivo di YouTube è disattivata (le domande passano solo dalla piattaforma KIREO)." },
   { chiave: "no_contenuti_terzi", testo: "Non trasmetterò musica di alcun tipo né contenuti audio/video di terzi non licenziati." },
-];
-
-// LA DOMANDA SULL'INCORPORAMENTO, quando la sonda non ha potuto misurare, ha
-// DUE risposte e non una spunta (Mario, 18/10): una spunta obbligatoria su
-// «è attivo» costringeva a dichiarare il falso chi aveva controllato e non lo
-// sapeva — o sapeva che non lo era. «Non lo so» è una risposta ammessa e si
-// registra come tale (`incorporamento_non_verificato`, migrazione
-// `20261018100000`). Alla sonda concediamo «non ho guardato»: alla persona
-// lo stesso.
-// Testi di Mario (18/10). La prima risposta nomina l'opzione ESATTA di Studio
-// invece della categoria: «Consenti incorporamento» chiede di riconoscere una
-// cosa vista, «l'incorporamento è attivo» si spunta per riflesso. La seconda
-// dice la conseguenza per i ragazzi, non per il nostro archivio.
-// ⚠️ E NON promette che avviseremo l'ente prima della diretta: nessuno lo fa.
-// Una promessa così sarebbe «Scrivici da Contatti» su una pagina che non
-// mandava niente.
-// ⚠️ DUE risposte e non tre, deciso (Mario, 18/10): «ho controllato ed è
-// disattivato» NON si costruisce — salveremmo un evento con un difetto noto a
-// chi lo salva, e chi lo sa ha davanti il link per aprirlo (`urlStudioVideo`):
-// quella è la strada, non un'altra casella. LA CONDIZIONE CHE LA RIAPRE, perché
-// il fatto si nomina: se vediamo enti che rispondono «non lo so» subito dopo un
-// referto «disattivato», quella risposta sta coprendo un caso diverso, e allora
-// la terza serve. Oggi non esiste.
-type RispostaIncorporamento = "attivo" | "non_so";
-const RISPOSTE_INCORPORAMENTO: { valore: RispostaIncorporamento; chiave: string; testo: string }[] = [
-  { valore: "attivo", chiave: "incorporamento_attivo", testo: "Ho guardato su YouTube Studio: «Consenti incorporamento» è attivo." },
-  {
-    valore: "non_so",
-    chiave: "incorporamento_non_verificato",
-    testo:
-      "Non lo so, o non sono riuscito a controllarlo. L'evento si salva lo stesso e resta segnato come non verificato: se l'incorporamento è chiuso, i ragazzi vedranno un riquadro nero al posto tuo.",
-  },
 ];
 
 const TIPI = [
@@ -121,8 +98,6 @@ export default function CreaEventoForm({
     eDiretta && hostingDiretta === "proprio" ? idYoutube : null,
   );
   const vociChecklist = VOCI_CHECKLIST;
-  const chiedeIncorporamento = serveDichiarazioneIncorporamento(esitoSonda);
-  const [rispostaIncorporamento, setRispostaIncorporamento] = useState<RispostaIncorporamento | null>(null);
 
   const [errori, setErrori] = useState<Record<string, string>>({});
   const [inviando, setInviando] = useState(false);
@@ -194,10 +169,6 @@ export default function CreaEventoForm({
         // KIREO non è un rischio, è una diretta che una classe non vedrà.
         if (idYoutube && esitoSonda && sondaBlocca(esitoSonda)) next.youtubeLink = testoSonda(esitoSonda).titolo;
         if (vociChecklist.some((v) => !checklist[v.chiave])) next.checklist = "Devi confermare tutte le voci della checklist per trasmettere dal tuo canale.";
-        // Una risposta serve, ma «non lo so» è una risposta.
-        if (chiedeIncorporamento && !rispostaIncorporamento) {
-          next.incorporamento = "Dicci se hai potuto controllare l'incorporamento: anche «non lo so» va bene.";
-        }
       }
     }
     return next;
@@ -244,18 +215,15 @@ export default function CreaEventoForm({
       const supabase = createClient();
       const usaChecklist = eDiretta && hostingDiretta === "proprio";
       const oraAccettazione = usaChecklist ? new Date().toISOString() : null;
-      // SI REGISTRA SOLO QUELLO CHE È STATO DAVVERO DICHIARATO: la voce
-      // dell'incorporamento entra nel jsonb solo se la spunta c'era (cioè
-      // solo se la sonda non ha potuto misurare). Scriverla anche dove la
-      // misura ha risposto vorrebbe dire registrare una dichiarazione che
-      // nessuno ha fatto — la specie esatta che questo giro chiude.
+      // SI REGISTRA SOLO QUELLO CHE È STATO DAVVERO DICHIARATO, più un fatto
+      // nostro: se la sonda qui non ha risposto «attivo», l'evento resta
+      // `incorporamento_non_verificato`. Non è una risposta dell'ente (la
+      // domanda non c'è più): è che noi non abbiamo potuto misurare. La misura
+      // vera si rifà a diretta aperta.
       const checklistDaSalvare: Record<string, string> = {};
       if (oraAccettazione) {
         for (const voce of vociChecklist) checklistDaSalvare[voce.chiave] = oraAccettazione;
-        // La risposta sull'incorporamento entra solo se è stata chiesta, e con
-        // la chiave di QUELLO che è stato risposto.
-        const risposta = chiedeIncorporamento ? RISPOSTE_INCORPORAMENTO.find((r) => r.valore === rispostaIncorporamento) : null;
-        if (risposta) checklistDaSalvare[risposta.chiave] = oraAccettazione;
+        if (esitoSonda !== "attivo") checklistDaSalvare.incorporamento_non_verificato = oraAccettazione;
       }
       const { data: evento, error } = await supabase
         .from("eventi")
@@ -562,7 +530,7 @@ export default function CreaEventoForm({
                   c'era una spunta con cui l'ente dichiarava la stessa cosa, e
                   noi la registravamo come se l'avessimo verificata.
                 */}
-                <EsitoSondaIncorporamento esito={esitoSonda} inCorso={sondaInCorso} idVideo={idYoutube} conDomanda />
+                <EsitoSondaIncorporamento esito={esitoSonda} inCorso={sondaInCorso} idVideo={idYoutube} />
               </div>
 
               <div className="space-y-2">
@@ -580,24 +548,6 @@ export default function CreaEventoForm({
                 {errori.checklist && <p className="mt-1.5 text-sm text-red-400">{errori.checklist}</p>}
               </div>
 
-              {chiedeIncorporamento && (
-                <fieldset className="space-y-2">
-                  <legend className="mb-1 text-sm font-medium text-kireo-light">L&apos;incorporamento del video</legend>
-                  {RISPOSTE_INCORPORAMENTO.map((r) => (
-                    <label key={r.valore} className="flex items-start gap-3 text-sm text-kireo-light/90">
-                      <input
-                        type="radio"
-                        name="rispostaIncorporamento"
-                        checked={rispostaIncorporamento === r.valore}
-                        onChange={() => setRispostaIncorporamento(r.valore)}
-                        className="mt-0.5 h-4 w-4 accent-kireo-green"
-                      />
-                      {r.testo}
-                    </label>
-                  ))}
-                  {errori.incorporamento && <p className="mt-1.5 text-sm text-red-400">{errori.incorporamento}</p>}
-                </fieldset>
-              )}
             </div>
           )}
         </div>

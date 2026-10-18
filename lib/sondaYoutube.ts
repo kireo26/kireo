@@ -40,8 +40,8 @@
 // ⚠️ che stava qui. Dalla riga in database dopo la prima diretta:
 // `incorporamento_sonda = "attivo"` con una checklist di TRE voci. Le due cose
 // insieme non si producono per caso — `"attivo"` esiste solo se `onReady` è
-// arrivato e ha retto la grazia, e la quarta voce sparisce solo se
-// `serveDichiarazioneIncorporamento` ha detto no — quindi ha girato, e su una
+// arrivato e ha retto la grazia, e la quarta voce spariva solo se la sonda
+// aveva risposto — quindi ha girato, e su una
 // DIRETTA PROGRAMMATA non ancora cominciata, che era il caso principale.
 //
 // E IL 18/10 HA RISPOSTO DUE VOLTE IN PIÙ, sullo stesso video: `disattivato`
@@ -52,17 +52,17 @@
 // estensioni). Quindi la sonda non è «inaffidabile su una diretta
 // programmata»: il suo silenzio ha una causa comune, e il testo la nomina.
 //
-// DOVE LA SONDA NON HA POTUTO, la domanda torna alla persona — e dal 18/10
-// con DUE risposte invece di una spunta obbligatoria: «ho controllato, è
-// attivo» oppure «non lo so». La spunta obbligatoria costringeva a dichiarare
-// il falso chi non sapeva (Mario l'ha fatto, montando la diretta, perché non
-// c'era un'altra strada per salvare). Alla sonda concediamo «non ho guardato»:
-// alla persona lo stesso. Vedi `20261018100000_incorporamento_non_verificato.sql`.
-//
-// LE DUE COSE NON STANNO MAI INSIEME A SCHERMO — una
-// dichiarazione accanto a una misura è peggio di niente, perché la prima
-// volta che divergono nessuno sa a quale credere. Qui la dichiarazione è il
-// RIPIEGO di quando la misura manca, e la misura, quando c'è, vince.
+// ⚠️⚠️ DAL 18/10 SERA LA PERSONA NON DICHIARA PIÙ NIENTE SULL'INCORPORAMENTO
+// (Mario). Quella sera «Allow embedding» era attivo alle 12:08, misurato
+// «attivo» alle 12:09, e SPENTO alle 17:07 al Go live — e di nuovo a un
+// salvataggio in Studio. Il fatto scade fra la dichiarazione e il momento in
+// cui serve, quindi una dichiarazione non può coprirlo nemmeno in buona fede.
+// Al suo posto la MISURA SI RIPETE: la console del moderatore rifà la sonda
+// ogni due minuti a diretta aperta, e il player di ogni studente segnala il
+// proprio errore. Dove la sonda del form non ha risposto, l'evento si salva
+// `incorporamento_non_verificato`: un fatto su di noi, non una risposta
+// dell'ente. La regola di prima resta vera e qui è diventata assoluta: una
+// dichiarazione accanto a una misura è peggio di niente.
 
 export type EsitoSonda = "attivo" | "incorporamento_disattivato" | "non_disponibile" | "non_controllato";
 
@@ -89,11 +89,6 @@ export function sondaBlocca(esito: EsitoSonda): boolean {
   return esito === "incorporamento_disattivato" || esito === "non_disponibile";
 }
 
-// La spunta della checklist esiste SOLO dove la misura non c'è. Vedi la nota
-// in testa: mai una dichiarazione accanto a una misura.
-export function serveDichiarazioneIncorporamento(esito: EsitoSonda | null): boolean {
-  return esito === null || esito === "non_controllato";
-}
 
 export type TestoSonda = {
   titolo: string;
@@ -169,15 +164,8 @@ const TESTI: Record<EsitoSonda, TestoSonda> = {
   },
 };
 
-// La riga che rimanda alla domanda «qui sotto» vale SOLO dove la domanda c'è,
-// cioè nel form dell'ente: nel pannello dell'admin sotto il referto non c'è
-// nessuna domanda, e la stessa frase lì manderebbe a cercare una cosa che non
-// esiste. Il resto del referto è uguale nei due posti.
-const RIMANDO_ALLA_DOMANDA = " Se non basta, dicci qui sotto cosa sai: anche «non lo so» è una risposta.";
-
-export function testoSonda(esito: EsitoSonda, idVideo: string | null = null, conDomanda = false): TestoSonda {
+export function testoSonda(esito: EsitoSonda, idVideo: string | null = null): TestoSonda {
   const testo = TESTI[esito];
-  if (esito === "non_controllato" && conDomanda) return { ...testo, dettaglio: testo.dettaglio + RIMANDO_ALLA_DOMANDA };
   if (esito === "incorporamento_disattivato" && idVideo) {
     return { ...testo, azione: { href: urlStudioVideo(idVideo), etichetta: "Aprilo qui" } };
   }

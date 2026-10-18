@@ -18,6 +18,8 @@ const { eventoNonFinito } = require("@/lib/app/eventi");
 const { rigaPlayerRotti } = require("@/lib/eventi/videoDiretta");
 const { messaggioSpostaFinestra } = require("@/lib/eventi/spostaFinestra");
 const { istanteDaOrarioItaliano, orarioItalianoDaIstante } = require("@/lib/formato");
+const P = require("@/lib/live/presenza");
+const { trovaAccordi } = require("@/lib/lingua/accordoGenere");
 
 let fatte = 0;
 let falliti = 0;
@@ -86,6 +88,51 @@ console.log("\n§3 — la finestra si sposta dal prodotto\n");
   ok(/non riceve nessun avviso/.test(messaggioSpostaFinestra(null)), "il successo dice quello che NON facciamo: avvisare gli iscritti");
   ok(/già stata chiusa/.test(messaggioSpostaFinestra("diretta_gia_chiusa")), "a diretta chiusa il no dice perché");
   ok(/problema nostro/.test(messaggioSpostaFinestra("qualcosa di inatteso")), "ciò che non riconosciamo è un guasto nostro, non un dato sbagliato");
+}
+
+console.log("\n§4 — la presenza comincia quando il video parte (18/10 sera)\n");
+{
+  ok(!P.presenzaConta({ inDiretta: true, videoRotto: false, avviato: false }), "video mai partito: non si conta niente (i venti minuti neri del 18/10)");
+  ok(P.presenzaConta({ inDiretta: true, videoRotto: false, avviato: true }), "partito una volta: si conta, anche durante pause e caricamenti");
+  ok(!P.presenzaConta({ inDiretta: true, videoRotto: true, avviato: true }), "l'errore ferma tutto, come prima");
+  ok(!P.presenzaConta({ inDiretta: false, videoRotto: false, avviato: true }), "fuori dalla diretta niente, come prima");
+
+  // La soglia: specchio di ping_attesi_evento × 0,75.
+  ok(P.minutiNecessari("2026-10-18T15:00:00Z", "2026-10-18T15:45:00Z") === 34, "45 minuti → 34 per il riconoscimento (0,75 × 45 = 33,75)");
+  ok(P.minutiNecessari("2026-10-18T15:00:00Z", "2026-10-18T15:40:00Z") === 30, "40 minuti → 30 esatti (nessun arrotondamento spurio)");
+  ok(P.minutiNecessari("2026-10-18T15:00:00Z", null) === null, "senza fine non si calcola");
+
+  ok(P.testoContatore(12, 34, true) === "Presente da 12 minuti. Per il riconoscimento ne servono 34.", "sotto soglia: il testo di Mario", P.testoContatore(12, 34, true));
+  ok(P.testoContatore(1, 1, true).startsWith("Hai raggiunto"), "alla soglia esatta: raggiunta");
+  ok(!/garant/i.test(P.testoContatore(40, 34, true)) && /chiude la diretta/.test(P.testoContatore(40, 34, true)), "raggiunta NON promette le ore: nomina la condizione che manca");
+  ok(P.testoContatore(12, 34, false) === "Il conteggio è fermo a 12 minuti: finché il video non si vede, la presenza non avanza.", "fermo: dice a quanto è fermo");
+  ok(/1 minuto\b/.test(P.testoContatore(1, 34, true)) && !/1 minuti/.test(P.testoContatore(1, 34, false)), "un minuto al singolare");
+
+  ok(P.testoRientro({ minutiFuori: 0, direttaFinita: false, riprende: true }) === null, "sotto il minuto non si dice niente");
+  const dentro = P.testoRientro({ minutiFuori: 6, direttaFinita: false, riprende: true });
+  ok(/6 minuti/.test(dentro) && /Adesso riprende\.$/.test(dentro), "diretta ancora in corso: quanti minuti persi, e che riprende", dentro);
+  ok(!/riprende/.test(P.testoRientro({ minutiFuori: 6, direttaFinita: false, riprende: false })), "«Adesso riprende» solo se è vero");
+  const finita = P.testoRientro({ minutiFuori: 6, direttaFinita: true, riprende: false });
+  ok(finita === "Mentre eri fuori la diretta è finita. Gli ultimi 6 minuti non sono stati contati.", "diretta finita nel mentre: il testo di Mario, e nessun rimedio inesistente", finita);
+
+  // ⚠️ Nessuna frase accordata al genere di chi legge (KIREO non lo sa).
+  const tutti = [
+    P.testoContatore(12, 34, true), P.testoContatore(40, 34, true), P.testoContatore(12, 34, false),
+    dentro, finita, P.testoRientro({ minutiFuori: 1, direttaFinita: false, riprende: true }),
+    P.AVVISO_PLAYER, P.AVVISO_PLAYER_TELEFONO,
+  ];
+  const accordi = tutti.flatMap((t) => trovaAccordi(t));
+  ok(accordi.length === 0, "nessun participio accordato col genere di chi legge", accordi.join(", "));
+  ok(tutti.length === 8, "la lista dei testi controllati ne ha otto: sotto, il controllo non sta guardando");
+
+  const pannello = leggi("components/live/PannelloLive.tsx");
+  ok(/onAvvio=\{segnaAvvio\}/.test(pannello), "il pannello ascolta il primo avvio del video");
+  ok(/testoContatore\(contati, necessari, contaLaPresenza\)/.test(pannello), "lo studente vede il contatore");
+  ok(/visibilitychange/.test(pannello) && /setRientro\(testoRientro/.test(pannello), "al rientro gli si dice cosa ha perso");
+  ok(/\{AVVISO_PLAYER\}/.test(pannello) && /sm:hidden">\{AVVISO_PLAYER_TELEFONO\}/.test(pannello), "l'avviso sopra il player, e la riga in più solo sul telefono");
+  const player = leggi("components/live/PlayerDiretta.tsx");
+  ok(/e\.data === 1\) onAvvioRef\.current/.test(player), "il player dice «partito» sullo stato in riproduzione");
+  ok(/if \(ripiego\) onAvvioRef\.current/.test(player), "nel ripiego (nessuna misura) si dichiara partito: dove non sappiamo, conta");
 }
 
 console.log(`\n${falliti === 0 ? "✓" : "✗"} ${fatte - falliti}/${fatte} proprietà verificate`);

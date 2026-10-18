@@ -15,19 +15,16 @@ export default function EsitoSondaIncorporamento({
   esito,
   inCorso,
   idVideo = null,
-  conDomanda = false,
 }: {
   esito: EsitoSonda | null;
   inCorso: boolean;
   idVideo?: string | null;
-  // Vero solo nel form dell'ente, dove sotto il referto c'è la domanda.
-  conDomanda?: boolean;
 }) {
   if (inCorso) {
     return <p className="mt-2 text-xs text-kireo-muted">Stiamo provando il video…</p>;
   }
   if (!esito) return null;
-  const testo = testoSonda(esito, idVideo, conDomanda);
+  const testo = testoSonda(esito, idVideo);
   return (
     <div className={`mt-2 rounded-lg border px-3 py-2 text-xs ${CLASSI_TONO[testo.tono]}`}>
       <p className="font-semibold">{testo.titolo}</p>
