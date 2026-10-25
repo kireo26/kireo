@@ -317,7 +317,7 @@ ok(report.includes("sezioniReportEnte("), "il bottone del report compone il file
 
 console.log("\n§25/10 — il CSV parla la lingua di chi lo apre\n");
 ok(exportP.esitoPresenzaPerExport({ stato_finale: "partecipato", primo_ping: "x" }, true) === "Certificata", "partecipato → «Certificata»");
-ok(exportP.esitoPresenzaPerExport({ stato_finale: "iscritto", primo_ping: null }, true) === "Mai collegato", "iscritto, mai collegato → «Mai collegato»");
+ok(exportP.esitoPresenzaPerExport({ stato_finale: "iscritto", primo_ping: null }, true) === "Nessun collegamento", "iscritto, mai collegato → «Nessun collegamento» (decisione di Mario, 25/10 sera)");
 ok(exportP.esitoPresenzaPerExport({ stato_finale: "iscritto", primo_ping: "x" }, true) === "Sotto la soglia", "iscritto, collegato, diretta chiusa → «Sotto la soglia»");
 ok(exportP.esitoPresenzaPerExport({ stato_finale: "iscritto", primo_ping: "x" }, false) === "Diretta non ancora chiusa", "…ma prima della chiusura non è «sotto la soglia»: il conteggio non è ancora fatto");
 ok(exportP.statoDomandaPerExport("risposta_live") === "Risposta in diretta" && exportP.statoDomandaPerExport("nuova") === "Non ancora gestita" && exportP.statoDomandaPerExport("letta") === "Letta in diretta", "gli stati delle domande, tradotti");

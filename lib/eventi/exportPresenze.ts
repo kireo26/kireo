@@ -125,7 +125,7 @@ export function esitoPresenzaPerExport(
 ): string {
   if (riga.stato_finale === "partecipato") return "Certificata";
   if (riga.stato_finale === "assente") return "Assente";
-  if (!riga.primo_ping) return "Mai collegato";
+  if (!riga.primo_ping) return "Nessun collegamento";
   return direttaChiusa ? "Sotto la soglia" : "Diretta non ancora chiusa";
 }
 

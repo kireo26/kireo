@@ -74,6 +74,7 @@
     "test:contatti": "node scripts/verifica-contatti.js",
     "test:errori": "node scripts/verifica-log-errori.js",
     "test:diretta1810": "node scripts/verifica-diretta-18-10.js",
+    "test:pausa": "node scripts/verifica-pausa-video.js",
     "test:uscita": "node scripts/verifica-uscita.js"
   },
   "dependencies": {
@@ -95,6 +96,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "esbuild": "0.25.10",
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
     "tailwindcss": "^4",

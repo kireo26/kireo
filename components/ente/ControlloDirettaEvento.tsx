@@ -390,7 +390,7 @@ export default function ControlloDirettaEvento({
       )}
 
       <p className="text-xs text-kireo-muted">
-        Le iscrizioni di classe in modalità DAD non sono coperte dall&apos;heartbeat: per quegli studenti la certificazione resta manuale, a cura della
+        Le iscrizioni di classe in modalità DAD non sono coperte dal conteggio automatico della presenza: per quegli studenti la certificazione resta manuale, a cura della
         scuola.
       </p>
     </div>

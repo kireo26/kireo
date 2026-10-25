@@ -97,10 +97,18 @@ console.log("\n§3 — la finestra si sposta dal prodotto\n");
 
 console.log("\n§4 — la presenza comincia quando il video parte (18/10 sera)\n");
 {
-  ok(!P.presenzaConta({ inDiretta: true, videoRotto: false, avviato: false }), "video mai partito: non si conta niente (i venti minuti neri del 18/10)");
-  ok(P.presenzaConta({ inDiretta: true, videoRotto: false, avviato: true }), "partito una volta: si conta, anche durante pause e caricamenti");
-  ok(!P.presenzaConta({ inDiretta: true, videoRotto: true, avviato: true }), "l'errore ferma tutto, come prima");
-  ok(!P.presenzaConta({ inDiretta: false, videoRotto: false, avviato: true }), "fuori dalla diretta niente, come prima");
+  ok(!P.presenzaConta({ inDiretta: true, videoRotto: false, avviato: false, finito: false, pausaLunga: false }), "video mai partito: non si conta niente (i venti minuti neri del 18/10)");
+  ok(P.presenzaConta({ inDiretta: true, videoRotto: false, avviato: true, finito: false, pausaLunga: false }), "partito una volta: si conta, anche durante pause e caricamenti brevi");
+  // 25/10 sera: una pausa oltre la tolleranza non conta (osservato in `npm run test:pausa`).
+  ok(!P.presenzaConta({ inDiretta: true, videoRotto: false, avviato: true, finito: false, pausaLunga: true }), "fermo oltre la tolleranza: non conta");
+  ok(!P.pausaLunga(1000, 1000 + P.MS_PAUSA_TOLLERATA - 1) && P.pausaLunga(1000, 1000 + P.MS_PAUSA_TOLLERATA), "la tolleranza ha un confine esatto");
+  ok(!P.pausaLunga(null, 1e12), "un video che non si è mai fermato non è in pausa");
+  ok(P.causaFermo({ avviato: false, videoRotto: false, pausaLunga: true }) === "non_avviato", "mai partito resta «non avviato» anche se fermo");
+  ok(P.causaFermo({ avviato: true, videoRotto: true, pausaLunga: true }) === "video_non_visibile", "un video rotto non si sente dire «riprendi la riproduzione»");
+  ok(P.causaFermo({ avviato: true, videoRotto: false, pausaLunga: true }) === "in_pausa", "fermo oltre la tolleranza: «in pausa»");
+  ok(P.testoContatore(4, 15, false, "in_pausa") === "Il video è fermo, quindi la presenza non sta avanzando. Riprendi la riproduzione per farla ripartire.", "il testo della pausa è quello di Mario, parola per parola");
+  ok(!P.presenzaConta({ inDiretta: true, videoRotto: true, avviato: true, finito: false, pausaLunga: false }), "l'errore ferma tutto, come prima");
+  ok(!P.presenzaConta({ inDiretta: false, videoRotto: false, avviato: true, finito: false, pausaLunga: false }), "fuori dalla diretta niente, come prima");
 
   // La soglia: specchio di ping_attesi_evento × 0,75.
   ok(P.minutiNecessari("2026-10-18T15:00:00Z", "2026-10-18T15:45:00Z") === 34, "45 minuti → 34 per il riconoscimento (0,75 × 45 = 33,75)");
@@ -132,7 +140,7 @@ console.log("\n§4 — la presenza comincia quando il video parte (18/10 sera)\n
 
   const pannello = leggi("components/live/PannelloLive.tsx");
   ok(/onAvvio=\{segnaAvvio\}/.test(pannello), "il pannello ascolta il primo avvio del video");
-  ok(/testoContatore\(contati, necessari, contaLaPresenza, avviato \? "video_non_visibile" : "non_avviato"\)/.test(pannello), "lo studente vede il contatore");
+  ok(/testoContatore\(contati, necessari, contaLaPresenza, causaFermo\(\{ avviato, videoRotto: !presenzaDaContare\(esitoPlayer\), pausaLunga: inPausaLunga \}\)\)/.test(pannello), "lo studente vede il contatore");
   ok(/visibilitychange/.test(pannello) && /setRientro\(testoRientro/.test(pannello), "al rientro gli si dice cosa ha perso");
   ok(/\{AVVISO_PLAYER\}/.test(pannello) && /sm:hidden">\{AVVISO_PLAYER_TELEFONO\}/.test(pannello), "l'avviso sopra il player, e la riga in più solo sul telefono");
   const player = leggi("components/live/PlayerDiretta.tsx");
@@ -158,7 +166,7 @@ console.log("\n§4 — il riquadro semplice non conta come video partito (Mario,
   ok(/\{!videoFinito && !ripiego && !sessionePersa && !nonLetto && inDiretta && necessari !== null/.test(pannello), "…al posto del contatore, che direbbe «finché il video non si vede» (qui falso: si vede, non sappiamo se è partito)");
   ok(trovaAccordi(P.TESTO_RIPIEGO).length === 0, "il testo non concorda col genere di chi legge");
   // Il ripiego non accende la presenza per nessuna strada: `avviato` resta falso.
-  ok(!P.presenzaConta({ inDiretta: true, videoRotto: false, avviato: false }), "senza avvio la presenza non conta — ed è l'unica cosa che il ripiego lascia");
+  ok(!P.presenzaConta({ inDiretta: true, videoRotto: false, avviato: false, finito: false, pausaLunga: false }), "senza avvio la presenza non conta — ed è l'unica cosa che il ripiego lascia");
   // E la frequenza si impara: una riga per caricamento di pagina, mai di più.
   ok(/fetch\("\/api\/live\/ripiego"/.test(pannello) && /if \(ripiegoContato\.current\) return;/.test(pannello), "ogni ripiego si conta, una volta per pagina");
   // ⚠️ RIESAMINATA il 25/10: la route del ripiego e quella della fine del video
@@ -230,7 +238,7 @@ console.log("\n§6 — il battito respinto e il contatore che scendeva (25/10)\n
   ok(P.testoContatore(0, 34, false, "non_avviato") === "Il conteggio è fermo a 0 minuti: la presenza comincia quando avvii il video.", "non avviato: il testo di Mario, che non dice «finché il video non si vede» a chi lo vede");
   ok(P.testoContatore(0, 34, false, "video_non_visibile") !== P.testoContatore(0, 34, false, "non_avviato"), "le due cause del fermo dicono due cose");
   const pannelloV = leggi("components/live/PannelloLive.tsx");
-  ok(!/testoContatore\([^)]*\)/.test(pannelloV.replace(/testoContatore\(contati, necessari, contaLaPresenza, avviato \? "video_non_visibile" : "non_avviato"\)/, "")), "una sola chiamata, con la causa");
+  ok(!/testoContatore\([^)]*\)/.test(pannelloV.replace(/testoContatore\(contati, necessari, contaLaPresenza, causaFermo\(\{ avviato, videoRotto: !presenzaDaContare\(esitoPlayer\), pausaLunga: inPausaLunga \}\)\)/, "")), "una sola chiamata, con la causa");
   // Gli esiti del battito.
   ok(P.esitoBattito(401, { ok: false }) === "sessione_persa", "401: sessione persa");
   ok(P.esitoBattito(200, { ok: true }) === "ok", "200 ok:true: riuscito");
@@ -275,8 +283,8 @@ console.log("\n§6 — il battito respinto e il contatore che scendeva (25/10)\n
   ok(/scriviBozza\(eventoId, null\)/.test(box), "e si cancella quando la domanda arriva");
   ok(/causa === "sessione_persa"/.test(box) && /\/accedi\?redirectedFrom=/.test(box), "il rifiuto per sessione persa porta il link per rientrare");
   // LA PRESENZA FINISCE QUANDO IL VIDEO FINISCE (25/10 sera).
-  ok(P.presenzaConta({ inDiretta: true, videoRotto: false, avviato: true, finito: false }), "partito e non finito: conta");
-  ok(!P.presenzaConta({ inDiretta: true, videoRotto: false, avviato: true, finito: true }), "finito: non conta più");
+  ok(P.presenzaConta({ inDiretta: true, videoRotto: false, avviato: true, finito: false, pausaLunga: false }), "partito e non finito: conta");
+  ok(!P.presenzaConta({ inDiretta: true, videoRotto: false, avviato: true, finito: true, pausaLunga: false }), "finito: non conta più");
   ok(P.testoVideoFinito(28, 34) === "La diretta è finita. La tua presenza si è fermata a 28 minuti.", "il testo di Mario, parola per parola");
   ok(P.testoVideoFinito(null, 34) === "La diretta è finita.", "senza un numero letto non si dice un numero");
   ok(P.testoVideoFinito(1, 34).includes("1 minuto."), "un minuto al singolare");

@@ -28,6 +28,7 @@ export default function PlayerDiretta({
   onAvvio,
   onRipiego,
   onFine,
+  onFermo,
 }: {
   videoId: string;
   titolo: string;
@@ -45,6 +46,9 @@ export default function PlayerDiretta({
   /** Il video è finito (stato 0). Dal 25/10 la presenza finisce qui: dopo non
    *  c'è più niente a cui essere presenti. */
   onFine?: () => void;
+  /** Il video si è fermato (pausa, 2) o sta caricando (3). Dal 25/10 sera una
+   *  pausa oltre la tolleranza ferma la presenza: `MS_PAUSA_TOLLERATA`. */
+  onFermo?: () => void;
 }) {
   const contenitoreRef = useRef<HTMLDivElement>(null);
   // La callback in un ref: così l'effetto non dipende da lei e il player non
@@ -59,13 +63,15 @@ export default function PlayerDiretta({
   const onAvvioRef = useRef(onAvvio);
   const onRipiegoRef = useRef(onRipiego);
   const onFineRef = useRef(onFine);
+  const onFermoRef = useRef(onFermo);
   useEffect(() => {
     onErroreRef.current = onErrore;
     onProntoRef.current = onPronto;
     onAvvioRef.current = onAvvio;
     onRipiegoRef.current = onRipiego;
     onFineRef.current = onFine;
-  }, [onErrore, onPronto, onAvvio, onRipiego, onFine]);
+    onFermoRef.current = onFermo;
+  }, [onErrore, onPronto, onAvvio, onRipiego, onFine, onFermo]);
   const [ripiego, setRipiego] = useState(false);
 
   // NEL RIPIEGO NON SAPPIAMO SE IL VIDEO PARTE, e dal 18/10 NON SI DICHIARA
@@ -114,6 +120,7 @@ export default function PlayerDiretta({
               // ⚠️ Che una DIRETTA mandi lo stato 0 quando chi trasmette chiude
               // è documentato per l'IFrame API, non osservato a schermo da noi.
               if (vivo && e.data === 0) onFineRef.current?.();
+              if (vivo && (e.data === 2 || e.data === 3)) onFermoRef.current?.();
             },
             onReady: () => {
               grazia = setTimeout(() => {

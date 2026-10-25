@@ -3,7 +3,7 @@
 // `npm run test:diretta1810`: una frase composta in un `.tsx` non si prova da
 // uno script.
 
-import { ORE_FINESTRA_CONSEGNA } from "@/lib/live";
+import { ORE_FINESTRA_CONSEGNA, testoAttesaDiretta } from "@/lib/live";
 
 // ⚠️⚠️ LA PRESENZA COMINCIA QUANDO IL VIDEO PARTE LA PRIMA VOLTA. Il 18/10 per
 // venti minuti il player è rimasto nero, e la pagina diceva «presenza in
@@ -28,18 +28,40 @@ import { ORE_FINESTRA_CONSEGNA } from "@/lib/live";
 // accumula presenza oltre la fine vera, fino al tetto della finestra. Oggi la
 // finestra lo contiene; il giorno in cui è larga e la diretta finisce molto
 // prima, non più.
+//
+// ⚠️⚠️ UNA PAUSA LUNGA NON CONTA (Mario, 25/10 sera). La regola «dopo il primo
+// avvio pause e caricamenti contano» era pensata per dieci secondi di buffering,
+// e per quello resta giusta. Ma osservata (`npm run test:pausa`, il PannelloLive
+// vero in un browser) diceva un'altra cosa: con la pagina in primo piano e il
+// video FERMO partivano cinque battiti in cinque minuti — la presenza misurava
+// «la pagina è aperta», non «sta guardando». Ogni cosa che KIREO afferma su uno
+// studente deve venire da un'azione che ha compiuto, e una pagina aperta non è
+// un'azione. Oltre `MS_PAUSA_TOLLERATA` di video fermo (pausa o caricamento) il
+// conteggio si ferma, e riparte appena il video riparte.
 export function presenzaConta({
   inDiretta,
   videoRotto,
   avviato,
   finito,
+  pausaLunga,
 }: {
   inDiretta: boolean;
   videoRotto: boolean;
   avviato: boolean;
   finito: boolean;
+  pausaLunga: boolean;
 }): boolean {
-  return inDiretta && !videoRotto && avviato && !finito;
+  return inDiretta && !videoRotto && avviato && !finito && !pausaLunga;
+}
+
+// Novanta secondi: coprono qualunque buffering vero e un messaggio letto al
+// volo, e non coprono un telefono messo in tasca. Numero SCELTO, non misurato.
+export const MS_PAUSA_TOLLERATA = 90_000;
+// ⚠️ Quello che non vede: un telefono che sospende il video SENZA mandare uno
+// stato al player. Lì non arriva né «pausa» né «caricamento», e il conteggio
+// continua: è un limite del segnale, non della regola.
+export function pausaLunga(fermoDal: number | null, adesso: number): boolean {
+  return fermoDal !== null && adesso - fermoDal >= MS_PAUSA_TOLLERATA;
 }
 
 // Testo di Mario. Senza un numero letto la seconda frase non si dice: «si è
@@ -85,12 +107,21 @@ export function statoContatore(contati: number, necessari: number, conta: boolea
 // — e lo studente non capiva cosa gli si chiedesse. Il secondo è di Mario.
 // `causa` è obbligatorio di proposito: un default nasconderebbe il chiamante che
 // non lo passa, cioè il difetto di partenza.
-export type CausaFermo = "video_non_visibile" | "non_avviato";
+export type CausaFermo = "video_non_visibile" | "non_avviato" | "in_pausa";
+// L'ordine conta: un video mai partito è «non avviato» anche se è fermo; un video
+// rotto ha il suo riquadro, e dirgli «riprendi la riproduzione» sarebbe falso.
+export function causaFermo({ avviato, videoRotto, pausaLunga }: { avviato: boolean; videoRotto: boolean; pausaLunga: boolean }): CausaFermo {
+  if (!avviato) return "non_avviato";
+  if (videoRotto) return "video_non_visibile";
+  return pausaLunga ? "in_pausa" : "video_non_visibile";
+}
 export function testoContatore(contati: number, necessari: number, conta: boolean, causa: CausaFermo): string {
   switch (statoContatore(contati, necessari, conta)) {
     case "raggiunta":
       return "Hai raggiunto la soglia di presenza. Le ore vengono riconosciute quando l'organizzatore chiude la diretta.";
     case "fermo":
+      // Il terzo è di Mario (25/10 sera), parola per parola.
+      if (causa === "in_pausa") return "Il video è fermo, quindi la presenza non sta avanzando. Riprendi la riproduzione per farla ripartire.";
       return causa === "non_avviato"
         ? `Il conteggio è fermo a ${minuti(contati)}: la presenza comincia quando avvii il video.`
         : `Il conteggio è fermo a ${minuti(contati)}: finché il video non si vede, la presenza non avanza.`;
@@ -118,7 +149,10 @@ export const MS_DURATA_AVVISO_RIENTRO = 3 * 60000;
 // minuti», che è un participio con *essere* in seconda persona — concorda col
 // genere di chi legge, e KIREO non lo sa. Al suo posto «Hai passato … fuori da
 // qui» (participio con *avere*, invariante). Il resto è suo, parola per parola.
-// «Adesso riprende» si dice solo se è vero (il conteggio riparte davvero).
+// «Adesso riprende» si dice solo se è vero (il conteggio riparte davvero) — e dal
+// 25/10 sera solo con il video IN RIPRODUZIONE: rientrando con il video in pausa
+// il conteggio corre ancora per la tolleranza e poi si ferma, e «adesso riprende»
+// sarebbe vero per novanta secondi. Lì parla il contatore.
 export function testoRientro({
   minutiFuori,
   direttaFinita,
@@ -280,4 +314,25 @@ export function rispettoAllaFine(dataFine: string | null, adesso: Date): string 
   const minuti = Math.round((adesso.getTime() - new Date(dataFine).getTime()) / 60_000);
   if (minuti === 0) return "alla fine programmata";
   return minuti < 0 ? `${-minuti} min prima della fine programmata` : `${minuti} min dopo la fine programmata`;
+}
+
+// ⚠️ PRIMA DELL'INIZIO UN VIDEO «NON INCORPORABILE» NON È UN GUASTO (giro del
+// 25/10). Alle 10:11 la sonda aveva detto «attivo» cinque minuti prima e il
+// player di uno studente entrato in anticipo ha risposto con lo stesso codice di
+// un incorporamento spento: una diretta programmata, nel conto alla rovescia,
+// può farlo. Ogni studente che apre in anticipo scriveva una riga che diceva al
+// moderatore «non vede» — un allarme falso nel momento in cui chi trasmette sta
+// preparando. Prima di `data_inizio` dunque niente segnalazione, niente riga, e
+// allo studente non si dice che il video «è stato pubblicato in modo che non si
+// possa riprodurre», che lì non sappiamo. Il player si riprova da solo ogni
+// minuto: dopo l'inizio, se non si vede ancora, si segnala come sempre.
+// ⚠️ Testo MIO e provvisorio.
+export function testoVideoPrimaDellInizio(dataInizio: string, ora: Date): { titolo: string; dettaglio: string } {
+  return {
+    titolo: "La diretta non è ancora cominciata",
+    dettaglio: `${testoAttesaDiretta(dataInizio, ora)}: il video compare qui da solo quando parte. Prima dell'inizio YouTube a volte non lo mostra, e non vuol dire che qualcosa non va.`,
+  };
+}
+export function erroreVideoPrimaDellInizio(dataInizio: string, adesso: number): boolean {
+  return adesso < new Date(dataInizio).getTime();
 }

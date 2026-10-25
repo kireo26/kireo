@@ -21,7 +21,11 @@ import {
   MS_DURATA_AVVISO_RIENTRO,
   MS_MINIMO_ASSENZA,
   minutiNecessari,
+  MS_PAUSA_TOLLERATA,
+  causaFermo,
+  erroreVideoPrimaDellInizio,
   presenzaConta,
+  testoVideoPrimaDellInizio,
   testoContatore,
   testoRientro,
   testoVideoFinito,
@@ -87,7 +91,22 @@ export default function PannelloLive({
   // VOLTA: venti minuti di player nero contavano. La regola e il suo perché
   // stanno in `presenzaConta` (lib/live/presenza.ts).
   const [avviato, setAvviato] = useState(false);
-  const segnaAvvio = useCallback(() => setAvviato(true), []);
+  // ⚠️ E UNA PAUSA LUNGA NON CONTA (25/10 sera): vedi `presenzaConta`. Il video
+  // fermo si ricorda da quando; oltre `MS_PAUSA_TOLLERATA` il conteggio si
+  // ferma, e il primo «in riproduzione» lo fa ripartire.
+  const [fermoDal, setFermoDal] = useState<number | null>(null);
+  const [inPausaLunga, setInPausaLunga] = useState(false);
+  const segnaAvvio = useCallback(() => {
+    setAvviato(true);
+    setFermoDal(null);
+    setInPausaLunga(false);
+  }, []);
+  const segnaFermo = useCallback(() => setFermoDal((t) => t ?? Date.now()), []);
+  useEffect(() => {
+    if (fermoDal === null) return;
+    const t = setTimeout(() => setInPausaLunga(true), Math.max(0, fermoDal + MS_PAUSA_TOLLERATA - Date.now()));
+    return () => clearTimeout(t);
+  }, [fermoDal]);
   // E FINISCE QUANDO IL VIDEO FINISCE (25/10): vedi `presenzaConta`.
   const [videoFinito, setVideoFinito] = useState(false);
   // ⚠️ L'arrivo del segnale si REGISTRA (Mario, 25/10): che una diretta YouTube
@@ -132,7 +151,7 @@ export default function PannelloLive({
       })
       .catch((e) => console.error("PannelloLive: ripiego del player non registrato", e));
   }, [eventoId]);
-  const contaLaPresenza = presenzaConta({ inDiretta, videoRotto: !presenzaDaContare(esitoPlayer), avviato, finito: videoFinito });
+  const contaLaPresenza = presenzaConta({ inDiretta, videoRotto: !presenzaDaContare(esitoPlayer), avviato, finito: videoFinito, pausaLunga: inPausaLunga });
   const battito = useHeartbeatDiretta(eventoId, stato === "in_corso" && contaLaPresenza);
   // Un battito riuscito su questa pagina: da quel momento la riga di
   // `presenze_live` esiste, e non vederla vuol dire non aver letto.
@@ -192,9 +211,11 @@ export default function PannelloLive({
   // — solo se in quel momento la presenza si stava contando, e solo sopra il
   // minuto (sotto è rumore).
   const contaRef = useRef(contaLaPresenza);
+  const inRiproduzioneRef = useRef(fermoDal === null);
   useEffect(() => {
     contaRef.current = contaLaPresenza;
-  }, [contaLaPresenza]);
+    inRiproduzioneRef.current = fermoDal === null;
+  }, [contaLaPresenza, fermoDal]);
   const [rientro, setRientro] = useState<string | null>(null);
   useEffect(() => {
     let uscita: { t: number; contava: boolean } | null = null;
@@ -212,7 +233,7 @@ export default function PannelloLive({
       const finita = fine !== null && adesso >= fine;
       const persi = (finita && fine !== null ? fine : adesso) - t;
       if (persi < MS_MINIMO_ASSENZA) return;
-      setRientro(testoRientro({ minutiFuori: Math.floor(persi / 60000), direttaFinita: finita, riprende: !finita && contaRef.current }));
+      setRientro(testoRientro({ minutiFuori: Math.floor(persi / 60000), direttaFinita: finita, riprende: !finita && contaRef.current && inRiproduzioneRef.current }));
     }
     document.addEventListener("visibilitychange", cambio);
     return () => document.removeEventListener("visibilitychange", cambio);
@@ -228,6 +249,9 @@ export default function PannelloLive({
   // Se la console del moderatore sa che questo studente non vede: è l'unica
   // condizione a cui la pagina può dire «lo stiamo segnalando» (18/10).
   const [segnalato, setSegnalato] = useState(false);
+  const riquadroRotto = erroreVideoPrimaDellInizio(dataInizio, ora.getTime())
+    ? testoVideoPrimaDellInizio(dataInizio, ora)
+    : testoDirettaRotta(segnalato);
   // Il numero del tentativo è la `key` del player: cambiarlo lo rimonta, cioè lo
   // riprova da capo.
   const [tentativo, setTentativo] = useState(0);
@@ -238,6 +262,8 @@ export default function PannelloLive({
       setEsitoPlayer(esito);
       if (!sondaBlocca(esito)) return;
       eraRotto.current = true;
+      // Prima dell'inizio non si segnala: vedi `erroreVideoPrimaDellInizio`.
+      if (erroreVideoPrimaDellInizio(dataInizio, Date.now())) return;
       // ⚠️ La segnalazione passa dalla funzione che controlla iscrizione e
       // finestra; un fallimento si logga e NON fa dire alla pagina che stiamo
       // segnalando — la frase sta in piedi solo se questa riga è riuscita.
@@ -248,7 +274,7 @@ export default function PannelloLive({
           setSegnalato(!error);
         });
     },
-    [eventoId],
+    [eventoId, dataInizio],
   );
 
   // Il player riprovato si vede: la presenza torna a contare da adesso (i
@@ -359,7 +385,7 @@ export default function PannelloLive({
         )}
         {!videoFinito && !ripiego && !sessionePersa && !nonLetto && inDiretta && necessari !== null && contati !== null && (
           <p className="mt-1 text-sm text-kireo-light/90" aria-live="polite">
-            {testoContatore(contati, necessari, contaLaPresenza, avviato ? "video_non_visibile" : "non_avviato")}
+            {testoContatore(contati, necessari, contaLaPresenza, causaFermo({ avviato, videoRotto: !presenzaDaContare(esitoPlayer), pausaLunga: inPausaLunga }))}
           </p>
         )}
         {rientro && (
@@ -395,12 +421,13 @@ export default function PannelloLive({
               onAvvio={segnaAvvio}
               onRipiego={segnaRipiego}
               onFine={segnaFine}
+              onFermo={segnaFermo}
             />
           </div>
           {videoRotto && (
             <div className="absolute inset-0 flex flex-col items-center justify-center rounded-2xl border border-red-500/30 bg-red-500/5 px-6 text-center">
-              <p className="font-heading text-lg font-semibold text-kireo-light">{testoDirettaRotta(segnalato).titolo}</p>
-              <p className="mt-2 max-w-md text-sm text-kireo-muted">{testoDirettaRotta(segnalato).dettaglio}</p>
+              <p className="font-heading text-lg font-semibold text-kireo-light">{riquadroRotto.titolo}</p>
+              <p className="mt-2 max-w-md text-sm text-kireo-muted">{riquadroRotto.dettaglio}</p>
             </div>
           )}
         </div>

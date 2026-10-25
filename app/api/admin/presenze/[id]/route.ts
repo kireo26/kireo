@@ -148,7 +148,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       nota: [notaMinuti(evento.data_fine, righe ?? []), perDocenti ? null : notaFinestra(evento.data_inizio, righe ?? [])],
     },
     {
-      titolo: "Domande fatte durante la diretta (anonime)",
+      titolo: "Domande ricevute (anonime)",
       intestazioni: ["Fatta il (ora italiana)", "Testo", "Stato", "Toccata da", "Toccata il (ora italiana)"],
       righe: erroreDomande
         ? []
