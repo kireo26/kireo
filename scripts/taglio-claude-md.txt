@@ -1,0 +1,50 @@
+# Regole di CLAUDE.md il cui titolo non porta un'etichetta (regola/specie/metodo/criterio/lezione).
+# Restano nel file corrente. Una per riga: prefisso del titolo, senza «## ».
+La terza volta:
+Un controllo che si muove da solo
+«Prendi il tuo numero
+La sovrapposizione fra due ruoli
+Una conferma che si fa una volta sola
+Rigenerare legge la fonte
+Il banco aveva i due dati
+Un numero che il lettore non può rifare
+Un 5xx muto
+Uno strumento che indica una porta
+Un'azione irreversibile
+Una scrittura che non dice
+Un commento che dichiara una proprietà
+Non tutti i «no»
+Una completezza batte
+Un ritentativo è sicuro
+Una rinomina va inseguita
+Le sostituzioni funzionano
+«Parla della pagina
+Un default retrocompatibile
+Togliere un vincolo apre
+Una cattura non è un'esposizione
+La quarta volta, ed era al contrario
+Una regola su una riga si scrive in RLS
+⚠️⚠️ I TREDICI MODI
+⚠️ Un'impronta sul sorgente
+Una domanda ha risposta dove
+Divieti e compiti
+Quando fondere su `main`
+Il ripiego tipografico
+Due testi che devono dire la stessa cosa
+Una scelta imposta
+Costi AI
+«Quali suite riguardano
+La quarantena:
+Un'ancora su una frase
+La cascata è la dichiarazione
+Un'ipotesi sbagliata ma verificabile
+
+# Sottosezioni-regola nate dentro una cronaca, spostate nel corrente:
+### Lo stato delle migrazioni si legge dal database
+### ⚠️ Una migrazione si verifica applicata guardando
+### ⚠️⚠️ Una migrazione applicata in produzione smette
+### Il posto dove nessuno guarda è il momento
+### ⚠️ Un elenco di ciò su cui un ambiente di prova mente
+
+# Soglia della cronaca nel corrente (ultimi due capitoli):
+2026-10-18
