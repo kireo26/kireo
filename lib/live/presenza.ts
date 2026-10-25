@@ -244,31 +244,97 @@ export type EsitoChiusuraStudente = {
 
 const APERTURA_CHIUSURA = "L'incontro è stato chiuso da chi l'ha organizzato.";
 
-export function testoChiusuraStudente(e: EsitoChiusuraStudente): string {
-  const corta =
-    e.contati === null ? APERTURA_CHIUSURA : `${APERTURA_CHIUSURA} La tua presenza si è fermata a ${minuti(e.contati)}.`;
-  if (e.durata === null || e.stato === null) return corta;
-  if (e.durata < MINUTI_MINIMI_CERTIFICAZIONE) {
-    return `L'incontro è stato chiuso da chi l'ha organizzato dopo ${minuti(Math.floor(e.durata))}. Un incontro più corto di ${MINUTI_MINIMI_CERTIFICAZIONE} minuti non riconosce ore: non dipende da te.`;
-  }
-  if (e.contati === null) return corta;
+// ⚠️ UNA CLASSIFICAZIONE, DUE VOCI (26/10). Lo stesso esito si dice in due
+// momenti: all'istante della chiusura, sulla pagina della diretta
+// (`testoChiusuraStudente`), e dopo, nello storico di «Le mie attività»
+// (`testoEsitoStorico`). Fino al 26/10 lo storico diceva nome e data e basta:
+// il numero che fa tornare uno studente lo smettevamo di mostrare nell'istante
+// in cui diventava definitivo. La decisione su QUALE esito è vive qui, una volta;
+// le due funzioni cambiano solo il tempo verbale. Due copie della regola
+// (soglia, minimo dei 20 minuti, «sotto la soglia solo se lo è davvero»)
+// divergerebbero, e la seconda sarebbe quella che nessuno guarda.
+export type ClasseEsito =
+  | { tipo: "non_leggibile" }
+  | { tipo: "corto"; durata: number }
+  | { tipo: "certificato"; contati: number; conOre: boolean }
+  | { tipo: "sotto_soglia"; contati: number; necessari: number }
+  | { tipo: "incerto"; contati: number };
+
+export function classificaEsito(e: EsitoChiusuraStudente): ClasseEsito {
+  if (e.durata === null || e.stato === null) return e.contati === null ? { tipo: "non_leggibile" } : { tipo: "incerto", contati: e.contati };
+  if (e.durata < MINUTI_MINIMI_CERTIFICAZIONE) return { tipo: "corto", durata: Math.floor(e.durata) };
+  if (e.contati === null) return { tipo: "non_leggibile" };
   if (e.stato === "partecipato") {
-    // ⚠️ Testo di Mario solo dove le ore ci sono davvero. Un webinar per docenti
-    // non riconosce ore (dà un attestato), e un evento con 0 ore PCTO nemmeno:
-    // lì «le ore ti vengono riconosciute» sarebbe falso. Variante MIA, provvisoria.
-    if (e.pubblico === "studenti" && e.ore !== null && e.ore > 0) {
-      return `${APERTURA_CHIUSURA} Hai seguito ${minuti(e.contati)}: le ore ti vengono riconosciute.`;
-    }
-    return `${APERTURA_CHIUSURA} Hai seguito ${minuti(e.contati)}: la tua presenza è riconosciuta.`;
+    // ⚠️ Le ore ci sono davvero solo per gli studenti e solo se emesse: un
+    // webinar per docenti dà un attestato, un evento con 0 ore PCTO niente.
+    return { tipo: "certificato", contati: e.contati, conOre: e.pubblico === "studenti" && e.ore !== null && e.ore > 0 };
   }
   const necessari = Math.ceil(SOGLIA_PRESENZA * Math.max(1, e.durata) - 1e-9);
   // Sotto la soglia solo se lo è DAVVERO: se i minuti la passano e la riga non è
   // certificata, l'esito non lo sappiamo (certificata a mano dopo? letture fuori
   // passo?) e un «ne servivano 15» a chi ne ha 17 sarebbe falso.
-  if (e.contati < necessari) {
-    return `${APERTURA_CHIUSURA} Hai seguito ${minuti(e.contati)}: ne servivano ${necessari}.`;
+  if (e.contati < necessari) return { tipo: "sotto_soglia", contati: e.contati, necessari };
+  return { tipo: "incerto", contati: e.contati };
+}
+
+export function testoChiusuraStudente(e: EsitoChiusuraStudente): string {
+  const c = classificaEsito(e);
+  switch (c.tipo) {
+    case "corto":
+      return `L'incontro è stato chiuso da chi l'ha organizzato dopo ${minuti(c.durata)}. Un incontro più corto di ${MINUTI_MINIMI_CERTIFICAZIONE} minuti non riconosce ore: non dipende da te.`;
+    case "certificato":
+      // Testo di Mario solo dove le ore ci sono davvero; l'altro è MIO, provvisorio.
+      return c.conOre
+        ? `${APERTURA_CHIUSURA} Hai seguito ${minuti(c.contati)}: le ore ti vengono riconosciute.`
+        : `${APERTURA_CHIUSURA} Hai seguito ${minuti(c.contati)}: la tua presenza è riconosciuta.`;
+    case "sotto_soglia":
+      return `${APERTURA_CHIUSURA} Hai seguito ${minuti(c.contati)}: ne servivano ${c.necessari}.`;
+    case "incerto":
+      return `${APERTURA_CHIUSURA} La tua presenza si è fermata a ${minuti(c.contati)}.`;
+    default:
+      return e.contati === null ? APERTURA_CHIUSURA : `${APERTURA_CHIUSURA} La tua presenza si è fermata a ${minuti(e.contati)}.`;
   }
-  return corta;
+}
+
+// LO STORICO, AL PASSATO (26/10). «Hai seguito 14 minuti: ne servivano 15.» è
+// la frase di Mario: la stessa del contatore, al passato. Le altre sono MIE e
+// provvisorie. Tre casi in più rispetto alla chiusura, perché lo storico vede
+// anche quello che la chiusura non vede:
+//  - l'incontro non è ancora finito → niente (non c'è un esito da dire);
+//  - è finito e chi l'ha organizzato NON l'ha chiuso → lo si dice. È il caso
+//    delle «ore sospese» (punto aperto): non lo si cura qui, ma non lo si lascia
+//    scoprire tacendo, perché uno storico muto su un incontro finito si legge
+//    come «non è successo niente»;
+//  - non era una diretta (un incontro in presenza): l'esito lo dà solo la
+//    certificazione della scuola, quindi si dice solo se c'è.
+export type EsitoStorico = EsitoChiusuraStudente & {
+  /** È una diretta (webinar), cioè un incontro che si chiude e conta i battiti. */
+  diretta: boolean;
+  /** L'incontro è finito (la fine effettiva è passata). */
+  finito: boolean;
+  /** `eventi.diretta_chiusa_il` non nullo. */
+  chiuso: boolean;
+};
+
+export function testoEsitoStorico(e: EsitoStorico): string | null {
+  if (!e.diretta) return e.stato === "partecipato" ? "Presenza certificata." : null;
+  if (!e.finito) return null;
+  if (!e.chiuso) {
+    return "L'incontro è finito e chi l'ha organizzato non l'ha ancora chiuso: le presenze non sono ancora state contate.";
+  }
+  const c = classificaEsito(e);
+  switch (c.tipo) {
+    case "corto":
+      return `L'incontro è durato ${minuti(c.durata)}: sotto i ${MINUTI_MINIMI_CERTIFICAZIONE} minuti non riconosce ore, e non dipende da te.`;
+    case "certificato":
+      return `Hai seguito ${minuti(c.contati)}: ${c.conOre ? "le ore sono riconosciute" : "presenza riconosciuta"}.`;
+    case "sotto_soglia":
+      return `Hai seguito ${minuti(c.contati)}: ne servivano ${c.necessari}.`;
+    case "incerto":
+      return `Hai seguito ${minuti(c.contati)}.`;
+    default:
+      return null;
+  }
 }
 
 // ⚠️ IL CONTATORE NON SCENDE, E NON SCRIVE ZERO QUANDO NON HA LETTO (25/10).

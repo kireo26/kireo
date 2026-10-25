@@ -54,6 +54,7 @@ const CLASSI = {
   "lib/eventi/domandaConsegna.ts": ["effettiva", "la domanda si cambia fino alla fine effettiva (il caso del 25/10)"],
   "components/ente/DomandaConsegnaForm.tsx": ["effettiva", "riceve la chiusura e la passa a `statoDomandaConsegna`"],
   "lib/app/eventi.ts": ["effettiva", "prossimi/passati: una diretta chiusa è passata"],
+  "lib/app/attivita.ts": ["effettiva", "lo storico dice com'è andata solo a incontro finito: una diretta chiusa prima è finita"],
   "lib/docente/eventi.ts": ["effettiva", "come sopra, nell'area docente"],
   "components/app/CardEvento.tsx": ["effettiva", "iscrizione ed «Entra» sulla fine effettiva"],
   "components/docente/CardWebinarDocente.tsx": ["effettiva", "come sopra, nell'area docente"],

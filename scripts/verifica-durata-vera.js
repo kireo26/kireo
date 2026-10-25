@@ -159,6 +159,44 @@ console.log("\n§4bis · i testi della chiusura per lo studente (Mario, 26/10)")
   ok(/TESTO_CHIUSURA_PRIMA_DELL_INIZIO/.test(senzaCommenti(leggi("components/ente/ControlloDirettaEvento.tsx"))), "…e la console lo usa");
 }
 
+console.log("\n§4quater · lo storico dice com'è andata, al passato (26/10)");
+{
+  const t = (o) =>
+    P.testoEsitoStorico({ diretta: true, finito: true, chiuso: true, durata: 20, stato: "iscritto", ore: null, contati: 14, pubblico: "studenti", ...o });
+  ok(t({}) === "Hai seguito 14 minuti: ne servivano 15.", "sotto la soglia: la frase di Mario, al passato", t({}));
+  ok(t({ stato: "partecipato", ore: 0.4, contati: 18 }) === "Hai seguito 18 minuti: le ore sono riconosciute.", "certificato con ore", t({ stato: "partecipato", ore: 0.4, contati: 18 }));
+  ok(/presenza riconosciuta/.test(t({ stato: "partecipato", ore: 0, contati: 18 })), "certificato senza ore: non promette ore");
+  ok(/non dipende da te/.test(t({ durata: 16, contati: 16 })), "incontro sotto i 20 minuti: non dipende da te");
+  ok(t({ finito: false }) === null, "un incontro non ancora finito non ha esito");
+  ok(/non l'ha ancora chiuso/.test(t({ chiuso: false }) ?? ""), "finito e non chiuso: lo dice invece di tacere (le ore sospese)");
+  ok(t({ contati: null }) === null, "senza i minuti letti, nessun numero");
+  ok(t({ durata: 40, contati: 35 }) === "Hai seguito 35 minuti.", "sopra la soglia e non certificato: non dice «ne servivano»");
+  ok(t({ diretta: false, stato: "partecipato" }) === "Presenza certificata.", "un incontro in presenza certificato dalla scuola");
+  ok(t({ diretta: false, stato: "iscritto" }) === null, "…e non certificato: niente");
+  // UNA classificazione per le due voci: lo stesso caso deve finire nello
+  // stesso ramo alla chiusura e nello storico.
+  const casi = [
+    { durata: 20, stato: "iscritto", ore: null, contati: 14 },
+    { durata: 40, stato: "partecipato", ore: 0.5, contati: 30 },
+    { durata: 12, stato: "iscritto", ore: null, contati: 12 },
+    { durata: 40, stato: "iscritto", ore: null, contati: 35 },
+  ];
+  for (const c of casi) {
+    const e = { ...c, pubblico: "studenti" };
+    const tipo = P.classificaEsito(e).tipo;
+    const chiusura = P.testoChiusuraStudente(e);
+    const storico = P.testoEsitoStorico({ ...e, diretta: true, finito: true, chiuso: true });
+    const firma = { sotto_soglia: /ne servivano/, certificato: /riconosciut/, corto: /non dipende da te/, incerto: /minuti/ }[tipo];
+    ok(firma.test(chiusura) && firma.test(storico ?? ""), `stesso esito (${tipo}) alla chiusura e nello storico`, `${chiusura} | ${storico}`);
+  }
+  const att = senzaCommenti(leggi("lib/app/attivita.ts"));
+  ok(/testoEsitoStorico\(/.test(att), "lo storico chiama la funzione");
+  ok(!/ne servivano|SOGLIA_PRESENZA|MINUTI_MINIMI/.test(att), "…e non si riscrive la regola");
+  ok(/fineEffettiva\(/.test(att), "…e «finito» è la fine effettiva, non la programmata");
+  ok(/voce\.esito/.test(senzaCommenti(leggi("app/app/attivita/page.tsx"))), "la pagina rende l'esito");
+  ok(!/\{voce\.oreCertificate\}h/.test(leggi("app/app/attivita/page.tsx")), "le ore dello storico non escono grezze (col punto)");
+}
+
 console.log("\n§4ter · la certificazione della scuola non ha tetto né minimo, e la scuola non legge un avviso che lo dice");
 {
   // Decisione di Mario, 25/10: il tetto della durata vera e il minimo dei 20

@@ -4,6 +4,8 @@ import { guideDiArea } from "@/lib/guide/config";
 import { MISSIONI } from "@/lib/escape/config";
 import { TEST_META } from "@/lib/test/config";
 import type { TipoAttivita } from "./activityLog";
+import { fineEffettiva } from "@/lib/live";
+import { testoEsitoStorico } from "@/lib/live/presenza";
 
 export type VoceStorico = {
   id: string;
@@ -11,6 +13,8 @@ export type VoceStorico = {
   titolo: string;
   data: string;
   oreCertificate: number | null;
+  /** Com'è andata, per un evento finito (vedi `testoEsitoStorico`). `null` = niente da dire. */
+  esito?: string | null;
 };
 
 type RigaStudentActivity = {
@@ -21,9 +25,21 @@ type RigaStudentActivity = {
   activities: { titolo: string } | { titolo: string }[] | null;
 };
 
+type EventoStorico = {
+  id: string;
+  titolo: string;
+  data_inizio: string;
+  data_fine?: string | null;
+  tipo?: string | null;
+  pubblico?: string | null;
+  diretta_chiusa_il?: string | null;
+  diretta_durata_minuti?: number | null;
+};
 type RigaIscrizioneEvento = {
   created_at: string;
-  eventi: { id: string; titolo: string; data_inizio: string } | { id: string; titolo: string; data_inizio: string }[] | null;
+  stato?: string | null;
+  ore_riconosciute?: number | string | null;
+  eventi: EventoStorico | EventoStorico[] | null;
 };
 
 // Storico unico per "Le mie attività": attività scolastiche certificate
@@ -47,26 +63,79 @@ export async function getStoricoAttivita(supabase: SupabaseClient, userId: strin
     };
   });
 
+  // ⚠️ LO STORICO DICE COM'È ANDATA (26/10). Prima elencava un evento con nome
+  // e data, e basta: la diretta, cioè quella che certifica le ore, prendeva il
+  // trattamento peggiore dello storico. La lettura estesa ha un RIPIEGO sulla
+  // forma di prima: se una colonna nuova mancasse (una migrazione non
+  // applicata) la `select` fallirebbe intera, e lo storico perderebbe anche
+  // gli eventi — meglio un elenco senza esito che nessun elenco.
   let vociEventi: VoceStorico[] = [];
   try {
-    const { data: iscrizioni, error } = await supabase
+    const estesa = await supabase
       .from("iscrizioni_eventi")
-      .select("created_at, eventi(id, titolo, data_inizio)")
+      .select(
+        "created_at, stato, ore_riconosciute, eventi(id, titolo, data_inizio, data_fine, tipo, pubblico, diretta_chiusa_il, diretta_durata_minuti)",
+      )
       .eq("student_id", userId);
-
-    if (!error) {
-      vociEventi = ((iscrizioni ?? []) as RigaIscrizioneEvento[]).map((riga) => {
-        const rel = Array.isArray(riga.eventi) ? riga.eventi[0] : riga.eventi;
-        return {
-          id: `evento-${rel?.id ?? riga.created_at}`,
-          tipo: "evento" as const,
-          titolo: rel?.titolo ?? "Evento",
-          data: rel?.data_inizio ?? riga.created_at,
-          oreCertificate: null,
-        };
-      });
+    let righe: RigaIscrizioneEvento[] = [];
+    let conEsito = true;
+    if (estesa.error) {
+      console.error("getStoricoAttivita: lettura estesa degli eventi non riuscita, ripiego sulla forma breve", estesa.error);
+      conEsito = false;
+      const breve = await supabase.from("iscrizioni_eventi").select("created_at, eventi(id, titolo, data_inizio)").eq("student_id", userId);
+      if (breve.error) console.error("getStoricoAttivita: lettura degli eventi non riuscita", breve.error);
+      righe = (breve.data ?? []) as RigaIscrizioneEvento[];
+    } else {
+      righe = (estesa.data ?? []) as RigaIscrizioneEvento[];
     }
-  } catch {
+
+    // I minuti contati, uno per evento. Una lettura fallita vale «non letti»:
+    // l'esito degrada invece di dire un numero che non abbiamo.
+    const contatiPerEvento = new Map<string, number>();
+    let contatiLetti = false;
+    if (conEsito) {
+      const pres = await supabase.from("presenze_live").select("evento_id, ping_totali").eq("user_id", userId);
+      if (pres.error) console.error("getStoricoAttivita: minuti contati non leggibili", pres.error);
+      else {
+        contatiLetti = true;
+        for (const r of (pres.data ?? []) as { evento_id: string; ping_totali: number }[]) contatiPerEvento.set(r.evento_id, r.ping_totali);
+      }
+    }
+
+    const adesso = Date.now();
+    vociEventi = righe.map((riga) => {
+      const rel = Array.isArray(riga.eventi) ? riga.eventi[0] : riga.eventi;
+      let esito: string | null = null;
+      let oreCertificate: number | null = null;
+      if (conEsito && rel) {
+        const fine = fineEffettiva(rel.data_inizio, rel.data_fine ?? null, rel.diretta_chiusa_il ?? null);
+        const ore = riga.ore_riconosciute === null || riga.ore_riconosciute === undefined ? null : Number(riga.ore_riconosciute);
+        // Un evento senza battiti a cui si era iscritti è «zero minuti», ma
+        // solo se la lettura è riuscita: non leggerla non è zero.
+        const contati = contatiLetti ? (contatiPerEvento.get(rel.id) ?? 0) : null;
+        esito = testoEsitoStorico({
+          diretta: rel.tipo === "webinar",
+          finito: new Date(fine).getTime() <= adesso,
+          chiuso: Boolean(rel.diretta_chiusa_il),
+          durata: rel.diretta_durata_minuti ?? null,
+          stato: riga.stato ?? null,
+          ore,
+          contati,
+          pubblico: rel.pubblico === "docenti" ? "docenti" : "studenti",
+        });
+        if (riga.stato === "partecipato" && ore !== null && ore > 0) oreCertificate = ore;
+      }
+      return {
+        id: `evento-${rel?.id ?? riga.created_at}`,
+        tipo: "evento" as const,
+        titolo: rel?.titolo ?? "Evento",
+        data: rel?.data_inizio ?? riga.created_at,
+        oreCertificate,
+        esito,
+      };
+    });
+  } catch (e) {
+    console.error("getStoricoAttivita: eventi non leggibili", e);
     vociEventi = [];
   }
 

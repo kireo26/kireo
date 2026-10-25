@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getStoricoAttivita, getPercorsoEsplorazione, getPercorsoRitratto, getSuggerimentiPerAree } from "@/lib/app/attivita";
 import { getOreCertificate, testoOreCertificate } from "@/lib/app/pcto";
 import { formattaData } from "@/lib/formato";
+import { numeroOre } from "@/lib/eventi/orePcto";
 
 export default async function AttivitaAppPage() {
   const contesto = await getAppContext();
@@ -130,9 +131,10 @@ export default async function AttivitaAppPage() {
                   <p className="mt-1 text-xs text-kireo-muted">
                     {formattaData(voce.data, "long")}
                   </p>
+                  {voce.esito && <p className="mt-1 text-sm text-kireo-light">{voce.esito}</p>}
                 </div>
                 {voce.oreCertificate ? (
-                  <span className="flex-none text-sm font-semibold text-kireo-green-light">{voce.oreCertificate}h certificate</span>
+                  <span className="flex-none text-sm font-semibold text-kireo-green-light">{numeroOre(voce.oreCertificate)}h certificate</span>
                 ) : null}
               </li>
             ))}
