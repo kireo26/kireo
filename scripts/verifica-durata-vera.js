@@ -254,5 +254,45 @@ console.log("\n§5 · il CSV dice le ore");
   }
 }
 
-console.log(`\n${falliti ? "✗" : "✓"} ${fatte - falliti}/${fatte} proprietà (npm run test:durata)`);
-process.exit(falliti ? 1 : 0);
+// LO STORICO, ESEGUITO (26/10). La prima guardia era lessicale («il file chiama
+// `testoEsitoStorico(`») e la controprova l'ha smentita: con la chiamata resa
+// inerte restava verde. Qui si chiama `getStoricoAttivita` con un client finto e
+// si guarda la frase che arriva.
+(async () => {
+  console.log("\n§4quater-bis · lo storico, eseguito con un client finto");
+  const A = carica("lib/app/attivita.ts");
+  const tabelle = {
+    student_activities: { data: [], error: null },
+    iscrizioni_eventi: {
+      data: [
+        {
+          created_at: "2026-10-25T09:00:00Z",
+          stato: "iscritto",
+          ore_riconosciute: null,
+          eventi: {
+            id: "ev1", titolo: "Diretta", data_inizio: "2026-10-25T10:00:00Z", data_fine: "2026-10-25T10:30:00Z",
+            tipo: "webinar", pubblico: "studenti", diretta_chiusa_il: "2026-10-25T10:20:00Z", diretta_durata_minuti: 20,
+          },
+        },
+      ],
+      error: null,
+    },
+    presenze_live: { data: [{ evento_id: "ev1", ping_totali: 14 }], error: null },
+  };
+  const finto = {
+    from(t) {
+      const r = tabelle[t] ?? { data: [], error: null };
+      const b = { select: () => b, eq: () => b, then: (ok) => ok(r) };
+      return b;
+    },
+  };
+  const voci = await A.getStoricoAttivita(finto, "u1");
+  const v = voci.find((x) => x.tipo === "evento");
+  ok(v?.esito === "Hai seguito 14 minuti: ne servivano 15.", "una diretta chiusa sotto la soglia arriva nello storico con la frase al passato", v?.esito);
+  tabelle.presenze_live = { data: null, error: { message: "finto" } };
+  const v2 = (await A.getStoricoAttivita(finto, "u1")).find((x) => x.tipo === "evento");
+  ok(v2 && v2.esito === null, "minuti non leggibili: nessun numero inventato", v2?.esito);
+
+  console.log(`\n${falliti ? "✗" : "✓"} ${fatte - falliti}/${fatte} proprietà (npm run test:durata)`);
+  process.exit(falliti ? 1 : 0);
+})();
