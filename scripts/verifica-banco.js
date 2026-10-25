@@ -600,6 +600,18 @@ ok(/tre ore del 30\/08/.test(conRotto), "un rapporto della finestra rotta viene 
 ok(/Fuori da ogni epoca, non contato/.test(conRotto), "…e si dice che non entra in nessuna epoca");
 ok(/col rename, senza rubrica:\s+1 rapporto/.test(conRotto), "…quindi «col rename» ne conta uno, non due");
 
+// ── Il banco del player monta il componente VERO ──
+// Se costruisse un iframe coi «parametri del prodotto» scritti a mano,
+// misurerebbe un altro player il giorno in cui PlayerDiretta cambia (modo 4).
+{
+  const fs = require("fs");
+  const path = require("path");
+  const { senzaCommenti } = require("./lib/senza-commenti");
+  const ing = senzaCommenti(fs.readFileSync(path.join(__dirname, "banco", "player", "ingresso.tsx"), "utf8"));
+  ok(/from "@\/components\/live\/PlayerDiretta"/.test(ing), "il banco del player importa PlayerDiretta, il componente del prodotto");
+  ok(!/playerVars|rel\s*[:=]|youtube|<iframe/i.test(ing), "…e non riscrive nessun parametro del player (niente playerVars, rel, iframe, indirizzi YouTube)");
+}
+
 console.log("\n═══════════════════════════════════════════\n");
 if (falliti) { console.error(`✗ ${falliti} controlli falliti.\n`); process.exit(1); }
 console.log("✓ Ogni esito ha la sua frase, il fallimento non si nasconde dietro un successo,\n  e «non posso vederle» non si legge come «non ci sono».\n");

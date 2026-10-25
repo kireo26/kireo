@@ -33,6 +33,7 @@ const { guasti } = require("./guasti");
 const { confronta } = require("./confronta");
 const { comando: registro } = require("./registro");
 const { pagine } = require("./pagine");
+const { player } = require("./player");
 const { PERCORSO, flag } = require("./config");
 
 const AIUTO = `
@@ -104,6 +105,11 @@ BANCO DI PROVA — i gesti manuali, fatti dal terminale
       non sono risposte). Le altre le gioca di proposito, per coprire rami
       di codice che il suggerimento non raggiungerebbe — e ognuna dice quale.
       Chiede conferma e non parte su un account non di_prova, come robot.
+
+  npm run banco player [videoId]
+      Il player VERO della diretta (PlayerDiretta) su http://localhost, con un
+      registro degli eventi con l'ora: per guardare cosa mostra YouTube alla
+      fine di una registrazione. Sola lettura, non spende niente.
 
   npm run banco pagine
       IL TESTO DI QUATTRO O CINQUE PAGINE VERE, come lo legge uno studente.
@@ -236,6 +242,8 @@ async function main() {
     }
     case "pagine":
       return pagine();
+    case "player":
+      return player(resto[0]);
     case "confronta":
       return confronta(resto[0], resto[1]);
     case "registro":
