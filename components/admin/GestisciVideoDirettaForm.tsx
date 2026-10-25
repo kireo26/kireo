@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { estraiIdYoutube } from "@/lib/youtube";
+import { estraiIdYoutube, TESTO_LINK_NON_RICONOSCIUTO } from "@/lib/youtube";
 import { useSondaIncorporamento } from "@/lib/useSondaIncorporamento";
 import { sondaBlocca, testoSonda } from "@/lib/sondaYoutube";
 import EsitoSondaIncorporamento from "@/components/EsitoSondaIncorporamento";
@@ -42,7 +42,7 @@ export default function GestisciVideoDirettaForm({ eventoId, videoIdAttuale }: {
   async function salva(forzando = false) {
     const id = estraiIdYoutube(link);
     if (!id) {
-      setErrore("Incolla un link YouTube valido.");
+      setErrore(link.trim() ? TESTO_LINK_NON_RICONOSCIUTO : "Incolla il link del video YouTube.");
       return;
     }
     if (bloccata && !forzando) {

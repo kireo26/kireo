@@ -16,9 +16,22 @@ const PATTERNS = [
   /(?:youtu\.be\/)([\w-]{11})/,
 ];
 
+// ⚠️ L'ID NUDO VALE (26/10). In diretta, io e Mario ci siamo fermati due minuti
+// a tentativi su «Incolla un link YouTube valido», che non diceva quale forma lo
+// fosse — e l'id da solo, quello che Studio mostra sotto il video, non era
+// accettato. Ora lo è: undici caratteri fra lettere, cifre, «-» e «_», e
+// nient'altro attorno (un pezzo di testo qualunque di undici lettere non è un
+// link incollato male, ma la stringa intera deve avere quella forma).
+const ID_NUDO = /^[\w-]{11}$/;
+
+// Il rifiuto NOMINA le forme accettate, invece di dire «valido» e basta.
+export const TESTO_LINK_NON_RICONOSCIUTO =
+  "Non riconosciamo questo link. Vanno bene youtube.com/watch?v=…, youtube.com/live/…, youtu.be/… oppure l'id del video da solo (11 caratteri).";
+
 export function estraiIdYoutube(url: string): string | null {
   const pulito = url.trim();
   if (!pulito) return null;
+  if (ID_NUDO.test(pulito)) return pulito;
   for (const pattern of PATTERNS) {
     const match = pulito.match(pattern);
     if (match) return match[1];

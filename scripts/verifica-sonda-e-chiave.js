@@ -431,5 +431,19 @@ console.log("\n§9 — 18/10: il montaggio della diretta vera");
 }
 
 // =====================================================================
+console.log("\n§ il link YouTube: l'id nudo vale, e il rifiuto dice quali forme (26/10)");
+{
+  const { estraiIdYoutube: e, TESTO_LINK_NON_RICONOSCIUTO: T } = require("@/lib/youtube");
+  ok(e("xHyJSZIkYAw") === "xHyJSZIkYAw" && e("  xHyJSZIkYAw ") === "xHyJSZIkYAw", "l'id da solo è accettato");
+  ok(e("https://www.youtube.com/live/xHyJSZIkYAw?si=abc") === "xHyJSZIkYAw" && e("https://youtu.be/xHyJSZIkYAw") === "xHyJSZIkYAw", "le forme di prima restano");
+  ok(e("xHyJSZIkYA") === null && e("xHyJSZIkYAwX") === null && e("ciao mondo!") === null, "dieci o dodici caratteri, o testo qualunque, no");
+  ok(/watch\?v=/.test(T) && /youtu\.be/.test(T) && /live/.test(T) && /id del video/.test(T) && !/valido/.test(T), "il rifiuto nomina le forme invece di dire «valido»");
+  for (const f of ["components/admin/GestisciVideoDirettaForm.tsx", "components/ente/CreaEventoForm.tsx"]) {
+    const src = senzaCommenti(leggi(f));
+    ok(/TESTO_LINK_NON_RICONOSCIUTO/.test(src) && !/link YouTube valido/.test(src), `${f}: usa il rifiuto che nomina le forme`);
+  }
+}
+
+// =====================================================================
 console.log(`\n${falliti === 0 ? "Tutto verde." : `${falliti} asserzioni rosse.`}`);
 process.exit(falliti === 0 ? 0 : 1);

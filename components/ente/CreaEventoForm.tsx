@@ -7,7 +7,7 @@ import { inputClass, fieldBorder } from "@/lib/formStyles";
 import { createClient } from "@/lib/supabase/client";
 import AreeInteresseGrid from "@/components/app/AreeInteresseGrid";
 import { FILONI_DOCENTI } from "@/data/filoniDocenti";
-import { estraiIdYoutube } from "@/lib/youtube";
+import { estraiIdYoutube, TESTO_LINK_NON_RICONOSCIUTO } from "@/lib/youtube";
 import { messaggioErroreEvento } from "@/lib/ente/erroreEvento";
 import { istanteDaOrarioItaliano, millisecondiDaOrarioItaliano } from "@/lib/formato";
 import { eventoCominciato } from "@/lib/live";
@@ -163,7 +163,7 @@ export default function CreaEventoForm({
     if (eDiretta) {
       if (!dataFine) next.dataFine = "Per un webinar in diretta la data e ora di fine sono obbligatorie (servono a calcolare le presenze).";
       if (hostingDiretta === "proprio") {
-        if (!idYoutube) next.youtubeLink = "Incolla il link della tua diretta YouTube (non in elenco).";
+        if (!idYoutube) next.youtubeLink = youtubeLink.trim() ? TESTO_LINK_NON_RICONOSCIUTO : "Incolla il link della tua diretta YouTube (non in elenco).";
         // LA MISURA VINCE, e il no arriva sul campo del link: lì sta la cosa
         // da cambiare. Non è un avviso — un video che non si riproduce dentro
         // KIREO non è un rischio, è una diretta che una classe non vedrà.
