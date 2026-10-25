@@ -251,22 +251,28 @@ export function testaReportEnte(evento: EventoReport): string | null {
     const da = CHIUSA_DA_REPORT[evento.diretta_chiusa_da_tipo ?? ""];
     return `${finestra} — durata ${minutiLeggibili(evento.diretta_durata_minuti)}${da ? `, ${da}` : ""}.`;
   }
-  return chiusa ? `${finestra}.` : `${finestra}. La diretta non è ancora stata chiusa: le presenze non sono ancora contate.`;
+  return chiusa ? `${finestra}.` : `${finestra}. La diretta non è ancora stata chiusa: i minuti qui sotto sono quelli contati finora, e la certificazione avviene alla chiusura.`;
 }
 
 const minutiLeggibili = (n: number) => (n === 1 ? "1 minuto" : `${n} minuti`);
 
 /** Le righe della chiusura: certificazioni e soglia, solo quando la chiusura c'è stata. */
 export function righeChiusuraReport(evento: EventoReport): (string | number)[][] {
-  if (!evento.diretta_chiusa_il || typeof evento.diretta_durata_minuti !== "number") return [];
+  if (!evento.diretta_chiusa_il) return [["Certificazioni automatiche", "Non ancora: la diretta non è stata chiusa"]];
+  if (typeof evento.diretta_durata_minuti !== "number") return [];
   const durata = evento.diretta_durata_minuti;
   const soglia =
     durata < MINUTI_MINIMI_CERTIFICAZIONE
       ? `Nessuna: sotto i ${MINUTI_MINIMI_CERTIFICAZIONE} minuti l'incontro non certifica ore`
       : `${Math.ceil(SOGLIA_PRESENZA * Math.max(1, durata) - 1e-9)} minuti su ${durata}`;
   return [
-    ["Certificazioni automatiche", evento.diretta_chiusa_certificati ?? "non disponibile"],
-    ["Soglia di presenza per la certificazione", soglia],
+    // Una chiusura c'è stata ma il conteggio non è stato scritto: chiusure di
+    // prima dell'11/10, quando la ricevuta non si registrava. «Non disponibile»
+    // coprirebbe insieme «non c'è ancora» e «si è rotto», che hanno rimedi opposti.
+    ["Certificazioni automatiche", evento.diretta_chiusa_certificati ?? "non registrate all'epoca della chiusura"],
+    // «automatica»: la certificazione manuale della scuola non ha soglia
+    // (20261027110000), e questa riga non deve sembrare un limite al suo giudizio.
+    ["Soglia per la certificazione automatica", soglia],
   ];
 }
 

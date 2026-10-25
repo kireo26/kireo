@@ -209,12 +209,22 @@ ok(L.fineEffettiva(INIZIO, null, null) === L.fineDiretta(INIZIO, null), "senza d
   ok(/durata 24 minuti/.test(testa) && /chiuso dall'organizzatore/.test(testa), "…con la durata vera e chi l'ha chiuso", testa);
   const righe = E.righeChiusuraReport(ev);
   ok(righe.some((r) => r[0] === "Certificazioni automatiche" && r[1] === 1), "…e quante certificazioni", righe);
-  ok(righe.some((r) => r[0] === "Soglia di presenza per la certificazione" && r[1] === "18 minuti su 24"), "…e la soglia: 18 minuti su 24", righe);
+  ok(righe.some((r) => r[0] === "Soglia per la certificazione automatica" && r[1] === "18 minuti su 24"), "…e la soglia, dichiarata come della SOLA certificazione automatica (la manuale della scuola non ne ha): 18 minuti su 24", righe);
   const corta = E.righeChiusuraReport({ ...ev, diretta_durata_minuti: 16 });
   ok(corta.some((r) => /sotto i 20 minuti/.test(String(r[1]))), "sotto i 20 minuti la soglia dice che non si certifica", corta);
   const aperta = E.testaReportEnte({ ...ev, diretta_chiusa_il: null, diretta_durata_minuti: null, diretta_chiusa_da_tipo: null });
   ok(/14:30/.test(aperta) && /non è ancora stata chiusa/.test(aperta), "non chiusa: la finestra programmata, e lo dice", aperta);
-  ok(E.righeChiusuraReport({ ...ev, diretta_chiusa_il: null }).length === 0, "…e nessuna riga di certificazioni su una diretta non chiusa");
+  // «le presenze non sono ancora contate» era falso: il file contiene i minuti.
+  // Manca la certificazione, non il conteggio (Mario, 25/10).
+  ok(!/non sono ancora contate/.test(aperta) && /contati finora/.test(aperta) && /certificazione avviene alla chiusura/.test(aperta),
+    "non chiusa: dice che i minuti sono contati finora e che manca la certificazione — non che le presenze non sono contate", aperta);
+  const righeAperta = E.righeChiusuraReport({ ...ev, diretta_chiusa_il: null });
+  ok(righeAperta.length === 1 && righeAperta[0][0] === "Certificazioni automatiche" && righeAperta[0][1] === "Non ancora: la diretta non è stata chiusa",
+    "non chiusa: la riga delle certificazioni dice perché manca, invece di non esserci", righeAperta);
+  ok(!righeAperta.some((r) => /Soglia/.test(String(r[0]))), "…e nessuna soglia: sulla durata non ancora fissata non si calcola", righeAperta);
+  const vecchia = E.righeChiusuraReport({ ...ev, diretta_chiusa_certificati: null });
+  ok(vecchia.some((r) => r[0] === "Certificazioni automatiche" && /non registrate/.test(String(r[1]))) && !vecchia.some((r) => /non disponibile/.test(String(r[1]))),
+    "chiusa senza conteggio scritto (prima dell'11/10): «non registrate», mai «non disponibile», che fonde due rimedi opposti", vecchia);
   const [sez] = E.sezioniReportEnte(ev, { totale_iscritti: 1, totale_presenti: 1, copertura_media: 91.7, numero_domande: 0 }, []);
   ok(sez.righe.some((r) => r[0] === "Certificazioni automatiche"), "il report vero (`sezioniReportEnte`) porta le righe della chiusura");
 }
