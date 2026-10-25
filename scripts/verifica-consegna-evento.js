@@ -882,6 +882,17 @@ ok(!/Rispondi alla domanda|Rivedi la tua risposta/.test(pagAgenda), "…e i test
   ok(rotta.size === 0, "…e una lettura fallita non inventa una risposta: insieme vuoto, quindi nessun link");
   ok((await getEventiConRisposta(chain({ data: [], error: null }), "u1", [])).size === 0, "…e con zero eventi non interroga nemmeno");
 
+  console.log("\n§ il contatore dei caratteri dice il momento giusto (26/10)");
+  {
+    const { testoContatoreCaratteri: tc } = require("@/lib/eventi/contatoreCaratteri");
+    ok(tc(0, 200) === "Servono almeno 200 caratteri.", "a zero: non hai ancora cominciato", tc(0, 200));
+    ok(!/quasi/.test(tc(40, 200)) && tc(40, 200) === "40 di 200 caratteri.", "a metà strada non dice «ci sei quasi»", tc(40, 200));
+    ok(tc(180, 200) === "180 di 200 caratteri: ci sei quasi.", "vicino al minimo: ci sei quasi", tc(180, 200));
+    ok(tc(200, 200) === "200 caratteri" && tc(1, 1) === "1 carattere", "al minimo e oltre: solo il numero, col singolare", tc(1, 1));
+    const comp = senzaCommenti(leggi("components/live/ConsegnaEvento.tsx"));
+    ok(/testoContatoreCaratteri\(testo\.trim\(\)\.length, minCaratteri\)/.test(comp) && !/ancora un po/.test(comp), "il campo chiama la funzione e non ricompone la frase");
+  }
+
   console.log(falliti === 0 ? "\n✅ tutto verde\n" : `\n❌ ${falliti} asserzioni rosse\n`);
   process.exit(falliti === 0 ? 0 : 1);
 })();

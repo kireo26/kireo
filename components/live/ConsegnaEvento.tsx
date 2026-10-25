@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/Button";
+import { testoContatoreCaratteri } from "@/lib/eventi/contatoreCaratteri";
 
 // Il campo in cui si risponde alla domanda posta in diretta. La porta l'ha già
 // aperta il server (statoPortaConsegna, che a sua volta non autorizza: la porta
@@ -115,9 +116,7 @@ export default function ConsegnaEvento({
 
       <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
         <p className="text-xs text-kireo-muted">
-          {abbastanza
-            ? `${testo.trim().length} caratteri`
-            : `${testo.trim().length} di ${minCaratteri} caratteri: ancora un po'`}
+          {testoContatoreCaratteri(testo.trim().length, minCaratteri)}
         </p>
         {/*
           Dopo un fallimento del giudizio il testo è già salvato: un secondo
