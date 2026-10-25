@@ -9,6 +9,7 @@ import AreeInteresseGrid from "@/components/app/AreeInteresseGrid";
 import { FILONI_DOCENTI } from "@/data/filoniDocenti";
 import { estraiIdYoutube, TESTO_LINK_NON_RICONOSCIUTO } from "@/lib/youtube";
 import { avvisoDurataDiretta, ETICHETTA_CONFERMA_DURATA } from "@/lib/eventi/durataDiretta";
+import { HOSTING_KIREO_SELEZIONABILE } from "@/lib/eventi/hosting";
 import { messaggioErroreEvento } from "@/lib/ente/erroreEvento";
 import { istanteDaOrarioItaliano, millisecondiDaOrarioItaliano } from "@/lib/formato";
 import { eventoCominciato } from "@/lib/live";
@@ -86,7 +87,8 @@ export default function CreaEventoForm({
   const [ctaEsternaUrl, setCtaEsternaUrl] = useState("");
   const [aree, setAree] = useState<string[]>([]);
   const [filone, setFilone] = useState("");
-  const [hostingDiretta, setHostingDiretta] = useState<"kireo" | "proprio">("kireo");
+  // Il default è il canale proprio: vedi `lib/eventi/hosting.ts`.
+  const [hostingDiretta, setHostingDiretta] = useState<"kireo" | "proprio">("proprio");
   const [youtubeLink, setYoutubeLink] = useState("");
   const [checklist, setChecklist] = useState<Record<string, boolean>>({});
 
@@ -467,6 +469,7 @@ export default function CreaEventoForm({
 
       {eDiretta ? (
         <div className="space-y-4 rounded-xl border border-white/10 bg-kireo-dark/40 p-4">
+          {HOSTING_KIREO_SELEZIONABILE ? (
           <div>
             <p className="mb-2 text-sm font-medium text-kireo-light">Dove si svolge la diretta?</p>
             <div className="grid gap-3 sm:grid-cols-2">
@@ -504,6 +507,13 @@ export default function CreaEventoForm({
               </label>
             </div>
           </div>
+          ) : (
+            // Una scelta sola non è una scelta: si dice come si svolge, e basta.
+            <div>
+              <p className="text-sm font-medium text-kireo-light">La diretta si trasmette dal tuo canale YouTube</p>
+              <p className="mt-1 text-xs text-kireo-muted">Trasmetti tu da una diretta YouTube &quot;non in elenco&quot;, e incolli qui sotto il link.</p>
+            </div>
+          )}
 
           <div className="rounded-lg border border-kireo-orange/30 bg-kireo-orange/5 p-3 text-xs text-kireo-light/90">
             <p className="font-semibold text-kireo-orange">Nei webinar KIREO non è consentita musica di alcun tipo (nemmeno in attesa) né contenuti audio/video di terzi.</p>

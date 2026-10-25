@@ -445,5 +445,19 @@ console.log("\n§ il link YouTube: l'id nudo vale, e il rifiuto dice quali forme
 }
 
 // =====================================================================
+console.log("\n§ la via «ospitata da KIREO» non si può scegliere, e non è cancellata (26/10)");
+{
+  const hosting = leggi("lib/eventi/hosting.ts");
+  const formH = senzaCommenti(leggi("components/ente/CreaEventoForm.tsx"));
+  ok(/export const HOSTING_KIREO_SELEZIONABILE = false;/.test(senzaCommenti(hosting)), "l'interruttore è spento");
+  // La condizione di Mario sta accanto all'interruttore, parola per parola: è
+  // quella che permette di rovesciare la decisione senza riscoprire tutto.
+  ok(/il testo per l'ente/.test(hosting) && /verifica dell'indirizzo RTMP su una\s*\/\/\s*trasmissione vera/.test(hosting) && /non ha OBS/.test(hosting), "la condizione per rimetterla sta accanto all'interruttore");
+  ok(/useState<"kireo" \| "proprio">\("proprio"\)/.test(formH), "il default del form è il canale proprio (era «kireo»: bastava non toccare niente)");
+  ok(/\{HOSTING_KIREO_SELEZIONABILE \? \(/.test(formH) && /Ospitata da KIREO/.test(formH), "l'opzione non è cancellata: sta dietro l'interruttore");
+  ok(!/disabled=\{!HOSTING_KIREO_SELEZIONABILE\}/.test(formH), "…e non è un'opzione grigia");
+}
+
+// =====================================================================
 console.log(`\n${falliti === 0 ? "Tutto verde." : `${falliti} asserzioni rosse.`}`);
 process.exit(falliti === 0 ? 0 : 1);
