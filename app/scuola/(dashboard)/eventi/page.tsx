@@ -4,7 +4,6 @@ import { getEventiConIscrizioniScuola, getRegistroPresenze } from "@/lib/scuola/
 import IscriviClasseEventoForm from "@/components/scuola/IscriviClasseEventoForm";
 import IscriviTuttiVerificatiButton from "@/components/scuola/IscriviTuttiVerificatiButton";
 import RegistroPresenzeEvento from "@/components/scuola/RegistroPresenzeEvento";
-import { durataVeraEvento } from "@/lib/eventi/chiusuraDiretta";
 import { formattaData, formattaDataOra } from "@/lib/formato";
 import { numeroOre } from "@/lib/eventi/orePcto";
 
@@ -88,12 +87,6 @@ export default async function ScuolaEventiPage() {
                   eventoId={evento.id}
                   righe={righe}
                   puoCertificare={contesto.puoCertificarePresenze}
-                  durata={durataVeraEvento({
-                    dataInizio: evento.data_inizio,
-                    dataFine: evento.data_fine,
-                    chiusaIl: evento.diretta_chiusa_il,
-                    durataMinuti: evento.diretta_durata_minuti,
-                  })}
                 />
                 {contesto.puoCertificarePresenze && (
                   <a

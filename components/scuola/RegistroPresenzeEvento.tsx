@@ -7,23 +7,22 @@ import { Button } from "@/components/Button";
 import { createClient } from "@/lib/supabase/client";
 import type { RigaPresenza } from "@/lib/scuola/eventi";
 import { etichettaPrincipaleStudente } from "@/lib/scuola/formatStudente";
-import { avvisoCertificazioneSenzaOre } from "@/lib/eventi/chiusuraDiretta";
 
 export default function RegistroPresenzeEvento({
   eventoId,
   righe,
   puoCertificare,
-  durata,
 }: {
   eventoId: string;
   righe: RigaPresenza[];
   puoCertificare: boolean;
-  /** La durata che decide le ore (`durataVeraEvento`); `null` se non nota. */
-  durata: number | null;
 }) {
-  // ⚠️ Sotto i 20 minuti la presenza si registra e le ore no: la scuola lo
-  // legge PRIMA di certificare, non in un CSV di zeri (Mario, 26/10).
-  const avvisoSenzaOre = avvisoCertificazioneSenzaOre(durata);
+  // Nessun avviso sulle ore qui, ed è deciso (Mario, 25/10): la certificazione
+  // manuale riconosce le ore DICHIARATE per l'evento, senza il tetto della durata
+  // vera né il minimo dei 20 minuti — quelle sono regole su ciò che misuriamo
+  // noi, e qui non abbiamo misurato niente. Vedi
+  // 20261027110000_certificazione_manuale_senza_tetto.sql. Un avviso «non
+  // riconosce ore» tornerebbe a essere falso.
   const router = useRouter();
   const [selezionati, setSelezionati] = useState<string[]>([]);
   const [caricamento, setCaricamento] = useState<string | null>(null);
@@ -74,11 +73,6 @@ export default function RegistroPresenzeEvento({
         >
           Certifica tutti i presenti
         </button>
-      )}
-      {puoCertificare && avvisoSenzaOre && (
-        <p className="mb-3 rounded-lg border border-kireo-orange/40 bg-kireo-orange/10 px-3 py-2 text-sm text-kireo-light" role="status">
-          {avvisoSenzaOre}
-        </p>
       )}
       {errore && <p className="mb-3 text-sm text-red-400">{errore}</p>}
       <ul className="space-y-1.5">

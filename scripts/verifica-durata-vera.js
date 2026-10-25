@@ -159,19 +159,32 @@ console.log("\n§4bis · i testi della chiusura per lo studente (Mario, 26/10)")
   ok(/TESTO_CHIUSURA_PRIMA_DELL_INIZIO/.test(senzaCommenti(leggi("components/ente/ControlloDirettaEvento.tsx"))), "…e la console lo usa");
 }
 
-console.log("\n§4ter · la scuola sa PRIMA di certificare che le ore non ci saranno");
+console.log("\n§4ter · la certificazione della scuola non ha tetto né minimo, e la scuola non legge un avviso che lo dice");
 {
-  const av = C.avvisoCertificazioneSenzaOre(16);
-  ok(av === "Questo incontro è durato 16 minuti. La presenza viene registrata, ma non riconosce ore: sotto i 20 minuti non si certificano ore.", "il testo di Mario", av);
-  ok(C.avvisoCertificazioneSenzaOre(20) === null && C.avvisoCertificazioneSenzaOre(null) === null, "a 20 minuti, o con la durata ignota, tace");
-  ok(C.durataVeraEvento({ dataInizio: "2026-10-04T17:00:00Z", dataFine: "2026-10-04T17:45:00Z", chiusaIl: "x", durataMinuti: 16 }) === 16, "chiusa: la durata scritta dalla chiusura");
-  ok(C.durataVeraEvento({ dataInizio: "2026-10-04T17:00:00Z", dataFine: "2026-10-04T17:45:00Z", chiusaIl: null, durataMinuti: null }) === 45, "non chiusa: la programmata");
-  ok(C.durataVeraEvento({ dataInizio: "2026-10-04T17:00:00Z", dataFine: null, chiusaIl: null, durataMinuti: null }) === null, "senza fine: non si sa");
+  // Decisione di Mario, 25/10: il tetto della durata vera e il minimo dei 20
+  // minuti sono regole su ciò che misuriamo NOI; nella certificazione manuale
+  // KIREO è il registro, non il testimone. La prova di comportamento è
+  // scripts/verifica-certificazione-manuale.sql (due proprietà separate:
+  // automatica con tetto, manuale senza). Qui si sorveglia che il testo che lo
+  // negava non torni.
+  ok(typeof C.avvisoCertificazioneSenzaOre === "undefined", "l'avviso «non riconosce ore» non esiste più (sarebbe falso)");
   const reg = senzaCommenti(leggi("components/scuola/RegistroPresenzeEvento.tsx"));
-  ok(/avvisoCertificazioneSenzaOre\(durata\)/.test(reg) && /\{avvisoSenzaOre\}/.test(reg), "il registro lo mostra");
-  const pag = senzaCommenti(leggi("app/scuola/(dashboard)/eventi/page.tsx"));
-  ok(/durata=\{durataVeraEvento\(/.test(pag), "…e la pagina gli passa la durata vera");
-  ok(/diretta_durata_minuti/.test(leggi("lib/scuola/eventi.ts")), "…letta dall'evento");
+  ok(!/non riconosce ore|non si certificano ore/.test(reg), "il registro della scuola non dice che le ore non ci saranno");
+  // L'ULTIMA definizione viva di certifica_presenza non passa dal tetto.
+  const fs = require("node:fs");
+  const dir = "supabase/migrations";
+  const conCert = fs.readdirSync(dir).filter((f) => f.endsWith(".sql")).sort()
+    .filter((f) => /create or replace function public\.certifica_presenza\(/.test(fs.readFileSync(`${dir}/${f}`, "utf8")));
+  const ultima = conCert[conCert.length - 1];
+  const corpo = senzaCommentiSql(fs.readFileSync(`${dir}/${ultima}`, "utf8").split(/create or replace function public\.certifica_presenza\(/)[1].split(/\$\$;/)[0]);
+  ok(conCert.length >= 2, "l'estrattore trova le definizioni di certifica_presenza", conCert.join(", "));
+  ok(!/ore_riconoscibili_evento/.test(corpo), `l'ultima definizione (${ultima}) non applica il tetto dell'automatica`);
+  ok(/coalesce\(e\.ore_pcto, 0\)/.test(corpo), "…e riconosce le ore dichiarate per l'evento");
+  // …mentre la chiusura automatica le passa ancora di lì.
+  const chiusure = fs.readdirSync(dir).filter((f) => f.endsWith(".sql")).sort()
+    .filter((f) => /create function public\.chiudi_diretta_evento\(/.test(fs.readFileSync(`${dir}/${f}`, "utf8")));
+  const ultimaC = fs.readFileSync(`${dir}/${chiusure[chiusure.length - 1]}`, "utf8").split(/create function public\.chiudi_diretta_evento\(/)[1].split(/\$\$;/)[0];
+  ok(/ore_riconoscibili_evento/.test(senzaCommentiSql(ultimaC)), "la chiusura automatica il tetto lo applica ancora");
 }
 
 console.log("\n§5 · il CSV dice le ore");

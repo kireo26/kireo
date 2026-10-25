@@ -381,32 +381,9 @@ export function testoConfermaChiusura(dataInizio: string, dataFine: string, ades
 export const TESTO_CHIUSURA_PRIMA_DELL_INIZIO =
   "Questo incontro non è ancora cominciato: si può chiudere solo a diretta iniziata.";
 
-/**
- * LA DURATA CHE DECIDE LE ORE, specchio di `durata_vera_minuti` (SQL): chiusa →
- * quella scritta dalla chiusura; non chiusa → quella programmata; senza fine →
- * non si sa (`null`). Un ramo per caso, come là.
- */
-export function durataVeraEvento(e: {
-  dataInizio: string;
-  dataFine: string | null;
-  chiusaIl: string | null;
-  durataMinuti: number | null;
-}): number | null {
-  if (e.chiusaIl) return e.durataMinuti;
-  if (e.dataFine) return (new Date(e.dataFine).getTime() - new Date(e.dataInizio).getTime()) / 60000;
-  return null;
-}
-
-/**
- * ⚠️ LA CERTIFICAZIONE MANUALE SOTTO I 20 MINUTI REGISTRA LA PRESENZA CON ZERO
- * ORE (scelta confermata da Mario il 26/10): la presenza è un fatto che la scuola
- * attesta, le ore una regola nostra. MA LA SCUOLA LO DEVE SAPERE PRIMA DI
- * CERTIFICARE, non scoprirlo in un CSV di trenta zeri: un'accettazione che non fa
- * niente e non lo dice è il gemello del rifiuto muto. Testo di Mario; `null`
- * quando non c'è niente da dire (durata sufficiente o non nota).
- */
-export function avvisoCertificazioneSenzaOre(durata: number | null): string | null {
-  if (durata === null || durata >= MINUTI_MINIMI_CERTIFICAZIONE) return null;
-  const n = Math.floor(durata);
-  return `Questo incontro è durato ${n === 1 ? "1 minuto" : `${n} minuti`}. La presenza viene registrata, ma non riconosce ore: sotto i ${MINUTI_MINIMI_CERTIFICAZIONE} minuti non si certificano ore.`;
-}
+// 25/10 (Mario): qui c'erano `durataVeraEvento` e `avvisoCertificazioneSenzaOre`,
+// l'avviso alla scuola «la presenza viene registrata, ma non riconosce ore» sotto
+// i 20 minuti. Tolti, non riscritti: la certificazione manuale non ha più né
+// tetto né minimo (20261027110000), quindi non c'è più niente da avvisare. Chi
+// pensasse di rimetterlo deve prima rimettere il minimo sulle certificazioni
+// manuali, che è una decisione contraria a quella presa.

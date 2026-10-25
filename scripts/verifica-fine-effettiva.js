@@ -70,8 +70,6 @@ const CLASSI = {
   "app/diretta/[id]/page.tsx": ["effettiva", "intestazione e report sulla fine effettiva"],
   "app/admin/page.tsx": ["effettiva", "passa la chiusura alla console"],
   "app/ente/(dashboard)/eventi/page.tsx": ["effettiva", "passa la chiusura alla console, al report e alla chiave"],
-  "lib/scuola/eventi.ts": ["effettiva", "la durata vera per l'avviso delle zero ore"],
-  "app/scuola/(dashboard)/eventi/page.tsx": ["effettiva", "l'avviso delle zero ore sulla durata vera"],
   "app/api/admin/presenze/[id]/route.ts": ["effettiva", "l'esito sa se la diretta è chiusa"],
   "app/api/scuola/presenze/[id]/route.ts": ["effettiva", "come sopra"],
   "components/EntraDirettaLink.tsx": ["riceve", "la fine la decidono i due chiamanti (CardEvento, CardWebinarDocente)"],
