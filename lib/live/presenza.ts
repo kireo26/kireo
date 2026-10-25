@@ -21,6 +21,13 @@ import { ORE_FINESTRA_CONSEGNA } from "@/lib/live";
 // premiare chi lascia la scheda aperta rispetto a chi se ne va alla fine vera.
 // Presenza vuol dire che c'era qualcosa a cui essere presenti. È definitivo per
 // il caricamento della pagina: rivedere il video registrato non è la diretta.
+// ⚠️ «IL VIDEO» È IL VIDEO DI QUELLA PERSONA, non la trasmissione (giro del
+// 25/10): chi è rientrato riprendendo da dov'era resta indietro, e vede finire
+// il video minuti dopo che la trasmissione si è interrotta. Due studenti alla
+// stessa diretta chiudono con due numeri diversi — e chi accumula ritardo
+// accumula presenza oltre la fine vera, fino al tetto della finestra. Oggi la
+// finestra lo contiene; il giorno in cui è larga e la diretta finisce molto
+// prima, non più.
 export function presenzaConta({
   inDiretta,
   videoRotto,
