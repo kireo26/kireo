@@ -4,6 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import Logo from "@/components/Logo";
 import { createClient } from "@/lib/supabase/client";
+import { USCITA_SOLO_QUI } from "@/lib/supabase/uscita";
 
 const NAV_ITEMS = [
   { href: "/docente", label: "Home", shortLabel: "Home", icon: IconHome },
@@ -76,7 +77,7 @@ export default function DocenteShell({ nome, children }: { nome: string; childre
 
   async function handleLogout() {
     const supabase = createClient();
-    await supabase.auth.signOut();
+    await supabase.auth.signOut({ scope: USCITA_SOLO_QUI });
     router.push("/");
     router.refresh();
   }

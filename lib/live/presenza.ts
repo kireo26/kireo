@@ -214,6 +214,21 @@ export const TESTO_BATTITO_RIFIUTATO =
 // ⚠️ «il testo resta qui» è vero perché la bozza si salva nella scheda
 // (sessionStorage) prima del rientro e si ripristina al ritorno: far riscrivere
 // una domanda per un errore nostro sarebbe una seconda offesa dopo la prima.
+/**
+ * ⚠️ CHI VEDE LE DOMANDE IN DIRETTA SI DERIVA DAL PUBBLICO DELL'EVENTO (Mario,
+ * 25/10). Fino al 25/10 la frase era una sola — «Solo tu vedi le tue domande:
+ * l'organizzatore le riceve, non è una chat pubblica.» — che si smentiva in sei
+ * parole, non nominava KIREO, e su un webinar per DOCENTI era falsa: lì
+ * `domande_live_organizzatore` mostra all'organizzatore il nome di chi scrive.
+ * Una promessa sulla visibilità non si scrive: si deriva da chi vede davvero.
+ * Testi di Mario, parola per parola. Nel caso docenti «non sono anonime» sta
+ * DAVANTI: chi sta per scrivere qualcosa di scomodo deve incontrarlo subito.
+ */
+export const VISIBILITA_DOMANDE: Record<"studenti" | "docenti", string> = {
+  studenti: "Le tue domande non sono pubbliche: le vedi tu, le riceve chi ha organizzato la diretta, e le legge KIREO.",
+  docenti: "Le tue domande non sono pubbliche, ma non sono anonime: chi ha organizzato la diretta vede il tuo nome. Le legge anche KIREO.",
+};
+
 export type CausaRifiutoDomanda = "sessione_persa" | "fuori_diretta" | "non_iscritto" | "guasto";
 export const TESTO_RIFIUTO_DOMANDA: Record<CausaRifiutoDomanda, string> = {
   sessione_persa: "Il tuo accesso è scaduto, quindi la domanda non è arrivata. Rientra e mandala di nuovo: il testo resta qui.",

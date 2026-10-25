@@ -8,6 +8,7 @@ import Logo from "./Logo";
 import { Button, ButtonLink } from "./Button";
 import { createClient } from "@/lib/supabase/client";
 import { AREE } from "@/data/aree";
+import { USCITA_SOLO_QUI } from "@/lib/supabase/uscita";
 
 const NAV_LINKS = [
   { href: "/", label: "Home" },
@@ -75,7 +76,7 @@ export default function Header() {
 
   async function handleLogout() {
     const supabase = createClient();
-    await supabase.auth.signOut();
+    await supabase.auth.signOut({ scope: USCITA_SOLO_QUI });
     setUserMenuOpen(false);
     setOpen(false);
     router.push("/");

@@ -30,6 +30,7 @@ import NotificheBell from "@/components/app/NotificheBell";
 // icone (che sono componenti React e non possono stare in una costante
 // condivisa) e le due voci di navigazione che NON sono passi del viaggio.
 import { PASSI_PERCORSO, type ChiavePasso } from "@/lib/percorso/passi";
+import { USCITA_SOLO_QUI } from "@/lib/supabase/uscita";
 
 const ICONE_PASSI: Record<ChiavePasso, (p: { className?: string }) => React.ReactElement> = {
   aree: IconAree,
@@ -195,12 +196,26 @@ function IconLogout({ className }: { className?: string }) {
 // voce su cui si sta navigando (`aria-current`), e le due cose sono domande
 // diverse — «dove sono adesso» e «dov'è il mio prossimo passo». Se coincidono si
 // vedono entrambe senza darsi noia.
+// ⚠️ NESSUN PRECARICAMENTO SULLE VOCI DELLA BARRA (25/10). In produzione <Link>
+// precarica ogni voce visibile, ogni precaricamento passa dal middleware, e il
+// middleware verifica la sessione a ogni richiesta: tredici voci, tredici
+// `/user` in due secondi per aprire una pagina (visti nei log di Auth). Sono
+// pagine che si aprono una alla volta, non un percorso da anticipare.
+// ⚠️ E LA STRADA SCARTATA, perché fra sei mesi sembrerà più furba: far saltare
+// la verifica al middleware sui precaricamenti. Un precaricamento si riconosce
+// da un'intestazione che manda il client, quindi chiunque la scriverebbe a mano
+// e passerebbe dove la guardia stava: una seconda strada aggiunta da noi, per
+// risparmiare dodici chiamate. Se un giorno la si vuole, prima serve una prova
+// che una richiesta con quell'intestazione e senza sessione non riceve
+// contenuto protetto — e se quella prova non si riesce a scrivere, è perché la
+// strada c'è.
 function VoceBarra({ item, pathname, passoCorrente }: { item: Voce; pathname: string; passoCorrente: ChiavePasso | null }) {
   const attivo = isAttivo(pathname, item.href);
   const eIlPasso = item.passo !== undefined && item.passo === passoCorrente;
   return (
     <Link
       href={item.href}
+      prefetch={false}
       aria-current={attivo ? "page" : undefined}
       className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
         attivo ? "bg-kireo-green/15 text-kireo-orange" : "text-kireo-light/90 hover:bg-white/5"
@@ -238,7 +253,7 @@ export default function AppShell({
 
   async function handleLogout() {
     const supabase = createClient();
-    await supabase.auth.signOut();
+    await supabase.auth.signOut({ scope: USCITA_SOLO_QUI });
     router.push("/");
     router.refresh();
   }
@@ -316,6 +331,7 @@ export default function AppShell({
               <Link
                 key={item.href}
                 href={item.href}
+                prefetch={false}
                 aria-current={attivo ? "page" : undefined}
                 className={`relative flex min-w-[68px] flex-none flex-col items-center gap-1 py-2.5 text-[11px] font-medium ${
                   primoDelResto ? "border-l border-white/10" : ""

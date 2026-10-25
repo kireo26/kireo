@@ -17,6 +17,7 @@ import {
   type EsitoSezione,
 } from "@/lib/app/esportaDati";
 import { descriviErrore } from "@/lib/erroreSupabase";
+import { USCITA_SOLO_QUI } from "@/lib/supabase/uscita";
 
 const MAX_AREE_INTERESSE = 3;
 type StatoSalvataggio = "idle" | "salvando" | "ok" | "errore";
@@ -345,7 +346,7 @@ function BloccoPrivacy({ userId }: { userId: string }) {
         setEliminando(false);
         return;
       }
-      await supabase.auth.signOut();
+      await supabase.auth.signOut({ scope: USCITA_SOLO_QUI });
       router.push("/");
       router.refresh();
     } catch {

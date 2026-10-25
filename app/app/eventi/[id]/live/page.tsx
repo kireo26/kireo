@@ -90,6 +90,7 @@ export default async function EventoLivePage({ params }: { params: Promise<{ id:
         youtubeVideoId={evento.youtube_video_id}
         domandeIniziali={domande ?? []}
         hrefRitorno="/app/agenda"
+        pubblico={evento.pubblico}
       />
 
       {porta?.aperta && evento.domanda_consegna ? (

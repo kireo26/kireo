@@ -7,7 +7,8 @@ import PannelloLive from "@/components/live/PannelloLive";
 // Stessa meccanica della pagina live studenti (app/app/eventi/[id]/live):
 // qui pubblico=docenti. Le domande inviate da questa pagina sono visibili
 // CON nome all'organizzatore (domande_live_organizzatore lo decide lato
-// server in base a eventi.pubblico, non c'è nulla da differenziare qui).
+// server in base a eventi.pubblico) — e dal 25/10 il testo sopra il campo lo
+// DICE, perché si deriva dallo stesso `pubblico` (`VISIBILITA_DOMANDE`).
 export default async function WebinarLivePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const contesto = await getDocenteContext();
@@ -58,6 +59,7 @@ export default async function WebinarLivePage({ params }: { params: Promise<{ id
         youtubeVideoId={evento.youtube_video_id}
         domandeIniziali={domande ?? []}
         hrefRitorno="/docente/webinar"
+        pubblico={evento.pubblico}
       />
     </div>
   );

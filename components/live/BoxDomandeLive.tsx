@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { causaRifiutoDomanda, ETICHETTA_RIFAI_ACCESSO, TESTO_RIFIUTO_DOMANDA, type CausaRifiutoDomanda } from "@/lib/live/presenza";
+import { causaRifiutoDomanda, ETICHETTA_RIFAI_ACCESSO, TESTO_RIFIUTO_DOMANDA, type CausaRifiutoDomanda, VISIBILITA_DOMANDE } from "@/lib/live/presenza";
 import { statoDiretta } from "@/lib/live";
 
 // La bozza sopravvive al rientro (25/10): «il testo resta qui» dev'essere vero
@@ -47,12 +47,15 @@ export default function BoxDomandeLive({
   dataInizio,
   dataFine,
   hrefRitorno,
+  pubblico,
 }: {
   eventoId: string;
   userId: string;
   domandeIniziali: Domanda[];
   dataInizio: string;
   dataFine: string | null;
+  /** Dall'evento, mai dalla pagina: decide cosa si promette su chi vede le domande. */
+  pubblico: "studenti" | "docenti";
   hrefRitorno: string;
 }) {
   const [domande, setDomande] = useState<Domanda[]>(domandeIniziali);
@@ -117,7 +120,7 @@ export default function BoxDomandeLive({
   return (
     <div className="rounded-2xl border border-white/5 bg-kireo-card p-5">
       <p className="font-heading text-sm font-semibold text-kireo-light">Fai una domanda</p>
-      <p className="mt-1 text-xs text-kireo-muted">Solo tu vedi le tue domande: l&apos;organizzatore le riceve, non è una chat pubblica.</p>
+      <p className="mt-1 text-xs text-kireo-muted">{VISIBILITA_DOMANDE[pubblico]}</p>
 
       <form onSubmit={handleSubmit} className="mt-3 flex flex-col gap-2 sm:flex-row">
         <input

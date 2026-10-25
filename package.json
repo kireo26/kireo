@@ -73,7 +73,8 @@
     "test:export": "node scripts/verifica-export-dati.js",
     "test:contatti": "node scripts/verifica-contatti.js",
     "test:errori": "node scripts/verifica-log-errori.js",
-    "test:diretta1810": "node scripts/verifica-diretta-18-10.js"
+    "test:diretta1810": "node scripts/verifica-diretta-18-10.js",
+    "test:uscita": "node scripts/verifica-uscita.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.112.5",

@@ -49,6 +49,7 @@ export default function PannelloLive({
   youtubeVideoId,
   domandeIniziali,
   hrefRitorno,
+  pubblico,
 }: {
   eventoId: string;
   userId: string;
@@ -58,6 +59,7 @@ export default function PannelloLive({
   youtubeVideoId: string | null;
   domandeIniziali: Domanda[];
   hrefRitorno: string;
+  pubblico: "studenti" | "docenti";
 }) {
   const [ora, setOra] = useState(() => new Date());
   const [esitoPlayer, setEsitoPlayer] = useState<EsitoSonda | null>(null);
@@ -418,6 +420,7 @@ export default function PannelloLive({
         dataInizio={dataInizio}
         dataFine={dataFine}
         hrefRitorno={hrefRitorno}
+        pubblico={pubblico}
       />
     </div>
   );
