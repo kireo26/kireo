@@ -109,6 +109,19 @@ export default function PlayerDiretta({
           // terzi dentro la pagina di KIREO. Dal 2018 il parametro NON toglie
           // i suggeriti: li restringe al canale che ha pubblicato il video. È
           // il massimo che il player concede — la schermata finale resta.
+          // ⚠️ MISURATO IL 25/10 (`npm run banco player`, registrazione di
+          // 13:45 trascinata in fondo): nessuna griglia di suggeriti, nessuna
+          // schermata finale — solo «riprendi». Il blocco 3 era ordinato attorno
+          // a una frase mai guardata. Un ente che configura le schermate finali
+          // sul proprio canale le vedrà comparire: dipende da lui, non da qui.
+          // ⚠️ LE DUE USCITE D'ANGOLO (logo in basso a destra, canale e avatar in
+          // alto a sinistra) NON SI TOLGONO, e non è una dimenticanza: nessun
+          // parametro le toglie (`showinfo` è ritirato dal 2018, `modestbranding`
+          // non ha più effetto — quest'ultimo dalla documentazione, non misurato),
+          // `controls: 0` toglierebbe anche schermo intero e volume, che servono,
+          // e coprirle con un nostro strato è contro le regole di YouTube per i
+          // player incorporati (non si nascondono né si bloccano i suoi elementi).
+          // La cura è dirlo: `AVVISO_PLAYER` sopra il player le nomina.
           playerVars: { rel: 0 },
           events: {
             onError: (e) => {
