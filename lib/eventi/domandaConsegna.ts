@@ -23,7 +23,7 @@
 //
 // ⚠️ I TESTI SONO DA RILEGGERE (voce). La sostanza è decisa; le parole no.
 
-import { domandaModificabile, fineDiretta, ORE_FINESTRA_CONSEGNA } from "@/lib/live";
+import { domandaModificabile, fineEffettiva, ORE_FINESTRA_CONSEGNA } from "@/lib/live";
 import { formattaDataOra } from "@/lib/formato";
 
 export type StatoDomandaConsegna =
@@ -45,11 +45,13 @@ export type PannelloDomanda = {
 };
 
 export function statoDomandaConsegna(
-  evento: { data_inizio: string; data_fine: string | null; domanda_consegna: string | null },
+  evento: { data_inizio: string; data_fine: string | null; diretta_chiusa_il: string | null; domanda_consegna: string | null },
   ora: Date = new Date(),
 ): PannelloDomanda {
-  const fine = fineDiretta(evento.data_inizio, evento.data_fine);
-  const aperta = domandaModificabile(evento.data_inizio, evento.data_fine, ora);
+  // ⚠️ LA FINE EFFETTIVA, non quella programmata (25/10): chiusa alle 14:24, la
+  // domanda non si cambia più — gli studenti la stanno già leggendo.
+  const fine = fineEffettiva(evento.data_inizio, evento.data_fine, evento.diretta_chiusa_il);
+  const aperta = domandaModificabile(evento.data_inizio, fine, ora);
   const haDomanda = Boolean(evento.domanda_consegna);
   const stato: StatoDomandaConsegna = aperta
     ? haDomanda

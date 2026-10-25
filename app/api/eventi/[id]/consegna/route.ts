@@ -70,7 +70,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   // RLS legge solo eventi approvati: un id di bozza risulta semplicemente assente.
   const { data: evento } = await supabase
     .from("eventi")
-    .select("id, titolo, domanda_consegna, data_inizio, data_fine, pubblico")
+    .select("id, titolo, domanda_consegna, data_inizio, data_fine, diretta_chiusa_il, pubblico")
     .eq("id", id)
     .maybeSingle();
   if (!evento || evento.pubblico !== "studenti" || !evento.domanda_consegna) {

@@ -106,7 +106,7 @@ console.log("\n§4 — la presenza comincia quando il video parte (18/10 sera)\n
   ok(P.causaFermo({ avviato: false, videoRotto: false, pausaLunga: true }) === "non_avviato", "mai partito resta «non avviato» anche se fermo");
   ok(P.causaFermo({ avviato: true, videoRotto: true, pausaLunga: true }) === "video_non_visibile", "un video rotto non si sente dire «riprendi la riproduzione»");
   ok(P.causaFermo({ avviato: true, videoRotto: false, pausaLunga: true }) === "in_pausa", "fermo oltre la tolleranza: «in pausa»");
-  ok(P.testoContatore(4, 15, false, "in_pausa") === "Il video è fermo, quindi la presenza non sta avanzando. Riprendi la riproduzione per farla ripartire.", "il testo della pausa è quello di Mario, parola per parola");
+  ok(P.testoContatore(4, 15, false, "in_pausa") === "Presente da 4 minuti. Il video è fermo, quindi la presenza non sta avanzando: riprendi la riproduzione per farla ripartire.", "il testo della pausa è quello di Mario, parola per parola, col numero dei minuti (25/10 pomeriggio)");
   ok(!P.presenzaConta({ inDiretta: true, videoRotto: true, avviato: true, finito: false, pausaLunga: false }), "l'errore ferma tutto, come prima");
   ok(!P.presenzaConta({ inDiretta: false, videoRotto: false, avviato: true, finito: false, pausaLunga: false }), "fuori dalla diretta niente, come prima");
 
@@ -213,7 +213,13 @@ console.log("\n§5 — «Iscriviti» torna mentre la diretta è in corso (Mario,
   ok(L.ETICHETTA_ISCRIVITI_ED_ENTRA === "Iscriviti ed entra" && L.ETICHETTA_ISCRIVITI === "Iscriviti", "le due etichette di Mario");
 
   const card = leggi("components/app/CardEvento.tsx");
-  ok(/faseIscrizione\(evento\.data_inizio, evento\.data_fine\)/.test(card), "la card dello studente decide sulla fase");
+  // RIESAMINATA il 25/10 pomeriggio: la fase si decide sulla fine EFFETTIVA
+  // (`fineEffettiva`, `npm run test:fine`). La proprietà non cambia.
+  ok(
+    /const fine = fineEffettiva\(evento\.data_inizio, evento\.data_fine, evento\.diretta_chiusa_il\)/.test(card) &&
+      /faseIscrizione\(evento\.data_inizio, fine\)/.test(card),
+    "la card dello studente decide sulla fase (sulla fine effettiva)",
+  );
   ok(/fase === "in_corso" && evento\.tipo === "webinar" && !iscritto \? \(/.test(card), "a diretta in corso, a chi non è iscritto, un bottone — solo per un webinar, dove c'è una diretta in cui entrare");
   const { fettaOppureRosso, dentro } = creaFetta(ok);
   const ramoInCorso = fettaOppureRosso(card, { nome: 'fase === "in_corso"' }, { nome: ") : null;", volte: 2, quale: 0 }, "ramo in corso della card");

@@ -71,6 +71,30 @@ export function fineDiretta(dataInizio: string, dataFine: string | null): string
   return new Date(new Date(dataInizio).getTime() + DURATA_DEFAULT_MS).toISOString();
 }
 
+// ⚠️ LA FINE EFFETTIVA (25/10 pomeriggio). Dal 26/10 una diretta si chiude anche
+// PRIMA della fine programmata, e da quel giorno `data_fine` e «quando
+// l'incontro è finito» sono due momenti diversi — fino al giorno prima usare
+// l'uno per l'altro non costava niente. Il giro del 25/10 l'ha mostrato: a
+// diretta chiusa alle 14:24 la domanda finale si poteva ancora cambiare fino alle
+// 14:30, mentre gli studenti la stavano già leggendo.
+//
+// Quindi ogni domanda «l'incontro è finito?» passa da qui: la chiusura, se c'è ed
+// è prima della fine programmata; altrimenti la fine programmata. Una chiusura
+// DOPO la fine programmata non sposta niente (la diretta era già finita quando
+// qualcuno ha premuto). Specchio di `fine_effettiva_evento` (SQL,
+// 20261027100000_fine_effettiva.sql).
+//
+// `chiusaIl` è OBBLIGATORIO di proposito, anche `null`: un parametro facoltativo
+// è il posto in cui un chiamante che si è dimenticato di leggere la chiusura
+// torna in silenzio alla fine programmata — cioè il difetto di partenza.
+// Quali posti usano la fine programmata DI PROPOSITO (e perché) lo tiene
+// `npm run test:fine`.
+export function fineEffettiva(dataInizio: string, dataFine: string | null, chiusaIl: string | null): string {
+  const programmata = fineDiretta(dataInizio, dataFine);
+  if (!chiusaIl) return programmata;
+  return new Date(chiusaIl).getTime() < new Date(programmata).getTime() ? chiusaIl : programmata;
+}
+
 // LA DIRETTA STA ANDANDO, specchio lato client di `evento_in_diretta`
 // (20261004130000_presenza_dentro_la_diretta.sql). È una funzione a sé e non un
 // ramo di `statoDiretta` per la ragione che l'ha resa necessaria: `statoDiretta`

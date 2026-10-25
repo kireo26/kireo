@@ -4,7 +4,7 @@ import EntraDirettaLink from "@/components/EntraDirettaLink";
 import type { Evento } from "@/lib/app/eventi";
 import { formattaDataOra } from "@/lib/formato";
 import { numeroOre } from "@/lib/eventi/orePcto";
-import { faseIscrizione } from "@/lib/live";
+import { faseIscrizione, fineEffettiva } from "@/lib/live";
 
 const ETICHETTA_TIPO: Record<Evento["tipo"], string> = {
   webinar: "Webinar",
@@ -38,7 +38,9 @@ export default function CardEvento({
   // muta per chi arrivava in ritardo.
   // ⚠️ «Entra» solo dove c'è una diretta in cui entrare: un webinar. Un
   // incontro in presenza già cominciato resta senza bottone, come prima.
-  const fase = faseIscrizione(evento.data_inizio, evento.data_fine);
+  // La fine EFFETTIVA: una diretta chiusa in anticipo non offre più «Entra».
+  const fine = fineEffettiva(evento.data_inizio, evento.data_fine, evento.diretta_chiusa_il);
+  const fase = faseIscrizione(evento.data_inizio, fine);
   const hrefDiretta = `/app/eventi/${evento.id}/live`;
   const iscrizione =
     fase === "prima" ? (
@@ -112,7 +114,7 @@ export default function CardEvento({
           <EntraDirettaLink
             href={hrefDiretta}
             dataInizio={evento.data_inizio}
-            dataFine={evento.data_fine}
+            dataFine={fine}
             youtubeVideoId={evento.youtube_video_id}
             iscritto={iscritto}
           />

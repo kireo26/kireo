@@ -6,7 +6,7 @@ declare global { interface Window { __props: { dataInizio: string; dataFine: str
 const p = window.__props;
 createRoot(document.getElementById("radice")!).render(
   <PannelloLive
-    eventoId="e" userId="u" titolo="Prova" dataInizio={p.dataInizio} dataFine={p.dataFine}
+    eventoId="e" userId="u" titolo="Prova" dataInizio={p.dataInizio} dataFine={p.dataFine} chiusaIl={null}
     youtubeVideoId="VIDEO" domandeIniziali={[]} hrefRitorno="/app/agenda" pubblico="studenti"
   />,
 );

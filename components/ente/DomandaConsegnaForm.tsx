@@ -22,11 +22,14 @@ export default function DomandaConsegnaForm({
   domandaAttuale,
   dataInizio,
   dataFine,
+  chiusaIl,
 }: {
   eventoId: string;
   domandaAttuale: string | null;
   dataInizio: string;
   dataFine: string | null;
+  /** La chiusura, se c'è: da lì la domanda non si cambia più (vedi `fineEffettiva`). */
+  chiusaIl: string | null;
 }) {
   const [testo, setTesto] = useState(domandaAttuale ?? "");
   const [domandaPosta, setDomandaPosta] = useState(domandaAttuale);
@@ -40,7 +43,7 @@ export default function DomandaConsegnaForm({
     return () => clearInterval(intervallo);
   }, []);
 
-  const pannello = statoDomandaConsegna({ data_inizio: dataInizio, data_fine: dataFine, domanda_consegna: domandaPosta }, ora);
+  const pannello = statoDomandaConsegna({ data_inizio: dataInizio, data_fine: dataFine, diretta_chiusa_il: chiusaIl, domanda_consegna: domandaPosta }, ora);
 
   async function salva() {
     setInvio(true);

@@ -82,6 +82,10 @@ export default function ControlloDirettaEvento({
   const [caricamento, setCaricamento] = useState(false);
   const [erroreChiusura, setErroreChiusura] = useState<string | null>(null);
   const [esitoChiusura, setEsitoChiusura] = useState<EsitoChiusura | null>(null);
+  // L'istante di una pressione appena riuscita, finché il poll non rilegge la
+  // traccia: senza, per quindici secondi la domanda finale si potrebbe ancora
+  // cambiare su una diretta già chiusa — il difetto del 25/10 in piccolo.
+  const [chiusaAdesso, setChiusaAdesso] = useState<string | null>(null);
   // ⚠️ DAL 26/10 IL BOTTONE PUÒ CHIUDERE IN ANTICIPO, cioè fissare la durata di
   // tutti: un primo clic apre la conferma con i numeri, il secondo chiude.
   const [inConferma, setInConferma] = useState(false);
@@ -258,6 +262,7 @@ export default function ControlloDirettaEvento({
       // La terza colonna distingue «l'ho chiusa io adesso» da «era già chiusa»:
       // senza, la seconda pressione rispondeva «0 nuove certificazioni», cioè
       // un'affermazione sugli studenti al posto di «l'ho già fatto».
+      setChiusaAdesso(riga.gia_chiusa_il ?? new Date().toISOString());
       setEsitoChiusura(
         riga.gia_chiusa_il
           ? { tipo: "gia_chiusa", presenti: riga.presenti, quando: riga.gia_chiusa_il }
@@ -370,7 +375,13 @@ export default function ControlloDirettaEvento({
         </div>
       )}
 
-      <DomandaConsegnaForm eventoId={eventoId} domandaAttuale={domandaConsegna} dataInizio={dataInizio} dataFine={dataFine} />
+      <DomandaConsegnaForm
+        eventoId={eventoId}
+        domandaAttuale={domandaConsegna}
+        dataInizio={dataInizio}
+        dataFine={dataFine}
+        chiusaIl={chiusura.tipo === "chiusa" ? chiusura.quando : chiusaAdesso}
+      />
 
       {/* Tre stati e non due. L'esito di una pressione viene prima perché sa
           più cose (i conteggi) della riga di stato; la riga di stato prende il

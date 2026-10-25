@@ -8,7 +8,7 @@ import { MAX_CARATTERI_CONSEGNA, MIN_CARATTERI_CONSEGNA } from "@/lib/eventi/con
 import { statoPortaConsegna } from "@/lib/eventi/portaConsegna";
 import RileggiConsegna from "@/components/live/RileggiConsegna";
 import { statoRilettura, testoRilettura } from "@/lib/eventi/rilettura";
-import { consegnaAperta } from "@/lib/live";
+import { consegnaAperta, fineEffettiva } from "@/lib/live";
 
 // Accesso solo autenticato (garantito dal layout /app + middleware) E
 // iscritto: un evento non trovato o non pubblico=studenti dà 404 (RLS
@@ -22,7 +22,7 @@ export default async function EventoLivePage({ params }: { params: Promise<{ id:
 
   const { data: evento } = await supabase
     .from("eventi")
-    .select("id, titolo, data_inizio, data_fine, youtube_video_id, pubblico, domanda_consegna")
+    .select("id, titolo, data_inizio, data_fine, diretta_chiusa_il, youtube_video_id, pubblico, domanda_consegna")
     .eq("id", id)
     .maybeSingle();
 
@@ -76,7 +76,7 @@ export default async function EventoLivePage({ params }: { params: Promise<{ id:
   if (erroreConsegna) console.error("EventoLivePage — lettura della consegna fallita:", erroreConsegna);
 
   const rilettura = consegnaMia
-    ? statoRilettura(Number(consegnaMia.letture_tentate ?? 0), consegnaAperta(evento.data_inizio, evento.data_fine))
+    ? statoRilettura(Number(consegnaMia.letture_tentate ?? 0), consegnaAperta(evento.data_inizio, fineEffettiva(evento.data_inizio, evento.data_fine, evento.diretta_chiusa_il)))
     : null;
 
   return (
@@ -87,6 +87,7 @@ export default async function EventoLivePage({ params }: { params: Promise<{ id:
         titolo={evento.titolo}
         dataInizio={evento.data_inizio}
         dataFine={evento.data_fine}
+        chiusaIl={evento.diretta_chiusa_il}
         youtubeVideoId={evento.youtube_video_id}
         domandeIniziali={domande ?? []}
         hrefRitorno="/app/agenda"

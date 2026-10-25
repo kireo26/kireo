@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fineEffettiva } from "@/lib/live";
 
 export type Evento = {
   id: string;
@@ -7,6 +8,8 @@ export type Evento = {
   tipo: "webinar" | "workshop" | "altro";
   data_inizio: string;
   data_fine: string | null;
+  /** La chiusura: un evento chiuso è finito anche prima di `data_fine` (vedi `fineEffettiva`). */
+  diretta_chiusa_il: string | null;
   sede: string | null;
   link: string | null;
   posti: number | null;
@@ -20,7 +23,7 @@ export type Evento = {
 };
 
 const COLONNE_EVENTO =
-  "id, titolo, descrizione, tipo, data_inizio, data_fine, sede, link, posti, ore_pcto, organizzatore_id, cta_esterna_url, cta_esterna_approvata, in_evidenza, hosting_diretta, youtube_video_id";
+  "id, titolo, descrizione, tipo, data_inizio, data_fine, diretta_chiusa_il, sede, link, posti, ore_pcto, organizzatore_id, cta_esterna_url, cta_esterna_approvata, in_evidenza, hosting_diretta, youtube_video_id";
 
 // Eventi in evidenza prima, poi per data crescente — stesso criterio usato
 // ovunque prima (solo data) con la priorità di promozione anteposta.
@@ -46,7 +49,6 @@ function confrontaConEvidenzaPrima(a: Evento, b: Evento): number {
 // Un evento IN CORSO è un evento prossimo: ci si può ancora entrare. La fine è
 // `data_fine`, o — senza — tre ore dopo l'inizio, la stessa regola di
 // `fineDiretta`/`statoDiretta` (lib/live.ts): una regola sola per «è finito».
-const DURATA_DEFAULT_MS = 3 * 60 * 60 * 1000;
 
 // ⚠️ IL CONFINE SI APPLICA IN JS, non con un `.or()` di PostgREST, e la ragione
 // è la direzione dell'errore: queste funzioni degradano a lista VUOTA su
@@ -57,9 +59,13 @@ const DURATA_DEFAULT_MS = 3 * 60 * 60 * 1000;
 const MARGINE_MS = 31 * 24 * 60 * 60 * 1000;
 
 /** Il confine: l'evento non è ancora finito a `ora` (uno in corso NON è finito). Usato anche dall'area docente. */
-export function eventoNonFinito(e: { data_inizio: string; data_fine: string | null }, ora: Date = new Date()): boolean {
-  const fine = e.data_fine ? new Date(e.data_fine).getTime() : new Date(e.data_inizio).getTime() + DURATA_DEFAULT_MS;
-  return fine > ora.getTime();
+// ⚠️ E DAL 25/10 LA FINE È QUELLA EFFETTIVA: una diretta chiusa alle 14:24 sta
+// fra i passati dalle 14:24, non dalle 14:30 programmate (`fineEffettiva`).
+export function eventoNonFinito(
+  e: { data_inizio: string; data_fine: string | null; diretta_chiusa_il: string | null },
+  ora: Date = new Date(),
+): boolean {
+  return new Date(fineEffettiva(e.data_inizio, e.data_fine, e.diretta_chiusa_il ?? null)).getTime() > ora.getTime();
 }
 
 export async function getProssimiEventi(supabase: SupabaseClient, limite?: number): Promise<Evento[]> {

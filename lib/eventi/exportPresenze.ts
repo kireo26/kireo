@@ -4,7 +4,9 @@
 
 import { formattaDataOra, formattaIstante, formattaOra } from "@/lib/formato";
 import type { SezioneCsv } from "@/lib/csv";
-import { numeroOre } from "@/lib/eventi/orePcto";
+import { fineEffettiva } from "@/lib/live";
+import { SOGLIA_PRESENZA } from "@/lib/live/presenza";
+import { MINUTI_MINIMI_CERTIFICAZIONE } from "@/lib/eventi/chiusuraDiretta";
 
 /**
  * ⚠️ ZERO E NON UNA CELLA VUOTA per chi non si è mai collegato (Mario,
@@ -130,6 +132,48 @@ export function esitoPresenzaPerExport(
   return direttaChiusa ? "Sotto la soglia" : "Diretta non ancora chiusa";
 }
 
+/**
+ * ⚠️ «NON MISURATA» E NON ZERO (giro del 25/10). Una presenza certificata A MANO
+ * senza nessun battito — una classe in DAD che la scuola attesta — usciva con
+ * «Minuti presenza 0 · Dal primo all'ultimo 0 · Copertura 0 · Esito Certificata»:
+ * una certificazione accanto alla sua smentita. Lo zero lì non vuol dire «non
+ * c'era»: vuol dire che non c'era niente da misurare, perché il battito non si
+ * applica. È la regola di casa su un caso nuovo — quando non si legge non si
+ * scrive zero, e qui non c'era niente da leggere.
+ *
+ * La condizione è stretta di proposito: certificata, da qualcuno che NON è il
+ * conteggio automatico, e SENZA un battito. Se uno studente certificato a mano
+ * si è anche collegato, i suoi numeri sono misure vere ed escono come sono.
+ */
+export const PRESENZA_NON_MISURATA = "non misurata";
+export const NOTA_PRESENZA_NON_MISURATA =
+  "«non misurata» significa che la presenza è stata certificata a mano (per esempio una classe in DAD): il conteggio automatico non si applica, quindi non c'è nessun minuto da riportare.";
+
+export function presenzaNonMisurata(r: { stato_finale: string; certificata_da_tipo: string | null; primo_ping: string | null }): boolean {
+  return r.stato_finale === "partecipato" && r.certificata_da_tipo !== null && r.certificata_da_tipo !== "sistema" && !r.primo_ping;
+}
+
+/**
+ * Le tre celle della misura — minuti contati, distanza, copertura — in un posto
+ * solo, perché le due route (e i due rami della route admin) le dicano uguali.
+ */
+export function celleMisura(r: {
+  stato_finale: string;
+  certificata_da_tipo: string | null;
+  primo_ping: string | null;
+  minuti_presenza: number | null;
+  minuti_contati?: number | null;
+  copertura_percento: number | null;
+}): (number | string | null)[] {
+  if (presenzaNonMisurata(r)) return [PRESENZA_NON_MISURATA, PRESENZA_NON_MISURATA, PRESENZA_NON_MISURATA];
+  return [minutiContatiPerExport(r), minutiPerExport(r), r.copertura_percento];
+}
+
+/** La riga sotto la sezione, solo quando la parola compare. Testo mio, provvisorio. */
+export function notaPresenzaNonMisurata(righe: Parameters<typeof presenzaNonMisurata>[0][]): string | null {
+  return righe.some(presenzaNonMisurata) ? NOTA_PRESENZA_NON_MISURATA : null;
+}
+
 const CERTIFICATA_DA: Record<string, string> = {
   sistema: "Automatica (presenza misurata)",
   kireo: "KIREO",
@@ -176,14 +220,62 @@ export function testoDistribuzioneVuota(totalePresenti: number): string {
  * Il file che l'ente conserva. ⚠️ CON TITOLO, DATA E FINESTRA IN TESTA (Mario,
  * 25/10): «fra sei mesi non c'è modo di sapere di quale incontro sia». Puro.
  */
+// ⚠️ LA TESTA DEL REPORT DICE LA DURATA VERA (giro del 25/10): il file diceva
+// «14:00 → 14:30» e due righe sotto una copertura del 91,7% — cioè 22 su 24. Un
+// ente che rifà il conto a mano, 22 su 30, ottiene 73% e conclude che il nostro
+// numero è gonfiato. Una percentuale e il denominatore sbagliato per
+// verificarla, nello stesso file. Quindi la finestra è quella EFFETTIVA (fino
+// alla chiusura, se c'è stata prima), con la durata scritta dalla chiusura e chi
+// l'ha chiusa; e accanto le due cose che la ricevuta ha già: quante
+// certificazioni e qual era la soglia.
+export type EventoReport = {
+  titolo: string;
+  data_inizio: string | null;
+  data_fine: string | null;
+  diretta_chiusa_il: string | null;
+  diretta_chiusa_da_tipo: string | null;
+  diretta_durata_minuti: number | null;
+  diretta_chiusa_certificati: number | null;
+};
+
+const CHIUSA_DA_REPORT: Record<string, string> = { kireo: "chiuso da KIREO", ente: "chiuso dall'organizzatore" };
+
+export function testaReportEnte(evento: EventoReport): string | null {
+  if (!evento.data_inizio) return null;
+  const chiusa = Boolean(evento.diretta_chiusa_il);
+  const fine = chiusa
+    ? fineEffettiva(evento.data_inizio, evento.data_fine, evento.diretta_chiusa_il)
+    : evento.data_fine;
+  const finestra = `Incontro: ${formattaDataOra(evento.data_inizio)}${fine ? ` → ${formattaOra(fine)}` : ""} (ora italiana)`;
+  if (chiusa && typeof evento.diretta_durata_minuti === "number") {
+    const da = CHIUSA_DA_REPORT[evento.diretta_chiusa_da_tipo ?? ""];
+    return `${finestra} — durata ${minutiLeggibili(evento.diretta_durata_minuti)}${da ? `, ${da}` : ""}.`;
+  }
+  return chiusa ? `${finestra}.` : `${finestra}. La diretta non è ancora stata chiusa: le presenze non sono ancora contate.`;
+}
+
+const minutiLeggibili = (n: number) => (n === 1 ? "1 minuto" : `${n} minuti`);
+
+/** Le righe della chiusura: certificazioni e soglia, solo quando la chiusura c'è stata. */
+export function righeChiusuraReport(evento: EventoReport): (string | number)[][] {
+  if (!evento.diretta_chiusa_il || typeof evento.diretta_durata_minuti !== "number") return [];
+  const durata = evento.diretta_durata_minuti;
+  const soglia =
+    durata < MINUTI_MINIMI_CERTIFICAZIONE
+      ? `Nessuna: sotto i ${MINUTI_MINIMI_CERTIFICAZIONE} minuti l'incontro non certifica ore`
+      : `${Math.ceil(SOGLIA_PRESENZA * Math.max(1, durata) - 1e-9)} minuti su ${durata}`;
+  return [
+    ["Certificazioni automatiche", evento.diretta_chiusa_certificati ?? "non disponibile"],
+    ["Soglia di presenza per la certificazione", soglia],
+  ];
+}
+
 export function sezioniReportEnte(
-  evento: { titolo: string; data_inizio: string | null; data_fine: string | null },
+  evento: EventoReport,
   riga: { totale_iscritti: unknown; totale_presenti: unknown; copertura_media: unknown; numero_domande: unknown },
   distribuzione: { provincia: string; tipo_istituto: string; conteggio: number }[],
 ): SezioneCsv[] {
-  const finestra = evento.data_inizio
-    ? `Incontro: ${formattaDataOra(evento.data_inizio)}${evento.data_fine ? ` → ${formattaOra(evento.data_fine)}` : ""} (ora italiana)`
-    : null;
+  const finestra = testaReportEnte(evento);
   const presenti = Number(riga.totale_presenti) || 0;
   return [
     {
@@ -197,6 +289,7 @@ export function sezioniReportEnte(
         // ⚠️ Una media senza tetto può superare il 100 (`20261011150000`): lo si
         // spiega invece di nasconderlo. Solo quando succede.
         ...righeCoperturaOltreCento(riga.copertura_media),
+        ...righeChiusuraReport(evento),
         ["Numero domande", riga.numero_domande],
       ],
       seNonCeNiente: "Non è stato possibile leggere i numeri dell'incontro.",
@@ -223,7 +316,24 @@ export function oreRiconosciutePerExport(
   chiusa: boolean,
 ): string {
   if (riga.stato_finale === "partecipato" && riga.ore_riconosciute !== null && riga.ore_riconosciute !== undefined) {
-    return numeroOre(riga.ore_riconosciute);
+    return oreCsv(riga.ore_riconosciute);
   }
-  return chiusa ? "0" : "";
+  return chiusa ? oreCsv(0) : "";
+}
+
+/**
+ * ⚠️ NEL CSV I DECIMALI HANNO TUTTI IL PUNTO (giro del 25/10). Nella stessa riga
+ * «Dal primo all'ultimo» diceva 23.5, la copertura 91.7, le ore "0,4": qualunque
+ * sia la lingua del foglio di calcolo che lo apre, una delle due colonne esce come
+ * testo — e una scuola che somma la colonna delle ore somma del testo. La scelta
+ * è il PUNTO perché il file separa i campi con la VIRGOLA: un decimale con la
+ * virgola, in un file così, è per forza un testo fra virgolette. (L'alternativa —
+ * `;` come separatore e la virgola nei decimali, il CSV «italiano» di Excel — è
+ * un cambio di formato di tutti gli export, ed è una decisione di Mario.)
+ * E DUE CIFRE sulle ore, la regola del 18/10: 0,40 e non 0,4.
+ * A schermo le ore restano con la virgola (`numeroOre`): questo vale per il file.
+ */
+export function oreCsv(ore: number | string): string {
+  const n = typeof ore === "number" ? ore : Number(ore);
+  return Number.isFinite(n) ? n.toFixed(2) : String(ore);
 }

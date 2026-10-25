@@ -19,7 +19,7 @@
 // di `statoPortaConsegna`, che a quel punto risponde `non_ho_potuto_controllare`.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { consegnaAperta, ORE_FINESTRA_CONSEGNA } from "@/lib/live";
+import { consegnaAperta, fineEffettiva, ORE_FINESTRA_CONSEGNA } from "@/lib/live";
 import { statoPortaConsegna } from "@/lib/eventi/portaConsegna";
 
 export type ConsegnaDaFare = {
@@ -44,7 +44,14 @@ export function scadenzaConsegna(dataInizio: string, dataFine: string | null): s
   return new Date(fine + FINESTRA_MS).toISOString();
 }
 
-type RigaEvento = { id: string; titolo: string; data_inizio: string; data_fine: string | null; domanda_consegna: string | null };
+type RigaEvento = {
+  id: string;
+  titolo: string;
+  data_inizio: string;
+  data_fine: string | null;
+  diretta_chiusa_il: string | null;
+  domanda_consegna: string | null;
+};
 
 export async function getConsegneDaFare(supabase: SupabaseClient, userId: string): Promise<ConsegnaDaFare[]> {
   try {
@@ -53,7 +60,7 @@ export async function getConsegneDaFare(supabase: SupabaseClient, userId: string
     // parte dopo averli letti.
     const { data, error } = await supabase
       .from("iscrizioni_eventi")
-      .select("eventi(id, titolo, data_inizio, data_fine, domanda_consegna)")
+      .select("eventi(id, titolo, data_inizio, data_fine, diretta_chiusa_il, domanda_consegna)")
       .eq("student_id", userId)
       // Solo le dirette finite di recente: la finestra è di due giorni, il
       // margine copre una diretta lunga senza `data_fine`.
@@ -67,12 +74,12 @@ export async function getConsegneDaFare(supabase: SupabaseClient, userId: string
     const candidati = ((data ?? []) as { eventi: RigaEvento | RigaEvento[] | null }[])
       .map((r) => (Array.isArray(r.eventi) ? r.eventi[0] : r.eventi))
       .filter((e): e is RigaEvento => Boolean(e?.domanda_consegna))
-      .filter((e) => consegnaAperta(e.data_inizio, e.data_fine));
+      .filter((e) => consegnaAperta(e.data_inizio, fineEffettiva(e.data_inizio, e.data_fine, e.diretta_chiusa_il)));
 
     const aperte: ConsegnaDaFare[] = [];
     for (const e of candidati) {
       const porta = await statoPortaConsegna(supabase, { ...e, domanda_consegna: e.domanda_consegna }, userId);
-      if (porta.aperta) aperte.push({ eventoId: e.id, titolo: e.titolo, scadenza: scadenzaConsegna(e.data_inizio, e.data_fine) });
+      if (porta.aperta) aperte.push({ eventoId: e.id, titolo: e.titolo, scadenza: scadenzaConsegna(e.data_inizio, fineEffettiva(e.data_inizio, e.data_fine, e.diretta_chiusa_il)) });
     }
     // La più vicina a scadere per prima: è quella che si perde.
     return aperte.sort((a, b) => new Date(a.scadenza).getTime() - new Date(b.scadenza).getTime());

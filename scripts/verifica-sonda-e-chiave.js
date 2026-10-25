@@ -188,7 +188,9 @@ const pannello = senzaCommenti(leggi("components/live/PannelloLive.tsx"));
 ok(/<PlayerDiretta/.test(pannello), "la pagina della diretta usa il player dell'IFrame API");
 ok(!/<iframe/.test(pannello), "…e non più un iframe grezzo, che non diceva niente");
 ok(
-  /useHeartbeatDiretta\(eventoId, stato === "in_corso" && contaLaPresenza\)/.test(pannello),
+  // RIESAMINATA il 25/10 pomeriggio: lo stato dell'orologio si chiama
+  // `statoOrologio` (lo `stato` mostrato include la chiusura). Stessa proprietà.
+  /useHeartbeatDiretta\(eventoId, statoOrologio === "in_corso" && contaLaPresenza\)/.test(pannello),
   "l'heartbeat si ferma quando il video non si vede",
 );
 ok(/presenzaDaContare\(esitoPlayer\)/.test(pannello), "…e la regola la decide `presenzaDaContare`, non una condizione riscritta qui");

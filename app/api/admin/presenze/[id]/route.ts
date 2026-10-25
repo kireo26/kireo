@@ -10,10 +10,10 @@ import {
   INTESTAZIONE_ORE_RICONOSCIUTE,
   oreRiconosciutePerExport,
   istantePerExport,
-  minutiContatiPerExport,
-  minutiPerExport,
+  celleMisura,
   notaFinestra,
   notaMinuti,
+  notaPresenzaNonMisurata,
   statoDomandaPerExport,
 } from "@/lib/eventi/exportPresenze";
 import { descriviErrore } from "@/lib/erroreSupabase";
@@ -118,7 +118,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       ore_riconosciute?: number | string | null;
     }) =>
       perDocenti
-        ? [r.nome, r.cognome, r.email, minutiContatiPerExport(r), minutiPerExport(r), r.copertura_percento, esitoPresenzaPerExport(r, chiusa), oreRiconosciutePerExport(r, chiusa), r.attestato_emesso ? "Sì" : "No", r.attestato_codice]
+        ? [r.nome, r.cognome, r.email, ...celleMisura(r), esitoPresenzaPerExport(r, chiusa), oreRiconosciutePerExport(r, chiusa), r.attestato_emesso ? "Sì" : "No", r.attestato_codice]
         : [
             r.nome,
             r.cognome,
@@ -128,9 +128,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             r.classe_nome,
             istantePerExport(r.primo_ping),
             istantePerExport(r.ultimo_ping),
-            minutiContatiPerExport(r),
-            minutiPerExport(r),
-            r.copertura_percento,
+            ...celleMisura(r),
             esitoPresenzaPerExport(r, chiusa),
             oreRiconosciutePerExport(r, chiusa),
             certificataDaPerExport(r.certificata_da_tipo),
@@ -150,7 +148,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       righe: corpo,
       seNonCeNiente: "Nessuno si è collegato a questa diretta.",
       // La nota sulla finestra solo dove le due colonne degli orari ci sono.
-      nota: [notaMinuti(evento.data_fine, righe ?? []), perDocenti ? null : notaFinestra(evento.data_inizio, righe ?? [])],
+      nota: [notaMinuti(evento.data_fine, righe ?? []), perDocenti ? null : notaFinestra(evento.data_inizio, righe ?? []), notaPresenzaNonMisurata(righe ?? [])],
     },
     {
       titolo: "Domande ricevute (anonime)",

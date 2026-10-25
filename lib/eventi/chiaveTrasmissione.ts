@@ -16,7 +16,7 @@
 // ⚠️ I TESTI SONO DA RILEGGERE (voce). Questa è la stesura di servizio: la
 // sostanza dei tre momenti è di Mario, le parole sono mie.
 
-import { fineDiretta } from "@/lib/live";
+import { fineEffettiva } from "@/lib/live";
 import { formattaDataOra } from "@/lib/formato";
 
 export type StatoChiave = "non_preparata" | "pronta" | "mai_arrivata";
@@ -25,11 +25,12 @@ export function statoChiaveTrasmissione(opts: {
   haChiave: boolean;
   dataInizio: string;
   dataFine: string | null;
+  chiusaIl: string | null;
   ora?: Date;
 }): StatoChiave {
   if (opts.haChiave) return "pronta";
   const ora = opts.ora ?? new Date();
-  const fine = new Date(fineDiretta(opts.dataInizio, opts.dataFine)).getTime();
+  const fine = new Date(fineEffettiva(opts.dataInizio, opts.dataFine, opts.chiusaIl)).getTime();
   // La diretta è passata e la chiave non è mai arrivata: un fallimento
   // nostro, e dirlo è l'unica cosa che resta da fare. Senza questo ramo
   // l'ente leggerebbe per sempre «non è ancora stata preparata» su un evento

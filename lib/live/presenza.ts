@@ -121,8 +121,11 @@ export function testoContatore(contati: number, necessari: number, conta: boolea
     case "raggiunta":
       return "Hai raggiunto la soglia di presenza. Le ore vengono riconosciute quando l'organizzatore chiude la diretta.";
     case "fermo":
-      // Il terzo è di Mario (25/10 sera), parola per parola.
-      if (causa === "in_pausa") return "Il video è fermo, quindi la presenza non sta avanzando. Riprendi la riproduzione per farla ripartire.";
+      // Il terzo è di Mario (25/10 sera), e il 25/10 pomeriggio ha ripreso il
+      // numero: senza, lo togliamo proprio quando lo studente vuole sapere a che
+      // punto è. Parola per parola.
+      if (causa === "in_pausa")
+        return `Presente da ${minuti(contati)}. Il video è fermo, quindi la presenza non sta avanzando: riprendi la riproduzione per farla ripartire.`;
       return causa === "non_avviato"
         ? `Il conteggio è fermo a ${minuti(contati)}: la presenza comincia quando avvii il video.`
         : `Il conteggio è fermo a ${minuti(contati)}: finché il video non si vede, la presenza non avanza.`;

@@ -12,7 +12,7 @@
 // poi verrebbe rifiutato è peggio di un avviso prudente.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { consegnaAperta, statoDiretta } from "@/lib/live";
+import { consegnaAperta, fineEffettiva, statoDiretta } from "@/lib/live";
 
 export type MotivoPortaConsegna =
   | "aperta"
@@ -50,7 +50,7 @@ export function testoPorta(motivo: MotivoPortaConsegna): string {
 
 export async function statoPortaConsegna(
   supabase: SupabaseClient,
-  evento: { id: string; domanda_consegna: string | null; data_inizio: string; data_fine: string | null },
+  evento: { id: string; domanda_consegna: string | null; data_inizio: string; data_fine: string | null; diretta_chiusa_il: string | null },
   userId: string,
 ): Promise<PortaConsegna> {
   const porta = (motivo: MotivoPortaConsegna): PortaConsegna => ({ motivo, testo: TESTI[motivo], aperta: motivo === "aperta" });
@@ -59,8 +59,11 @@ export async function statoPortaConsegna(
 
   // La finestra: prima si distingue «non è ancora il momento» da «è passato»,
   // perché sono due attese opposte per chi legge.
-  if (!consegnaAperta(evento.data_inizio, evento.data_fine)) {
-    return porta(statoDiretta(evento.data_inizio, evento.data_fine) === "conclusa" ? "finestra_chiusa" : "diretta_non_finita");
+  // ⚠️ La fine EFFETTIVA (vedi `fineEffettiva`): chiusa in anticipo, la consegna
+  // si apre alla chiusura e le 48 ore partono da lì.
+  const fine = fineEffettiva(evento.data_inizio, evento.data_fine, evento.diretta_chiusa_il);
+  if (!consegnaAperta(evento.data_inizio, fine)) {
+    return porta(statoDiretta(evento.data_inizio, fine) === "conclusa" ? "finestra_chiusa" : "diretta_non_finita");
   }
 
   const [{ data: consegna, error: eCons }, { data: iscrizione, error: eIscr }, { data: presenza, error: ePres }, { data: aree, error: eAree }] =

@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { presenzaRilevabile, statoDiretta, testoAttesaDiretta } from "@/lib/live";
+import { usePathname, useRouter } from "next/navigation";
+import { fineEffettiva, presenzaRilevabile, statoDiretta, testoAttesaDiretta } from "@/lib/live";
 import { useHeartbeatDiretta } from "@/lib/useHeartbeatDiretta";
 import BoxDomandeLive, { type Domanda } from "./BoxDomandeLive";
 import { formattaDataOra } from "@/lib/formato";
@@ -51,6 +51,7 @@ export default function PannelloLive({
   titolo,
   dataInizio,
   dataFine,
+  chiusaIl,
   youtubeVideoId,
   domandeIniziali,
   hrefRitorno,
@@ -61,6 +62,8 @@ export default function PannelloLive({
   titolo: string;
   dataInizio: string;
   dataFine: string | null;
+  /** La chiusura letta dal server: una diretta chiusa è finita, anche prima della fine programmata. */
+  chiusaIl: string | null;
   youtubeVideoId: string | null;
   domandeIniziali: Domanda[];
   hrefRitorno: string;
@@ -74,7 +77,10 @@ export default function PannelloLive({
     return () => clearInterval(intervallo);
   }, []);
 
-  const stato = statoDiretta(dataInizio, dataFine, ora);
+  // ⚠️ LA FINE È QUELLA EFFETTIVA (25/10): una diretta chiusa alle 14:24 è
+  // finita alle 14:24, non alle 14:30 programmate. Vedi `fineEffettiva`.
+  const fine = fineEffettiva(dataInizio, dataFine, chiusaIl);
+  const statoOrologio = statoDiretta(dataInizio, fine, ora);
   // SE IL VIDEO NON SI VEDE, SI SMETTE DI CONTARE. Tenere qualcuno su una
   // pagina vuota e registrargli una presenza è un falso che scriviamo noi:
   // quei ping dicono «era qui a seguire», e da quei ping escono le ore PCTO.
@@ -87,7 +93,7 @@ export default function PannelloLive({
   // a una diretta di cinque minuti mai vista. La guardia vera resta lato DB
   // (`evento_in_diretta` dentro `ping_presenza_live`): questa è l'altra metà,
   // quella che non manda un ping che verrebbe comunque respinto.
-  const inDiretta = presenzaRilevabile(dataInizio, dataFine, ora);
+  const inDiretta = presenzaRilevabile(dataInizio, fine, ora);
   // ⚠️ E DAL 18/10 SERA, LA PRESENZA COMINCIA QUANDO IL VIDEO PARTE LA PRIMA
   // VOLTA: venti minuti di player nero contavano. La regola e il suo perché
   // stanno in `presenzaConta` (lib/live/presenza.ts).
@@ -153,13 +159,28 @@ export default function PannelloLive({
       .catch((e) => console.error("PannelloLive: ripiego del player non registrato", e));
   }, [eventoId]);
   const contaLaPresenza = presenzaConta({ inDiretta, videoRotto: !presenzaDaContare(esitoPlayer), avviato, finito: videoFinito, pausaLunga: inPausaLunga });
-  const battito = useHeartbeatDiretta(eventoId, stato === "in_corso" && contaLaPresenza);
+  const battito = useHeartbeatDiretta(eventoId, statoOrologio === "in_corso" && contaLaPresenza);
   // ⚠️ DAL 26/10 LA DIRETTA SI CHIUDE ANCHE PRIMA DELLA FINE: il server lo dice
   // respingendo il battito (`diretta_chiusa`), l'heartbeat smette da sé di
   // battere, e la pagina lo dice al posto del contatore. Lo sa SOLO da quel
   // battito — la pagina non legge la chiusura — quindi lo scopre entro un
   // minuto, non subito.
   const chiusaDaOrganizzatore = battito === "chiusa";
+  // ⚠️ UNA CHIUSURA CAMBIA TUTTA LA PAGINA, NON UNA FRASE (giro del 25/10): il
+  // pallino rosso «In diretta» due righe sopra «è stato chiuso», le istruzioni per
+  // una diretta che non c'è più, «Fai una domanda» aperto su un campo che verrà
+  // rifiutato, e il video che continuava (il player era indietro). Un cambiamento
+  // di stato che aggiorna una riga e lascia il resto è un annuncio. Quindi la
+  // chiusura porta la pagina nello stato «conclusa», tutta insieme: il player si
+  // smonta, e quello che resta è l'esito.
+  const chiusa = Boolean(chiusaIl) || chiusaDaOrganizzatore;
+  const stato = chiusa ? "conclusa" : statoOrologio;
+  // La consegna sta sotto il pannello e la decide il server: alla chiusura vista
+  // da qui si rilegge la pagina, così compare senza un ricaricamento.
+  const router = useRouter();
+  useEffect(() => {
+    if (chiusaDaOrganizzatore) router.refresh();
+  }, [chiusaDaOrganizzatore, router]);
   // Un battito riuscito su questa pagina: da quel momento la riga di
   // `presenze_live` esiste, e non vederla vuol dire non aver letto.
   const battitoRiuscito = useRef(false);
@@ -221,7 +242,7 @@ export default function PannelloLive({
   // vale `null`, e il testo degrada alla forma corta invece di inventare.
   const [testoChiusura, setTestoChiusura] = useState<string | null>(null);
   useEffect(() => {
-    if (!chiusaDaOrganizzatore) return;
+    if (!chiusa) return;
     let vivo = true;
     (async () => {
       const supabase = createClient();
@@ -247,7 +268,7 @@ export default function PannelloLive({
     return () => {
       vivo = false;
     };
-  }, [chiusaDaOrganizzatore, eventoId, userId, pubblico]);
+  }, [chiusa, eventoId, userId, pubblico]);
 
   // IL RIENTRO: quando la pagina torna in primo piano, si dice cosa si è perso
   // — solo se in quel momento la presenza si stava contando, e solo sopra il
@@ -261,7 +282,7 @@ export default function PannelloLive({
   const [rientro, setRientro] = useState<string | null>(null);
   useEffect(() => {
     let uscita: { t: number; contava: boolean } | null = null;
-    const fine = dataFine ? new Date(dataFine).getTime() : null;
+    const fineMs = new Date(fine).getTime();
     function cambio() {
       if (document.visibilityState === "hidden") {
         uscita = { t: Date.now(), contava: contaRef.current };
@@ -272,14 +293,14 @@ export default function PannelloLive({
       uscita = null;
       if (!contava) return;
       const adesso = Date.now();
-      const finita = fine !== null && adesso >= fine;
-      const persi = (finita && fine !== null ? fine : adesso) - t;
+      const finita = adesso >= fineMs;
+      const persi = (finita ? fineMs : adesso) - t;
       if (persi < MS_MINIMO_ASSENZA) return;
       setRientro(testoRientro({ minutiFuori: Math.floor(persi / 60000), direttaFinita: finita, riprende: !finita && contaRef.current && inRiproduzioneRef.current }));
     }
     document.addEventListener("visibilitychange", cambio);
     return () => document.removeEventListener("visibilitychange", cambio);
-  }, [dataFine]);
+  }, [fine]);
   // L'avviso se ne va dopo qualche minuto di conteggio ripreso: vedi
   // `MS_DURATA_AVVISO_RIENTRO`. Mentre il conteggio è fermo resta.
   useEffect(() => {
@@ -359,7 +380,14 @@ export default function PannelloLive({
     return (
       <div className="rounded-2xl border border-white/5 bg-kireo-card p-8 text-center">
         <p className="font-heading text-lg font-semibold text-kireo-light">La diretta è terminata</p>
-        <p className="mt-2 text-sm text-kireo-muted">Grazie per aver partecipato.</p>
+        {/* Chiusa dall'organizzatore: si dice com'è andata (`testoChiusuraStudente`),
+            anche a chi apre la pagina il giorno dopo. Finita senza chiusura: le
+            presenze non sono ancora contate, e non si inventa un esito. */}
+        <p className="mt-2 text-sm text-kireo-muted" aria-live="polite">
+          {chiusa
+            ? (testoChiusura ?? testoChiusuraStudente({ durata: null, stato: null, ore: null, contati: null, pubblico }))
+            : "Grazie per aver partecipato."}
+        </p>
         {rientro && <p className="mt-2 text-sm text-kireo-orange">{rientro}</p>}
         <Link href={hrefRitorno} className="mt-4 inline-block text-sm text-kireo-orange underline underline-offset-2">
           ← Torna indietro
@@ -408,11 +436,6 @@ export default function PannelloLive({
             >
               {ETICHETTA_RIFAI_ACCESSO}
             </Link>
-          </p>
-        )}
-        {chiusaDaOrganizzatore && (
-          <p className="mt-1 text-sm text-kireo-light/90" aria-live="polite">
-            {testoChiusura ?? testoChiusuraStudente({ durata: null, stato: null, ore: null, contati: null, pubblico })}
           </p>
         )}
         {!sessionePersa && battito === "rifiutato" && (
@@ -492,7 +515,7 @@ export default function PannelloLive({
         userId={userId}
         domandeIniziali={domandeIniziali}
         dataInizio={dataInizio}
-        dataFine={dataFine}
+        dataFine={fine}
         hrefRitorno={hrefRitorno}
         pubblico={pubblico}
       />

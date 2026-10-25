@@ -218,10 +218,12 @@ console.log("\n§5 — l'ora non si legge nel render\n");
   // indebolisce a ogni occorrenza legittima aggiunta — quindi accanto c'è la
   // proprietà che non si indebolisce, sulla fetta del JSX.
   try {
-    ancora(src, "new Date()", { volte: 3, dove: "lo stato iniziale, la freschezza e l'orologio" });
-    ok(true, "`new Date()` compare tre volte sole: lo stato iniziale, la freschezza, l'orologio");
+    // 25/10 pomeriggio: la quarta è l'istante di una chiusura appena premuta
+    // (`chiusaAdesso`), dentro il gestore del bottone — non nel render.
+    ancora(src, "new Date()", { volte: 4, dove: "lo stato iniziale, la freschezza, l'orologio e la chiusura appena premuta" });
+    ok(true, "`new Date()` compare quattro volte sole: lo stato iniziale, la freschezza, l'orologio, la chiusura appena premuta");
   } catch (e) {
-    ok(false, "`new Date()` compare tre volte sole: lo stato iniziale, la freschezza, l'orologio", e.message);
+    ok(false, "`new Date()` compare quattro volte sole: lo stato iniziale, la freschezza, l'orologio, la chiusura appena premuta", e.message);
   }
   // ⚠️ L'ÀNCORA NON È `return (`: con due spazi davanti fa match anche sui
   // `return (` annidati dentro una `.map` (quattro occorrenze), e con `quale`

@@ -3,7 +3,7 @@ import IscrivitiWebinarButton from "./IscrivitiWebinarButton";
 import EntraDirettaLink from "@/components/EntraDirettaLink";
 import type { WebinarDocente } from "@/lib/docente/eventi";
 import { formattaDataOra } from "@/lib/formato";
-import { faseIscrizione } from "@/lib/live";
+import { faseIscrizione, fineEffettiva } from "@/lib/live";
 
 export default function CardWebinarDocente({
   webinar,
@@ -20,7 +20,9 @@ export default function CardWebinarDocente({
   // per chi non è iscritto, a webinar finito niente — fino al 18/10 qui
   // «Iscriviti» compariva anche su un webinar finito, e «Iscritto ✓» lasciava
   // disdire un'iscrizione a un incontro già tenuto.
-  const fase = faseIscrizione(webinar.data_inizio, webinar.data_fine);
+  // La fine EFFETTIVA: un webinar chiuso in anticipo non offre più «Entra».
+  const fine = fineEffettiva(webinar.data_inizio, webinar.data_fine, webinar.diretta_chiusa_il);
+  const fase = faseIscrizione(webinar.data_inizio, fine);
   const hrefDiretta = `/docente/webinar/${webinar.id}/live`;
 
   return (
@@ -46,7 +48,7 @@ export default function CardWebinarDocente({
           <EntraDirettaLink
             href={hrefDiretta}
             dataInizio={webinar.data_inizio}
-            dataFine={webinar.data_fine}
+            dataFine={fine}
             youtubeVideoId={webinar.youtube_video_id}
             iscritto={Boolean(stato)}
           />

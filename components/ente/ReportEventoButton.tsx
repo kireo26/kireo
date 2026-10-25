@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { generaCsvSezioni } from "@/lib/csv";
-import { sezioniReportEnte } from "@/lib/eventi/exportPresenze";
+import { type EventoReport, sezioniReportEnte } from "@/lib/eventi/exportPresenze";
 
 // Report aggregato per l'organizzatore: MAI un nome, MAI un id. Le due RPC
 // (report_evento_aggregato/report_evento_distribuzione) fanno già tutto il
@@ -12,14 +12,11 @@ import { sezioniReportEnte } from "@/lib/eventi/exportPresenze";
 // transita mai, quindi nessun bisogno di una route server dedicata).
 export default function ReportEventoButton({
   eventoId,
-  titolo,
-  dataInizio,
-  dataFine,
+  evento,
 }: {
   eventoId: string;
-  titolo: string;
-  dataInizio: string | null;
-  dataFine: string | null;
+  /** L'evento con la sua chiusura: la testa del report dice la durata vera. */
+  evento: EventoReport;
 }) {
   const [caricamento, setCaricamento] = useState(false);
   const [errore, setErrore] = useState<string | null>(null);
@@ -42,7 +39,7 @@ export default function ReportEventoButton({
       const riga = Array.isArray(aggregato) ? aggregato[0] : aggregato;
 
       const csv = generaCsvSezioni(
-        sezioniReportEnte({ titolo, data_inizio: dataInizio, data_fine: dataFine }, riga, distribuzione ?? []),
+        sezioniReportEnte(evento, riga, distribuzione ?? []),
       );
       const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
       const url = URL.createObjectURL(blob);

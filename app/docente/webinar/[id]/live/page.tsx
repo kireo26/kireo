@@ -16,7 +16,7 @@ export default async function WebinarLivePage({ params }: { params: Promise<{ id
 
   const { data: evento } = await supabase
     .from("eventi")
-    .select("id, titolo, data_inizio, data_fine, youtube_video_id, pubblico")
+    .select("id, titolo, data_inizio, data_fine, diretta_chiusa_il, youtube_video_id, pubblico")
     .eq("id", id)
     .maybeSingle();
 
@@ -56,6 +56,7 @@ export default async function WebinarLivePage({ params }: { params: Promise<{ id
         titolo={evento.titolo}
         dataInizio={evento.data_inizio}
         dataFine={evento.data_fine}
+        chiusaIl={evento.diretta_chiusa_il}
         youtubeVideoId={evento.youtube_video_id}
         domandeIniziali={domande ?? []}
         hrefRitorno="/docente/webinar"

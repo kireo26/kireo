@@ -10,10 +10,10 @@ import {
   INTESTAZIONE_ORE_RICONOSCIUTE,
   oreRiconosciutePerExport,
   istantePerExport,
-  minutiContatiPerExport,
-  minutiPerExport,
+  celleMisura,
   notaFinestra,
   notaMinuti,
+  notaPresenzaNonMisurata,
 } from "@/lib/eventi/exportPresenze";
 import { descriviErrore } from "@/lib/erroreSupabase";
 import { rifiutoExport } from "@/lib/eventi/rifiutoExport";
@@ -106,9 +106,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     r.classe_nome,
     istantePerExport(r.primo_ping),
     istantePerExport(r.ultimo_ping),
-    minutiContatiPerExport(r),
-    minutiPerExport(r),
-    r.copertura_percento,
+    ...celleMisura(r),
     esitoPresenzaPerExport(r, Boolean(evento.diretta_chiusa_il)),
     oreRiconosciutePerExport(r, Boolean(evento.diretta_chiusa_il)),
     certificataDaPerExport(r.certificata_da_tipo),
@@ -128,7 +126,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         intestazioni,
         righe: corpo,
         seNonCeNiente: "Nessuno studente della tua scuola risulta iscritto a questo incontro.",
-        nota: [notaMinuti(evento.data_fine, elenco), notaFinestra(evento.data_inizio, elenco)],
+        nota: [notaMinuti(evento.data_fine, elenco), notaFinestra(evento.data_inizio, elenco), notaPresenzaNonMisurata(elenco)],
       },
     ]);
   } catch (e) {

@@ -125,7 +125,7 @@ async function main() {
     ok(entroLaTolleranza >= 1, "una pausa breve conta ancora (la regola del 18/10, per il buffering)", `battiti nei primi 90s di pausa: ${entroLaTolleranza}`);
 
     const testo = await page.innerText("#radice");
-    ok(testo.includes("Il video è fermo, quindi la presenza non sta avanzando. Riprendi la riproduzione per farla ripartire."), "lo studente legge perché il conteggio è fermo");
+    ok(testo.includes("Il video è fermo, quindi la presenza non sta avanzando: riprendi la riproduzione per farla ripartire.") && /Presente da \d+ minut/.test(testo), "lo studente legge perché il conteggio è fermo, e A CHE PUNTO è (il numero non sparisce)");
 
     const fermi = quanti();
     await page.evaluate(() => window.__stato(1));

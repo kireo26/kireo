@@ -176,8 +176,8 @@ console.log("\n§4ter · la scuola sa PRIMA di certificare che le ore non ci sar
 
 console.log("\n§5 · il CSV dice le ore");
 {
-  ok(E.oreRiconosciutePerExport({ stato_finale: "partecipato", ore_riconosciute: 0.47 }, true) === "0,47", "certificato: le ore emesse, con la virgola");
-  ok(E.oreRiconosciutePerExport({ stato_finale: "iscritto", ore_riconosciute: null }, true) === "0", "non certificato su una diretta chiusa: zero, che è un fatto");
+  ok(E.oreRiconosciutePerExport({ stato_finale: "partecipato", ore_riconosciute: 0.47 }, true) === "0.47", "certificato: le ore emesse, col punto come gli altri decimali del file (25/10 pomeriggio)");
+  ok(E.oreRiconosciutePerExport({ stato_finale: "iscritto", ore_riconosciute: null }, true) === "0.00", "non certificato su una diretta chiusa: zero, che è un fatto — a due cifre");
   ok(E.oreRiconosciutePerExport({ stato_finale: "iscritto", ore_riconosciute: null }, false) === "", "diretta non ancora chiusa: vuoto, perché non è ancora deciso");
   for (const r of ["app/api/admin/presenze/[id]/route.ts", "app/api/scuola/presenze/[id]/route.ts"]) {
     const s = senzaCommenti(leggi(r));

@@ -125,7 +125,8 @@ ok(
   "…e `contaLaPresenza` richiede `inDiretta` (cioè `presenzaRilevabile`), il video non rotto, partito almeno una volta, non finito e non fermo oltre la tolleranza",
 );
 ok(
-  /inDiretta\s*=\s*presenzaRilevabile\(dataInizio,\s*dataFine,\s*ora\)/.test(pannello),
+  // RIESAMINATA il 25/10 pomeriggio: la fine è quella effettiva (`fine`).
+  /inDiretta\s*=\s*presenzaRilevabile\(dataInizio,\s*fine,\s*ora\)/.test(pannello),
   "…che riceve l'ora ricalcolata ogni 30s, non `new Date()` dentro il render",
 );
 // LA METÀ CHE SI DIMENTICA: che `statoDiretta` da solo non basti più. Senza

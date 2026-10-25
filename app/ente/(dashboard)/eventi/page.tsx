@@ -169,6 +169,7 @@ export default async function EnteEventiPage({ searchParams }: { searchParams: P
                           haChiave: chiavi.has(e.id),
                           dataInizio: e.data_inizio,
                           dataFine: e.data_fine,
+                          chiusaIl: e.diretta_chiusa_il,
                         })}
                         chiave={chiavi.get(e.id)?.chiave ?? null}
                         aggiornataIl={chiavi.get(e.id)?.aggiornata_il ?? null}
@@ -197,7 +198,7 @@ export default async function EnteEventiPage({ searchParams }: { searchParams: P
                           youtubeVideoId={e.youtube_video_id}
                         />
                         <div className="mt-3">
-                          <ReportEventoButton eventoId={e.id} titolo={e.titolo} dataInizio={e.data_inizio} dataFine={e.data_fine} />
+                          <ReportEventoButton eventoId={e.id} evento={e} />
                         </div>
                       </>
                     )}

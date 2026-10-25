@@ -265,7 +265,23 @@ console.log("\n§1c — «non calcolabile» e non una cella vuota; la media oltr
 
 // 26/10: exportPresenze importa anche orePcto (le ore riconosciute nel CSV).
 const orePcto = caricaModulo("lib/eventi/orePcto.ts", daFormato);
-const exportP = caricaModulo("lib/eventi/exportPresenze.ts", (n) => (n === "@/lib/eventi/orePcto" ? orePcto : daFormato(n)));
+// Dal 25/10 pomeriggio l'export legge anche la fine effettiva, la soglia e il
+// minimo di certificazione: tre moduli in più, caricati qui come gli altri.
+const live = caricaModulo("lib/live.ts", (n) => (n === "./formato" ? formato : daFormato(n)));
+const presenzaMod = caricaModulo("lib/live/presenza.ts", (n) =>
+  n === "@/lib/live" ? live : n === "@/lib/eventi/chiusuraDiretta" ? chiusura : daFormato(n),
+);
+const exportP = caricaModulo("lib/eventi/exportPresenze.ts", (n) =>
+  n === "@/lib/eventi/orePcto"
+    ? orePcto
+    : n === "@/lib/live"
+      ? live
+      : n === "@/lib/live/presenza"
+        ? presenzaMod
+        : n === "@/lib/eventi/chiusuraDiretta"
+          ? chiusura
+          : daFormato(n),
+);
 ok(
   exportP.minutiPerExport({ minuti_presenza: null, primo_ping: "2026-10-04T17:00:00Z" }) === "non calcolabile",
   "collegato, ma l'incontro non ha una fine → «non calcolabile», non vuoto",
@@ -347,7 +363,7 @@ for (const rel of ["app/api/admin/presenze/[id]/route.ts", "app/api/scuola/prese
 }
 for (const rel of ["app/api/admin/presenze/[id]/route.ts", "app/api/scuola/presenze/[id]/route.ts"]) {
   const r = senzaCommenti(readFileSync(join(RADICE, rel), "utf8"));
-  ok(r.includes("minutiPerExport(r)") && r.includes("nota: [notaMinuti(evento.data_fine,"), `${rel}: minuti e nota dallo stesso modulo`);
+  ok(r.includes("...celleMisura(r)") && r.includes("nota: [notaMinuti(evento.data_fine,"), `${rel}: minuti e nota dallo stesso modulo`);
   ok(/notaFinestra\(evento\.data_inizio,/.test(r) && /select\("titolo, [^"]*data_inizio/.test(r), `${rel}: la nota sulla finestra, con l'inizio davvero letto`);
 }
 {

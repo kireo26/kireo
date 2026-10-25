@@ -3,10 +3,15 @@ import { createClient } from "@/lib/supabase/server";
 import { generaAttestatoPdf } from "@/lib/pdf/attestato";
 import { getFiloneBySlug } from "@/data/filoniDocenti";
 import { formattaData } from "@/lib/formato";
+import { fineEffettiva } from "@/lib/live";
 
-function formattaDurata(dataInizio: string, dataFine: string | null): string | null {
-  if (!dataFine) return null;
-  const minuti = Math.round((new Date(dataFine).getTime() - new Date(dataInizio).getTime()) / 60000);
+// ⚠️ La durata stampata su un attestato è quella VERA (25/10): un webinar
+// chiuso dopo 24 minuti non si attesta come durato 30. È un documento che una
+// persona conserva, e lì la fine programmata è un numero falso.
+function formattaDurata(dataInizio: string, dataFine: string | null, chiusaIl: string | null): string | null {
+  if (!dataFine && !chiusaIl) return null;
+  const fine = fineEffettiva(dataInizio, dataFine, chiusaIl);
+  const minuti = Math.round((new Date(fine).getTime() - new Date(dataInizio).getTime()) / 60000);
   if (minuti <= 0) return null;
   const ore = Math.floor(minuti / 60);
   const resto = minuti % 60;
@@ -32,7 +37,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const { data: attestato } = await supabase
     .from("attestati")
     .select(
-      "id, rilasciato_il, codice_verifica, profiles!user_id(nome, cognome), eventi(titolo, data_inizio, data_fine, filone, organizzatore_id, istituzioni(nome))",
+      "id, rilasciato_il, codice_verifica, profiles!user_id(nome, cognome), eventi(titolo, data_inizio, data_fine, diretta_chiusa_il, filone, organizzatore_id, istituzioni(nome))",
     )
     .eq("id", id)
     .maybeSingle();
@@ -56,7 +61,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     titoloWebinar: evento.titolo,
     filoneLabel,
     dataEventoLabel: formattaData(evento.data_inizio, "long"),
-    durataLabel: formattaDurata(evento.data_inizio, evento.data_fine),
+    durataLabel: formattaDurata(evento.data_inizio, evento.data_fine, evento.diretta_chiusa_il),
     organizzatoreNome: organizzatore?.nome ?? "KIREO",
     codiceVerifica: attestato.codice_verifica,
     rilasciatoIlLabel: formattaData(attestato.rilasciato_il, "long"),

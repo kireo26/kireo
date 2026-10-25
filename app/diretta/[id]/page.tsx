@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { fineEffettiva } from "@/lib/live";
 import { getContestoModerazione } from "@/lib/eventi/moderazione";
 import ControlloDirettaEvento from "@/components/ente/ControlloDirettaEvento";
 import ReportEventoButton from "@/components/ente/ReportEventoButton";
@@ -52,7 +53,11 @@ export default async function ModerazioneDirettaPage({ params }: { params: Promi
         <h1 className="py-0.5 font-heading text-2xl font-semibold leading-[1.25] text-kireo-light">{evento.titolo}</h1>
         <p className="mt-2 text-sm text-kireo-muted">
           {evento.organizzatore ?? "KIREO"} · {perDocenti ? "Docenti" : "Studenti"} · {formattaDataOra(evento.data_inizio, "long")}
-          {evento.data_fine && ` → ${formattaDataOra(evento.data_fine, "short")}`}
+          {/* La fine EFFETTIVA (25/10): chiusa alle 14:24, l'intestazione non dice 14:30. */}
+          {(evento.data_fine || evento.diretta_chiusa_il) &&
+            ` → ${formattaDataOra(fineEffettiva(evento.data_inizio, evento.data_fine, evento.diretta_chiusa_il), "short")}`}
+          {evento.diretta_chiusa_il && evento.data_fine && new Date(evento.diretta_chiusa_il) < new Date(evento.data_fine) &&
+            ` · chiusa in anticipo (prevista fino a ${formattaDataOra(evento.data_fine, "short")})`}
         </p>
         {perDocenti && (
           <p className="mt-1 text-sm text-kireo-muted">Filone: {getFiloneBySlug(evento.filone ?? null)?.nome ?? "—"}</p>
@@ -117,7 +122,7 @@ export default async function ModerazioneDirettaPage({ params }: { params: Promi
             Esporta presenze, domande e risposte (CSV)
           </a>
         ) : (
-          <ReportEventoButton eventoId={evento.id} titolo={evento.titolo} dataInizio={evento.data_inizio} dataFine={evento.data_fine} />
+          <ReportEventoButton eventoId={evento.id} evento={evento} />
         )}
       </section>
     </main>
