@@ -115,12 +115,17 @@ export default function PlayerDiretta({
           // a una frase mai guardata. Un ente che configura le schermate finali
           // sul proprio canale le vedrà comparire: dipende da lui, non da qui.
           // ⚠️ LE DUE USCITE D'ANGOLO (logo in basso a destra, canale e avatar in
-          // alto a sinistra) NON SI TOLGONO, e non è una dimenticanza: nessun
-          // parametro le toglie (`showinfo` è ritirato dal 2018, `modestbranding`
-          // non ha più effetto — quest'ultimo dalla documentazione, non misurato),
-          // `controls: 0` toglierebbe anche schermo intero e volume, che servono,
-          // e coprirle con un nostro strato è contro le regole di YouTube per i
-          // player incorporati (non si nascondono né si bloccano i suoi elementi).
+          // alto a sinistra) NON SI TOLGONO. Tre ragioni, e sono di tre tipi:
+          //  - un parametro ritirato: `showinfo`, dal 2018. (`modestbranding`
+          //    resta NON MISURATO: la documentazione dice che non ha più effetto,
+          //    noi non l'abbiamo provato);
+          //  - un parametro che costa più di quanto risolve: `controls: 0`
+          //    toglierebbe anche schermo intero e volume;
+          //  - ⚠️ UN DIVIETO, ed è quello che chiude la questione: coprirle con
+          //    un nostro strato è contro le regole di YouTube per i player
+          //    incorporati. Non «non ci siamo riusciti»: non è permesso. È un
+          //    VINCOLO, non un punto aperto — e un vincolo non si ritenta ogni
+          //    sei mesi.
           // La cura è dirlo: `AVVISO_PLAYER` sopra il player le nomina.
           playerVars: { rel: 0 },
           events: {

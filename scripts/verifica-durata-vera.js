@@ -168,7 +168,12 @@ console.log("\n§4quater · lo storico dice com'è andata, al passato (26/10)");
   ok(/presenza riconosciuta/.test(t({ stato: "partecipato", ore: 0, contati: 18 })), "certificato senza ore: non promette ore");
   ok(/non dipende da te/.test(t({ durata: 16, contati: 16 })), "incontro sotto i 20 minuti: non dipende da te");
   ok(t({ finito: false }) === null, "un incontro non ancora finito non ha esito");
-  ok(/non l'ha ancora chiuso/.test(t({ chiuso: false }) ?? ""), "finito e non chiuso: lo dice invece di tacere (le ore sospese)");
+  const nonChiuso = t({ chiuso: false }) ?? "";
+  ok(nonChiuso === "L'incontro è finito ma non è ancora stato chiuso da chi l'ha organizzato: le ore non sono ancora state riconosciute.", "finito e non chiuso: il testo di Mario, che dice chi deve muoversi", nonChiuso);
+  // L'idea sbagliata, non la frase: le presenze SONO contate (i minuti ci
+  // sono), manca il riconoscimento. Vietata in tutte le sue forme, come nel
+  // report dell'ente.
+  ok(!/presenze non sono (ancora )?(state )?contate/.test(nonChiuso), "…e non dice che le presenze non sono contate");
   ok(t({ contati: null }) === null, "senza i minuti letti, nessun numero");
   ok(t({ durata: 40, contati: 35 }) === "Hai seguito 35 minuti.", "sopra la soglia e non certificato: non dice «ne servivano»");
   ok(t({ diretta: false, stato: "partecipato" }) === "Presenza certificata.", "un incontro in presenza certificato dalla scuola");

@@ -381,7 +381,8 @@ export default function PannelloLive({
         <p className="font-heading text-lg font-semibold text-kireo-light">La diretta è terminata</p>
         {/* Chiusa dall'organizzatore: si dice com'è andata (`testoChiusuraStudente`),
             anche a chi apre la pagina il giorno dopo. Finita senza chiusura: le
-            presenze non sono ancora contate, e non si inventa un esito. */}
+            minuti sono contati ma le ore non sono ancora riconosciute (manca il
+            gesto di chiusura), e non si inventa un esito. */}
         <p className="mt-2 text-sm text-kireo-muted" aria-live="polite">
           {chiusa
             ? (testoChiusura ?? testoChiusuraStudente({ durata: null, stato: null, ore: null, contati: null, pubblico }))

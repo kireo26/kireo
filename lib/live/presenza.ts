@@ -313,7 +313,8 @@ export function testoChiusuraStudente(e: EsitoChiusuraStudente): string {
 // provvisorie. Tre casi in più rispetto alla chiusura, perché lo storico vede
 // anche quello che la chiusura non vede:
 //  - l'incontro non è ancora finito → niente (non c'è un esito da dire);
-//  - è finito e chi l'ha organizzato NON l'ha chiuso → lo si dice. È il caso
+//  - è finito e chi l'ha organizzato NON l'ha chiuso → lo si dice (le ore non
+//    sono riconosciute — le presenze invece SONO contate). È il caso
 //    delle «ore sospese» (punto aperto): non lo si cura qui, ma non lo si lascia
 //    scoprire tacendo, perché uno storico muto su un incontro finito si legge
 //    come «non è successo niente»;
@@ -332,7 +333,15 @@ export function testoEsitoStorico(e: EsitoStorico): string | null {
   if (!e.diretta) return e.stato === "partecipato" ? "Presenza certificata." : null;
   if (!e.finito) return null;
   if (!e.chiuso) {
-    return "L'incontro è finito e chi l'ha organizzato non l'ha ancora chiuso: le presenze non sono ancora state contate.";
+    // ⚠️ L'IDEA SBAGLIATA, NON SOLO LA FRASE (Mario, 26/10). Avevo scritto «le
+    // presenze non sono ancora state contate»: è la frase che la mattina stessa
+    // era stata tolta dalla testa del report dell'ente, ricostruita qui da zero
+    // — non copiata — perché sotto c'era ancora l'idea sbagliata. Le presenze
+    // SONO contate: i battiti ci sono, i minuti esistono, il CSV li contiene.
+    // Quello che manca è il RICONOSCIMENTO, e manca per un gesto di qualcuno.
+    // Detto così lo studente non pensa a un ritardo del sistema: sa chi deve
+    // muoversi. Testo di Mario, parola per parola.
+    return "L'incontro è finito ma non è ancora stato chiuso da chi l'ha organizzato: le ore non sono ancora state riconosciute.";
   }
   const c = classificaEsito(e);
   switch (c.tipo) {
