@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/Button";
 import { istanteDaOrarioItaliano, orarioItalianoDaIstante } from "@/lib/formato";
 import { messaggioSpostaFinestra } from "@/lib/eventi/spostaFinestra";
+import { avvisoDurataDiretta, ETICHETTA_CONFERMA_DURATA } from "@/lib/eventi/durataDiretta";
 
 // SPOSTARE LA FINESTRA DI UNA DIRETTA, dal prodotto (18/10). Quella sera la
 // finestra è stata spostata due volte in SQL perché non esisteva nessun'altra
@@ -29,6 +30,12 @@ export default function SpostaFinestraForm({
   const [inizio, setInizio] = useState(() => orarioItalianoDaIstante(dataInizio));
   const [fine, setFine] = useState(() => (dataFine ? orarioItalianoDaIstante(dataFine) : ""));
   const [salvataggio, setSalvataggio] = useState(false);
+  const [confermaDurata, setConfermaDurata] = useState(false);
+  // Una diretta lunga si fa confermare anche qui: è da qui che il 26/10 è
+  // uscita quella di diciotto ore (vedi `lib/eventi/durataDiretta.ts`).
+  const isoI = istanteDaOrarioItaliano(inizio);
+  const isoF = istanteDaOrarioItaliano(fine);
+  const avvisoDurata = isoI && isoF ? avvisoDurataDiretta(new Date(isoI).getTime(), new Date(isoF).getTime()) : null;
   const [messaggio, setMessaggio] = useState<{ ok: boolean; testo: string } | null>(null);
 
   async function salva(e: React.FormEvent) {
@@ -42,6 +49,10 @@ export default function SpostaFinestraForm({
     }
     if (new Date(isoFine).getTime() <= new Date(isoInizio).getTime()) {
       setMessaggio({ ok: false, testo: messaggioSpostaFinestra("fine_prima_di_inizio") });
+      return;
+    }
+    if (avvisoDurata && !confermaDurata) {
+      setMessaggio({ ok: false, testo: avvisoDurata });
       return;
     }
     setSalvataggio(true);
@@ -85,7 +96,7 @@ export default function SpostaFinestraForm({
           <input
             type="datetime-local"
             value={inizio}
-            onChange={(e) => setInizio(e.target.value)}
+            onChange={(e) => { setInizio(e.target.value); setConfermaDurata(false); }}
             className="mt-1 block rounded-lg border border-white/10 bg-kireo-dark px-3 py-2 text-sm text-kireo-light"
           />
         </label>
@@ -94,11 +105,19 @@ export default function SpostaFinestraForm({
           <input
             type="datetime-local"
             value={fine}
-            onChange={(e) => setFine(e.target.value)}
+            onChange={(e) => { setFine(e.target.value); setConfermaDurata(false); }}
             className="mt-1 block rounded-lg border border-white/10 bg-kireo-dark px-3 py-2 text-sm text-kireo-light"
           />
         </label>
       </div>
+      {avvisoDurata && (
+        <label className="flex items-start gap-2 text-xs text-kireo-light">
+          <input type="checkbox" checked={confermaDurata} onChange={(e) => setConfermaDurata(e.target.checked)} className="mt-0.5" />
+          <span>
+            {avvisoDurata} {ETICHETTA_CONFERMA_DURATA}
+          </span>
+        </label>
+      )}
       <div className="flex items-center gap-4">
         <Button type="submit" variant="outline" disabled={salvataggio}>
           {salvataggio ? "Salvataggio…" : "Salva il nuovo orario"}

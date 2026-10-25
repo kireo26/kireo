@@ -197,6 +197,24 @@ console.log("\n§4quater · lo storico dice com'è andata, al passato (26/10)");
   ok(!/\{voce\.oreCertificate\}h/.test(leggi("app/app/attivita/page.tsx")), "le ore dello storico non escono grezze (col punto)");
 }
 
+console.log("\n§4quinquies · una diretta di diciotto ore non passa in silenzio (26/10)");
+{
+  const D = carica("lib/eventi/durataDiretta.ts");
+  const h = (n) => n * 3_600_000;
+  ok(D.avvisoDurataDiretta(0, h(18)) !== null && /18 ore/.test(D.avvisoDurataDiretta(0, h(18))), "diciotto ore: si fa confermare, e il numero è in ore", D.avvisoDurataDiretta(0, h(18)));
+  ok(D.avvisoDurataDiretta(0, h(1)) === null && D.avvisoDurataDiretta(0, h(D.ORE_DIRETTA_DA_CONFERMARE)) === null, "un'ora, e la soglia stessa: niente");
+  ok(D.avvisoDurataDiretta(null, h(18)) === null && D.avvisoDurataDiretta(NaN, h(18)) === null, "senza le due date, niente");
+  for (const f of ["components/ente/CreaEventoForm.tsx", "components/ente/SpostaFinestraForm.tsx"]) {
+    const src = senzaCommenti(leggi(f));
+    ok(/avvisoDurataDiretta\(/.test(src) && /!confermaDurata/.test(src) && /setConfermaDurata\(false\)/.test(src), `${f}: chiede la conferma, la blocca senza, e la azzera se cambiano le date`);
+  }
+  ok(/next\.dataFine = avvisoDurata/.test(senzaCommenti(leggi("components/ente/CreaEventoForm.tsx"))), "nel form di creazione il no sta sul campo della fine");
+  // Il numero dei minuti necessari in ore, sopra l'ora.
+  ok(P.neServono(15, "presente") === "ne servono 15" && P.neServono(1, "presente") === "ne serve 1", "sotto l'ora la forma di Mario resta");
+  ok(P.neServono(1103, "presente") === "ne servono 18 ore e 23 minuti", "1103 si scrive in ore", P.neServono(1103, "presente"));
+  ok(P.neServono(60, "passato") === "ne serviva 1 ora", "un'ora al singolare, anche il verbo");
+}
+
 console.log("\n§4ter · la certificazione della scuola non ha tetto né minimo, e la scuola non legge un avviso che lo dice");
 {
   // Decisione di Mario, 25/10: il tetto della durata vera e il minimo dei 20

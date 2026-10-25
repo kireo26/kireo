@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import AreeInteresseGrid from "@/components/app/AreeInteresseGrid";
 import { FILONI_DOCENTI } from "@/data/filoniDocenti";
 import { estraiIdYoutube, TESTO_LINK_NON_RICONOSCIUTO } from "@/lib/youtube";
+import { avvisoDurataDiretta, ETICHETTA_CONFERMA_DURATA } from "@/lib/eventi/durataDiretta";
 import { messaggioErroreEvento } from "@/lib/ente/erroreEvento";
 import { istanteDaOrarioItaliano, millisecondiDaOrarioItaliano } from "@/lib/formato";
 import { eventoCominciato } from "@/lib/live";
@@ -76,6 +77,7 @@ export default function CreaEventoForm({
   const [tipo, setTipo] = useState("webinar");
   const [dataInizio, setDataInizio] = useState("");
   const [dataFine, setDataFine] = useState("");
+  const [confermaDurata, setConfermaDurata] = useState(false);
   const [sede, setSede] = useState("");
   const [link, setLink] = useState("");
   const [posti, setPosti] = useState("");
@@ -162,6 +164,8 @@ export default function CreaEventoForm({
     }
     if (eDiretta) {
       if (!dataFine) next.dataFine = "Per un webinar in diretta la data e ora di fine sono obbligatorie (servono a calcolare le presenze).";
+      // Una diretta lunga si fa confermare (vedi `lib/eventi/durataDiretta.ts`).
+      if (!next.dataFine && avvisoDurata && !confermaDurata) next.dataFine = avvisoDurata;
       if (hostingDiretta === "proprio") {
         if (!idYoutube) next.youtubeLink = youtubeLink.trim() ? TESTO_LINK_NON_RICONOSCIUTO : "Incolla il link della tua diretta YouTube (non in elenco).";
         // LA MISURA VINCE, e il no arriva sul campo del link: lì sta la cosa
@@ -185,6 +189,9 @@ export default function CreaEventoForm({
   // Avviso e non errore: un evento può legittimamente valere più della sua
   // diretta — vedi `lib/eventi/orePcto.ts` per la soglia e il suo perché.
   const avvisoOre = avvisoOrePcto(Number(orePcto), dataInizio, dataFine);
+  // Pura anche questa: due campi del form fra loro.
+  const avvisoDurata =
+    dataInizio && dataFine ? avvisoDurataDiretta(millisecondiDaOrarioItaliano(dataInizio), millisecondiDaOrarioItaliano(dataFine)) : null;
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -369,7 +376,7 @@ export default function CreaEventoForm({
             id="dataInizio"
             type="datetime-local"
             value={dataInizio}
-            onChange={(e) => setDataInizio(e.target.value)}
+            onChange={(e) => { setDataInizio(e.target.value); setConfermaDurata(false); }}
             aria-invalid={Boolean(errori.dataInizio)}
             className={`${inputClass} ${fieldBorder(Boolean(errori.dataInizio))}`}
           />
@@ -407,11 +414,17 @@ export default function CreaEventoForm({
             id="dataFine"
             type="datetime-local"
             value={dataFine}
-            onChange={(e) => setDataFine(e.target.value)}
+            onChange={(e) => { setDataFine(e.target.value); setConfermaDurata(false); }}
             aria-invalid={Boolean(errori.dataFine)}
             className={`${inputClass} ${fieldBorder(Boolean(errori.dataFine))}`}
           />
           {errori.dataFine && <p className="mt-1.5 text-sm text-red-400">{errori.dataFine}</p>}
+          {eDiretta && avvisoDurata && (
+            <label className="mt-2 flex items-start gap-2 text-sm text-kireo-light">
+              <input type="checkbox" checked={confermaDurata} onChange={(e) => setConfermaDurata(e.target.checked)} className="mt-0.5" />
+              <span>{ETICHETTA_CONFERMA_DURATA}</span>
+            </label>
+          )}
         </div>
       </div>
 

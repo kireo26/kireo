@@ -269,7 +269,13 @@ const orePcto = caricaModulo("lib/eventi/orePcto.ts", daFormato);
 // minimo di certificazione: tre moduli in più, caricati qui come gli altri.
 const live = caricaModulo("lib/live.ts", (n) => (n === "./formato" ? formato : daFormato(n)));
 const presenzaMod = caricaModulo("lib/live/presenza.ts", (n) =>
-  n === "@/lib/live" ? live : n === "@/lib/eventi/chiusuraDiretta" ? chiusura : daFormato(n),
+  n === "@/lib/live"
+    ? live
+    : n === "@/lib/eventi/chiusuraDiretta"
+      ? chiusura
+      : n === "@/lib/eventi/orePcto" // 26/10: «ne servono 18 ore» passa da `durataLeggibile`
+        ? orePcto
+        : daFormato(n),
 );
 const exportP = caricaModulo("lib/eventi/exportPresenze.ts", (n) =>
   n === "@/lib/eventi/orePcto"

@@ -5,6 +5,7 @@
 
 import { ORE_FINESTRA_CONSEGNA } from "@/lib/live";
 import { MINUTI_MINIMI_CERTIFICAZIONE } from "@/lib/eventi/chiusuraDiretta";
+import { durataLeggibile } from "@/lib/eventi/orePcto";
 
 // ⚠️⚠️ LA PRESENZA COMINCIA QUANDO IL VIDEO PARTE LA PRIMA VOLTA. Il 18/10 per
 // venti minuti il player è rimasto nero, e la pagina diceva «presenza in
@@ -89,6 +90,17 @@ export function minutiNecessari(dataInizio: string, dataFine: string | null): nu
 
 const minuti = (n: number) => (n === 1 ? "1 minuto" : `${n} minuti`);
 
+// ⚠️ «PER IL RICONOSCIMENTO NE SERVONO 1103» (26/10): un orario sbagliato ha
+// fatto una finestra di diciotto ore, e lo studente ha letto un numero che non
+// si legge. Sotto l'ora resta la forma di Mario («ne servono 15»); da un'ora in
+// su il numero si scrive in ore, e il verbo concorda con quello che dice
+// («ne serve 1 ora», «ne servono 2 ore e 5 minuti»).
+export function neServono(n: number, tempo: "presente" | "passato"): string {
+  const [uno, piu] = tempo === "presente" ? ["ne serve", "ne servono"] : ["ne serviva", "ne servivano"];
+  if (n < 60) return n === 1 ? `${uno} 1` : `${piu} ${n}`;
+  return `${n === 60 ? uno : piu} ${durataLeggibile(n / 60)}`;
+}
+
 export type StatoContatore = "sotto" | "raggiunta" | "fermo";
 
 export function statoContatore(contati: number, necessari: number, conta: boolean): StatoContatore {
@@ -130,7 +142,7 @@ export function testoContatore(contati: number, necessari: number, conta: boolea
         ? `Il conteggio è fermo a ${minuti(contati)}: la presenza comincia quando avvii il video.`
         : `Il conteggio è fermo a ${minuti(contati)}: finché il video non si vede, la presenza non avanza.`;
     default:
-      return `Presente da ${minuti(contati)}. Per il riconoscimento ${necessari === 1 ? "ne serve 1" : `ne servono ${necessari}`}.`;
+      return `Presente da ${minuti(contati)}. Per il riconoscimento ${neServono(necessari, "presente")}.`;
   }
 }
 
@@ -288,7 +300,7 @@ export function testoChiusuraStudente(e: EsitoChiusuraStudente): string {
         ? `${APERTURA_CHIUSURA} Hai seguito ${minuti(c.contati)}: le ore ti vengono riconosciute.`
         : `${APERTURA_CHIUSURA} Hai seguito ${minuti(c.contati)}: la tua presenza è riconosciuta.`;
     case "sotto_soglia":
-      return `${APERTURA_CHIUSURA} Hai seguito ${minuti(c.contati)}: ne servivano ${c.necessari}.`;
+      return `${APERTURA_CHIUSURA} Hai seguito ${minuti(c.contati)}: ${neServono(c.necessari, "passato")}.`;
     case "incerto":
       return `${APERTURA_CHIUSURA} La tua presenza si è fermata a ${minuti(c.contati)}.`;
     default:
@@ -329,7 +341,7 @@ export function testoEsitoStorico(e: EsitoStorico): string | null {
     case "certificato":
       return `Hai seguito ${minuti(c.contati)}: ${c.conOre ? "le ore sono riconosciute" : "presenza riconosciuta"}.`;
     case "sotto_soglia":
-      return `Hai seguito ${minuti(c.contati)}: ne servivano ${c.necessari}.`;
+      return `Hai seguito ${minuti(c.contati)}: ${neServono(c.necessari, "passato")}.`;
     case "incerto":
       return `Hai seguito ${minuti(c.contati)}.`;
     default:
