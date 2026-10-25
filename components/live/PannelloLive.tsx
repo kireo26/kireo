@@ -88,7 +88,26 @@ export default function PannelloLive({
   const segnaAvvio = useCallback(() => setAvviato(true), []);
   // E FINISCE QUANDO IL VIDEO FINISCE (25/10): vedi `presenzaConta`.
   const [videoFinito, setVideoFinito] = useState(false);
-  const segnaFine = useCallback(() => setVideoFinito(true), []);
+  // ⚠️ L'arrivo del segnale si REGISTRA (Mario, 25/10): che una diretta YouTube
+  // mandi lo stato 0 quando chi trasmette chiude è documentato, non osservato.
+  // Se non arriva, la presenza corre fino alla fine della finestra come prima,
+  // in silenzio — e senza questa riga «si è fermata alla fine» e «non abbiamo
+  // mai saputo che era finita» resterebbero indistinguibili. Una volta per pagina.
+  const fineContata = useRef(false);
+  const segnaFine = useCallback(() => {
+    setVideoFinito(true);
+    if (fineContata.current) return;
+    fineContata.current = true;
+    fetch("/api/live/fine-video", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ eventoId }),
+    })
+      .then((r) => {
+        if (!r.ok) console.error("PannelloLive: fine del video non registrata", r.status);
+      })
+      .catch((e) => console.error("PannelloLive: fine del video non registrata", e));
+  }, [eventoId]);
   // IL RIQUADRO SEMPLICE: lo script di YouTube non si è caricato, il video
   // forse si vede ma il suo avvio non lo sappiamo — quindi `avviato` resta
   // falso e la presenza non avanza (decisione di Mario, vedi `TESTO_RIPIEGO`).

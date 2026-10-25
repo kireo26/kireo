@@ -196,7 +196,7 @@ export default async function EnteEventiPage({ searchParams }: { searchParams: P
                           youtubeVideoId={e.youtube_video_id}
                         />
                         <div className="mt-3">
-                          <ReportEventoButton eventoId={e.id} />
+                          <ReportEventoButton eventoId={e.id} titolo={e.titolo} dataInizio={e.data_inizio} dataFine={e.data_fine} />
                         </div>
                       </>
                     )}

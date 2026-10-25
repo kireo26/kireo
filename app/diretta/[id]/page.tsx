@@ -116,7 +116,7 @@ export default async function ModerazioneDirettaPage({ params }: { params: Promi
             Esporta presenze, domande e risposte (CSV)
           </a>
         ) : (
-          <ReportEventoButton eventoId={evento.id} />
+          <ReportEventoButton eventoId={evento.id} titolo={evento.titolo} dataInizio={evento.data_inizio} dataFine={evento.data_fine} />
         )}
       </section>
     </main>

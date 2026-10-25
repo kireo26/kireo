@@ -93,14 +93,14 @@ set local role authenticated;
 select set_config('request.jwt.claim.sub', 'f1000000-0000-0000-0000-000000000001', true);
 
 create temp table admin_righe on commit drop as
-  select cognome, minuti_presenza, copertura_percento from public.esporta_presenze_admin('f3000000-0000-0000-0000-000000000001');
+  select cognome, minuti_presenza, minuti_contati, copertura_percento from public.esporta_presenze_admin('f3000000-0000-0000-0000-000000000001');
 create temp table admin_senza_fine on commit drop as
   select cognome, minuti_presenza from public.esporta_presenze_admin('f3000000-0000-0000-0000-000000000002');
 
 -- ---------------------------------------------------------------- scuola
 select set_config('request.jwt.claim.sub', 'f1000000-0000-0000-0000-000000000002', true);
 create temp table scuola_righe on commit drop as
-  select cognome, minuti_presenza, copertura_percento from public.esporta_presenze_scuola('f3000000-0000-0000-0000-000000000001');
+  select cognome, minuti_presenza, minuti_contati, copertura_percento, row_number() over () as ordine from public.esporta_presenze_scuola('f3000000-0000-0000-0000-000000000001');
 
 -- report aggregato dell'ente (20261011150000): la media senza tetto
 select set_config('request.jwt.claim.sub', 'f1000000-0000-0000-0000-000000000001', true);
@@ -110,6 +110,20 @@ create temp table aggregato on commit drop as
 reset role;
 select set_config('request.jwt.claim.sub', '', true);
 
+-- 25/10 (`20261025100000`): «Minuti presenza» sono i battiti, e chi non si è
+-- mai collegato ha 0 e 0%, non due celle vuote.
+insert into esiti
+  select 13, 'admin · test 2: i minuti contati sono i battiti (4), non la distanza (2,4)', '4',
+         (select minuti_contati::text from admin_righe where cognome = 'PreRoll'),
+         (select minuti_contati = 4 from admin_righe where cognome = 'PreRoll');
+insert into esiti
+  select 14, 'admin · mai collegato: 0 minuti contati e 0%, non due celle vuote', '0 / 0.0',
+         (select coalesce(minuti_contati::text, 'NULL') || ' / ' || coalesce(copertura_percento::text, 'NULL') from admin_righe where cognome = 'MaiVisto'),
+         (select minuti_contati = 0 and copertura_percento = 0 from admin_righe where cognome = 'MaiVisto');
+insert into esiti
+  select 15, 'scuola · stessi minuti contati della route admin', '4',
+         (select minuti_contati::text from scuola_righe where cognome = 'PreRoll'),
+         (select minuti_contati = 4 from scuola_righe where cognome = 'PreRoll');
 insert into esiti
   select 1, 'admin · test 2: 8,9 minuti grezzi su un incontro di 5 → 2,4 dentro la finestra', '2.4',
          (select minuti_presenza::text from admin_righe where cognome = 'PreRoll'),

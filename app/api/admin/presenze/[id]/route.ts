@@ -1,7 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { generaCsvSezioni, type SezioneCsv } from "@/lib/csv";
-import { istantePerExport, minutiPerExport, notaFinestra, notaMinuti } from "@/lib/eventi/exportPresenze";
+import {
+  INTESTAZIONE_DISTANZA,
+  INTESTAZIONE_ESITO,
+  INTESTAZIONE_MINUTI_CONTATI,
+  certificataDaPerExport,
+  esitoPresenzaPerExport,
+  istantePerExport,
+  minutiContatiPerExport,
+  minutiPerExport,
+  notaFinestra,
+  notaMinuti,
+  statoDomandaPerExport,
+} from "@/lib/eventi/exportPresenze";
 import { descriviErrore } from "@/lib/erroreSupabase";
 import { rifiutoExport } from "@/lib/eventi/rifiutoExport";
 import { toccataDaPerExport, toccataIlPerExport } from "@/lib/eventi/tocco";
@@ -31,7 +43,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   // stata posta nessuna domanda»: senza, la sezione vuota direbbe la prima su
   // un evento in cui la seconda è la verità — cioè un'affermazione sugli
   // studenti al posto di una su di noi.
-  const { data: evento } = await supabase.from("eventi").select("titolo, pubblico, domanda_consegna, data_inizio, data_fine").eq("id", id).maybeSingle();
+  const { data: evento } = await supabase.from("eventi").select("titolo, pubblico, domanda_consegna, data_inizio, data_fine, diretta_chiusa_il").eq("id", id).maybeSingle();
   if (!evento) {
     return NextResponse.json({ errore: "Evento non trovato." }, { status: 404 });
   }
@@ -62,8 +74,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   if (erroreConsegne) console.error("Errore esporta_consegne_evento:", descriviErrore(erroreConsegne));
 
   const perDocenti = evento.pubblico === "docenti";
+  const chiusa = Boolean(evento.diretta_chiusa_il);
   const intestazioni = perDocenti
-    ? ["Nome", "Cognome", "Email", "Minuti presenza", "Copertura %", "Stato", "Attestato emesso", "Codice attestato"]
+    ? ["Nome", "Cognome", "Email", INTESTAZIONE_MINUTI_CONTATI, INTESTAZIONE_DISTANZA, "Copertura %", INTESTAZIONE_ESITO, "Attestato emesso", "Codice attestato"]
     : [
         "Nome",
         "Cognome",
@@ -73,9 +86,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         "Classe",
         "Primo ingresso (ora italiana)",
         "Ultima presenza (ora italiana)",
-        "Minuti presenza",
+        INTESTAZIONE_MINUTI_CONTATI,
+        INTESTAZIONE_DISTANZA,
         "Copertura %",
-        "Stato",
+        INTESTAZIONE_ESITO,
         "Certificata da",
         "Certificata da (nome)",
       ];
@@ -91,6 +105,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       primo_ping: string | null;
       ultimo_ping: string | null;
       minuti_presenza: number | null;
+      minuti_contati?: number | null;
       copertura_percento: number | null;
       stato_finale: string;
       certificata_da_tipo: string | null;
@@ -99,7 +114,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       attestato_codice: string | null;
     }) =>
       perDocenti
-        ? [r.nome, r.cognome, r.email, minutiPerExport(r), r.copertura_percento, r.stato_finale, r.attestato_emesso ? "Sì" : "No", r.attestato_codice]
+        ? [r.nome, r.cognome, r.email, minutiContatiPerExport(r), minutiPerExport(r), r.copertura_percento, esitoPresenzaPerExport(r, chiusa), r.attestato_emesso ? "Sì" : "No", r.attestato_codice]
         : [
             r.nome,
             r.cognome,
@@ -109,10 +124,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             r.classe_nome,
             istantePerExport(r.primo_ping),
             istantePerExport(r.ultimo_ping),
+            minutiContatiPerExport(r),
             minutiPerExport(r),
             r.copertura_percento,
-            r.stato_finale,
-            r.certificata_da_tipo,
+            esitoPresenzaPerExport(r, chiusa),
+            certificataDaPerExport(r.certificata_da_tipo),
             r.certificata_da_nome,
           ],
   );
@@ -132,7 +148,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       nota: [notaMinuti(evento.data_fine, righe ?? []), perDocenti ? null : notaFinestra(evento.data_inizio, righe ?? [])],
     },
     {
-      titolo: "Domande fatte durante la diretta",
+      titolo: "Domande fatte durante la diretta (anonime)",
       intestazioni: ["Fatta il (ora italiana)", "Testo", "Stato", "Toccata da", "Toccata il (ora italiana)"],
       righe: erroreDomande
         ? []
@@ -140,7 +156,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             (q: { creata_il: string; testo: string; stato: string; toccata_da: string | null; toccata_il: string | null }) => [
               istantePerExport(q.creata_il),
               q.testo,
-              q.stato,
+              statoDomandaPerExport(q.stato),
               toccataDaPerExport(q),
               toccataIlPerExport(q, formattaIstante),
             ],
@@ -150,7 +166,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         : "Nessuno ha fatto domande durante la diretta.",
     },
     {
-      titolo: "Risposte alla domanda finale",
+      titolo: "Risposte alla domanda finale (anonime)",
       intestazioni: ["Consegnata il (ora italiana)", "Testo", "Giudizio arrivato", "Giudicata il (ora italiana)", "Caratteri"],
       righe: erroreConsegne
         ? []

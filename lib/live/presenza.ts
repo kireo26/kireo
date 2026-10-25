@@ -238,3 +238,15 @@ export function causaRifiutoDomanda({
   if (codice !== "42501") return "guasto";
   return direttaAperta ? "non_iscritto" : "fuori_diretta";
 }
+
+/**
+ * Quanto prima o dopo la fine PROGRAMMATA è arrivato il segnale di fine. È la
+ * cosa che rende la riga leggibile: «finito alla fine» e «finito a metà» sono
+ * due fatti diversi, e la sola presenza della riga non li distingue. Puro.
+ */
+export function rispettoAllaFine(dataFine: string | null, adesso: Date): string {
+  if (!dataFine) return "l'incontro non ha un orario di fine";
+  const minuti = Math.round((adesso.getTime() - new Date(dataFine).getTime()) / 60_000);
+  if (minuti === 0) return "alla fine programmata";
+  return minuti < 0 ? `${-minuti} min prima della fine programmata` : `${minuti} min dopo la fine programmata`;
+}

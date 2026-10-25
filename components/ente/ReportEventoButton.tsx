@@ -2,15 +2,25 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { generaCsv } from "@/lib/csv";
-import { righeCoperturaOltreCento } from "@/lib/eventi/exportPresenze";
+import { generaCsvSezioni } from "@/lib/csv";
+import { sezioniReportEnte } from "@/lib/eventi/exportPresenze";
 
 // Report aggregato per l'organizzatore: MAI un nome, MAI un id. Le due RPC
 // (report_evento_aggregato/report_evento_distribuzione) fanno già tutto il
 // lavoro di aggregazione e soppressione k=5 lato DB — qui si genera solo
 // il CSV dal risultato, interamente client-side (nessun dato individuale
 // transita mai, quindi nessun bisogno di una route server dedicata).
-export default function ReportEventoButton({ eventoId }: { eventoId: string }) {
+export default function ReportEventoButton({
+  eventoId,
+  titolo,
+  dataInizio,
+  dataFine,
+}: {
+  eventoId: string;
+  titolo: string;
+  dataInizio: string | null;
+  dataFine: string | null;
+}) {
   const [caricamento, setCaricamento] = useState(false);
   const [errore, setErrore] = useState<string | null>(null);
 
@@ -31,21 +41,9 @@ export default function ReportEventoButton({ eventoId }: { eventoId: string }) {
 
       const riga = Array.isArray(aggregato) ? aggregato[0] : aggregato;
 
-      const righeCsv: unknown[][] = [
-        ["Totale iscritti", riga.totale_iscritti],
-        ["Totale presenti", riga.totale_presenti],
-        ["Copertura media (%)", riga.copertura_media],
-        // ⚠️ Una media senza tetto può superare il 100 (`20261011150000`): lo si
-        // spiega invece di nasconderlo. Solo quando succede.
-        ...righeCoperturaOltreCento(riga.copertura_media),
-        ["Numero domande", riga.numero_domande],
-        [],
-        ["Distribuzione per provincia e tipo istituto (solo gruppi con almeno 5 presenti)"],
-        ["Provincia", "Tipo istituto", "Presenti"],
-        ...(distribuzione ?? []).map((d: { provincia: string; tipo_istituto: string; conteggio: number }) => [d.provincia, d.tipo_istituto, d.conteggio]),
-      ];
-
-      const csv = generaCsv(["Metrica", "Valore"], righeCsv);
+      const csv = generaCsvSezioni(
+        sezioniReportEnte({ titolo, data_inizio: dataInizio, data_fine: dataFine }, riga, distribuzione ?? []),
+      );
       const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");

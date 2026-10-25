@@ -161,10 +161,27 @@ console.log("\n§4 — il riquadro semplice non conta come video partito (Mario,
   ok(!P.presenzaConta({ inDiretta: true, videoRotto: false, avviato: false }), "senza avvio la presenza non conta — ed è l'unica cosa che il ripiego lascia");
   // E la frequenza si impara: una riga per caricamento di pagina, mai di più.
   ok(/fetch\("\/api\/live\/ripiego"/.test(pannello) && /if \(ripiegoContato\.current\) return;/.test(pannello), "ogni ripiego si conta, una volta per pagina");
+  // ⚠️ RIESAMINATA il 25/10: la route del ripiego e quella della fine del video
+  // condividono ora `registraMisuraLive` — le proprietà su iscrizione e
+  // `di_prova` stanno lì, e ogni route deve passarci con la sua specie.
   const route = leggi("app/api/live/ripiego/route.ts");
-  ok(/specie: "misura_avvio_video"/.test(route), "…in `guasti`, con una specie sua");
-  ok(/from\("iscrizioni_eventi"\)/.test(route) && /motivo: "non_iscritto"/.test(route), "…solo per chi è iscritto all'evento: la riga conta studenti davanti a una diretta");
-  ok(/diProva: profilo\?\.di_prova === true/.test(route), "…e separa il robot dagli studenti veri");
+  const misura = leggi("lib/live/misuraLive.ts");
+  ok(/specie: "misura_avvio_video"/.test(route) && /registraMisuraLive\(/.test(route), "…in `guasti`, con una specie sua, passando dalla misura condivisa");
+  ok(/from\("iscrizioni_eventi"\)/.test(misura) && /motivo: "non_iscritto"/.test(misura), "…solo per chi è iscritto all'evento: la riga conta studenti davanti a una diretta");
+  ok(/diProva: profilo\?\.di_prova === true/.test(misura), "…e separa il robot dagli studenti veri");
+
+  // L'EVENTO DI FINE, REGISTRATO (Mario, 25/10): se il segnale non arriva la
+  // presenza degrada al comportamento di prima in silenzio — la riga è l'unica
+  // cosa che distingue «si è fermata alla fine» da «non abbiamo mai saputo».
+  const fine = leggi("app/api/live/fine-video/route.ts");
+  ok(/specie: "misura_fine_video"/.test(fine) && /registraMisuraLive\(/.test(fine), "la fine del video si registra, con una specie sua e la stessa misura condivisa");
+  ok(/rispettoAllaFine\(/.test(fine), "…e dice quanto prima o dopo la fine programmata è arrivata");
+  ok(/fetch\("\/api\/live\/fine-video"/.test(pannello) && /if \(fineContata\.current\) return;/.test(pannello), "il pannello la registra quando il player dice «finito», una volta per pagina");
+  const fineEsatta = new Date("2026-10-25T07:25:00Z");
+  ok(P.rispettoAllaFine("2026-10-25T07:25:00Z", fineEsatta) === "alla fine programmata", "alla fine: «alla fine programmata»");
+  ok(P.rispettoAllaFine("2026-10-25T07:25:00Z", new Date("2026-10-25T07:13:00Z")) === "12 min prima della fine programmata", "dodici minuti prima", P.rispettoAllaFine("2026-10-25T07:25:00Z", new Date("2026-10-25T07:13:00Z")));
+  ok(P.rispettoAllaFine("2026-10-25T07:25:00Z", new Date("2026-10-25T07:28:00Z")) === "3 min dopo la fine programmata", "tre minuti dopo");
+  ok(P.rispettoAllaFine(null, fineEsatta) === "l'incontro non ha un orario di fine", "senza fine: lo dice, non inventa un numero");
   // Nota 3: «Adesso riprende» solo se il conteggio riparte davvero — nel
   // ripiego non riparte, e `riprende` nasce da `contaRef`, cioè da `contaLaPresenza`.
   ok(/riprende: !finita && contaRef\.current/.test(pannello), "«Adesso riprende» nasce dal conteggio vero, non da una speranza");

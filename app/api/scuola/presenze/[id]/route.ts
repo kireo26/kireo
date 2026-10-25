@@ -1,7 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { generaCsvSezioni } from "@/lib/csv";
-import { istantePerExport, minutiPerExport, notaFinestra, notaMinuti } from "@/lib/eventi/exportPresenze";
+import {
+  INTESTAZIONE_DISTANZA,
+  INTESTAZIONE_ESITO,
+  INTESTAZIONE_MINUTI_CONTATI,
+  certificataDaPerExport,
+  esitoPresenzaPerExport,
+  istantePerExport,
+  minutiContatiPerExport,
+  minutiPerExport,
+  notaFinestra,
+  notaMinuti,
+} from "@/lib/eventi/exportPresenze";
 import { descriviErrore } from "@/lib/erroreSupabase";
 import { rifiutoExport } from "@/lib/eventi/rifiutoExport";
 
@@ -37,7 +48,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     // `data_fine` serve a dire «non calcolabile» invece di lasciare vuota la
     // cella dei minuti (vedi `lib/eventi/exportPresenze.ts`), e il titolo a
     // dire di quale incontro sono queste righe.
-    supabase.from("eventi").select("titolo, data_inizio, data_fine").eq("id", id).maybeSingle(),
+    supabase.from("eventi").select("titolo, data_inizio, data_fine, diretta_chiusa_il").eq("id", id).maybeSingle(),
   ]);
   if (error) {
     const rifiuto = rifiutoExport(error);
@@ -61,9 +72,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     "Classe",
     "Primo ingresso (ora italiana)",
     "Ultima presenza (ora italiana)",
-    "Minuti presenza",
+    INTESTAZIONE_MINUTI_CONTATI,
+    INTESTAZIONE_DISTANZA,
     "Copertura %",
-    "Stato",
+    INTESTAZIONE_ESITO,
     "Certificata da",
     "Certificata da (nome)",
   ];
@@ -76,6 +88,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     primo_ping: string | null;
     ultimo_ping: string | null;
     minuti_presenza: number | null;
+    minuti_contati?: number | null;
     copertura_percento: number | null;
     stato_finale: string;
     certificata_da_tipo: string | null;
@@ -89,10 +102,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     r.classe_nome,
     istantePerExport(r.primo_ping),
     istantePerExport(r.ultimo_ping),
+    minutiContatiPerExport(r),
     minutiPerExport(r),
     r.copertura_percento,
-    r.stato_finale,
-    r.certificata_da_tipo,
+    esitoPresenzaPerExport(r, Boolean(evento.diretta_chiusa_il)),
+    certificataDaPerExport(r.certificata_da_tipo),
     r.certificata_da_nome,
   ]);
 

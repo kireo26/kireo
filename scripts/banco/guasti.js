@@ -50,6 +50,7 @@ const ORDINE = [
   "email_contatto",
   "video_diretta",
   "misura_avvio_video",
+  "misura_fine_video",
   "consegna_esaurita",
   "prove_consegna_evento",
   "scrittura_consegna_evento",
@@ -87,6 +88,8 @@ const COSA_VUOL_DIRE = {
     "durante una diretta il player di uno studente non riproduceva il video (incorporamento spento o video non riproducibile): chi era collegato vedeva un riquadro rosso. Una riga per evento, all'ora al massimo: il motivo dice quale dei due, il dettaglio quale evento. La console del moderatore mostra in quel momento quanti non stanno vedendo",
   misura_avvio_video:
     "lo script di YouTube non si è caricato e lo studente ha visto il riquadro semplice: da lì non sappiamo se il video è partito, quindi la presenza NON è avanzata (decisione di Mario del 18/10) e la pagina gli ha detto di ricaricare o uscire dall'incognito. Una riga per caricamento di pagina, non per studente: il numero che serve è quante volte capita, perché la decisione si possa ripensare con un dato invece che per inerzia",
+  misura_fine_video:
+    "NON È UN GUASTO: il player di uno studente ha detto che il video è finito, e la sua presenza si è fermata lì (dal 25/10). Il dettaglio dice quanto prima o dopo la fine programmata. La cosa da leggere è l'ASSENZA: un evento con presenti e nessuna riga vuol dire che il segnale di fine non è arrivato a nessuno, quindi la presenza ha corso fino alla fine della finestra come prima — e senza questa riga quella differenza non si vedrebbe mai",
   consegna_esaurita:
     "tutte le letture di una consegna sono finite senza riuscire: quel testo non sarà giudicato da solo, e lo studente non ha più un bottone da premere",
   prove_consegna_evento:

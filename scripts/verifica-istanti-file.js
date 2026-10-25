@@ -130,6 +130,12 @@ function chiamataAperta(prima) {
 // Le esclusioni, una per (file, campo), ciascuna con la ragione. Una voce che
 // non trova più niente è OBSOLETA e va tolta (si controlla sotto).
 const ESCLUSIONI = {
+  "app/api/admin/presenze/[id]/route.ts": {
+    diretta_chiusa_il: "decide l'esito di una presenza («Sotto la soglia» solo a diretta chiusa), non si stampa",
+  },
+  "app/api/scuola/presenze/[id]/route.ts": {
+    diretta_chiusa_il: "decide l'esito di una presenza («Sotto la soglia» solo a diretta chiusa), non si stampa",
+  },
   "app/api/cron/workshop-motore/route.ts": {
     consegnata_at: "si usa per CALCOLARE il raffreddamento, non si stampa",
     created_at: "ordina e porta la data delle domande al prompt del blocco «come hai lavorato», che non la stampa",

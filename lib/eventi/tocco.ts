@@ -127,11 +127,14 @@ export function rigaTocco(
  *
  * Usa `SENZA_AUTORE`, la stessa costante dello schermo: due copie della stessa
  * frase divergerebbero. Su una domanda `nuova` resta vuota, ed è giusto: lì
- * nessuno l'ha toccata davvero. Un valore registrato esce com'è nel database
- * (`kireo`/`ente`), come prima.
+ * nessuno l'ha toccata davvero. Un valore registrato esce TRADOTTO (25/10).
  */
+// ⚠️ 25/10: «un valore registrato esce com'è» era il difetto — `kireo`/`ente`
+// sono i valori della macchina. Chi apre il CSV legge KIREO / L'organizzatore.
+const TOCCATA_DA_EXPORT: Record<ToccoDaTipo, string> = { kireo: "KIREO", ente: "L'organizzatore" };
+
 export function toccataDaPerExport(domanda: { stato: string; toccata_da: string | null }): string | null {
-  if (domanda.toccata_da) return domanda.toccata_da;
+  if (domanda.toccata_da) return TOCCATA_DA_EXPORT[domanda.toccata_da as ToccoDaTipo] ?? domanda.toccata_da;
   if (domanda.stato === "nuova") return null;
   return SENZA_AUTORE;
 }

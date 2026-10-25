@@ -2,7 +2,8 @@
 // allo stesso modo. Due copie divergerebbero — è già successo a queste due route
 // con il 403 della scuola.
 
-import { formattaIstante } from "@/lib/formato";
+import { formattaDataOra, formattaIstante, formattaOra } from "@/lib/formato";
+import type { SezioneCsv } from "@/lib/csv";
 
 /**
  * ⚠️ ZERO E NON UNA CELLA VUOTA per chi non si è mai collegato (Mario,
@@ -33,7 +34,7 @@ export const MINUTI_NON_CALCOLABILI = "non calcolabile";
 
 /** La riga sotto l'intestazione della sezione presenze, solo quando la parola compare. Di Mario. */
 export const NOTA_MINUTI_NON_CALCOLABILI =
-  "«non calcolabile» nei minuti significa che l'incontro non ha un orario di fine: la presenza non si può delimitare.";
+  "«non calcolabile» in «Dal primo all'ultimo collegamento» significa che l'incontro non ha un orario di fine: la presenza non si può delimitare.";
 
 export function minutiPerExport(riga: { minuti_presenza: number | null; primo_ping: string | null }) {
   if (riga.minuti_presenza !== null) return riga.minuti_presenza;
@@ -58,7 +59,7 @@ export function notaMinuti(dataFine: string | null, righe: { primo_ping: string 
  * dell'inizio: una nota che c'è sempre smette di essere letta.
  */
 export const NOTA_MINUTI_FINESTRA =
-  "I minuti di presenza si contano dentro la finestra dell'incontro: se qualcuno si è collegato prima dell'inizio, non coincidono con la differenza fra le due colonne.";
+  "«Dal primo all'ultimo collegamento» si conta dentro la finestra dell'incontro: se qualcuno si è collegato prima dell'inizio, non coincide con la differenza fra i due orari.";
 
 export function notaFinestra(dataInizio: string | null, righe: { primo_ping: string | null }[]): string | null {
   if (!dataInizio) return null;
@@ -85,4 +86,127 @@ export function righeCoperturaOltreCento(media: unknown): string[][] {
   // `numeric` arriva da PostgREST come numero o come stringa: si legge tutti e due.
   const n = typeof media === "number" ? media : Number(media);
   return Number.isFinite(n) && n > 100 ? [[SPIEGAZIONE_COPERTURA_OLTRE_CENTO]] : [];
+}
+
+// ─────────────────────────── 25/10: il CSV parla la lingua di chi lo apre
+//
+// «Un'esportazione è un'interfaccia. Ha solo meno diritto di sbagliare delle
+// altre, perché viene letta quando non ci siamo e finisce dentro un documento
+// che resta» (Mario). Fino al 25/10 il file stampava i valori scelti per la
+// macchina (`risposta_live`, `iscritto`, `ente`). Le traduzioni stanno qui, in un
+// posto solo, perché le due route le usino uguali.
+
+/**
+ * ⚠️ «MINUTI PRESENZA» SONO I BATTITI, NON LA DISTANZA (Mario, 25/10). Fino al
+ * 25/10 la colonna dal nome umano era `ultimo − primo` (tagliato alla finestra),
+ * e su test7 diceva 44 minuti accanto a 32 battiti: «la colonna che ha il nome
+ * umano è quella che nessuno di noi userebbe». Un battito al minuto: il tempo
+ * davvero contato. La distanza resta, in una colonna sua con il suo nome.
+ */
+export const INTESTAZIONE_MINUTI_CONTATI = "Minuti presenza";
+export const INTESTAZIONE_DISTANZA = "Dal primo all'ultimo collegamento (minuti)";
+export const INTESTAZIONE_ESITO = "Esito presenza";
+
+/** Se la riga arriva da una migrazione precedente (senza `minuti_contati`), si dice invece di inventare. */
+export function minutiContatiPerExport(riga: { minuti_contati?: number | null }): number | string {
+  return typeof riga.minuti_contati === "number" ? riga.minuti_contati : "non disponibile";
+}
+
+/**
+ * La colonna «Esito presenza» (prima «Stato», con il valore grezzo di
+ * `iscrizioni_eventi.stato`). `iscritto` non è un esito: è il fatto che quella
+ * persona si era iscritta. Cinque casi, e il quarto esiste perché prima della
+ * chiusura «sotto la soglia» sarebbe un'affermazione su un conteggio non ancora
+ * fatto.
+ */
+export function esitoPresenzaPerExport(
+  riga: { stato_finale: string; primo_ping: string | null },
+  direttaChiusa: boolean,
+): string {
+  if (riga.stato_finale === "partecipato") return "Certificata";
+  if (riga.stato_finale === "assente") return "Assente";
+  if (!riga.primo_ping) return "Mai collegato";
+  return direttaChiusa ? "Sotto la soglia" : "Diretta non ancora chiusa";
+}
+
+const CERTIFICATA_DA: Record<string, string> = {
+  sistema: "Automatica (presenza misurata)",
+  kireo: "KIREO",
+  ente: "L'organizzatore",
+  scuola: "La scuola",
+};
+
+/** «Certificata da»: chi ha certificato, detto con parole. Un valore ignoto esce com'è, mai inventato. */
+export function certificataDaPerExport(tipo: string | null): string | null {
+  if (!tipo) return null;
+  return CERTIFICATA_DA[tipo] ?? tipo;
+}
+
+const STATO_DOMANDA: Record<string, string> = {
+  nuova: "Non ancora gestita",
+  letta: "Letta in diretta",
+  risposta_live: "Risposta in diretta",
+};
+
+/** Lo stato di una domanda nel CSV. Un valore ignoto esce com'è: meglio grezzo che inventato. */
+export function statoDomandaPerExport(stato: string): string {
+  return STATO_DOMANDA[stato] ?? stato;
+}
+
+// ─────────────────────────── il report aggregato dell'ente (25/10)
+
+/**
+ * La copertura del report è la media sui SOLI presenti (`report_evento_aggregato`
+ * fa `avg` sulle righe di `presenze_live`: chi non si è mai collegato non entra).
+ * Fino al 25/10 l'etichetta diceva «Copertura media (%)» e il file non diceva
+ * quale delle due medie stava mostrando: adesso lo dice.
+ */
+export const ETICHETTA_COPERTURA_MEDIA = "Copertura media dei presenti (%)";
+
+/** La riga sotto l'intestazione della distribuzione, quando nessun gruppo arriva a 5. */
+export function testoDistribuzioneVuota(totalePresenti: number): string {
+  if (totalePresenti <= 0) return "Nessuno si è collegato: non c'è niente da distribuire.";
+  if (totalePresenti === 1) return "Nessun gruppo raggiunge i 5 presenti richiesti: l'unico presente non viene distribuito.";
+  // Di Mario, con il numero vero dentro: è quel numero a distinguere i due casi.
+  return `Nessun gruppo raggiunge i 5 presenti richiesti: i ${totalePresenti} presenti non vengono distribuiti.`;
+}
+
+/**
+ * Il file che l'ente conserva. ⚠️ CON TITOLO, DATA E FINESTRA IN TESTA (Mario,
+ * 25/10): «fra sei mesi non c'è modo di sapere di quale incontro sia». Puro.
+ */
+export function sezioniReportEnte(
+  evento: { titolo: string; data_inizio: string | null; data_fine: string | null },
+  riga: { totale_iscritti: unknown; totale_presenti: unknown; copertura_media: unknown; numero_domande: unknown },
+  distribuzione: { provincia: string; tipo_istituto: string; conteggio: number }[],
+): SezioneCsv[] {
+  const finestra = evento.data_inizio
+    ? `Incontro: ${formattaDataOra(evento.data_inizio)}${evento.data_fine ? ` → ${formattaOra(evento.data_fine)}` : ""} (ora italiana)`
+    : null;
+  const presenti = Number(riga.totale_presenti) || 0;
+  return [
+    {
+      titolo: `Report aggregato — ${evento.titolo}`,
+      nota: [finestra],
+      intestazioni: ["Metrica", "Valore"],
+      righe: [
+        ["Totale iscritti", riga.totale_iscritti],
+        ["Totale presenti", riga.totale_presenti],
+        [ETICHETTA_COPERTURA_MEDIA, riga.copertura_media],
+        // ⚠️ Una media senza tetto può superare il 100 (`20261011150000`): lo si
+        // spiega invece di nasconderlo. Solo quando succede.
+        ...righeCoperturaOltreCento(riga.copertura_media),
+        ["Numero domande", riga.numero_domande],
+      ],
+      seNonCeNiente: "Non è stato possibile leggere i numeri dell'incontro.",
+    },
+    {
+      titolo: "Distribuzione per provincia e tipo istituto (solo gruppi con almeno 5 presenti)",
+      intestazioni: ["Provincia", "Tipo istituto", "Presenti"],
+      righe: distribuzione.map((d) => [d.provincia, d.tipo_istituto, d.conteggio]),
+      // ⚠️ ZERO ≠ NON C'ERA NIENTE DA CONTARE, nella sua forma da esportazione:
+      // un elenco vuoto ha due cause, e le distingue solo il numero.
+      seNonCeNiente: testoDistribuzioneVuota(presenti),
+    },
+  ];
 }
