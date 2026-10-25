@@ -214,25 +214,34 @@ console.log("\n§7 — i tre momenti della chiave di trasmissione");
 const DOMANI = { dataInizio: "2026-12-01T14:00:00Z", dataFine: "2026-12-01T15:00:00Z" };
 const IERI = { dataInizio: "2026-01-01T14:00:00Z", dataFine: "2026-01-01T15:00:00Z" };
 
-ok(statoChiaveTrasmissione({ haChiave: true, ...DOMANI }) === "pronta", "la chiave c'è → pronta");
-ok(statoChiaveTrasmissione({ haChiave: false, ...DOMANI }) === "non_preparata", "non c'è e la diretta non è passata → non ancora preparata");
+ok(statoChiaveTrasmissione({ haChiave: true, haServer: true, ...DOMANI }) === "pronta", "chiave e server ci sono → pronta");
+// 25/10: una chiave senza server non trasmette. Fino ad allora la tabella non
+// aveva la colonna, quindi è il caso di ogni riga scritta prima di 20261027130000.
+ok(statoChiaveTrasmissione({ haChiave: true, haServer: false, ...DOMANI }) === "incompleta", "la chiave c'è e il server no → incompleta, non «pronta»");
+ok(statoChiaveTrasmissione({ haChiave: false, haServer: false, ...DOMANI }) === "non_preparata", "non c'è e la diretta non è passata → non ancora preparata");
 // IL QUARTO MOMENTO, quello che nessuno chiede: la diretta è passata e la
 // chiave non è mai arrivata. Senza questo ramo l'ente leggerebbe per sempre
 // «non è ancora stata preparata» su un evento che non si può più trasmettere
 // — la stessa frase per un'attesa e per una cosa che non succederà mai.
-ok(statoChiaveTrasmissione({ haChiave: false, ...IERI }) === "mai_arrivata", "non c'è e la diretta è passata → non è mai arrivata");
-ok(statoChiaveTrasmissione({ haChiave: true, ...IERI }) === "pronta", "una chiave arrivata resta «pronta» anche dopo la diretta");
+ok(statoChiaveTrasmissione({ haChiave: false, haServer: false, ...IERI }) === "mai_arrivata", "non c'è e la diretta è passata → non è mai arrivata");
+ok(statoChiaveTrasmissione({ haChiave: true, haServer: true, ...IERI }) === "pronta", "una chiave arrivata resta «pronta» anche dopo la diretta");
 // Senza data_fine la finestra la calcola `fineDiretta` (tre ore), la stessa
 // usata da tutto il resto: non una seconda copia della durata.
 ok(
-  statoChiaveTrasmissione({ haChiave: false, dataInizio: "2026-01-01T14:00:00Z", dataFine: null }) === "mai_arrivata",
+  statoChiaveTrasmissione({ haChiave: false, haServer: false, dataInizio: "2026-01-01T14:00:00Z", dataFine: null }) === "mai_arrivata",
   "senza data di fine si usa la durata di default condivisa, non una copia",
 );
 
 const tPronta = testoChiaveTrasmissione("pronta", "2026-10-04T09:00:00Z");
 const tAttesa = testoChiaveTrasmissione("non_preparata", null);
 const tMai = testoChiaveTrasmissione("mai_arrivata", null);
-ok(new Set([tPronta.titolo, tAttesa.titolo, tMai.titolo]).size === 3, "tre momenti, tre frasi distinte");
+const tIncompleta = testoChiaveTrasmissione("incompleta", null);
+ok(new Set([tPronta.titolo, tAttesa.titolo, tMai.titolo, tIncompleta.titolo]).size === 4, "quattro momenti, quattro frasi distinte");
+// IL POSTO GIUSTO (25/10): la chiave di un altro canale in YouTube Studio non
+// si incolla, va nel programma che trasmette. La forma vecchia è vietata.
+ok(!/Copiala in YouTube Studio/.test(tPronta.dettaglio + testoChiaveTrasmissione("pronta", null).dettaglio), "la chiave pronta non manda più in YouTube Studio");
+ok(/programma con cui trasmetti/.test(tPronta.dettaglio), "…dice dove va: nel programma che trasmette");
+ok(/server/i.test(tIncompleta.titolo) && tIncompleta.tono === "attesa", "senza server lo si dice, ed è un'attesa e non un errore dell'ente");
 // UNA CHIAVE VECCHIA CHE RESTA A SCHERMO È PEGGIO DI NESSUNA CHIAVE: il testo
 // dice che quella mostrata è l'unica valida.
 ok(/unica valida/.test(tPronta.dettaglio), "la chiave pronta dice di essere l'unica valida");
@@ -300,6 +309,16 @@ const sqlChiave = senzaCommentiSql(leggi("supabase/migrations/20261004120000_chi
 ok(/is distinct from 'admin'/.test(sqlChiave), "la guardia admin è NULL-safe");
 ok(/revoke all on function public\.imposta_chiave_trasmissione\(uuid, text\) from public, anon/.test(sqlChiave), "il permesso è revocato a public e ad anon, nominandoli");
 ok(!/for insert|for update|for delete/.test(sqlChiave), "nessuna policy di scrittura: la chiave non si scrive da fuori la funzione");
+// IL SERVER (25/10): senza l'indirizzo a cui mandarla, la chiave non trasmette.
+const sqlServer = senzaCommentiSql(leggi("supabase/migrations/20261027130000_server_trasmissione.sql"));
+ok(/add column if not exists server text/.test(sqlServer), "la colonna del server esiste");
+// Aggiungere un parametro con create or replace crea un SECONDO overload.
+ok(/drop function if exists public\.imposta_chiave_trasmissione\(uuid, text\);/.test(sqlServer) && !/create or replace function public\.imposta_chiave_trasmissione/.test(sqlServer), "la firma vecchia si droppa: niente secondo overload");
+ok(/raise exception 'server_vuoto'/.test(sqlServer), "la funzione pretende il server: una chiave senza server è il difetto di partenza");
+ok(/revoke all on function public\.imposta_chiave_trasmissione\(uuid, text, text\) from public, anon/.test(sqlServer), "…e la firma nuova nasce revocata ad anon (il drop porta via i permessi)");
+ok(/p_server: server\.trim\(\)/.test(formChiave), "il form dell'admin manda il server insieme alla chiave");
+ok(/haServer:/.test(pagEnte), "la pagina dell'ente dice «pronta» solo con chiave E server");
+ok(/server=\{/.test(pagEnte) && /\{server\}/.test(chiaveTsx), "…e mostra il server all'ente");
 // LA NOTIFICA PORTA IL FATTO, NON IL SEGRETO.
 ok(
   /insert into public\.notifiche_studenti \(student_id, tipo, riferimento_id\)/.test(sqlChiave) && !/p_chiave[\s\S]{0,200}notifiche_studenti/.test(sqlChiave),

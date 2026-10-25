@@ -84,14 +84,14 @@ export default async function AdminPage() {
   // logga: una lettura muta qui farebbe dire «non preparata» su una chiave
   // che c'è, e l'admin la sostituirebbe per niente.
   const eventiKireo = (webinarApprovati ?? []).filter((e) => e.hosting_diretta === "kireo").map((e) => e.id);
-  const chiavePerEvento = new Map<string, string>();
+  const chiavePerEvento = new Map<string, { aggiornata_il: string; server: string | null }>();
   if (eventiKireo.length > 0) {
     const { data: chiavi, error: erroreChiavi } = await supabase
       .from("chiavi_trasmissione")
-      .select("evento_id, aggiornata_il")
+      .select("evento_id, server, aggiornata_il")
       .in("evento_id", eventiKireo);
     if (erroreChiavi) console.error("[admin] chiavi_trasmissione:", erroreChiavi);
-    for (const riga of chiavi ?? []) chiavePerEvento.set(riga.evento_id, riga.aggiornata_il);
+    for (const riga of chiavi ?? []) chiavePerEvento.set(riga.evento_id, { aggiornata_il: riga.aggiornata_il, server: riga.server });
   }
 
   const { data: scuoleProfiloPerMessaggio } =
@@ -204,7 +204,7 @@ export default async function AdminPage() {
                           momento in cui l'admin prepara la diretta: altrove
                           sarebbe un gesto in più da ricordare, e il gesto che
                           si ricorda a parte è quello che si dimentica. */}
-                      <GestisciChiaveTrasmissioneForm eventoId={e.id} aggiornataIl={chiavePerEvento.get(e.id) ?? null} />
+                      <GestisciChiaveTrasmissioneForm eventoId={e.id} aggiornataIl={chiavePerEvento.get(e.id)?.aggiornata_il ?? null} server={chiavePerEvento.get(e.id)?.server ?? null} />
                     </>
                   )}
                   {/* ⚠️ LA PORTA VERSO LA PAGINA DI QUELL'EVENTO, e sta in

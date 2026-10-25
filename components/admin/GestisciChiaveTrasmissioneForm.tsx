@@ -8,6 +8,8 @@ import { formattaDataOra } from "@/lib/formato";
 const MOTIVI: Record<string, string> = {
   non_autorizzato: "Serve un profilo admin per impostare la chiave.",
   chiave_vuota: "La chiave non può essere vuota.",
+  server_vuoto: "Serve anche l'indirizzo del server: senza, la chiave non trasmette.",
+  server_non_valido: "L'indirizzo del server deve cominciare con rtmp:// o rtmps://.",
   evento_non_trovato: "Questo evento non esiste più.",
   hosting_non_kireo: "Questo evento lo trasmette l'ente dal proprio canale: non serve una chiave di KIREO.",
 };
@@ -29,15 +31,28 @@ function motivo(messaggio: string): string {
 // schermo a ogni apertura della coda admin lo esporrebbe senza che nessuno
 // l'abbia chiesto. Si vede che c'è e quando è stata preparata; per cambiarla
 // si scrive la nuova.
+//
+// IL SERVER VA SALVATO INSIEME ALLA CHIAVE (25/10): fino ad allora la tabella
+// non aveva dove tenerlo, e una chiave senza l'indirizzo a cui mandarla non
+// trasmette. Il server non è un segreto, quindi si rilegge e precompila il
+// campo. Se non c'è ancora, si propone l'indirizzo d'ingest predefinito di
+// YouTube (`SERVER_YOUTUBE`): è quello che Studio mostra accanto alla chiave
+// per la maggior parte delle dirette, e l'admin lo deve CONFRONTARE con quello
+// di Studio prima di salvare, non darlo per buono.
+const SERVER_YOUTUBE = "rtmp://a.rtmp.youtube.com/live2";
+
 export default function GestisciChiaveTrasmissioneForm({
   eventoId,
   aggiornataIl,
+  server: serverSalvato,
 }: {
   eventoId: string;
   aggiornataIl: string | null;
+  server: string | null;
 }) {
   const router = useRouter();
   const [chiave, setChiave] = useState("");
+  const [server, setServer] = useState(serverSalvato ?? SERVER_YOUTUBE);
   const [caricamento, setCaricamento] = useState(false);
   const [errore, setErrore] = useState<string | null>(null);
 
@@ -46,11 +61,15 @@ export default function GestisciChiaveTrasmissioneForm({
       setErrore("Incolla la chiave di trasmissione.");
       return;
     }
+    if (!server.trim()) {
+      setErrore("Serve anche l'indirizzo del server: senza, la chiave non trasmette.");
+      return;
+    }
     setCaricamento(true);
     setErrore(null);
     try {
       const supabase = createClient();
-      const { error } = await supabase.rpc("imposta_chiave_trasmissione", { p_evento_id: eventoId, p_chiave: chiave.trim() });
+      const { error } = await supabase.rpc("imposta_chiave_trasmissione", { p_evento_id: eventoId, p_chiave: chiave.trim(), p_server: server.trim() });
       if (error) {
         setErrore(motivo(error.message ?? ""));
         return;
@@ -71,7 +90,18 @@ export default function GestisciChiaveTrasmissioneForm({
         ) : (
           <span className="text-kireo-orange">non preparata — l&apos;ente lo vede, e sta aspettando</span>
         )}
+        {aggiornataIl && !serverSalvato && (
+          <span className="text-kireo-orange"> · senza indirizzo del server: l&apos;ente non può trasmettere</span>
+        )}
       </p>
+      <input
+        value={server}
+        onChange={(e) => setServer(e.target.value)}
+        placeholder="Indirizzo del server (rtmp://…)"
+        autoComplete="off"
+        aria-label="Indirizzo del server di trasmissione"
+        className="w-full rounded-lg border border-white/10 bg-kireo-dark px-3 py-2 font-mono text-xs text-kireo-light placeholder:font-sans placeholder:text-kireo-muted focus:border-kireo-green focus:outline-none"
+      />
       <div className="flex flex-wrap gap-2">
         <input
           value={chiave}
@@ -90,6 +120,7 @@ export default function GestisciChiaveTrasmissioneForm({
         </button>
       </div>
       <p className="text-xs text-kireo-muted">
+        Confronta il server con quello che YouTube Studio mostra accanto alla chiave prima di salvare.
         L&apos;ente riceve una notifica appena la salvi — e una diversa se la sostituisci, così non prova con quella vecchia.
       </p>
       {errore && <p className="text-xs text-red-400">{errore}</p>}

@@ -192,7 +192,7 @@ do $$
 begin
   set local role authenticated;
   perform set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', true);
-  perform public.imposta_chiave_trasmissione('e0000000-0000-0000-0000-000000000007', 'segreto-finto');
+  perform public.imposta_chiave_trasmissione('e0000000-0000-0000-0000-000000000007', 'segreto-finto', 'rtmp://a.rtmp.youtube.com/live2');
   reset role;
   insert into esiti values (8, 'non-admin respinto', 'ROTTO — riuscito');
 exception
@@ -211,7 +211,7 @@ do $$
 begin
   perform set_config('request.jwt.claim.sub', '', true);
   set local role anon;
-  perform public.imposta_chiave_trasmissione('e0000000-0000-0000-0000-000000000007', 'segreto-finto');
+  perform public.imposta_chiave_trasmissione('e0000000-0000-0000-0000-000000000007', 'segreto-finto', 'rtmp://a.rtmp.youtube.com/live2');
   reset role;
   insert into esiti values (9, 'anon senza permesso di eseguire', 'ROTTO — riuscito');
 exception
@@ -225,7 +225,7 @@ do $$
 begin
   set local role authenticated;
   perform set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', true);
-  perform public.imposta_chiave_trasmissione('e0000000-0000-0000-0000-000000000007', '   ');
+  perform public.imposta_chiave_trasmissione('e0000000-0000-0000-0000-000000000007', '   ', 'rtmp://a.rtmp.youtube.com/live2');
   reset role;
   insert into esiti values (10, 'chiave vuota rifiutata', 'ROTTO — accettata');
 exception
@@ -239,7 +239,7 @@ do $$
 begin
   set local role authenticated;
   perform set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', true);
-  perform public.imposta_chiave_trasmissione('e0000000-0000-0000-0000-00000000ffff', 'segreto-finto');
+  perform public.imposta_chiave_trasmissione('e0000000-0000-0000-0000-00000000ffff', 'segreto-finto', 'rtmp://a.rtmp.youtube.com/live2');
   reset role;
   insert into esiti values (11, 'evento inesistente rifiutato', 'ROTTO — riuscito');
 exception
@@ -254,7 +254,7 @@ do $$
 begin
   set local role authenticated;
   perform set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', true);
-  perform public.imposta_chiave_trasmissione('e0000000-0000-0000-0000-000000000001', 'segreto-finto');
+  perform public.imposta_chiave_trasmissione('e0000000-0000-0000-0000-000000000001', 'segreto-finto', 'rtmp://a.rtmp.youtube.com/live2');
   reset role;
   insert into esiti values (12, 'hosting proprio rifiutato', 'ROTTO — riuscito');
 exception
@@ -269,7 +269,7 @@ declare v_da uuid; v_chiave text;
 begin
   set local role authenticated;
   perform set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', true);
-  perform public.imposta_chiave_trasmissione('e0000000-0000-0000-0000-000000000007', '  chiave-prima  ');
+  perform public.imposta_chiave_trasmissione('e0000000-0000-0000-0000-000000000007', '  chiave-prima  ', 'rtmp://a.rtmp.youtube.com/live2');
   reset role;
   select chiave, aggiornata_da into v_chiave, v_da from public.chiavi_trasmissione where evento_id = 'e0000000-0000-0000-0000-000000000007';
   insert into esiti values (13, 'admin imposta, con chi l''ha scritta',
@@ -336,7 +336,7 @@ declare v_chiave text; v_cambiata int; v_righe int;
 begin
   set local role authenticated;
   perform set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', true);
-  perform public.imposta_chiave_trasmissione('e0000000-0000-0000-0000-000000000007', 'chiave-dopo');
+  perform public.imposta_chiave_trasmissione('e0000000-0000-0000-0000-000000000007', 'chiave-dopo', 'rtmp://a.rtmp.youtube.com/live2');
   reset role;
   select chiave into v_chiave from public.chiavi_trasmissione where evento_id = 'e0000000-0000-0000-0000-000000000007';
   select count(*) into v_righe from public.chiavi_trasmissione where evento_id = 'e0000000-0000-0000-0000-000000000007';
@@ -374,12 +374,58 @@ begin
           now() + interval '2 days', now() + interval '2 days 1 hour', 'approvato', 'studenti', 'kireo');
   set local role authenticated;
   perform set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', true);
-  perform public.imposta_chiave_trasmissione('e0000000-0000-0000-0000-000000000009', 'chiave-orfana');
+  perform public.imposta_chiave_trasmissione('e0000000-0000-0000-0000-000000000009', 'chiave-orfana', 'rtmp://a.rtmp.youtube.com/live2');
   reset role;
   select count(*) into v_n from public.chiavi_trasmissione where evento_id = 'e0000000-0000-0000-0000-000000000009';
   insert into esiti values (20, 'nessun destinatario: la chiave resta scritta', case when v_n = 1 then 'OK' else 'ROTTO — ' || v_n || ' righe' end);
 exception when others then
   insert into esiti values (20, 'nessun destinatario: la chiave resta scritta', 'ROTTO — ' || sqlerrm);
+end $$;
+reset role;
+
+-- 22-24) IL SERVER (20261027130000). Una chiave senza l'indirizzo a cui
+--     mandarla non trasmette: la funzione pretende il server, rifiuta uno
+--     schema che non è rtmp, e lo scrive accanto alla chiave.
+do $$
+begin
+  set local role authenticated;
+  perform set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', true);
+  perform public.imposta_chiave_trasmissione('e0000000-0000-0000-0000-000000000007', 'chiave-x', '  ');
+  reset role;
+  insert into esiti values (22, 'server vuoto rifiutato', 'ROTTO — accettato');
+exception
+  when sqlstate 'P0001' then insert into esiti values (22, 'server vuoto rifiutato', case when sqlerrm = 'server_vuoto' then 'OK' else 'ROTTO — ' || sqlerrm end);
+  when others then insert into esiti values (22, 'server vuoto rifiutato', 'ROTTO — ' || sqlerrm);
+end $$;
+reset role;
+
+do $$
+begin
+  set local role authenticated;
+  perform set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', true);
+  perform public.imposta_chiave_trasmissione('e0000000-0000-0000-0000-000000000007', 'chiave-x', 'https://studio.youtube.com');
+  reset role;
+  insert into esiti values (23, 'server non rtmp rifiutato', 'ROTTO — accettato');
+exception
+  when sqlstate 'P0001' then insert into esiti values (23, 'server non rtmp rifiutato', case when sqlerrm = 'server_non_valido' then 'OK' else 'ROTTO — ' || sqlerrm end);
+  when others then insert into esiti values (23, 'server non rtmp rifiutato', 'ROTTO — ' || sqlerrm);
+end $$;
+reset role;
+
+do $$
+declare v_server text; v_overload int;
+begin
+  set local role authenticated;
+  perform set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', true);
+  perform public.imposta_chiave_trasmissione('e0000000-0000-0000-0000-000000000007', 'chiave-con-server', ' rtmps://a.rtmps.youtube.com/live2 ');
+  reset role;
+  select server into v_server from public.chiavi_trasmissione where evento_id = 'e0000000-0000-0000-0000-000000000007';
+  select count(*) into v_overload from pg_proc where proname = 'imposta_chiave_trasmissione';
+  insert into esiti values (24, 'il server si scrive accanto alla chiave, e c''è una firma sola',
+    case when v_server = 'rtmps://a.rtmps.youtube.com/live2' and v_overload = 1 then 'OK'
+         else 'ROTTO — server=' || coalesce(v_server, 'NULL') || ' firme=' || v_overload end);
+exception when others then
+  insert into esiti values (24, 'il server si scrive accanto alla chiave, e c''è una firma sola', 'ROTTO — ' || sqlerrm);
 end $$;
 reset role;
 

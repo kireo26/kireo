@@ -19,16 +19,21 @@
 import { fineEffettiva } from "@/lib/live";
 import { formattaDataOra } from "@/lib/formato";
 
-export type StatoChiave = "non_preparata" | "pronta" | "mai_arrivata";
+// "incompleta": c'è una chiave e manca il server. Fino al 25/10 la tabella non
+// aveva la colonna, quindi è il caso di ogni riga scritta prima di
+// 20261027130000 — e una chiave senza server non trasmette: dirla «pronta»
+// sarebbe il difetto di partenza con un'altra faccia.
+export type StatoChiave = "non_preparata" | "incompleta" | "pronta" | "mai_arrivata";
 
 export function statoChiaveTrasmissione(opts: {
   haChiave: boolean;
+  haServer: boolean;
   dataInizio: string;
   dataFine: string | null;
   chiusaIl: string | null;
   ora?: Date;
 }): StatoChiave {
-  if (opts.haChiave) return "pronta";
+  if (opts.haChiave && opts.haServer) return "pronta";
   const ora = opts.ora ?? new Date();
   const fine = new Date(fineEffettiva(opts.dataInizio, opts.dataFine, opts.chiusaIl)).getTime();
   // La diretta è passata e la chiave non è mai arrivata: un fallimento
@@ -37,19 +42,34 @@ export function statoChiaveTrasmissione(opts: {
   // che non si può più trasmettere — la stessa frase per un'attesa e per una
   // cosa che non succederà mai.
   if (Number.isFinite(fine) && ora.getTime() >= fine) return "mai_arrivata";
-  return "non_preparata";
+  return opts.haChiave ? "incompleta" : "non_preparata";
 }
 
 export type TestoChiave = { titolo: string; dettaglio: string; tono: "ok" | "attesa" | "errore" };
 
 export function testoChiaveTrasmissione(stato: StatoChiave, aggiornataIl: string | null): TestoChiave {
   if (stato === "pronta") {
+    // ⚠️ TESTO PROVVISORIO, e di proposito (Mario, 25/10). Fino a oggi diceva
+    // «Copiala in YouTube Studio quando imposti la diretta»: falso — la chiave
+    // di un altro canale in Studio non si incolla, va nel programma che
+    // trasmette. Questa riga corregge solo il POSTO. Il testo finale aspetta una
+    // decisione che non è di codice: a chi lo scriviamo? Un referente PCTO non
+    // ha un programma di trasmissione, usa Zoom, Meet o Teams — quindi o
+    // chiediamo all'ente quello sforzo, o KIREO trasmette per lui. Un testo
+    // scritto per un utente che non sappiamo chi sia arriva vecchio.
     return {
       titolo: "La chiave di trasmissione è pronta.",
       dettaglio: aggiornataIl
-        ? `Preparata il ${formattaDataOra(aggiornataIl, "long")}. Copiala in YouTube Studio quando imposti la diretta: questa è l'unica valida, se te ne arriva un'altra sostituisce questa.`
-        : "Copiala in YouTube Studio quando imposti la diretta.",
+        ? `Preparata il ${formattaDataOra(aggiornataIl, "long")}. Server e chiave vanno nel programma con cui trasmetti, non in YouTube Studio. Questa è l'unica valida: se te ne arriva un'altra, sostituisce questa.`
+        : "Server e chiave vanno nel programma con cui trasmetti, non in YouTube Studio.",
       tono: "ok",
+    };
+  }
+  if (stato === "incompleta") {
+    return {
+      titolo: "Manca ancora l'indirizzo del server.",
+      dettaglio: "La chiave c'è, ma senza l'indirizzo a cui mandarla non si trasmette. Lo prepara KIREO e lo trovi qui: ti avvisiamo appena c'è. Se l'evento è vicino e qui non cambia niente, scrivici da contatti.",
+      tono: "attesa",
     };
   }
   if (stato === "mai_arrivata") {

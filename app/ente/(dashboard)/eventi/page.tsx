@@ -61,14 +61,14 @@ export default async function EnteEventiPage({ searchParams }: { searchParams: P
   // una lettura muta qui direbbe «non ancora preparata» su una chiave che
   // c'è, cioè farebbe aspettare qualcuno che non deve più aspettare.
   const eventiKireo = (eventi ?? []).filter((e) => e.hosting_diretta === "kireo").map((e) => e.id);
-  const chiavi = new Map<string, { chiave: string; aggiornata_il: string }>();
+  const chiavi = new Map<string, { chiave: string; server: string | null; aggiornata_il: string }>();
   if (eventiKireo.length > 0) {
     const { data: righe, error: erroreChiavi } = await supabase
       .from("chiavi_trasmissione")
-      .select("evento_id, chiave, aggiornata_il")
+      .select("evento_id, chiave, server, aggiornata_il")
       .in("evento_id", eventiKireo);
     if (erroreChiavi) console.error("[ente/eventi] chiavi_trasmissione:", erroreChiavi);
-    for (const riga of righe ?? []) chiavi.set(riga.evento_id, { chiave: riga.chiave, aggiornata_il: riga.aggiornata_il });
+    for (const riga of righe ?? []) chiavi.set(riga.evento_id, { chiave: riga.chiave, server: riga.server, aggiornata_il: riga.aggiornata_il });
   }
 
   const eventiInRevisione = (eventi ?? []).filter((e) => e.stato === "in_approvazione").length;
@@ -167,11 +167,13 @@ export default async function EnteEventiPage({ searchParams }: { searchParams: P
                       <ChiaveTrasmissione
                         stato={statoChiaveTrasmissione({
                           haChiave: chiavi.has(e.id),
+                          haServer: !!chiavi.get(e.id)?.server,
                           dataInizio: e.data_inizio,
                           dataFine: e.data_fine,
                           chiusaIl: e.diretta_chiusa_il,
                         })}
                         chiave={chiavi.get(e.id)?.chiave ?? null}
+                        server={chiavi.get(e.id)?.server ?? null}
                         aggiornataIl={chiavi.get(e.id)?.aggiornata_il ?? null}
                       />
                     )}
