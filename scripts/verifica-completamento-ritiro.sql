@@ -34,6 +34,17 @@ begin
     (a, 'Prova', 'Uno', '2007-01-01', 'studente'),
     (b, 'Prova', 'Due', '2007-01-01', 'studente'),
     (c, 'Prova', 'Tre', '2007-01-01', 'studente');
+  -- ⚠️ ROSSO DAL 20/09 AL 26/10 PER LA FIXTURE, NON PER IL PRODOTTO (il modo 13):
+  -- dal 20/09 iscriversi a un workshop chiede «un'esperienza» (`ha_esperienza_percorso`,
+  -- il cancello del percorso), e questi tre studenti non ne avevano. Nessuno se
+  -- n'è accorto per cinque settimane perché gli script SQL non li lancia nessuno
+  -- insieme: da oggi `scripts/verifica-sql-tutti.sh`. La precondizione è scritta
+  -- qui, da postgres, come una missione completata: è il fatto più piccolo che
+  -- il cancello accetta, e non tocca niente di quello che questo script prova.
+  insert into public.mission_attempt (student_id, mission_slug, stato, completed_at) values
+    (a, 'prova-precondizione', 'completata', now()),
+    (b, 'prova-precondizione', 'completata', now()),
+    (c, 'prova-precondizione', 'completata', now());
 
   insert into public.workshop (slug, titolo, attivo)
   values ('prova-banco-ritiro', 'Workshop finto per il controllo', true)
@@ -75,7 +86,10 @@ begin
   begin
     insert into public.workshop_iscrizioni (workshop_id, student_id, ruolo_id) values (v_ws, a, v_r2);
     raise exception 'ROTTO 3: lo stesso studente ha due iscrizioni attive nello stesso workshop.';
-  exception when unique_violation then
+  -- Dal 26/09 la prima a dire no è la policy del tetto («uno attivo per
+  -- volta», 42501), prima dell'indice unico: due guardie per la stessa cosa,
+  -- e la proprietà è che UNA delle due la respinga.
+  exception when unique_violation or insufficient_privilege then
     raise notice '  ok   3. lo stesso studente non si iscrive due volte allo stesso workshop';
   end;
 
@@ -115,7 +129,11 @@ begin
     raise exception 'ROTTO 7: due iscrizioni attive nello stesso workshop.';
   exception when others then
     get stacked diagnostics v_msg = message_text;
-    if v_msg <> 'iscrizione_gia_attiva' then
+    -- Dal 26/09 `riprendi_iscrizione_workshop` guarda prima il tetto («un
+    -- workshop attivo per volta»), quindi il motivo è `workshop_gia_attivo`.
+    -- Tutti e due sono motivi leggibili, tradotti nei componenti: la proprietà
+    -- è che NON arrivi l'errore grezzo dell'indice.
+    if v_msg not in ('iscrizione_gia_attiva', 'workshop_gia_attivo') then
       raise exception 'ROTTO 7: il motivo è «%» invece di iscrizione_gia_attiva: al client arriverebbe l''errore grezzo dell''indice.', v_msg;
     end if;
     raise notice '  ok   7. non si riprende un ruolo avendone già uno attivo (motivo leggibile)';

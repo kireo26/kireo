@@ -78,7 +78,8 @@
     "test:durata": "node scripts/verifica-durata-vera.js",
     "test:uscita": "node scripts/verifica-uscita.js",
     "test:fine": "node scripts/verifica-fine-effettiva.js",
-    "test:migrazioni": "node scripts/verifica-migrazioni-applicate.js"
+    "test:migrazioni": "node scripts/verifica-migrazioni-applicate.js",
+    "sql:tutti": "scripts/verifica-sql-tutti.sh"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.112.5",
