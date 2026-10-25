@@ -66,6 +66,15 @@ for (const rel of ["app/app/eventi/[id]/live/page.tsx", "app/docente/webinar/[id
   ok(pg.includes("pubblico={evento.pubblico}"), `${rel}: il pubblico viene dall'evento letto, non scritto a mano dalla pagina`);
 }
 
+console.log("\n§2bis — la sessione persa non sceglie una spiegazione a caso\n");
+// «È scaduto» era falso per test7 (era un «Esci» altrove), e test8 non è
+// spiegato: il testo non dice né «scaduto» né «uscito altrove».
+const { trovaAccordi } = require("@/lib/lingua/accordoGenere");
+for (const [nome, t] of [["TESTO_SESSIONE_PERSA", P.TESTO_SESSIONE_PERSA], ["rifiuto della domanda", P.TESTO_RIFIUTO_DOMANDA.sessione_persa]]) {
+  ok(/non è più valido/.test(t) && !/scadut|uscit|altro dispositivo/i.test(t), `${nome}: «non è più valido», nessuna causa scelta a caso`, t);
+  ok(trovaAccordi(t).length === 0, `${nome}: nessun accordo col genere di chi legge`, JSON.stringify(trovaAccordi(t)));
+}
+
 console.log("\n§3 — la barra non precarica\n");
 const shell = leggi("components/app/AppShell.tsx");
 const link = [...shell.matchAll(/<Link\s+key=\{item\.href\}[\s\S]*?>|<Link\s+href=\{item\.href\}[\s\S]*?>/g)].map((m) => m[0]);

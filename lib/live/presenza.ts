@@ -202,8 +202,17 @@ export const TESTO_CONTEGGIO_NON_LETTO =
 // ⚠️ «I minuti già contati restano» non è una rifinitura: senza, uno studente
 // pensa di aver perso tutto e molla — e mollare è la cosa che gli costa le ore.
 // Ed è vera: la riga di `presenze_live` c'è, è la lettura che non la vede.
+//
+// ⚠️ «È SCADUTO» ERA FALSO (Mario, 25/10). Il caso di test7 non era una
+// scadenza: era un «Esci» dello stesso account su un altro dispositivo, con il
+// `signOut()` globale (vedi `lib/supabase/uscita.ts`). Da qui non sappiamo
+// distinguere «chiuso altrove» da «scaduto davvero» — e il caso di test8 resta
+// non spiegato — quindi il testo non dice né l'uno né l'altro: «una spiegazione
+// che non abbiamo non si sceglie a caso fra due: si toglie». La forma di Mario
+// «Sei uscito da KIREO su un altro dispositivo» non entra anche per un'altra
+// ragione: «sei uscito» accorda col genere di chi legge.
 export const TESTO_SESSIONE_PERSA =
-  "Il tuo accesso è scaduto: da adesso la presenza non viene più contata. I minuti già contati restano.";
+  "Il tuo accesso qui non è più valido: da adesso la presenza non viene più contata. I minuti già contati restano.";
 export const ETICHETTA_RIFAI_ACCESSO = "Rientra e torna alla diretta";
 export const TESTO_BATTITO_RIFIUTATO =
   "La presenza in questo momento non viene registrata, e non è colpa tua. I minuti già contati restano. Lascia la pagina aperta: riproviamo ogni minuto.";
@@ -231,7 +240,7 @@ export const VISIBILITA_DOMANDE: Record<"studenti" | "docenti", string> = {
 
 export type CausaRifiutoDomanda = "sessione_persa" | "fuori_diretta" | "non_iscritto" | "guasto";
 export const TESTO_RIFIUTO_DOMANDA: Record<CausaRifiutoDomanda, string> = {
-  sessione_persa: "Il tuo accesso è scaduto, quindi la domanda non è arrivata. Rientra e mandala di nuovo: il testo resta qui.",
+  sessione_persa: "Il tuo accesso qui non è più valido, quindi la domanda non è arrivata. Rientra e mandala di nuovo: il testo resta qui.",
   fuori_diretta: `La diretta è finita, e le domande si mandano mentre è aperta. Se c'è una domanda finale la trovi qui sotto: hai ${ORE_FINESTRA_CONSEGNA} ore per rispondere.`,
   non_iscritto: "Per mandare una domanda devi essere iscritto a questo incontro.",
   guasto: "La domanda non è arrivata per un problema nostro, non tuo. Riprova fra un momento.",
