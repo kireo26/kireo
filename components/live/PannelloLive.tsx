@@ -16,7 +16,7 @@ import {
   ETICHETTA_RIFAI_ACCESSO,
   letturaPresenza,
   TESTO_BATTITO_RIFIUTATO,
-  TESTO_DIRETTA_CHIUSA,
+  testoChiusuraStudente,
   TESTO_CONTEGGIO_NON_LETTO,
   TESTO_SESSIONE_PERSA,
   MS_DURATA_AVVISO_RIENTRO,
@@ -214,6 +214,41 @@ export default function PannelloLive({
     };
   }, [eventoId, userId, inDiretta]);
 
+  // ⚠️ ALLA CHIUSURA SI LEGGE COM'È ANDATA (26/10): la chiusura scrive nella
+  // stessa transazione la durata, la certificazione e le ore, e il battito vede
+  // la chiusura solo dopo il commit — quindi qui l'esito è già leggibile. Tre
+  // letture (evento, propria iscrizione, propria presenza); una che non arriva
+  // vale `null`, e il testo degrada alla forma corta invece di inventare.
+  const [testoChiusura, setTestoChiusura] = useState<string | null>(null);
+  useEffect(() => {
+    if (!chiusaDaOrganizzatore) return;
+    let vivo = true;
+    (async () => {
+      const supabase = createClient();
+      const [ev, isc, pres] = await Promise.all([
+        supabase.from("eventi").select("diretta_durata_minuti").eq("id", eventoId).maybeSingle(),
+        supabase.from("iscrizioni_eventi").select("stato, ore_riconosciute").eq("evento_id", eventoId).eq("student_id", userId).maybeSingle(),
+        supabase.from("presenze_live").select("ping_totali").eq("evento_id", eventoId).eq("user_id", userId).maybeSingle(),
+      ]);
+      if (!vivo) return;
+      for (const r of [ev, isc, pres]) if (r.error) console.error("PannelloLive: esito della chiusura non leggibile", r.error);
+      const contatiLetti = pres.error ? null : (pres.data?.ping_totali ?? null);
+      const ore = isc.data?.ore_riconosciute;
+      setTestoChiusura(
+        testoChiusuraStudente({
+          durata: ev.error ? null : (ev.data?.diretta_durata_minuti ?? null),
+          stato: isc.error ? null : (isc.data?.stato ?? null),
+          ore: ore === null || ore === undefined ? null : Number(ore),
+          contati: contatiLetti ?? contatiRef.current,
+          pubblico,
+        }),
+      );
+    })();
+    return () => {
+      vivo = false;
+    };
+  }, [chiusaDaOrganizzatore, eventoId, userId, pubblico]);
+
   // IL RIENTRO: quando la pagina torna in primo piano, si dice cosa si è perso
   // — solo se in quel momento la presenza si stava contando, e solo sopra il
   // minuto (sotto è rumore).
@@ -377,7 +412,7 @@ export default function PannelloLive({
         )}
         {chiusaDaOrganizzatore && (
           <p className="mt-1 text-sm text-kireo-light/90" aria-live="polite">
-            {TESTO_DIRETTA_CHIUSA}
+            {testoChiusura ?? testoChiusuraStudente({ durata: null, stato: null, ore: null, contati: null, pubblico })}
           </p>
         )}
         {!sessionePersa && battito === "rifiutato" && (

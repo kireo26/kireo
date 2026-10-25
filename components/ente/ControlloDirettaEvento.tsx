@@ -9,6 +9,7 @@ import {
   faseContatore,
   chiusuraDisponibile,
   testoChiusuraNonAncora,
+  TESTO_CHIUSURA_PRIMA_DELL_INIZIO,
   testoConfermaChiusura,
   testoPrimaDellaDiretta,
   statoChiusura,
@@ -246,7 +247,7 @@ export default function ControlloDirettaEvento({
       const riga = Array.isArray(data) ? data[0] : data;
       if (error || !riga) {
         if (error?.message?.includes("evento_non_iniziato")) {
-          setErroreChiusura("La diretta non è ancora cominciata: si può chiudere da quando comincia.");
+          setErroreChiusura(TESTO_CHIUSURA_PRIMA_DELL_INIZIO);
         } else if (error?.message?.includes("evento_senza_data_fine")) {
           setErroreChiusura("Questo evento non ha una data di fine impostata: impossibile calcolare le presenze.");
         } else {

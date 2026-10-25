@@ -4,6 +4,7 @@
 // uno script.
 
 import { ORE_FINESTRA_CONSEGNA } from "@/lib/live";
+import { MINUTI_MINIMI_CERTIFICAZIONE } from "@/lib/eventi/chiusuraDiretta";
 
 // ⚠️⚠️ LA PRESENZA COMINCIA QUANDO IL VIDEO PARTE LA PRIMA VOLTA. Il 18/10 per
 // venti minuti il player è rimasto nero, e la pagina diceva «presenza in
@@ -216,10 +217,56 @@ export function esitoBattito(status: number | null, corpo: unknown): EsitoBattit
   return "rifiutato";
 }
 
-// ⚠️ Testo MIO e provvisorio. Non dice le ore: quelle le dice la ricevuta, e
-// lo studente non la vede da qui.
-export const TESTO_DIRETTA_CHIUSA =
-  "Chi ha organizzato la diretta l'ha chiusa: da adesso la presenza non si conta più. I minuti già contati restano.";
+// ⚠️⚠️ LA CHIUSURA È L'ISTANTE IN CUI L'ESITO DIVENTA UN FATTO, ed è l'unico
+// momento in cui lo studente è ancora lì a leggere (Mario, 26/10). Quindi non
+// «la diretta è chiusa» e basta: com'è andata. Tre esiti, testi di Mario:
+// certificato, sotto la soglia, incontro sotto i 20 minuti — e il terzo DEVE
+// dire «non dipende da te», perché quello studente c'era per tutto il tempo che
+// c'era da esserci. Quando l'esito non è leggibile (una delle letture non è
+// arrivata) si dice la forma corta, con il numero solo se l'abbiamo letto.
+//
+// LA SOGLIA È CALCOLATA SULLA DURATA VERA, non su quella programmata: è il
+// denominatore di `chiudi_diretta_evento` dal 26/10 (`ping_attesi_evento`).
+export type EsitoChiusuraStudente = {
+  /** `diretta_durata_minuti` letto dopo la chiusura; `null` se non letto. */
+  durata: number | null;
+  /** `iscrizioni_eventi.stato` della propria riga; `null` se non letto. */
+  stato: string | null;
+  /** `iscrizioni_eventi.ore_riconosciute`; `null` se non letto o non emesse. */
+  ore: number | null;
+  /** I minuti contati (`ping_totali`); `null` se non letti. */
+  contati: number | null;
+  pubblico: "studenti" | "docenti";
+};
+
+const APERTURA_CHIUSURA = "L'incontro è stato chiuso da chi l'ha organizzato.";
+
+export function testoChiusuraStudente(e: EsitoChiusuraStudente): string {
+  const corta =
+    e.contati === null ? APERTURA_CHIUSURA : `${APERTURA_CHIUSURA} La tua presenza si è fermata a ${minuti(e.contati)}.`;
+  if (e.durata === null || e.stato === null) return corta;
+  if (e.durata < MINUTI_MINIMI_CERTIFICAZIONE) {
+    return `L'incontro è stato chiuso da chi l'ha organizzato dopo ${minuti(Math.floor(e.durata))}. Un incontro più corto di ${MINUTI_MINIMI_CERTIFICAZIONE} minuti non riconosce ore: non dipende da te.`;
+  }
+  if (e.contati === null) return corta;
+  if (e.stato === "partecipato") {
+    // ⚠️ Testo di Mario solo dove le ore ci sono davvero. Un webinar per docenti
+    // non riconosce ore (dà un attestato), e un evento con 0 ore PCTO nemmeno:
+    // lì «le ore ti vengono riconosciute» sarebbe falso. Variante MIA, provvisoria.
+    if (e.pubblico === "studenti" && e.ore !== null && e.ore > 0) {
+      return `${APERTURA_CHIUSURA} Hai seguito ${minuti(e.contati)}: le ore ti vengono riconosciute.`;
+    }
+    return `${APERTURA_CHIUSURA} Hai seguito ${minuti(e.contati)}: la tua presenza è riconosciuta.`;
+  }
+  const necessari = Math.ceil(SOGLIA_PRESENZA * Math.max(1, e.durata) - 1e-9);
+  // Sotto la soglia solo se lo è DAVVERO: se i minuti la passano e la riga non è
+  // certificata, l'esito non lo sappiamo (certificata a mano dopo? letture fuori
+  // passo?) e un «ne servivano 15» a chi ne ha 17 sarebbe falso.
+  if (e.contati < necessari) {
+    return `${APERTURA_CHIUSURA} Hai seguito ${minuti(e.contati)}: ne servivano ${necessari}.`;
+  }
+  return corta;
+}
 
 // ⚠️ IL CONTATORE NON SCENDE, E NON SCRIVE ZERO QUANDO NON HA LETTO (25/10).
 // `ping_totali` non diminuisce mai, quindi un valore più basso del precedente non

@@ -134,8 +134,44 @@ console.log("\n§4 · lo studente");
   ok(P.TESTO_VIDEO_PRIMA_DELL_INIZIO === "La diretta non è ancora cominciata: il video si attiva all'orario di inizio.", "il testo prima dell'inizio è quello di Mario, parola per parola");
   ok(!/riprodur|incorpor|errore|non va/i.test(P.TESTO_VIDEO_PRIMA_DELL_INIZIO), "…e non nomina nessun guasto");
   const pannello = senzaCommenti(leggi("components/live/PannelloLive.tsx"));
-  ok(/battito === "chiusa"/.test(pannello) && /\{TESTO_DIRETTA_CHIUSA\}/.test(pannello), "la pagina dice che la diretta è stata chiusa");
+  ok(/battito === "chiusa"/.test(pannello) && /testoChiusuraStudente\(/.test(pannello), "la pagina dice com'è andata quando la diretta viene chiusa");
+  ok(/from\("iscrizioni_eventi"\)\.select\("stato, ore_riconosciute"\)/.test(pannello) && /diretta_durata_minuti/.test(pannello), "…leggendo l'esito vero: la propria iscrizione e la durata scritta dalla chiusura");
   ok(/clearInterval\(intervallo\)/.test(senzaCommenti(leggi("lib/useHeartbeatDiretta.ts"))) && /e === "chiusa"/.test(senzaCommenti(leggi("lib/useHeartbeatDiretta.ts"))), "e smette di battere");
+}
+
+console.log("\n§4bis · i testi della chiusura per lo studente (Mario, 26/10)");
+{
+  const A = "L'incontro è stato chiuso da chi l'ha organizzato.";
+  const t = (o) => P.testoChiusuraStudente({ durata: 40, stato: "iscritto", ore: null, contati: 14, pubblico: "studenti", ...o });
+  ok(t({ stato: "partecipato", ore: 0.5, contati: 28 }) === `${A} Hai seguito 28 minuti: le ore ti vengono riconosciute.`, "certificato", t({ stato: "partecipato", ore: 0.5, contati: 28 }));
+  // soglia sulla durata VERA: 20 minuti → ne servono 15.
+  ok(t({ durata: 20, contati: 14 }) === `${A} Hai seguito 14 minuti: ne servivano 15.`, "sotto la soglia, calcolata sulla durata vera", t({ durata: 20, contati: 14 }));
+  const corto = t({ durata: 16, contati: 16 });
+  ok(corto === "L'incontro è stato chiuso da chi l'ha organizzato dopo 16 minuti. Un incontro più corto di 20 minuti non riconosce ore: non dipende da te.", "sotto i 20 minuti", corto);
+  ok(/non dipende da te/.test(t({ durata: 3, stato: "partecipato", ore: 0, contati: 3 })), "…anche a chi risulterebbe certificato: il minimo viene prima");
+  ok(t({ stato: null }) === `${A} La tua presenza si è fermata a 14 minuti.`, "esito non leggibile: la forma corta");
+  ok(t({ durata: null, contati: null }) === A, "…e senza un numero letto, nessun numero");
+  ok(t({ durata: 40, contati: 35 }) === `${A} La tua presenza si è fermata a 35 minuti.`, "minuti sopra la soglia ma riga non certificata: non si dice «ne servivano»");
+  ok(!/ore ti vengono riconosciute/.test(t({ stato: "partecipato", ore: 0, contati: 30 })), "certificato con 0 ore: non promette ore");
+  ok(!/ore ti vengono riconosciute/.test(t({ stato: "partecipato", ore: 1, contati: 30, pubblico: "docenti" })), "un docente non riceve ore");
+  ok(t({ contati: 1, durata: 1 }).includes("dopo 1 minuto"), "un minuto al singolare");
+  ok(C.TESTO_CHIUSURA_PRIMA_DELL_INIZIO === "Questo incontro non è ancora cominciato: si può chiudere solo a diretta iniziata.", "l'errore prima dell'inizio è quello di Mario");
+  ok(/TESTO_CHIUSURA_PRIMA_DELL_INIZIO/.test(senzaCommenti(leggi("components/ente/ControlloDirettaEvento.tsx"))), "…e la console lo usa");
+}
+
+console.log("\n§4ter · la scuola sa PRIMA di certificare che le ore non ci saranno");
+{
+  const av = C.avvisoCertificazioneSenzaOre(16);
+  ok(av === "Questo incontro è durato 16 minuti. La presenza viene registrata, ma non riconosce ore: sotto i 20 minuti non si certificano ore.", "il testo di Mario", av);
+  ok(C.avvisoCertificazioneSenzaOre(20) === null && C.avvisoCertificazioneSenzaOre(null) === null, "a 20 minuti, o con la durata ignota, tace");
+  ok(C.durataVeraEvento({ dataInizio: "2026-10-04T17:00:00Z", dataFine: "2026-10-04T17:45:00Z", chiusaIl: "x", durataMinuti: 16 }) === 16, "chiusa: la durata scritta dalla chiusura");
+  ok(C.durataVeraEvento({ dataInizio: "2026-10-04T17:00:00Z", dataFine: "2026-10-04T17:45:00Z", chiusaIl: null, durataMinuti: null }) === 45, "non chiusa: la programmata");
+  ok(C.durataVeraEvento({ dataInizio: "2026-10-04T17:00:00Z", dataFine: null, chiusaIl: null, durataMinuti: null }) === null, "senza fine: non si sa");
+  const reg = senzaCommenti(leggi("components/scuola/RegistroPresenzeEvento.tsx"));
+  ok(/avvisoCertificazioneSenzaOre\(durata\)/.test(reg) && /\{avvisoSenzaOre\}/.test(reg), "il registro lo mostra");
+  const pag = senzaCommenti(leggi("app/scuola/(dashboard)/eventi/page.tsx"));
+  ok(/durata=\{durataVeraEvento\(/.test(pag), "…e la pagina gli passa la durata vera");
+  ok(/diretta_durata_minuti/.test(leggi("lib/scuola/eventi.ts")), "…letta dall'evento");
 }
 
 console.log("\n§5 · il CSV dice le ore");

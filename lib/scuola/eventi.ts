@@ -108,7 +108,7 @@ export async function getEventiConIscrizioniScuola(supabase: SupabaseClient, scu
 
   const { data: eventi } = await supabase
     .from("eventi")
-    .select("id, titolo, tipo, data_inizio, ore_pcto")
+    .select("id, titolo, tipo, data_inizio, data_fine, diretta_chiusa_il, diretta_durata_minuti, ore_pcto")
     .in("id", Array.from(idEventi))
     .order("data_inizio", { ascending: false });
 

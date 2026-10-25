@@ -346,15 +346,16 @@ export function chiusuraDisponibile(fase: FaseContatore, dataFine: string | null
 /**
  * Il testo al posto del bottone quando la chiusura non è ancora possibile.
  * Dice QUANDO comparirà, perché un bottone che manca senza spiegazione si
- * legge come una cosa non caricata. ⚠️ Testo MIO e provvisorio (dal 26/10 il
- * momento è l'inizio, non più la fine).
+ * legge come una cosa non caricata. Testo di Mario (26/10), al PRESENTE: resta
+ * parallelo a quello che c'era prima e non spiega niente di più — la
+ * spiegazione sta nella conferma, dove serve.
  */
 export function testoChiusuraNonAncora(dataInizio: string, dataFine: string | null, adesso: Date): string {
   if (!dataFine) return "Questo evento non ha un orario di fine: la diretta non si può chiudere da qui.";
   const quando = stessoGiornoItaliano(dataInizio, adesso)
     ? `alle ${formattaOra(dataInizio)}`
     : `il ${formattaDataOra(dataInizio, "long")}`;
-  return `La diretta si può chiudere da quando comincia: il bottone comparirà ${quando}.`;
+  return `La diretta si può chiudere da quando comincia: il bottone compare ${quando}.`;
 }
 
 /**
@@ -370,4 +371,42 @@ export function testoConfermaChiusura(dataInizio: string, dataFine: string, ades
     return `Chiudendo adesso l'incontro risulterà durato ${minuti(durata)}: sotto il minimo di ${MINUTI_MINIMI_CERTIFICAZIONE}, non certificherà ore a nessuno.`;
   }
   return `Chiudendo adesso, l'incontro risulterà durato ${minuti(durata)}. La soglia sarà calcolata su quelli, e le ore riconosciute non potranno superarli. Non si torna indietro.`;
+}
+
+/**
+ * L'errore se si prova a chiudere prima dell'inizio. Dall'interfaccia non si
+ * raggiunge (il bottone non c'è): corto, come il «non sei iscritto». Testo di
+ * Mario (26/10).
+ */
+export const TESTO_CHIUSURA_PRIMA_DELL_INIZIO =
+  "Questo incontro non è ancora cominciato: si può chiudere solo a diretta iniziata.";
+
+/**
+ * LA DURATA CHE DECIDE LE ORE, specchio di `durata_vera_minuti` (SQL): chiusa →
+ * quella scritta dalla chiusura; non chiusa → quella programmata; senza fine →
+ * non si sa (`null`). Un ramo per caso, come là.
+ */
+export function durataVeraEvento(e: {
+  dataInizio: string;
+  dataFine: string | null;
+  chiusaIl: string | null;
+  durataMinuti: number | null;
+}): number | null {
+  if (e.chiusaIl) return e.durataMinuti;
+  if (e.dataFine) return (new Date(e.dataFine).getTime() - new Date(e.dataInizio).getTime()) / 60000;
+  return null;
+}
+
+/**
+ * ⚠️ LA CERTIFICAZIONE MANUALE SOTTO I 20 MINUTI REGISTRA LA PRESENZA CON ZERO
+ * ORE (scelta confermata da Mario il 26/10): la presenza è un fatto che la scuola
+ * attesta, le ore una regola nostra. MA LA SCUOLA LO DEVE SAPERE PRIMA DI
+ * CERTIFICARE, non scoprirlo in un CSV di trenta zeri: un'accettazione che non fa
+ * niente e non lo dice è il gemello del rifiuto muto. Testo di Mario; `null`
+ * quando non c'è niente da dire (durata sufficiente o non nota).
+ */
+export function avvisoCertificazioneSenzaOre(durata: number | null): string | null {
+  if (durata === null || durata >= MINUTI_MINIMI_CERTIFICAZIONE) return null;
+  const n = Math.floor(durata);
+  return `Questo incontro è durato ${n === 1 ? "1 minuto" : `${n} minuti`}. La presenza viene registrata, ma non riconosce ore: sotto i ${MINUTI_MINIMI_CERTIFICAZIONE} minuti non si certificano ore.`;
 }

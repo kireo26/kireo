@@ -91,10 +91,10 @@ ok(!chiusuraDisponibile(fase("2026-10-04T17:21:00Z", { chiusa: true }), FINE), "
 ok(/alle \d\d:\d\d/.test(testoChiusuraNonAncora(INIZIO, FINE, t("2026-10-04T10:00:00Z"))), "al suo posto, quando comparirà", testoChiusuraNonAncora(INIZIO, FINE, t("2026-10-04T10:00:00Z")));
 {
   const oggi = testoChiusuraNonAncora(INIZIO, FINE, t("2026-10-04T10:00:00Z"));
-  // Testo MIO dal 26/10 (il momento è l'inizio, non più la fine).
-  ok(/^La diretta si può chiudere da quando comincia: il bottone comparirà alle 19:15\.$/.test(oggi), "il testo dice l'ora dell'INIZIO", oggi);
+  // Testo di Mario (26/10), al presente.
+  ok(/^La diretta si può chiudere da quando comincia: il bottone compare alle 19:15\.$/.test(oggi), "il testo dice l'ora dell'INIZIO", oggi);
   const altroGiorno = testoChiusuraNonAncora(INIZIO, FINE, t("2026-10-02T10:00:00Z"));
-  ok(/comparirà il .*2026/.test(altroGiorno), "…con la data davanti quando non è oggi", altroGiorno);
+  ok(/compare il .*2026/.test(altroGiorno), "…con la data davanti quando non è oggi", altroGiorno);
 }
 {
   const comp = senzaCommenti(readFileSync(join(RADICE, "components/ente/ControlloDirettaEvento.tsx"), "utf8"));
