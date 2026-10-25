@@ -61,6 +61,11 @@
       "file": "20261027120000_commento_tetto_docenti.sql",
       "commit": "1ac0255",
       "fonte": "Mario, 25/10: applicata via SQL Editor; obj_description su certifica_partecipazione_docente presente col riferimento a 20261027120000"
+    },
+    {
+      "file": "20261027130000_server_trasmissione.sql",
+      "commit": "ad04b42",
+      "fonte": "Mario, 25/10 sera: applicata in produzione (chiavi_trasmissione aveva 0 righe, nessun dato da trasformare)"
     }
   ]
 }
