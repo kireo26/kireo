@@ -45,7 +45,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   // stata posta nessuna domanda»: senza, la sezione vuota direbbe la prima su
   // un evento in cui la seconda è la verità — cioè un'affermazione sugli
   // studenti al posto di una su di noi.
-  const { data: evento } = await supabase.from("eventi").select("titolo, pubblico, domanda_consegna, data_inizio, data_fine, diretta_chiusa_il").eq("id", id).maybeSingle();
+  const { data: evento } = await supabase.from("eventi").select("titolo, pubblico, domanda_consegna, data_inizio, data_fine, diretta_chiusa_il, diretta_durata_minuti").eq("id", id).maybeSingle();
   if (!evento) {
     return NextResponse.json({ errore: "Evento non trovato." }, { status: 404 });
   }
@@ -118,7 +118,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       ore_riconosciute?: number | string | null;
     }) =>
       perDocenti
-        ? [r.nome, r.cognome, r.email, ...celleMisura(r), esitoPresenzaPerExport(r, chiusa), oreRiconosciutePerExport(r, chiusa), r.attestato_emesso ? "Sì" : "No", r.attestato_codice]
+        ? [r.nome, r.cognome, r.email, ...celleMisura(r), esitoPresenzaPerExport(r, chiusa, evento.diretta_durata_minuti ?? null), oreRiconosciutePerExport(r, chiusa), r.attestato_emesso ? "Sì" : "No", r.attestato_codice]
         : [
             r.nome,
             r.cognome,
@@ -129,7 +129,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             istantePerExport(r.primo_ping),
             istantePerExport(r.ultimo_ping),
             ...celleMisura(r),
-            esitoPresenzaPerExport(r, chiusa),
+            esitoPresenzaPerExport(r, chiusa, evento.diretta_durata_minuti ?? null),
             oreRiconosciutePerExport(r, chiusa),
             certificataDaPerExport(r.certificata_da_tipo),
             r.certificata_da_nome,

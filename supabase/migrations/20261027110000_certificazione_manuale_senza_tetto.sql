@@ -22,18 +22,8 @@
 -- scuola non inventa ore che l'evento non prevede.
 --
 -- NON TOCCA `ore_riconoscibili_evento`, che resta la regola della chiusura
--- automatica, né `certifica_partecipazione_docente`, che CONSERVA IL TETTO di
--- proposito (deciso il 25/10). La regola è una sola e non riguarda i ruoli:
--- CHI ATTESTA È INDIPENDENTE DALL'EVENTO? Una scuola che certifica i propri
--- studenti attesta un lavoro d'aula che noi non vediamo, e risponde ad altri di
--- quello che firma: lì il tetto cade. Un ente che certifica i partecipanti del
--- proprio evento è giudice e parte — può dichiarare tre ore, trasmetterne venti
--- minuti e attestarle a cinquanta docenti — quindi lì il tetto resta.
--- (Non perché le ore di un docente non finiscano su un documento: ci finiscono,
--- l'aggiornamento si attesta.)
--- ⚠️ LA CONDIZIONE CHE LA ROVESCIA: il giorno in cui a certificare un docente è
--- un TERZO (la sua scuola, un ordine professionale, l'ufficio scolastico), quel
--- caso segue la regola di questa funzione, non quella del tetto.
+-- automatica, né `certifica_partecipazione_docente` (l'ente/KIREO che attesta un
+-- docente: domanda aperta per Mario, vedi CLAUDE.md).
 --
 -- `create or replace`, firma invariata: i privilegi si conservano (revoke/grant
 -- in coda per chi applica su un database senza quella del 26/10). Corpo ripreso
@@ -153,6 +143,3 @@ end;
 $$;
 revoke all on function public.certifica_presenza(uuid, uuid) from public, anon;
 grant execute on function public.certifica_presenza(uuid, uuid) to authenticated;
-
-comment on function public.certifica_partecipazione_docente(uuid, uuid) is
-  'Conserva il tetto di ore_riconoscibili_evento di proposito: qui attesta l''organizzatore stesso (giudice e parte). La certificazione della scuola (certifica_presenza) non ha tetto perché chi attesta è indipendente dall''evento. Se un giorno a certificare un docente sarà un terzo, quel caso segue la regola della scuola. Vedi 20261027110000.';

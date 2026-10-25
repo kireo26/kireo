@@ -125,11 +125,23 @@ export function minutiContatiPerExport(riga: { minuti_contati?: number | null })
 export function esitoPresenzaPerExport(
   riga: { stato_finale: string; primo_ping: string | null },
   direttaChiusa: boolean,
+  durataVeraMinuti: number | null,
 ): string {
   if (riga.stato_finale === "partecipato") return "Certificata";
   if (riga.stato_finale === "assente") return "Assente";
   if (!riga.primo_ping) return "Nessun collegamento";
-  return direttaChiusa ? "Sotto la soglia" : "Diretta non ancora chiusa";
+  if (!direttaChiusa) return "Diretta non ancora chiusa";
+  // ⚠️ IL PAVIMENTO È DELL'INCONTRO, NON DELLA PERSONA (giro del 25/10, 15:55):
+  // una diretta di cinque minuti chiusa subito, uno studente collegato dal primo
+  // all'ultimo minuto, e la riga diceva «Copertura 100 · Sotto la soglia» —
+  // un giudizio su di lui, falso, che una scuola legge come «è mancato». Sotto i
+  // 20 minuti non è certificabile nessuno, qualunque cosa abbia fatto: l'esito
+  // parla dell'evento. Senza una durata registrata non si sceglie a caso: si
+  // resta sul caso generale, che è vero per tutte le chiusure di prima del 26/10.
+  if (durataVeraMinuti !== null && durataVeraMinuti < MINUTI_MINIMI_CERTIFICAZIONE) {
+    return `Incontro sotto i ${MINUTI_MINIMI_CERTIFICAZIONE} minuti`;
+  }
+  return "Sotto la soglia";
 }
 
 /**

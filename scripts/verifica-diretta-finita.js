@@ -343,10 +343,16 @@ ok(report.includes("sezioniReportEnte("), "il bottone del report compone il file
 }
 
 console.log("\n§25/10 — il CSV parla la lingua di chi lo apre\n");
-ok(exportP.esitoPresenzaPerExport({ stato_finale: "partecipato", primo_ping: "x" }, true) === "Certificata", "partecipato → «Certificata»");
-ok(exportP.esitoPresenzaPerExport({ stato_finale: "iscritto", primo_ping: null }, true) === "Nessun collegamento", "iscritto, mai collegato → «Nessun collegamento» (decisione di Mario, 25/10 sera)");
-ok(exportP.esitoPresenzaPerExport({ stato_finale: "iscritto", primo_ping: "x" }, true) === "Sotto la soglia", "iscritto, collegato, diretta chiusa → «Sotto la soglia»");
-ok(exportP.esitoPresenzaPerExport({ stato_finale: "iscritto", primo_ping: "x" }, false) === "Diretta non ancora chiusa", "…ma prima della chiusura non è «sotto la soglia»: il conteggio non è ancora fatto");
+ok(exportP.esitoPresenzaPerExport({ stato_finale: "partecipato", primo_ping: "x" }, true, null) === "Certificata", "partecipato → «Certificata»");
+ok(exportP.esitoPresenzaPerExport({ stato_finale: "iscritto", primo_ping: null }, true, null) === "Nessun collegamento", "iscritto, mai collegato → «Nessun collegamento» (decisione di Mario, 25/10 sera)");
+ok(exportP.esitoPresenzaPerExport({ stato_finale: "iscritto", primo_ping: "x" }, true, 24) === "Sotto la soglia", "iscritto, collegato, diretta chiusa di 24 minuti → «Sotto la soglia»");
+// Il giro del 25/10 15:55: cinque minuti, copertura 100, e la riga diceva «Sotto la soglia».
+ok(exportP.esitoPresenzaPerExport({ stato_finale: "iscritto", primo_ping: "x" }, true, 5) === "Incontro sotto i 20 minuti", "diretta chiusa a 5 minuti → «Incontro sotto i 20 minuti»: il pavimento è dell'evento, non un giudizio sulla persona");
+ok(exportP.esitoPresenzaPerExport({ stato_finale: "iscritto", primo_ping: "x" }, true, 19) === "Incontro sotto i 20 minuti" && exportP.esitoPresenzaPerExport({ stato_finale: "iscritto", primo_ping: "x" }, true, 20) === "Sotto la soglia", "il confine sta su MINUTI_MINIMI_CERTIFICAZIONE: 19 sotto, 20 no");
+ok(exportP.esitoPresenzaPerExport({ stato_finale: "iscritto", primo_ping: "x" }, true, null) === "Sotto la soglia", "senza una durata registrata (chiusure di prima del 26/10) non si sceglie a caso: resta il caso generale");
+ok(exportP.esitoPresenzaPerExport({ stato_finale: "iscritto", primo_ping: "x" }, false, 5) === "Diretta non ancora chiusa", "…e prima della chiusura vale ancora «non ancora chiusa», anche con una durata corta");
+ok(exportP.esitoPresenzaPerExport({ stato_finale: "iscritto", primo_ping: null }, true, 5) === "Nessun collegamento", "chi non si è collegato resta «Nessun collegamento»: lì il fatto è sulla persona, ed è vero");
+ok(exportP.esitoPresenzaPerExport({ stato_finale: "iscritto", primo_ping: "x" }, false, null) === "Diretta non ancora chiusa", "…ma prima della chiusura non è «sotto la soglia»: il conteggio non è ancora fatto");
 ok(exportP.statoDomandaPerExport("risposta_live") === "Risposta in diretta" && exportP.statoDomandaPerExport("nuova") === "Non ancora gestita" && exportP.statoDomandaPerExport("letta") === "Letta in diretta", "gli stati delle domande, tradotti");
 ok(exportP.certificataDaPerExport("ente") === "L'organizzatore" && exportP.certificataDaPerExport("sistema") !== "sistema" && exportP.certificataDaPerExport(null) === null, "«Certificata da» tradotta, vuota solo se nessuno ha certificato");
 ok(exportP.minutiContatiPerExport({ minuti_contati: 32 }) === 32 && exportP.minutiContatiPerExport({}) === "non disponibile", "i minuti contati escono; senza la colonna nuova lo si dice, non si scrive zero");
@@ -356,6 +362,8 @@ for (const rel of ["app/api/admin/presenze/[id]/route.ts", "app/api/scuola/prese
   // (`"Stato"` resta legittimo come intestazione delle DOMANDE: lì è lo stato di una domanda, e il valore è tradotto.)
   ok(!r.includes("r.stato_finale,") && !r.includes("r.stato_finale]") && !r.includes("r.certificata_da_tipo,"), `${rel}: nessun valore grezzo della macchina nelle celle delle presenze`);
   ok(r.includes("esitoPresenzaPerExport(r,") && r.includes("diretta_chiusa_il"), `${rel}: l'esito sa se la diretta è chiusa`);
+  ok(/esitoPresenzaPerExport\(r, [^)]*\), evento\.diretta_durata_minuti/.test(r) || /esitoPresenzaPerExport\(r, chiusa, evento\.diretta_durata_minuti/.test(r), `${rel}: l'esito riceve la durata vera dell'evento`);
+  ok(/from\("eventi"\)\.select\("[^"]*diretta_durata_minuti/.test(r), `${rel}: …e la legge dalla select dell'evento`);
 }
 {
   const r = senzaCommenti(readFileSync(join(RADICE, "app/api/admin/presenze/[id]/route.ts"), "utf8"));

@@ -50,7 +50,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     // `data_fine` serve a dire «non calcolabile» invece di lasciare vuota la
     // cella dei minuti (vedi `lib/eventi/exportPresenze.ts`), e il titolo a
     // dire di quale incontro sono queste righe.
-    supabase.from("eventi").select("titolo, data_inizio, data_fine, diretta_chiusa_il").eq("id", id).maybeSingle(),
+    supabase.from("eventi").select("titolo, data_inizio, data_fine, diretta_chiusa_il, diretta_durata_minuti").eq("id", id).maybeSingle(),
   ]);
   if (error) {
     const rifiuto = rifiutoExport(error);
@@ -107,7 +107,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     istantePerExport(r.primo_ping),
     istantePerExport(r.ultimo_ping),
     ...celleMisura(r),
-    esitoPresenzaPerExport(r, Boolean(evento.diretta_chiusa_il)),
+    esitoPresenzaPerExport(r, Boolean(evento.diretta_chiusa_il), evento.diretta_durata_minuti ?? null),
     oreRiconosciutePerExport(r, Boolean(evento.diretta_chiusa_il)),
     certificataDaPerExport(r.certificata_da_tipo),
     r.certificata_da_nome,
