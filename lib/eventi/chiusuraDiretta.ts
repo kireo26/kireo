@@ -45,12 +45,32 @@ export type ChiusuraDaTipo = "kireo" | "ente";
 /** L'esito di una pressione del bottone. */
 export type EsitoChiusura =
   /** Prima chiusura: l'ha fatta chi ha premuto, adesso. */
-  | { tipo: "chiusa"; presenti: number; certificati: number }
+  | { tipo: "chiusa"; presenti: number; certificati: number; durataMinuti: number }
   /** Era già chiusa — da un'altra sessione, o dall'altro moderatore un istante prima. */
   | { tipo: "gia_chiusa"; presenti: number; quando: string };
 
-/** Cosa la chiusura ha prodotto: i due numeri che la riga di stato rilegge. */
-export type RicevutaChiusura = { presenti: number; certificati: number };
+/** Cosa la chiusura ha prodotto: i numeri che la riga di stato rilegge. Dal
+ *  26/10 c'è anche la DURATA, perché da quel giorno è la ricevuta a dichiararla. */
+export type RicevutaChiusura = { presenti: number; certificati: number; durataMinuti: number };
+
+// ⚠️ IL MINIMO SOTTO CUI NON SI CERTIFICA NESSUNO (Mario, 26/10): «sotto i
+// venti minuti non è un'attività formativa». Specchio di
+// `minuti_minimi_certificazione()` in `20261026100000`: `npm run test:durata`
+// estrae il numero dalla migrazione e lo confronta.
+export const MINUTI_MINIMI_CERTIFICAZIONE = 20;
+
+/**
+ * La durata vera se la diretta si chiudesse ADESSO: dall'inizio a ora, mai oltre
+ * la fine programmata, troncata al minuto. È la stessa formula che la funzione
+ * SQL scrive nella ricevuta (non si dichiara un minuto che non è passato), così
+ * il numero che la conferma mostra è quello che il clic fissa — a meno del
+ * minuto che passa fra la lettura e il clic, e il testo si ricalcola con
+ * l'orologio della pagina.
+ */
+export function durataSeChiusaAdesso(dataInizio: string, dataFine: string, adesso: Date): number {
+  const fine = Math.min(adesso.getTime(), new Date(dataFine).getTime());
+  return Math.max(0, Math.floor((fine - new Date(dataInizio).getTime()) / 60000));
+}
 
 /** Lo stato che il server conosce al caricamento della pagina, prima di qualunque pressione. */
 export type StatoChiusura =
@@ -70,10 +90,20 @@ const CHI: Record<ChiusuraDaTipo, string> = {
  * falso quando la riga si rilegge: è l'unica differenza fra le due frasi, e
  * tenerla qui è il modo di non avere due copie della stessa cosa.
  */
-function codaRicevuta(presenti: number, certificati: number, nuove: boolean): string {
-  if (certificati === 0) return `Presenti: ${presenti}. Nessuno ha raggiunto la soglia di presenza.`;
-  return `Presenti: ${presenti}. ${nuove ? "Nuove certificazioni automatiche" : "Certificazioni automatiche"}: ${certificati}.`;
+function codaRicevuta(durata: number, presenti: number, certificati: number, nuove: boolean): string {
+  // La durata viene PRIMA (Mario, 26/10): è quella che decide tutto il resto.
+  // Sotto il minimo i certificati sono zero per una ragione che non è la
+  // soglia, e «nessuno ha raggiunto la soglia» sarebbe un'affermazione falsa
+  // sugli studenti: si dice perché.
+  if (durata < MINUTI_MINIMI_CERTIFICAZIONE) {
+    return `Durata: ${minuti(durata)}. Sotto i ${MINUTI_MINIMI_CERTIFICAZIONE} minuti minimi, l'incontro non certifica ore. Presenti: ${presenti}.`;
+  }
+  const testa = `Durata: ${minuti(durata)}. Presenti: ${presenti}.`;
+  if (certificati === 0) return `${testa} Nessuno ha raggiunto la soglia di presenza.`;
+  return `${testa} ${nuove ? "Nuove certificazioni automatiche" : "Certificazioni automatiche"}: ${certificati}.`;
 }
+
+const minuti = (n: number) => (n === 1 ? "1 minuto" : `${n} minuti`);
 
 /**
  * Lo stato di partenza dalle colonne dell'evento.
@@ -97,12 +127,13 @@ export function statoChiusura(dati: {
   chiusaDaTipo: string | null;
   presenti?: number | null;
   certificati?: number | null;
+  durata?: number | null;
 }): StatoChiusura {
   if (!dati.chiusaIl) return { tipo: "da_chiudere" };
   if (dati.chiusaDaTipo !== "kireo" && dati.chiusaDaTipo !== "ente") return { tipo: "da_chiudere" };
   const ricevuta =
-    typeof dati.presenti === "number" && typeof dati.certificati === "number"
-      ? { presenti: dati.presenti, certificati: dati.certificati }
+    typeof dati.presenti === "number" && typeof dati.certificati === "number" && typeof dati.durata === "number"
+      ? { presenti: dati.presenti, certificati: dati.certificati, durataMinuti: dati.durata }
       : null;
   return { tipo: "chiusa", quando: dati.chiusaIl, daTipo: dati.chiusaDaTipo, ricevuta };
 }
@@ -120,7 +151,7 @@ export function testoEsitoChiusura(esito: EsitoChiusura): string {
   if (esito.tipo === "gia_chiusa") {
     return `Questa diretta era già stata chiusa il ${formattaDataOra(esito.quando, "long")}. Nessuna nuova certificazione.`;
   }
-  return `Diretta chiusa. ${codaRicevuta(esito.presenti, esito.certificati, true)}`;
+  return `Diretta chiusa. ${codaRicevuta(esito.durataMinuti, esito.presenti, esito.certificati, true)}`;
 }
 
 /**
@@ -167,7 +198,7 @@ export function testoEsitoChiusura(esito: EsitoChiusura): string {
 export function testoStatoChiusura(stato: Extract<StatoChiusura, { tipo: "chiusa" }>): string {
   const testa = `Diretta chiusa il ${formattaDataOra(stato.quando, "long")}, ${CHI[stato.daTipo]}.`;
   if (!stato.ricevuta) return testa;
-  return `${testa} ${codaRicevuta(stato.ricevuta.presenti, stato.ricevuta.certificati, false)}`;
+  return `${testa} ${codaRicevuta(stato.ricevuta.durataMinuti, stato.ricevuta.presenti, stato.ricevuta.certificati, false)}`;
 }
 
 // ─────────────────────────── «LA PAGINA NON SA CHE LA DIRETTA È FINITA» ──────
@@ -296,48 +327,47 @@ export function avvisoChiusuraTardiva(dataFine: string | null, adesso: Date): st
 }
 
 /**
- * IL BOTTONE DI CHIUSURA ESISTE SOLO QUANDO PUÒ CHIUDERE (Mario, montando la
- * diretta del 18/10): alle 12 di un evento delle 17 la riga di stato diceva
- * correttamente «La diretta comincia alle 17:00» e sotto c'era «Concludi
- * diretta e certifica presenze», attivo. La pagina sapeva in che fase era, il
- * bottone no — lo stesso buco del bottone su una diretta già chiusa, preso
- * dall'altro capo.
+ * IL BOTTONE DI CHIUSURA ESISTE SOLO QUANDO PUÒ CHIUDERE (Mario, 18/10): alle 12
+ * di un evento delle 17 il bottone c'era, attivo, e il database l'avrebbe
+ * rifiutato. Lo specchio è il database.
  *
- * ⚠️ PREMERLO NON AVREBBE PRODOTTO UNA RICEVUTA A ZERO, e va detto perché la
- * cura non è quella: `chiudi_diretta_evento` rifiuta prima di `data_fine`
- * (`evento_ancora_in_corso`). Il danno era un bottone che invita a un gesto e
- * poi risponde no — anche DURANTE la diretta, non solo prima. Quindi la
- * condizione non è «dopo l'inizio» ma la stessa del database: dopo la fine.
- * Lo specchio è `faseContatore`, che usa lo stesso confine.
+ * ⚠️ DAL 26/10 SI CHIUDE DA QUANDO LA DIRETTA COMINCIA, non dopo la fine: la
+ * chiusura è la fonte della durata vera (decisione di Mario — è il gesto di
+ * una persona, l'ultimo battito di uno studente no). Prima dell'inizio resta
+ * vietato (`evento_non_iniziato`), e senza una fine non si chiude affatto
+ * (`evento_senza_data_fine`). Un bottone che chiude in anticipo è
+ * DISTRUTTIVO, e per questo passa da una conferma con i numeri dentro
+ * (`testoConfermaChiusura`).
  */
-export function chiusuraDisponibile(fase: FaseContatore): boolean {
-  return fase === "finita_non_chiusa";
+export function chiusuraDisponibile(fase: FaseContatore, dataFine: string | null): boolean {
+  return Boolean(dataFine) && (fase === "viva" || fase === "finita_non_chiusa");
 }
 
 /**
  * Il testo al posto del bottone quando la chiusura non è ancora possibile.
- * Testo di Mario (18/10), con la data davanti quando non è oggi come nelle
- * righe sorelle. Dice QUANDO il bottone comparirà, perché un bottone che manca
- * senza spiegazione si legge come una cosa non caricata.
- *
- * ⚠️ SENZA `data_fine` il bottone non arriva MAI, ed è vero: il database
- * rifiuta (`evento_senza_data_fine`). Per i webinar non succede (il form la
- * pretende dal 26/07); per gli altri tipi sì. Quella riga resta mia.
- *
- * ⚠️ E CHIUDERE IN ANTICIPO RESTA IMPOSSIBILE, di proposito finché non c'è un
- * denominatore vero: la copertura si calcola sulla durata PROGRAMMATA
- * (`ping_attesi_evento`), quindi chiudere alle 17:30 una diretta prevista fino
- * alle 17:45 non accorcerebbe niente — chi è rimasto fino alla fine vera
- * avrebbe 30 minuti su 45 (67%) e resterebbe sotto soglia. Aprire la
- * chiusura anticipata richiede due cose insieme: un denominatore che sia la
- * fine VERA (cioè il momento della chiusura) e un pavimento sotto cui non si
- * certifica (altrimenti una chiusura al primo minuto certifica chiunque abbia
- * caricato la pagina). Decisione di prodotto, aperta.
+ * Dice QUANDO comparirà, perché un bottone che manca senza spiegazione si
+ * legge come una cosa non caricata. ⚠️ Testo MIO e provvisorio (dal 26/10 il
+ * momento è l'inizio, non più la fine).
  */
-export function testoChiusuraNonAncora(dataFine: string | null, adesso: Date): string {
+export function testoChiusuraNonAncora(dataInizio: string, dataFine: string | null, adesso: Date): string {
   if (!dataFine) return "Questo evento non ha un orario di fine: la diretta non si può chiudere da qui.";
-  const quando = stessoGiornoItaliano(dataFine, adesso)
-    ? `alle ${formattaOra(dataFine)}`
-    : `il ${formattaDataOra(dataFine, "long")}`;
-  return `La diretta si chiude quando è finita: il bottone comparirà ${quando}.`;
+  const quando = stessoGiornoItaliano(dataInizio, adesso)
+    ? `alle ${formattaOra(dataInizio)}`
+    : `il ${formattaDataOra(dataInizio, "long")}`;
+  return `La diretta si può chiudere da quando comincia: il bottone comparirà ${quando}.`;
+}
+
+/**
+ * ⚠️⚠️ LA CONFERMA DICE COSA FA, CON I NUMERI DENTRO (Mario, 26/10). Un clic
+ * che cambia la certificazione di tutti i presenti non chiede «sei sicuro?»:
+ * mostra il numero che sta per fissare. Testi di Mario, parola per parola. Il
+ * secondo è il più importante dei due: è l'unico momento in cui qualcuno può
+ * ancora decidere di non farlo.
+ */
+export function testoConfermaChiusura(dataInizio: string, dataFine: string, adesso: Date): string {
+  const durata = durataSeChiusaAdesso(dataInizio, dataFine, adesso);
+  if (durata < MINUTI_MINIMI_CERTIFICAZIONE) {
+    return `Chiudendo adesso l'incontro risulterà durato ${minuti(durata)}: sotto il minimo di ${MINUTI_MINIMI_CERTIFICAZIONE}, non certificherà ore a nessuno.`;
+  }
+  return `Chiudendo adesso, l'incontro risulterà durato ${minuti(durata)}. La soglia sarà calcolata su quelli, e le ore riconosciute non potranno superarli. Non si torna indietro.`;
 }

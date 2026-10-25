@@ -7,6 +7,8 @@ import {
   INTESTAZIONE_MINUTI_CONTATI,
   certificataDaPerExport,
   esitoPresenzaPerExport,
+  INTESTAZIONE_ORE_RICONOSCIUTE,
+  oreRiconosciutePerExport,
   istantePerExport,
   minutiContatiPerExport,
   minutiPerExport,
@@ -76,6 +78,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     INTESTAZIONE_DISTANZA,
     "Copertura %",
     INTESTAZIONE_ESITO,
+    INTESTAZIONE_ORE_RICONOSCIUTE,
     "Certificata da",
     "Certificata da (nome)",
   ];
@@ -93,6 +96,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     stato_finale: string;
     certificata_da_tipo: string | null;
     certificata_da_nome: string | null;
+    ore_riconosciute?: number | string | null;
   };
   const elenco = (righe ?? []) as Riga[];
   const corpo = elenco.map((r) => [
@@ -106,6 +110,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     minutiPerExport(r),
     r.copertura_percento,
     esitoPresenzaPerExport(r, Boolean(evento.diretta_chiusa_il)),
+    oreRiconosciutePerExport(r, Boolean(evento.diretta_chiusa_il)),
     certificataDaPerExport(r.certificata_da_tipo),
     r.certificata_da_nome,
   ]);

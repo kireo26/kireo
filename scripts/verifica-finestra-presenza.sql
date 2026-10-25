@@ -66,7 +66,7 @@ insert into public.eventi (id, titolo, descrizione, tipo, organizzatore_id, data
   ('e0000000-0000-0000-0000-00000000000b', 'In corso adesso', 'x', 'webinar', 'aaaaaaaa-0000-0000-0000-000000000001',
    now() - interval '3 minutes', now() + interval '2 minutes', 'approvato', 'studenti', 'kireo', 'abcdefghijk', 'attivo'),
   ('e0000000-0000-0000-0000-00000000000c', 'Già finita', 'x', 'webinar', 'aaaaaaaa-0000-0000-0000-000000000001',
-   now() - interval '1 hour', now() - interval '55 minutes', 'approvato', 'studenti', 'kireo', 'abcdefghijk', 'attivo'),
+   now() - interval '1 hour 15 minutes', now() - interval '55 minutes', 'approvato', 'studenti', 'kireo', 'abcdefghijk', 'attivo'),
   ('e0000000-0000-0000-0000-00000000000d', 'Non approvata', 'x', 'webinar', 'aaaaaaaa-0000-0000-0000-000000000001',
    now() + interval '7 minutes', now() + interval '12 minutes', 'in_approvazione', 'studenti', 'kireo', 'abcdefghijk', 'attivo');
 
@@ -279,10 +279,12 @@ end $$;
 reset role;
 set local role postgres;
 
--- Due studenti su EV3 (già finita): a uno si danno 4 ping (sopra la soglia di
--- 5 minuti → 3,75), all'altro 2 (sotto). Il primo si certifica, il secondo no.
+-- Due studenti su EV3 (già finita): a uno si danno 16 ping (sopra la soglia di
+-- 20 minuti → 15), all'altro 2 (sotto). Il primo si certifica, il secondo no.
+-- ⚠️ RIESAMINATA il 26/10: EV3 durava 5 minuti, e dal 26/10 sotto i 20 minuti
+-- non si certifica nessuno (`minuti_minimi_certificazione`).
 insert into public.presenze_live (evento_id, user_id, ping_totali) values
-  ('e0000000-0000-0000-0000-00000000000c', '44444444-4444-4444-4444-444444444444', 4),
+  ('e0000000-0000-0000-0000-00000000000c', '44444444-4444-4444-4444-444444444444', 16),
   ('e0000000-0000-0000-0000-00000000000c', '55555555-5555-5555-5555-555555555555', 2);
 
 -- La chiusura la chiama l'ENTE organizzatore, con la sua identità: la

@@ -99,6 +99,7 @@ export default async function ModerazioneDirettaPage({ params }: { params: Promi
           chiusaDaTipo={evento.diretta_chiusa_da_tipo}
           chiusaPresenti={evento.diretta_chiusa_presenti}
           chiusaCertificati={evento.diretta_chiusa_certificati}
+          chiusaDurata={evento.diretta_durata_minuti}
           youtubeVideoId={evento.youtube_video_id}
         />
       </section>

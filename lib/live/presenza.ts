@@ -3,7 +3,7 @@
 // `npm run test:diretta1810`: una frase composta in un `.tsx` non si prova da
 // uno script.
 
-import { ORE_FINESTRA_CONSEGNA, testoAttesaDiretta } from "@/lib/live";
+import { ORE_FINESTRA_CONSEGNA } from "@/lib/live";
 
 // ⚠️⚠️ LA PRESENZA COMINCIA QUANDO IL VIDEO PARTE LA PRIMA VOLTA. Il 18/10 per
 // venti minuti il player è rimasto nero, e la pagina diceva «presenza in
@@ -202,13 +202,24 @@ export const AVVISO_PLAYER_TELEFONO = "Anche «Guarda su YouTube», dentro il vi
 // Il 25/10 la pagina diceva «Presente da 0 minuti» (cioè contava, lato pagina)
 // con i battiti fermi sul database: le richieste partivano ed erano respinte.
 // Quattro esiti, e `null` vuol dire «nessun battito ancora mandato».
-export type EsitoBattito = "ok" | "sessione_persa" | "rifiutato" | "rete";
+// ⚠️ DAL 26/10 UN QUINTO: «chiusa». La diretta si può chiudere prima della fine
+// programmata, e da quel momento i battiti si respingono (`diretta_chiusa`):
+// detto come «rifiutato» suonerebbe «non è colpa tua, riproviamo ogni minuto»,
+// cioè una promessa falsa su un incontro finito.
+export type EsitoBattito = "ok" | "sessione_persa" | "rifiutato" | "rete" | "chiusa";
 export function esitoBattito(status: number | null, corpo: unknown): EsitoBattito {
   if (status === null) return "rete";
   if (status === 401) return "sessione_persa";
-  const ok = typeof corpo === "object" && corpo !== null && (corpo as { ok?: unknown }).ok === true;
-  return status === 200 && ok ? "ok" : "rifiutato";
+  const c = typeof corpo === "object" && corpo !== null ? (corpo as { ok?: unknown; motivo?: unknown }) : null;
+  if (status === 200 && c?.ok === true) return "ok";
+  if (status === 200 && typeof c?.motivo === "string" && c.motivo.includes("diretta_chiusa")) return "chiusa";
+  return "rifiutato";
 }
+
+// ⚠️ Testo MIO e provvisorio. Non dice le ore: quelle le dice la ricevuta, e
+// lo studente non la vede da qui.
+export const TESTO_DIRETTA_CHIUSA =
+  "Chi ha organizzato la diretta l'ha chiusa: da adesso la presenza non si conta più. I minuti già contati restano.";
 
 // ⚠️ IL CONTATORE NON SCENDE, E NON SCRIVE ZERO QUANDO NON HA LETTO (25/10).
 // `ping_totali` non diminuisce mai, quindi un valore più basso del precedente non
@@ -326,12 +337,13 @@ export function rispettoAllaFine(dataFine: string | null, adesso: Date): string 
 // allo studente non si dice che il video «è stato pubblicato in modo che non si
 // possa riprodurre», che lì non sappiamo. Il player si riprova da solo ogni
 // minuto: dopo l'inizio, se non si vede ancora, si segnala come sempre.
-// ⚠️ Testo MIO e provvisorio.
-export function testoVideoPrimaDellInizio(dataInizio: string, ora: Date): { titolo: string; dettaglio: string } {
-  return {
-    titolo: "La diretta non è ancora cominciata",
-    dettaglio: `${testoAttesaDiretta(dataInizio, ora)}: il video compare qui da solo quando parte. Prima dell'inizio YouTube a volte non lo mostra, e non vuol dire che qualcosa non va.`,
-  };
+// Testo di Mario (26/10), parola per parola: prima dell'inizio non abbiamo
+// nessuna notizia da dare — il player protesta, ma non sappiamo se ci sia un
+// problema — quindi non si nomina nessun errore. Dice l'orario, che sappiamo,
+// e non dice quello che non sappiamo. Un paragrafo solo: `dettaglio` è null.
+export const TESTO_VIDEO_PRIMA_DELL_INIZIO = "La diretta non è ancora cominciata: il video si attiva all'orario di inizio.";
+export function testoVideoPrimaDellInizio(): { titolo: string; dettaglio: string | null } {
+  return { titolo: TESTO_VIDEO_PRIMA_DELL_INIZIO, dettaglio: null };
 }
 export function erroreVideoPrimaDellInizio(dataInizio: string, adesso: number): boolean {
   return adesso < new Date(dataInizio).getTime();

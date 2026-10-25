@@ -247,7 +247,11 @@ console.log("\n§3 — lo stato al caricamento: il bottone sparisce\n");
   let ordineGiusto = false;
   try {
     const iStato = ancora(bloccoChiusura, "testoStatoChiusura", { dove: "il ramo dello stato chiuso" });
-    const iBottone = ancora(bloccoChiusura, "<Button", { dove: "il ramo del bottone" });
+    // RIESAMINATA il 26/10: dal giorno della conferma i `<Button` sono tre
+    // (Concludi, Chiudi, Annulla) e l'àncora è diventata ambigua. Si àncora
+    // al gesto che apre la conferma, che è uno solo; la conferma sta prima di
+    // lui e dopo lo stato chiuso, quindi l'ordine resta la proprietà.
+    const iBottone = ancora(bloccoChiusura, "setInConferma(true)", { dove: "il ramo del bottone" });
     ordineGiusto = iBottone > iStato;
   } catch (e) {
     ok(false, "le due àncore dell'ordine dei rami non sono ambigue", e.message);
@@ -306,7 +310,8 @@ console.log("\n§5 — lo stato non si indovina\n");
   // ⚠️ I DUE CONTEGGI ARRIVANO FINO ALLO STATO, O LA RICEVUTA NON ESISTE: è la
   // metà che si dimentica — una colonna in più nel database e un campo in più
   // nel tipo non fanno comparire niente a schermo se nessuno li passa.
-  const conRicevuta = statoChiusura({ chiusaIl: QUANDO, chiusaDaTipo: "ente", presenti: 12, certificati: 9 });
+  // (26/10: la ricevuta porta anche la durata, e senza la durata degrada.)
+  const conRicevuta = statoChiusura({ chiusaIl: QUANDO, chiusaDaTipo: "ente", presenti: 12, certificati: 9, durata: 30 });
   ok(
     conRicevuta.tipo === "chiusa" && conRicevuta.ricevuta && conRicevuta.ricevuta.presenti === 12,
     "i due conteggi arrivano fino allo stato",

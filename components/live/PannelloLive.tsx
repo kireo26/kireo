@@ -16,6 +16,7 @@ import {
   ETICHETTA_RIFAI_ACCESSO,
   letturaPresenza,
   TESTO_BATTITO_RIFIUTATO,
+  TESTO_DIRETTA_CHIUSA,
   TESTO_CONTEGGIO_NON_LETTO,
   TESTO_SESSIONE_PERSA,
   MS_DURATA_AVVISO_RIENTRO,
@@ -153,6 +154,12 @@ export default function PannelloLive({
   }, [eventoId]);
   const contaLaPresenza = presenzaConta({ inDiretta, videoRotto: !presenzaDaContare(esitoPlayer), avviato, finito: videoFinito, pausaLunga: inPausaLunga });
   const battito = useHeartbeatDiretta(eventoId, stato === "in_corso" && contaLaPresenza);
+  // ⚠️ DAL 26/10 LA DIRETTA SI CHIUDE ANCHE PRIMA DELLA FINE: il server lo dice
+  // respingendo il battito (`diretta_chiusa`), l'heartbeat smette da sé di
+  // battere, e la pagina lo dice al posto del contatore. Lo sa SOLO da quel
+  // battito — la pagina non legge la chiusura — quindi lo scopre entro un
+  // minuto, non subito.
+  const chiusaDaOrganizzatore = battito === "chiusa";
   // Un battito riuscito su questa pagina: da quel momento la riga di
   // `presenze_live` esiste, e non vederla vuol dire non aver letto.
   const battitoRiuscito = useRef(false);
@@ -250,7 +257,7 @@ export default function PannelloLive({
   // condizione a cui la pagina può dire «lo stiamo segnalando» (18/10).
   const [segnalato, setSegnalato] = useState(false);
   const riquadroRotto = erroreVideoPrimaDellInizio(dataInizio, ora.getTime())
-    ? testoVideoPrimaDellInizio(dataInizio, ora)
+    ? testoVideoPrimaDellInizio()
     : testoDirettaRotta(segnalato);
   // Il numero del tentativo è la `key` del player: cambiarlo lo rimonta, cioè lo
   // riprova da capo.
@@ -368,6 +375,11 @@ export default function PannelloLive({
             </Link>
           </p>
         )}
+        {chiusaDaOrganizzatore && (
+          <p className="mt-1 text-sm text-kireo-light/90" aria-live="polite">
+            {TESTO_DIRETTA_CHIUSA}
+          </p>
+        )}
         {!sessionePersa && battito === "rifiutato" && (
           <p className="mt-2 rounded-lg border border-kireo-orange/40 bg-kireo-orange/10 px-3 py-2 text-sm text-kireo-light" role="status">
             {TESTO_BATTITO_RIFIUTATO}
@@ -378,12 +390,12 @@ export default function PannelloLive({
             {testoVideoFinito(nonLetto ? null : contati, necessari)}
           </p>
         )}
-        {!videoFinito && !ripiego && !sessionePersa && inDiretta && necessari !== null && nonLetto && (
+        {!videoFinito && !ripiego && !sessionePersa && !chiusaDaOrganizzatore && inDiretta && necessari !== null && nonLetto && (
           <p className="mt-1 text-sm text-kireo-light/90" aria-live="polite">
             {TESTO_CONTEGGIO_NON_LETTO}
           </p>
         )}
-        {!videoFinito && !ripiego && !sessionePersa && !nonLetto && inDiretta && necessari !== null && contati !== null && (
+        {!videoFinito && !ripiego && !sessionePersa && !chiusaDaOrganizzatore && !nonLetto && inDiretta && necessari !== null && contati !== null && (
           <p className="mt-1 text-sm text-kireo-light/90" aria-live="polite">
             {testoContatore(contati, necessari, contaLaPresenza, causaFermo({ avviato, videoRotto: !presenzaDaContare(esitoPlayer), pausaLunga: inPausaLunga }))}
           </p>
@@ -427,7 +439,7 @@ export default function PannelloLive({
           {videoRotto && (
             <div className="absolute inset-0 flex flex-col items-center justify-center rounded-2xl border border-red-500/30 bg-red-500/5 px-6 text-center">
               <p className="font-heading text-lg font-semibold text-kireo-light">{riquadroRotto.titolo}</p>
-              <p className="mt-2 max-w-md text-sm text-kireo-muted">{riquadroRotto.dettaglio}</p>
+              {riquadroRotto.dettaglio && <p className="mt-2 max-w-md text-sm text-kireo-muted">{riquadroRotto.dettaglio}</p>}
             </div>
           )}
         </div>

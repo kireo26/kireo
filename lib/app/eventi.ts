@@ -217,18 +217,19 @@ export async function getProssimiEventiPerAree(supabase: SupabaseClient, areeSlu
 // certificate da student_activities, vedi lib/app/pcto.ts: sono due fonti
 // legittimamente distinte — attività scolastiche certificate vs eventi
 // KIREO/istituzioni a cui lo studente ha davvero partecipato).
+// ⚠️ DAL 26/10 SI LEGGONO LE ORE EMESSE (`ore_riconosciute`), mai
+// `eventi.ore_pcto`: una certificazione emessa è un fatto, e correggere le ore
+// dichiarate di un evento non deve cambiare quelle già riconosciute
+// (`20261026100000`, sorvegliato da `npm run test:durata`).
 export async function getOrePctoDaEventi(supabase: SupabaseClient, userId: string): Promise<number> {
   try {
     const { data, error } = await supabase
       .from("iscrizioni_eventi")
-      .select("eventi(ore_pcto)")
+      .select("ore_riconosciute")
       .eq("student_id", userId)
       .eq("stato", "partecipato");
     if (error) return 0;
-    return ((data ?? []) as { eventi: { ore_pcto: number } | { ore_pcto: number }[] | null }[]).reduce((tot, riga) => {
-      const rel = Array.isArray(riga.eventi) ? riga.eventi[0] : riga.eventi;
-      return tot + Number(rel?.ore_pcto ?? 0);
-    }, 0);
+    return ((data ?? []) as { ore_riconosciute: number | string | null }[]).reduce((tot, riga) => tot + Number(riga.ore_riconosciute ?? 0), 0);
   } catch {
     return 0;
   }

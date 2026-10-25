@@ -78,23 +78,27 @@ ok(fase("2026-10-04T17:13:00Z") === "prima", "due minuti prima dell'inizio → p
 ok(fase("2026-10-04T17:15:00Z") === "viva", "all'istante dell'inizio → viva (lo stesso confine di `evento_in_diretta`)");
 ok(fase("2026-10-04T17:18:00Z") === "viva", "dentro la finestra → viva");
 ok(fase("2026-10-04T17:20:00Z") === "finita_non_chiusa", "all'istante della fine → finita, non chiusa (lo stesso confine di `chiudi_diretta_evento`)");
-// ⚠️ IL BOTTONE DI CHIUSURA SOLO QUANDO PUÒ CHIUDERE (Mario, 18/10): prima e
-// durante, il database rifiuta (`evento_ancora_in_corso`).
+// ⚠️ IL BOTTONE DI CHIUSURA SOLO QUANDO PUÒ CHIUDERE (Mario, 18/10) — e dal 26/10
+// si chiude DA QUANDO COMINCIA (la chiusura anticipata è la fonte della durata
+// vera). RIESAMINATA il 26/10: «né durante la diretta» era la regola di prima.
 const { chiusuraDisponibile, testoChiusuraNonAncora } = chiusura;
-ok(!chiusuraDisponibile(fase("2026-10-04T10:00:00Z")), "alle 12 di un evento delle 17 il bottone non c'è");
-ok(!chiusuraDisponibile(fase("2026-10-04T17:18:00Z")), "…né durante la diretta");
-ok(chiusuraDisponibile(fase("2026-10-04T17:20:00Z")), "…e c'è all'istante della fine, lo stesso confine del database");
-ok(!chiusuraDisponibile(fase("2026-10-04T17:21:00Z", { chiusa: true })), "…e non c'è più su una diretta chiusa");
-ok(/alle \d\d:\d\d/.test(testoChiusuraNonAncora(FINE, t("2026-10-04T10:00:00Z"))), "al suo posto, quando comparirà", testoChiusuraNonAncora(FINE, t("2026-10-04T10:00:00Z")));
+ok(!chiusuraDisponibile(fase("2026-10-04T10:00:00Z"), FINE), "alle 12 di un evento delle 17 il bottone non c'è");
+ok(chiusuraDisponibile(fase("2026-10-04T17:18:00Z"), FINE), "…c'è durante la diretta (26/10: si chiude in anticipo)");
+ok(chiusuraDisponibile(fase("2026-10-04T17:20:00Z"), FINE), "…e c'è dopo la fine");
+ok(!chiusuraDisponibile(fase("2026-10-04T17:18:00Z"), null), "…senza una fine non c'è mai");
+ok(!chiusuraDisponibile(fase("2026-10-04T17:18:00Z")), "…e un chiamante che si dimentica la fine non lo fa comparire");
+ok(!chiusuraDisponibile(fase("2026-10-04T17:21:00Z", { chiusa: true }), FINE), "…e non c'è più su una diretta chiusa");
+ok(/alle \d\d:\d\d/.test(testoChiusuraNonAncora(INIZIO, FINE, t("2026-10-04T10:00:00Z"))), "al suo posto, quando comparirà", testoChiusuraNonAncora(INIZIO, FINE, t("2026-10-04T10:00:00Z")));
 {
-  const oggi = testoChiusuraNonAncora(FINE, t("2026-10-04T10:00:00Z"));
-  ok(/^La diretta si chiude quando è finita: il bottone comparirà alle \d\d:\d\d\.$/.test(oggi), "il testo di Mario, parola per parola", oggi);
-  const altroGiorno = testoChiusuraNonAncora(FINE, t("2026-10-02T10:00:00Z"));
+  const oggi = testoChiusuraNonAncora(INIZIO, FINE, t("2026-10-04T10:00:00Z"));
+  // Testo MIO dal 26/10 (il momento è l'inizio, non più la fine).
+  ok(/^La diretta si può chiudere da quando comincia: il bottone comparirà alle 19:15\.$/.test(oggi), "il testo dice l'ora dell'INIZIO", oggi);
+  const altroGiorno = testoChiusuraNonAncora(INIZIO, FINE, t("2026-10-02T10:00:00Z"));
   ok(/comparirà il .*2026/.test(altroGiorno), "…con la data davanti quando non è oggi", altroGiorno);
 }
 {
   const comp = senzaCommenti(readFileSync(join(RADICE, "components/ente/ControlloDirettaEvento.tsx"), "utf8"));
-  const iGate = ancora(comp, "!chiusuraDisponibile(fase)");
+  const iGate = ancora(comp, "!chiusuraDisponibile(fase, dataFine)"); // 26/10: la chiamata porta la fine
   const iBottone = ancora(comp, "Concludi diretta e certifica presenze");
   ok(iGate !== null && iBottone !== null && iGate < iBottone, "nel componente il bottone sta DOPO il ramo che lo esclude");
 }
@@ -169,6 +173,8 @@ ok(
 ok(comp.includes("testoFinitaNonChiusa(dataFine)"), "nella fase finita, non chiusa, si rende il testo di Mario");
 ok(comp.includes('{fase === "prima" && ') && comp.includes("testoPrimaDellaDiretta(dataInizio, ora)"), "prima dell'inizio si rende il testo di Mario, con l'ora che è stato e non `new Date()` nel render");
 ok(/faseContatore\(\{\s*dataInizio,/.test(comp), "il componente passa `dataInizio`: senza, il quarto stato non esisterebbe e nessuno lo vedrebbe");
+// RIESAMINATA il 26/10: il clic che CHIUDE è ora dentro la conferma, e l'avviso
+// sta lì, prima di lui — è il momento in cui si legge prima di premere.
 const bottone = fettaOppureRosso(comp, { nome: "{avvisoTardivo && " }, { nome: "<Button type=\"button\" variant=\"outline\" onClick={chiudiDiretta}" }, "avviso prima del bottone");
 ok(bottone !== null, "l'avviso sulla chiusura tardiva sta PRIMA del bottone, non sotto (si legge prima di premere)");
 
@@ -228,7 +234,10 @@ for (const fn of ["esporta_presenze_admin", "esporta_presenze_scuola"]) {
   // ⚠️ RIESAMINATA il 25/10: la definizione viva è ora quella dei minuti contati
   // (`drop` + `create`, perché il tipo di ritorno guadagna una colonna). Le
   // proprietà sul taglio alla finestra non cambiano: devono valere anche lì.
-  ok(ultima === "20261025100000_export_presenze_minuti_contati.sql", `${fn}: l'ultima definizione è quella dei minuti contati`, ultima);
+  // RIESAMINATA il 26/10: la viva è ora quella delle ore riconosciute, che
+  // tiene i minuti contati e aggiunge una colonna. Le proprietà qui sotto
+  // devono valere anche lì.
+  ok(ultima === "20261026100000_durata_vera_ore_riconosciute.sql", `${fn}: l'ultima definizione è quella delle ore riconosciute`, ultima);
   const sql = senzaCommentiSql(readFileSync(join(DIR, ultima), "utf8"));
   const corpo = fettaOppureRosso(sql, { nome: `create function public.${fn}(` }, null, `definizione di ${fn}`);
   // Fino alla prima chiusura del corpo: le funzioni sono due nello stesso file.
@@ -254,7 +263,9 @@ for (const fn of ["esporta_presenze_admin", "esporta_presenze_scuola"]) {
 // ─────────────────────────────────────────────────────────────────────────────
 console.log("\n§1c — «non calcolabile» e non una cella vuota; la media oltre il 100 si spiega\n");
 
-const exportP = caricaModulo("lib/eventi/exportPresenze.ts", daFormato);
+// 26/10: exportPresenze importa anche orePcto (le ore riconosciute nel CSV).
+const orePcto = caricaModulo("lib/eventi/orePcto.ts", daFormato);
+const exportP = caricaModulo("lib/eventi/exportPresenze.ts", (n) => (n === "@/lib/eventi/orePcto" ? orePcto : daFormato(n)));
 ok(
   exportP.minutiPerExport({ minuti_presenza: null, primo_ping: "2026-10-04T17:00:00Z" }) === "non calcolabile",
   "collegato, ma l'incontro non ha una fine → «non calcolabile», non vuoto",

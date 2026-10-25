@@ -62,16 +62,19 @@ insert into public.institution_profiles (user_id, istituzione_id) values
   ('11111111-0000-0000-0000-000000000002', 'aaaaaaaa-0000-0000-0000-000000000002');
 
 -- EV_A — finita, con un'area: due iscritti, uno sopra soglia e uno sotto.
---   dura 10 minuti → ping_attesi 10 → soglia 0,75 → servono 8 ping.
+--   dura 20 minuti → ping_attesi 20 → soglia 0,75 → servono 15 ping.
+--   ⚠️ RIESAMINATA il 26/10: durava 10 minuti, e dal 26/10 sotto i 20 minuti
+--   non si certifica nessuno (`minuti_minimi_certificazione`) — la proprietà 2
+--   diventava rossa per la regola nuova, non per la chiusura.
 -- EV_C — finita, per la chiusura dell'admin.
 -- EV_B — ancora in corso.
 -- EV_D — bozza, per la policy.
 insert into public.eventi (id, titolo, descrizione, tipo, organizzatore_id, data_inizio, data_fine, stato, pubblico,
                            hosting_diretta, youtube_video_id, incorporamento_sonda) values
   ('e0000000-0000-0000-0000-0000000000aa', 'Finita', 'x', 'webinar', 'aaaaaaaa-0000-0000-0000-000000000001',
-   now() - interval '1 hour', now() - interval '50 minutes', 'approvato', 'studenti', 'kireo', 'abcdefghijk', 'attivo'),
+   now() - interval '1 hour 10 minutes', now() - interval '50 minutes', 'approvato', 'studenti', 'kireo', 'abcdefghijk', 'attivo'),
   ('e0000000-0000-0000-0000-0000000000cc', 'Finita due', 'x', 'webinar', 'aaaaaaaa-0000-0000-0000-000000000001',
-   now() - interval '1 hour', now() - interval '50 minutes', 'approvato', 'studenti', 'kireo', 'abcdefghijk', 'attivo'),
+   now() - interval '1 hour 10 minutes', now() - interval '50 minutes', 'approvato', 'studenti', 'kireo', 'abcdefghijk', 'attivo'),
   ('e0000000-0000-0000-0000-0000000000bb', 'In corso', 'x', 'webinar', 'aaaaaaaa-0000-0000-0000-000000000001',
    now() - interval '3 minutes', now() + interval '7 minutes', 'approvato', 'studenti', 'kireo', 'abcdefghijk', 'attivo'),
   ('e0000000-0000-0000-0000-0000000000dd', 'Bozza', 'x', 'webinar', 'aaaaaaaa-0000-0000-0000-000000000001',
@@ -87,9 +90,9 @@ insert into public.iscrizioni_eventi (evento_id, student_id, iscritto_da) values
   ('e0000000-0000-0000-0000-0000000000cc', '22222222-0000-0000-0000-000000000001', '22222222-0000-0000-0000-000000000001');
 
 insert into public.presenze_live (evento_id, user_id, ping_totali) values
-  ('e0000000-0000-0000-0000-0000000000aa', '22222222-0000-0000-0000-000000000001', 10),  -- sopra soglia
+  ('e0000000-0000-0000-0000-0000000000aa', '22222222-0000-0000-0000-000000000001', 20),  -- sopra soglia
   ('e0000000-0000-0000-0000-0000000000aa', '22222222-0000-0000-0000-000000000002', 3),   -- sotto
-  ('e0000000-0000-0000-0000-0000000000cc', '22222222-0000-0000-0000-000000000001', 10);
+  ('e0000000-0000-0000-0000-0000000000cc', '22222222-0000-0000-0000-000000000001', 20);
 
 -- =================================================================
 -- §1 — LA TRACCIA
@@ -265,23 +268,24 @@ begin
     v_errore = 'permission denied');
 end $$;
 
--- 10) `evento_ancora_in_corso` resta: non si chiude una diretta che non è
---     ancora finita. ⚠️ È anche la ragione per cui `diretta_chiusa_il` NON è
---     la fine vera della trasmissione, cioè per cui il denominatore resta una
---     domanda aperta.
+-- 10) RISCRITTA il 26/10: una diretta IN CORSO ora si chiude (la chiusura
+--     anticipata è la fonte della durata vera, `20261026100000`); quello che
+--     resta vietato è chiudere PRIMA DELL'INIZIO. Prima diceva
+--     `evento_ancora_in_corso` su EV_B, che oggi sarebbe il comportamento
+--     sbagliato.
 do $$
 declare v_errore text := 'nessuno';
 begin
   set local role authenticated;
   perform set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-000000000001', true);
   begin
-    perform public.chiudi_diretta_evento('e0000000-0000-0000-0000-0000000000bb');
+    perform public.chiudi_diretta_evento('e0000000-0000-0000-0000-0000000000dd');
   exception when others then v_errore := sqlerrm;
   end;
   perform set_config('request.jwt.claim.sub', '', true);
   reset role;
-  insert into esiti values (10, 'una diretta ancora in corso non si chiude', 'evento_ancora_in_corso', v_errore,
-    v_errore = 'evento_ancora_in_corso');
+  insert into esiti values (10, 'una diretta non ancora cominciata non si chiude', 'evento_non_iniziato', v_errore,
+    v_errore = 'evento_non_iniziato');
 end $$;
 
 -- =================================================================

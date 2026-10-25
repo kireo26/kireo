@@ -64,10 +64,12 @@ begin
 
   -- DUE iscritti e UNO partecipato sull'evento A: sono i numeri che non devono
   -- muoversi quando arrivano le risposte.
-  insert into public.iscrizioni_eventi (evento_id, student_id, stato) values
-    ('a3333333-0000-0000-0000-00000000000a', 'a1111111-0000-0000-0000-000000000003', 'iscritto'),
-    ('a3333333-0000-0000-0000-00000000000a', 'a1111111-0000-0000-0000-000000000004', 'partecipato'),
-    ('a3333333-0000-0000-0000-00000000000b', 'a1111111-0000-0000-0000-000000000003', 'iscritto');
+  -- (26/10: la riga partecipata porta le sue ore emesse, vedi il vincolo
+  -- `iscrizioni_ore_riconosciute_con_partecipazione`.)
+  insert into public.iscrizioni_eventi (evento_id, student_id, stato, ore_riconosciute) values
+    ('a3333333-0000-0000-0000-00000000000a', 'a1111111-0000-0000-0000-000000000003', 'iscritto', null),
+    ('a3333333-0000-0000-0000-00000000000a', 'a1111111-0000-0000-0000-000000000004', 'partecipato', 1),
+    ('a3333333-0000-0000-0000-00000000000b', 'a1111111-0000-0000-0000-000000000003', 'iscritto', null);
 
   insert into public.presenze_live (evento_id, user_id, ping_totali) values
     ('a3333333-0000-0000-0000-00000000000a', 'a1111111-0000-0000-0000-000000000003', 60),

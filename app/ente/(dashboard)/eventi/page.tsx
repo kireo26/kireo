@@ -30,7 +30,7 @@ export default async function EnteEventiPage({ searchParams }: { searchParams: P
     supabase
       .from("eventi")
       .select(
-        "id, titolo, tipo, data_inizio, data_fine, stato, in_evidenza, pubblico, filone, hosting_diretta, youtube_video_id, domanda_consegna, diretta_chiusa_il, diretta_chiusa_da_tipo, diretta_chiusa_presenti, diretta_chiusa_certificati",
+        "id, titolo, tipo, data_inizio, data_fine, stato, in_evidenza, pubblico, filone, hosting_diretta, youtube_video_id, domanda_consegna, diretta_chiusa_il, diretta_chiusa_da_tipo, diretta_chiusa_presenti, diretta_chiusa_certificati, diretta_durata_minuti",
       )
       .eq("organizzatore_id", contesto.istituzioneId)
       .order("created_at", { ascending: false }),
@@ -193,6 +193,7 @@ export default async function EnteEventiPage({ searchParams }: { searchParams: P
                           chiusaDaTipo={e.diretta_chiusa_da_tipo}
                           chiusaPresenti={e.diretta_chiusa_presenti}
                           chiusaCertificati={e.diretta_chiusa_certificati}
+                    chiusaDurata={e.diretta_durata_minuti}
                           youtubeVideoId={e.youtube_video_id}
                         />
                         <div className="mt-3">

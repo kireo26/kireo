@@ -7,6 +7,8 @@ import {
   INTESTAZIONE_MINUTI_CONTATI,
   certificataDaPerExport,
   esitoPresenzaPerExport,
+  INTESTAZIONE_ORE_RICONOSCIUTE,
+  oreRiconosciutePerExport,
   istantePerExport,
   minutiContatiPerExport,
   minutiPerExport,
@@ -76,7 +78,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const perDocenti = evento.pubblico === "docenti";
   const chiusa = Boolean(evento.diretta_chiusa_il);
   const intestazioni = perDocenti
-    ? ["Nome", "Cognome", "Email", INTESTAZIONE_MINUTI_CONTATI, INTESTAZIONE_DISTANZA, "Copertura %", INTESTAZIONE_ESITO, "Attestato emesso", "Codice attestato"]
+    ? ["Nome", "Cognome", "Email", INTESTAZIONE_MINUTI_CONTATI, INTESTAZIONE_DISTANZA, "Copertura %", INTESTAZIONE_ESITO, INTESTAZIONE_ORE_RICONOSCIUTE, "Attestato emesso", "Codice attestato"]
     : [
         "Nome",
         "Cognome",
@@ -90,6 +92,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         INTESTAZIONE_DISTANZA,
         "Copertura %",
         INTESTAZIONE_ESITO,
+        INTESTAZIONE_ORE_RICONOSCIUTE,
         "Certificata da",
         "Certificata da (nome)",
       ];
@@ -112,9 +115,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       certificata_da_nome: string | null;
       attestato_emesso: boolean;
       attestato_codice: string | null;
+      ore_riconosciute?: number | string | null;
     }) =>
       perDocenti
-        ? [r.nome, r.cognome, r.email, minutiContatiPerExport(r), minutiPerExport(r), r.copertura_percento, esitoPresenzaPerExport(r, chiusa), r.attestato_emesso ? "Sì" : "No", r.attestato_codice]
+        ? [r.nome, r.cognome, r.email, minutiContatiPerExport(r), minutiPerExport(r), r.copertura_percento, esitoPresenzaPerExport(r, chiusa), oreRiconosciutePerExport(r, chiusa), r.attestato_emesso ? "Sì" : "No", r.attestato_codice]
         : [
             r.nome,
             r.cognome,
@@ -128,6 +132,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             minutiPerExport(r),
             r.copertura_percento,
             esitoPresenzaPerExport(r, chiusa),
+            oreRiconosciutePerExport(r, chiusa),
             certificataDaPerExport(r.certificata_da_tipo),
             r.certificata_da_nome,
           ],

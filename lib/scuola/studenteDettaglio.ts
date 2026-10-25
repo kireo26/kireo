@@ -58,7 +58,7 @@ export async function getDettaglioStudente(
     supabase
       .from("iscrizioni_eventi")
       .select(
-        "evento_id, certificata_da_tipo, certificata_da_user, certificata_il, eventi(titolo, data_inizio, ore_pcto), profiles!certificata_da_user(nome, cognome)",
+        "evento_id, certificata_da_tipo, certificata_da_user, certificata_il, ore_riconosciute, eventi(titolo, data_inizio), profiles!certificata_da_user(nome, cognome)",
       )
       .eq("student_id", studentId)
       .eq("stato", "partecipato")
@@ -79,7 +79,8 @@ export async function getDettaglioStudente(
       eventoId: riga.evento_id,
       titolo: evento?.titolo ?? "Evento",
       dataInizio: evento?.data_inizio ?? "",
-      orePcto: Number(evento?.ore_pcto ?? 0),
+      // Le ore EMESSE alla certificazione (26/10), non quelle dichiarate sull'evento.
+      orePcto: Number(riga.ore_riconosciute ?? 0),
       certificataDaTipo: riga.certificata_da_tipo,
       certificataIl: riga.certificata_il,
       certificataDaNome: nomeCertificatore || null,

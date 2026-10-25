@@ -163,7 +163,8 @@ console.log("\n§4 — il riquadro semplice non conta come video partito (Mario,
   ok(/\{ripiego && \(/.test(pannello) && /\{TESTO_RIPIEGO\}/.test(pannello), "lo studente nel ripiego legge la frase");
   // RIESAMINATA il 25/10 sera: la condizione ha guadagnato `!videoFinito` in testa;
   // la proprietà (il contatore non compare nel ripiego) non cambia.
-  ok(/\{!videoFinito && !ripiego && !sessionePersa && !nonLetto && inDiretta && necessari !== null/.test(pannello), "…al posto del contatore, che direbbe «finché il video non si vede» (qui falso: si vede, non sappiamo se è partito)");
+  // e il 26/10 `!chiusaDaOrganizzatore` (la diretta chiusa in anticipo).
+  ok(/\{!videoFinito && !ripiego && !sessionePersa && !chiusaDaOrganizzatore && !nonLetto && inDiretta && necessari !== null/.test(pannello), "…al posto del contatore, che direbbe «finché il video non si vede» (qui falso: si vede, non sappiamo se è partito)");
   ok(trovaAccordi(P.TESTO_RIPIEGO).length === 0, "il testo non concorda col genere di chi legge");
   // Il ripiego non accende la presenza per nessuna strada: `avviato` resta falso.
   ok(!P.presenzaConta({ inDiretta: true, videoRotto: false, avviato: false, finito: false, pausaLunga: false }), "senza avvio la presenza non conta — ed è l'unica cosa che il ripiego lascia");

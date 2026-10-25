@@ -4,6 +4,7 @@
 
 import { formattaDataOra, formattaIstante, formattaOra } from "@/lib/formato";
 import type { SezioneCsv } from "@/lib/csv";
+import { numeroOre } from "@/lib/eventi/orePcto";
 
 /**
  * ⚠️ ZERO E NON UNA CELLA VUOTA per chi non si è mai collegato (Mario,
@@ -209,4 +210,20 @@ export function sezioniReportEnte(
       seNonCeNiente: testoDistribuzioneVuota(presenti),
     },
   ];
+}
+
+// ⚠️ LE ORE RICONOSCIUTE, una per riga (26/10). Fino ad allora il file che serve
+// a riconoscere le ore non diceva quante fossero. Sono quelle EMESSE alla
+// certificazione (`iscrizioni_eventi.ore_riconosciute`), mai le dichiarate.
+// Chi non è certificato su una diretta chiusa ha 0 ore, ed è un fatto; su una
+// diretta non ancora chiusa la cella resta vuota, perché non è ancora deciso.
+export const INTESTAZIONE_ORE_RICONOSCIUTE = "Ore riconosciute";
+export function oreRiconosciutePerExport(
+  riga: { stato_finale: string; ore_riconosciute?: number | string | null },
+  chiusa: boolean,
+): string {
+  if (riga.stato_finale === "partecipato" && riga.ore_riconosciute !== null && riga.ore_riconosciute !== undefined) {
+    return numeroOre(riga.ore_riconosciute);
+  }
+  return chiusa ? "0" : "";
 }

@@ -58,10 +58,13 @@ export function useHeartbeatDiretta(eventoId: string, attivo: boolean): EsitoBat
       }
       if (annullato) return;
       const e = esitoBattito(status, corpo);
-      if (e !== "ok") console.error("useHeartbeatDiretta: battito non accettato", e, status, corpo);
+      if (e !== "ok" && e !== "chiusa") console.error("useHeartbeatDiretta: battito non accettato", e, status, corpo);
       setEsito(e);
+      // Una diretta chiusa non riapre: battere ancora sarebbe solo rumore.
+      if (e === "chiusa") clearInterval(intervallo);
     }
 
+    // `ping` legge `intervallo` solo dopo un `await`, quando è già assegnato.
     ping();
     const intervallo = setInterval(ping, 60000);
 

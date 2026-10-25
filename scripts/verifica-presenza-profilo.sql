@@ -56,11 +56,13 @@ insert into public.eventi_aree (evento_id, area_slug)
   values ('cc000000-0000-0000-0000-00000000000a', 'informatica-digitale');
 
 -- Evento B, stessa area, stesso giorno: serve al §C.
+-- ⚠️ RIESAMINATA il 26/10: durava 10 minuti, e sotto i 20 non si certifica
+-- nessuno — la 18-20 diventavano rosse per la regola nuova, non per il cap.
 insert into public.eventi (id, titolo, descrizione, tipo, organizzatore_id, stato, pubblico,
                            data_inizio, data_fine, ore_pcto)
   values ('cc000000-0000-0000-0000-00000000000b', 'Webinar B', 'x', 'webinar',
           'bb000000-0000-0000-0000-000000000001', 'approvato', 'studenti',
-          now() - interval '80 minutes', now() - interval '70 minutes', 2);
+          now() - interval '90 minutes', now() - interval '70 minutes', 2);
 insert into public.eventi_aree (evento_id, area_slug)
   values ('cc000000-0000-0000-0000-00000000000b', 'informatica-digitale');
 
@@ -169,9 +171,11 @@ end $$;
 --     cancella: senza questo, cancellare e reinserire rimette lo studente
 --     nell'insieme che chiudi_diretta_evento certifica, e la seconda chiusura
 --     scrive una seconda prova).
-insert into public.iscrizioni_eventi (student_id, evento_id, stato, certificata_da_tipo, certificata_il)
+-- (26/10: una riga certificata porta le sue ore emesse — vincolo
+-- `iscrizioni_ore_riconosciute_con_partecipazione`.)
+insert into public.iscrizioni_eventi (student_id, evento_id, stato, certificata_da_tipo, certificata_il, ore_riconosciute)
   values ('aa000000-0000-0000-0000-00000000000b', 'cc000000-0000-0000-0000-00000000000e',
-          'partecipato', 'sistema', now());
+          'partecipato', 'sistema', now(), 1);
 do $$
 declare v_restata boolean;
 begin
@@ -296,7 +300,7 @@ end $$;
 insert into public.iscrizioni_eventi (student_id, evento_id)
   values ('aa000000-0000-0000-0000-00000000000a', 'cc000000-0000-0000-0000-00000000000b');
 insert into public.presenze_live (evento_id, user_id, ping_totali)
-  values ('cc000000-0000-0000-0000-00000000000b', 'aa000000-0000-0000-0000-00000000000a', 10);
+  values ('cc000000-0000-0000-0000-00000000000b', 'aa000000-0000-0000-0000-00000000000a', 20);
 
 do $$
 declare v_righe integer; v_guasti integer; v_dett text;

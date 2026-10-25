@@ -9,6 +9,7 @@ import {
   faseContatore,
   chiusuraDisponibile,
   testoChiusuraNonAncora,
+  testoConfermaChiusura,
   testoPrimaDellaDiretta,
   statoChiusura,
   testoEsitoChiusura,
@@ -57,6 +58,7 @@ export default function ControlloDirettaEvento({
   chiusaDaTipo = null,
   chiusaPresenti = null,
   chiusaCertificati = null,
+  chiusaDurata = null,
   youtubeVideoId = null,
 }: {
   eventoId: string;
@@ -71,14 +73,19 @@ export default function ControlloDirettaEvento({
   /** La ricevuta: i due numeri che la chiusura ha prodotto, riletti dopo un F5. */
   chiusaPresenti?: number | null;
   chiusaCertificati?: number | null;
+  /** Dal 26/10 la ricevuta porta la durata vera, che è lei a dichiarare. */
+  chiusaDurata?: number | null;
 }) {
   const [presenti, setPresenti] = useState<number | null>(null);
   const [domande, setDomande] = useState<Domanda[]>([]);
   const [caricamento, setCaricamento] = useState(false);
   const [erroreChiusura, setErroreChiusura] = useState<string | null>(null);
   const [esitoChiusura, setEsitoChiusura] = useState<EsitoChiusura | null>(null);
+  // ⚠️ DAL 26/10 IL BOTTONE PUÒ CHIUDERE IN ANTICIPO, cioè fissare la durata di
+  // tutti: un primo clic apre la conferma con i numeri, il secondo chiude.
+  const [inConferma, setInConferma] = useState(false);
   const [chiusura, setChiusura] = useState<StatoChiusura>(
-    statoChiusura({ chiusaIl, chiusaDaTipo, presenti: chiusaPresenti, certificati: chiusaCertificati }),
+    statoChiusura({ chiusaIl, chiusaDaTipo, presenti: chiusaPresenti, certificati: chiusaCertificati, durata: chiusaDurata }),
   );
   // L'ora sta nello STATO e non si legge nel render: `new Date()` dentro un
   // render è impuro (lo dice `react-hooks/purity`, e lo ha già detto su
@@ -122,7 +129,7 @@ export default function ControlloDirettaEvento({
         supabase.rpc("domande_live_organizzatore", { p_evento_id: eventoId }),
         supabase
           .from("eventi")
-          .select("diretta_chiusa_il, diretta_chiusa_da_tipo, diretta_chiusa_presenti, diretta_chiusa_certificati")
+          .select("diretta_chiusa_il, diretta_chiusa_da_tipo, diretta_chiusa_presenti, diretta_chiusa_certificati, diretta_durata_minuti")
           .eq("id", eventoId)
           .maybeSingle(),
       ]);
@@ -143,6 +150,7 @@ export default function ControlloDirettaEvento({
             // 12, certificazioni 9».
             presenti: ev.diretta_chiusa_presenti,
             certificati: ev.diretta_chiusa_certificati,
+            durata: ev.diretta_durata_minuti,
           }),
         );
       // ⚠️ BASTA UNO DEI TRE PER DIRE CHE IL GIRO NON È ANDATO: i numeri a
@@ -237,8 +245,8 @@ export default function ControlloDirettaEvento({
       const { data, error } = await supabase.rpc("chiudi_diretta_evento", { p_evento_id: eventoId });
       const riga = Array.isArray(data) ? data[0] : data;
       if (error || !riga) {
-        if (error?.message?.includes("evento_ancora_in_corso")) {
-          setErroreChiusura("L'evento non è ancora terminato: puoi chiudere la diretta solo dopo l'orario di fine.");
+        if (error?.message?.includes("evento_non_iniziato")) {
+          setErroreChiusura("La diretta non è ancora cominciata: si può chiudere da quando comincia.");
         } else if (error?.message?.includes("evento_senza_data_fine")) {
           setErroreChiusura("Questo evento non ha una data di fine impostata: impossibile calcolare le presenze.");
         } else {
@@ -252,7 +260,7 @@ export default function ControlloDirettaEvento({
       setEsitoChiusura(
         riga.gia_chiusa_il
           ? { tipo: "gia_chiusa", presenti: riga.presenti, quando: riga.gia_chiusa_il }
-          : { tipo: "chiusa", presenti: riga.presenti, certificati: riga.certificati },
+          : { tipo: "chiusa", presenti: riga.presenti, certificati: riga.certificati, durataMinuti: riga.durata_minuti },
       );
       aggiorna();
     } finally {
@@ -375,17 +383,31 @@ export default function ControlloDirettaEvento({
         <p className="rounded-lg border border-white/10 bg-kireo-dark px-4 py-3 text-sm text-kireo-light/90">
           {testoStatoChiusura(chiusura)}
         </p>
-      ) : !chiusuraDisponibile(fase) ? (
-        // Prima della fine il bottone non c'è: il database lo rifiuterebbe
-        // (`evento_ancora_in_corso`). Vedi `chiusuraDisponibile`.
-        <p className="text-xs text-kireo-muted">{testoChiusuraNonAncora(dataFine, ora)}</p>
+      ) : !chiusuraDisponibile(fase, dataFine) || !dataFine ? (
+        // Prima dell'inizio il bottone non c'è: il database lo rifiuterebbe
+        // (`evento_non_iniziato`). Vedi `chiusuraDisponibile`.
+        <p className="text-xs text-kireo-muted">{testoChiusuraNonAncora(dataInizio, dataFine, ora)}</p>
+      ) : inConferma ? (
+        // La conferma si ricalcola con l'orologio della pagina: il numero che
+        // mostra è quello che il clic fissa (vedi `durataSeChiusaAdesso`).
+        <div className="rounded-lg border border-kireo-orange/40 bg-kireo-orange/10 px-4 py-3">
+          {avvisoTardivo && <p className="mb-2 text-sm text-kireo-orange">{avvisoTardivo}</p>}
+          <p className="text-sm text-kireo-light">{testoConfermaChiusura(dataInizio, dataFine, ora)}</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button type="button" variant="outline" onClick={chiudiDiretta} disabled={caricamento}>
+              {caricamento ? "Chiusura…" : "Chiudi la diretta"}
+            </Button>
+            <Button type="button" variant="outline" onClick={() => setInConferma(false)} disabled={caricamento}>
+              Annulla
+            </Button>
+          </div>
+          {erroreChiusura && <p className="mt-2 text-xs text-red-400">{erroreChiusura}</p>}
+        </div>
       ) : (
         <div>
-          {avvisoTardivo && <p className="mb-2 text-sm text-kireo-orange">{avvisoTardivo}</p>}
-          <Button type="button" variant="outline" onClick={chiudiDiretta} disabled={caricamento}>
-            {caricamento ? "Chiusura…" : "Concludi diretta e certifica presenze"}
+          <Button type="button" variant="outline" onClick={() => setInConferma(true)}>
+            Concludi diretta e certifica presenze
           </Button>
-          {erroreChiusura && <p className="mt-2 text-xs text-red-400">{erroreChiusura}</p>}
         </div>
       )}
 
