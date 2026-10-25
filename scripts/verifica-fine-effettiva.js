@@ -221,6 +221,39 @@ ok(L.fineEffettiva(INIZIO, null, null) === L.fineDiretta(INIZIO, null), "senza d
   ok(sez.righe.some((r) => r[0] === "Certificazioni automatiche"), "il report vero (`sezioniReportEnte`) porta le righe della chiusura");
 }
 
+// LA PORTA DELLA CONSEGNA, eseguita: una controprova lessicale non la prendeva
+// (il file legge comunque la chiusura). `statoPortaConsegna` guarda l'orologio
+// vero, quindi le date stanno intorno ad adesso; il client finto risponde a tutte
+// e quattro le letture come se lo studente avesse i requisiti.
+async function provaPorta() {
+  const { statoPortaConsegna } = require("@/lib/eventi/portaConsegna");
+  const adesso = Date.now();
+  const iso = (ms) => new Date(adesso + ms).toISOString();
+  const riga = (data) => ({ data, error: null });
+  const finto = {
+    from: (t) => {
+      const q = {
+        select: () => q,
+        eq: () => q,
+        maybeSingle: async () => riga(t === "consegne_evento" ? null : { id: "x" }),
+        then: (ok) => ok(riga([{ area_slug: "informatica-digitale" }])),
+      };
+      return q;
+    },
+  };
+  const ev = {
+    id: "e",
+    domanda_consegna: "Che vincolo hai scelto e chi lo paga?",
+    data_inizio: iso(-25 * 60000),
+    data_fine: iso(35 * 60000),
+    diretta_chiusa_il: iso(-60000),
+  };
+  const p = await statoPortaConsegna(finto, ev, "u");
+  ok(p.motivo === "aperta", "chiusa un minuto fa, programmata fino a fra 35: la porta della consegna è APERTA", p.motivo);
+  const pNonChiusa = await statoPortaConsegna(finto, { ...ev, diretta_chiusa_il: null }, "u");
+  ok(pNonChiusa.motivo === "diretta_non_finita", "…mentre la stessa diretta non chiusa non è ancora finita", pNonChiusa.motivo);
+}
+
 console.log("\n§5 — il CSV: «non misurata» dove non c'era niente da misurare, e i decimali d'accordo fra loro\n");
 {
   const E = require("@/lib/eventi/exportPresenze");
@@ -243,5 +276,7 @@ console.log("\n§5 — il CSV: «non misurata» dove non c'era niente da misurar
   ok(riga.every((c) => !String(c).includes(",")), "nella stessa riga nessun decimale ha la virgola", riga);
 }
 
-console.log(`\n${falliti === 0 ? "✅" : "❌"} ${fatte - falliti}/${fatte} proprietà\n`);
-process.exit(falliti === 0 ? 0 : 1);
+provaPorta().then(() => {
+  console.log(`\n${falliti === 0 ? "✅" : "❌"} ${fatte - falliti}/${fatte} proprietà\n`);
+  process.exit(falliti === 0 ? 0 : 1);
+});
