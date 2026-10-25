@@ -2931,6 +2931,13 @@ Mario ha chiesto di mandargli i casi, non di scriverli. Misurandoli è venuto fu
 - ⚠️ **Questa decisione rende più urgente una cosa, non meno**: con l'ente sul proprio canale le registrazioni restano sue (a Mario va bene: «peggio per lui che perde visibilità agli occhi dello studente»). Quindi **la sonda sulle registrazioni è la prima voce della biblioteca, non una rifinitura**: è l'unica cosa che ci dirà quando un video sparisce, invece di farcelo scoprire da uno studente — cioè quella che tiene in piedi la promessa «fruibili sempre».
 - ✅ **Fatto il 25/10 sera**: `20261027130000` applicata, merge e deploy (`main` = `ac68659`). **Prossimo passo**: al giro a schermo la lista di cinque, **in cima lo storico di un evento chiuso vero** — la prima volta che uno studente saprà com'è andata.
 
+## ⚠️ Un ramo solo: `claude/kireo-context-setup-zr4p23` (regola per ogni finestra nuova, 2026-10-25)
+> **Ogni finestra nuova nasce su un ramo suo. La prima cosa da chiedere è il permesso di spostarsi su `claude/kireo-context-setup-zr4p23`, prima di scrivere qualunque commit.**
+
+- **Perché**: Mario è l'unico che unisce su `main`, e il 25/10 l'ha fatto sei volte — ogni volta chiedendo da quale ramo. *Due rami vivi sullo stesso lavoro trasformano un comando in una domanda, e una domanda che si ripete prima o poi riceve la risposta sbagliata — di sera, dopo nove ore.*
+- **Il caso che l'ha fissata**: la finestra della sera del 25/10 è nata su `claude/amazing-carson-bqkl0y` e ci ha spinto due commit prima di chiedere. Recuperati con un fast-forward (il ramo di lavoro era fermo alla stessa base), e `amazing-carson-bqkl0y` cancellato. Se il ramo di lavoro fosse andato avanti nel frattempo, il recupero avrebbe richiesto una scelta invece di un comando.
+- **Come**: si chiede subito, si fa `git checkout` sul ramo di lavoro, e il ramo d'origine della finestra non riceve niente. Se un commit è già finito altrove, lo si porta sul ramo di lavoro con un fast-forward o un cherry-pick (mai un force-push), e si cancella l'altro ramo.
+
 ## Convenzioni
 - Commenti nel codice in italiano
 - Componenti riutilizzabili in /components
