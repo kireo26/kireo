@@ -273,6 +273,10 @@ ok(/console\.error\("\[admin\] chiavi_trasmissione:/.test(pagAdmin), "anche qui 
 
 const formChiave = senzaCommenti(leggi("components/admin/GestisciChiaveTrasmissioneForm.tsx"));
 ok(/imposta_chiave_trasmissione/.test(formChiave), "la scrittura passa dalla funzione, che avvisa nella stessa transazione");
+// ⚠️ Un indirizzo mai visto funzionare non si precompila (26/10): accanto, come
+// domanda aperta, e dentro il campo solo con un gesto.
+ok(/useState\(serverSalvato \?\? ""\)/.test(formChiave) && !/useState\(serverSalvato \?\? SERVER_YOUTUBE\)/.test(formChiave), "il server non verificato non è precompilato nel campo");
+ok(/onClick=\{\(\) => setServer\(SERVER_YOUTUBE\)\}/.test(formChiave), "…ed entra nel campo solo premendo «Usa questo»");
 // Il valore già impostato non si ri-legge in quel campo: ricaricarlo a
 // schermo a ogni apertura della coda admin lo esporrebbe senza che nessuno
 // l'abbia chiesto.

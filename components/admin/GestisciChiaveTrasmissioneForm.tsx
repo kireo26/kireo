@@ -34,11 +34,16 @@ function motivo(messaggio: string): string {
 //
 // IL SERVER VA SALVATO INSIEME ALLA CHIAVE (25/10): fino ad allora la tabella
 // non aveva dove tenerlo, e una chiave senza l'indirizzo a cui mandarla non
-// trasmette. Il server non è un segreto, quindi si rilegge e precompila il
-// campo. Se non c'è ancora, si propone l'indirizzo d'ingest predefinito di
-// YouTube (`SERVER_YOUTUBE`): è quello che Studio mostra accanto alla chiave
-// per la maggior parte delle dirette, e l'admin lo deve CONFRONTARE con quello
-// di Studio prima di salvare, non darlo per buono.
+// trasmette. Il server non è un segreto, quindi si rilegge se c'è.
+//
+// ⚠️ SE NON C'È, IL CAMPO RESTA VUOTO (26/10). Fino a oggi si precompilava con
+// `SERVER_YOUTUBE`, un indirizzo che NESSUNO HA MAI VISTO FUNZIONARE su una
+// trasmissione vera. Un valore precompilato è una risposta già data: un admin
+// di fretta salva, e se è sbagliato lo scopre l'ente il giorno della diretta.
+// Un suggerimento accanto al campo è una domanda che resta aperta. Il pulsante
+// «Usa questo» c'è, ma è un gesto: chi lo preme l'ha letto. Si torna a
+// precompilare il giorno in cui una diretta vera è andata in onda con questo
+// indirizzo — e lo si scrive qui con la data.
 const SERVER_YOUTUBE = "rtmp://a.rtmp.youtube.com/live2";
 
 export default function GestisciChiaveTrasmissioneForm({
@@ -52,7 +57,7 @@ export default function GestisciChiaveTrasmissioneForm({
 }) {
   const router = useRouter();
   const [chiave, setChiave] = useState("");
-  const [server, setServer] = useState(serverSalvato ?? SERVER_YOUTUBE);
+  const [server, setServer] = useState(serverSalvato ?? "");
   const [caricamento, setCaricamento] = useState(false);
   const [errore, setErrore] = useState<string | null>(null);
 
@@ -102,6 +107,15 @@ export default function GestisciChiaveTrasmissioneForm({
         aria-label="Indirizzo del server di trasmissione"
         className="w-full rounded-lg border border-white/10 bg-kireo-dark px-3 py-2 font-mono text-xs text-kireo-light placeholder:font-sans placeholder:text-kireo-muted focus:border-kireo-green focus:outline-none"
       />
+      {!server.trim() && (
+        <p className="text-xs text-kireo-muted">
+          Di solito YouTube Studio mostra <span className="font-mono">{SERVER_YOUTUBE}</span> — non ancora verificato su una
+          trasmissione vera: confrontalo con Studio.{" "}
+          <button type="button" onClick={() => setServer(SERVER_YOUTUBE)} className="text-kireo-orange underline underline-offset-2">
+            Usa questo
+          </button>
+        </p>
+      )}
       <div className="flex flex-wrap gap-2">
         <input
           value={chiave}
