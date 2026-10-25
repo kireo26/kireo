@@ -38,6 +38,26 @@
       "fonte": "Mario, 11/10: applicata nella versione di 3ad1bc1 (il file dopo ha solo commenti in più)"
     },
     {
+      "file": "20261018100000_incorporamento_non_verificato.sql",
+      "commit": "d7eb46b",
+      "fonte": "Mario, 25/10 sera: il vincolo eventi_diretta_proprio_coerente contiene «incorporamento_non_verificato»"
+    },
+    {
+      "file": "20261018110000_ore_due_decimali.sql",
+      "commit": "d4a1526",
+      "fonte": "Mario, 25/10 sera: eventi.ore_pcto è numeric(6,2)"
+    },
+    {
+      "file": "20261018120000_player_rotto_live.sql",
+      "commit": "d4a1526",
+      "fonte": "Mario, 25/10 sera: la tabella player_live_stato esiste"
+    },
+    {
+      "file": "20261018130000_sposta_finestra_evento.sql",
+      "commit": "d4a1526",
+      "fonte": "Mario, 25/10 sera: la funzione sposta_finestra_evento esiste"
+    },
+    {
       "file": "20261025100000_export_presenze_minuti_contati.sql",
       "commit": "fa0d1f7",
       "fonte": "Mario, giro del 25/10: «Migrazione 20261025100000 applicata»"
