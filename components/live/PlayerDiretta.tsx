@@ -93,6 +93,11 @@ export default function PlayerDiretta({
           host: HOST_NOCOOKIE,
           width: "100%",
           height: "100%",
+          // ⚠️ `rel: 0` (25/10): a fine video YouTube proponeva video di
+          // terzi dentro la pagina di KIREO. Dal 2018 il parametro NON toglie
+          // i suggeriti: li restringe al canale che ha pubblicato il video. È
+          // il massimo che il player concede — la schermata finale resta.
+          playerVars: { rel: 0 },
           events: {
             onError: (e) => {
               errato = true;
@@ -128,7 +133,7 @@ export default function PlayerDiretta({
   if (ripiego) {
     return (
       <iframe
-        src={`${HOST_NOCOOKIE}/embed/${videoId}`}
+        src={`${HOST_NOCOOKIE}/embed/${videoId}?rel=0`}
         title={titolo}
         className="h-full w-full"
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"

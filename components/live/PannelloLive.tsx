@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { presenzaRilevabile, statoDiretta, testoAttesaDiretta } from "@/lib/live";
 import { useHeartbeatDiretta } from "@/lib/useHeartbeatDiretta";
 import BoxDomandeLive, { type Domanda } from "./BoxDomandeLive";
@@ -12,6 +13,11 @@ import { type EsitoSonda, presenzaDaContare, sondaBlocca, testoDirettaRotta } fr
 import {
   AVVISO_PLAYER,
   AVVISO_PLAYER_TELEFONO,
+  ETICHETTA_RIFAI_ACCESSO,
+  letturaPresenza,
+  TESTO_BATTITO_RIFIUTATO,
+  TESTO_CONTEGGIO_NON_LETTO,
+  TESTO_SESSIONE_PERSA,
   MS_MINIMO_ASSENZA,
   minutiNecessari,
   presenzaConta,
@@ -101,13 +107,26 @@ export default function PannelloLive({
       .catch((e) => console.error("PannelloLive: ripiego del player non registrato", e));
   }, [eventoId]);
   const contaLaPresenza = presenzaConta({ inDiretta, videoRotto: !presenzaDaContare(esitoPlayer), avviato });
-  useHeartbeatDiretta(eventoId, stato === "in_corso" && contaLaPresenza);
+  const battito = useHeartbeatDiretta(eventoId, stato === "in_corso" && contaLaPresenza);
+  // Un battito riuscito su questa pagina: da quel momento la riga di
+  // `presenze_live` esiste, e non vederla vuol dire non aver letto.
+  const battitoRiuscito = useRef(false);
+  useEffect(() => {
+    if (battito === "ok") battitoRiuscito.current = true;
+  }, [battito]);
+  const sessionePersa = battito === "sessione_persa";
+  const pathname = usePathname();
 
   // IL CONTATORE: lo studente vede a che punto è. La cosa che decide le sue ore
   // era invisibile proprio a lui. Legge la propria riga di `presenze_live`
   // (policy `select_own`); una lettura fallita lascia il valore di prima.
   const necessari = minutiNecessari(dataInizio, dataFine);
   const [contati, setContati] = useState<number | null>(null);
+  // ⚠️ 25/10: «Presente da 4 minuti» e poi «Presente da 0 minuti». Una lettura
+  // senza sessione restituisce zero righe senza errore, e la pagina scriveva
+  // zero. Ora il valore si tiene (non scende) e si dice che non abbiamo letto.
+  const [nonLetto, setNonLetto] = useState(false);
+  const contatiRef = useRef<number | null>(null);
   useEffect(() => {
     if (!inDiretta) return;
     let vivo = true;
@@ -120,7 +139,19 @@ export default function PannelloLive({
         .maybeSingle();
       if (!vivo) return;
       if (error) console.error("PannelloLive: lettura della propria presenza", error);
-      else setContati(data?.ping_totali ?? 0);
+      const l = letturaPresenza({
+        dato: data?.ping_totali ?? null,
+        errore: Boolean(error),
+        precedente: contatiRef.current,
+        battitoRiuscito: battitoRiuscito.current,
+      });
+      setNonLetto(l.tipo === "non_letto");
+      if (l.tipo === "non_letto") {
+        if (!error) console.error("PannelloLive: conteggio non leggibile (riga assente o in calo)", data, contatiRef.current);
+        return;
+      }
+      contatiRef.current = l.minuti;
+      setContati(l.minuti);
     };
     const primo = setTimeout(leggi, 2000);
     const intervallo = setInterval(leggi, 30000);
@@ -254,7 +285,7 @@ export default function PannelloLive({
             className={`h-2 w-2 rounded-full ${inDiretta ? "animate-pulse bg-red-500" : "bg-kireo-muted"}`}
           />{" "}
           {inDiretta ? "In diretta" : testoAttesaDiretta(dataInizio, ora)}
-          {contaLaPresenza && contati === null ? " · presenza in rilevamento" : ""}
+          {contaLaPresenza && !sessionePersa && contati === null ? " · presenza in rilevamento" : ""}
         </p>
         {/* Nel riquadro semplice il contatore direbbe «finché il video non si
             vede», che qui è falso: il video forse si vede, è il suo avvio che non
@@ -264,9 +295,33 @@ export default function PannelloLive({
             {TESTO_RIPIEGO}
           </p>
         )}
-        {!ripiego && inDiretta && necessari !== null && contati !== null && (
+        {/* LA SESSIONE PERSA viene prima di tutto: da qui nessun battito è
+            accettato, e il contatore direbbe una cosa che non sta più
+            succedendo. È l'unico caso con una cosa da fare. */}
+        {sessionePersa && (
+          <p className="mt-2 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-kireo-light" role="alert">
+            {TESTO_SESSIONE_PERSA}{" "}
+            <Link
+              href={`/accedi?redirectedFrom=${encodeURIComponent(pathname ?? hrefRitorno)}`}
+              className="text-kireo-orange underline underline-offset-2"
+            >
+              {ETICHETTA_RIFAI_ACCESSO}
+            </Link>
+          </p>
+        )}
+        {!sessionePersa && battito === "rifiutato" && (
+          <p className="mt-2 rounded-lg border border-kireo-orange/40 bg-kireo-orange/10 px-3 py-2 text-sm text-kireo-light" role="status">
+            {TESTO_BATTITO_RIFIUTATO}
+          </p>
+        )}
+        {!ripiego && !sessionePersa && inDiretta && necessari !== null && nonLetto && (
           <p className="mt-1 text-sm text-kireo-light/90" aria-live="polite">
-            {testoContatore(contati, necessari, contaLaPresenza)}
+            {TESTO_CONTEGGIO_NON_LETTO}
+          </p>
+        )}
+        {!ripiego && !sessionePersa && !nonLetto && inDiretta && necessari !== null && contati !== null && (
+          <p className="mt-1 text-sm text-kireo-light/90" aria-live="polite">
+            {testoContatore(contati, necessari, contaLaPresenza, avviato ? "video_non_visibile" : "non_avviato")}
           </p>
         )}
         {rientro && (

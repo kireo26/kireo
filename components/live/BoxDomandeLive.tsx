@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { causaRifiutoDomanda, TESTO_RIFIUTO_DOMANDA } from "@/lib/live/presenza";
 
 export type Domanda = { id: string; testo: string; stato: string; creata_il: string };
 
@@ -40,7 +41,11 @@ export default function BoxDomandeLive({ eventoId, userId, domandeIniziali }: { 
         } else if (error?.message?.includes("troppe_domande_evento")) {
           setErrore("Hai raggiunto il numero massimo di domande per questo evento.");
         } else {
-          setErrore("Non è stato possibile inviare la domanda. Riprova.");
+          // Tre cause, tre rimedi (25/10): la sessione si chiede al server,
+          // perché è proprio la cosa che il client può aver perso.
+          console.error("BoxDomandeLive: domanda non inviata", error);
+          const { data: utente } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
+          setErrore(TESTO_RIFIUTO_DOMANDA[causaRifiutoDomanda({ codice: error?.code ?? null, sessioneViva: Boolean(utente.user) })]);
         }
         return;
       }

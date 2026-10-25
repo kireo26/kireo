@@ -23,6 +23,7 @@ export type OpzioniPlayer = {
   videoId: string;
   width?: string;
   height?: string;
+  playerVars?: Record<string, string | number>;
   events?: {
     onReady?: () => void;
     onError?: (e: EventoPlayer) => void;

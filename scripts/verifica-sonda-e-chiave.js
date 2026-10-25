@@ -192,7 +192,7 @@ ok(
   "l'heartbeat si ferma quando il video non si vede",
 );
 ok(/presenzaDaContare\(esitoPlayer\)/.test(pannello), "…e la regola la decide `presenzaDaContare`, non una condizione riscritta qui");
-ok(/contaLaPresenza && contati === null \?/.test(pannello), "la riga «presenza in rilevamento» non dichiara un rilevamento che abbiamo fermato (e lascia il posto al contatore)");
+ok(/contaLaPresenza && !sessionePersa && contati === null \?/.test(pannello), "la riga «presenza in rilevamento» non dichiara un rilevamento che abbiamo fermato (e lascia il posto al contatore)");
 ok(/testoDirettaRotta\(segnalato\)/.test(pannello), "al posto del video compare il nostro testo, e dipende dall'esito della segnalazione");
 ok(/rpc\("segnala_player_live"/.test(pannello), "il player rotto si segnala alla console del moderatore (18/10)");
 ok(/setSegnalato\(!error\)/.test(pannello), "…e «stiamo segnalando» si accende solo se la segnalazione è riuscita");

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { esitoBattito, type EsitoBattito } from "@/lib/live/presenza";
 
 // Heartbeat ogni 60s verso /api/live/ping mentre la diretta è in corso e la
 // scheda è visibile (Page Visibility API): un ping saltato non è un errore
@@ -27,7 +28,14 @@ import { useEffect } from "react";
 // Quello che dalla diretta lascia un segno nel profilo è la CONSEGNA (la risposta
 // alla domanda posta in diretta): lib/eventi/consegna.ts, e la ragione per esteso
 // in testa a supabase/migrations/20260927120000_consegna_evento.sql.
-export function useHeartbeatDiretta(eventoId: string, attivo: boolean) {
+// ⚠️ DAL 25/10 LA RISPOSTA SI LEGGE. Fino ad allora un battito respinto (401,
+// sessione persa) era indistinguibile da uno riuscito: la pagina diceva «In
+// diretta» e il conteggio sul database si era fermato. L'hook restituisce
+// l'esito dell'ULTIMO battito, e la pagina lo dice allo studente. Il ciclo non
+// cambia: un `setInterval` che non dipende dall'esito dell'`await`, quindi un
+// battito che fallisce non ferma i successivi.
+export function useHeartbeatDiretta(eventoId: string, attivo: boolean): EsitoBattito | null {
+  const [esito, setEsito] = useState<EsitoBattito | null>(null);
   useEffect(() => {
     if (!attivo) return;
 
@@ -35,15 +43,23 @@ export function useHeartbeatDiretta(eventoId: string, attivo: boolean) {
 
     async function ping() {
       if (document.visibilityState !== "visible" || annullato) return;
+      let status: number | null = null;
+      let corpo: unknown = null;
       try {
-        await fetch("/api/live/ping", {
+        const r = await fetch("/api/live/ping", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ eventoId }),
         });
+        status = r.status;
+        corpo = await r.json().catch(() => null);
       } catch {
-        // silenzioso: vedi commento sopra.
+        // rete: il prossimo tentativo fra 60s.
       }
+      if (annullato) return;
+      const e = esitoBattito(status, corpo);
+      if (e !== "ok") console.error("useHeartbeatDiretta: battito non accettato", e, status, corpo);
+      setEsito(e);
     }
 
     ping();
@@ -54,4 +70,5 @@ export function useHeartbeatDiretta(eventoId: string, attivo: boolean) {
       clearInterval(intervallo);
     };
   }, [eventoId, attivo]);
+  return esito;
 }

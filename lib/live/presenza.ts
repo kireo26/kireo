@@ -49,12 +49,21 @@ export function statoContatore(contati: number, necessari: number, conta: boolea
 // falsa detta a uno studente, su un numero che finisce in un documento
 // scolastico. E «fermo» dice A QUANTO è fermo: un numero che non avanza si
 // nota, una parola no.
-export function testoContatore(contati: number, necessari: number, conta: boolean): string {
+// ⚠️ IL FERMO HA DUE CAUSE E DUE TESTI (25/10): il video non si vede, oppure si
+// vede e non è stato avviato. «Finché il video non si vede» detto a chi guarda la
+// miniatura del video era un testo giusto per lo stato accanto, riusato in questo
+// — e lo studente non capiva cosa gli si chiedesse. Il secondo è di Mario.
+// `causa` è obbligatorio di proposito: un default nasconderebbe il chiamante che
+// non lo passa, cioè il difetto di partenza.
+export type CausaFermo = "video_non_visibile" | "non_avviato";
+export function testoContatore(contati: number, necessari: number, conta: boolean, causa: CausaFermo): string {
   switch (statoContatore(contati, necessari, conta)) {
     case "raggiunta":
       return "Hai raggiunto la soglia di presenza. Le ore vengono riconosciute quando l'organizzatore chiude la diretta.";
     case "fermo":
-      return `Il conteggio è fermo a ${minuti(contati)}: finché il video non si vede, la presenza non avanza.`;
+      return causa === "non_avviato"
+        ? `Il conteggio è fermo a ${minuti(contati)}: la presenza comincia quando avvii il video.`
+        : `Il conteggio è fermo a ${minuti(contati)}: finché il video non si vede, la presenza non avanza.`;
     default:
       return `Presente da ${minuti(contati)}. Per il riconoscimento ${necessari === 1 ? "ne serve 1" : `ne servono ${necessari}`}.`;
   }
@@ -113,3 +122,70 @@ export const TESTO_RIPIEGO =
 export const AVVISO_PLAYER =
   "La presenza si conta mentre questa pagina resta aperta e in primo piano. Se apri YouTube o passi a un'altra app, il conteggio si ferma.";
 export const AVVISO_PLAYER_TELEFONO = "Anche «Guarda su YouTube», dentro il video, ti porta fuori da qui.";
+
+// ⚠️⚠️ IL BATTITO RESPINTO (25/10). Fino a oggi l'heartbeat buttava via la
+// risposta: un 401 — la sessione persa — e un 200 con `ok:false` — la funzione
+// che rifiuta — erano indistinguibili da un battito riuscito, e lo studente
+// continuava a leggere «In diretta» mentre le sue ore smettevano di esistere.
+// Il 25/10 la pagina diceva «Presente da 0 minuti» (cioè contava, lato pagina)
+// con i battiti fermi sul database: le richieste partivano ed erano respinte.
+// Quattro esiti, e `null` vuol dire «nessun battito ancora mandato».
+export type EsitoBattito = "ok" | "sessione_persa" | "rifiutato" | "rete";
+export function esitoBattito(status: number | null, corpo: unknown): EsitoBattito {
+  if (status === null) return "rete";
+  if (status === 401) return "sessione_persa";
+  const ok = typeof corpo === "object" && corpo !== null && (corpo as { ok?: unknown }).ok === true;
+  return status === 200 && ok ? "ok" : "rifiutato";
+}
+
+// ⚠️ IL CONTATORE NON SCENDE, E NON SCRIVE ZERO QUANDO NON HA LETTO (25/10).
+// `ping_totali` non diminuisce mai, quindi un valore più basso del precedente non
+// viene dalla presenza salvata; e una riga assente, dopo che un battito è
+// riuscito, non è «zero minuti»: è una lettura fatta senza sessione (la policy
+// `select_own` restituisce zero righe, senza errore). In tutti e due i casi si
+// dice che non abbiamo letto — zero è un'affermazione su uno studente, la
+// peggiore da fargli mentre sta guardando.
+export type LetturaPresenza = { tipo: "valore"; minuti: number } | { tipo: "non_letto" };
+export function letturaPresenza({
+  dato,
+  errore,
+  precedente,
+  battitoRiuscito,
+}: {
+  dato: number | null;
+  errore: boolean;
+  precedente: number | null;
+  battitoRiuscito: boolean;
+}): LetturaPresenza {
+  if (errore) return { tipo: "non_letto" };
+  if (dato === null) return battitoRiuscito || (precedente ?? 0) > 0 ? { tipo: "non_letto" } : { tipo: "valore", minuti: 0 };
+  if (precedente !== null && dato < precedente) return { tipo: "non_letto" };
+  return { tipo: "valore", minuti: dato };
+}
+
+// ⚠️ TESTI MIEI E PROVVISORI (25/10): Mario li scrive quando vede la forma.
+// Quando non abbiamo letto, il contatore non dice un numero.
+export const TESTO_CONTEGGIO_NON_LETTO = "In questo momento non riusciamo a leggere il tuo conteggio.";
+// La sessione persa: è l'unico caso in cui c'è una cosa da fare, e la pagina la
+// dice con il link per farla. Sostituisce il contatore, perché da qui in poi
+// nessun battito viene accettato.
+export const TESTO_SESSIONE_PERSA = "Il tuo accesso è scaduto: da questo momento la presenza non viene contata.";
+export const ETICHETTA_RIFAI_ACCESSO = "Rifai l'accesso e torna qui";
+// Il battito rifiutato senza sessione persa: non sappiamo dire perché, e lo diciamo.
+export const TESTO_BATTITO_RIFIUTATO = "La presenza in questo momento non viene registrata, e non dipende da te. Lascia la pagina aperta: riproviamo ogni minuto.";
+
+// LA DOMANDA RIFIUTATA (25/10): «Non è stato possibile inviare la domanda» copriva
+// tre cose con tre rimedi diversi. Testi miei e provvisori.
+export type CausaRifiutoDomanda = "sessione_persa" | "non_ammessa" | "guasto";
+export const TESTO_RIFIUTO_DOMANDA: Record<CausaRifiutoDomanda, string> = {
+  sessione_persa: "Il tuo accesso è scaduto, quindi la domanda non è arrivata. Rifai l'accesso e mandala di nuovo.",
+  non_ammessa: "Non possiamo accettare questa domanda: le domande si mandano mentre la diretta è aperta, e serve l'iscrizione all'incontro.",
+  guasto: "La domanda non è arrivata per un problema nostro, non tuo. Riprova fra un momento.",
+};
+// 42501 è la RLS che respinge l'insert: con la sessione viva vuol dire che la
+// policy non ammette la domanda; senza sessione, che la sessione è persa. Ogni
+// altro errore è nostro.
+export function causaRifiutoDomanda({ codice, sessioneViva }: { codice: string | null; sessioneViva: boolean }): CausaRifiutoDomanda {
+  if (!sessioneViva) return "sessione_persa";
+  return codice === "42501" ? "non_ammessa" : "guasto";
+}

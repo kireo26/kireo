@@ -153,7 +153,7 @@ ok(
   "…e nemmeno il pallino rosso che lampeggia lo dice (un segno fatto di solo colore è un segno in meno, ma un segno falso è peggio)",
 );
 ok(
-  /contaLaPresenza && contati === null \? " · presenza in rilevamento" : ""/.test(pannello),
+  /contaLaPresenza && !sessionePersa && contati === null \? " · presenza in rilevamento" : ""/.test(pannello),
   "il rilevamento si dichiara solo mentre c'è: la riga non promette un conteggio che abbiamo fermato",
 );
 

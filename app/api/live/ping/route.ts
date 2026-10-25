@@ -26,12 +26,22 @@ export async function POST(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (!user) {
+    // ⚠️ 25/10: la sessione persa durante una diretta. Il client ora lo dice
+    // allo studente; qui si lascia una riga, perché è il caso che il 25/10 ha
+    // fermato i battiti di due account e nessuno lo sapeva.
+    console.error("live/ping: battito senza sessione", body.eventoId);
     return NextResponse.json({ ok: false }, { status: 401 });
   }
 
   const { error } = await supabase.rpc("ping_presenza_live", { p_evento_id: body.eventoId });
 
   if (error) {
+    // Gli esiti attesi (non_iscritto, evento_non_in_corso) restano muti; ogni
+    // altro rifiuto si scrive — fino al 25/10 nessun battito respinto lasciava
+    // traccia, e un conteggio fermo non si poteva spiegare.
+    if (!/non_iscritto|evento_non_in_corso/.test(error.message ?? "")) {
+      console.error("live/ping: battito rifiutato", error.message, error.code, error.details);
+    }
     return NextResponse.json({ ok: false, motivo: error.message }, { status: 200 });
   }
 

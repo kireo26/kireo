@@ -107,11 +107,11 @@ console.log("\n§4 — la presenza comincia quando il video parte (18/10 sera)\n
   ok(P.minutiNecessari("2026-10-18T15:00:00Z", "2026-10-18T15:40:00Z") === 30, "40 minuti → 30 esatti (nessun arrotondamento spurio)");
   ok(P.minutiNecessari("2026-10-18T15:00:00Z", null) === null, "senza fine non si calcola");
 
-  ok(P.testoContatore(12, 34, true) === "Presente da 12 minuti. Per il riconoscimento ne servono 34.", "sotto soglia: il testo di Mario", P.testoContatore(12, 34, true));
-  ok(P.testoContatore(1, 1, true).startsWith("Hai raggiunto"), "alla soglia esatta: raggiunta");
-  ok(!/garant/i.test(P.testoContatore(40, 34, true)) && /chiude la diretta/.test(P.testoContatore(40, 34, true)), "raggiunta NON promette le ore: nomina la condizione che manca");
-  ok(P.testoContatore(12, 34, false) === "Il conteggio è fermo a 12 minuti: finché il video non si vede, la presenza non avanza.", "fermo: dice a quanto è fermo");
-  ok(/1 minuto\b/.test(P.testoContatore(1, 34, true)) && !/1 minuti/.test(P.testoContatore(1, 34, false)), "un minuto al singolare");
+  ok(P.testoContatore(12, 34, true, "non_avviato") === "Presente da 12 minuti. Per il riconoscimento ne servono 34.", "sotto soglia: il testo di Mario", P.testoContatore(12, 34, true, "non_avviato"));
+  ok(P.testoContatore(1, 1, true, "non_avviato").startsWith("Hai raggiunto"), "alla soglia esatta: raggiunta");
+  ok(!/garant/i.test(P.testoContatore(40, 34, true, "non_avviato")) && /chiude la diretta/.test(P.testoContatore(40, 34, true, "non_avviato")), "raggiunta NON promette le ore: nomina la condizione che manca");
+  ok(P.testoContatore(12, 34, false, "video_non_visibile") === "Il conteggio è fermo a 12 minuti: finché il video non si vede, la presenza non avanza.", "fermo: dice a quanto è fermo");
+  ok(/1 minuto\b/.test(P.testoContatore(1, 34, true, "non_avviato")) && !/1 minuti/.test(P.testoContatore(1, 34, false, "non_avviato")), "un minuto al singolare");
 
   ok(P.testoRientro({ minutiFuori: 0, direttaFinita: false, riprende: true }) === null, "sotto il minuto non si dice niente");
   const dentro = P.testoRientro({ minutiFuori: 6, direttaFinita: false, riprende: true });
@@ -122,17 +122,17 @@ console.log("\n§4 — la presenza comincia quando il video parte (18/10 sera)\n
 
   // ⚠️ Nessuna frase accordata al genere di chi legge (KIREO non lo sa).
   const tutti = [
-    P.testoContatore(12, 34, true), P.testoContatore(40, 34, true), P.testoContatore(12, 34, false),
+    P.testoContatore(12, 34, true, "non_avviato"), P.testoContatore(40, 34, true, "non_avviato"), P.testoContatore(12, 34, false, "video_non_visibile"), P.testoContatore(12, 34, false, "non_avviato"),
     dentro, finita, P.testoRientro({ minutiFuori: 1, direttaFinita: false, riprende: true }),
     P.AVVISO_PLAYER, P.AVVISO_PLAYER_TELEFONO,
   ];
   const accordi = tutti.flatMap((t) => trovaAccordi(t));
   ok(accordi.length === 0, "nessun participio accordato col genere di chi legge", accordi.join(", "));
-  ok(tutti.length === 8, "la lista dei testi controllati ne ha otto: sotto, il controllo non sta guardando");
+  ok(tutti.length === 9, "la lista dei testi controllati ne ha nove: sotto, il controllo non sta guardando");
 
   const pannello = leggi("components/live/PannelloLive.tsx");
   ok(/onAvvio=\{segnaAvvio\}/.test(pannello), "il pannello ascolta il primo avvio del video");
-  ok(/testoContatore\(contati, necessari, contaLaPresenza\)/.test(pannello), "lo studente vede il contatore");
+  ok(/testoContatore\(contati, necessari, contaLaPresenza, avviato \? "video_non_visibile" : "non_avviato"\)/.test(pannello), "lo studente vede il contatore");
   ok(/visibilitychange/.test(pannello) && /setRientro\(testoRientro/.test(pannello), "al rientro gli si dice cosa ha perso");
   ok(/\{AVVISO_PLAYER\}/.test(pannello) && /sm:hidden">\{AVVISO_PLAYER_TELEFONO\}/.test(pannello), "l'avviso sopra il player, e la riga in più solo sul telefono");
   const player = leggi("components/live/PlayerDiretta.tsx");
@@ -153,7 +153,7 @@ console.log("\n§4 — il riquadro semplice non conta come video partito (Mario,
   // …e la condizione senza cui la decisione non vale: dirlo, con la cosa da fare.
   ok(P.TESTO_RIPIEGO === "Non riusciamo a sapere se il video è partito, quindi la presenza non avanza. Ricarica la pagina — e se la stai guardando in una finestra in incognito, riaprila in una normale.", "il testo è quello di Mario, parola per parola");
   ok(/\{ripiego && \(/.test(pannello) && /\{TESTO_RIPIEGO\}/.test(pannello), "lo studente nel ripiego legge la frase");
-  ok(/\{!ripiego && inDiretta && necessari !== null/.test(pannello), "…al posto del contatore, che direbbe «finché il video non si vede» (qui falso: si vede, non sappiamo se è partito)");
+  ok(/\{!ripiego && !sessionePersa && !nonLetto && inDiretta && necessari !== null/.test(pannello), "…al posto del contatore, che direbbe «finché il video non si vede» (qui falso: si vede, non sappiamo se è partito)");
   ok(trovaAccordi(P.TESTO_RIPIEGO).length === 0, "il testo non concorda col genere di chi legge");
   // Il ripiego non accende la presenza per nessuna strada: `avviato` resta falso.
   ok(!P.presenzaConta({ inDiretta: true, videoRotto: false, avviato: false }), "senza avvio la presenza non conta — ed è l'unica cosa che il ripiego lascia");
@@ -203,6 +203,47 @@ console.log("\n§5 — «Iscriviti» torna mentre la diretta è in corso (Mario,
   ok(/setErrore\(true\)/.test(bottone), "un'iscrizione che non riesce lo dice, invece di lasciare di nuovo una card muta");
   const docente = leggi("components/docente/CardWebinarDocente.tsx");
   ok(/faseIscrizione\(/.test(docente) && /entraHref=\{hrefDiretta\}/.test(docente) && /fase === "prima"/.test(docente), "lo stesso nell'area docente (dove fino al 18/10 «Iscriviti» compariva anche su un webinar finito)");
+}
+
+
+console.log("\n§6 — il battito respinto e il contatore che scendeva (25/10)\n");
+{
+  ok(P.testoContatore(0, 34, false, "non_avviato") === "Il conteggio è fermo a 0 minuti: la presenza comincia quando avvii il video.", "non avviato: il testo di Mario, che non dice «finché il video non si vede» a chi lo vede");
+  ok(P.testoContatore(0, 34, false, "video_non_visibile") !== P.testoContatore(0, 34, false, "non_avviato"), "le due cause del fermo dicono due cose");
+  const pannelloV = leggi("components/live/PannelloLive.tsx");
+  ok(!/testoContatore\([^)]*\)/.test(pannelloV.replace(/testoContatore\(contati, necessari, contaLaPresenza, avviato \? "video_non_visibile" : "non_avviato"\)/, "")), "una sola chiamata, con la causa");
+  // Gli esiti del battito.
+  ok(P.esitoBattito(401, { ok: false }) === "sessione_persa", "401: sessione persa");
+  ok(P.esitoBattito(200, { ok: true }) === "ok", "200 ok:true: riuscito");
+  ok(P.esitoBattito(200, { ok: false, motivo: "x" }) === "rifiutato", "200 ok:false: rifiutato (prima era indistinguibile da un riuscito)");
+  ok(P.esitoBattito(500, null) === "rifiutato" && P.esitoBattito(200, null) === "rifiutato", "un corpo illeggibile non è un riuscito");
+  ok(P.esitoBattito(null, null) === "rete", "nessuna risposta: rete");
+  // La lettura: non scende, e non scrive zero quando non ha letto.
+  const L1 = (o) => P.letturaPresenza({ dato: null, errore: false, precedente: null, battitoRiuscito: false, ...o });
+  ok(L1({}).tipo === "valore" && L1({}).minuti === 0, "prima di ogni battito, nessuna riga: zero è vero");
+  ok(L1({ battitoRiuscito: true }).tipo === "non_letto", "dopo un battito riuscito, nessuna riga: non letto (è una lettura senza sessione)");
+  ok(L1({ precedente: 4 }).tipo === "non_letto", "il 25/10: da 4 a nessuna riga non è «0 minuti»");
+  ok(L1({ dato: 2, precedente: 4 }).tipo === "non_letto", "un valore che scende non viene dalla presenza salvata");
+  ok(L1({ dato: 4, errore: true, precedente: 3 }).tipo === "non_letto", "un errore non è un valore");
+  ok(L1({ dato: 5, precedente: 4 }).minuti === 5, "un valore che sale si scrive");
+  ok(/setNonLetto\(l\.tipo === "non_letto"\)/.test(pannelloV) && !/ping_totali \?\? 0/.test(pannelloV), "la pagina passa dalla lettura, e non riempie più il buco con zero");
+  // L'hook legge la risposta, e non smette di battere su un fallimento.
+  const hook = senzaCommenti(leggi("lib/useHeartbeatDiretta.ts"));
+  ok(/esitoBattito\(status, corpo\)/.test(hook) && /setInterval\(ping, 60000\)/.test(hook), "l'hook legge l'esito e il ciclo resta un intervallo indipendente dall'await");
+  ok(/const battito = useHeartbeatDiretta\(/.test(pannelloV), "il pannello riceve l'esito");
+  ok(/\{sessionePersa && \(/.test(pannelloV) && /TESTO_SESSIONE_PERSA/.test(pannelloV) && /\/accedi\?redirectedFrom=/.test(pannelloV), "la sessione persa si dice, con il link per rifare l'accesso");
+  ok(/contaLaPresenza && !sessionePersa && contati === null/.test(pannelloV), "«presenza in rilevamento» non si dice a sessione persa");
+  for (const t of [P.TESTO_SESSIONE_PERSA, P.TESTO_BATTITO_RIFIUTATO, P.TESTO_CONTEGGIO_NON_LETTO, ...Object.values(P.TESTO_RIFIUTO_DOMANDA)]) {
+    ok(trovaAccordi(t).length === 0, `nessun accordo di genere: «${t.slice(0, 40)}…»`);
+  }
+  // La domanda rifiutata: tre cause.
+  ok(P.causaRifiutoDomanda({ codice: "42501", sessioneViva: false }) === "sessione_persa", "RLS senza sessione: sessione persa");
+  ok(P.causaRifiutoDomanda({ codice: "42501", sessioneViva: true }) === "non_ammessa", "RLS con sessione: la policy non l'ammette");
+  ok(P.causaRifiutoDomanda({ codice: "XX000", sessioneViva: true }) === "guasto", "il resto è nostro");
+  const box = leggi("components/live/BoxDomandeLive.tsx");
+  ok(!/Non è stato possibile inviare la domanda\. Riprova/.test(box) && /causaRifiutoDomanda\(/.test(box), "il rifiuto generico è uscito");
+  const route = leggi("app/api/live/ping/route.ts");
+  ok(/battito senza sessione/.test(route) && /battito rifiutato/.test(route), "la route lascia una riga sui rifiuti inattesi");
 }
 
 console.log(`\n${falliti === 0 ? "✓" : "✗"} ${fatte - falliti}/${fatte} proprietà verificate`);
