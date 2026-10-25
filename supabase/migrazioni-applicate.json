@@ -7,15 +7,60 @@
     "⚠️ È esso stesso da sorvegliare: chi riscrive un file e sposta il commit qui accanto lo nasconde. Il controllo verifica che il commit esista e che il file a quel commit sia la versione registrata, non che il commit sia quello giusto — quello lo sa solo chi ha applicato."
   ],
   "applicate": [
-    { "file": "20260918100000_workshop_finale_esito.sql", "commit": "57c30b4", "fonte": "Mario, 18/09: colonna finale_esito presente e nullable" },
-    { "file": "20260919100000_guasti.sql", "commit": "a6dd190", "fonte": "Mario, 19/09: revoche fatte a mano, poi file allineato al DB (versione registrata: quella allineata)" },
-    { "file": "20260919110000_revoca_grant_guardia_lingua.sql", "commit": "a6dd190", "fonte": "Mario, 19/09: su registra_guardia_lingua restano postgres e service_role" },
-    { "file": "20260919120000_guardie_null_safe.sql", "commit": "a6dd190", "fonte": "Mario, 19/09: le tre funzioni contengono is distinct from" },
-    { "file": "20261010110000_contatti_collegato.sql", "commit": "df36e3a", "fonte": "comportamento, 10/10: due righe con origine contatti in produzione" },
-    { "file": "20261011100000_chiusura_diretta.sql", "commit": "3ad1bc1", "fonte": "Mario, 11/10: applicata nella versione di 3ad1bc1 (il file dopo ha solo commenti in più)" },
-    { "file": "20261025100000_export_presenze_minuti_contati.sql", "commit": "fa0d1f7", "fonte": "Mario, giro del 25/10: «Migrazione 20261025100000 applicata»" },
-    { "file": "20261026100000_durata_vera_ore_riconosciute.sql", "commit": "a4aaec9", "fonte": "comportamento, giro del 25/10: durata vera, soglia e ore_riconosciute osservate in produzione" },
-    { "file": "20261027100000_fine_effettiva.sql", "commit": "6190d45", "fonte": "Mario, 25/10 ~15:30: verificata 10/10" },
-    { "file": "20261027110000_certificazione_manuale_senza_tetto.sql", "commit": "5b481d9", "fonte": "Mario, 25/10 ~15:30: verificata 5/5. b93f2f5 le aveva appeso un `comment on function` dopo: tolto, portato da 20261027120000" }
+    {
+      "file": "20260918100000_workshop_finale_esito.sql",
+      "commit": "57c30b4",
+      "fonte": "Mario, 18/09: colonna finale_esito presente e nullable"
+    },
+    {
+      "file": "20260919100000_guasti.sql",
+      "commit": "a6dd190",
+      "fonte": "Mario, 19/09: revoche fatte a mano, poi file allineato al DB (versione registrata: quella allineata)"
+    },
+    {
+      "file": "20260919110000_revoca_grant_guardia_lingua.sql",
+      "commit": "a6dd190",
+      "fonte": "Mario, 19/09: su registra_guardia_lingua restano postgres e service_role"
+    },
+    {
+      "file": "20260919120000_guardie_null_safe.sql",
+      "commit": "a6dd190",
+      "fonte": "Mario, 19/09: le tre funzioni contengono is distinct from"
+    },
+    {
+      "file": "20261010110000_contatti_collegato.sql",
+      "commit": "df36e3a",
+      "fonte": "comportamento, 10/10: due righe con origine contatti in produzione"
+    },
+    {
+      "file": "20261011100000_chiusura_diretta.sql",
+      "commit": "3ad1bc1",
+      "fonte": "Mario, 11/10: applicata nella versione di 3ad1bc1 (il file dopo ha solo commenti in più)"
+    },
+    {
+      "file": "20261025100000_export_presenze_minuti_contati.sql",
+      "commit": "fa0d1f7",
+      "fonte": "Mario, giro del 25/10: «Migrazione 20261025100000 applicata»"
+    },
+    {
+      "file": "20261026100000_durata_vera_ore_riconosciute.sql",
+      "commit": "a4aaec9",
+      "fonte": "comportamento, giro del 25/10: durata vera, soglia e ore_riconosciute osservate in produzione"
+    },
+    {
+      "file": "20261027100000_fine_effettiva.sql",
+      "commit": "6190d45",
+      "fonte": "Mario, 25/10 ~15:30: verificata 10/10"
+    },
+    {
+      "file": "20261027110000_certificazione_manuale_senza_tetto.sql",
+      "commit": "5b481d9",
+      "fonte": "Mario, 25/10 ~15:30: verificata 5/5. b93f2f5 le aveva appeso un `comment on function` dopo: tolto, portato da 20261027120000"
+    },
+    {
+      "file": "20261027120000_commento_tetto_docenti.sql",
+      "commit": "1ac0255",
+      "fonte": "Mario, 25/10: applicata via SQL Editor; obj_description su certifica_partecipazione_docente presente col riferimento a 20261027120000"
+    }
   ]
 }
