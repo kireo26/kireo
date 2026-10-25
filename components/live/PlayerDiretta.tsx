@@ -27,6 +27,7 @@ export default function PlayerDiretta({
   onPronto,
   onAvvio,
   onRipiego,
+  onFine,
 }: {
   videoId: string;
   titolo: string;
@@ -41,6 +42,9 @@ export default function PlayerDiretta({
   /** Lo script di YouTube non si è caricato e la pagina mostra il riquadro
    *  semplice: da qui non sappiamo se il video parte. */
   onRipiego?: () => void;
+  /** Il video è finito (stato 0). Dal 25/10 la presenza finisce qui: dopo non
+   *  c'è più niente a cui essere presenti. */
+  onFine?: () => void;
 }) {
   const contenitoreRef = useRef<HTMLDivElement>(null);
   // La callback in un ref: così l'effetto non dipende da lei e il player non
@@ -54,12 +58,14 @@ export default function PlayerDiretta({
   const onProntoRef = useRef(onPronto);
   const onAvvioRef = useRef(onAvvio);
   const onRipiegoRef = useRef(onRipiego);
+  const onFineRef = useRef(onFine);
   useEffect(() => {
     onErroreRef.current = onErrore;
     onProntoRef.current = onPronto;
     onAvvioRef.current = onAvvio;
     onRipiegoRef.current = onRipiego;
-  }, [onErrore, onPronto, onAvvio, onRipiego]);
+    onFineRef.current = onFine;
+  }, [onErrore, onPronto, onAvvio, onRipiego, onFine]);
   const [ripiego, setRipiego] = useState(false);
 
   // NEL RIPIEGO NON SAPPIAMO SE IL VIDEO PARTE, e dal 18/10 NON SI DICHIARA
@@ -105,6 +111,9 @@ export default function PlayerDiretta({
             },
             onStateChange: (e) => {
               if (vivo && e.data === 1) onAvvioRef.current?.();
+              // ⚠️ Che una DIRETTA mandi lo stato 0 quando chi trasmette chiude
+              // è documentato per l'IFrame API, non osservato a schermo da noi.
+              if (vivo && e.data === 0) onFineRef.current?.();
             },
             onReady: () => {
               grazia = setTimeout(() => {

@@ -3,6 +3,8 @@
 // `npm run test:diretta1810`: una frase composta in un `.tsx` non si prova da
 // uno script.
 
+import { ORE_FINESTRA_CONSEGNA } from "@/lib/live";
+
 // ⚠️⚠️ LA PRESENZA COMINCIA QUANDO IL VIDEO PARTE LA PRIMA VOLTA. Il 18/10 per
 // venti minuti il player è rimasto nero, e la pagina diceva «presenza in
 // rilevamento» mandando battiti: certificavamo una presenza a un video mai
@@ -12,16 +14,37 @@
 // fa la differenza è nominabile e non è un'opinione: il player ha mandato
 // almeno un «in riproduzione», oppure no. Dopo quel momento pause e
 // caricamenti contano; l'errore ferma tutto, come già faceva.
+// ⚠️ E FINISCE QUANDO IL VIDEO FINISCE (Mario, 25/10). Lo stesso player che ci
+// dice «è partito» ci dice «è finito» (stato 0): non serve un meccanismo nuovo,
+// serve ascoltare l'altro capo. Lasciarla correre fino alla fine della finestra
+// vorrebbe dire certificare ore su un tempo in cui non si trasmetteva niente, e
+// premiare chi lascia la scheda aperta rispetto a chi se ne va alla fine vera.
+// Presenza vuol dire che c'era qualcosa a cui essere presenti. È definitivo per
+// il caricamento della pagina: rivedere il video registrato non è la diretta.
 export function presenzaConta({
   inDiretta,
   videoRotto,
   avviato,
+  finito,
 }: {
   inDiretta: boolean;
   videoRotto: boolean;
   avviato: boolean;
+  finito: boolean;
 }): boolean {
-  return inDiretta && !videoRotto && avviato;
+  return inDiretta && !videoRotto && avviato && !finito;
+}
+
+// Testo di Mario. Senza un numero letto la seconda frase non si dice: «si è
+// fermata a 0 minuti» sarebbe un'affermazione su uno studente che non abbiamo
+// misurato (la regola del contatore che non scrive zero quando non ha letto).
+// Se la soglia era già raggiunta resta detta anche la condizione che manca.
+export function testoVideoFinito(contati: number | null, necessari: number | null): string {
+  if (contati === null) return "La diretta è finita.";
+  const base = `La diretta è finita. La tua presenza si è fermata a ${minuti(contati)}.`;
+  return necessari !== null && contati >= necessari
+    ? `${base} Le ore vengono riconosciute quando l'organizzatore chiude la diretta.`
+    : base;
 }
 
 // Quanti battiti (minuti) servono per la certificazione: lo specchio di
@@ -72,6 +95,14 @@ export function testoContatore(contati: number, necessari: number, conta: boolea
 // Sotto il minuto non si dice niente: un avviso per quaranta secondi di
 // assenza è rumore, e il rumore insegna a ignorare gli avvisi veri.
 export const MS_MINIMO_ASSENZA = 60000;
+
+// ⚠️ L'AVVISO DEL RIENTRO SE NE VA (Mario, 25/10): il 25/10 «Hai passato 1
+// minuto fuori da qui…» è rimasto a schermo sedici minuti. Un avviso su un fatto
+// istantaneo che non se ne va diventa carta da parati — e la volta dopo, quando
+// conterà, non lo si nota. Sparisce dopo tre minuti di conteggio ripreso (se il
+// conteggio si ferma, il tempo riparte da capo quando riprende). Numero scelto,
+// non misurato.
+export const MS_DURATA_AVVISO_RIENTRO = 3 * 60000;
 
 // IL RIENTRO, due casi (testi di Mario). Il secondo non aggiunge niente da
 // fare, perché non c'è niente da fare: una riga che suggerisce un rimedio
@@ -163,29 +194,47 @@ export function letturaPresenza({
   return { tipo: "valore", minuti: dato };
 }
 
-// ⚠️ TESTI MIEI E PROVVISORI (25/10): Mario li scrive quando vede la forma.
-// Quando non abbiamo letto, il contatore non dice un numero.
-export const TESTO_CONTEGGIO_NON_LETTO = "In questo momento non riusciamo a leggere il tuo conteggio.";
-// La sessione persa: è l'unico caso in cui c'è una cosa da fare, e la pagina la
-// dice con il link per farla. Sostituisce il contatore, perché da qui in poi
-// nessun battito viene accettato.
-export const TESTO_SESSIONE_PERSA = "Il tuo accesso è scaduto: da questo momento la presenza non viene contata.";
-export const ETICHETTA_RIFAI_ACCESSO = "Rifai l'accesso e torna qui";
-// Il battito rifiutato senza sessione persa: non sappiamo dire perché, e lo diciamo.
-export const TESTO_BATTITO_RIFIUTATO = "La presenza in questo momento non viene registrata, e non dipende da te. Lascia la pagina aperta: riproviamo ogni minuto.";
+// I TESTI SONO DI MARIO (25/10).
+// Quando non abbiamo letto, il contatore non dice un numero — e non promette che
+// la presenza venga registrata, perché in quello stato non lo sappiamo.
+export const TESTO_CONTEGGIO_NON_LETTO =
+  "Non riusciamo a leggere il tuo conteggio in questo momento. Lascia la pagina aperta: il numero torna appena riusciamo a rileggerlo.";
+// ⚠️ «I minuti già contati restano» non è una rifinitura: senza, uno studente
+// pensa di aver perso tutto e molla — e mollare è la cosa che gli costa le ore.
+// Ed è vera: la riga di `presenze_live` c'è, è la lettura che non la vede.
+export const TESTO_SESSIONE_PERSA =
+  "Il tuo accesso è scaduto: da adesso la presenza non viene più contata. I minuti già contati restano.";
+export const ETICHETTA_RIFAI_ACCESSO = "Rientra e torna alla diretta";
+export const TESTO_BATTITO_RIFIUTATO =
+  "La presenza in questo momento non viene registrata, e non è colpa tua. I minuti già contati restano. Lascia la pagina aperta: riproviamo ogni minuto.";
 
-// LA DOMANDA RIFIUTATA (25/10): «Non è stato possibile inviare la domanda» copriva
-// tre cose con tre rimedi diversi. Testi miei e provvisori.
-export type CausaRifiutoDomanda = "sessione_persa" | "non_ammessa" | "guasto";
+// LA DOMANDA RIFIUTATA: quattro cause, quattro rimedi. «Non ammessa» erano due
+// (fuori dalla diretta / non iscritto) fuse in una frase: chi legge non sapeva
+// quale lo riguardasse, e i rimedi sono opposti. La pagina sa quale dei due è.
+// ⚠️ «il testo resta qui» è vero perché la bozza si salva nella scheda
+// (sessionStorage) prima del rientro e si ripristina al ritorno: far riscrivere
+// una domanda per un errore nostro sarebbe una seconda offesa dopo la prima.
+export type CausaRifiutoDomanda = "sessione_persa" | "fuori_diretta" | "non_iscritto" | "guasto";
 export const TESTO_RIFIUTO_DOMANDA: Record<CausaRifiutoDomanda, string> = {
-  sessione_persa: "Il tuo accesso è scaduto, quindi la domanda non è arrivata. Rifai l'accesso e mandala di nuovo.",
-  non_ammessa: "Non possiamo accettare questa domanda: le domande si mandano mentre la diretta è aperta, e serve l'iscrizione all'incontro.",
+  sessione_persa: "Il tuo accesso è scaduto, quindi la domanda non è arrivata. Rientra e mandala di nuovo: il testo resta qui.",
+  fuori_diretta: `La diretta è finita, e le domande si mandano mentre è aperta. Se c'è una domanda finale la trovi qui sotto: hai ${ORE_FINESTRA_CONSEGNA} ore per rispondere.`,
+  non_iscritto: "Per mandare una domanda devi essere iscritto a questo incontro.",
   guasto: "La domanda non è arrivata per un problema nostro, non tuo. Riprova fra un momento.",
 };
-// 42501 è la RLS che respinge l'insert: con la sessione viva vuol dire che la
-// policy non ammette la domanda; senza sessione, che la sessione è persa. Ogni
-// altro errore è nostro.
-export function causaRifiutoDomanda({ codice, sessioneViva }: { codice: string | null; sessioneViva: boolean }): CausaRifiutoDomanda {
+// 42501 è la RLS che respinge l'insert: senza sessione vuol dire sessione persa;
+// con la sessione, la policy non ammette la domanda — fuori dalla finestra o
+// senza iscrizione, e la pagina sa se la diretta è aperta. Ogni altro errore è
+// nostro.
+export function causaRifiutoDomanda({
+  codice,
+  sessioneViva,
+  direttaAperta,
+}: {
+  codice: string | null;
+  sessioneViva: boolean;
+  direttaAperta: boolean;
+}): CausaRifiutoDomanda {
   if (!sessioneViva) return "sessione_persa";
-  return codice === "42501" ? "non_ammessa" : "guasto";
+  if (codice !== "42501") return "guasto";
+  return direttaAperta ? "non_iscritto" : "fuori_diretta";
 }

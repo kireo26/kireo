@@ -246,7 +246,11 @@ console.log("\n§5 — la route compone le tre sezioni\n");
   );
   ok((sezioni.match(/titolo:/g) ?? []).length === 3, "tre sezioni", `${(sezioni.match(/titolo:/g) ?? []).length}`);
   ok((sezioni.match(/seNonCeNiente:/g) ?? []).length === 3, "e ognuna dice cosa scrivere quando è vuota");
-  ok(/anonime/.test(sezioni), "i titoli delle due sezioni nuove dicono che sono anonime");
+  // ⚠️ RIESAMINATA il 25/10: «anonime» è uscito dai titoli (Mario) — lì dentro i
+  // nomi ci saranno, e un titolo che lo afferma diventerebbe falso. La proprietà
+  // vera era sulle FUNZIONI (nessun nome nel risultato) e sta altrove; qui resta
+  // che il titolo non lo dichiari più.
+  ok(!/anonime/.test(sezioni), "i titoli non dichiarano un anonimato che sta per finire");
   // Le due RPC si chiamano, non si riscrive la query.
   ok(src.includes('rpc("esporta_domande_evento"'), "le domande arrivano dalla RPC dedicata");
   ok(src.includes('rpc("esporta_consegne_evento"'), "e le consegne pure");

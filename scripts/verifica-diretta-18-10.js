@@ -153,7 +153,9 @@ console.log("\n§4 — il riquadro semplice non conta come video partito (Mario,
   // …e la condizione senza cui la decisione non vale: dirlo, con la cosa da fare.
   ok(P.TESTO_RIPIEGO === "Non riusciamo a sapere se il video è partito, quindi la presenza non avanza. Ricarica la pagina — e se la stai guardando in una finestra in incognito, riaprila in una normale.", "il testo è quello di Mario, parola per parola");
   ok(/\{ripiego && \(/.test(pannello) && /\{TESTO_RIPIEGO\}/.test(pannello), "lo studente nel ripiego legge la frase");
-  ok(/\{!ripiego && !sessionePersa && !nonLetto && inDiretta && necessari !== null/.test(pannello), "…al posto del contatore, che direbbe «finché il video non si vede» (qui falso: si vede, non sappiamo se è partito)");
+  // RIESAMINATA il 25/10 sera: la condizione ha guadagnato `!videoFinito` in testa;
+  // la proprietà (il contatore non compare nel ripiego) non cambia.
+  ok(/\{!videoFinito && !ripiego && !sessionePersa && !nonLetto && inDiretta && necessari !== null/.test(pannello), "…al posto del contatore, che direbbe «finché il video non si vede» (qui falso: si vede, non sappiamo se è partito)");
   ok(trovaAccordi(P.TESTO_RIPIEGO).length === 0, "il testo non concorda col genere di chi legge");
   // Il ripiego non accende la presenza per nessuna strada: `avviato` resta falso.
   ok(!P.presenzaConta({ inDiretta: true, videoRotto: false, avviato: false }), "senza avvio la presenza non conta — ed è l'unica cosa che il ripiego lascia");
@@ -233,15 +235,42 @@ console.log("\n§6 — il battito respinto e il contatore che scendeva (25/10)\n
   ok(/const battito = useHeartbeatDiretta\(/.test(pannelloV), "il pannello riceve l'esito");
   ok(/\{sessionePersa && \(/.test(pannelloV) && /TESTO_SESSIONE_PERSA/.test(pannelloV) && /\/accedi\?redirectedFrom=/.test(pannelloV), "la sessione persa si dice, con il link per rifare l'accesso");
   ok(/contaLaPresenza && !sessionePersa && contati === null/.test(pannelloV), "«presenza in rilevamento» non si dice a sessione persa");
-  for (const t of [P.TESTO_SESSIONE_PERSA, P.TESTO_BATTITO_RIFIUTATO, P.TESTO_CONTEGGIO_NON_LETTO, ...Object.values(P.TESTO_RIFIUTO_DOMANDA)]) {
+  for (const t of [P.TESTO_SESSIONE_PERSA, P.TESTO_BATTITO_RIFIUTATO, P.TESTO_CONTEGGIO_NON_LETTO, P.testoVideoFinito(28, 34), ...Object.values(P.TESTO_RIFIUTO_DOMANDA)]) {
     ok(trovaAccordi(t).length === 0, `nessun accordo di genere: «${t.slice(0, 40)}…»`);
   }
-  // La domanda rifiutata: tre cause.
-  ok(P.causaRifiutoDomanda({ codice: "42501", sessioneViva: false }) === "sessione_persa", "RLS senza sessione: sessione persa");
-  ok(P.causaRifiutoDomanda({ codice: "42501", sessioneViva: true }) === "non_ammessa", "RLS con sessione: la policy non l'ammette");
-  ok(P.causaRifiutoDomanda({ codice: "XX000", sessioneViva: true }) === "guasto", "il resto è nostro");
-  const box = leggi("components/live/BoxDomandeLive.tsx");
+  // La domanda rifiutata: quattro cause (25/10 sera: «non ammessa» erano due).
+  const C = (o) => P.causaRifiutoDomanda({ codice: "42501", sessioneViva: true, direttaAperta: true, ...o });
+  ok(C({ sessioneViva: false }) === "sessione_persa", "RLS senza sessione: sessione persa");
+  ok(C({ direttaAperta: false }) === "fuori_diretta", "RLS con sessione, diretta chiusa: fuori dalla diretta");
+  ok(C({}) === "non_iscritto", "RLS con sessione, diretta aperta: manca l'iscrizione");
+  ok(C({ codice: "XX000" }) === "guasto", "il resto è nostro");
+  ok(C({ codice: "XX000", direttaAperta: false }) === "guasto", "un guasto nostro resta nostro anche a diretta chiusa");
+  ok(new Set(Object.values(P.TESTO_RIFIUTO_DOMANDA)).size === 4, "quattro cause, quattro testi");
+  ok(P.TESTO_RIFIUTO_DOMANDA.fuori_diretta.includes(`${L.ORE_FINESTRA_CONSEGNA} ore`), "le ore della consegna vengono dalla costante, non da una copia");
+  ok(/non tuo/.test(P.TESTO_RIFIUTO_DOMANDA.guasto), "il guasto dice «non tuo»");
+  ok(/I minuti già contati restano/.test(P.TESTO_SESSIONE_PERSA) && /I minuti già contati restano/.test(P.TESTO_BATTITO_RIFIUTATO), "sessione persa e battito rifiutato dicono che i minuti restano");
+  ok(!/registrat/.test(P.TESTO_CONTEGGIO_NON_LETTO), "il conteggio non letto non promette una registrazione che non sappiamo");
+  const box = senzaCommenti(leggi("components/live/BoxDomandeLive.tsx"));
   ok(!/Non è stato possibile inviare la domanda\. Riprova/.test(box) && /causaRifiutoDomanda\(/.test(box), "il rifiuto generico è uscito");
+  ok(/direttaAperta: statoDiretta\(dataInizio, dataFine, new Date\(\)\)/.test(box), "se la diretta è aperta lo dice l'orologio del rifiuto");
+  // «il testo resta qui» è vero: la bozza si salva prima del rientro e torna.
+  ok(/if \(c === "sessione_persa"\) scriviBozza\(eventoId, testo\.trim\(\)\)/.test(box) && /leggiBozza\(eventoId\)/.test(box), "la bozza sopravvive al rientro");
+  ok(/scriviBozza\(eventoId, null\)/.test(box), "e si cancella quando la domanda arriva");
+  ok(/causa === "sessione_persa"/.test(box) && /\/accedi\?redirectedFrom=/.test(box), "il rifiuto per sessione persa porta il link per rientrare");
+  // LA PRESENZA FINISCE QUANDO IL VIDEO FINISCE (25/10 sera).
+  ok(P.presenzaConta({ inDiretta: true, videoRotto: false, avviato: true, finito: false }), "partito e non finito: conta");
+  ok(!P.presenzaConta({ inDiretta: true, videoRotto: false, avviato: true, finito: true }), "finito: non conta più");
+  ok(P.testoVideoFinito(28, 34) === "La diretta è finita. La tua presenza si è fermata a 28 minuti.", "il testo di Mario, parola per parola");
+  ok(P.testoVideoFinito(null, 34) === "La diretta è finita.", "senza un numero letto non si dice un numero");
+  ok(P.testoVideoFinito(1, 34).includes("1 minuto."), "un minuto al singolare");
+  ok(/Le ore vengono riconosciute/.test(P.testoVideoFinito(40, 34)), "a soglia raggiunta resta la condizione che manca");
+  const player = senzaCommenti(leggi("components/live/PlayerDiretta.tsx"));
+  ok(/e\.data === 0\) onFineRef\.current/.test(player), "il player ascolta lo stato 0");
+  ok(/finito: videoFinito/.test(pannelloV) && /onFine=\{segnaFine\}/.test(pannelloV), "il pannello passa la fine alla regola");
+  ok(/testoVideoFinito\(nonLetto \? null : contati/.test(pannelloV), "un conteggio non letto non diventa il numero della fine");
+  // L'AVVISO DEL RIENTRO SE NE VA (25/10 sera).
+  ok(/if \(!rientro \|\| !contaLaPresenza\) return;/.test(pannelloV) && /setTimeout\(\(\) => setRientro\(null\), MS_DURATA_AVVISO_RIENTRO\)/.test(pannelloV), "l'avviso sparisce dopo qualche minuto di conteggio ripreso");
+  ok(P.MS_DURATA_AVVISO_RIENTRO >= 60000 && P.MS_DURATA_AVVISO_RIENTRO <= 10 * 60000, "e la durata sta fra uno e dieci minuti");
   const route = leggi("app/api/live/ping/route.ts");
   ok(/battito senza sessione/.test(route) && /battito rifiutato/.test(route), "la route lascia una riga sui rifiuti inattesi");
 }

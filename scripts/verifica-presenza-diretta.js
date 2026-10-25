@@ -118,8 +118,10 @@ ok(
   "`PannelloLive` accende l'heartbeat su `contaLaPresenza`",
 );
 ok(
-  /contaLaPresenza\s*=\s*presenzaConta\(\{\s*inDiretta,\s*videoRotto: !presenzaDaContare\(esitoPlayer\),\s*avviato\s*\}\)/.test(pannello),
-  "…e `contaLaPresenza` richiede `inDiretta` (cioè `presenzaRilevabile`), il video non rotto e — dal 18/10 sera — partito almeno una volta",
+  /contaLaPresenza\s*=\s*presenzaConta\(\{\s*inDiretta,\s*videoRotto: !presenzaDaContare\(esitoPlayer\),\s*avviato,\s*finito: videoFinito\s*\}\)/.test(pannello),
+  // RIESAMINATA il 25/10 sera: la chiamata ha guadagnato `finito` (la presenza
+  // finisce quando il video finisce); le tre condizioni di prima restano.
+  "…e `contaLaPresenza` richiede `inDiretta` (cioè `presenzaRilevabile`), il video non rotto, partito almeno una volta e — dal 25/10 — non finito",
 );
 ok(
   /inDiretta\s*=\s*presenzaRilevabile\(dataInizio,\s*dataFine,\s*ora\)/.test(pannello),

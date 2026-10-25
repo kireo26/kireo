@@ -1,8 +1,32 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { causaRifiutoDomanda, TESTO_RIFIUTO_DOMANDA } from "@/lib/live/presenza";
+import { causaRifiutoDomanda, ETICHETTA_RIFAI_ACCESSO, TESTO_RIFIUTO_DOMANDA, type CausaRifiutoDomanda } from "@/lib/live/presenza";
+import { statoDiretta } from "@/lib/live";
+
+// La bozza sopravvive al rientro (25/10): «il testo resta qui» dev'essere vero
+// anche dopo il giro su /accedi. sessionStorage, per scheda, e ogni accesso in
+// un try: in incognito o con lo storage bloccato si perde la comodità, non la
+// pagina.
+const chiaveBozza = (eventoId: string) => `kireo:bozza-domanda:${eventoId}`;
+function leggiBozza(eventoId: string): string {
+  try {
+    return sessionStorage.getItem(chiaveBozza(eventoId)) ?? "";
+  } catch {
+    return "";
+  }
+}
+function scriviBozza(eventoId: string, testo: string | null) {
+  try {
+    if (testo) sessionStorage.setItem(chiaveBozza(eventoId), testo);
+    else sessionStorage.removeItem(chiaveBozza(eventoId));
+  } catch {
+    // Storage non disponibile: la bozza resta solo nel campo.
+  }
+}
 
 export type Domanda = { id: string; testo: string; stato: string; creata_il: string };
 
@@ -16,17 +40,40 @@ const ETICHETTA_STATO: Record<string, string> = {
 // le proprie domande (domande_live_select_own), mai quelle di altri. Il
 // rate limit (1/minuto, 10/evento) è un trigger DB reale: gli errori
 // specifici vengono tradotti in un messaggio comprensibile.
-export default function BoxDomandeLive({ eventoId, userId, domandeIniziali }: { eventoId: string; userId: string; domandeIniziali: Domanda[] }) {
+export default function BoxDomandeLive({
+  eventoId,
+  userId,
+  domandeIniziali,
+  dataInizio,
+  dataFine,
+  hrefRitorno,
+}: {
+  eventoId: string;
+  userId: string;
+  domandeIniziali: Domanda[];
+  dataInizio: string;
+  dataFine: string | null;
+  hrefRitorno: string;
+}) {
   const [domande, setDomande] = useState<Domanda[]>(domandeIniziali);
   const [testo, setTesto] = useState("");
   const [invio, setInvio] = useState(false);
   const [errore, setErrore] = useState<string | null>(null);
+  const [causa, setCausa] = useState<CausaRifiutoDomanda | null>(null);
+  const pathname = usePathname();
+
+  useEffect(() => {
+    const bozza = leggiBozza(eventoId);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- lo storage non esiste nel render del server
+    if (bozza) setTesto(bozza);
+  }, [eventoId]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!testo.trim() || invio) return;
     setInvio(true);
     setErrore(null);
+    setCausa(null);
     try {
       const supabase = createClient();
       const { data, error } = await supabase
@@ -43,15 +90,25 @@ export default function BoxDomandeLive({ eventoId, userId, domandeIniziali }: { 
         } else {
           // Tre cause, tre rimedi (25/10): la sessione si chiede al server,
           // perché è proprio la cosa che il client può aver perso.
+          // Se la diretta è aperta lo decide l'orologio del momento del rifiuto,
+          // non quello del caricamento: è finita mentre scriveva.
           console.error("BoxDomandeLive: domanda non inviata", error);
           const { data: utente } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
-          setErrore(TESTO_RIFIUTO_DOMANDA[causaRifiutoDomanda({ codice: error?.code ?? null, sessioneViva: Boolean(utente.user) })]);
+          const c = causaRifiutoDomanda({
+            codice: error?.code ?? null,
+            sessioneViva: Boolean(utente.user),
+            direttaAperta: statoDiretta(dataInizio, dataFine, new Date()) === "in_corso",
+          });
+          if (c === "sessione_persa") scriviBozza(eventoId, testo.trim());
+          setCausa(c);
+          setErrore(TESTO_RIFIUTO_DOMANDA[c]);
         }
         return;
       }
 
       setDomande((prev) => [data, ...prev]);
       setTesto("");
+      scriviBozza(eventoId, null);
     } finally {
       setInvio(false);
     }
@@ -78,7 +135,22 @@ export default function BoxDomandeLive({ eventoId, userId, domandeIniziali }: { 
           {invio ? "Invio…" : "Invia"}
         </button>
       </form>
-      {errore && <p className="mt-2 text-xs text-red-400">{errore}</p>}
+      {errore && (
+        <p className="mt-2 text-xs text-red-400">
+          {errore}
+          {causa === "sessione_persa" && (
+            <>
+              {" "}
+              <Link
+                href={`/accedi?redirectedFrom=${encodeURIComponent(pathname ?? hrefRitorno)}`}
+                className="text-kireo-orange underline underline-offset-2"
+              >
+                {ETICHETTA_RIFAI_ACCESSO}
+              </Link>
+            </>
+          )}
+        </p>
+      )}
 
       {domande.length > 0 && (
         <ul className="mt-4 space-y-2 border-t border-white/5 pt-4">

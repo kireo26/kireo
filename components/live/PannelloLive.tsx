@@ -18,11 +18,13 @@ import {
   TESTO_BATTITO_RIFIUTATO,
   TESTO_CONTEGGIO_NON_LETTO,
   TESTO_SESSIONE_PERSA,
+  MS_DURATA_AVVISO_RIENTRO,
   MS_MINIMO_ASSENZA,
   minutiNecessari,
   presenzaConta,
   testoContatore,
   testoRientro,
+  testoVideoFinito,
   TESTO_RIPIEGO,
 } from "@/lib/live/presenza";
 
@@ -84,6 +86,9 @@ export default function PannelloLive({
   // stanno in `presenzaConta` (lib/live/presenza.ts).
   const [avviato, setAvviato] = useState(false);
   const segnaAvvio = useCallback(() => setAvviato(true), []);
+  // E FINISCE QUANDO IL VIDEO FINISCE (25/10): vedi `presenzaConta`.
+  const [videoFinito, setVideoFinito] = useState(false);
+  const segnaFine = useCallback(() => setVideoFinito(true), []);
   // IL RIQUADRO SEMPLICE: lo script di YouTube non si è caricato, il video
   // forse si vede ma il suo avvio non lo sappiamo — quindi `avviato` resta
   // falso e la presenza non avanza (decisione di Mario, vedi `TESTO_RIPIEGO`).
@@ -106,7 +111,7 @@ export default function PannelloLive({
       })
       .catch((e) => console.error("PannelloLive: ripiego del player non registrato", e));
   }, [eventoId]);
-  const contaLaPresenza = presenzaConta({ inDiretta, videoRotto: !presenzaDaContare(esitoPlayer), avviato });
+  const contaLaPresenza = presenzaConta({ inDiretta, videoRotto: !presenzaDaContare(esitoPlayer), avviato, finito: videoFinito });
   const battito = useHeartbeatDiretta(eventoId, stato === "in_corso" && contaLaPresenza);
   // Un battito riuscito su questa pagina: da quel momento la riga di
   // `presenze_live` esiste, e non vederla vuol dire non aver letto.
@@ -191,6 +196,13 @@ export default function PannelloLive({
     document.addEventListener("visibilitychange", cambio);
     return () => document.removeEventListener("visibilitychange", cambio);
   }, [dataFine]);
+  // L'avviso se ne va dopo qualche minuto di conteggio ripreso: vedi
+  // `MS_DURATA_AVVISO_RIENTRO`. Mentre il conteggio è fermo resta.
+  useEffect(() => {
+    if (!rientro || !contaLaPresenza) return;
+    const t = setTimeout(() => setRientro(null), MS_DURATA_AVVISO_RIENTRO);
+    return () => clearTimeout(t);
+  }, [rientro, contaLaPresenza]);
   const videoRotto = esitoPlayer !== null && sondaBlocca(esitoPlayer);
   // Se la console del moderatore sa che questo studente non vede: è l'unica
   // condizione a cui la pagina può dire «lo stiamo segnalando» (18/10).
@@ -314,12 +326,17 @@ export default function PannelloLive({
             {TESTO_BATTITO_RIFIUTATO}
           </p>
         )}
-        {!ripiego && !sessionePersa && inDiretta && necessari !== null && nonLetto && (
+        {videoFinito && !sessionePersa && (
+          <p className="mt-1 text-sm text-kireo-light/90" aria-live="polite">
+            {testoVideoFinito(nonLetto ? null : contati, necessari)}
+          </p>
+        )}
+        {!videoFinito && !ripiego && !sessionePersa && inDiretta && necessari !== null && nonLetto && (
           <p className="mt-1 text-sm text-kireo-light/90" aria-live="polite">
             {TESTO_CONTEGGIO_NON_LETTO}
           </p>
         )}
-        {!ripiego && !sessionePersa && !nonLetto && inDiretta && necessari !== null && contati !== null && (
+        {!videoFinito && !ripiego && !sessionePersa && !nonLetto && inDiretta && necessari !== null && contati !== null && (
           <p className="mt-1 text-sm text-kireo-light/90" aria-live="polite">
             {testoContatore(contati, necessari, contaLaPresenza, avviato ? "video_non_visibile" : "non_avviato")}
           </p>
@@ -356,6 +373,7 @@ export default function PannelloLive({
               onPronto={segnalaPlayerPronto}
               onAvvio={segnaAvvio}
               onRipiego={segnaRipiego}
+              onFine={segnaFine}
             />
           </div>
           {videoRotto && (
@@ -374,7 +392,14 @@ export default function PannelloLive({
         </div>
       )}
 
-      <BoxDomandeLive eventoId={eventoId} userId={userId} domandeIniziali={domandeIniziali} />
+      <BoxDomandeLive
+        eventoId={eventoId}
+        userId={userId}
+        domandeIniziali={domandeIniziali}
+        dataInizio={dataInizio}
+        dataFine={dataFine}
+        hrefRitorno={hrefRitorno}
+      />
     </div>
   );
 }
