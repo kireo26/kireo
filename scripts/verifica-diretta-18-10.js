@@ -307,5 +307,16 @@ console.log("\n§6 — il battito respinto e il contatore che scendeva (25/10)\n
   ok(/battito senza sessione/.test(route) && /battito rifiutato/.test(route), "la route lascia una riga sui rifiuti inattesi");
 }
 
+console.log("\n§ il riquadro prima dell'inizio non è un allarme (26/10)");
+{
+  const pannello = leggi("components/live/PannelloLive.tsx");
+  // Il colore è un testo: la cornice rossa resta per il video rotto DOPO
+  // l'inizio, e prima dell'inizio prende il tono neutro del «Comincia alle…».
+  const fetta = creaFetta(ok).fettaOppureRosso(pannello, { nome: "{videoRotto && (" }, { nome: "riquadroRotto.titolo" }, "il riquadro del video");
+  ok(fetta !== null && /primaDellInizio \? "border-white\/5 bg-kireo-card" : "border-red-500\/30 bg-red-500\/5"/.test(fetta), "prima dell'inizio: tono neutro; dopo: rosso");
+  ok(/const primaDellInizio = erroreVideoPrimaDellInizio\(dataInizio, ora\.getTime\(\)\)/.test(pannello), "…deciso dalla stessa condizione che sceglie il testo");
+  ok(P.erroreVideoPrimaDellInizio("2026-10-25T10:00:00Z", Date.parse("2026-10-25T09:59:00Z")) === true && P.erroreVideoPrimaDellInizio("2026-10-25T10:00:00Z", Date.parse("2026-10-25T10:00:00Z")) === false, "«prima dell'inizio» finisce all'orario di inizio");
+}
+
 console.log(`\n${falliti === 0 ? "✓" : "✗"} ${fatte - falliti}/${fatte} proprietà verificate`);
 process.exit(falliti === 0 ? 0 : 1);

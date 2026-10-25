@@ -73,6 +73,15 @@ function ancora(src, nome, { volte = 1, quale = 0, dove = "" } = {}) {
 // La fetta fra due àncore, ognuna col suo conto dichiarato. `a` omesso = fino
 // alla fine.
 function fetta(src, da, a = null) {
+  // ⚠️ Un'àncora passata come stringa invece che come `{ nome }` (26/10): il
+  // nome diventava `undefined`, e `indexOf(undefined)` cerca la parola
+  // «undefined» — che in un componente compare, quindi la fetta usciva vuota e
+  // la proprietà rossa per la ragione sbagliata. Si rifiuta a voce alta.
+  for (const x of a === null ? [da] : [da, a]) {
+    if (typeof x !== "object" || x === null || typeof x.nome !== "string") {
+      throw new Error(`àncora malformata: serve { nome: "…" }, è arrivato ${JSON.stringify(x)}`);
+    }
+  }
   const inizio = ancora(src, da.nome, da);
   if (a === null) return src.slice(inizio);
   const fine = ancora(src, a.nome, a);

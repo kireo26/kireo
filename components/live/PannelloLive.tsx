@@ -312,9 +312,8 @@ export default function PannelloLive({
   // Se la console del moderatore sa che questo studente non vede: è l'unica
   // condizione a cui la pagina può dire «lo stiamo segnalando» (18/10).
   const [segnalato, setSegnalato] = useState(false);
-  const riquadroRotto = erroreVideoPrimaDellInizio(dataInizio, ora.getTime())
-    ? testoVideoPrimaDellInizio()
-    : testoDirettaRotta(segnalato);
+  const primaDellInizio = erroreVideoPrimaDellInizio(dataInizio, ora.getTime());
+  const riquadroRotto = primaDellInizio ? testoVideoPrimaDellInizio() : testoDirettaRotta(segnalato);
   // Il numero del tentativo è la `key` del player: cambiarlo lo rimonta, cioè lo
   // riprova da capo.
   const [tentativo, setTentativo] = useState(0);
@@ -494,8 +493,18 @@ export default function PannelloLive({
               onFermo={segnaFermo}
             />
           </div>
+          {/* ⚠️ IL COLORE È UN TESTO (26/10). Prima dell'inizio la frase dice «va
+              tutto come deve» e la cornice rossa diceva «c'è un problema» — a
+              ogni studente che arriva in anticipo, cioè quello che gli chiediamo
+              di fare. Il giorno in cui il rosso serve davvero l'avrebbe già
+              visto tante volte da non guardarlo. Prima dell'inizio: lo stesso
+              tono neutro del «Comincia alle…». */}
           {videoRotto && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center rounded-2xl border border-red-500/30 bg-red-500/5 px-6 text-center">
+            <div
+              className={`absolute inset-0 flex flex-col items-center justify-center rounded-2xl border px-6 text-center ${
+                primaDellInizio ? "border-white/5 bg-kireo-card" : "border-red-500/30 bg-red-500/5"
+              }`}
+            >
               <p className="font-heading text-lg font-semibold text-kireo-light">{riquadroRotto.titolo}</p>
               {riquadroRotto.dettaglio && <p className="mt-2 max-w-md text-sm text-kireo-muted">{riquadroRotto.dettaglio}</p>}
             </div>
