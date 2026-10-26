@@ -848,6 +848,13 @@ Il quarto caso, la tabella svuotata, non l'ha toccato nessuno. Il commit che cam
 - **Il residuo** (le guardie che nessuno tocca) resta in «chi guarda le guardie», da coprire con un campione a rotazione.
 - *Casi per intero e storia: `CLAUDE-archivio.md`, «Regole — versioni estese», stesso titolo.*
 
+## ⚠️ Un orario senza la data è mezzo dato, e si comporta come un dato intero (regola, 2026-10-26)
+> **Nessuno dubita di un «17:15»: sembra completo. Il pezzo che manca non lascia un buco visibile.**
+- **Il caso**: «test 25 ottobre registrazione» finiva alle 17:15 **del 26**, non del 25. Nell'intestazione c'era anche la data, ma è stata letta solo l'ora. Su quell'ora è stato costruito un difetto dello storico («finito e non chiuso» che non compariva). A schermo lo storico taceva perché l'evento era **ancora in corso**: il codice faceva quello che deve.
+- **Lo stesso errore, il giorno prima**: «ne servono 1103 minuti» era il 75% di una finestra lunga un giorno. Il numero era giusto, era sbagliata la finestra, e la colpa era andata al prodotto.
+- **Come si è trovato**: il codice era stato escluso **eseguendolo sui dati del caso** (`npm run test:durata`). La query (`scripts/diagnostica-storico-esito.sql`) ha stampato la data. Leggere il codice non l'avrebbe trovata, perché non era lì. *Quando il codice, eseguito sui dati attesi, dà la risposta giusta, il prossimo passo è stampare i dati veri, non rileggere il codice.*
+- **La forma operativa**: un orario riportato da una persona si chiede **con il giorno**, e un istante che compare in una diagnosi si scrive per intero (data, ora, zona). Lo stesso vale per una finestra: la sua durata è il primo numero da guardare.
+
 ## ⚠️ Una copia stantia descrittiva confonde; una imperativa fa sbagliare (regola, 2026-10-11)
 > **Chi legge una descrizione falsa può accorgersene guardando; chi segue un'istruzione falsa fa la cosa e conclude dal risultato.**
 - **Il caso**: «verificare l'email di notifica a `mario.izzo@hotmail.it`». La copia arriva anche lì, quindi chi segue l'istruzione conclude che il canale funziona, senza aver guardato la casella da cui si risponde. *Un'istruzione falsa non produce un dubbio: produce una conclusione.*
@@ -1166,3 +1173,13 @@ La consegna si apre da sola («dopo 20 secondi si è caricata ed è comparsa la 
 > **Un'osservazione interrotta da un rimedio non distingue più fra «si è risolto» e «l'ho risolto io».**
 
 Seconda volta nella giornata (la mattina, il play ripremuto prima di vedere se il conteggio ripartiva da solo). **La prova per il prossimo giro costa niente**: chiudere la diretta, non toccare nulla, guardare la ricevuta per un minuto. E resta da fotografare la conferma con i numeri prima del clic.
+
+## Lo storico taceva perché l'evento non era finito (2026-10-26 — nessun difetto; lo stato «finito e non chiuso» NON guardato a schermo)
+**La diagnostica di Mario** (`scripts/diagnostica-storico-esito.sql`): «test 25 ottobre registrazione» aveva `data_fine` **2026-10-26 16:15** (domani), `diretta_chiusa_il` 2026-10-25 17:21 (chiusa tre minuti dopo che guardavamo lo storico) e `diretta_durata_minuti` 96. Alle 18:18 l'evento era in corso, e per un evento in corso lo storico non dice niente: giusto. **`testoEsitoStorico` non ha difetti.** La causa è la regola «Un orario senza la data è mezzo dato».
+- ⚠️ **LO STATO «FINITO E NON CHIUSO» RESTA NON GUARDATO.** Non è mai stato visto a schermo, né il 25 né il 26, e oggi tutti gli eventi in produzione sono chiusi. Le due proprietà aggiunte a `test:durata` (§4quater-bis, il caso del 25/10 eseguito con un client finto) provano che il codice produce la frase. **Non provano che arrivi a schermo.** Mario lo fabbrica: un evento che finisce fra cinque minuti, un iscritto, nessuno che lo chiude, poi «Le mie attività».
+- **Restano del lotto, e valgono comunque**:
+  - le ore a due decimali dove non sono intere (`numeroOre`/`testoOreCertificate`, «0,40h»);
+  - il riquadro PCTO di `/app/attivita`, che stampava `{v.oreCertificate}h` grezzo. La guardia di `test:avviso-ore` lo ha mancato perché conosceva solo i nomi delle ore di un evento: modo 3. Allargata, è diventata rossa esattamente lì;
+  - `formattaDecimali` in `lib/formato.ts`. Il primo tentativo stava fuori casa e ha fatto diventare rossa `test:date`, fuori dalla lista dei rossi attesi (corretto in `4418747`).
+- **Da guardare al giro**, in una diretta sola da venti minuti: lo stato «finito e non chiuso», la conferma coi numeri prima del clic, la ricevuta lasciata un minuto senza toccare niente, la bozza che sopravvive al rientro.
+
