@@ -219,3 +219,9 @@ export function millisecondiDaOrarioItaliano(locale: string): number {
 export function formattaNumero(n: number): string {
   return n.toLocaleString("it-IT");
 }
+
+// Un numero con esattamente `cifre` decimali, con la virgola: «0,40». Serve dove
+// la precisione è un'informazione (le ore PCTO, vedi `numeroOre`).
+export function formattaDecimali(n: number, cifre: number): string {
+  return new Intl.NumberFormat("it-IT", { minimumFractionDigits: cifre, maximumFractionDigits: cifre }).format(n);
+}

@@ -35,7 +35,7 @@
 // evento di tre ore che ne vale una è normale (ne conta una parte), e zero ore
 // è il caso più comune di tutti. Avvisare lì sarebbe un avviso che suona sempre.
 
-import { formattaNumero, millisecondiDaOrarioItaliano } from "@/lib/formato";
+import { formattaDecimali, formattaNumero, millisecondiDaOrarioItaliano } from "@/lib/formato";
 
 /** Quante volte la durata programmata le ore possono superare prima che si dica qualcosa. */
 export const FATTORE_ORE_SOSPETTE = 2;
@@ -127,7 +127,7 @@ export function avvisoOrePcto(ore: number, dataInizio: string, dataFine: string)
 export function numeroOre(ore: number | string | null | undefined): string {
   const n = Number(ore ?? 0);
   const r = Number.isFinite(n) ? Math.round(n * 100) / 100 : 0;
-  return Number.isInteger(r) ? formattaNumero(r) : r.toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return Number.isInteger(r) ? formattaNumero(r) : formattaDecimali(r, 2);
 }
 
 // ─────────────────── IL CAMPO, E LA REGOLA DEL TERZO DECIMALE ───────────────
