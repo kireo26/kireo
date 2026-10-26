@@ -47,7 +47,8 @@ insert into public.student_profiles (user_id, school_code, classe, anno_diploma,
   values ('22222222-0000-0000-0000-0000000000d2', 'TESTCM01', '5A', 2027, 'verificato');
 
 -- EV_L (lunga): cominciata 28 minuti fa, programmata 45, 0,75 ore dichiarate.
---   Chiusa adesso dura 28 → l'automatica emette 0,47 (28/60).
+--   Chiusa adesso dura 28 → l'automatica emette 0,46 (28/60 = 0,4666, per
+--   difetto da 20261028100000: col `round` era 0,47).
 -- EV_C (corta): cominciata 16 minuti fa → chiusa adesso dura 16, sotto il minimo.
 -- EV_S (senza fine): nessuna data_fine.
 insert into public.eventi (id, titolo, descrizione, tipo, organizzatore_id, data_inizio, data_fine, stato, pubblico,
@@ -96,10 +97,10 @@ begin
   reset role;
 end $$;
 
--- 1) AUTOMATICA: il tetto si applica. 0,75 dichiarate su 28 minuti → 0,47.
-insert into esiti select 1, 'automatica: il tetto della durata vera si applica', 'partecipato/sistema/0.47',
+-- 1) AUTOMATICA: il tetto si applica. 0,75 dichiarate su 28 minuti → 0,46.
+insert into esiti select 1, 'automatica: il tetto della durata vera si applica', 'partecipato/sistema/0.46',
   format('%s/%s/%s', stato, certificata_da_tipo, ore_riconosciute),
-  stato = 'partecipato' and certificata_da_tipo = 'sistema' and ore_riconosciute = 0.47
+  stato = 'partecipato' and certificata_da_tipo = 'sistema' and ore_riconosciute = 0.46
   from public.iscrizioni_eventi
   where evento_id = 'e0000000-0000-0000-0000-0000000000d1' and student_id = '22222222-0000-0000-0000-0000000000d1';
 

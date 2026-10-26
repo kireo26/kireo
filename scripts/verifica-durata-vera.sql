@@ -29,7 +29,8 @@ insert into public.institution_profiles (user_id, istituzione_id) values
   ('11111111-0000-0000-0000-000000000001', 'aaaaaaaa-0000-0000-0000-000000000001');
 
 -- EV_L (lunga): programmata 45 minuti, cominciata 28 minuti fa → chiusa adesso
---   dura 28. Dichiarate 0,75 ore → riconosciute 0,47 (28/60). Soglia 0,75 × 28
+--   dura 28. Dichiarate 0,75 ore → riconosciute 0,46 (28/60 = 0,4666, PER DIFETTO
+--   da 20261028100000: col `round` era 0,47). Soglia 0,75 × 28
 --   = 21 ping: s1 ne ha 22 (sopra), s2 ne ha 18 (sotto). Sulla durata
 --   PROGRAMMATA ne servirebbero 34, e s1 resterebbe fuori.
 -- EV_C (corta): cominciata 16 minuti fa → chiusa adesso dura 16, sotto il minimo.
@@ -109,7 +110,7 @@ do $$
 declare v numeric;
 begin
   select ore_riconosciute into v from public.iscrizioni_eventi where evento_id = 'e0000000-0000-0000-0000-00000000000a' and student_id = '22222222-0000-0000-0000-000000000001';
-  insert into esiti values (5, 'ore riconosciute = min(0,75, 28/60)', '0.47', coalesce(v::text, 'null'), v = 0.47);
+  insert into esiti values (5, 'ore riconosciute = min(0,75, 28/60), per difetto', '0.46', coalesce(v::text, 'null'), v = 0.46);
 end $$;
 
 -- 6) La ricevuta porta la durata.
@@ -126,7 +127,7 @@ declare v numeric;
 begin
   update public.eventi set ore_pcto = 3 where id = 'e0000000-0000-0000-0000-00000000000a';
   select ore_riconosciute into v from public.iscrizioni_eventi where evento_id = 'e0000000-0000-0000-0000-00000000000a' and student_id = '22222222-0000-0000-0000-000000000001';
-  insert into esiti values (7, 'ore emesse non ricalcolate quando cambia ore_pcto', '0.47', coalesce(v::text,'null'), v = 0.47);
+  insert into esiti values (7, 'ore emesse non ricalcolate quando cambia ore_pcto', '0.46', coalesce(v::text,'null'), v = 0.46);
 end $$;
 
 -- 8) Dopo la chiusura i battiti sono respinti, col motivo che la pagina dice.
