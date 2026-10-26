@@ -165,5 +165,17 @@ ok(
     : `vincoli nominati che non esistono: ${fantasma.join(", ")}`,
 );
 
+// Le eccezioni del trigger (26/10): stessa proprietà, l'altra forma. Un nome
+// sbagliato qui sarebbe muto nello stesso modo — il ramo non scatterebbe mai.
+const eccezioni = [...erroreTs.matchAll(/eccezione: "([a-z_]+)"/g)].map((m) => m[1]);
+ok(eccezioni.length >= 2, `il modulo riconosce ${eccezioni.length} eccezioni per nome`);
+const eccezioniFantasma = eccezioni.filter((n) => !new RegExp(`raise exception '${n}'`).test(tutteLeMigrazioni));
+ok(
+  eccezioniFantasma.length === 0,
+  eccezioniFantasma.length === 0
+    ? "…e ognuna è sollevata da una migrazione"
+    : `eccezioni nominate che nessuno solleva: ${eccezioniFantasma.join(", ")}`,
+);
+
 console.log(falliti === 0 ? "\n✅ tutto verde\n" : `\n❌ ${falliti} asserzioni rosse\n`);
 process.exit(falliti === 0 ? 0 : 1);

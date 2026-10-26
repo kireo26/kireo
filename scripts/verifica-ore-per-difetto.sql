@@ -36,6 +36,14 @@ select ('e0000000-0000-0000-0000-0000000000' || lpad(n::text, 2, '0'))::uuid, 'C
        now() - interval '1 day', now() - interval '1 day' + make_interval(mins => minuti),
        'approvato', 'studenti', ore_pcto
 from casi;
+-- ⚠️ DA `20261029100000` L'INSERT IGNORA `ore_pcto`: il trigger scrive la
+-- durata della finestra, e il tetto non avrebbe più niente da tagliare — la
+-- tabella diventerebbe verde per costruzione. Le ore dichiarate della tabella
+-- si fissano quindi con un update dopo l'insert, che è la strada della
+-- correzione dell'admin (le date non cambiano, il trigger non ricalcola).
+update public.eventi e set ore_pcto = c.ore_pcto
+from casi c
+where e.id = ('e0000000-0000-0000-0000-0000000000' || lpad(c.n::text, 2, '0'))::uuid;
 
 insert into esiti
 select c.n, c.minuti || ' minuti, dichiarate ' || c.ore_pcto, c.atteso::text, r::text, r = c.atteso

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/Button";
 import { inputClass, fieldBorder } from "@/lib/formStyles";
@@ -13,7 +13,7 @@ import { HOSTING_KIREO_SELEZIONABILE } from "@/lib/eventi/hosting";
 import { messaggioErroreEvento } from "@/lib/ente/erroreEvento";
 import { istanteDaOrarioItaliano, millisecondiDaOrarioItaliano } from "@/lib/formato";
 import { eventoCominciato } from "@/lib/live";
-import { avvisoOrePcto, erroreOrePcto } from "@/lib/eventi/orePcto";
+import { testoOreCreazione, TESTO_ORE_CREAZIONE_SENZA_NUMERO } from "@/lib/eventi/oreDallOrario";
 import { useSondaIncorporamento } from "@/lib/useSondaIncorporamento";
 import { sondaBlocca, testoSonda } from "@/lib/sondaYoutube";
 import EsitoSondaIncorporamento from "@/components/EsitoSondaIncorporamento";
@@ -82,7 +82,6 @@ export default function CreaEventoForm({
   const [sede, setSede] = useState("");
   const [link, setLink] = useState("");
   const [posti, setPosti] = useState("");
-  const [orePcto, setOrePcto] = useState("0");
   const [scaletta, setScaletta] = useState(descrizionePrefill ?? "");
   const [ctaEsternaUrl, setCtaEsternaUrl] = useState("");
   const [aree, setAree] = useState<string[]>([]);
@@ -136,18 +135,9 @@ export default function CreaEventoForm({
     if (!perDocenti && aree.length === 0) {
       next.aree = "Scegli almeno un'area: è così che l'incontro raggiunge gli studenti giusti, e senza un'area chi partecipa non se ne porta niente nel profilo.";
     }
-    // ⚠️ UN CAMPO ORE CHE NON CONTIENE UN NUMERO NON È UN NUMERO SOSPETTO: NON
-    // È UN NUMERO (Mario). L'avviso sulla durata tace su `NaN` — e tace
-    // giustamente, perché non ha niente da confrontare — ma tacere non è una
-    // risposta: il rifiuto sta qui, sul campo, con il testo degli errori di
-    // campo. Lo stesso vale per un numero negativo, che il database rifiuterebbe
-    // con `eventi_ore_pcto_check` (un 23514 tradotto in «il dato non va», senza
-    // dire quale).
-    //
-    // Il campo vuoto NON è un errore: `Number("")` è 0, e l'invio manda 0 —
-    // «0 se non applicabile» è quello che dice l'etichetta.
-    const erroreOre = erroreOrePcto(orePcto);
-    if (erroreOre) next.orePcto = erroreOre;
+    // LE ORE PCTO NON SI SCRIVONO PIÙ QUI (26/10, `20261029100000`): sono la
+    // durata della finestra, e le calcola il database. Il campo e il suo
+    // controllo sono usciti; il numero l'ente lo legge sotto le date.
     // Un orario che non si sa leggere non si scrive con un ripiego: si dice
     // qui, dove l'ente può ancora correggerlo. Il browser produce sempre la
     // forma giusta, quindi questo ramo è una rete — ma una rete che parla.
@@ -164,8 +154,16 @@ export default function CreaEventoForm({
     if (dataInizio && dataFine && millisecondiDaOrarioItaliano(dataFine) < millisecondiDaOrarioItaliano(dataInizio)) {
       next.dataFine = "La fine non può venire prima dell'inizio.";
     }
+    // ⚠️ LA FINE È OBBLIGATORIA PER OGNI EVENTO (Mario, 26/10): le ore PCTO
+    // si calcolano dall'orario, e «un orario senza fine non è un orario». Il
+    // database la pretende comunque (`data_fine_obbligatoria`, nel trigger
+    // d'insert): qui la si chiede sul campo, prima. Testo mio, provvisorio.
+    if (!dataFine) {
+      next.dataFine = eDiretta
+        ? "Per un webinar in diretta la data e ora di fine sono obbligatorie (servono a calcolare le presenze e le ore PCTO)."
+        : "Inserisci data e ora di fine: servono a calcolare le ore PCTO dell'incontro.";
+    }
     if (eDiretta) {
-      if (!dataFine) next.dataFine = "Per un webinar in diretta la data e ora di fine sono obbligatorie (servono a calcolare le presenze).";
       // Una diretta lunga si fa confermare (vedi `lib/eventi/durataDiretta.ts`).
       if (!next.dataFine && avvisoDurata && !confermaDurata) next.dataFine = avvisoDurata;
       if (hostingDiretta === "proprio") {
@@ -186,11 +184,35 @@ export default function CreaEventoForm({
   const inizioItaliano = dataInizio ? istanteDaOrarioItaliano(dataInizio) : null;
   const inizioGiaPassato = inizioItaliano !== null && eventoCominciato(inizioItaliano);
 
-  // Le ore PCTO contro la durata programmata. Funzione pura (nessun orologio:
-  // confronta due campi del form fra loro), quindi si può chiamare nel render.
-  // Avviso e non errore: un evento può legittimamente valere più della sua
-  // diretta — vedi `lib/eventi/orePcto.ts` per la soglia e il suo perché.
-  const avvisoOre = avvisoOrePcto(Number(orePcto), dataInizio, dataFine);
+  // LE ORE CHE L'INCONTRO VARRÀ, chieste al database con la funzione che poi
+  // le scrive (`ore_dichiarate_da_finestra`): nessuna copia della formula qui.
+  // Una risposta vale per la coppia di istanti con cui è stata chiesta.
+  const fineItaliano = dataFine ? istanteDaOrarioItaliano(dataFine) : null;
+  const chiaveOre =
+    inizioItaliano && fineItaliano && new Date(fineItaliano).getTime() >= new Date(inizioItaliano).getTime()
+      ? `${inizioItaliano}|${fineItaliano}`
+      : null;
+  const [oreCalcolate, setOreCalcolate] = useState<{ chiave: string; ore: number | string | null } | null>(null);
+  useEffect(() => {
+    if (!chiaveOre) return;
+    const [pInizio, pFine] = chiaveOre.split("|");
+    let attivo = true;
+    createClient()
+      .rpc("ore_dichiarate_da_finestra", { p_inizio: pInizio, p_fine: pFine })
+      .then(({ data, error }) => {
+        if (!attivo) return;
+        if (error) console.error("CreaEventoForm: ore dall'orario", error);
+        setOreCalcolate({ chiave: chiaveOre, ore: error ? null : (data as number | string | null) });
+      }, (err: unknown) => {
+        if (!attivo) return;
+        console.error("CreaEventoForm: ore dall'orario", err);
+        setOreCalcolate({ chiave: chiaveOre, ore: null });
+      });
+    return () => {
+      attivo = false;
+    };
+  }, [chiaveOre]);
+  const oreCorrenti = oreCalcolate && oreCalcolate.chiave === chiaveOre ? oreCalcolate : null;
   // Pura anche questa: due campi del form fra loro.
   const avvisoDurata =
     dataInizio && dataFine ? avvisoDurataDiretta(millisecondiDaOrarioItaliano(dataInizio), millisecondiDaOrarioItaliano(dataFine)) : null;
@@ -246,7 +268,6 @@ export default function CreaEventoForm({
           sede: sede.trim() || null,
           link: link.trim() || null,
           posti: posti ? Number(posti) : null,
-          ore_pcto: orePcto ? Number(orePcto) : 0,
           cta_esterna_url: ctaEsternaUrl.trim() || null,
           stato: "in_approvazione",
           pubblico: perDocenti ? "docenti" : "studenti",
@@ -351,22 +372,6 @@ export default function CreaEventoForm({
             ))}
           </select>
         </div>
-        <div>
-          <label htmlFor="orePcto" className="mb-1.5 block text-sm font-medium text-kireo-light">
-            Ore PCTO (0 se non applicabile)
-          </label>
-          <input
-            id="orePcto"
-            type="number"
-            min="0"
-            step="0.25"
-            value={orePcto}
-            onChange={(e) => setOrePcto(e.target.value)}
-            aria-invalid={Boolean(errori.orePcto)}
-            className={`${inputClass} ${fieldBorder(Boolean(errori.orePcto))}`}
-          />
-          {errori.orePcto && <p className="mt-1.5 text-sm text-red-400">{errori.orePcto}</p>}
-        </div>
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2">
@@ -410,7 +415,7 @@ export default function CreaEventoForm({
         </div>
         <div>
           <label htmlFor="dataFine" className="mb-1.5 block text-sm font-medium text-kireo-light">
-            Data e ora di fine {eDiretta ? "" : "(facoltativa)"}
+            Data e ora di fine
           </label>
           <input
             id="dataFine"
@@ -431,18 +436,17 @@ export default function CreaEventoForm({
       </div>
 
       {/*
-        DOPO le due date e non sotto il campo delle ore, perché è un'affermazione
-        sulla RELAZIONE fra tre campi, non su uno: qui compare appena l'ente ha
-        finito di riempire l'ultimo dei tre, mentre sotto le ore starebbe sopra
-        le date che la frase nomina — una riga che parla di una durata che chi
-        legge non ha ancora scritto.
-
-        `!errori.dataFine` e `!errori.dataInizio`: su un campo già rosso un
-        secondo messaggio è rumore, e `durataOre` tace comunque su una durata
-        non positiva.
+        LE ORE PCTO, al posto del campo che non c'è più (26/10): l'ente ha perso
+        una scelta, non l'informazione. Sotto le due date perché è un fatto
+        sulla loro distanza, e compare appena tutte e due sono scritte. Senza
+        risposta dal database la riga dice la regola senza il numero: qui la
+        creazione non si blocca, perché non c'è nessun valore scelto da
+        qualcuno da proteggere — il numero lo scrive comunque il trigger.
       */}
-      {avvisoOre && !errori.dataInizio && !errori.dataFine && (
-        <p className="rounded-lg border border-kireo-orange/40 bg-kireo-orange/10 px-4 py-3 text-sm text-kireo-orange">{avvisoOre}</p>
+      {chiaveOre && oreCorrenti && !errori.dataInizio && !errori.dataFine && (
+        <p className="text-sm text-kireo-muted">
+          {oreCorrenti.ore !== null ? testoOreCreazione(oreCorrenti.ore) : TESTO_ORE_CREAZIONE_SENZA_NUMERO}
+        </p>
       )}
 
       <div className="grid gap-5 sm:grid-cols-2">

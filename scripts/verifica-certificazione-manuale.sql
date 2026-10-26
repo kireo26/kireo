@@ -56,9 +56,22 @@ insert into public.eventi (id, titolo, descrizione, tipo, organizzatore_id, data
   ('e0000000-0000-0000-0000-0000000000d1', 'Lunga', 'x', 'webinar', 'aaaaaaaa-0000-0000-0000-0000000000d1',
    now() - interval '28 minutes 30 seconds', now() + interval '16 minutes 30 seconds', 'approvato', 'studenti', 'kireo', 'abcdefghijk', 'attivo', 0.75),
   ('e0000000-0000-0000-0000-0000000000d2', 'Corta', 'x', 'webinar', 'aaaaaaaa-0000-0000-0000-0000000000d1',
-   now() - interval '16 minutes 10 seconds', now() + interval '30 minutes', 'approvato', 'studenti', 'kireo', 'abcdefghijk', 'attivo', 0.75),
+   now() - interval '16 minutes 10 seconds', now() + interval '30 minutes', 'approvato', 'studenti', 'kireo', 'abcdefghijk', 'attivo', 0.75);
+-- ⚠️ DA `20261029100000` LE ORE ALL'INSERT LE CALCOLA IL TRIGGER DALLA
+-- FINESTRA, e la fine è obbligatoria. EV_L dura 45 minuti → 0,75 da sé. EV_C
+-- dura 46 minuti e 10 secondi (0,76): la fissiamo a 0,75 con un update dopo
+-- l'insert, che è la strada della correzione dell'admin (le date non cambiano,
+-- il trigger non ricalcola). EV_S è un evento di PRIMA del 26/10, senza fine e
+-- con le ore scritte a mano: un evento così oggi non si può più creare, quindi
+-- lo si fabbrica col trigger spento per un insert solo (il rollback in coda
+-- disfa anche questo).
+update public.eventi set ore_pcto = 0.75 where id = 'e0000000-0000-0000-0000-0000000000d2';
+alter table public.eventi disable trigger eventi_ore_da_orario;
+insert into public.eventi (id, titolo, descrizione, tipo, organizzatore_id, data_inizio, data_fine, stato, pubblico,
+                           hosting_diretta, youtube_video_id, incorporamento_sonda, ore_pcto) values
   ('e0000000-0000-0000-0000-0000000000d3', 'Senza fine', 'x', 'altro', 'aaaaaaaa-0000-0000-0000-0000000000d1',
    now() - interval '1 hour', null, 'approvato', 'studenti', 'kireo', null, null, 3);
+alter table public.eventi enable trigger eventi_ore_da_orario;
 insert into public.eventi_aree (evento_id, area_slug) values
   ('e0000000-0000-0000-0000-0000000000d1', 'informatica-digitale'),
   ('e0000000-0000-0000-0000-0000000000d2', 'informatica-digitale'),

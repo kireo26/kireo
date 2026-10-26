@@ -133,7 +133,8 @@ export async function getEventiPerArea(supabase: SupabaseClient, areaSlug: strin
 
 // Eventi approvati organizzati da una specifica istituzione, per il
 // profilo pubblico /istituzioni/[slug] — ordinati per data, futuri e
-// passati insieme (a differenza dell'Agenda studente, qui non si separano).
+// passati insieme: li separa la pagina («In programma» / «Eventi passati»,
+// 26/10), con `eventoNonFinito`.
 export async function getEventiIstituzione(supabase: SupabaseClient, istituzioneId: string): Promise<Evento[]> {
   try {
     const { data, error } = await supabase

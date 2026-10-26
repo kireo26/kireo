@@ -36,6 +36,24 @@ const PER_VINCOLO: { nome: string; testo: string }[] = [
   },
 ];
 
+// LE ECCEZIONI DEL TRIGGER DELLE ORE (`20261029100000`): non sono vincoli ma
+// `raise exception` con un nome, e il trigger controlla le date PRIMA del
+// vincolo `eventi_date_order` — quindi lo stesso fatto arriva con un altro
+// nome, e deve dire la stessa cosa. Un elenco a parte perché la guardia le
+// cerca in un'altra forma (`raise exception '<nome>'`, non `constraint <nome>`).
+const PER_ECCEZIONE: { eccezione: string; testo: string }[] = [
+  {
+    eccezione: "fine_prima_di_inizio",
+    testo: "La data di fine è precedente a quella di inizio: correggila e riprova.",
+  },
+  // ⚠️ Testo mio, provvisorio. Il form la chiede già: qui ci arriva solo una
+  // strada che non passa dal form.
+  {
+    eccezione: "data_fine_obbligatoria",
+    testo: "Manca l'orario di fine: serve a calcolare le ore PCTO dell'incontro. Aggiungilo e riprova.",
+  },
+];
+
 /**
  * Il messaggio da mostrare. Non dice mai «riprova più tardi» quando a non
  * andare è il dato: il tempo non lo cambia.
@@ -46,6 +64,9 @@ export function messaggioErroreEvento(errore: ErroreSupabase): string {
 
   for (const v of PER_VINCOLO) {
     if (messaggio.includes(v.nome)) return v.testo;
+  }
+  for (const v of PER_ECCEZIONE) {
+    if (messaggio.includes(v.eccezione)) return v.testo;
   }
 
   // Un CHECK che non sappiamo nominare resta un problema del DATO: si dice

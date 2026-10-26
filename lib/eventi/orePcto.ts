@@ -1,67 +1,17 @@
-// Le ore PCTO dichiarate contro la durata programmata dell'evento.
+// Le ore PCTO di un evento: come si scrivono, e il campo dell'admin.
 //
-// ⚠️ IL CASO VERO, osservato da Mario sul suo stesso evento: `data_inizio`
-// 19:15, `data_fine` 19:20, `ore_pcto` 0,5. Cinque minuti di diretta e mezz'ora
-// di PCTO dichiarata — e `ore_pcto` è un campo libero, quindi nessuno ha detto
-// niente. Quelle ore finiscono su un documento di scuola.
+// ⚠️ QUI C'ERA L'AVVISO SULLE ORE SOSPETTE (`avvisoOrePcto`, 4/10: «Stai
+// dichiarando 0,5 ore per un incontro di 5 minuti»), ed è uscito il 26/10 con
+// `20261029100000`: da allora le ore dichiarate SONO la durata della finestra,
+// calcolate dal database, e un avviso che confronta un numero con sé stesso
+// non ha niente da dire. Se un giorno l'ente tornasse a scrivere le ore a mano,
+// l'avviso va ripreso dalla storia (`git log -S avvisoOrePcto`), non riscritto:
+// la sua soglia e i suoi casi sono spiegati là.
 //
-// ⚠️ NON È UN BLOCCO, ED È UNA SCELTA DI MARIO: un evento può legittimamente
-// valere più della sua diretta (un'ora di webinar più tre di lavoro è un caso
-// normale, non un errore). Quindi un AVVISO, come quello della data nel
-// passato: informa e non impedisce. Non entra in `validate()` apposta — una
-// riga in `errori` bloccherebbe l'invio.
-//
-// ⚠️ LA SOGLIA È MIA, NON MISURATA, e sta scritta come tale perché nessuno la
-// ritrovi fra sei mesi credendo che qualcuno l'abbia tarata su dei dati. La
-// regola è UNA, perché due regole con due soglie sono due numeri da spiegare:
-//
-//     avvisa quando le ore dichiarate sono più del DOPPIO della durata
-//     programmata.
-//
-// Perché un rapporto e non un margine assoluto: un margine di un'ora (che era
-// la prima stesura) NON prende il caso che ha aperto il lavoro — 0,5 ore su 5
-// minuti supera la durata di 0,42 ore, cioè meno di un'ora, quindi tacerebbe
-// proprio lì. Un rapporto invece lo prende (6×), e per gli eventi lunghi resta
-// generoso: un'ora dichiarata su 45 minuti è 1,33× e non dice niente, che è
-// giusto — arrotondare per eccesso è normale.
-//
-// COSA PRENDE CHE NON È UN ERRORE, detto invece di nasconderlo: un workshop di
-// un'ora che dichiara 4 ore perché il lavoro continua dopo (4×). Quel caso
-// l'avviso lo nomina e lo manda avanti — ed è il motivo per cui il testo dice
-// cosa fare invece di dire che è sbagliato: se il lavoro c'è, va nella
-// descrizione, perché è quella che la scuola legge.
-//
-// COSA **NON** PRENDE, di proposito: le ore MOLTO MINORI della durata. Un
-// evento di tre ore che ne vale una è normale (ne conta una parte), e zero ore
-// è il caso più comune di tutti. Avvisare lì sarebbe un avviso che suona sempre.
+// ⚠️ E QUESTO FILE NON CONTIENE LA FORMULA DELLE ORE: sta in SQL
+// (`ore_dichiarate_da_finestra`), una volta sola. Vedi `lib/eventi/oreDallOrario.ts`.
 
-import { formattaDecimali, formattaNumero, millisecondiDaOrarioItaliano } from "@/lib/formato";
-
-/** Quante volte la durata programmata le ore possono superare prima che si dica qualcosa. */
-export const FATTORE_ORE_SOSPETTE = 2;
-
-/**
- * La durata programmata in ore, o `null` quando non si può sapere.
- *
- * NULL in tre casi, e tutti e tre devono tacere: una data mancante (`data_fine`
- * è facoltativa per gli eventi che non sono dirette), una data malformata, e
- * una durata non positiva — quest'ultima è già un errore di campo, e un secondo
- * messaggio su un campo già rosso è rumore.
- */
-export function durataOre(dataInizio: string, dataFine: string): number | null {
-  const inizio = millisecondiDaOrarioItaliano(dataInizio);
-  const fine = millisecondiDaOrarioItaliano(dataFine);
-  if (!Number.isFinite(inizio) || !Number.isFinite(fine)) return null;
-  const ore = (fine - inizio) / 3_600_000;
-  return ore > 0 ? ore : null;
-}
-
-/** Il numero come lo scrive un italiano: «0,5», «1,5», «12». */
-// Una strada sola per scrivere un numero di ore: `numeroOre`, più sotto (prima
-// qui c'era una seconda copia, `String(…).replace(".", ",")`).
-function conLaVirgola(n: number): string {
-  return numeroOre(n);
-}
+import { formattaDecimali, formattaNumero } from "@/lib/formato";
 
 /** Una durata come la leggerebbe una persona: «5 minuti», «1 ora e 30 minuti», «2 ore». */
 export function durataLeggibile(ore: number): string {
@@ -71,41 +21,6 @@ export function durataLeggibile(ore: number): string {
   const m = minuti % 60;
   const parteOre = `${h} or${h === 1 ? "a" : "e"}`;
   return m === 0 ? parteOre : `${parteOre} e ${m} minut${m === 1 ? "o" : "i"}`;
-}
-
-/** «8 ore» / «1 ora» / «0,5 ore»: l'uno capita, perché la soglia lo ammette. */
-function oreLeggibili(ore: number): string {
-  return `${conLaVirgola(ore)} or${ore === 1 ? "a" : "e"}`;
-}
-
-/**
- * L'avviso, o `null` quando non c'è niente da dire. Il testo è di Mario, parola
- * per parola.
- *
- * ⚠️ TRE COSE NELLA FORMA, tutte volute. (1) DICE I DUE NUMERI invece di dire
- * «troppe»: chi li legge vede da sé, e un numero che il lettore non può rifare
- * gli toglie fiducia in tutto il resto. (2) DICE PERCHÉ CI INTERESSA — senza
- * quello sembra un capriccio del modulo, e invece quelle ore finiscono su un
- * documento che la scuola conserva. (3) LASCIA ANDARE AVANTI, perché un evento
- * può legittimamente valere più della sua diretta e non siamo noi a saperlo.
- */
-export function avvisoOrePcto(ore: number, dataInizio: string, dataFine: string): string | null {
-  // ⚠️ QUESTA RIGA NON TIENE LO ZERO, e l'ha detto una controprova che non ha
-  // morso: togliendola, le proprietà restano VERDI, perché `0 <= durata * 2` è
-  // vero su qualunque durata positiva e il confronto più in basso lo prende
-  // comunque. Quello che tiene DAVVERO è il `!(…)`, che è falso anche per
-  // `NaN` — e `NaN <= qualunque cosa` è falso, quindi senza questa riga un
-  // `Number("abc")` produrrebbe «Stai dichiarando NaN ore».
-  //
-  // ⚠️ MA UN CAMPO CHE NON CONTIENE UN NUMERO NON È UN NUMERO SOSPETTO: NON È
-  // UN NUMERO (Mario). Quindi tacere qui è giusto e non basta — il rifiuto sta
-  // nel modulo, su quel campo, con il testo degli errori di campo. Vedi
-  // `validate()` in `components/ente/CreaEventoForm.tsx`.
-  if (!(ore > 0)) return null;
-  const durata = durataOre(dataInizio, dataFine);
-  if (durata === null) return null;
-  if (ore <= durata * FATTORE_ORE_SOSPETTE) return null;
-  return `Stai dichiarando ${oreLeggibili(ore)} per un incontro di ${durataLeggibile(durata)}. Le ore PCTO finiscono su un documento che la scuola conserva: se il numero è giusto vai avanti, altrimenti correggilo.`;
 }
 
 // ─────────────────── LE ORE COME LE LEGGE UNA PERSONA ───────────────────────
@@ -137,10 +52,13 @@ export function numeroOre(ore: number | string | null | undefined): string {
 // a oggi la colonna era a un decimale e 0,75 diventava 0,8 senza che nessuno
 // lo dicesse all'ente. Da `20261018110000` la colonna tiene due decimali, e il
 // troncamento si è solo SPOSTATO al terzo: un 0,333 diventerebbe 0,33. Quindi
-// lo rifiutiamo qui, dove l'ente può ancora scrivere quello che intende.
+// lo rifiutiamo qui, dove chi scrive può ancora scrivere quello che intende.
+// Dal 26/10 il campo è uno solo, quello della correzione dell'admin
+// (`CorreggiOreForm`): l'ente non scrive più le ore. `correggi_ore_evento` lo
+// rifiuta anche dal lato del database (`ore_troppi_decimali`).
 //
-// Il campo vuoto NON è un errore: «0 se non applicabile» è quello che dice
-// l'etichetta, e l'invio manda 0.
+// Il campo vuoto qui NON è un errore di forma: il form della correzione lo
+// tratta a parte, perché un campo vuoto non è una correzione.
 export const DECIMALI_ORE_PCTO = 2;
 
 export function erroreOrePcto(valore: string): string | null {

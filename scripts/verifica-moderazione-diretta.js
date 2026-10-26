@@ -339,10 +339,11 @@ console.log("\n§4 — una pagina per due ruoli, con una sola differenza\n");
   );
   // La differenza è UNA, e si conta: ogni `parte === "kireo"` è un posto in cui
   // le due pagine divergono, e Mario ne ha ammesso una sola di sostanza (chi
-  // scarica cosa) — più il link indietro e il kill switch, che sono due cose
-  // che l'altro ruolo non può fare per costruzione.
+  // scarica cosa) — più il link indietro, il kill switch e (dal 26/10) la
+  // correzione delle ore PCTO: tre cose che l'altro ruolo non può fare per
+  // costruzione (la correzione passa da `correggi_ore_evento`, solo admin).
   const rami = (src.match(/parte === "kireo"/g) ?? []).length;
-  ok(rami === 3, "tre soli rami sul ruolo: dove si torna, il kill switch, quale export", `${rami}`);
+  ok(rami === 4, "quattro soli rami sul ruolo: dove si torna, il kill switch, la correzione delle ore, quale export", `${rami}`);
   // Il link indietro è UN ramo e non due: l'indirizzo e il nome del posto
   // escono dallo stesso oggetto, quindi non possono divergere (un href verso
   // `/admin` con l'etichetta «ai tuoi eventi»).

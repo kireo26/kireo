@@ -40,6 +40,7 @@ export type ContestoModerazione = {
     diretta_chiusa_certificati: number | null;
     diretta_durata_minuti: number | null;
     ore_pcto: number | null;
+    ore_pcto_fissate_il: string | null;
     organizzatore: string | null;
   };
 };
@@ -56,7 +57,7 @@ export async function getContestoModerazione(eventoId: string): Promise<Contesto
   const { data: evento, error } = await supabase
     .from("eventi")
     .select(
-      "id, titolo, tipo, pubblico, filone, data_inizio, data_fine, stato, hosting_diretta, youtube_video_id, domanda_consegna, diretta_chiusa_il, diretta_chiusa_da_tipo, diretta_chiusa_presenti, diretta_chiusa_certificati, diretta_durata_minuti, ore_pcto, organizzatore_id, istituzioni(nome)",
+      "id, titolo, tipo, pubblico, filone, data_inizio, data_fine, stato, hosting_diretta, youtube_video_id, domanda_consegna, diretta_chiusa_il, diretta_chiusa_da_tipo, diretta_chiusa_presenti, diretta_chiusa_certificati, diretta_durata_minuti, ore_pcto, ore_pcto_fissate_il, organizzatore_id, istituzioni(nome)",
     )
     .eq("id", eventoId)
     .maybeSingle();
@@ -105,6 +106,7 @@ export async function getContestoModerazione(eventoId: string): Promise<Contesto
       diretta_chiusa_certificati: evento.diretta_chiusa_certificati,
       diretta_durata_minuti: evento.diretta_durata_minuti,
       ore_pcto: evento.ore_pcto,
+      ore_pcto_fissate_il: evento.ore_pcto_fissate_il,
       organizzatore: istituzione?.nome ?? null,
     },
   };

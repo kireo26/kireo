@@ -5,6 +5,7 @@ import ControlloDirettaEvento from "@/components/ente/ControlloDirettaEvento";
 import ReportEventoButton from "@/components/ente/ReportEventoButton";
 import GestisciVideoDirettaForm from "@/components/admin/GestisciVideoDirettaForm";
 import SpostaFinestraForm from "@/components/ente/SpostaFinestraForm";
+import CorreggiOreForm from "@/components/admin/CorreggiOreForm";
 import { formattaDataOra } from "@/lib/formato";
 import { getFiloneBySlug } from "@/data/filoniDocenti";
 
@@ -80,6 +81,15 @@ export default async function ModerazioneDirettaPage({ params }: { params: Promi
       {parte === "kireo" && evento.tipo === "webinar" && (
         <section className="mt-6 rounded-xl border border-white/5 bg-kireo-card p-4">
           <GestisciVideoDirettaForm eventoId={evento.id} videoIdAttuale={evento.youtube_video_id} />
+        </section>
+      )}
+
+      {/* LE ORE PCTO, solo admin (26/10, `20261029100000`): si calcolano
+          dall'orario, e solo KIREO le corregge a mano. Anche a diretta chiusa —
+          non si vieta, si dice: le ore già certificate restano quelle di allora. */}
+      {parte === "kireo" && (
+        <section className="mt-6 rounded-xl border border-white/5 bg-kireo-card p-4">
+          <CorreggiOreForm eventoId={evento.id} oreAttuali={evento.ore_pcto ?? 0} fissateIl={evento.ore_pcto_fissate_il} />
         </section>
       )}
 

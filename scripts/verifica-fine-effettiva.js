@@ -77,7 +77,10 @@ const CLASSI = {
   "components/live/BoxDomandeLive.tsx": ["riceve", "la fine la decide PannelloLive"],
   "components/ente/CreaEventoForm.tsx": ["programmata", "scrive la finestra programmata: non c'è ancora nessuna chiusura"],
   "components/ente/SpostaFinestraForm.tsx": ["programmata", "sposta la finestra programmata; il database rifiuta una diretta già chiusa"],
-  "lib/eventi/orePcto.ts": ["programmata", "l'avviso sulle ore dichiarate si dà creando l'evento, sulla durata dichiarata"],
+  // `lib/eventi/orePcto.ts` è USCITO il 26/10, e non per svista: l'avviso sulle
+  // ore dichiarate (che leggeva la durata programmata) non esiste più — le ore
+  // SONO la durata, le calcola il database (`20261029100000`). La guardia lo
+  // ha detto da sola: un file che smette di nominare `data_fine` si toglie.
   "lib/live/presenza.ts": [
     "programmata",
     "la soglia DURANTE la diretta (`minutiNecessari`) e la misura della fine del video («quanto prima della fine programmata»): a chiusura avvenuta la pagina passa a «conclusa», e l'esito si calcola sulla durata vera in `testoChiusuraStudente`",
@@ -154,7 +157,15 @@ console.log("\n§3 — le funzioni SQL vive che nominano la fine leggono anche l
   for (const nome of ["domanda_consegna_modificabile", "consegna_evento_aperta", "evento_in_finestra_diretta"]) {
     ok(/fine_effettiva_evento\(/.test(fn.get(nome)?.corpo ?? ""), `${nome}: la definizione viva passa da fine_effettiva_evento`, fn.get(nome)?.file);
   }
-  const ESCLUSE_SQL = {};
+  // Le funzioni che lavorano sulla finestra PROGRAMMATA di proposito, con la
+  // ragione. Una funzione nuova che nomina `data_fine` senza leggere la
+  // chiusura nasce rossa finché qualcuno non dice quale delle due cose fa.
+  const ESCLUSE_SQL = {
+    eventi_ore_da_orario:
+      "le ore dichiarate sono la durata della finestra PROGRAMMATA (Mario, 26/10): la chiusura le limita dopo, in ore_riconoscibili_evento, sulla durata vera",
+    anteprima_spostamento_finestra:
+      "dice se l'evento AVEVA una fine programmata: è il caso dell'evento vecchio senza orario, che va spostato e non bloccato",
+  };
   const conFine = [...fn.entries()].filter(([, f]) => /\bdata_fine\b/.test(f.corpo));
   ok(conFine.length >= 5, `${conFine.length} funzioni vive nominano data_fine (soglia 5)`);
   const muti = conFine.filter(([n, f]) => !ESCLUSE_SQL[n] && !/fine_effettiva_evento|diretta_chiusa_il/.test(f.corpo)).map(([n, f]) => `${n} (${f.file})`);

@@ -1,12 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/Button";
 import { istanteDaOrarioItaliano, orarioItalianoDaIstante } from "@/lib/formato";
 import { messaggioSpostaFinestra } from "@/lib/eventi/spostaFinestra";
 import { avvisoDurataDiretta, ETICHETTA_CONFERMA_DURATA } from "@/lib/eventi/durataDiretta";
+import { testoAnteprimaSpostamento, TESTO_ANTEPRIMA_FALLITA, type AnteprimaSpostamento } from "@/lib/eventi/oreDallOrario";
+
+// L'anteprima vale per UNA coppia di date: si porta dietro la chiave con cui è
+// stata chiesta, e lo spostamento parte solo se la chiave è quella dei campi
+// adesso. Senza, una risposta arrivata tardi descriverebbe un orario che a
+// schermo non c'è più.
+type StatoAnteprima =
+  | { chiave: string; tipo: "pronta"; dati: AnteprimaSpostamento }
+  | { chiave: string; tipo: "fallita" };
 
 // SPOSTARE LA FINESTRA DI UNA DIRETTA, dal prodotto (18/10). Quella sera la
 // finestra è stata spostata due volte in SQL perché non esisteva nessun'altra
@@ -38,6 +47,45 @@ export default function SpostaFinestraForm({
   const avvisoDurata = isoI && isoF ? avvisoDurataDiretta(new Date(isoI).getTime(), new Date(isoF).getTime()) : null;
   const [messaggio, setMessaggio] = useState<{ ok: boolean; testo: string } | null>(null);
 
+  // LE ORE CHE CAMBIANO, dette prima del clic (26/10, `20261029100000`): lo
+  // spostamento le ricalcola, e se erano state fissate a mano le sostituisce.
+  // Il numero viene da `anteprima_spostamento_finestra`, cioè dalla stessa
+  // funzione che il trigger usa per scriverlo — nessuna copia della formula.
+  const chiaveDate = isoI && isoF && new Date(isoF).getTime() > new Date(isoI).getTime() ? `${isoI}|${isoF}` : null;
+  const [anteprima, setAnteprima] = useState<StatoAnteprima | null>(null);
+  const [giroAnteprima, setGiroAnteprima] = useState(0);
+  // Il giro entra nella chiave: «Riprova il calcolo» rende vecchia la risposta
+  // fallita, e finché la nuova non arriva lo stato è «in corso» — derivato,
+  // non scritto (nessun `setState` sincrono dentro l'effetto).
+  const chiave = chiaveDate ? `${chiaveDate}|${giroAnteprima}` : null;
+  useEffect(() => {
+    if (!aperto || !chiave) return;
+    const [pInizio, pFine] = chiave.split("|");
+    let attivo = true;
+    createClient()
+      .rpc("anteprima_spostamento_finestra", { p_evento_id: eventoId, p_data_inizio: pInizio, p_data_fine: pFine })
+      .then(({ data, error }) => {
+        if (!attivo) return;
+        const riga = Array.isArray(data) ? (data[0] as AnteprimaSpostamento | undefined) : undefined;
+        if (error || !riga) {
+          console.error("SpostaFinestraForm: anteprima", error ?? "nessuna riga");
+          setAnteprima({ chiave, tipo: "fallita" });
+          return;
+        }
+        setAnteprima({ chiave, tipo: "pronta", dati: riga });
+      }, (err: unknown) => {
+        if (!attivo) return;
+        console.error("SpostaFinestraForm: anteprima", err);
+        setAnteprima({ chiave, tipo: "fallita" });
+      });
+    return () => {
+      attivo = false;
+    };
+  }, [aperto, chiave, eventoId]);
+  const anteprimaCorrente = anteprima && anteprima.chiave === chiave ? anteprima : null;
+  const calcoloInCorso = chiave !== null && anteprimaCorrente === null;
+  const testoOre = anteprimaCorrente?.tipo === "pronta" ? testoAnteprimaSpostamento(anteprimaCorrente.dati) : null;
+
   async function salva(e: React.FormEvent) {
     e.preventDefault();
     setMessaggio(null);
@@ -55,6 +103,11 @@ export default function SpostaFinestraForm({
       setMessaggio({ ok: false, testo: avvisoDurata });
       return;
     }
+    // ⚠️ SENZA L'ANTEPRIMA DI QUESTE DATE LO SPOSTAMENTO NON PARTE (Mario):
+    // può cancellare una correzione a mano, e una cosa che cancella la scelta
+    // di qualcun altro non si conferma al buio. Il testo e il bottone per
+    // riprovare sono già a schermo; qui non si dice niente di nuovo.
+    if (anteprimaCorrente?.tipo !== "pronta") return;
     setSalvataggio(true);
     try {
       const { error } = await createClient().rpc("sposta_finestra_evento", {
@@ -110,6 +163,20 @@ export default function SpostaFinestraForm({
           />
         </label>
       </div>
+      {calcoloInCorso && <p className="text-xs text-kireo-muted">Calcolo le ore con il nuovo orario…</p>}
+      {anteprimaCorrente?.tipo === "fallita" && (
+        <div className="space-y-1">
+          <p className="text-xs text-red-400">{TESTO_ANTEPRIMA_FALLITA}</p>
+          <button
+            type="button"
+            onClick={() => setGiroAnteprima((g) => g + 1)}
+            className="text-xs text-kireo-orange underline underline-offset-2"
+          >
+            Riprova il calcolo
+          </button>
+        </div>
+      )}
+      {testoOre && <p className="text-xs text-kireo-light">{testoOre}</p>}
       {avvisoDurata && (
         <label className="flex items-start gap-2 text-xs text-kireo-light">
           <input type="checkbox" checked={confermaDurata} onChange={(e) => setConfermaDurata(e.target.checked)} className="mt-0.5" />
@@ -119,7 +186,7 @@ export default function SpostaFinestraForm({
         </label>
       )}
       <div className="flex items-center gap-4">
-        <Button type="submit" variant="outline" disabled={salvataggio}>
+        <Button type="submit" variant="outline" disabled={salvataggio || calcoloInCorso}>
           {salvataggio ? "Salvataggio…" : "Salva il nuovo orario"}
         </Button>
         <button type="button" onClick={() => setAperto(false)} className="text-xs text-kireo-muted underline underline-offset-2">

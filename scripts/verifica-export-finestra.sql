@@ -70,8 +70,15 @@ begin
     (v_s5, v_scuola, '5A', 2027, 'verificato');
 
   insert into public.eventi (id, titolo, tipo, data_inizio, data_fine, stato) values
-    (v_ev, 'test 2', 'altro', v_t, v_t + interval '5 minutes', 'approvato'),
+    (v_ev, 'test 2', 'altro', v_t, v_t + interval '5 minutes', 'approvato');
+  -- ⚠️ Un evento SENZA FINE oggi non si crea più (`20261029100000`: la fine è
+  -- obbligatoria all'insert). Questo rappresenta un evento di prima del 26/10,
+  -- che esiste ancora in produzione: lo si fabbrica col trigger spento per un
+  -- insert solo, e il rollback in coda disfa anche questo.
+  alter table public.eventi disable trigger eventi_ore_da_orario;
+  insert into public.eventi (id, titolo, tipo, data_inizio, data_fine, stato) values
     (v_ev_senza_fine, 'senza fine', 'altro', v_t, null, 'approvato');
+  alter table public.eventi enable trigger eventi_ore_da_orario;
 
   insert into public.iscrizioni_eventi (evento_id, student_id) values
     (v_ev, v_s1), (v_ev, v_s2), (v_ev, v_s3), (v_ev, v_s4), (v_ev, v_s5), (v_ev_senza_fine, v_s1);

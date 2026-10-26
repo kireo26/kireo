@@ -18,6 +18,7 @@ export default function CardEvento({
   userId,
   iscritto,
   origineIscrizione = null,
+  mostraOre = true,
 }: {
   evento: Evento;
   areeSlugs: string[];
@@ -26,6 +27,11 @@ export default function CardEvento({
   // "scuola": iscrizione d'ufficio, non un segnale di interesse dello
   // studente — solo un'etichetta informativa, il bottone resta invariato.
   origineIscrizione?: "studente" | "scuola" | null;
+  // Falso nell'ARCHIVIO della pagina di un ente (Mario, 26/10): su un evento
+  // passato le ore della card possono essere state corrette dopo la chiusura,
+  // mentre quelle di chi c'era sono quelle certificate allora. Una variante
+  // della stessa card, non una seconda card: due card divergono.
+  mostraOre?: boolean;
 }) {
   // TRE STATI, NON DUE (decisione di Mario, 18/10 — vedi `faseIscrizione` in
   // lib/live.ts). Prima dell'inizio «Iscriviti»; a diretta IN CORSO «Iscriviti
@@ -73,7 +79,7 @@ export default function CardEvento({
             <span className="rounded-full bg-kireo-orange/15 px-2.5 py-0.5 text-xs font-semibold text-kireo-orange">
               {ETICHETTA_TIPO[evento.tipo]}
             </span>
-            {evento.ore_pcto > 0 && (
+            {mostraOre && evento.ore_pcto > 0 && (
               <span className="rounded-full bg-kireo-green/15 px-2.5 py-0.5 text-xs font-semibold text-kireo-green-light">
                 {numeroOre(evento.ore_pcto)}h PCTO
               </span>

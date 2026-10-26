@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getIstituzionePubblicaBySlug, getGuideEnte, isIscrittoNewsletter, getConteggioFollower, isSeguito, etichettaTipoIstituzione } from "@/lib/app/istituzioni";
-import { getEventiIstituzione, getAreeDegliEventi, getIscrizioniStudente } from "@/lib/app/eventi";
+import { getEventiIstituzione, getAreeDegliEventi, getIscrizioniStudente, eventoNonFinito } from "@/lib/app/eventi";
 import { isMaggiorenne } from "@/lib/eta";
 import GuidaEnteForm from "@/components/app/GuidaEnteForm";
 import IscrivitiNewsletterButton from "@/components/app/IscrivitiNewsletterButton";
@@ -37,6 +37,12 @@ export default async function IstituzionePubblicaPage({ params }: { params: Prom
     getGuideEnte(supabase, istituzione.id),
     getEventiIstituzione(supabase, istituzione.id),
   ]);
+
+  // `eventoNonFinito` è la stessa regola dell'Agenda e delle aree (la fine
+  // effettiva: una diretta chiusa in anticipo è passata). L'archivio va dal più
+  // recente: è quello che si cerca.
+  const eventiInProgramma = eventi.filter((e) => eventoNonFinito(e));
+  const eventiPassati = eventi.filter((e) => !eventoNonFinito(e)).reverse();
 
   const areeEventi = await getAreeDegliEventi(
     supabase,
@@ -136,13 +142,18 @@ export default async function IstituzionePubblicaPage({ params }: { params: Prom
       <section className="border-t border-white/5 bg-kireo-card/40">
         <div className="mx-auto max-w-4xl px-6 py-16">
           <h2 className="py-0.5 font-heading text-2xl font-bold leading-[1.25] text-kireo-light">Eventi</h2>
-          {eventi.length === 0 ? (
-            <p className="mt-6 rounded-2xl border border-white/5 bg-kireo-card p-6 text-center text-kireo-muted">
+          {/* DUE SEZIONI E NON UNA (Mario, 26/10). «Nessun evento in programma»
+              misura SOLO gli eventi non finiti: con un archivio pieno e niente
+              in programma, la frase deve comparire lo stesso — prima la lista
+              era una sola, e un evento di due mesi fa la faceva tacere. */}
+          <h3 className="mt-6 font-heading text-lg font-semibold text-kireo-light">In programma</h3>
+          {eventiInProgramma.length === 0 ? (
+            <p className="mt-4 rounded-2xl border border-white/5 bg-kireo-card p-6 text-center text-kireo-muted">
               Nessun evento in programma al momento.
             </p>
           ) : (
-            <ul className="mt-6 space-y-4">
-              {eventi.map((evento) => (
+            <ul className="mt-4 space-y-4">
+              {eventiInProgramma.map((evento) => (
                 <CardEvento
                   key={evento.id}
                   evento={evento}
@@ -152,6 +163,27 @@ export default async function IstituzionePubblicaPage({ params }: { params: Prom
                 />
               ))}
             </ul>
+          )}
+          {/* L'ARCHIVIO, SENZA L'ETICHETTA DELLE ORE: le ore di un evento
+              passato possono essere state corrette dopo la chiusura, e le ore
+              di chi c'era sono quelle certificate allora — due numeri per la
+              stessa cosa, e lo studente crederebbe alla card. */}
+          {eventiPassati.length > 0 && (
+            <>
+              <h3 className="mt-10 font-heading text-lg font-semibold text-kireo-light">Eventi passati</h3>
+              <ul className="mt-4 space-y-4">
+                {eventiPassati.map((evento) => (
+                  <CardEvento
+                    key={evento.id}
+                    evento={evento}
+                    areeSlugs={areeEventi[evento.id] ?? []}
+                    userId={user?.id ?? null}
+                    iscritto={iscrizioniEventi.has(evento.id)}
+                    mostraOre={false}
+                  />
+                ))}
+              </ul>
+            </>
           )}
         </div>
       </section>
