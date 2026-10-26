@@ -326,7 +326,14 @@ console.log("\n§5 · il CSV dice le ore");
   // E vale anche se i minuti non si leggono: la frase non dipende da un numero.
   tabelle.presenze_live = { data: null, error: { message: "finto" } };
   const v4 = (await A.getStoricoAttivita(finto, "u1")).find((x) => x.tipo === "evento");
-  ok(v4?.esito === v3?.esito, "…anche quando i minuti non si possono leggere", v4?.esito);
+  // Contro la frase scritta, non contro v3: con il ramo muto tutte e due
+  // sarebbero null e il confronto resterebbe verde (il modo 12, visto dalla
+  // controprova del 26/10).
+  ok(
+    v4?.esito === "L'incontro è finito ma non è ancora stato chiuso da chi l'ha organizzato: le ore non sono ancora state riconosciute.",
+    "…anche quando i minuti non si possono leggere",
+    v4?.esito,
+  );
 
   console.log(`\n${falliti ? "✗" : "✓"} ${fatte - falliti}/${fatte} proprietà (npm run test:durata)`);
   process.exit(falliti ? 1 : 0);
