@@ -119,9 +119,15 @@ export function avvisoOrePcto(ore: number, dataInizio: string, dataFine: string)
 // Due decimali, la precisione delle colonne dal 18/10 (`20261018110000`):
 // l'arrotondamento esplicito toglie il rumore, `formattaNumero` mette la
 // virgola. `numeric` arriva da PostgREST come stringa: si accetta.
+//
+// ⚠️ UN NUMERO NON INTERO SI SCRIVE SEMPRE CON DUE DECIMALI (Mario, 26/10): lo
+// storico diceva «0,4h certificate» dove il CSV dice «0.40», e la stessa ora
+// non può avere due precisioni a seconda di dove la si legge. Gli interi
+// restano senza decimali («1 ora», «2h PCTO»): «1,00» non dice niente in più.
 export function numeroOre(ore: number | string | null | undefined): string {
   const n = Number(ore ?? 0);
-  return formattaNumero(Number.isFinite(n) ? Math.round(n * 100) / 100 : 0);
+  const r = Number.isFinite(n) ? Math.round(n * 100) / 100 : 0;
+  return Number.isInteger(r) ? formattaNumero(r) : r.toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 // ─────────────────── IL CAMPO, E LA REGOLA DEL TERZO DECIMALE ───────────────

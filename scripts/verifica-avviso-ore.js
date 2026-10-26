@@ -78,7 +78,7 @@ console.log("\n§1 — il caso vero: 0,5 ore su cinque minuti\n");
   const avviso = avvisoOrePcto(0.5, "2026-10-04T19:15", "2026-10-04T19:20");
   ok(avviso !== null, "0,5 ore su 5 minuti dice qualcosa", String(avviso));
   ok(
-    avviso !== null && avviso.includes("5 minuti") && avviso.includes("0,5 ore"),
+    avviso !== null && avviso.includes("5 minuti") && avviso.includes("0,50 ore"),
     "e dice i due numeri, così chi legge può rifare il conto",
     String(avviso),
   );
@@ -254,7 +254,7 @@ console.log("\n§5 — è un avviso, non un errore\n");
     ok(e !== null && /due decimali/.test(e), "un terzo decimale si RIFIUTA, invece di diventare 0,76 in silenzio", String(e));
   }
   ok(/step="0\.25"/.test(src) && !/step="0\.5"/.test(src), "il campo va a quarti d'ora, l'unità naturale del PCTO");
-  ok(numeroOre(0.75) === "0,75" && numeroOre("1.50") === "1,5" && numeroOre(1.1 + 2.2) === "3,3", "le ore si stampano con la virgola e senza rumore (anche da stringa)");
+  ok(numeroOre(0.75) === "0,75" && numeroOre("1.50") === "1,50" && numeroOre(1.1 + 2.2) === "3,30" && numeroOre(0.4) === "0,40" && numeroOre(2) === "2" && numeroOre("1.00") === "1", "le ore si stampano con la virgola, senza rumore, con due decimali se non intere (anche da stringa)");
   // NESSUNA ORA GREZZA NELLE PAGINE: sei posti stampavano `{x.ore_pcto}h` col
   // punto. Si cerca la forma, non i sei file: il settimo nascerebbe uguale.
   {
@@ -266,13 +266,18 @@ console.log("\n§5 — è un avviso, non un errore\n");
         if (statSync(join(RADICE, rel)).isDirectory()) { if (n !== "node_modules") scorri(rel); continue; }
         if (!/\.tsx$/.test(n)) continue;
         const t = senzaCommenti(readFileSync(join(RADICE, rel), "utf8"));
+        // I nomi sono quelli delle ore di un EVENTO e quelli delle ore di uno
+        // STUDENTE (26/10): con i soli primi, `{v.oreCertificate}h` nel riquadro
+        // PCTO di /app/attivita stampava «0.4h» col punto e nessuno lo vedeva.
         // Esclusi per forma, non per file: `value={orePcto}` è la stringa che
         // l'ente sta digitando, `{errori.orePcto}` è un messaggio d'errore.
-        for (const m of t.matchAll(/\{\s*[\w?.]*(?:ore_pcto|orePcto|totaleOrePcto|ore_pcto_totali)[\w?. ]*(?:\?\?\s*0)?\s*\}/g)) {
-          if (/errori\./.test(m[0]) || /value=$/.test(t.slice(Math.max(0, m.index - 6), m.index))) continue;
+        for (const m of t.matchAll(/\{\s*[\w?.]*(?:ore_pcto|orePcto|totaleOrePcto|ore_pcto_totali|oreCertificate|ore_certificate|oreRiconosciute|ore_riconosciute)[\w?. ]*(?:\?\?\s*0)?\s*\}/g)) {
+          // Un valore PASSATO (`prop={ore}`, compreso `value=`) o una
+          // destrutturazione (`{ ore }: …`) non stampa niente: lo stampa chi lo riceve.
+          if (/errori\./.test(m[0]) || /=$/.test(t.slice(Math.max(0, m.index - 1), m.index)) || /^\s*:/.test(t.slice(m.index + m[0].length))) continue;
           grezze.push(`${rel}: ${m[0]}`);
         }
-        for (const m of t.matchAll(/\$\{\s*[\w?.]*(?:ore_pcto|orePcto)\s*\}h/g)) grezze.push(`${rel}: ${m[0]}`);
+        for (const m of t.matchAll(/\$\{\s*[\w?.]*(?:ore_pcto|orePcto|oreCertificate|ore_certificate|oreRiconosciute|ore_riconosciute)\s*\}h/g)) grezze.push(`${rel}: ${m[0]}`);
       }
     };
     scorri("app"); scorri("components");

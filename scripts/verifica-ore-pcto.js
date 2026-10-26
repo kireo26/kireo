@@ -42,8 +42,8 @@ console.log("1) Il singolare solo a uno esatto");
 
 ok(testoOreCertificate(1) === "1 ora certificata su 90", `1 → «${testoOreCertificate(1)}»`);
 ok(testoOreCertificate(0) === "0 ore certificate su 90", `0 → «${testoOreCertificate(0)}» (lo zero è plurale)`);
-ok(testoOreCertificate(0.5) === "0,5 ore certificate su 90", `0,5 → «${testoOreCertificate(0.5)}» (era già giusto)`);
-ok(testoOreCertificate(1.5) === "1,5 ore certificate su 90", `1,5 → «${testoOreCertificate(1.5)}»`);
+ok(testoOreCertificate(0.5) === "0,50 ore certificate su 90", `0,5 → «${testoOreCertificate(0.5)}» (due decimali dal 26/10)`);
+ok(testoOreCertificate(1.5) === "1,50 ore certificate su 90", `1,5 → «${testoOreCertificate(1.5)}»`);
 ok(testoOreCertificate(2) === "2 ore certificate su 90", `2 → «${testoOreCertificate(2)}»`);
 
 // ── 2) il separatore italiano ───────────────────────────────────────────────
@@ -59,9 +59,9 @@ for (const n of [0.5, 1.5, 2.5, 12.5]) {
 console.log("\n3) Il rumore della somma non arriva a schermo");
 
 const rumorosi = [
-  [1.1 + 2.2, "3,3"],
-  [0.3 + 0.3 + 0.3, "0,9"],
-  [0.5 + 0.1, "0,6"],
+  [1.1 + 2.2, "3,30"],
+  [0.3 + 0.3 + 0.3, "0,90"],
+  [0.5 + 0.1, "0,60"],
 ];
 for (const [n, atteso] of rumorosi) {
   const t = testoOreCertificate(n);

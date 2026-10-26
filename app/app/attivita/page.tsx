@@ -154,7 +154,7 @@ export default async function AttivitaAppPage() {
             {attivitaCertificate.map((v) => (
               <li key={v.id} className="flex items-center justify-between text-sm text-kireo-light">
                 <span>{v.titolo}</span>
-                <span className="text-kireo-muted">{v.oreCertificate}h</span>
+                <span className="text-kireo-muted">{numeroOre(v.oreCertificate)}h</span>
               </li>
             ))}
           </ul>

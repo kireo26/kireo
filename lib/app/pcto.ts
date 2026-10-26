@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { formattaNumero } from "@/lib/formato";
 import { getOrePctoDaEventi } from "./eventi";
+import { numeroOre } from "@/lib/eventi/orePcto";
 
 // Traguardo di default: nessuna scuola/convenzione lo personalizza ancora,
 // va reso configurabile (es. su `conventions`) quando servirà davvero.
@@ -47,7 +48,9 @@ export function testoOreCertificate(ore: number): string {
   // Due decimali, la precisione vera delle colonne dal 18/10 (`20261018110000`).
   const mostrate = Math.round(ore * 100) / 100;
   const unita = mostrate === 1 ? "ora certificata" : "ore certificate";
-  return `${formattaNumero(mostrate)} ${unita} su ${formattaNumero(TRAGUARDO_ORE_PCTO)}`;
+  // Le ore passano da `numeroOre`, la stessa regola dello storico: due cifre
+  // dopo la virgola se non è un intero.
+  return `${numeroOre(mostrate)} ${unita} su ${formattaNumero(TRAGUARDO_ORE_PCTO)}`;
 }
 
 // Ore certificate da due fonti legittimamente distinte, sommate: attività

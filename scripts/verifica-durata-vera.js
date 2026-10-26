@@ -298,6 +298,36 @@ console.log("\n§5 · il CSV dice le ore");
   const v2 = (await A.getStoricoAttivita(finto, "u1")).find((x) => x.tipo === "evento");
   ok(v2 && v2.esito === null, "minuti non leggibili: nessun numero inventato", v2?.esito);
 
+  // IL CASO DEL 25/10, A RIGHE VERE (Mario, 26/10): «test 25 ottobre
+  // registrazione», 16:45 → 17:15, approvato e NON chiuso, test7 iscritto con un
+  // minuto. In produzione lo storico mostrava nome e data e basta. Il ramo era
+  // provato solo su `testoEsitoStorico`, mai passando da `getStoricoAttivita`.
+  tabelle.iscrizioni_eventi = {
+    data: [
+      {
+        created_at: "2026-10-25T13:00:00Z",
+        stato: "iscritto",
+        ore_riconosciute: null,
+        eventi: {
+          id: "ev2", titolo: "test 25 ottobre registrazione", data_inizio: "2026-10-25T15:45:00Z", data_fine: "2026-10-25T16:15:00Z",
+          tipo: "webinar", pubblico: "studenti", diretta_chiusa_il: null, diretta_durata_minuti: null,
+        },
+      },
+    ],
+    error: null,
+  };
+  tabelle.presenze_live = { data: [{ evento_id: "ev2", ping_totali: 1 }], error: null };
+  const v3 = (await A.getStoricoAttivita(finto, "u1")).find((x) => x.tipo === "evento");
+  ok(
+    v3?.esito === "L'incontro è finito ma non è ancora stato chiuso da chi l'ha organizzato: le ore non sono ancora state riconosciute.",
+    "una diretta finita e non chiusa arriva nello storico con la frase su chi deve chiuderla",
+    v3?.esito,
+  );
+  // E vale anche se i minuti non si leggono: la frase non dipende da un numero.
+  tabelle.presenze_live = { data: null, error: { message: "finto" } };
+  const v4 = (await A.getStoricoAttivita(finto, "u1")).find((x) => x.tipo === "evento");
+  ok(v4?.esito === v3?.esito, "…anche quando i minuti non si possono leggere", v4?.esito);
+
   console.log(`\n${falliti ? "✗" : "✓"} ${fatte - falliti}/${fatte} proprietà (npm run test:durata)`);
   process.exit(falliti ? 1 : 0);
 })();
