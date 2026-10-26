@@ -5,7 +5,8 @@
 > 1. **Restano qui tutte le REGOLE, sempre**: ogni sezione con un'etichetta nel titolo — `(regola`, `(specie`, `(metodo`, `(criterio`, `(lezione` — o senza data; più le regole il cui titolo non porta l'etichetta, elencate per titolo in `scripts/taglio-claude-md.txt`; più le sottosezioni-regola nate dentro una cronaca, spostate qui con «— estratta da «…»» nel titolo. Le regole non si archiviano mai: sono la parte che serve a chi arriva senza memoria.
 > 2. **Restano qui il prodotto e lo stato di oggi**: le sezioni descrittive in testa (Cosa è KIREO → Linea editoriale), lo «Stato attuale» ridotto all'oggi, e i **Punti aperti** interi.
 > 3. **Resta qui la cronaca degli ultimi due capitoli**: le sezioni datate **dal 2026-10-18 in poi** (la diretta del 18/10 e il giro del 25-26/10). La soglia si sposta in avanti quando si apre un capitolo nuovo: la cronaca che esce va in fondo all'archivio, in ordine di data.
-> 4. **Tutto il resto va nell'archivio**, in ordine di data, con lo stesso titolo che aveva qui. **Una sezione citata («vedi …») che qui non trovi sta là, con lo stesso titolo**: si cerca per titolo, non per numero di riga.
+> 4. **Una cosa a cui altri punti rimandano PER INDICE resta dove sono i rimandi, non dove la metterebbe la data** (Mario, 26/10). L'elenco dei tredici modi è citato per numero («il modo 3», «il modo 13») in tutto il file corrente: archiviato, quei rimandi sarebbero diventati frasi mute, e nessuna guardia se ne sarebbe accorta. Prima di spostare un elenco numerato, si cerca chi lo cita per numero.
+> 5. **Tutto il resto va nell'archivio**, in ordine di data, con lo stesso titolo che aveva qui. **Una sezione citata («vedi …») che qui non trovi sta là, con lo stesso titolo**: si cerca per titolo, non per numero di riga.
 
 
 ## Cosa è KIREO
