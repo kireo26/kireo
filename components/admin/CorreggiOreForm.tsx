@@ -30,10 +30,17 @@ export default function CorreggiOreForm({
   eventoId,
   oreAttuali,
   fissateIl,
+  fissateDa,
 }: {
   eventoId: string;
   oreAttuali: number | string;
   fissateIl: string | null;
+  // Il nome di chi ha corretto (Mario, 26/10): la colonna lo registra e una
+  // chiave esterna impedisce di cancellare quell'account per non perderlo —
+  // senza questa riga, si bloccherebbe una cancellazione per conservare un nome
+  // che nessuno legge. Null quando non c'è correzione, o quando il nome non si
+  // è potuto leggere (lo dice la riga, senza inventarlo).
+  fissateDa: string | null;
 }) {
   const router = useRouter();
   const [aperto, setAperto] = useState(false);
@@ -66,7 +73,7 @@ export default function CorreggiOreForm({
     };
   }, [aperto, eventoId]);
 
-  const erroreCampo = valore.trim() === "" ? "Scrivi le ore, zero o più." : erroreOrePcto(valore);
+  const erroreCampo = valore.trim() === "" ? "Scrivi quante ore vale l'incontro." : erroreOrePcto(valore);
   const numero = erroreCampo ? null : Number(valore);
   const righe = anteprima && anteprima !== "fallita" ? testiCorrezioneOre(anteprima, numero) : [];
 
@@ -74,7 +81,7 @@ export default function CorreggiOreForm({
     e.preventDefault();
     setMessaggio(null);
     if (erroreCampo || numero === null) {
-      setMessaggio({ ok: false, testo: erroreCampo ?? "Scrivi le ore, zero o più." });
+      setMessaggio({ ok: false, testo: erroreCampo ?? "Scrivi quante ore vale l'incontro." });
       return;
     }
     setSalvataggio(true);
@@ -103,7 +110,9 @@ export default function CorreggiOreForm({
   // database non distingue i due casi. La correzione a mano invece si nomina:
   // è un fatto registrato, con data.
   const stato = fissateIl
-    ? `Ore PCTO: ${oreDueDecimali(oreAttuali)}, fissate a mano il ${formattaDataOra(fissateIl, "short")}.`
+    ? fissateDa
+      ? `Ore PCTO: ${oreDueDecimali(oreAttuali)}, fissate a mano da ${fissateDa} il ${formattaDataOra(fissateIl, "short")}.`
+      : `Ore PCTO: ${oreDueDecimali(oreAttuali)}, fissate a mano il ${formattaDataOra(fissateIl, "short")} (non siamo riusciti a leggere da chi).`
     : `Ore PCTO: ${oreDueDecimali(oreAttuali)}.`;
 
   if (!aperto) {

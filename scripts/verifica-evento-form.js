@@ -49,8 +49,10 @@ ok(iValidate > 0 && iSubmit > iValidate, "il form ha una `validate()` prima del 
 const corpoValidate = form.slice(iValidate, iSubmit);
 
 ok(
-  /millisecondiDaOrarioItaliano\(dataFine\) < millisecondiDaOrarioItaliano\(dataInizio\)/.test(corpoValidate),
-  "…che confronta la fine con l'inizio, sugli ISTANTI: è quello che confronta il vincolo del database",
+  /millisecondiDaOrarioItaliano\(dataFine\) <= millisecondiDaOrarioItaliano\(dataInizio\)/.test(corpoValidate),
+  // `<=` dal 26/10: il trigger delle ore (`fine_non_dopo_inizio`) rifiuta anche
+  // la durata zero, più stretto del vincolo `eventi_date_order`.
+  "…che confronta la fine con l'inizio, sugli ISTANTI, e rifiuta anche la durata zero: è quello che confronta il trigger",
 );
 // L'ORARIO DIGITATO È ITALIANO, non della zona di chi digita. `new Date` di una
 // stringa `datetime-local` la legge nel fuso del browser: per un ente italiano
@@ -69,7 +71,7 @@ ok(
   "un orario che non si sa leggere è un errore di campo, non un istante inventato",
 );
 ok(
-  /next\.dataFine = "La fine non può venire prima dell'inizio/.test(corpoValidate),
+  /next\.dataFine = "La data di fine deve essere successiva a quella di inizio/.test(corpoValidate),
   "…e mette l'errore sul campo giusto, invece di un messaggio generale che non dice dove guardare",
 );
 

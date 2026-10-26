@@ -130,6 +130,17 @@ console.log("\n§2 — il campo che resta: la correzione dell'admin\n");
   ok(!/\.from\("eventi"\)/.test(src) && !/\.update\(/.test(src), "e NON con un update diretto su `eventi`");
   ok(/rpc\("anteprima_correzione_ore"/.test(src), "le frasi sul massimo vengono da `anteprima_correzione_ore`");
   ok(/valore\.trim\(\) === ""/.test(src), "e un campo vuoto non è una correzione: si dice, non si manda zero");
+  ok(/Scrivi quante ore vale l'incontro\./.test(src) && !/zero o più\."\s*:\s*erroreOrePcto/.test(src), "il campo vuoto chiede le ore, senza rispondere a un errore non ancora fatto");
+  // IL NOME DI CHI HA CORRETTO (Mario): la promessa, la colonna, il blocco sulla
+  // cancellazione e la riga che si legge sono una cosa sola.
+  ok(/fissate a mano da \$\{fissateDa\}/.test(src), "la riga di stato nomina chi ha corretto");
+  ok(/non siamo riusciti a leggere da chi/.test(src), "e senza un nome lo dice, invece di tacerlo");
+  {
+    const mod = leggi("lib/eventi/moderazione.ts");
+    ok(/ore_pcto_fissate_da_nome: nomeCorrettore/.test(mod) && /\.from\("profiles"\)/.test(mod), "il nome lo legge la guardia della pagina, da `profiles`");
+    const pag = leggi("app/diretta/[id]/page.tsx");
+    ok(/fissateDa=\{evento\.ore_pcto_fissate_da_nome\}/.test(pag), "e la pagina lo passa al form");
+  }
   // La riga di stato non attribuisce le ore all'orario: per un evento di prima
   // del 26/10 le ha scritte l'ente, e il database non lo distingue.
   ok(!/calcolate dall'orario/.test(src), "la riga di stato non dice «calcolate dall'orario» (falso per gli eventi vecchi)");
@@ -153,7 +164,7 @@ console.log("\n§3 — i testi dicono i numeri, e li ricevono\n");
   ok(D.testoAnteprimaSpostamento({ ...base, ore_attuali: "1.00", fissate_a_mano: true }) !== null, "una correzione a mano si dice anche quando il numero coincide");
   ok(/riprova il calcolo/.test(D.TESTO_ANTEPRIMA_FALLITA), "l'anteprima fallita dice cosa fare");
 
-  const nonChiusa = { durata_minuti: "20", massimo: "0.33", chiusa: false };
+  const nonChiusa = { durata_minuti: "20", massimo: "0.33", chiusa: false, ha_fine: true };
   const c1 = D.testiCorrezioneOre(nonChiusa, 0.33);
   ok(
     c1.length === 1 && c1[0] === "Con l'orario previsto (20 minuti), le ore riconosciute non potranno superare 0,33. Se l'incontro finisce prima, quel massimo scende.",
@@ -169,12 +180,37 @@ console.log("\n§3 — i testi dicono i numeri, e li ricevono\n");
   // ⚠️ LA PROPRIETÀ CHE HA APERTO LA STRADA (i): sopra il massimo «non potranno
   // superare» è falso per la certificazione manuale, che non ha tetto.
   ok(!c2.some((r) => /non potranno superare/.test(r)), "e sopra il massimo NON promette un tetto che la scuola non ha");
-  const chiusa = { durata_minuti: "30", massimo: "0.50", chiusa: true };
+  const chiusa = { durata_minuti: "30", massimo: "0.50", chiusa: true, ha_fine: true };
   const c3 = D.testiCorrezioneOre(chiusa, 0.4);
   ok(c3.length === 1 && c3[0] === D.TESTO_CORREZIONE_GIA_CHIUSA, "chiusa, entro il massimo: solo la frase delle presenze già certificate", JSON.stringify(c3));
   const c4 = D.testiCorrezioneOre(chiusa, 3);
   ok(c4.length === 2 && c4[0].includes("resta 0,50") && !c4[0].includes("finisce prima") && c4[1] === D.TESTO_CORREZIONE_GIA_CHIUSA, "chiusa, sopra: la (i) senza «finisce prima» — è già finito — e poi la chiusura", JSON.stringify(c4));
-  ok(D.testiCorrezioneOre({ durata_minuti: null, massimo: null, chiusa: false }, 3).length === 0, "senza una durata non si inventa un massimo");
+  // ⚠️ L'UNICO CASO SENZA TETTO NON TACE (Mario, 26/10): un evento senza fine,
+  // mai chiuso, riconosce intero quello che l'admin scrive.
+  {
+    const senza = D.testiCorrezioneOre({ durata_minuti: null, massimo: null, chiusa: false, ha_fine: false }, 3);
+    ok(senza.length === 1 && senza[0] === D.TESTO_CORREZIONE_SENZA_TETTO && /senza nessun tetto/.test(senza[0]), "evento senza fine: la frase del caso senza tetto, non il silenzio", JSON.stringify(senza));
+    const senzaInvalido = D.testiCorrezioneOre({ durata_minuti: null, massimo: null, chiusa: false, ha_fine: false }, null);
+    ok(senzaInvalido[0] === D.TESTO_CORREZIONE_SENZA_TETTO, "…anche con il campo non valido: non dipende dal valore");
+  }
+  // Una diretta chiusa prima del 26/10 non ha una durata scritta: niente
+  // massimo da inventare, resta la riga della chiusura.
+  ok(
+    JSON.stringify(D.testiCorrezioneOre({ durata_minuti: null, massimo: null, chiusa: true, ha_fine: true }, 3)) === JSON.stringify([D.TESTO_CORREZIONE_GIA_CHIUSA]),
+    "chiusa senza durata scritta: solo la riga della chiusura, nessun massimo inventato",
+  );
+  // ⚠️ UN VALORE NON LETTO NON SI GIUDICA (Mario): con il campo non valido si
+  // dice il massimo e basta — né la (i) né un «entro».
+  {
+    const nc = D.testiCorrezioneOre(nonChiusa, null);
+    ok(nc.length === 1 && nc[0].startsWith("Con l'orario previsto (20 minuti)") && !/scrivi qui/.test(nc[0]), "campo non valido, non chiusa: il massimo dell'incontro, senza confronto", JSON.stringify(nc));
+    const ch = D.testiCorrezioneOre(chiusa, null);
+    ok(
+      ch.length === 2 && ch[0] === "Nella certificazione automatica il massimo riconoscibile è 0,50, calcolato sulla durata dell'incontro." && ch[1] === D.TESTO_CORREZIONE_GIA_CHIUSA,
+      "campo non valido, chiusa: il massimo (all'indicativo, senza «resta») e la chiusura",
+      JSON.stringify(ch),
+    );
+  }
 
   // NESSUNA COPIA DELLA FORMULA in TypeScript (Mario): i numeri vengono da SQL.
   const sorgenti = ["lib/eventi/oreDallOrario.ts", "components/ente/CreaEventoForm.tsx", "components/ente/SpostaFinestraForm.tsx", "components/admin/CorreggiOreForm.tsx"];
@@ -232,6 +268,16 @@ console.log("\n§4 — i tre form\n");
   }
   ok(/anteprima\.chiave === chiave/.test(sposta), "e un'anteprima vale solo per la coppia di date con cui è stata chiesta");
   ok(/TESTO_ANTEPRIMA_FALLITA/.test(sposta) && /Riprova il calcolo/.test(sposta), "il fallimento si dice, con un bottone per riprovare");
+  // ⚠️ IL BOTTONE È SPENTO ANCHE AD ANTEPRIMA FALLITA (Mario: «le frasi si
+  // leggono, i bottoni si credono»), non solo durante il calcolo.
+  ok(/anteprimaNonPronta = chiave !== null && anteprimaCorrente\?\.tipo !== "pronta"/.test(sposta) && /disabled=\{salvataggio \|\| anteprimaNonPronta\}/.test(sposta), "il bottone è spento finché l'anteprima di queste date non è pronta — anche quando è fallita");
+  // La fine uguale all'inizio non fa nascere un'anteprima: non è un incontro.
+  ok(/new Date\(fineItaliano\)\.getTime\(\) > new Date\(inizioItaliano\)\.getTime\(\)/.test(crea), "nella creazione la durata zero non chiede le ore: non è un incontro");
+  {
+    const v = (() => { try { return fetta(crea, { nome: "function validate(", dove: "la validazione" }, { nome: "const inizioItaliano", dove: "subito dopo" }); } catch { return ""; } })();
+    const testi = [...v.matchAll(/"(Inserisci data e ora di fine: [^"]+)"/g)].map((m) => m[1]);
+    ok(testi.length === 2, "i due testi della fine mancante hanno la stessa forma («Inserisci data e ora di fine: servono a…»)", JSON.stringify(testi));
+  }
 }
 
 console.log("");

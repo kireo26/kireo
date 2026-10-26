@@ -151,8 +151,12 @@ export default function CreaEventoForm({
     // Si confrontano gli ISTANTI, non le due stringhe lette nella zona del
     // browser: è quello che confronta il vincolo del database, quindi è quello
     // che deve confrontare il form se non vuole dire una cosa diversa da lui.
-    if (dataInizio && dataFine && millisecondiDaOrarioItaliano(dataFine) < millisecondiDaOrarioItaliano(dataInizio)) {
-      next.dataFine = "La fine non può venire prima dell'inizio.";
+    // ⚠️ `<=` e non `<` dal 26/10 (Mario): un incontro che comincia e finisce
+    // nello stesso istante non è un incontro, e varrebbe 0,00 ore. Il trigger
+    // lo rifiuta comunque (`fine_non_dopo_inizio`); qui lo si dice sul campo.
+    // Testo mio, provvisorio: quello del trigger, senza il «riprova».
+    if (dataInizio && dataFine && millisecondiDaOrarioItaliano(dataFine) <= millisecondiDaOrarioItaliano(dataInizio)) {
+      next.dataFine = "La data di fine deve essere successiva a quella di inizio.";
     }
     // ⚠️ LA FINE È OBBLIGATORIA PER OGNI EVENTO (Mario, 26/10): le ore PCTO
     // si calcolano dall'orario, e «un orario senza fine non è un orario». Il
@@ -160,7 +164,7 @@ export default function CreaEventoForm({
     // d'insert): qui la si chiede sul campo, prima. Testo mio, provvisorio.
     if (!dataFine) {
       next.dataFine = eDiretta
-        ? "Per un webinar in diretta la data e ora di fine sono obbligatorie (servono a calcolare le presenze e le ore PCTO)."
+        ? "Inserisci data e ora di fine: servono a calcolare le presenze e le ore PCTO."
         : "Inserisci data e ora di fine: servono a calcolare le ore PCTO dell'incontro.";
     }
     if (eDiretta) {
@@ -189,7 +193,7 @@ export default function CreaEventoForm({
   // Una risposta vale per la coppia di istanti con cui è stata chiesta.
   const fineItaliano = dataFine ? istanteDaOrarioItaliano(dataFine) : null;
   const chiaveOre =
-    inizioItaliano && fineItaliano && new Date(fineItaliano).getTime() >= new Date(inizioItaliano).getTime()
+    inizioItaliano && fineItaliano && new Date(fineItaliano).getTime() > new Date(inizioItaliano).getTime()
       ? `${inizioItaliano}|${fineItaliano}`
       : null;
   const [oreCalcolate, setOreCalcolate] = useState<{ chiave: string; ore: number | string | null } | null>(null);

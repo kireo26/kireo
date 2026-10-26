@@ -89,7 +89,7 @@ export default async function ModerazioneDirettaPage({ params }: { params: Promi
           non si vieta, si dice: le ore già certificate restano quelle di allora. */}
       {parte === "kireo" && (
         <section className="mt-6 rounded-xl border border-white/5 bg-kireo-card p-4">
-          <CorreggiOreForm eventoId={evento.id} oreAttuali={evento.ore_pcto ?? 0} fissateIl={evento.ore_pcto_fissate_il} />
+          <CorreggiOreForm eventoId={evento.id} oreAttuali={evento.ore_pcto ?? 0} fissateIl={evento.ore_pcto_fissate_il} fissateDa={evento.ore_pcto_fissate_da_nome} />
         </section>
       )}
 

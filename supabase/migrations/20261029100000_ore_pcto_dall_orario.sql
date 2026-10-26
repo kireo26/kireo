@@ -103,8 +103,13 @@ begin
     if new.data_fine is null then
       raise exception 'data_fine_obbligatoria';
     end if;
-    if new.data_fine < new.data_inizio then
-      raise exception 'fine_prima_di_inizio';
+    -- ⚠️ `<=` E NON `<` (Mario, 26/10): una finestra di durata zero varrebbe
+    -- 0,00 ore e l'evento si creerebbe — ma un incontro che comincia e finisce
+    -- nello stesso istante non è un incontro. Il vincolo `eventi_date_order`
+    -- (`data_fine >= data_inizio`) resta com'è: gli eventi vecchi non si
+    -- toccano, e un CHECK più stretto guarderebbe la prossima scrittura su di loro.
+    if new.data_fine <= new.data_inizio then
+      raise exception 'fine_non_dopo_inizio';
     end if;
     -- Il valore che arriva dal client si IGNORA, chiunque sia a scrivere
     -- (anche `postgres`): le fixture che vogliono ore diverse dalla finestra
@@ -116,8 +121,8 @@ begin
     if new.data_fine is null then
       raise exception 'data_fine_obbligatoria';
     end if;
-    if new.data_fine < new.data_inizio then
-      raise exception 'fine_prima_di_inizio';
+    if new.data_fine <= new.data_inizio then
+      raise exception 'fine_non_dopo_inizio';
     end if;
     -- Uno spostamento toglie la correzione a mano (Mario): il numero si rifà,
     -- non si ricorda. Se la stessa scrittura cambia date e ore insieme, vince
@@ -263,7 +268,7 @@ grant execute on function public.correggi_ore_evento(uuid, numeric) to authentic
 -- tolte di mezzo, sulla stessa durata (`durata_vera_minuti`: chiusa → scritta,
 -- non chiusa → programmata, senza fine → ignota).
 create or replace function public.anteprima_correzione_ore(p_evento_id uuid)
-returns table (durata_minuti numeric, massimo numeric, chiusa boolean, ore_attuali numeric, fissate_il timestamptz)
+returns table (durata_minuti numeric, massimo numeric, chiusa boolean, ore_attuali numeric, fissate_il timestamptz, ha_fine boolean)
 language plpgsql
 stable
 security definer
@@ -280,7 +285,11 @@ begin
     (floor(public.durata_vera_minuti(e.id) / 60.0 * 100) / 100)::numeric(6, 2),
     e.diretta_chiusa_il is not null,
     e.ore_pcto,
-    e.ore_pcto_fissate_il
+    e.ore_pcto_fissate_il,
+    -- Senza una fine, e mai chiuso, l'evento cade nel ramo «durata ignota» di
+    -- `ore_riconoscibili_evento`: le ore dichiarate, SENZA tetto. È l'unico
+    -- caso in cui quello che l'admin scrive arriva intero, e il testo lo dice.
+    e.data_fine is not null
   from public.eventi e
   where e.id = p_evento_id;
 

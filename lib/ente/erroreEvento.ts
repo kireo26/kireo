@@ -42,9 +42,11 @@ const PER_VINCOLO: { nome: string; testo: string }[] = [
 // nome, e deve dire la stessa cosa. Un elenco a parte perché la guardia le
 // cerca in un'altra forma (`raise exception '<nome>'`, non `constraint <nome>`).
 const PER_ECCEZIONE: { eccezione: string; testo: string }[] = [
+  // Copre anche la fine UGUALE all'inizio (Mario, 26/10: un incontro di durata
+  // zero non è un incontro), quindi il testo non dice «precedente». Di Mario.
   {
-    eccezione: "fine_prima_di_inizio",
-    testo: "La data di fine è precedente a quella di inizio: correggila e riprova.",
+    eccezione: "fine_non_dopo_inizio",
+    testo: "La data di fine deve essere successiva a quella di inizio: correggila e riprova.",
   },
   // ⚠️ Testo mio, provvisorio. Il form la chiede già: qui ci arriva solo una
   // strada che non passa dal form.

@@ -84,6 +84,17 @@ export default function SpostaFinestraForm({
   }, [aperto, chiave, eventoId]);
   const anteprimaCorrente = anteprima && anteprima.chiave === chiave ? anteprima : null;
   const calcoloInCorso = chiave !== null && anteprimaCorrente === null;
+  // ⚠️ IL BOTTONE È SPENTO IN TUTTI E DUE GLI STATI, in corso e fallita (Mario,
+  // 26/10): un bottone acceso che non risponde lo si preme di nuovo pensando
+  // che il prodotto sia rotto — «le frasi si leggono, i bottoni si credono».
+  // La spiegazione e «Riprova il calcolo» restano accanto.
+  //
+  // ⚠️ E L'ASIMMETRIA CON LA CREAZIONE È VOLUTA: lì un'anteprima che non
+  // risponde non ferma niente (`CreaEventoForm`), qui sì. La creazione non
+  // distrugge niente e il numero lo scrive comunque il trigger; lo spostamento
+  // cancella una correzione fatta da una persona. Non è la stessa situazione,
+  // e infatti non ha la stessa cura.
+  const anteprimaNonPronta = chiave !== null && anteprimaCorrente?.tipo !== "pronta";
   const testoOre = anteprimaCorrente?.tipo === "pronta" ? testoAnteprimaSpostamento(anteprimaCorrente.dati) : null;
 
   async function salva(e: React.FormEvent) {
@@ -186,7 +197,7 @@ export default function SpostaFinestraForm({
         </label>
       )}
       <div className="flex items-center gap-4">
-        <Button type="submit" variant="outline" disabled={salvataggio || calcoloInCorso}>
+        <Button type="submit" variant="outline" disabled={salvataggio || anteprimaNonPronta}>
           {salvataggio ? "Salvataggio…" : "Salva il nuovo orario"}
         </Button>
         <button type="button" onClick={() => setAperto(false)} className="text-xs text-kireo-muted underline underline-offset-2">

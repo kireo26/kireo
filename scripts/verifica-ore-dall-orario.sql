@@ -85,6 +85,19 @@ begin
   insert into esiti values (13, 'insert senza fine: rifiutato', 'data_fine_obbligatoria', v_msg, v_msg = 'data_fine_obbligatoria');
 end $$;
 
+-- 38) …e la durata zero non è un incontro (Mario, 26/10): rifiutata dal
+-- trigger, anche se `eventi_date_order` (`>=`) la lascerebbe passare.
+do $$
+declare v_msg text := 'nessun errore';
+begin
+  begin
+    insert into public.eventi (titolo, descrizione, tipo, organizzatore_id, data_inizio, data_fine, stato, pubblico)
+      values ('Durata zero', 'x', 'altro', 'aaaaaaaa-0000-0000-0000-0000000000a1', '2026-12-05 10:00+01', '2026-12-05 10:00+01', 'bozza', 'studenti');
+  exception when others then v_msg := sqlerrm;
+  end;
+  insert into esiti values (38, 'insert di durata zero: rifiutato', 'fine_non_dopo_inizio', v_msg, v_msg = 'fine_non_dopo_inizio');
+end $$;
+
 -- 14) L'anteprima dello spostamento, dalla porta dell'ente: stessi numeri che il trigger scriverà.
 do $$
 declare r record;
@@ -280,6 +293,21 @@ insert into public.eventi (id, titolo, descrizione, tipo, organizzatore_id, data
   ('e0000000-0000-0000-0000-0000000000a4', 'Vecchio senza fine', 'x', 'altro', 'aaaaaaaa-0000-0000-0000-0000000000a1',
    '2026-12-03 10:00+01', null, 'approvato', 'studenti', 3);
 alter table public.eventi enable trigger eventi_ore_da_orario;
+-- 39) L'anteprima della correzione lo riconosce: senza fine e mai chiuso è
+-- l'unico caso senza tetto, e il testo dell'admin lo dice (`ha_fine` falso).
+do $$
+declare r record;
+begin
+  set local role authenticated;
+  perform set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000a2', true);
+  select * into r from public.anteprima_correzione_ore('e0000000-0000-0000-0000-0000000000a4');
+  insert into esiti values (39, 'anteprima correzione su un evento senza fine: nessuna durata, ha_fine falso', 'null/null/f/no',
+    format('%s/%s/%s/%s', coalesce(r.durata_minuti::text, 'null'), coalesce(r.massimo::text, 'null'), case when r.chiusa then 't' else 'f' end, case when r.ha_fine then 'sì' else 'no' end),
+    r.durata_minuti is null and r.massimo is null and not r.chiusa and not r.ha_fine);
+  perform set_config('request.jwt.claim.sub', '', true);
+  reset role;
+end $$;
+
 do $$
 declare r record;
 begin

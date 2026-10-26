@@ -80,7 +80,17 @@ export type AnteprimaCorrezione = {
   durata_minuti: number | string | null;
   massimo: number | string | null;
   chiusa: boolean;
+  ha_fine: boolean;
 };
+
+// ⚠️ IL SOLO CASO SENZA TETTO, e quindi il solo che non può tacere (Mario,
+// 26/10): un evento vecchio senza `data_fine` e mai chiuso cade nel ramo
+// «durata ignota» di `ore_riconoscibili_evento`, e quello che l'admin scrive
+// arriva intero. «Il silenzio è il testo di un caso qualunque, non quello del
+// caso eccezionale»: chi ha letto «il massimo è 0,33» sugli altri eventi, qui
+// non leggerebbe niente e concluderebbe che non c'è niente di speciale.
+export const TESTO_CORREZIONE_SENZA_TETTO =
+  "Questo incontro non ha un orario di fine: le ore che scrivi qui vengono riconosciute per intero, senza nessun tetto.";
 
 export const TESTO_CORREZIONE_GIA_CHIUSA =
   "L'incontro è già stato chiuso: le presenze già certificate restano con le ore di allora.";
@@ -102,10 +112,21 @@ export const TESTO_CORREZIONE_GIA_CHIUSA =
  */
 export function testiCorrezioneOre(a: AnteprimaCorrezione, valore: number | null): string[] {
   const righe: string[] = [];
+  if (!a.chiusa && !a.ha_fine) return [TESTO_CORREZIONE_SENZA_TETTO];
   if (a.durata_minuti !== null && a.massimo !== null) {
     const massimo = oreDueDecimali(a.massimo);
     const scende = "Se l'incontro finisce prima, quel massimo scende.";
-    if (valore !== null && valore > Number(a.massimo)) {
+    // ⚠️ UN VALORE CHE NON SI È RIUSCITI A LEGGERE NON SI GIUDICA (Mario): con
+    // il campo non valido si dice solo il massimo dell'incontro, senza nessun
+    // confronto. Non chiusa: la frase di Mario sul massimo, che non nomina il
+    // valore. Chiusa: mia, provvisoria — la prima frase della (i) all'indicativo.
+    if (valore === null) {
+      righe.push(
+        a.chiusa
+          ? `Nella certificazione automatica il massimo riconoscibile è ${massimo}, calcolato sulla durata dell'incontro.`
+          : `Con l'orario previsto (${durataLeggibile(Number(a.durata_minuti) / 60)}), le ore riconosciute non potranno superare ${massimo}. ${scende}`,
+      );
+    } else if (valore > Number(a.massimo)) {
       righe.push(
         `Nella certificazione automatica il massimo riconoscibile resta ${massimo}, calcolato sulla durata dell'incontro. Una scuola che certifica a mano i propri studenti riconoscerà invece il valore che scrivi qui. La correzione resta registrata con il tuo nome.` +
           (a.chiusa ? "" : ` ${scende}`),

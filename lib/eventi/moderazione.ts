@@ -41,6 +41,9 @@ export type ContestoModerazione = {
     diretta_durata_minuti: number | null;
     ore_pcto: number | null;
     ore_pcto_fissate_il: string | null;
+    // Nome e cognome di chi ha corretto le ore, letto solo per KIREO: è l'unica
+    // parte che vede la correzione. Null senza correzione o senza lettura.
+    ore_pcto_fissate_da_nome: string | null;
     organizzatore: string | null;
   };
 };
@@ -57,7 +60,7 @@ export async function getContestoModerazione(eventoId: string): Promise<Contesto
   const { data: evento, error } = await supabase
     .from("eventi")
     .select(
-      "id, titolo, tipo, pubblico, filone, data_inizio, data_fine, stato, hosting_diretta, youtube_video_id, domanda_consegna, diretta_chiusa_il, diretta_chiusa_da_tipo, diretta_chiusa_presenti, diretta_chiusa_certificati, diretta_durata_minuti, ore_pcto, ore_pcto_fissate_il, organizzatore_id, istituzioni(nome)",
+      "id, titolo, tipo, pubblico, filone, data_inizio, data_fine, stato, hosting_diretta, youtube_video_id, domanda_consegna, diretta_chiusa_il, diretta_chiusa_da_tipo, diretta_chiusa_presenti, diretta_chiusa_certificati, diretta_durata_minuti, ore_pcto, ore_pcto_fissate_il, ore_pcto_fissate_da, organizzatore_id, istituzioni(nome)",
     )
     .eq("id", eventoId)
     .maybeSingle();
@@ -85,6 +88,22 @@ export async function getContestoModerazione(eventoId: string): Promise<Contesto
   }
   if (!parte) notFound();
 
+  // Chi ha corretto le ore: una lettura a parte e non un embed, perché `eventi`
+  // ha due chiavi verso `profiles` e l'embed andrebbe disambiguato a mano. Una
+  // lettura fallita lascia una traccia e la riga dice che non sa — non un nome
+  // inventato, e nemmeno un silenzio che sembri una correzione senza autore.
+  let nomeCorrettore: string | null = null;
+  if (parte === "kireo" && evento.ore_pcto_fissate_da) {
+    const { data: p, error: eP } = await supabase
+      .from("profiles")
+      .select("nome, cognome")
+      .eq("id", evento.ore_pcto_fissate_da)
+      .maybeSingle();
+    if (eP) console.error("getContestoModerazione: chi ha corretto le ore", eP);
+    const nome = [p?.nome, p?.cognome].filter(Boolean).join(" ").trim();
+    nomeCorrettore = nome || null;
+  }
+
   const istituzione = Array.isArray(evento.istituzioni) ? evento.istituzioni[0] : evento.istituzioni;
   return {
     parte,
@@ -107,6 +126,7 @@ export async function getContestoModerazione(eventoId: string): Promise<Contesto
       diretta_durata_minuti: evento.diretta_durata_minuti,
       ore_pcto: evento.ore_pcto,
       ore_pcto_fissate_il: evento.ore_pcto_fissate_il,
+      ore_pcto_fissate_da_nome: nomeCorrettore,
       organizzatore: istituzione?.nome ?? null,
     },
   };
