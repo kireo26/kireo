@@ -299,7 +299,14 @@ console.log("\n§6 — il battito respinto e il contatore che scendeva (25/10)\n
   for (const t of [P.testoVideoFinito(12, 34), P.testoVideoFinito(null, 34), P.testoVideoFinito(40, 34), P.TESTO_RIGA_VIDEO_FINITO]) {
     ok(!/diretta è finita|Diretta finita/i.test(t), "a finestra aperta non si dice che la diretta è finita: non lo sappiamo", t);
   }
-  ok(/ricarica la pagina per rientrare/.test(P.testoVideoFinito(40, 34)), "…e anche a soglia raggiunta resta l'unico gesto che recupera dei minuti");
+  // RISCRITTA il 26/10 (Mario): a soglia raggiunta il rientro è rumore, perché
+  // un minuto in più non conta più niente.
+  ok(P.testoVideoFinito(28, 21) === "Il video è finito e la tua presenza si è fermata a 28 minuti: la soglia è raggiunta. Le ore vengono riconosciute quando l'organizzatore chiude la diretta.", "a soglia raggiunta il testo di Mario, parola per parola");
+  ok(!/ricarica/.test(P.testoVideoFinito(28, 21)), "…senza il rientro: non si offre un'azione a chi non ha più niente da guadagnarci");
+  ok(/ricarica la pagina per rientrare/.test(P.testoVideoFinito(12, 21)) && /ricarica la pagina per rientrare/.test(P.testoVideoFinito(null, 21)), "sotto la soglia, o senza un numero letto, il rientro resta");
+  // La condizione che rende vera «la soglia è raggiunta»: la soglia mostrata è
+  // quella sulla durata PROGRAMMATA, il caso peggiore (vedi `testoVideoFinito`).
+  ok(/const necessari = minutiNecessari\(dataInizio, dataFine\);/.test(senzaCommenti(leggi("components/live/PannelloLive.tsx"))), "la soglia del pannello è calcolata sulla fine programmata, non su quella effettiva: «raggiunta» non può essere smentita");
   ok(P.testoVideoFinito(1, 34).includes("1 minuto."), "un minuto al singolare");
   ok(/Le ore vengono riconosciute/.test(P.testoVideoFinito(40, 34)), "a soglia raggiunta resta la condizione che manca");
   const player = senzaCommenti(leggi("components/live/PlayerDiretta.tsx"));

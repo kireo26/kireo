@@ -78,14 +78,27 @@ export function pausaLunga(fermoDal: number | null, adesso: number): boolean {
 // il player di Mario è finito tre minuti prima della fine vera). Dire «la
 // diretta è finita» chiudeva la porta all'unico gesto che recupera dei minuti:
 // rientrare. Il «se» è onesto, perché non sappiamo se stia ancora trasmettendo.
-// Testo di Mario; la variante senza numero e la coda a soglia raggiunta sono mie.
+// Testi di Mario; la variante senza numero è mia.
+//
+// ⚠️ A SOGLIA RAGGIUNTA IL RIENTRO NON SI OFFRE (Mario, 26/10): «offrire
+// un'azione a chi non ha più niente da guadagnarci non è generosità: è
+// lasciargli credere che qualcosa sia ancora in gioco». Oltre la soglia un
+// minuto in più non conta: le ore sono quelle dichiarate, limitate dalla durata.
+//
+// ⚠️⚠️ LA CONDIZIONE CHE RENDE VERA «LA SOGLIA È RAGGIUNTA»: `necessari` deve
+// essere calcolato sulla durata PROGRAMMATA (oggi lo è: `minutiNecessari(
+// dataInizio, dataFine)` in `PannelloLive.tsx`, con la `dataFine` del prop e
+// non `fineEffettiva`), cioè sul caso peggiore — una diretta chiusa prima può
+// solo abbassare la soglia. Se un giorno quel numero venisse calcolato sulla
+// durata maturata fin lì, «raggiunta» diventerebbe una promessa che una diretta
+// più lunga può smentire, e questo testo andrebbe riscritto prima di farlo.
 const RIENTRA_SE_IN_CORSO = "Se la diretta è ancora in corso, ricarica la pagina per rientrare.";
 export function testoVideoFinito(contati: number | null, necessari: number | null): string {
   if (contati === null) return `Il video è finito. ${RIENTRA_SE_IN_CORSO}`;
-  const base = `Il video è finito e la tua presenza si è fermata a ${minuti(contati)}. ${RIENTRA_SE_IN_CORSO}`;
-  return necessari !== null && contati >= necessari
-    ? `${base} Le ore vengono riconosciute quando l'organizzatore chiude la diretta.`
-    : base;
+  if (necessari !== null && contati >= necessari) {
+    return `Il video è finito e la tua presenza si è fermata a ${minuti(contati)}: la soglia è raggiunta. Le ore vengono riconosciute quando l'organizzatore chiude la diretta.`;
+  }
+  return `Il video è finito e la tua presenza si è fermata a ${minuti(contati)}. ${RIENTRA_SE_IN_CORSO}`;
 }
 
 // Quanti battiti (minuti) servono per la certificazione: lo specchio di
