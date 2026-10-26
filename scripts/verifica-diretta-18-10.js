@@ -292,8 +292,14 @@ console.log("\n§6 — il battito respinto e il contatore che scendeva (25/10)\n
   // LA PRESENZA FINISCE QUANDO IL VIDEO FINISCE (25/10 sera).
   ok(P.presenzaConta({ inDiretta: true, videoRotto: false, avviato: true, finito: false, pausaLunga: false }), "partito e non finito: conta");
   ok(!P.presenzaConta({ inDiretta: true, videoRotto: false, avviato: true, finito: true, pausaLunga: false }), "finito: non conta più");
-  ok(P.testoVideoFinito(28, 34) === "La diretta è finita. La tua presenza si è fermata a 28 minuti.", "il testo di Mario, parola per parola");
-  ok(P.testoVideoFinito(null, 34) === "La diretta è finita.", "senza un numero letto non si dice un numero");
+  // RISCRITTA il 26/10: «la diretta è finita» diceva una cosa che non sappiamo
+  // (è finito il video di QUELLA persona). Testo nuovo di Mario.
+  ok(P.testoVideoFinito(12, 34) === "Il video è finito e la tua presenza si è fermata a 12 minuti. Se la diretta è ancora in corso, ricarica la pagina per rientrare.", "il testo di Mario, parola per parola");
+  ok(P.testoVideoFinito(null, 34) === "Il video è finito. Se la diretta è ancora in corso, ricarica la pagina per rientrare.", "senza un numero letto non si dice un numero, e il rientro resta");
+  for (const t of [P.testoVideoFinito(12, 34), P.testoVideoFinito(null, 34), P.testoVideoFinito(40, 34), P.TESTO_RIGA_VIDEO_FINITO]) {
+    ok(!/diretta è finita|Diretta finita/i.test(t), "a finestra aperta non si dice che la diretta è finita: non lo sappiamo", t);
+  }
+  ok(/ricarica la pagina per rientrare/.test(P.testoVideoFinito(40, 34)), "…e anche a soglia raggiunta resta l'unico gesto che recupera dei minuti");
   ok(P.testoVideoFinito(1, 34).includes("1 minuto."), "un minuto al singolare");
   ok(/Le ore vengono riconosciute/.test(P.testoVideoFinito(40, 34)), "a soglia raggiunta resta la condizione che manca");
   const player = senzaCommenti(leggi("components/live/PlayerDiretta.tsx"));
@@ -313,7 +319,11 @@ console.log("\n§ il video finito e la finestra scaduta, dal giro del 26/10");
   ok(P.rigaDiretta({ inDiretta: true, videoFinito: true }) === "video_finito", "a video finito la riga non dice «In diretta», anche con la finestra aperta");
   ok(P.rigaDiretta({ inDiretta: true, videoFinito: false }) === "in_diretta", "…e lo dice finché il video non è finito");
   ok(P.rigaDiretta({ inDiretta: false, videoFinito: false }) === "attesa", "…e prima dell'inizio resta l'orario");
-  ok(/^Diretta finita$/.test(P.TESTO_RIGA_VIDEO_FINITO) && /^La diretta è finita\./.test(P.testoVideoFinito(12, 15)), "la parola della riga ripete la frase sotto, non dice una seconda cosa");
+  ok(P.TESTO_RIGA_VIDEO_FINITO === "Video finito" && /^Il video è finito/.test(P.testoVideoFinito(12, 15)), "la parola del pallino ripete la frase sotto, non dice una seconda cosa");
+  // TRE STATI, NON DUE (Mario, 26/10): video finito a finestra aperta, finestra
+  // scaduta senza chiusura, diretta chiusa. Tre testi diversi.
+  const tre = [P.testoVideoFinito(12, 15), P.TESTO_FINITO_NON_CHIUSO, P.testoChiusuraStudente({ durata: 20, stato: "iscritto", ore: null, contati: 12, pubblico: "studenti" })];
+  ok(new Set(tre).size === 3, "i tre stati della fine hanno tre testi", tre.join(" | "));
   const pannello = senzaCommenti(leggi("components/live/PannelloLive.tsx"));
   ok(/rigaDiretta\(\{ inDiretta, videoFinito \}\)/.test(pannello) && /statoRiga === "video_finito"\s*\?\s*TESTO_RIGA_VIDEO_FINITO/.test(pannello), "il pannello chiede alla regola e rende la sua parola");
   // 4b: la finestra scaduta senza chiusura diceva «Grazie per aver partecipato».

@@ -70,9 +70,19 @@ export function pausaLunga(fermoDal: number | null, adesso: number): boolean {
 // fermata a 0 minuti» sarebbe un'affermazione su uno studente che non abbiamo
 // misurato (la regola del contatore che non scrive zero quando non ha letto).
 // Se la soglia era già raggiunta resta detta anche la condizione che manca.
+// ⚠️ «IL VIDEO È FINITO», NON «LA DIRETTA È FINITA» (Mario, 26/10). Questo
+// testo si vede solo a finestra APERTA — a finestra scaduta la pagina passa
+// allo stato concluso e vale `TESTO_FINITO_NON_CHIUSO` — e lì noi sappiamo
+// soltanto che è finito il video DI QUELLA PERSONA (è la regola scritta accanto
+// a `presenzaConta`: chi era rimasto indietro lo vede finire dopo, e il 25/10
+// il player di Mario è finito tre minuti prima della fine vera). Dire «la
+// diretta è finita» chiudeva la porta all'unico gesto che recupera dei minuti:
+// rientrare. Il «se» è onesto, perché non sappiamo se stia ancora trasmettendo.
+// Testo di Mario; la variante senza numero e la coda a soglia raggiunta sono mie.
+const RIENTRA_SE_IN_CORSO = "Se la diretta è ancora in corso, ricarica la pagina per rientrare.";
 export function testoVideoFinito(contati: number | null, necessari: number | null): string {
-  if (contati === null) return "La diretta è finita.";
-  const base = `La diretta è finita. La tua presenza si è fermata a ${minuti(contati)}.`;
+  if (contati === null) return `Il video è finito. ${RIENTRA_SE_IN_CORSO}`;
+  const base = `Il video è finito e la tua presenza si è fermata a ${minuti(contati)}. ${RIENTRA_SE_IN_CORSO}`;
   return necessari !== null && contati >= necessari
     ? `${base} Le ore vengono riconosciute quando l'organizzatore chiude la diretta.`
     : base;
@@ -348,10 +358,10 @@ export const TESTO_FINITO_NON_CHIUSO =
  * tua presenza si è fermata a 12 minuti.». Per noi sono due fatti (la finestra è
  * aperta, il video di quella persona è finito); per lo studente sono la stessa
  * cosa, e si contraddicevano. Il video finito vince: è l'unico dei due che lo
- * studente vede. «Diretta finita» è mio e provvisorio — e ripete la frase sotto
- * apposta, invece di dire una seconda cosa.
+ * studente vede. E dice VIDEO, non diretta (Mario, 26/10): la diretta forse sta
+ * ancora andando, vedi `testoVideoFinito`. Testo di Mario.
  */
-export const TESTO_RIGA_VIDEO_FINITO = "Diretta finita";
+export const TESTO_RIGA_VIDEO_FINITO = "Video finito";
 
 export function rigaDiretta(d: { inDiretta: boolean; videoFinito: boolean }): "in_diretta" | "video_finito" | "attesa" {
   if (d.videoFinito) return "video_finito";
