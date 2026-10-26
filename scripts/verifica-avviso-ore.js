@@ -193,12 +193,19 @@ console.log("\n§3 — i testi dicono i numeri, e li ricevono\n");
     const senzaInvalido = D.testiCorrezioneOre({ durata_minuti: null, massimo: null, chiusa: false, ha_fine: false }, null);
     ok(senzaInvalido[0] === D.TESTO_CORREZIONE_SENZA_TETTO, "…anche con il campo non valido: non dipende dal valore");
   }
-  // Una diretta chiusa prima del 26/10 non ha una durata scritta: niente
-  // massimo da inventare, resta la riga della chiusura.
-  ok(
-    JSON.stringify(D.testiCorrezioneOre({ durata_minuti: null, massimo: null, chiusa: true, ha_fine: true }, 3)) === JSON.stringify([D.TESTO_CORREZIONE_GIA_CHIUSA]),
-    "chiusa senza durata scritta: solo la riga della chiusura, nessun massimo inventato",
-  );
+  // ⚠️ IL GEMELLO (Mario, 26/10): chiusa senza durata scritta è la seconda porta
+  // del ramo senza tetto, e la prima stesura mostrava solo la riga della
+  // chiusura — la metà che non dice la cosa pericolosa. Oggi il vincolo
+  // `eventi_durata_con_chiusura` la rende irraggiungibile (lo prova
+  // `scripts/verifica-ore-dall-orario.sql`), ma se si raggiungesse deve parlare.
+  {
+    const gemello = D.testiCorrezioneOre({ durata_minuti: null, massimo: null, chiusa: true, ha_fine: true }, 3);
+    ok(
+      gemello.length === 1 && gemello[0] === D.TESTO_CORREZIONE_CHIUSA_SENZA_DURATA && /per intero/.test(gemello[0]) && /restano con le ore di allora/.test(gemello[0]),
+      "chiusa senza durata: dice che non c'è un massimo E che le presenze restano, non solo la seconda",
+      JSON.stringify(gemello),
+    );
+  }
   // ⚠️ UN VALORE NON LETTO NON SI GIUDICA (Mario): con il campo non valido si
   // dice il massimo e basta — né la (i) né un «entro».
   {

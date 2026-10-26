@@ -326,6 +326,23 @@ insert into esiti select 32, 'spostamento di un evento senza fine: ora ha fine e
 
 -- (Le colonne dicono «negato»/«concesso» e non f/t: `verifica-sql-tutti.sh`
 -- legge una `f` in fondo a una riga come un booleano falso, cioè un rosso.)
+-- 40) LA SECONDA PORTA DEL RAMO SENZA TETTO È CHIUSA DA UN VINCOLO, e lo si
+-- prova (26/10): una diretta chiusa senza durata scritta farebbe valere per
+-- intero le ore dichiarate. `eventi_durata_con_chiusura` lo impedisce, e deve
+-- essere VALIDATO, cioè controllato anche sulle righe di prima. C chiuso sopra.
+do $$
+declare v_msg text := 'nessun errore'; v_valido boolean;
+begin
+  begin
+    update public.eventi set diretta_durata_minuti = null where id = 'e0000000-0000-0000-0000-0000000000a3';
+  exception when check_violation then v_msg := 'vincolo';
+            when others then v_msg := 'altro: ' || sqlerrm;
+  end;
+  select convalidated into v_valido from pg_constraint where conname = 'eventi_durata_con_chiusura';
+  insert into esiti values (40, 'una diretta chiusa senza durata non può esistere (vincolo validato)', 'vincolo/validato',
+    v_msg || '/' || case when v_valido then 'validato' else 'NON validato' end, v_msg = 'vincolo' and v_valido);
+end $$;
+
 -- 33-36) I PRIVILEGI, nella forma che si guarda anche in produzione: la
 -- colonna protetta FALSA e una colonna di controllo che il client usa davvero VERA.
 insert into esiti select 33, 'privilegio: update di ore_pcto negato al client', 'negato',

@@ -110,9 +110,21 @@ export const TESTO_CORREZIONE_GIA_CHIUSA =
  * Il massimo è calcolato sulla durata programmata, cioè sul caso migliore, e
  * «resta 0,33» senza quella riga si leggerebbe come una garanzia.
  */
+// ⚠️ IL GEMELLO DEL CASO SENZA TETTO, e OGGI NON È RAGGIUNGIBILE — misurato,
+// non dedotto (26/10). Il ramo «durata ignota» di `ore_riconoscibili_evento` ha
+// due porte: un evento senza fine e mai chiuso (quella sopra), e una diretta
+// chiusa senza durata scritta (questa). La seconda la chiude un vincolo:
+// `eventi_durata_con_chiusura` («chiusa» ⇔ durata non nulla), aggiunto VALIDATO
+// da `20261026100000` dopo aver calcolato la durata di tutte le chiusure di
+// prima. Il testo c'è lo stesso (di Mario), perché il giorno in cui quel vincolo
+// cadesse questo ramo tornerebbe a dare le ore per intero, e dovrebbe dirlo.
+export const TESTO_CORREZIONE_CHIUSA_SENZA_DURATA =
+  "Questo incontro è stato chiuso prima che registrassimo la durata: non c'è un massimo, e le ore che scrivi qui vengono riconosciute per intero. Le presenze già certificate restano con le ore di allora.";
+
 export function testiCorrezioneOre(a: AnteprimaCorrezione, valore: number | null): string[] {
   const righe: string[] = [];
   if (!a.chiusa && !a.ha_fine) return [TESTO_CORREZIONE_SENZA_TETTO];
+  if (a.chiusa && a.durata_minuti === null) return [TESTO_CORREZIONE_CHIUSA_SENZA_DURATA];
   if (a.durata_minuti !== null && a.massimo !== null) {
     const massimo = oreDueDecimali(a.massimo);
     const scende = "Se l'incontro finisce prima, quel massimo scende.";
