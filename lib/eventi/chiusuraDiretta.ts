@@ -201,6 +201,38 @@ export function testoStatoChiusura(stato: Extract<StatoChiusura, { tipo: "chiusa
   return `${testa} ${codaRicevuta(stato.ricevuta.durataMinuti, stato.ricevuta.presenti, stato.ricevuta.certificati, false)}`;
 }
 
+/**
+ * Quale delle due righe si mostra dopo una pressione, e quale prima.
+ *
+ * ⚠️ IL DIFETTO DEL GIRO DEL 26/10 (Mario, misurato senza toccare niente):
+ * chiusa alle 10:27, la ricevuta diceva «Diretta chiusa. Durata… Presenti…»
+ * SENZA data e SENZA autore, e due minuti dopo era identica; solo un
+ * ricaricamento mostrava «Diretta chiusa il 26 ottobre 2026 alle ore 10:27,
+ * dall'organizzatore». Il poll rileggeva lo stato già dal primo giro, ma l'esito
+ * della pressione aveva la precedenza per sempre: la versione completa — con le
+ * due cose per cui la ricevuta esiste — era quella che chi ha premuto non vede
+ * mai. Non era il testo: era la pagina che non mostrava lo stato che aveva
+ * appena riletto.
+ *
+ * Quindi: appena lo stato letto dal database dice «chiusa», la riga è la sua.
+ * L'esito della pressione resta solo nel tempo fra il clic e la prima rilettura.
+ * Le due frasi differiscono per «Nuove» e per la testa con data e autore (vedi
+ * `codaRicevuta`): è lo stesso fatto, detto per intero appena lo si sa.
+ *
+ * ⚠️ L'ECCEZIONE È «ERA GIÀ CHIUSA»: lì l'esito dice a chi ha premuto una cosa
+ * che lo stato non dice — che il SUO clic non ha fatto niente — e porta già la
+ * data. Resta finché la pagina è aperta.
+ */
+export function rigaChiusura(
+  esito: EsitoChiusura | null,
+  stato: StatoChiusura,
+): { tipo: "esito" | "stato"; testo: string } | null {
+  if (esito?.tipo === "gia_chiusa") return { tipo: "esito", testo: testoEsitoChiusura(esito) };
+  if (stato.tipo === "chiusa") return { tipo: "stato", testo: testoStatoChiusura(stato) };
+  if (esito) return { tipo: "esito", testo: testoEsitoChiusura(esito) };
+  return null;
+}
+
 // ─────────────────────────── «LA PAGINA NON SA CHE LA DIRETTA È FINITA» ──────
 //
 // ⚠️ IL DIFETTO (§4 del giro a schermo di Mario, 11/10/2026): su una diretta

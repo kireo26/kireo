@@ -82,7 +82,7 @@ testi = caricaModulo("lib/eventi/chiusuraDiretta.ts", (nome) => {
   throw new Error(`import non previsto: ${nome}`);
 });
 
-const { statoChiusura, testoEsitoChiusura, testoStatoChiusura } = testi;
+const { rigaChiusura, statoChiusura, testoEsitoChiusura, testoStatoChiusura } = testi;
 
 console.log("\n§1 — la forma «etichetta: numero» non ha accordi\n");
 
@@ -222,20 +222,55 @@ console.log("\n§3 — lo stato al caricamento: il bottone sparisce\n");
   ok(!/Presenti/.test(senzaRicevuta), "senza i due conteggi la riga dice solo quando e da chi", senzaRicevuta);
   ok(senzaRicevuta !== riga, "e il confronto non è vacuo: con la ricevuta il testo è un altro");
 
+  // §3bis — QUALE RIGA VINCE (giro del 26/10): l'esito della pressione aveva
+  // la precedenza per sempre, e la ricevuta con data e autore la vedeva solo
+  // chi ricaricava. Si prova CHIAMANDO la funzione, non leggendo il JSX: la
+  // guardia di prima sorvegliava l'ordine dei rami, ed era esattamente
+  // quell'ordine il difetto.
+  const esitoAdesso = { tipo: "chiusa", presenti: 1, certificati: 0, durataMinuti: 20 };
+  const statoRiletto = chiusa("ente", { presenti: 1, certificati: 0, durataMinuti: 20 });
+  const dopoRilettura = rigaChiusura(esitoAdesso, statoRiletto);
+  ok(
+    dopoRilettura?.tipo === "stato" && dopoRilettura.testo === testoStatoChiusura(statoRiletto),
+    "appena lo stato riletto dice «chiusa», la riga è la sua: la ricevuta completa la vede chi ha premuto",
+    dopoRilettura?.testo,
+  );
+  ok(
+    /4 ottobre/.test(dopoRilettura?.testo ?? "") && /dall'organizzatore/.test(dopoRilettura?.testo ?? ""),
+    "…e porta le due cose per cui esiste: quando e chi",
+    dopoRilettura?.testo,
+  );
+  const primaRilettura = rigaChiusura(esitoAdesso, { tipo: "da_chiudere" });
+  ok(
+    primaRilettura?.tipo === "esito" && primaRilettura.testo === testoEsitoChiusura(esitoAdesso),
+    "fra il clic e la prima rilettura resta l'esito della pressione (il bottone non torna)",
+    primaRilettura?.testo,
+  );
+  const giaEsito = { tipo: "gia_chiusa", presenti: 1, quando: QUANDO };
+  ok(
+    rigaChiusura(giaEsito, statoRiletto)?.tipo === "esito",
+    "«era già chiusa» resta anche dopo la rilettura: dice a chi ha premuto che il suo clic non ha fatto niente",
+  );
+  ok(rigaChiusura(null, { tipo: "da_chiudere" }) === null, "senza chiusura né pressione nessuna riga: c'è il bottone");
+  ok(
+    rigaChiusura(null, statoRiletto)?.testo === testoStatoChiusura(statoRiletto),
+    "aperta dopo la chiusura, la pagina mostra lo stato (come prima)",
+  );
+
   const src = leggi("components/ente/ControlloDirettaEvento.tsx");
+  ok(
+    /rigaChiusura\(esitoChiusura, chiusura\)/.test(src),
+    "il componente chiede a `rigaChiusura` quale riga mostrare, con l'esito e lo stato riletto",
+  );
   const bloccoChiusura = fettaOppureRosso(
     src,
-    { nome: "esitoChiusura ?", dove: "l'inizio del blocco della chiusura" },
+    { nome: "{riga ? (", dove: "l'inizio del blocco della chiusura" },
     { nome: "DAD non sono coperte", dove: "la nota finale, subito dopo il blocco" },
     "il blocco della chiusura",
   );
   ok(
-    bloccoChiusura.includes("testoStatoChiusura(chiusura)"),
-    "il componente rende la riga di stato invece di ricomporla a mano",
-  );
-  ok(
-    bloccoChiusura.includes("testoEsitoChiusura(esitoChiusura)"),
-    "e rende l'esito chiamando la funzione, non interpolando i conteggi",
+    bloccoChiusura.includes("{riga.testo}"),
+    "il componente rende il testo che `rigaChiusura` ha scelto, invece di ricomporlo a mano",
   );
   ok(
     !/Diretta chiusa[:.]/.test(src),
@@ -246,7 +281,7 @@ console.log("\n§3 — lo stato al caricamento: il bottone sparisce\n");
   // della chiusura) lascerebbe il bottone a schermo.
   let ordineGiusto = false;
   try {
-    const iStato = ancora(bloccoChiusura, "testoStatoChiusura", { dove: "il ramo dello stato chiuso" });
+    const iStato = ancora(bloccoChiusura, "{riga.testo}", { dove: "il ramo della riga di chiusura" });
     // RIESAMINATA il 26/10: dal giorno della conferma i `<Button` sono tre
     // (Concludi, Chiudi, Annulla) e l'àncora è diventata ambigua. Si àncora
     // al gesto che apre la conferma, che è uno solo; la conferma sta prima di

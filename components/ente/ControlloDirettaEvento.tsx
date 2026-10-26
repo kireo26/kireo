@@ -12,10 +12,9 @@ import {
   TESTO_CHIUSURA_PRIMA_DELL_INIZIO,
   testoConfermaChiusura,
   testoPrimaDellaDiretta,
+  rigaChiusura,
   statoChiusura,
-  testoEsitoChiusura,
   testoFinitaNonChiusa,
-  testoStatoChiusura,
   type EsitoChiusura,
   type StatoChiusura,
 } from "@/lib/eventi/chiusuraDiretta";
@@ -235,6 +234,7 @@ export default function ControlloDirettaEvento({
   const sondaRotta = sonda.esito !== null && sondaBlocca(sonda.esito);
   const referto = sondaRotta && sonda.esito ? testoSonda(sonda.esito, youtubeVideoId) : null;
   const rigaRotti = rigaPlayerRotti(rotti);
+  const riga = rigaChiusura(esitoChiusura, chiusura);
 
   async function segnaStato(domandaId: string, stato: string) {
     const supabase = createClient();
@@ -383,17 +383,20 @@ export default function ControlloDirettaEvento({
         chiusaIl={chiusura.tipo === "chiusa" ? chiusura.quando : chiusaAdesso}
       />
 
-      {/* Tre stati e non due. L'esito di una pressione viene prima perché sa
-          più cose (i conteggi) della riga di stato; la riga di stato prende il
-          posto del BOTTONE, che su una diretta chiusa sparisce — vedi
-          `lib/eventi/chiusuraDiretta.ts` per il perché non è disabilitato. */}
-      {esitoChiusura ? (
-        <p className="rounded-lg border border-kireo-green/40 bg-kireo-green/10 px-4 py-3 text-sm text-kireo-light">
-          {testoEsitoChiusura(esitoChiusura)}
-        </p>
-      ) : chiusura.tipo === "chiusa" ? (
-        <p className="rounded-lg border border-white/10 bg-kireo-dark px-4 py-3 text-sm text-kireo-light/90">
-          {testoStatoChiusura(chiusura)}
+      {/* Tre stati e non due. Quale riga vince fra l'esito di una pressione e
+          lo stato riletto lo decide `rigaChiusura` (26/10: l'esito vinceva per
+          sempre, e la ricevuta con data e autore non la vedeva chi aveva
+          premuto). La riga prende il posto del BOTTONE, che su una diretta
+          chiusa sparisce — vedi `lib/eventi/chiusuraDiretta.ts`. */}
+      {riga ? (
+        <p
+          className={
+            riga.tipo === "esito"
+              ? "rounded-lg border border-kireo-green/40 bg-kireo-green/10 px-4 py-3 text-sm text-kireo-light"
+              : "rounded-lg border border-white/10 bg-kireo-dark px-4 py-3 text-sm text-kireo-light/90"
+          }
+        >
+          {riga.testo}
         </p>
       ) : !chiusuraDisponibile(fase, dataFine) || !dataFine ? (
         // Prima dell'inizio il bottone non c'è: il database lo rifiuterebbe

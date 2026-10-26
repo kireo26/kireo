@@ -307,6 +307,26 @@ console.log("\n§6 — il battito respinto e il contatore che scendeva (25/10)\n
   ok(/battito senza sessione/.test(route) && /battito rifiutato/.test(route), "la route lascia una riga sui rifiuti inattesi");
 }
 
+console.log("\n§ il video finito e la finestra scaduta, dal giro del 26/10");
+{
+  // 4a: «🔴 In diretta» sopra «La diretta è finita». Si chiama la regola.
+  ok(P.rigaDiretta({ inDiretta: true, videoFinito: true }) === "video_finito", "a video finito la riga non dice «In diretta», anche con la finestra aperta");
+  ok(P.rigaDiretta({ inDiretta: true, videoFinito: false }) === "in_diretta", "…e lo dice finché il video non è finito");
+  ok(P.rigaDiretta({ inDiretta: false, videoFinito: false }) === "attesa", "…e prima dell'inizio resta l'orario");
+  ok(/^Diretta finita$/.test(P.TESTO_RIGA_VIDEO_FINITO) && /^La diretta è finita\./.test(P.testoVideoFinito(12, 15)), "la parola della riga ripete la frase sotto, non dice una seconda cosa");
+  const pannello = senzaCommenti(leggi("components/live/PannelloLive.tsx"));
+  ok(/rigaDiretta\(\{ inDiretta, videoFinito \}\)/.test(pannello) && /statoRiga === "video_finito"\s*\?\s*TESTO_RIGA_VIDEO_FINITO/.test(pannello), "il pannello chiede alla regola e rende la sua parola");
+  // 4b: la finestra scaduta senza chiusura diceva «Grazie per aver partecipato».
+  ok(!/Grazie per aver partecipato/.test(pannello), "la pagina della diretta finita non tace più lo stato con un grazie");
+  ok(/: TESTO_FINITO_NON_CHIUSO\}/.test(pannello), "…e dice la frase dello storico, dalla stessa costante");
+  ok(
+    P.testoEsitoStorico({ diretta: true, finito: true, chiuso: false, durata: null, stato: null, ore: null, contati: 12, pubblico: "studenti" }) === P.TESTO_FINITO_NON_CHIUSO,
+    "lo storico e la pagina dicono la stessa frase: una costante sola",
+  );
+  ok(P.TESTO_FINITO_NON_CHIUSO === "L'incontro è finito ma non è ancora stato chiuso da chi l'ha organizzato: le ore non sono ancora state riconosciute.", "il testo di Mario, parola per parola");
+  ok(trovaAccordi(P.TESTO_RIGA_VIDEO_FINITO).length === 0, "la parola nuova non concorda col genere");
+}
+
 console.log("\n§ il riquadro prima dell'inizio non è un allarme (26/10)");
 {
   const pannello = leggi("components/live/PannelloLive.tsx");

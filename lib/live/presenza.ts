@@ -329,6 +329,35 @@ export type EsitoStorico = EsitoChiusuraStudente & {
   chiuso: boolean;
 };
 
+/**
+ * Finito e non chiuso: testo di Mario. Una costante e non una frase nello
+ * storico, perché dal 26/10 la dice anche la pagina della diretta quando la
+ * finestra scade senza chiusura — prima lì c'era «Grazie per aver partecipato»,
+ * cioè la pagina che lo studente ha davanti in quel momento taceva lo stato che
+ * lo storico, dove forse andrà dopo, nominava. Due posti, lo stesso stato: una
+ * frase sola.
+ */
+export const TESTO_FINITO_NON_CHIUSO =
+  "L'incontro è finito ma non è ancora stato chiuso da chi l'ha organizzato: le ore non sono ancora state riconosciute.";
+
+/**
+ * La riga sotto il titolo della diretta: il pallino e la sua parola.
+ *
+ * ⚠️ IL DIFETTO DEL GIRO DEL 26/10: a video finito prima della fine della
+ * finestra la pagina diceva insieme «🔴 In diretta» e «La diretta è finita. La
+ * tua presenza si è fermata a 12 minuti.». Per noi sono due fatti (la finestra è
+ * aperta, il video di quella persona è finito); per lo studente sono la stessa
+ * cosa, e si contraddicevano. Il video finito vince: è l'unico dei due che lo
+ * studente vede. «Diretta finita» è mio e provvisorio — e ripete la frase sotto
+ * apposta, invece di dire una seconda cosa.
+ */
+export const TESTO_RIGA_VIDEO_FINITO = "Diretta finita";
+
+export function rigaDiretta(d: { inDiretta: boolean; videoFinito: boolean }): "in_diretta" | "video_finito" | "attesa" {
+  if (d.videoFinito) return "video_finito";
+  return d.inDiretta ? "in_diretta" : "attesa";
+}
+
 export function testoEsitoStorico(e: EsitoStorico): string | null {
   if (!e.diretta) return e.stato === "partecipato" ? "Presenza certificata." : null;
   if (!e.finito) return null;
@@ -341,7 +370,7 @@ export function testoEsitoStorico(e: EsitoStorico): string | null {
     // Quello che manca è il RICONOSCIMENTO, e manca per un gesto di qualcuno.
     // Detto così lo studente non pensa a un ritardo del sistema: sa chi deve
     // muoversi. Testo di Mario, parola per parola.
-    return "L'incontro è finito ma non è ancora stato chiuso da chi l'ha organizzato: le ore non sono ancora state riconosciute.";
+    return TESTO_FINITO_NON_CHIUSO;
   }
   const c = classificaEsito(e);
   switch (c.tipo) {

@@ -144,16 +144,20 @@ ok(
 // ── 4) la riga che lo studente legge ────────────────────────────────────────
 console.log("\n4) «In diretta» solo quando lo è");
 
+// RIESAMINATA il 26/10: la riga ha un terzo caso (il video finito, vedi
+// `rigaDiretta`), e la regex sulla forma del ternario si è rotta senza che il
+// comportamento cambiasse. Ora si prova la funzione, più che il pannello la usi.
 ok(
-  /inDiretta \? "In diretta" : testoAttesaDiretta\(dataInizio, ora\)/.test(pannello),
-  "nei quindici minuti prima dell'inizio la riga non dice «In diretta», dice l'ORARIO",
+  /statoRiga === "in_diretta"\s*\?\s*"In diretta"[\s\S]{0,120}testoAttesaDiretta\(dataInizio, ora\)/.test(pannello) &&
+    /rigaDiretta\(\{ inDiretta, videoFinito \}\)/.test(pannello),
+  "nei quindici minuti prima dell'inizio la riga non dice «In diretta», dice l'ORARIO (e la decisione è di `rigaDiretta`)",
 );
 ok(
   !/"Sta per iniziare"/.test(pannello),
   "e non è tornata la frase senza orario: «Sta per iniziare» dura quindici minuti e non dice quanto manca",
 );
 ok(
-  /inDiretta \? "animate-pulse bg-red-500" : "bg-kireo-muted"/.test(pannello),
+  /statoRiga === "in_diretta" \? "animate-pulse bg-red-500" : "bg-kireo-muted"/.test(pannello),
   "…e nemmeno il pallino rosso che lampeggia lo dice (un segno fatto di solo colore è un segno in meno, ma un segno falso è peggio)",
 );
 ok(

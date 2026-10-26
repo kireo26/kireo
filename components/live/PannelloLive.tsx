@@ -31,6 +31,9 @@ import {
   testoRientro,
   testoVideoFinito,
   TESTO_RIPIEGO,
+  rigaDiretta,
+  TESTO_FINITO_NON_CHIUSO,
+  TESTO_RIGA_VIDEO_FINITO,
 } from "@/lib/live/presenza";
 
 // Ogni quanto il player rotto si RIPROVA (e la segnalazione alla console si
@@ -175,6 +178,8 @@ export default function PannelloLive({
   // smonta, e quello che resta è l'esito.
   const chiusa = Boolean(chiusaIl) || chiusaDaOrganizzatore;
   const stato = chiusa ? "conclusa" : statoOrologio;
+  // Il pallino: a video finito non dice «In diretta» (giro del 26/10, vedi `rigaDiretta`).
+  const statoRiga = rigaDiretta({ inDiretta, videoFinito });
   // La consegna sta sotto il pannello e la decide il server: alla chiusura vista
   // da qui si rilegge la pagina, così compare senza un ricaricamento.
   const router = useRouter();
@@ -380,13 +385,14 @@ export default function PannelloLive({
       <div className="rounded-2xl border border-white/5 bg-kireo-card p-8 text-center">
         <p className="font-heading text-lg font-semibold text-kireo-light">La diretta è terminata</p>
         {/* Chiusa dall'organizzatore: si dice com'è andata (`testoChiusuraStudente`),
-            anche a chi apre la pagina il giorno dopo. Finita senza chiusura: le
+            anche a chi apre la pagina il giorno dopo. Finita senza chiusura: i
             minuti sono contati ma le ore non sono ancora riconosciute (manca il
-            gesto di chiusura), e non si inventa un esito. */}
+            gesto di chiusura), e lo si dice con la frase dello storico invece di
+            «Grazie per aver partecipato» (giro del 26/10). */}
         <p className="mt-2 text-sm text-kireo-muted" aria-live="polite">
           {chiusa
             ? (testoChiusura ?? testoChiusuraStudente({ durata: null, stato: null, ore: null, contati: null, pubblico }))
-            : "Grazie per aver partecipato."}
+            : TESTO_FINITO_NON_CHIUSO}
         </p>
         {rientro && <p className="mt-2 text-sm text-kireo-orange">{rientro}</p>}
         <Link href={hrefRitorno} className="mt-4 inline-block text-sm text-kireo-orange underline underline-offset-2">
@@ -411,9 +417,13 @@ export default function PannelloLive({
             `testoAttesaDiretta` in lib/live.ts per il perché. */}
         <p className="mt-1 flex items-center gap-2 text-xs text-kireo-muted">
           <span
-            className={`h-2 w-2 rounded-full ${inDiretta ? "animate-pulse bg-red-500" : "bg-kireo-muted"}`}
+            className={`h-2 w-2 rounded-full ${statoRiga === "in_diretta" ? "animate-pulse bg-red-500" : "bg-kireo-muted"}`}
           />{" "}
-          {inDiretta ? "In diretta" : testoAttesaDiretta(dataInizio, ora)}
+          {statoRiga === "in_diretta"
+            ? "In diretta"
+            : statoRiga === "video_finito"
+              ? TESTO_RIGA_VIDEO_FINITO
+              : testoAttesaDiretta(dataInizio, ora)}
           {contaLaPresenza && !sessionePersa && contati === null ? " · presenza in rilevamento" : ""}
         </p>
         {/* Nel riquadro semplice il contatore direbbe «finché il video non si
