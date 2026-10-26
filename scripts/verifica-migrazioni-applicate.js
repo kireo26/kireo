@@ -32,8 +32,23 @@
 // anche un `--` dentro una stringa SQL, quindi un ritocco al testo dopo un `--`
 // dentro un letterale non si vede. Raro, ed è scritto.
 //
+// TRE STATI, E NON SI SOMMANO (26/10/2026, Mario). Ogni voce porta `stato`:
+//   · `verificata` — qualcuno ha guardato in produzione un oggetto che SOLO lei
+//     lascia, e l'ha trovato. È una misura.
+//   · `congelata` — dal giorno registrato un cambiamento al file si vede; non dice
+//     niente sulla produzione. (Previsto, nessuna voce oggi.)
+//   · `non_piu_verificabile` — applicata, ma il suo effetto è stato sostituito da
+//     una migrazione successiva, quindi nessun oggetto in produzione può più dire
+//     se c'era. Porta `motivo` e `sostituita_da`, ed è una DEDUZIONE, non una misura.
+// Il cricchetto protegge il codice di tutte e tre (un file applicato è un fatto,
+// anche quando non lo si può più vedere), ma i conteggi restano separati: un
+// totale che mescola «visto» e «dedotto» mente peggio di tre numeri piccoli.
+// Lo stato è obbligatorio su ogni voce, senza default: un default retrocompatibile
+// è il posto in cui una voce non classificata passerebbe per verificata.
+//
 // Uso: `node scripts/verifica-migrazioni-applicate.js` (verifica)
 //      `node scripts/verifica-migrazioni-applicate.js --registra <prefisso> --fonte "…"`
+//      `… --registra <prefisso> --fonte "…" --stato non_piu_verificabile --sostituita-da <prefisso>`
 const fs = require("fs");
 const path = require("path");
 const { execFileSync } = require("child_process");
@@ -43,6 +58,7 @@ const ROOT = path.join(__dirname, "..");
 const DIR = "supabase/migrations";
 const REGISTRO = path.join(ROOT, "supabase/migrazioni-applicate.json");
 
+const STATI = ["verificata", "congelata", "non_piu_verificabile"];
 const codice = (src) => senzaCommentiSql(src).replace(/\s+/g, " ").trim();
 function git(args) {
   return execFileSync("git", args, { cwd: ROOT, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
@@ -60,6 +76,25 @@ if (argv[0] === "--registra") {
   const prefisso = argv[1];
   const iF = argv.findIndex((a) => a === "--fonte");
   const fonte = iF > 0 ? argv[iF + 1] : null;
+  const valore = (nome) => {
+    const i = argv.findIndex((a) => a === nome);
+    return i > 0 ? argv[i + 1] : null;
+  };
+  const stato = valore("--stato") || "verificata";
+  if (!STATI.includes(stato)) {
+    console.error(`Stato «${stato}» sconosciuto: ${STATI.join(", ")}.`);
+    process.exit(1);
+  }
+  let sostituitaDa = null;
+  if (stato === "non_piu_verificabile") {
+    const pre = valore("--sostituita-da");
+    const cand = pre ? fs.readdirSync(path.join(ROOT, DIR)).filter((f) => f.startsWith(pre)) : [];
+    if (cand.length !== 1) {
+      console.error("Uno stato non_piu_verificabile vuole --sostituita-da <prefisso> di UNA migrazione: è il motivo per cui non si può più guardare.");
+      process.exit(1);
+    }
+    sostituitaDa = cand[0];
+  }
   if (!prefisso || !fonte) {
     console.error("Uso: --registra <prefisso> --fonte \"chi l'ha verificata applicata, e come\"");
     process.exit(1);
@@ -86,10 +121,15 @@ if (argv[0] === "--registra") {
     console.error(`${file} è già registrata: una migrazione applicata non si registra due volte.`);
     process.exit(1);
   }
-  reg.applicate.push({ file, commit, fonte });
+  const voce = { file, commit, stato, fonte };
+  if (sostituitaDa) {
+    voce.sostituita_da = sostituitaDa;
+    voce.motivo = `il suo effetto è stato sostituito da ${sostituitaDa}`;
+  }
+  reg.applicate.push(voce);
   reg.applicate.sort((a, b) => a.file.localeCompare(b.file));
   fs.writeFileSync(REGISTRO, JSON.stringify(reg, null, 2) + "\n");
-  console.log(`Registrata ${file} al commit ${commit}.`);
+  console.log(`Registrata ${file} al commit ${commit} (${stato}).`);
   process.exit(0);
 }
 
@@ -114,6 +154,24 @@ ok(reg.applicate.length >= 10, "il registro elenca almeno le dieci migrazioni ve
 const nomi = reg.applicate.map((a) => a.file);
 ok(new Set(nomi).size === nomi.length, "nessuna migrazione registrata due volte");
 ok(reg.applicate.every((a) => a.file && a.commit && a.fonte), "ogni voce ha file, commit e fonte (chi l'ha vista applicata, e come)");
+const senzaStato = reg.applicate.filter((a) => !STATI.includes(a.stato)).map((a) => a.file);
+ok(senzaStato.length === 0, "ogni voce dichiara uno stato fra i tre", senzaStato.join(", "));
+const npv = reg.applicate.filter((a) => a.stato === "non_piu_verificabile");
+const npvMale = npv
+  .filter(
+    (a) =>
+      !a.motivo ||
+      !a.sostituita_da ||
+      !presenti.has(a.sostituita_da) ||
+      a.sostituita_da.localeCompare(a.file) <= 0 ||
+      !a.motivo.includes(a.sostituita_da),
+  )
+  .map((a) => a.file);
+ok(
+  npvMale.length === 0,
+  "ogni non_piu_verificabile nomina la migrazione SUCCESSIVA che ne ha sostituito l'effetto, e il motivo la cita",
+  npvMale.join(", "),
+);
 
 console.log("\n§2 — nessuna migrazione applicata è cambiata nel codice\n");
 for (const a of reg.applicate) {
@@ -142,7 +200,12 @@ for (const a of reg.applicate) {
 
 console.log("\n§3 — quanto copre\n");
 const scoperte = [...presenti].filter((f) => !nomi.includes(f)).length;
+const quante = (st) => reg.applicate.filter((a) => a.stato === st).length;
 console.log(`  · ${reg.applicate.length} migrazioni protette su ${presenti.size}; ${scoperte} non registrate.`);
+// Tre righe, mai un totale di «applicate»: sono tre affermazioni di natura diversa.
+console.log(`    verificate applicate (misura):           ${quante("verificata")}`);
+console.log(`    applicate, non più verificabili (deduzione): ${quante("non_piu_verificabile")}`);
+console.log(`    congelate (nessuna affermazione sulla produzione): ${quante("congelata")}`);
 console.log("    Non vuol dire «non applicate»: vuol dire «non so, e quindi non le proteggo».");
 
 console.log("");

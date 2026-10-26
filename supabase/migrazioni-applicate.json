@@ -4,87 +4,138 @@
     "Da quel momento il file è un fatto: `npm run test:migrazioni` diventa rosso se il suo codice (tolti i commenti `--` e gli spazi) differisce da quello del commit registrato.",
     "Si registra quando Mario applica: `node scripts/verifica-migrazioni-applicate.js --registra <prefisso> --fonte \"…\"` (file committato e pulito).",
     "⚠️ Questo elenco NON è un registro completo di cosa c'è sul database: dice cosa è PROTETTO. Una migrazione applicata che qui non c'è è scoperta, e il controllo stampa quante sono.",
-    "⚠️ È esso stesso da sorvegliare: chi riscrive un file e sposta il commit qui accanto lo nasconde. Il controllo verifica che il commit esista e che il file a quel commit sia la versione registrata, non che il commit sia quello giusto — quello lo sa solo chi ha applicato."
+    "⚠️ È esso stesso da sorvegliare: chi riscrive un file e sposta il commit qui accanto lo nasconde. Il controllo verifica che il commit esista e che il file a quel commit sia la versione registrata, non che il commit sia quello giusto — quello lo sa solo chi ha applicato.",
+    "Ogni voce dichiara `stato`: `verificata` (un oggetto che solo lei lascia è stato visto in produzione — misura), `congelata` (da quel giorno un cambiamento si vede, nessuna affermazione sulla produzione), `non_piu_verificabile` (applicata, ma il suo effetto è stato sostituito da `sostituita_da` — deduzione, non misura). I tre conteggi non si sommano."
   ],
   "applicate": [
     {
       "file": "20260918100000_workshop_finale_esito.sql",
       "commit": "57c30b4",
+      "stato": "verificata",
       "fonte": "Mario, 18/09: colonna finale_esito presente e nullable"
     },
     {
       "file": "20260919100000_guasti.sql",
       "commit": "a6dd190",
+      "stato": "verificata",
       "fonte": "Mario, 19/09: revoche fatte a mano, poi file allineato al DB (versione registrata: quella allineata)"
     },
     {
       "file": "20260919110000_revoca_grant_guardia_lingua.sql",
       "commit": "a6dd190",
+      "stato": "verificata",
       "fonte": "Mario, 19/09: su registra_guardia_lingua restano postgres e service_role"
     },
     {
       "file": "20260919120000_guardie_null_safe.sql",
       "commit": "a6dd190",
+      "stato": "verificata",
       "fonte": "Mario, 19/09: le tre funzioni contengono is distinct from"
     },
     {
       "file": "20261010110000_contatti_collegato.sql",
       "commit": "df36e3a",
+      "stato": "verificata",
       "fonte": "comportamento, 10/10: due righe con origine contatti in produzione"
     },
     {
       "file": "20261011100000_chiusura_diretta.sql",
       "commit": "3ad1bc1",
+      "stato": "verificata",
       "fonte": "Mario, 11/10: applicata nella versione di 3ad1bc1 (il file dopo ha solo commenti in più)"
+    },
+    {
+      "file": "20261011110000_domanda_chi_la_tocca.sql",
+      "commit": "8febc62",
+      "stato": "verificata",
+      "fonte": "Mario, 26/10: domande_live ha le colonne stato_da_tipo e stato_il"
+    },
+    {
+      "file": "20261011120000_export_domande_consegne.sql",
+      "commit": "612f476",
+      "stato": "verificata",
+      "fonte": "Mario, 26/10: la funzione esporta_consegne_evento esiste"
+    },
+    {
+      "file": "20261011130000_export_presenze_email_text.sql",
+      "commit": "47c2ab5",
+      "stato": "non_piu_verificabile",
+      "fonte": "deduzione, non misura (Mario, 26/10): il primo CSV di presenze è uscito dopo di lei l'11/10, quindi era applicata; esporta_presenze_admin/scuola sono state rifatte da 20261025100000 e 20261026100000, e nessun oggetto in produzione può più dire se il suo corpo ci fu",
+      "sostituita_da": "20261025100000_export_presenze_minuti_contati.sql",
+      "motivo": "il suo effetto è stato sostituito da 20261025100000_export_presenze_minuti_contati.sql"
+    },
+    {
+      "file": "20261011140000_export_presenze_finestra.sql",
+      "commit": "2127d31",
+      "stato": "non_piu_verificabile",
+      "fonte": "deduzione, non misura (Mario, 26/10): 20261025100000 ne riprende i corpi (taglio alla finestra compreso) e li sostituisce; il suo effetto non è più distinguibile in produzione",
+      "sostituita_da": "20261025100000_export_presenze_minuti_contati.sql",
+      "motivo": "il suo effetto è stato sostituito da 20261025100000_export_presenze_minuti_contati.sql"
+    },
+    {
+      "file": "20261011150000_report_aggregato_senza_tetto.sql",
+      "commit": "8702653",
+      "stato": "verificata",
+      "fonte": "Mario, 26/10: il corpo di report_evento_aggregato contiene «NESSUN TETTO»"
     },
     {
       "file": "20261018100000_incorporamento_non_verificato.sql",
       "commit": "d7eb46b",
+      "stato": "verificata",
       "fonte": "Mario, 25/10 sera: il vincolo eventi_diretta_proprio_coerente contiene «incorporamento_non_verificato»"
     },
     {
       "file": "20261018110000_ore_due_decimali.sql",
       "commit": "d4a1526",
+      "stato": "verificata",
       "fonte": "Mario, 25/10 sera: eventi.ore_pcto è numeric(6,2)"
     },
     {
       "file": "20261018120000_player_rotto_live.sql",
       "commit": "d4a1526",
+      "stato": "verificata",
       "fonte": "Mario, 25/10 sera: la tabella player_live_stato esiste"
     },
     {
       "file": "20261018130000_sposta_finestra_evento.sql",
       "commit": "d4a1526",
+      "stato": "verificata",
       "fonte": "Mario, 25/10 sera: la funzione sposta_finestra_evento esiste"
     },
     {
       "file": "20261025100000_export_presenze_minuti_contati.sql",
       "commit": "fa0d1f7",
+      "stato": "verificata",
       "fonte": "Mario, giro del 25/10: «Migrazione 20261025100000 applicata»"
     },
     {
       "file": "20261026100000_durata_vera_ore_riconosciute.sql",
       "commit": "a4aaec9",
+      "stato": "verificata",
       "fonte": "comportamento, giro del 25/10: durata vera, soglia e ore_riconosciute osservate in produzione"
     },
     {
       "file": "20261027100000_fine_effettiva.sql",
       "commit": "6190d45",
+      "stato": "verificata",
       "fonte": "Mario, 25/10 ~15:30: verificata 10/10"
     },
     {
       "file": "20261027110000_certificazione_manuale_senza_tetto.sql",
       "commit": "5b481d9",
+      "stato": "verificata",
       "fonte": "Mario, 25/10 ~15:30: verificata 5/5. b93f2f5 le aveva appeso un `comment on function` dopo: tolto, portato da 20261027120000"
     },
     {
       "file": "20261027120000_commento_tetto_docenti.sql",
       "commit": "1ac0255",
+      "stato": "verificata",
       "fonte": "Mario, 25/10: applicata via SQL Editor; obj_description su certifica_partecipazione_docente presente col riferimento a 20261027120000"
     },
     {
       "file": "20261027130000_server_trasmissione.sql",
       "commit": "ad04b42",
+      "stato": "verificata",
       "fonte": "Mario, 25/10 sera: applicata in produzione (chiavi_trasmissione aveva 0 righe, nessun dato da trasformare)"
     }
   ]
