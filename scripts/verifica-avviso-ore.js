@@ -130,6 +130,9 @@ console.log("\n§2 — il campo che resta: la correzione dell'admin\n");
   ok(!/\.from\("eventi"\)/.test(src) && !/\.update\(/.test(src), "e NON con un update diretto su `eventi`");
   ok(/rpc\("anteprima_correzione_ore"/.test(src), "le frasi sul massimo vengono da `anteprima_correzione_ore`");
   ok(/valore\.trim\(\) === ""/.test(src), "e un campo vuoto non è una correzione: si dice, non si manda zero");
+  // La riga di stato non attribuisce le ore all'orario: per un evento di prima
+  // del 26/10 le ha scritte l'ente, e il database non lo distingue.
+  ok(!/calcolate dall'orario/.test(src), "la riga di stato non dice «calcolate dall'orario» (falso per gli eventi vecchi)");
 }
 
 console.log("\n§3 — i testi dicono i numeri, e li ricevono\n");

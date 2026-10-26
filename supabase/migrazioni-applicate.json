@@ -137,6 +137,12 @@
       "commit": "ad04b42",
       "stato": "verificata",
       "fonte": "Mario, 25/10 sera: applicata in produzione (chiavi_trasmissione aveva 0 righe, nessun dato da trasformare)"
+    },
+    {
+      "file": "20261028100000_ore_riconoscibili_per_difetto.sql",
+      "commit": "818ab89",
+      "stato": "verificata",
+      "fonte": "Mario, 26/10: prosrc senza round(least( (prima sì), impronta 15db66ecdc52d991c8e9fed06306a104 → 38d290d1abf1b5b2bef028206cc31da2, obj_description nomina 20261028100000"
     }
   ]
 }

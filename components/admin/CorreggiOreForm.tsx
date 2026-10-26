@@ -96,9 +96,15 @@ export default function CorreggiOreForm({
   }
 
   // ⚠️ Testi della riga di stato e del bottone: miei, provvisori.
+  //
+  // ⚠️ SENZA CORREZIONE LA SORGENTE SI TACE: la prima stesura diceva
+  // «calcolate dall'orario» per ogni evento non corretto, ed era falso per gli
+  // eventi creati prima del 26/10, dove le ore le ha scritte l'ente — e il
+  // database non distingue i due casi. La correzione a mano invece si nomina:
+  // è un fatto registrato, con data.
   const stato = fissateIl
     ? `Ore PCTO: ${oreDueDecimali(oreAttuali)}, fissate a mano il ${formattaDataOra(fissateIl, "short")}.`
-    : `Ore PCTO: ${oreDueDecimali(oreAttuali)}, calcolate dall'orario.`;
+    : `Ore PCTO: ${oreDueDecimali(oreAttuali)}.`;
 
   if (!aperto) {
     return (

@@ -25,6 +25,27 @@
 -- del corpo (`scripts/impronta-funzione.sql`) cambia. La tabella dei casi è in
 -- `scripts/verifica-ore-per-difetto.sql`.
 
+-- ⚠️⚠️ IL RAMO «DURATA IGNOTA → ORE DICHIARATE» NON È MORTO, E NON HA TETTO
+-- (nota aggiunta il 26/10, dopo l'applicazione: è un commento fuori dal corpo
+-- della funzione, quindi non tocca `prosrc` né quello che il database esegue —
+-- il cricchetto lo ignora per costruzione; dentro il `$$` avrebbe cambiato
+-- l'impronta grezza in produzione).
+-- Da `20261029100000` la fine è obbligatoria per ogni evento NUOVO, quindi un
+-- evento creato da quel giorno non arriva mai qui: `durata_vera_minuti` è
+-- null solo per un evento senza `data_fine` e mai chiuso. Il ramo resta in
+-- piedi per gli eventi VECCHI, creati prima del 26/10 senza fine, con le ore
+-- scritte a mano dall'ente — e per quelli è senza tetto, perché non c'è una
+-- durata con cui limitarle. Fra sei mesi sembrerà un ramo morto.
+-- ⚠️ MISURATO, NON DEDOTTO (replica, 26/10): togliendolo oggi il numero
+-- RESTEREBBE LO STESSO, ma per due accidenti e non per una scelta — `null < 20`
+-- non è vero, quindi si cadrebbe nel ramo del tetto, e `least()` in Postgres
+-- IGNORA i null (`least(3.00, null)` = 3.00; lo standard SQL darebbe null).
+-- Il ramo è quindi l'unico posto in cui la decisione «senza durata valgono le
+-- ore dichiarate» è SCRITTA: senza, sarebbe una protezione che nessuno ha
+-- scelto, e cadrebbe al primo che riscrive il tetto con un'espressione che
+-- tratta il null in un altro modo. Si toglie solo il giorno in cui una query
+-- in produzione dice che eventi senza fine non ce ne sono più, o che nessuno
+-- di loro può ancora essere certificato.
 create or replace function public.ore_riconoscibili_evento(p_evento_id uuid)
 returns numeric
 language sql

@@ -46,7 +46,7 @@ insert into public.school_staff (scuola_profilo_id, user_id, ruolo_staff, attivo
 insert into public.student_profiles (user_id, school_code, classe, anno_diploma, stato_verifica)
   values ('22222222-0000-0000-0000-0000000000d2', 'TESTCM01', '5A', 2027, 'verificato');
 
--- EV_L (lunga): cominciata 28 minuti fa, programmata 45, 0,75 ore dichiarate.
+-- EV_L (lunga): cominciata 28 minuti fa, programmata 45, 0,70 ore dichiarate.
 --   Chiusa adesso dura 28 → l'automatica emette 0,46 (28/60 = 0,4666, per
 --   difetto da 20261028100000: col `round` era 0,47).
 -- EV_C (corta): cominciata 16 minuti fa → chiusa adesso dura 16, sotto il minimo.
@@ -58,13 +58,19 @@ insert into public.eventi (id, titolo, descrizione, tipo, organizzatore_id, data
   ('e0000000-0000-0000-0000-0000000000d2', 'Corta', 'x', 'webinar', 'aaaaaaaa-0000-0000-0000-0000000000d1',
    now() - interval '16 minutes 10 seconds', now() + interval '30 minutes', 'approvato', 'studenti', 'kireo', 'abcdefghijk', 'attivo', 0.75);
 -- ⚠️ DA `20261029100000` LE ORE ALL'INSERT LE CALCOLA IL TRIGGER DALLA
--- FINESTRA, e la fine è obbligatoria. EV_L dura 45 minuti → 0,75 da sé. EV_C
+-- FINESTRA, e la fine è obbligatoria. EV_L dura 45 minuti: il trigger
+-- scriverebbe 0,75 da sé, e la 3 («la manuale emette le ore DICHIARATE») non
+-- distinguerebbe più le ore dichiarate dalla durata — resterebbe verde anche
+-- se la manuale prendesse la finestra invece di `ore_pcto` (Mario: un verde
+-- che non può più fallire per il motivo per cui è stato scritto). Quindi 0,70,
+-- che non è la durata di niente. EV_C
 -- dura 46 minuti e 10 secondi (0,76): la fissiamo a 0,75 con un update dopo
 -- l'insert, che è la strada della correzione dell'admin (le date non cambiano,
 -- il trigger non ricalcola). EV_S è un evento di PRIMA del 26/10, senza fine e
 -- con le ore scritte a mano: un evento così oggi non si può più creare, quindi
 -- lo si fabbrica col trigger spento per un insert solo (il rollback in coda
 -- disfa anche questo).
+update public.eventi set ore_pcto = 0.70 where id = 'e0000000-0000-0000-0000-0000000000d1';
 update public.eventi set ore_pcto = 0.75 where id = 'e0000000-0000-0000-0000-0000000000d2';
 alter table public.eventi disable trigger eventi_ore_da_orario;
 insert into public.eventi (id, titolo, descrizione, tipo, organizzatore_id, data_inizio, data_fine, stato, pubblico,
@@ -110,7 +116,7 @@ begin
   reset role;
 end $$;
 
--- 1) AUTOMATICA: il tetto si applica. 0,75 dichiarate su 28 minuti → 0,46.
+-- 1) AUTOMATICA: il tetto si applica. 0,70 dichiarate su 28 minuti → 0,46.
 insert into esiti select 1, 'automatica: il tetto della durata vera si applica', 'partecipato/sistema/0.46',
   format('%s/%s/%s', stato, certificata_da_tipo, ore_riconosciute),
   stato = 'partecipato' and certificata_da_tipo = 'sistema' and ore_riconosciute = 0.46
@@ -123,10 +129,10 @@ insert into esiti select 2, 'automatica: sotto i 20 minuti non certifica', 'iscr
   from public.iscrizioni_eventi
   where evento_id = 'e0000000-0000-0000-0000-0000000000d2' and student_id = '22222222-0000-0000-0000-0000000000d1';
 
--- 3) MANUALE: il tetto NON si applica. Stesso evento di 28 minuti → 0,75 dichiarate.
-insert into esiti select 3, 'manuale: il tetto della durata vera NON si applica', 'partecipato/scuola/0.75',
+-- 3) MANUALE: il tetto NON si applica. Stesso evento di 28 minuti → 0,70 dichiarate.
+insert into esiti select 3, 'manuale: il tetto della durata vera NON si applica', 'partecipato/scuola/0.70',
   format('%s/%s/%s', stato, certificata_da_tipo, ore_riconosciute),
-  stato = 'partecipato' and certificata_da_tipo = 'scuola' and ore_riconosciute = 0.75
+  stato = 'partecipato' and certificata_da_tipo = 'scuola' and ore_riconosciute = 0.70
   from public.iscrizioni_eventi
   where evento_id = 'e0000000-0000-0000-0000-0000000000d1' and student_id = '22222222-0000-0000-0000-0000000000d2';
 
