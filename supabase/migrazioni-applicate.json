@@ -227,6 +227,24 @@
       "commit": "802ccc4",
       "stato": "verificata",
       "fonte": "Mario, 27/10: select file_size_limit, allowed_mime_types from storage.buckets where id = 'istituzioni-media' → 20971520 e [image/jpeg, image/png, image/webp, application/pdf]. Riscritta in place dopo l'applicazione (98deeb0) e rimessa com'era (= f19c756)"
+    },
+    {
+      "file": "20261104100000_storage_istituzioni_media_limiti_controllati.sql",
+      "commit": "802ccc4",
+      "stato": "verificata",
+      "fonte": "Mario, 27/10 notte: eseguita senza errore, cioè il raise su righe <> 1 non è scattato (non lascia un oggetto suo)"
+    },
+    {
+      "file": "20261104110000_delega_senza_autore_rifiutata.sql",
+      "commit": "43e45d5",
+      "stato": "verificata",
+      "fonte": "Mario, 27/10 notte: obj_description(tieni_traccia_delega_permessi()) nomina 20261104110000 («registra chi ha cambiato una delega dello staff…»)"
+    },
+    {
+      "file": "20261104120000_storage_workshop_consegne_limiti.sql",
+      "commit": "b28f86d",
+      "stato": "verificata",
+      "fonte": "Mario, 27/10 notte: storage.buckets workshop-consegne → public false · 5242880 · {image/png,image/jpeg}. E prima: storage.objects del bucket → 0 righe, cioè abbiamo misurato che nei mesi senza limiti non è stato caricato nessun file (non: «non è successo niente»)"
     }
   ]
 }

@@ -6,7 +6,7 @@
 //
 // Fetta verticale: SOLO 'palestra-popolare' > 'salute' è implementato.
 // Gli altri 4 workshop e gli altri 4 ruoli della palestra restano sul
-// motore v1 (kit PDF + consegna file, vedi WORKSHOP_KIT/ConsegnaUpload) —
+// motore v1 (kit PDF + consegna file, vedi WORKSHOP_KIT; il caricamento è uscito il 2026-10-27) —
 // non toccati in questo giro.
 //
 // Evoluzione rispetto alla prima versione dell'elaborato online (form a

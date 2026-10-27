@@ -174,5 +174,10 @@ async function Peers({
 // che elencava le consegne caricate e mostrava il form di upload. Tolto il
 // 2026-08-29 perché tutti e 25 i ruoli hanno il loro elaborato a tappe, e due
 // modi di consegnare lo stesso lavoro producevano due giudizi sulla stessa
-// iscrizione. Restano intatti la tabella `workshop_consegne`, i file già
-// caricati e il componente `ConsegnaUpload`: rimettere il blocco è una riga.
+// iscrizione. Resta la tabella `workshop_consegne` (la legge ancora
+// `lib/percorso/stato.ts`). Il componente `ConsegnaUpload` e la route
+// `/api/workshop/consegna`, già chiusa a 410, sono usciti dal repo il 27/10:
+// nessuno li raggiungeva, e il loro commento descriveva limiti di un
+// caricamento che non esisteva più (vedi 20261104120000). Il bucket
+// `workshop-consegne` in produzione era vuoto: nessun file v1 da conservare.
+// Per rimetterli, il codice sta in git prima di quel commit.

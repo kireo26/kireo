@@ -67,7 +67,8 @@ export function estraiJson(testo: string): unknown | undefined {
 //   3. feedback finale del progetto  (app/api/cron/workshop-motore, ultima tappa)
 //
 // Erano quattro fino al 2026-08-29: il quarto era l'analisi del file caricato
-// (app/api/workshop/consegna), chiusa insieme al caricamento file del workshop.
+// (app/api/workshop/consegna), chiusa insieme al caricamento file del workshop
+// e uscita dal repo il 2026-10-27.
 // Ne resta un quinto RAGGIUNGIBILE MA ORFANO: il feedback finale in
 // app/api/workshop/elaborato/consegna, che nessun componente chiama più da
 // quando la chiusura del progetto la fa il cron sull'ultima tappa. Sta qui
