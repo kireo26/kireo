@@ -49,11 +49,15 @@ for f in "$RADICE"/scripts/verifica-*.sql; do
   # ⚠️ UNA PROPRIETÀ SCRITTA NEL SORGENTE E ASSENTE DALL'USCITA È UN ROSSO (27/10):
   # `verifica-esente-dai-cancelli` §3 scriveva il proprio esito con un
   # `select … from` su una riga che la cura aveva impedito, e spariva senza un
-  # errore. L'estrattore vede solo le forme `esiti values (N` / `esiti select N`,
+  # errore. L'estrattore vede solo le forme `esiti values (N` / `esiti select N` (anche su due righe),
   # quindi sbaglia per difetto (un numero scritto in un'altra forma non lo
   # cerca); misurato il 27/10, nessuno script ha oggi un numero del sorgente
   # che manca dall'uscita.
-  attese=$(grep -oE '(esiti values|esiti select)[[:space:]]*\(?[[:space:]]*[0-9]+' "$f" | grep -oE '[0-9]+$' | sort -u)
+  # Le righe si uniscono prima di cercare: `insert into esiti` e `select 14, …`
+  # stanno spesso su due righe, ed è proprio la forma che sparisce (il primo
+  # estrattore guardava una riga sola, e la controprova sul §14 di
+  # verifica-quattro-colonne non mordeva).
+  attese=$(tr '\n' ' ' <"$f" | grep -oE 'esiti[[:space:]]+(values[[:space:]]*\(|select)[[:space:]]*[0-9]+' | grep -oE '[0-9]+$' | sort -u)
   if [ -n "$attese" ]; then
     con_numeri=$((con_numeri + 1))
     stampate=$(grep -oE '^[[:space:]]*[0-9]+[[:space:]]*\|' "$OUT/$n.out" | tr -dc '0-9\n' | sort -u)
@@ -76,7 +80,7 @@ echo "$tot script: $verdi verdi, $rosse rossi, $leggere di sola diagnostica (usc
 # La soglia: sotto venti script l'elenco non sta leggendo la cartella.
 [ "$tot" -ge 20 ] || { echo "✗ solo $tot script trovati: il lanciatore non sta leggendo la cartella" >&2; exit 1; }
 # E sotto venticinque script con proprietà numerate l'estrattore non le sta vedendo
-# (il 27/10 sono 31 su 45): il controllo qui sopra sarebbe verde su niente.
+# (il 27/10 sono 34 su 45): il controllo qui sopra sarebbe verde su niente.
 echo "(proprietà numerate confrontate col sorgente in $con_numeri script)"
 [ "$con_numeri" -ge 25 ] || { echo "✗ solo $con_numeri script con proprietà numerate: l'estrattore non le sta vedendo" >&2; exit 1; }
 [ "$rosse" -eq 0 ]
