@@ -33,6 +33,23 @@ const QUOTE_VUOTE: Quote = {
   comunicazioniKireoTotali: 0,
 };
 
+// COSA CONTA OGNI RIQUADRO DEL PROFILO (27/10), sull'anno accademico corrente:
+// - Eventi in evidenza: eventi dell'ente messi in evidenza (`in_evidenza_dal`)
+//   quest'anno. NON conta quelli creati e non promossi.
+// - Newsletter: proposte di newsletter create quest'anno, in QUALUNQUE stato:
+//   anche una bozza o una rifiutata consuma la quota.
+// - CTA esterne: eventi creati quest'anno con un link esterno, in qualunque
+//   stato (anche rifiutati). NON conta i clic su quei link.
+// - Comunicazioni KIREO: proposte di «comunicazione mirata» (solo piano
+//   premium) create quest'anno, in qualunque stato. ⚠️ Nessuna è mai stata
+//   inviata a nessuno: l'invio («inviata») è Fase 2, e i destinatari di una
+//   comunicazione «mirata» non sono scritti da nessuna parte.
+// Chi difende i limiti: quello dell'evidenza anche il database
+// (`metti_in_evidenza_evento`); newsletter, CTA e comunicazioni solo
+// l'applicazione (il form, e per le CTA la revisione dell'admin).
+// ⚠️ Una lettura fallita mostra 0/0 (QUOTE_VUOTE): non letto e zero si
+// scrivono uguali. Non curato.
+//
 // Conta l'utilizzo nell'anno accademico corrente contro i limiti del piano
 // attivo. La creazione di eventi è illimitata (nessuna quota): "evidenza"
 // conta quanti eventi APPROVATI l'ente ha promosso (in_evidenza_dal

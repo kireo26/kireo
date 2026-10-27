@@ -32,6 +32,31 @@ export default async function EnteStatistichePage() {
         </div>
       ) : (
         <>
+          {/*
+            COSA CONTA OGNI NUMERO (Mario, 27/10: «un numero senza una
+            definizione scritta non è un dato»). Una riga per riquadro: cosa
+            conta, da quale gesto di uno studente, e cosa NON conta. I nomi a
+            schermo sono quelli di prima: si decidono con Mario, leggendo queste
+            righe. Le viste sono `stats_istituzione` e `stats_eventi_istituzione`
+            (20261102110000).
+            - Studenti raggiunti: studenti DISTINTI che, da collegati, hanno
+              scaricato una guida dell'ente, o si sono iscritti alla sua
+              newsletter, o si sono iscritti da sé a un suo evento. NON conta:
+              chi segue l'ente, chi ha manifestato interesse o scritto un
+              messaggio, chi ha solo aperto la pagina, gli studenti iscritti
+              dalla loro scuola, i docenti, i download senza accesso. E non
+              scende: chi disdice un'iscrizione resta contato.
+            - Iscritti newsletter: le iscrizioni alla newsletter dell'ente, oggi
+              (non c'è un modo di disiscriversi). NON conta le newsletter
+              ricevute: l'invio non esiste ancora.
+            - Download guida: studenti DISTINTI che, da collegati, hanno
+              scaricato almeno una guida dell'ente. NON conta i download senza
+              accesso, i download ripetuti, né quelli di chi era già passato di
+              qui con un altro gesto prima del 20261102110000 (non sono mai stati
+              scritti).
+            - Guide pubblicate: le guide che l'ente ha caricato. Non è un gesto
+              di uno studente.
+          */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
               { label: "Studenti raggiunti", valore: stats?.studenti_nel_recinto ?? 0 },
@@ -59,6 +84,18 @@ export default async function EnteStatistichePage() {
                       </p>
                     </div>
                     {/*
+                      COSA CONTA OGNI COLONNA (27/10). Tutti gli eventi
+                      dell'ente, in qualunque stato (anche bozze e rifiutati).
+                      - iscritti: ogni iscrizione, in qualunque stato (ancora
+                        iscritto, certificato, assente), comprese quelle fatte
+                        da una scuola e le presenze certificate senza
+                        un'iscrizione prima. NON conta chi l'ha disdetta.
+                      - partecipati: le presenze CERTIFICATE (soglia raggiunta
+                        alla chiusura della diretta, o certificate da una scuola,
+                        dall'ente o da KIREO). NON conta chi c'era ed è rimasto
+                        sotto la soglia: ⚠️ per un ente «ha partecipato» vuol
+                        dire «c'era», e il nome lo decide Mario.
+                      - risposte: le risposte alla domanda finale.
                       Tre numeri che raccontano una scala: chi si è iscritto, chi
                       c'era, chi ha risposto. Il terzo è la misura di attenzione,
                       e quando una domanda è stata posta si scrive ANCHE se è
