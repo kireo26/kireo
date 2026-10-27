@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getIstituzionePubblicaBySlug, getGuideEnte, isIscrittoNewsletter, getConteggioFollower, isSeguito, etichettaTipoIstituzione } from "@/lib/app/istituzioni";
+import { getIstituzionePubblicaBySlug, getGuideEnte, isIscrittoNewsletter, getConteggioFollower, isSeguito, etichettaTipoIstituzione, getAreeApprovateIstituzione } from "@/lib/app/istituzioni";
 import { getEventiIstituzione, getAreeDegliEventi, getIscrizioniStudente, eventoNonFinito } from "@/lib/app/eventi";
 import { isMaggiorenne } from "@/lib/eta";
 import GuidaEnteForm from "@/components/app/GuidaEnteForm";
@@ -33,9 +33,10 @@ export default async function IstituzionePubblicaPage({ params }: { params: Prom
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [guide, eventi] = await Promise.all([
+  const [guide, eventi, areeDichiarate] = await Promise.all([
     getGuideEnte(supabase, istituzione.id),
     getEventiIstituzione(supabase, istituzione.id),
+    getAreeApprovateIstituzione(supabase, istituzione.id),
   ]);
 
   // `eventoNonFinito` è la stessa regola dell'Agenda e delle aree (la fine
@@ -104,7 +105,19 @@ export default async function IstituzionePubblicaPage({ params }: { params: Prom
         <h1 className="py-1 font-heading text-3xl font-bold leading-[1.25] text-kireo-light sm:text-4xl">
           {istituzione.nome}
         </h1>
+        {istituzione.provincia && <p className="mt-1 text-sm text-kireo-muted">Provincia di {istituzione.provincia}</p>}
         {istituzione.descrizione && <p className="mt-4 max-w-2xl text-lg text-kireo-muted">{istituzione.descrizione}</p>}
+        {/* Le aree che l'ente dichiara (approvate da KIREO): è la risposta
+            breve a «mi interessano?», prima della prova che sono gli eventi. */}
+        {areeDichiarate.length > 0 && (
+          <ul className="mt-4 flex flex-wrap gap-2" aria-label="Aree di competenza">
+            {areeDichiarate.map((nome) => (
+              <li key={nome} className="rounded-full border border-white/10 px-3 py-1 text-xs text-kireo-light/90">
+                {nome}
+              </li>
+            ))}
+          </ul>
+        )}
         {istituzione.sito_ufficiale && (
           <a
             href={istituzione.sito_ufficiale}
@@ -139,14 +152,17 @@ export default async function IstituzionePubblicaPage({ params }: { params: Prom
         </div>
       </section>
 
+      {/* L'ORDINE DELLA PAGINA (Mario, 27/10): chi è, cosa offre adesso, la
+          guida, e in fondo l'archivio. Lo studente arriva qui per una domanda
+          sola, «chi sono questi, e mi interessano?»: gli eventi sono la prova,
+          non la risposta, e un archivio prima della guida la seppellisce. */}
       <section className="border-t border-white/5 bg-kireo-card/40">
         <div className="mx-auto max-w-4xl px-6 py-16">
-          <h2 className="py-0.5 font-heading text-2xl font-bold leading-[1.25] text-kireo-light">Eventi</h2>
           {/* DUE SEZIONI E NON UNA (Mario, 26/10). «Nessun evento in programma»
               misura SOLO gli eventi non finiti: con un archivio pieno e niente
               in programma, la frase deve comparire lo stesso — prima la lista
               era una sola, e un evento di due mesi fa la faceva tacere. */}
-          <h3 className="mt-6 font-heading text-lg font-semibold text-kireo-light">In programma</h3>
+          <h2 className="py-0.5 font-heading text-2xl font-bold leading-[1.25] text-kireo-light">Eventi in programma</h2>
           {eventiInProgramma.length === 0 ? (
             <p className="mt-4 rounded-2xl border border-white/5 bg-kireo-card p-6 text-center text-kireo-muted">
               Nessun evento in programma al momento.
@@ -163,27 +179,6 @@ export default async function IstituzionePubblicaPage({ params }: { params: Prom
                 />
               ))}
             </ul>
-          )}
-          {/* L'ARCHIVIO, SENZA L'ETICHETTA DELLE ORE: le ore di un evento
-              passato possono essere state corrette dopo la chiusura, e le ore
-              di chi c'era sono quelle certificate allora — due numeri per la
-              stessa cosa, e lo studente crederebbe alla card. */}
-          {eventiPassati.length > 0 && (
-            <>
-              <h3 className="mt-10 font-heading text-lg font-semibold text-kireo-light">Eventi passati</h3>
-              <ul className="mt-4 space-y-4">
-                {eventiPassati.map((evento) => (
-                  <CardEvento
-                    key={evento.id}
-                    evento={evento}
-                    areeSlugs={areeEventi[evento.id] ?? []}
-                    userId={user?.id ?? null}
-                    iscritto={iscrizioniEventi.has(evento.id)}
-                    mostraOre={false}
-                  />
-                ))}
-              </ul>
-            </>
           )}
         </div>
       </section>
@@ -213,6 +208,29 @@ export default async function IstituzionePubblicaPage({ params }: { params: Prom
           <IscrivitiNewsletterButton istituzioneId={istituzione.id} userId={user?.id ?? null} iscrittoIniziale={iscrittoNewsletter} />
         </div>
       </section>
+      {/* L'ARCHIVIO, IN FONDO E SENZA L'ETICHETTA DELLE ORE: le ore di un
+          evento passato possono essere state corrette dopo la chiusura, e le
+          ore di chi c'era sono quelle certificate allora — due numeri per la
+          stessa cosa, e lo studente crederebbe alla card. */}
+      {eventiPassati.length > 0 && (
+        <section className="border-t border-white/5 bg-kireo-card/40">
+          <div className="mx-auto max-w-4xl px-6 py-16">
+            <h2 className="py-0.5 font-heading text-2xl font-bold leading-[1.25] text-kireo-light">Eventi passati</h2>
+            <ul className="mt-4 space-y-4">
+              {eventiPassati.map((evento) => (
+                <CardEvento
+                  key={evento.id}
+                  evento={evento}
+                  areeSlugs={areeEventi[evento.id] ?? []}
+                  userId={user?.id ?? null}
+                  iscritto={iscrizioniEventi.has(evento.id)}
+                  mostraOre={false}
+                />
+              ))}
+            </ul>
+          </div>
+        </section>
+      )}
     </>
   );
 }

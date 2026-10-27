@@ -1,4 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { getAreaBySlug } from "@/data/aree";
+import { getFiloneBySlug } from "@/data/filoniDocenti";
 
 export type IstituzionePubblica = {
   id: string;
@@ -8,9 +10,10 @@ export type IstituzionePubblica = {
   descrizione: string | null;
   immagine_copertina_url: string | null;
   sito_ufficiale: string | null;
+  provincia: string | null;
 };
 
-const COLONNE_ISTITUZIONE_PUBBLICA = "id, nome, slug, tipo, descrizione, immagine_copertina_url, sito_ufficiale";
+const COLONNE_ISTITUZIONE_PUBBLICA = "id, nome, slug, tipo, descrizione, immagine_copertina_url, sito_ufficiale, provincia";
 
 // Solo istituzioni attive sono selezionabili da anon/authenticated (RLS),
 // quindi questa non ha bisogno di controllare lo stato lato applicazione.
@@ -97,4 +100,25 @@ const ETICHETTE_TIPO_ISTITUZIONE: Record<string, string> = {
 
 export function etichettaTipoIstituzione(tipo: string): string {
   return ETICHETTE_TIPO_ISTITUZIONE[tipo] ?? "Istituzione formativa";
+}
+
+// Le aree che l'ente ha dichiarato e KIREO ha approvato, col nome che lo
+// studente legge altrove (la card, il mega-menu). Una proposta in revisione o
+// rifiutata non si vede: è la stessa regola di Esplora. Uno slug che non
+// conosciamo non si inventa un nome: si salta.
+export async function getAreeApprovateIstituzione(supabase: SupabaseClient, istituzioneId: string): Promise<string[]> {
+  try {
+    const { data, error } = await supabase
+      .from("istituzioni_aree")
+      .select("area_slug")
+      .eq("istituzione_id", istituzioneId)
+      .eq("stato", "approvata");
+    if (error) return [];
+    return (data ?? [])
+      .map((r) => getAreaBySlug(r.area_slug)?.nome ?? getFiloneBySlug(r.area_slug)?.nome ?? null)
+      .filter((n): n is string => n !== null)
+      .sort((a, b) => a.localeCompare(b, "it"));
+  } catch {
+    return [];
+  }
 }
