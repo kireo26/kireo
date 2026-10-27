@@ -5,9 +5,9 @@
 -- Il caso: `www.davante.it` salvato così com'era, e dalla pagina pubblica lo
 -- studente arrivava al 404 di kireo.it.
 --
--- LA CONTROPROVA va fatta su una replica NATA SENZA la migrazione: tutte rosse
--- tranne la 6 (vuoto), che lo script tratta come null anche senza trigger solo
--- perché l'ente lo scrive già così (`sito.trim() || null` nel form).
+-- LA CONTROPROVA va fatta su una replica NATA SENZA la migrazione: rosse la
+-- 1, 2, 3, 5, 6, 7 e 8. Restano verdi la 4 (un indirizzo con lo schema non ha
+-- niente da normalizzare) e nessun'altra.
 --
 -- Transazione con ROLLBACK. Le colonne dicono «sì»/«no» e non f/t:
 -- `verifica-sql-tutti.sh` legge una `f` in fondo a una riga come un booleano falso.
@@ -62,14 +62,21 @@ end $$;
 do $$
 declare
   v_rifiutata boolean := false;
+  -- Nel mondo senza migrazione il trigger non c'è: lo script lo dice con la
+  -- proprietà rossa invece di morire (e far sembrare rotte tutte le altre).
+  v_trigger boolean := exists (select 1 from pg_trigger where tgname = 'normalizza_sito_ufficiale');
 begin
-  alter table public.istituzioni disable trigger normalizza_sito_ufficiale;
+  if v_trigger then
+    alter table public.istituzioni disable trigger normalizza_sito_ufficiale;
+  end if;
   begin
     update public.istituzioni set sito_ufficiale = 'www.davante.it' where id = 'aaaaaaaa-0000-0000-0000-0000000000e1';
   exception when check_violation then
     v_rifiutata := true;
   end;
-  alter table public.istituzioni enable trigger normalizza_sito_ufficiale;
+  if v_trigger then
+    alter table public.istituzioni enable trigger normalizza_sito_ufficiale;
+  end if;
   insert into esiti values (7, 'senza trigger, una scrittura senza schema è rifiutata dal vincolo', 'rifiutata: sì',
     'rifiutata: ' || case when v_rifiutata then 'sì' else 'no' end, v_rifiutata);
 end $$;
