@@ -121,6 +121,12 @@ export default async function AdminPage() {
             {etichettaDaApprovare(daApprovare)} →
           </Link>
         </p>
+        {/* ⚠️ UNA FRASE DI TRANSIZIONE (Mario, 27/10): parla a chi ricorda la
+            coda di prima, dove qui c'erano gli eventi stessi. Non si cambia
+            adesso; si toglie quando nessuno ricorderà più com'era prima — il
+            fatto che lo dice è il primo admin che non ha mai visto la coda di
+            prima del 27/10. Sta nell'elenco «Le frasi di transizione» dei
+            punti aperti di CLAUDE.md. */}
         <p className="mt-1 text-xs text-kireo-muted">In programmazione, eventi passati e rifiutati stanno nella stessa pagina.</p>
       </section>
 

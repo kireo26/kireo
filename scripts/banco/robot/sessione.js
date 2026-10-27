@@ -135,9 +135,9 @@ async function apriSessione() {
         `Il robot si rifiuta di partire: le righe che scriverebbe finirebbero in mezzo a\n` +
         `quelle degli studenti veri, e da lì non si distinguono più — è l'unica cosa di\n` +
         `tutta questa architettura che dopo non si aggiusta.\n\n` +
-        `Marcalo da admin (o con la service-role) nel SQL Editor:\n` +
+        `Marcalo dal SQL Editor:\n` +
         `    update public.profiles set di_prova = true where id = '${data.user.id}';\n\n` +
-        `Il trigger blocca chiunque non sia admin, quindi non basta farlo dalla sessione dell'account stesso.`,
+        `Dalla sessione dell'account non si può: il trigger ignora chi prova a marcarsi da sé.`,
     );
   }
 
@@ -151,7 +151,7 @@ async function apriSessione() {
       `L'account ${c.robotEmail} è di prova ma NON è esente dai cancelli dei workshop.\n\n` +
         `Il banco gioca molti ruoli con un account solo: senza l'esenzione si fermerebbe al\n` +
         `tetto dei tre e aspetterebbe due giorni a ogni tappa.\n\n` +
-        `Esentalo da admin (o con la service-role) nel SQL Editor:\n` +
+        `Esentalo dal SQL Editor:\n` +
         `    update public.profiles set esente_cancelli = true where id = '${data.user.id}';\n`,
     );
   }
