@@ -197,6 +197,12 @@
       "commit": "8b34e8e",
       "stato": "verificata",
       "fonte": "Mario, 27/10, dopo il deploy: recinto_enti_unica non è più in pg_constraint → 0"
+    },
+    {
+      "file": "20261103140000_storage_istituzioni_media_limiti.sql",
+      "commit": "802ccc4",
+      "stato": "verificata",
+      "fonte": "Mario, 27/10: select file_size_limit, allowed_mime_types from storage.buckets where id = 'istituzioni-media' → 20971520 e [image/jpeg, image/png, image/webp, application/pdf]. Riscritta in place dopo l'applicazione (98deeb0) e rimessa com'era (= f19c756)"
     }
   ]
 }

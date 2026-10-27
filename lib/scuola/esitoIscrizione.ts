@@ -35,10 +35,20 @@ export function testoEsitoIscrizione(esito: unknown): { testo: string; avviso: b
   if (e.gruppo === true) return { testo: "Classe iscritta come gruppo, a distanza.", avviso: false };
   const iscritti = numero(e.iscritti);
   if (iscritti === null) return { testo: TESTO_ESITO_NON_LETTO, avviso: true };
-  const parti = [`Iscritti adesso: ${iscritti}`];
   const gia = numero(e.gia_iscritti) ?? 0;
   const nonVerificati = numero(e.non_verificati) ?? 0;
   const altra = numero(e.altra_scuola) ?? 0;
+  // ERANO GIÀ TUTTI DENTRO (Mario, 27/10): «Iscritti adesso: 0» in testa
+  // spaventava — il numero in testa a una frase decide come si legge il resto.
+  // Davanti il fatto rassicurante. La frase per 20 è di Mario; quella per uno
+  // solo è mia (con 1 «tutti e 1» non si dice, e «era già iscritto» accorda).
+  if (iscritti === 0 && gia > 0 && nonVerificati === 0 && altra === 0) {
+    return {
+      testo: gia === 1 ? "Nessuna iscrizione nuova: la persona scelta aveva già un'iscrizione." : `Erano già iscritti tutti e ${gia}: nessuna iscrizione nuova.`,
+      avviso: false,
+    };
+  }
+  const parti = [`Iscritti adesso: ${iscritti}`];
   if (gia > 0) parti.push(`già iscritti prima: ${gia}`);
   if (nonVerificati > 0) parti.push(`non iscritti perché non verificati: ${nonVerificati}`);
   if (altra > 0) parti.push(`non iscritti perché non risultano della tua scuola: ${altra}`);

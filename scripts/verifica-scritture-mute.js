@@ -52,6 +52,13 @@ console.log("\n§2 — le iscrizioni d'ufficio dicono quanti sono entrati\n");
   ok(!/\b1 \w+i\b/.test(testoEsitoIscrizione({ iscritti: 1, gia_iscritti: 1, non_verificati: 1, altra_scuola: 1 }).testo),
     "con 1 nessun plurale da accordare («Etichetta: numero»)");
   ok(testoEsitoIscrizione({ gruppo: true }).testo.includes("gruppo"), "una classe a distanza dice che è iscritta come gruppo");
+  // Il testo è di Mario: l'atteso è scritto qui, parola per parola.
+  ok(testoEsitoIscrizione({ iscritti: 0, gia_iscritti: 20, non_verificati: 0, altra_scuola: 0 }).testo === "Erano già iscritti tutti e 20: nessuna iscrizione nuova.",
+    "tutti già iscritti: davanti il fatto rassicurante, non uno zero");
+  ok(!/^Iscritti adesso: 0/.test(testoEsitoIscrizione({ iscritti: 0, gia_iscritti: 1, non_verificati: 0, altra_scuola: 0 }).testo),
+    "…anche con uno solo");
+  ok(/^Iscritti adesso: 0/.test(testoEsitoIscrizione({ iscritti: 0, gia_iscritti: 3, non_verificati: 2, altra_scuola: 0 }).testo),
+    "ma se qualcuno è rimasto fuori, lo zero resta e il resto lo spiega");
   for (const f of ["components/scuola/IscriviTuttiVerificatiButton.tsx", "components/scuola/IscriviClasseEventoForm.tsx"]) {
     const c = leggi(f);
     ok(/const \{ data, error \} = await supabase\.rpc\("iscrivi_/.test(c) && /testoEsitoIscrizione\(data\)/.test(c), `${f} legge l'esito della funzione`);
