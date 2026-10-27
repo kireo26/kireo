@@ -299,23 +299,32 @@ function SezioneGuida({ istituzioneId, guideIniziali }: { istituzioneId: string;
   );
 }
 
-const MAX_AREE_COMPETENZA = 3;
-
-// Fino a 3 aree di competenza, in revisione KIREO (a differenza degli
+// Fino a N aree di competenza, in revisione KIREO (a differenza degli
 // altri campi di questa pagina, self-service senza revisione — vedi
-// migration istituzioni_aree). Solo le 18 aree di orientamento: la
-// selezione filoni per gli enti formazione_docenti resta fuori da questa
-// UI (loro categorizzazione interna, non serve a /app/esplora).
+// migration istituzioni_aree). N dipende dal TIPO dell'ente, non dal piano, e
+// sta in un posto solo: `max_aree_istituzione` (20261103110000), che usa anche
+// il trigger. Qui non c'è più una costante: due copie dello stesso limite
+// divergono. Solo le 18 aree di orientamento: la selezione filoni per gli enti
+// formazione_docenti resta fuori da questa UI (loro categorizzazione interna,
+// non serve a /app/esplora).
 function SezioneAreeCompetenza({ istituzioneId }: { istituzioneId: string }) {
   const [righe, setRighe] = useState<{ area_slug: string; stato: string }[]>([]);
   const [caricato, setCaricato] = useState(false);
   const [errore, setErrore] = useState<string | null>(null);
+  // null = limite non letto: la griglia non ferma, e se si supera lo dice il
+  // database (`troppe_aree_istituzione`).
+  const [massimo, setMassimo] = useState<number | null>(null);
 
   useEffect(() => {
     async function carica() {
       const supabase = createClient();
-      const { data } = await supabase.from("istituzioni_aree").select("area_slug, stato").eq("istituzione_id", istituzioneId);
+      const [{ data }, { data: limite, error: erroreLimite }] = await Promise.all([
+        supabase.from("istituzioni_aree").select("area_slug, stato").eq("istituzione_id", istituzioneId),
+        supabase.rpc("max_aree_istituzione", { p_istituzione_id: istituzioneId }),
+      ]);
+      if (erroreLimite) console.error("[profilo ente] max_aree_istituzione:", descriviErrore(erroreLimite));
       setRighe(data ?? []);
+      setMassimo(typeof limite === "number" ? limite : null);
       setCaricato(true);
     }
     carica();
@@ -331,10 +340,14 @@ function SezioneAreeCompetenza({ istituzioneId }: { istituzioneId: string }) {
       if (!error) setRighe((prev) => prev.filter((r) => r.area_slug !== slug));
       return;
     }
-    if (attive.length >= MAX_AREE_COMPETENZA) return;
+    if (massimo !== null && attive.length >= massimo) return;
     const { error } = await supabase.from("istituzioni_aree").insert({ istituzione_id: istituzioneId, area_slug: slug });
     if (error) {
-      setErrore("Non è stato possibile aggiungere l'area. Riprova.");
+      setErrore(
+        error.message?.includes("troppe_aree_istituzione")
+          ? "Hai già dichiarato tutte le aree che il tuo tipo di ente può avere."
+          : "Non è stato possibile aggiungere l'area. Riprova.",
+      );
       return;
     }
     setRighe((prev) => [...prev, { area_slug: slug, stato: "in_approvazione" }]);
@@ -346,12 +359,12 @@ function SezioneAreeCompetenza({ istituzioneId }: { istituzioneId: string }) {
     <div className="rounded-2xl border border-white/5 bg-kireo-card p-6">
       <h2 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">Aree di competenza</h2>
       <p className="mt-1 text-sm text-kireo-muted">
-        Fino a {MAX_AREE_COMPETENZA} aree, in revisione KIREO. Alimentano Esplora e la sezione dedicata sulle pagine
+        {massimo !== null ? `Fino a ${massimo} aree, in revisione KIREO.` : "Aree in revisione KIREO."} Alimentano Esplora e la sezione dedicata sulle pagine
         area di orientamento.
       </p>
       {errore && <p className="mt-2 text-sm text-red-400">{errore}</p>}
       <div className="mt-4">
-        <AreeInteresseGrid selezionate={attive} onToggle={toggle} max={MAX_AREE_COMPETENZA} />
+        <AreeInteresseGrid selezionate={attive} onToggle={toggle} max={massimo ?? Number.POSITIVE_INFINITY} />
       </div>
       {righe.some((r) => r.stato === "in_approvazione") && (
         <p className="mt-3 text-xs text-kireo-orange">Alcune aree sono in attesa di revisione da parte di KIREO.</p>

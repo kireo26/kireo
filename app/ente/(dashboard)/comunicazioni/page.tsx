@@ -84,8 +84,8 @@ export default async function EnteComunicazioniPage() {
           <CreaComunicazioneForm
             istituzioneId={contesto.istituzioneId}
             pianoPremium={contesto.pianoNome === "premium"}
-            quotaNewsletterRimasta={quote.newsletterTotali - quote.newsletterUsate}
-            quotaComunicazioniKireoRimasta={quote.comunicazioniKireoTotali - quote.comunicazioniKireoUsate}
+            quotaNewsletterRimasta={quote ? quote.newsletterTotali - quote.newsletterUsate : null}
+            quotaComunicazioniKireoRimasta={quote ? quote.comunicazioniKireoTotali - quote.comunicazioniKireoUsate : null}
             nudgeNewsletter={nudgeNewsletter}
             nudgeComunicazioneKireo={nudgeComunicazioneKireo}
           />

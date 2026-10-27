@@ -21,8 +21,12 @@ export default async function PlanciaEnteEvento({ evento }: { evento: ContestoMo
   const eDocenti = evento.pubblico === "docenti";
   const conChiave = evento.tipo === "webinar" && evento.hosting_diretta === "kireo";
 
+  // Chi può essere messo in evidenza si decide qui, non da `quote`: dal 27/10
+  // `getQuoteEnte` dà null anche quando la lettura fallisce, e il bottone non
+  // deve sparire per questo (il limite lo difende la funzione SQL).
+  const puoEvidenza = evento.stato === "approvato" && !evento.in_evidenza;
   const [quote, iscrizioni, chiave] = await Promise.all([
-    evento.stato === "approvato" && !evento.in_evidenza ? getQuoteEnte(supabase, contesto.istituzioneId, contesto.pianoNome) : Promise.resolve(null),
+    puoEvidenza ? getQuoteEnte(supabase, contesto.istituzioneId, contesto.pianoNome) : Promise.resolve(null),
     eDocenti && evento.stato === "approvato"
       ? supabase.from("iscrizioni_eventi").select("student_id, stato, profiles!student_id(nome, cognome)").eq("evento_id", evento.id)
       : Promise.resolve(null),
@@ -43,16 +47,16 @@ export default async function PlanciaEnteEvento({ evento }: { evento: ContestoMo
   });
   const c = chiave?.data ?? null;
 
-  if (!quote && !iscrizioni && !conChiave && !evento.in_evidenza) return null;
+  if (!puoEvidenza && !iscrizioni && !conChiave && !evento.in_evidenza) return null;
 
   return (
     <>
-      {(evento.in_evidenza || quote) && (
+      {(evento.in_evidenza || puoEvidenza) && (
         <section className="mt-6 rounded-xl border border-white/5 bg-kireo-card p-4">
           {evento.in_evidenza ? (
             <p className="text-sm text-kireo-light">Questo evento è in evidenza.</p>
           ) : (
-            quote && <MettiInEvidenzaButton eventoId={evento.id} quotaRimasta={quote.evidenzaTotali - quote.evidenzaUsate} />
+            <MettiInEvidenzaButton eventoId={evento.id} quotaRimasta={quote ? quote.evidenzaTotali - quote.evidenzaUsate : null} />
           )}
         </section>
       )}

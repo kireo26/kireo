@@ -14,12 +14,13 @@ export default function MettiInEvidenzaButton({
   quotaRimasta,
 }: {
   eventoId: string;
-  quotaRimasta: number;
+  // null = non letta: il bottone resta, e il limite lo difende la funzione SQL.
+  quotaRimasta: number | null;
 }) {
   const router = useRouter();
   const [caricamento, setCaricamento] = useState(false);
   const [errore, setErrore] = useState<string | null>(null);
-  const quotaEsaurita = quotaRimasta <= 0;
+  const quotaEsaurita = quotaRimasta !== null && quotaRimasta <= 0;
 
   async function handleClick() {
     setCaricamento(true);

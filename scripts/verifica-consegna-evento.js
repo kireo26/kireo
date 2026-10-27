@@ -28,7 +28,7 @@ const fs = require("fs");
 const path = require("path");
 const { abilitaTypeScript, ROOT } = require("./banco/ts");
 const { senzaCommenti, senzaCommentiSql } = require("./lib/senza-commenti");
-const { fetta } = require("./lib/ancora");
+const { ancora, fetta } = require("./lib/ancora");
 
 abilitaTypeScript();
 
@@ -409,7 +409,17 @@ ok(
 // ─────────────────────────────────────── 10. il terzo numero per l'ente
 console.log("\n10. Il terzo numero sta dove l'ente già guarda");
 
-const sqlVista = senzaCommentiSql(leggi("supabase/migrations/20260927140000_stats_risposte_evento.sql"));
+// L'ULTIMA definizione della vista, non quella del 27/09: la vista è stata
+// riscritta (20261102110000, 20261103100000), e una guardia che legge la prima
+// resterebbe verde su qualunque cosa faccia l'ultima.
+const fileVista = fs
+  .readdirSync(path.join(ROOT, "supabase/migrations"))
+  .filter((f) => f.endsWith(".sql"))
+  .sort()
+  .filter((f) => /create or replace view public\.stats_eventi_istituzione/.test(leggi(`supabase/migrations/${f}`)))
+  .pop();
+const sqlVistaIntera = senzaCommentiSql(leggi(`supabase/migrations/${fileVista}`));
+const sqlVista = sqlVistaIntera.slice(ancora(sqlVistaIntera, "create or replace view public.stats_eventi_istituzione", { dove: fileVista }));
 ok(
   /\(select count\(\*\) from public\.consegne_evento ce where ce\.evento_id = e\.id\)/.test(sqlVista),
   "le risposte si contano con una sottoquery scalare",
@@ -421,8 +431,10 @@ ok(
 const selectVista = sqlVista.slice(0, sqlVista.indexOf("comment on view"));
 ok(!/testo/.test(selectVista), "la vista non nomina mai il testo di una risposta: conta, non elenca");
 const paginaStats = senzaCommenti(leggi("app/ente/(dashboard)/statistiche/page.tsx"));
-ok(/\{s\.risposte\} risposte/.test(paginaStats), "la pagina mostra il numero in fila con iscritti e partecipati");
-ok(/s\.domanda_posta \?/.test(paginaStats), "…e solo dove una domanda è stata posta (uno zero senza domanda sarebbe un fallimento che non c'è stato)");
+ok(/Risposte: \{s\.risposte\}/.test(paginaStats), "la pagina mostra il numero in fila con gli altri dell'evento");
+ok(/s\.domanda_posta \? <span>Risposte:/.test(paginaStats), "…e solo dove una domanda è stata posta (uno zero senza domanda sarebbe un fallimento che non c'è stato)");
+ok(!/left join public\.presenze_live/.test(sqlVista) && /from public\.presenze_live pl where pl\.evento_id = e\.id/.test(sqlVista),
+  "anche i collegati si contano con una sottoquery scalare, non con un join che gonfierebbe gli altri numeri");
 
 // ─────────────────────── 11. il tetto delle letture (28/09)
 // Ogni pressione del bottone «Fai rileggere la risposta» è una chiamata a

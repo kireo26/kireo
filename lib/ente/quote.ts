@@ -1,4 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { descriviErrore } from "@/lib/erroreSupabase";
+
+// Gli stati di una comunicazione che hanno usato la quota: approvata (o già
+// inviata). Bozza, in approvazione e rifiutata no.
+const STATI_CHE_CONTANO = ["approvata", "inviata"];
 
 // Anno accademico settembre-agosto: se oggi è tra settembre e dicembre
 // l'anno è iniziato quest'anno solare, altrimenti (gennaio-agosto) è
@@ -22,43 +27,33 @@ export type Quote = {
   comunicazioniKireoTotali: number;
 };
 
-const QUOTE_VUOTE: Quote = {
-  evidenzaUsate: 0,
-  evidenzaTotali: 0,
-  newsletterUsate: 0,
-  newsletterTotali: 0,
-  ctaUsate: 0,
-  ctaTotali: 0,
-  comunicazioniKireoUsate: 0,
-  comunicazioniKireoTotali: 0,
-};
-
-// COSA CONTA OGNI RIQUADRO DEL PROFILO (27/10), sull'anno accademico corrente:
-// - Eventi in evidenza: eventi dell'ente messi in evidenza (`in_evidenza_dal`)
-//   quest'anno. NON conta quelli creati e non promossi.
-// - Newsletter: proposte di newsletter create quest'anno, in QUALUNQUE stato:
-//   anche una bozza o una rifiutata consuma la quota.
-// - CTA esterne: eventi creati quest'anno con un link esterno, in qualunque
-//   stato (anche rifiutati). NON conta i clic su quei link.
-// - Comunicazioni KIREO: proposte di «comunicazione mirata» (solo piano
-//   premium) create quest'anno, in qualunque stato. ⚠️ Nessuna è mai stata
-//   inviata a nessuno: l'invio («inviata») è Fase 2, e i destinatari di una
-//   comunicazione «mirata» non sono scritti da nessuna parte.
-// Chi difende i limiti: quello dell'evidenza anche il database
-// (`metti_in_evidenza_evento`); newsletter, CTA e comunicazioni solo
-// l'applicazione (il form, e per le CTA la revisione dell'admin).
-// ⚠️ Una lettura fallita mostra 0/0 (QUOTE_VUOTE): non letto e zero si
-// scrivono uguali. Non curato.
+// COSA CONTA OGNI RIQUADRO DEL PROFILO (27/10), sull'anno accademico corrente.
+// Conta SOLO QUELLO CHE È STATO APPROVATO (Mario, 27/10): una bozza o una
+// proposta rifiutata non ha usato niente del piano, e contarla diceva a un ente
+// che aveva consumato una cosa che non ha mai avuto.
+// - Eventi in evidenza: eventi messi in evidenza (`in_evidenza_dal`)
+//   quest'anno. Si mette in evidenza solo un evento approvato, e il limite lo
+//   difende anche il database (`metti_in_evidenza_evento`).
+// - Newsletter: newsletter approvate (o inviate) create quest'anno.
+// - CTA esterne: eventi APPROVATI creati quest'anno con un link esterno. NON
+//   conta i clic su quei link.
+// - Comunicazioni KIREO: «comunicazioni mirate» (solo piano premium) approvate
+//   o inviate, create quest'anno. ⚠️ Nessuna è mai stata inviata a nessuno:
+//   l'invio («inviata») non esiste, e i destinatari di una comunicazione
+//   «mirata» non sono scritti da nessuna parte. È una funzione del piano che
+//   non c'è (vedi i punti aperti di CLAUDE.md).
+// ⚠️ La conseguenza di contare solo l'approvato: il form non ferma più un ente
+// che ha già proposto più di quanto il piano conceda, finché nessuna proposta è
+// approvata. A fermarlo è la revisione dell'admin, che vede il conto.
 //
-// Conta l'utilizzo nell'anno accademico corrente contro i limiti del piano
-// attivo. La creazione di eventi è illimitata (nessuna quota): "evidenza"
-// conta quanti eventi APPROVATI l'ente ha promosso (in_evidenza_dal
-// nell'anno accademico corrente), non quanti ne ha creati.
-export async function getQuoteEnte(supabase: SupabaseClient, istituzioneId: string, pianoNome: string): Promise<Quote> {
+// NON LETTO NON È ZERO: se una delle letture fallisce, `getQuoteEnte` dà
+// `null`, e chi mostra le quote lo dice invece di stampare 0/0 (che a un ente
+// premium diceva «il tuo piano non comprende niente»).
+export async function getQuoteEnte(supabase: SupabaseClient, istituzioneId: string, pianoNome: string): Promise<Quote | null> {
   try {
     const { inizio, fine } = annoAccademicoCorrente();
 
-    const { data: piano } = await supabase
+    const { data: piano, error: errorePiano } = await supabase
       .from("piani")
       .select("quota_eventi_promossi, quota_newsletter, quota_cta_esterne, quota_comunicazioni_kireo")
       .eq("nome", pianoNome)
@@ -76,6 +71,7 @@ export async function getQuoteEnte(supabase: SupabaseClient, istituzioneId: stri
         .from("eventi")
         .select("id", { count: "exact", head: true })
         .eq("organizzatore_id", istituzioneId)
+        .eq("stato", "approvato")
         .not("cta_esterna_url", "is", null)
         .gte("created_at", inizio)
         .lte("created_at", fine),
@@ -84,6 +80,7 @@ export async function getQuoteEnte(supabase: SupabaseClient, istituzioneId: stri
         .select("id", { count: "exact", head: true })
         .eq("istituzione_id", istituzioneId)
         .eq("tipo", "newsletter")
+        .in("stato", STATI_CHE_CONTANO)
         .gte("created_at", inizio)
         .lte("created_at", fine),
       supabase
@@ -91,21 +88,29 @@ export async function getQuoteEnte(supabase: SupabaseClient, istituzioneId: stri
         .select("id", { count: "exact", head: true })
         .eq("istituzione_id", istituzioneId)
         .eq("tipo", "comunicazione_kireo")
+        .in("stato", STATI_CHE_CONTANO)
         .gte("created_at", inizio)
         .lte("created_at", fine),
     ]);
 
+    const errore = errorePiano ?? [evidenzaRes, ctaRes, newsletterRes, comunicazioniKireoRes].find((r) => r.error)?.error;
+    if (errore || !piano) {
+      console.error("[quote ente]:", descriviErrore(errore ?? "piano non trovato"));
+      return null;
+    }
+
     return {
       evidenzaUsate: evidenzaRes.count ?? 0,
-      evidenzaTotali: piano?.quota_eventi_promossi ?? 0,
+      evidenzaTotali: piano.quota_eventi_promossi ?? 0,
       newsletterUsate: newsletterRes.count ?? 0,
-      newsletterTotali: piano?.quota_newsletter ?? 0,
+      newsletterTotali: piano.quota_newsletter ?? 0,
       ctaUsate: ctaRes.count ?? 0,
-      ctaTotali: piano?.quota_cta_esterne ?? 0,
+      ctaTotali: piano.quota_cta_esterne ?? 0,
       comunicazioniKireoUsate: comunicazioniKireoRes.count ?? 0,
-      comunicazioniKireoTotali: piano?.quota_comunicazioni_kireo ?? 0,
+      comunicazioniKireoTotali: piano.quota_comunicazioni_kireo ?? 0,
     };
-  } catch {
-    return QUOTE_VUOTE;
+  } catch (e) {
+    console.error("[quote ente]:", descriviErrore(e));
+    return null;
   }
 }

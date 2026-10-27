@@ -1,5 +1,7 @@
--- Verifica di 20261102110000 (J1) e 20261102120000 (J2) (Mario, 27/10): le
--- statistiche dell'ente contano quello che dicono.
+-- Verifica di 20261102110000 (J1), 20261102120000 (J2) e 20261103100000
+-- (Mario, 27/10): le statistiche dell'ente contano quello che dicono. Le 8-10
+-- sono di 20261103100000 (i collegati, bozze e rifiutati fuori): rosse su una
+-- replica nata senza.
 --
 -- I due casi visti a schermo su Davante:
 --   - test7 iscritto a un evento, poi la guida scaricata: «Download guida: 0»;
@@ -40,12 +42,23 @@ insert into public.institution_profiles (user_id, istituzione_id) values
 -- B con un solo certificato e nessun «iscritto» (la riga del 25/10).
 insert into public.eventi (id, titolo, descrizione, tipo, organizzatore_id, data_inizio, data_fine, stato, pubblico) values
   ('eeeeeeee-0000-0000-0000-0000000000f1', 'Evento A', 'x', 'webinar', 'aaaaaaaa-0000-0000-0000-0000000000f1', now() - interval '3 hours', now() - interval '2 hours', 'approvato', 'studenti'),
-  ('eeeeeeee-0000-0000-0000-0000000000f2', 'Evento B', 'x', 'webinar', 'aaaaaaaa-0000-0000-0000-0000000000f1', now() - interval '3 hours', now() - interval '2 hours', 'approvato', 'studenti');
+  ('eeeeeeee-0000-0000-0000-0000000000f2', 'Evento B', 'x', 'webinar', 'aaaaaaaa-0000-0000-0000-0000000000f1', now() - interval '3 hours', now() - interval '2 hours', 'approvato', 'studenti'),
+  -- 20261103100000: una bozza, un rifiutato e un incontro in presenza.
+  ('eeeeeeee-0000-0000-0000-0000000000f3', 'Evento bozza', 'x', 'webinar', 'aaaaaaaa-0000-0000-0000-0000000000f1', now() + interval '3 days', now() + interval '3 days 1 hour', 'bozza', 'studenti'),
+  ('eeeeeeee-0000-0000-0000-0000000000f4', 'Evento rifiutato', 'x', 'webinar', 'aaaaaaaa-0000-0000-0000-0000000000f1', now() + interval '3 days', now() + interval '3 days 1 hour', 'rifiutato', 'studenti'),
+  ('eeeeeeee-0000-0000-0000-0000000000f5', 'Incontro in aula', 'x', 'altro', 'aaaaaaaa-0000-0000-0000-0000000000f1', now() - interval '3 hours', now() - interval '2 hours', 'approvato', 'studenti');
 insert into public.iscrizioni_eventi (evento_id, student_id, stato, ore_riconosciute) values
   ('eeeeeeee-0000-0000-0000-0000000000f1', '11111111-0000-0000-0000-0000000000f2', 'iscritto', null),
   ('eeeeeeee-0000-0000-0000-0000000000f1', '11111111-0000-0000-0000-0000000000f3', 'partecipato', 1),
   ('eeeeeeee-0000-0000-0000-0000000000f1', '11111111-0000-0000-0000-0000000000f4', 'assente', null),
   ('eeeeeeee-0000-0000-0000-0000000000f2', '11111111-0000-0000-0000-0000000000f3', 'partecipato', 1);
+
+-- Sull'evento A si sono collegati in due: il certificato e quello rimasto
+-- iscritto (sotto la soglia). L'assente no. È il numero che «partecipati» non
+-- diceva.
+insert into public.presenze_live (evento_id, user_id, ping_totali) values
+  ('eeeeeeee-0000-0000-0000-0000000000f1', '11111111-0000-0000-0000-0000000000f2', 4),
+  ('eeeeeeee-0000-0000-0000-0000000000f1', '11111111-0000-0000-0000-0000000000f3', 50);
 
 -- Lo studente 1 si iscrive a un evento (origine evento), POI scarica la guida
 -- (origine guida), POI la riscarica. È il gesto di test7 su Davante.
@@ -96,6 +109,7 @@ do $$
 declare
   v_raggiunti bigint; v_download bigint;
   v_ia bigint; v_pa bigint; v_ib bigint; v_pb bigint; v_oltre bigint;
+  v_presa jsonb; v_presin jsonb; v_nascosti bigint;
 begin
   set local role authenticated;
   perform set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000f1', true);
@@ -103,6 +117,11 @@ begin
   select iscritti, partecipati into v_ia, v_pa from public.stats_eventi_istituzione where evento_id = 'eeeeeeee-0000-0000-0000-0000000000f1';
   select iscritti, partecipati into v_ib, v_pb from public.stats_eventi_istituzione where evento_id = 'eeeeeeee-0000-0000-0000-0000000000f2';
   select count(*) into v_oltre from public.stats_eventi_istituzione where partecipati > iscritti;
+  -- `to_jsonb(riga) -> 'presenti'`: null invece di un errore dove la colonna non c'è.
+  select to_jsonb(s) -> 'presenti' into v_presa from public.stats_eventi_istituzione s where evento_id = 'eeeeeeee-0000-0000-0000-0000000000f1';
+  select coalesce(to_jsonb(s) -> 'presenti', '"assente"'::jsonb) into v_presin from public.stats_eventi_istituzione s where evento_id = 'eeeeeeee-0000-0000-0000-0000000000f5';
+  select count(*) into v_nascosti from public.stats_eventi_istituzione
+    where evento_id in ('eeeeeeee-0000-0000-0000-0000000000f3', 'eeeeeeee-0000-0000-0000-0000000000f4');
   reset role;
   insert into esiti values (3, 'download guida: i due studenti che l''hanno scaricata, una volta sola ciascuno', '2', v_download::text, v_download = 2);
   insert into esiti values (4, 'studenti raggiunti: distinti, non una riga per gesto', '2', v_raggiunti::text, v_raggiunti = 2);
@@ -111,6 +130,11 @@ begin
   insert into esiti values (6, 'evento B, il caso del 25/10: un certificato è anche un iscritto', '1 iscritti · 1 partecipati',
     format('%s iscritti · %s partecipati', v_ib, v_pb), v_ib = 1 and v_pb = 1);
   insert into esiti values (7, 'nessuna riga dice più partecipati che iscritti', '0', v_oltre::text, v_oltre = 0);
+  insert into esiti values (8, 'evento A: presenti = i collegati (2), non i certificati (1) né gli iscritti (3)', '2',
+    coalesce(v_presa::text, 'null'), v_presa = '2'::jsonb);
+  insert into esiti values (9, 'incontro in presenza: presenti è vuoto, non zero (la presenza la registra la scuola)', 'null',
+    v_presin::text, v_presin = 'null'::jsonb);
+  insert into esiti values (10, 'bozze e rifiutati non compaiono in «Per evento»', '0', v_nascosti::text, v_nascosti = 0);
 end $$;
 
 select n, case when coalesce(ok, false) then 'ok' else 'ROTTA' end as esito, cosa, atteso, trovato from esiti order by n;

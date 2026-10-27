@@ -17,8 +17,9 @@ export default function CreaComunicazioneForm({
 }: {
   istituzioneId: string;
   pianoPremium: boolean;
-  quotaNewsletterRimasta: number;
-  quotaComunicazioniKireoRimasta: number;
+  // null = non letta: il form non blocca (decide la revisione) e non dice zero.
+  quotaNewsletterRimasta: number | null;
+  quotaComunicazioniKireoRimasta: number | null;
   // null quando non c'è un piano superiore da suggerire (già su Premium) o
   // quando il nudge non si applica al piano corrente.
   nudgeNewsletter: string | null;
@@ -34,7 +35,7 @@ export default function CreaComunicazioneForm({
   const [inviato, setInviato] = useState(false);
 
   const quotaRimasta = tipo === "newsletter" ? quotaNewsletterRimasta : quotaComunicazioniKireoRimasta;
-  const quotaEsaurita = quotaRimasta <= 0;
+  const quotaEsaurita = quotaRimasta !== null && quotaRimasta <= 0;
 
   function validate() {
     const next: Record<string, string> = {};
@@ -105,7 +106,9 @@ export default function CreaComunicazioneForm({
           {pianoPremium && <option value="comunicazione_kireo">Comunicazione mirata (piano premium)</option>}
         </select>
         <p className="mt-1.5 text-xs text-kireo-muted">
-          Quota rimasta quest&apos;anno accademico: {quotaRimasta < 0 ? 0 : quotaRimasta}
+          {quotaRimasta === null
+            ? "Non siamo riusciti a leggere quante te ne restano quest'anno: la proposta passa comunque dalla revisione di KIREO."
+            : `Quota rimasta quest'anno accademico: ${quotaRimasta < 0 ? 0 : quotaRimasta}`}
         </p>
         {!pianoPremium && nudgeComunicazioneKireo && (
           <p className="mt-1.5 text-xs text-kireo-orange">

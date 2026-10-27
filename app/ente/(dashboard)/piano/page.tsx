@@ -1,5 +1,6 @@
 import { getEnteContext } from "@/lib/ente/context";
 import { getQuoteEnte } from "@/lib/ente/quote";
+import RiquadriQuote from "@/components/ente/RiquadriQuote";
 import { createClient } from "@/lib/supabase/server";
 import { ETICHETTA_PIANO, trovaPianiSuperiori, type PianoQuote } from "@/lib/ente/pianoSuccessivo";
 import RichiediUpgradeButton from "@/components/ente/RichiediUpgradeButton";
@@ -41,13 +42,6 @@ export default async function EntePianoPage() {
   const pianiSuperiori = trovaPianiSuperiori(contesto.pianoNome, listaPiani);
   const pianoRichiesto = Array.isArray(richiestaInAttesa?.piani) ? richiestaInAttesa.piani[0] : richiestaInAttesa?.piani;
 
-  const RIGHE_USO = [
-    { label: "Eventi in evidenza", usati: quote.evidenzaUsate, totali: quote.evidenzaTotali },
-    { label: "Newsletter", usati: quote.newsletterUsate, totali: quote.newsletterTotali },
-    { label: "CTA esterne", usati: quote.ctaUsate, totali: quote.ctaTotali },
-    { label: "Comunicazioni KIREO", usati: quote.comunicazioniKireoUsate, totali: quote.comunicazioniKireoTotali },
-  ];
-
   return (
     <div className="space-y-10">
       <div>
@@ -63,18 +57,7 @@ export default async function EntePianoPage() {
         )}
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {RIGHE_USO.map((q) => (
-          <div key={q.label} className="rounded-2xl border border-white/5 bg-kireo-card p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-kireo-muted">{q.label}</p>
-            <p className="mt-1 font-heading text-2xl font-bold text-kireo-light">
-              {q.usati}
-              <span className="text-base font-normal text-kireo-muted">/{q.totali}</span>
-            </p>
-            <p className="mt-1 text-xs text-kireo-muted">anno accademico corrente</p>
-          </div>
-        ))}
-      </div>
+      <RiquadriQuote quote={quote} />
 
       {richiestaInAttesa && (
         <div className="rounded-2xl border border-kireo-orange/40 bg-kireo-orange/10 px-4 py-3 text-sm text-kireo-orange">
