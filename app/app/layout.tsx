@@ -3,25 +3,33 @@ import LogoutButton from "@/components/LogoutButton";
 import CompletaEtaForm from "@/components/app/CompletaEtaForm";
 import { getAppContext } from "@/lib/app/studentContext";
 import { getPassoCorrente } from "@/lib/percorso/passoCorrente";
+import { redirect } from "next/navigation";
+import { casaPerRuolo } from "@/lib/ruoli/casa";
 
 // Guardia auth + shell di navigazione per tutta l'area /app. Il middleware
 // (proxy.ts) già nega l'accesso senza sessione; qui recuperiamo il contesto
 // una sola volta (cache() in getAppContext) per nav + pagina.
 //
-// Questo cantiere ("Area studente MVP") riguarda solo il ruolo studente: chi
-// ha ruolo docente/referente_scuola vede il messaggio minimo di sempre,
-// invariato, qualunque sotto-percorso apra — le 5 sezioni non si applicano
-// a loro (fuori scope).
+// ⚠️ /app È LA CASA DEGLI STUDENTI, E SOLO LORO (Mario, 27/10). Fino al
+// 27/10 chi aveva un altro ruolo riceveva qui «Ciao Anna · Il tuo percorso di
+// orientamento sta per iniziare»: il prodotto non lo trattava come qualcuno
+// che non dovrebbe essere qui, ma come uno studente senza dati — un'altra
+// persona. Ora chi ha un ruolo che conosciamo va a casa sua
+// (`lib/ruoli/casa.ts`, la stessa mappa di `/dopo-accesso`); chi ne ha uno che
+// non conosciamo legge che quest'area non è sua, invece di un benvenuto.
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const contesto = await getAppContext();
 
   if (contesto.ruolo !== "studente") {
+    const casa = casaPerRuolo(contesto.ruolo);
+    if (casa && casa !== "/app") redirect(casa);
+    // ⚠️ Testo mio, provvisorio.
     return (
       <section className="mx-auto max-w-2xl px-6 py-20 sm:pt-28">
-        <p className="mb-4 font-sans text-sm font-semibold uppercase tracking-wide text-kireo-orange">Area personale</p>
-        <h1 className="py-1 font-heading text-4xl font-bold leading-[1.25] text-kireo-light">Ciao {contesto.nome}</h1>
-        {contesto.schoolName && <p className="mt-3 text-lg text-kireo-muted">{contesto.schoolName}</p>}
-        <p className="mt-6 text-lg text-kireo-light">Il tuo percorso di orientamento sta per iniziare.</p>
+        <h1 className="py-1 font-heading text-3xl font-bold leading-[1.25] text-kireo-light">Quest&apos;area è per gli studenti</h1>
+        <p className="mt-4 text-kireo-muted">
+          Il tuo profilo non è quello di uno studente, e non riconosciamo il ruolo che ha: scrivici da Contatti e lo sistemiamo.
+        </p>
         <div className="mt-10">
           <LogoutButton />
         </div>

@@ -9,6 +9,7 @@ import { Button, ButtonLink } from "./Button";
 import { createClient } from "@/lib/supabase/client";
 import { AREE } from "@/data/aree";
 import { USCITA_SOLO_QUI } from "@/lib/supabase/uscita";
+import { HREF_LA_MIA_AREA } from "@/lib/ruoli/casa";
 
 const NAV_LINKS = [
   { href: "/", label: "Home" },
@@ -244,7 +245,7 @@ export default function Header() {
               {userMenuOpen && (
                 <div className="absolute right-0 top-full z-50 mt-3 w-52 rounded-xl border border-white/10 bg-kireo-card p-2 shadow-2xl">
                   <Link
-                    href="/app"
+                    href={HREF_LA_MIA_AREA}
                     onClick={() => setUserMenuOpen(false)}
                     className="block rounded-lg px-3 py-2 font-sans text-sm text-kireo-light transition-colors hover:bg-white/5"
                   >
@@ -363,7 +364,7 @@ export default function Header() {
             {user === undefined ? null : user ? (
               <>
                 <Link
-                  href="/app"
+                  href={HREF_LA_MIA_AREA}
                   onClick={() => setOpen(false)}
                   className="flex items-center justify-center gap-2 rounded-lg px-2 py-3 text-center font-sans text-base font-medium text-kireo-light hover:bg-white/5"
                 >

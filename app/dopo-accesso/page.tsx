@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { casaPerRuolo } from "@/lib/ruoli/casa";
 
 // Smart-redirect post-login: AccediForm porta sempre qui (a meno di un
 // redirectedFrom esplicito, che ha la precedenza per non perdere la pagina
@@ -19,20 +20,8 @@ export default async function DopoAccesso() {
   const meta = user.user_metadata as Record<string, unknown>;
   const ruolo = profilo?.ruolo ?? (typeof meta.ruolo === "string" ? meta.ruolo : null);
 
-  if (ruolo === "istituzione") {
-    redirect("/ente");
-  }
-  if (ruolo === "referente_scuola" || ruolo === "tutor_scuola") {
-    redirect("/scuola");
-  }
-  if (ruolo === "admin") {
-    redirect("/admin");
-  }
-  if (ruolo === "docente") {
-    redirect("/docente");
-  }
-
-  // Studente (o profilo non ancora finalizzato): /app fa già la sua
-  // auto-riparazione e mostra il fallback minimo per i ruoli non-studente.
-  redirect("/app");
+  // La mappa sta in `lib/ruoli/casa.ts`, la stessa che legge `/app`.
+  // Studente, o profilo non ancora finalizzato (nessun ruolo): /app fa la sua
+  // auto-riparazione.
+  redirect(casaPerRuolo(ruolo) ?? "/app");
 }
