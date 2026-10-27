@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/Button";
 import { inputClass, fieldBorder } from "@/lib/formStyles";
 import { createClient } from "@/lib/supabase/client";
+import { descriviErrore } from "@/lib/erroreSupabase";
 import AreeInteresseGrid from "@/components/app/AreeInteresseGrid";
 
 const MAX_COPERTINA_MB = 5;
@@ -123,7 +124,7 @@ function SezioneDatiProfilo({
         .select("sito_ufficiale")
         .maybeSingle();
       if (error || !data) {
-        if (error) console.error("[ente] salvataggio profilo:", error.message);
+        if (error) console.error("[ente] salvataggio profilo:", descriviErrore(error));
         setStato("errore");
         return;
       }
