@@ -143,6 +143,18 @@
       "commit": "818ab89",
       "stato": "verificata",
       "fonte": "Mario, 26/10: prosrc senza round(least( (prima sì), impronta 15db66ecdc52d991c8e9fed06306a104 → 38d290d1abf1b5b2bef028206cc31da2, obj_description nomina 20261028100000"
+    },
+    {
+      "file": "20261030100000_spostamento_con_stato_visto.sql",
+      "commit": "b0586ce",
+      "stato": "verificata",
+      "fonte": "Mario 27/10: applicata prima del deploy; la verifica finale dopo D dà una riga sola per sposta_finestra_evento, la firma a sei argomenti (uuid, timestamptz, timestamptz, numeric, boolean, boolean) — oggetto creato solo da questa migrazione"
+    },
+    {
+      "file": "20261030110000_spostamento_senza_tre_argomenti.sql",
+      "commit": "b0586ce",
+      "stato": "verificata",
+      "fonte": "Mario 27/10: applicata dopo il deploy; la verifica finale dà una riga sola per sposta_finestra_evento, quindi la firma a tre argomenti (uuid, timestamptz, timestamptz) non esiste più — l'assenza è l'effetto solo di questa migrazione"
     }
   ]
 }
