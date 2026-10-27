@@ -155,6 +155,18 @@
       "commit": "b0586ce",
       "stato": "verificata",
       "fonte": "Mario 27/10: applicata dopo il deploy; la verifica finale dà una riga sola per sposta_finestra_evento, quindi la firma a tre argomenti (uuid, timestamptz, timestamptz) non esiste più — l'assenza è l'effetto solo di questa migrazione"
+    },
+    {
+      "file": "20261031100000_esente_dai_cancelli.sql",
+      "commit": "1e23f02",
+      "stato": "verificata",
+      "fonte": "Mario 27/10, scripts/fotografia-esente.sql prima e dopo: prima profili 15 · di_prova 11 · esenti 0 · righe_diverse 0 · default false; dopo esenti 11 (= di_prova di prima) · righe_diverse 0 · default di_prova_di_partenza(). IL VALORE, non solo la funzione: select public.di_prova_di_partenza() → true (un default che è una funzione dice chi decide, non cosa decide). La colonna esente_cancelli e la funzione e_esente_dai_cancelli esistono solo per questa migrazione."
+    },
+    {
+      "file": "20261031110000_marca_quattro_profili.sql",
+      "commit": "3a713f0",
+      "stato": "verificata",
+      "fonte": "Mario 27/10, scripts/fotografia-esente.sql dopo F: profili 15 · di_prova 15 · non_di_prova 0 · esenti 11 · righe_diverse 4 — le quattro righe diverse sono i quattro profili marcati, di prova e non esenti, che è l'effetto proprio di questa migrazione."
     }
   ]
 }
