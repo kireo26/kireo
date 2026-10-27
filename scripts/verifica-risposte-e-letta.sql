@@ -85,8 +85,10 @@ begin
   select iscritti, partecipati into v_i, v_p from public.stats_eventi_istituzione
    where evento_id = 'a3333333-0000-0000-0000-00000000000a';
   reset role;
-  insert into esiti values (0, 'prima delle risposte: 1 iscritto e 1 partecipato (la linea di base)', '1/1',
-    format('%s/%s', v_i, v_p), v_i = 1 and v_p = 1);
+  -- 27/10: `iscritti` conta ogni iscrizione (20261102110000), quindi la base è
+  -- 2 iscritti (uno ancora iscritto, uno certificato) e 1 partecipato.
+  insert into esiti values (0, 'prima delle risposte: 2 iscritti e 1 partecipato (la linea di base)', '2/1',
+    format('%s/%s', v_i, v_p), v_i = 2 and v_p = 1);
 end $$;
 
 -- ── due risposte reali, scritte dagli studenti attraverso la policy
@@ -114,7 +116,7 @@ begin
    where evento_id = 'a3333333-0000-0000-0000-00000000000a';
   reset role;
   insert into esiti values (1, 'con due risposte: iscritti e partecipati INVARIATI (un secondo left join li gonfierebbe)',
-    '1 iscritto, 1 partecipato', format('%s iscritto, %s partecipato', v_i, v_p), v_i = 1 and v_p = 1);
+    '2 iscritti, 1 partecipato', format('%s iscritti, %s partecipato', v_i, v_p), v_i = 2 and v_p = 1);
   insert into esiti values (2, '…e le risposte sono due', '2', v_r::text, v_r = 2);
 end $$;
 

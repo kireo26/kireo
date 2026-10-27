@@ -6,9 +6,11 @@
 --   - «0 iscritti · 1 partecipati» sulla stessa riga.
 --
 -- LA CONTROPROVA va fatta su repliche NATE SENZA: senza J1 e J2 sono rosse la
--- 2, la 3, la 5 e la 6 (la guida dopo l'evento non lascia riga, e gli iscritti
--- non contano i certificati); senza la sola J2 è rossa la 2 (il vecchio
--- vincolo scarta ancora la seconda riga) e, con lei, la 3.
+-- 2, 3, 5, 6 e 7 (la guida dopo l'evento non lascia riga, e gli iscritti non
+-- contano i certificati); senza la sola J2 sono rosse la 2 e la 3 (il vecchio
+-- vincolo scarta ancora la seconda riga). La 4 non la distingue nessuna delle
+-- due: si prova rimettendo `count(*)` al posto di `count(distinct …)` nella
+-- vista (misurato il 27/10: rossa la sola 4).
 --
 -- Transazione con ROLLBACK. Le scritture sul recinto passano dalla sessione
 -- dello studente, con lo stesso ON CONFLICT di `segnaNelRecinto`.
