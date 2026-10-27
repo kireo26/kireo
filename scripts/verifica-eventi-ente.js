@@ -105,7 +105,10 @@ console.log("\n§4 — le tre voci, e dove sta la plancia\n");
   const plancia = leggi("components/ente/PlanciaEnteEvento.tsx");
   for (const c of ["MettiInEvidenzaButton", "RegistroPresenzeDocenti", "ChiaveTrasmissione"]) ok(new RegExp(`<${c}\\b`).test(plancia), `…con ${c}`);
   ok(/statoChiaveTrasmissione\(/.test(plancia) && /console\.error\("\[ente\/eventi\] chiavi_trasmissione:/.test(plancia), "la chiave la chiede alla funzione, e una lettura fallita si logga");
-  ok(/evento\.tipo === "webinar" && \(/.test(diretta), "la console e il report solo per una diretta: un incontro in presenza non ha «presenti ora»");
+  // ⚠️ Ancorata al MONTAGGIO della console, non alla condizione: la stessa
+  // condizione sta anche sul form del video dell'admin, e la prima stesura
+  // restava verde con la console per tutti (il modo 6, trovato dalla controprova).
+  ok(/evento\.tipo === "webinar" && \(\s*<>\s*<section[^>]*>\s*<ControlloDirettaEvento/.test(diretta), "la console e il report solo per una diretta: un incontro in presenza non ha «presenti ora»");
 }
 
 console.log("");
