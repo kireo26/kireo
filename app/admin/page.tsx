@@ -12,6 +12,7 @@ import { ETICHETTA_PIANO } from "@/lib/ente/pianoSuccessivo";
 import { formattaData, formattaDataOra } from "@/lib/formato";
 import { contaDaApprovare } from "@/lib/admin/caricaEventiAdmin";
 import { etichettaDaApprovare } from "@/lib/admin/eventiAdmin";
+import { getQuotePerRevisione, testoQuotaRevisione } from "@/lib/ente/quote";
 
 export default async function AdminPage() {
   const { supabase, nome } = await requireAdmin();
@@ -30,7 +31,7 @@ export default async function AdminPage() {
     supabase.from("istituzioni").select("id, nome, tipo, created_at").eq("stato", "in_attesa").order("created_at", { ascending: true }),
     supabase
       .from("comunicazioni")
-      .select("id, oggetto, corpo, tipo, istituzioni(nome)")
+      .select("id, oggetto, corpo, tipo, istituzione_id, istituzioni(nome)")
       .eq("stato", "in_approvazione")
       .order("created_at", { ascending: true }),
     supabase
@@ -61,6 +62,13 @@ export default async function AdminPage() {
       .limit(50),
     contaDaApprovare(supabase),
   ]);
+
+  // Le quote di ogni ente con una comunicazione in coda (27/10): l'admin
+  // approva sapendo quante ne ha già approvate e quante ne prevede il piano.
+  const entiInCoda = [...new Set((comunicazioniInApprovazione ?? []).map((c) => c.istituzione_id as string))];
+  const quotePerEnte = new Map(
+    await Promise.all(entiInCoda.map(async (id) => [id, await getQuotePerRevisione(supabase, id)] as const)),
+  );
 
   const { data: scuoleProfiloPerMessaggio } =
     messaggiScuola && messaggiScuola.length > 0
@@ -211,6 +219,13 @@ export default async function AdminPage() {
                     {ente?.nome ?? "—"} · {c.tipo === "newsletter" ? "Newsletter" : "Comunicazione mirata"}
                   </p>
                   <p className="mt-2 whitespace-pre-wrap text-sm text-kireo-light/90">{c.corpo}</p>
+                  {(() => {
+                    const q = testoQuotaRevisione(
+                      quotePerEnte.get(c.istituzione_id as string) ?? null,
+                      c.tipo === "newsletter" ? "newsletter" : "comunicazione_kireo",
+                    );
+                    return <p className={`mt-2 text-xs ${q.piena ? "text-kireo-orange" : "text-kireo-muted"}`}>{q.testo}</p>;
+                  })()}
                   <AzioneApprovazione tabella="comunicazioni" id={c.id} statoApprovato="approvata" statoRifiutato="rifiutata" />
                 </li>
               );

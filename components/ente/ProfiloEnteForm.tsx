@@ -5,10 +5,13 @@ import { Button } from "@/components/Button";
 import { inputClass, fieldBorder } from "@/lib/formStyles";
 import { createClient } from "@/lib/supabase/client";
 import { descriviErrore } from "@/lib/erroreSupabase";
+import Combobox from "@/components/Combobox";
+import { PROVINCE_ITALIANE } from "@/lib/province";
+import { MAX_COPERTINA_MB, MAX_GUIDA_MB, TIPO_GUIDA, tipoCopertinaAmmesso } from "@/lib/ente/media";
+
+const OPZIONI_PROVINCIA = PROVINCE_ITALIANE.map((p) => ({ value: p, label: p }));
 import AreeInteresseGrid from "@/components/app/AreeInteresseGrid";
 
-const MAX_COPERTINA_MB = 5;
-const MAX_GUIDA_MB = 20;
 type Stato = "idle" | "salvando" | "ok" | "errore";
 
 function MessaggioStato({ stato, messaggioErrore }: { stato: Stato; messaggioErrore: string }) {
@@ -24,8 +27,8 @@ function SezioneCopertina({ istituzioneId, copertinaIniziale }: { istituzioneId:
   const [messaggioErrore, setMessaggioErrore] = useState("Non è stato possibile caricare la copertina. Riprova più tardi.");
 
   async function handleFile(file: File) {
-    if (!file.type.startsWith("image/")) {
-      setMessaggioErrore("Carica un'immagine (JPG, PNG...).");
+    if (!tipoCopertinaAmmesso(file.type)) {
+      setMessaggioErrore("Carica un'immagine JPG, PNG o WebP.");
       setStato("errore");
       return;
     }
@@ -74,7 +77,7 @@ function SezioneCopertina({ istituzioneId, copertinaIniziale }: { istituzioneId:
           <input
             ref={inputRef}
             type="file"
-            accept="image/*"
+            accept="image/jpeg,image/png,image/webp"
             className="hidden"
             onChange={(e) => {
               const file = e.target.files?.[0];
@@ -180,16 +183,32 @@ function SezioneDatiProfilo({
           <label htmlFor="provincia" className="mb-1.5 block text-sm font-medium text-kireo-light">
             Provincia (facoltativa)
           </label>
-          <input
+          {/*
+            UNA SCELTA DA UN ELENCO, NON TESTO LIBERO (Mario, 27/10). Il campo
+            alimenta il filtro di Esplora, e un ente che scriveva «MI» non usciva
+            cercando «Milano» senza che nessuno glielo dicesse: credeva di
+            essere nel filtro e non c'era. L'elenco è `PROVINCE_ITALIANE`, lo
+            stesso dei moduli delle scuole e di Esplora.
+          */}
+          <Combobox
             id="provincia"
             value={provincia}
-            onChange={(e) => {
-              setProvincia(e.target.value);
+            onChange={(v) => {
+              setProvincia(v);
               setStato("idle");
             }}
+            options={OPZIONI_PROVINCIA}
+            pinnedOption={{ value: "", label: "Nessuna provincia" }}
+            placeholder="Scrivi per cercare la provincia…"
+            messaggioVuoto="Nessuna provincia trovata."
             className={`${inputClass} ${fieldBorder(false)}`}
-            placeholder="Es. Milano"
           />
+          {provincia && !(PROVINCE_ITALIANE as readonly string[]).includes(provincia) && (
+            <p className="mt-1.5 text-xs text-kireo-orange">
+              La provincia salvata, «{provincia}», non è nell&apos;elenco: sceglila qui sopra, altrimenti chi cerca in Esplora per
+              provincia non ti trova.
+            </p>
+          )}
           <p className="mt-1.5 text-xs text-kireo-muted">Usata dal filtro provincia in Esplora.</p>
         </div>
       </div>
@@ -216,7 +235,7 @@ function SezioneGuida({ istituzioneId, guideIniziali }: { istituzioneId: string;
       setStato("errore");
       return;
     }
-    if (file.type !== "application/pdf") {
+    if (file.type !== TIPO_GUIDA) {
       setMessaggioErrore("Carica un file PDF.");
       setStato("errore");
       return;

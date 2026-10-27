@@ -6,6 +6,7 @@ import { TEST_META } from "@/lib/test/config";
 import type { TipoAttivita } from "./activityLog";
 import { fineEffettiva } from "@/lib/live";
 import { testoEsitoStorico } from "@/lib/live/presenza";
+import { descriviErrore } from "@/lib/erroreSupabase";
 
 export type VoceStorico = {
   id: string;
@@ -196,9 +197,81 @@ function titoloGuida(areaSlug: string, livello: unknown): string | null {
   return guideDiArea(areaSlug).find((g) => g.livello === livello)?.titolo ?? null;
 }
 
+// IL TETTO GIORNALIERO, DETTO A CHI LO SUBISCE (Mario, 27/10). `activity_log`
+// tiene una riga per studente, area, tipo e giorno (l'indice
+// `activity_log_cap_giornaliero_idx`, sul giorno in UTC): due eventi della
+// stessa area certificati lo stesso giorno lasciano UNA riga qui, mentre lo
+// storico li elenca tutti e due. È la regola, e non si cambia; ma chi ha
+// seguito due dirette in un pomeriggio e ne vede una pensa che KIREO si sia
+// perso la seconda, e niente gli diceva il contrario. Quindi la riga che ne
+// ha assorbiti più di uno lo dice, solo quando succede.
+//
+// Pura: riceve le righe del percorso e le presenze certificate, conta per
+// (giorno UTC, area, tipo di attività) e restituisce una nota per riga.
+export type PresenzaCertificata = { certificataIl: string; tipoEvento: string; aree: string[] };
+
+export function tipoAttivitaDiPresenza(tipoEvento: string): TipoAttivita {
+  return tipoEvento === "workshop" ? "workshop_pcto" : "partecipazione_webinar";
+}
+
+const giornoUtc = (istante: string) => new Date(istante).toISOString().slice(0, 10);
+
+export function noteTettoGiornaliero(
+  righe: { id: string; area_slug: string; tipo_attivita: string; created_at: string }[],
+  presenze: PresenzaCertificata[],
+): Map<string, number> {
+  const conti = new Map<string, number>();
+  for (const p of presenze) {
+    const tipo = tipoAttivitaDiPresenza(p.tipoEvento);
+    for (const area of p.aree) {
+      const chiave = `${giornoUtc(p.certificataIl)}|${area}|${tipo}`;
+      conti.set(chiave, (conti.get(chiave) ?? 0) + 1);
+    }
+  }
+  const note = new Map<string, number>();
+  for (const r of righe) {
+    if (r.tipo_attivita !== "partecipazione_webinar" && r.tipo_attivita !== "workshop_pcto") continue;
+    const n = conti.get(`${giornoUtc(r.created_at)}|${r.area_slug}|${r.tipo_attivita}`) ?? 0;
+    if (n > 1) note.set(r.id, n);
+  }
+  return note;
+}
+
+// Testo mio, provvisorio.
+export function testoTettoGiornaliero(n: number): string {
+  return `Quel giorno gli eventi di quest'area erano ${n}: qui ne conta uno al giorno, nello storico ci sono tutti.`;
+}
+
+async function leggiNoteTetto(
+  supabase: SupabaseClient,
+  userId: string,
+  righe: { id: string; area_slug: string; tipo_attivita: string; created_at: string }[],
+): Promise<Map<string, number>> {
+  if (!righe.some((r) => r.tipo_attivita === "partecipazione_webinar" || r.tipo_attivita === "workshop_pcto")) return new Map();
+  const { data: presenze, error } = await supabase
+    .from("iscrizioni_eventi")
+    .select("certificata_il, eventi(tipo, eventi_aree(area_slug))")
+    .eq("student_id", userId)
+    .eq("stato", "partecipato")
+    .not("certificata_il", "is", null);
+  if (error) {
+    console.error("[attivita] presenze per il tetto giornaliero:", descriviErrore(error));
+    return new Map();
+  }
+  const lette: PresenzaCertificata[] = (presenze ?? []).flatMap((p) => {
+    const ev = Array.isArray(p.eventi) ? p.eventi[0] : p.eventi;
+    if (!ev || !p.certificata_il) return [];
+    const aree = ((ev.eventi_aree ?? []) as { area_slug: string }[]).map((a) => a.area_slug);
+    return [{ certificataIl: p.certificata_il as string, tipoEvento: ev.tipo as string, aree }];
+  });
+  return noteTettoGiornaliero(righe, lette);
+}
+
+export type VoceEsplorazioneConNota = VoceEsplorazione & { nota?: string };
+
 // Percorso di esplorazione leggibile (non tecnico) da activity_log, più
 // recenti prima.
-export async function getPercorsoEsplorazione(supabase: SupabaseClient, userId: string, limite = 10): Promise<VoceEsplorazione[]> {
+export async function getPercorsoEsplorazione(supabase: SupabaseClient, userId: string, limite = 10): Promise<VoceEsplorazioneConNota[]> {
   try {
     const { data, error } = await supabase
       .from("activity_log")
@@ -208,12 +281,24 @@ export async function getPercorsoEsplorazione(supabase: SupabaseClient, userId: 
       .limit(limite);
     if (error) return [];
 
+    // Le presenze certificate servono solo se il percorso ha una riga di
+    // partecipazione; se non si leggono, la nota non si dice (la riga resta
+    // vera com'è).
+    let note = new Map<string, number>();
+    try {
+      note = await leggiNoteTetto(supabase, userId, data ?? []);
+    } catch (e) {
+      // La nota è un di più: un guasto qui non deve togliere il percorso.
+      console.error("[attivita] presenze per il tetto giornaliero:", descriviErrore(e));
+    }
+
     return (data ?? []).map((riga) => {
       const area = getAreaBySlug(riga.area_slug);
       const testo =
         ETICHETTE_TIPO[riga.tipo_attivita as TipoAttivita]?.(area?.nome ?? riga.area_slug, titoloGuida(riga.area_slug, riga.livello)) ??
         "Attività registrata";
-      return { id: riga.id, testo, data: riga.created_at };
+      const n = note.get(riga.id);
+      return { id: riga.id, testo, data: riga.created_at, ...(n ? { nota: testoTettoGiornaliero(n) } : {}) };
     });
   } catch {
     return [];

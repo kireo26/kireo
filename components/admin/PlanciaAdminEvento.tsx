@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import AzioneApprovazione from "@/components/admin/AzioneApprovazione";
 import GestisciChiaveTrasmissioneForm from "@/components/admin/GestisciChiaveTrasmissioneForm";
 import type { ContestoModerazione } from "@/lib/eventi/moderazione";
+import { getQuotePerRevisione, testoQuotaRevisione } from "@/lib/ente/quote";
 
 // LE PARTI DELLA PLANCIA CHE SONO SOLO DELL'ADMIN, nella pagina dell'evento
 // (Mario, 27/10). Fino al 27/10 stavano nella coda di `/admin`, riga per riga:
@@ -30,6 +31,13 @@ export default async function PlanciaAdminEvento({ evento }: { evento: ContestoM
     chiave = data ?? null;
   }
 
+  // Una CTA esterna consuma una quota del piano, e da quando le quote contano
+  // solo l'approvato è l'admin a fermare chi l'ha finita (27/10).
+  const quotaCta =
+    daDecidere && evento.cta_esterna_url && evento.organizzatore_id
+      ? testoQuotaRevisione(await getQuotePerRevisione(await createClient(), evento.organizzatore_id), "cta")
+      : null;
+
   if (!daDecidere && !conChiave) return null;
 
   return (
@@ -39,6 +47,7 @@ export default async function PlanciaAdminEvento({ evento }: { evento: ContestoM
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-kireo-orange">Da approvare</p>
           {evento.descrizione && <p className="text-sm text-kireo-light/90">{evento.descrizione}</p>}
           {evento.cta_esterna_url && <p className="mt-2 text-xs text-kireo-muted">CTA esterna richiesta: {evento.cta_esterna_url}</p>}
+          {quotaCta && <p className={`mt-1 text-xs ${quotaCta.piena ? "text-kireo-orange" : "text-kireo-muted"}`}>{quotaCta.testo}</p>}
           {evento.tipo === "webinar" && (
             <p className="mt-2 text-xs text-kireo-muted">
               Hosting diretta: {evento.hosting_diretta === "proprio" ? "canale proprio dell'ente" : "ospitata da KIREO"}

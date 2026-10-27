@@ -180,19 +180,43 @@ export async function POST(request: NextRequest) {
   const riflessione = testoDi("s5_riflessione");
   const proposta = testoDi("s4_proposta");
 
-  await supabase.from("journal_entry").delete().eq("attempt_id", attempt.id);
+  // PRIMA SI SCRIVE LA COPIA NUOVA, POI SI TOLGONO LE VECCHIE (27/10). Fino a
+  // oggi si cancellava e poi si inseriva, senza guardare nessuna delle due:
+  // un inserimento fallito lasciava il tentativo senza diario né portfolio, e
+  // la missione risultava salvata; un delete che non toccava niente lasciava
+  // due copie. Ora un inserimento fallito lascia la copia di prima (e un
+  // guasto), e un delete fallito lascia una copia in più (e un guasto): mai
+  // una perdita. Il testo dello studente resta comunque in `step_response`,
+  // da cui questa route lo legge: diario e portfolio ne sono una copia che
+  // oggi nessuna schermata legge, e domani sì.
+  async function sostituisci(tabella: "journal_entry" | "portfolio_item", riga: Record<string, unknown>) {
+    const { data: nuova, error: erroreInsert } = await supabase.from(tabella).insert(riga).select("id").maybeSingle();
+    if (erroreInsert || !nuova) {
+      await segnalaGuasto(
+        { processo: PROCESSO, specie: "esito_missione", motivo: `${tabella}_insert`, dettaglio: erroreInsert ?? "nessuna riga", diProva },
+        `Escape — ${tabella} non scritto (resta la copia di prima):`,
+      );
+      return;
+    }
+    const { error: erroreDelete } = await supabase.from(tabella).delete().eq("attempt_id", attempt!.id).neq("id", nuova.id);
+    if (erroreDelete)
+      await segnalaGuasto(
+        { processo: PROCESSO, specie: "esito_missione", motivo: `${tabella}_delete`, dettaglio: erroreDelete, diProva },
+        `Escape — ${tabella}: copie vecchie non tolte:`,
+      );
+  }
+
   if (riflessione) {
-    await supabase.from("journal_entry").insert({ student_id: user.id, attempt_id: attempt.id, testo: riflessione });
+    await sostituisci("journal_entry", { student_id: user.id, attempt_id: attempt.id, testo: riflessione });
   }
 
   // Portfolio: l'artefatto della missione (mandato + piano + testo), design 5.3.
   // La Stanza 3.1 è un'allocazione (Missioni 01-03) o un piano di lavori
   // (Missione 04): si salva ciò che c'è.
-  await supabase.from("portfolio_item").delete().eq("attempt_id", attempt.id);
   if (proposta) {
     const mandato = mandatoScelto(get);
     const s3 = risposte.get("s3_budget") as (PayloadAlloca & PayloadLavori) | undefined;
-    await supabase.from("portfolio_item").insert({
+    await sostituisci("portfolio_item", {
       student_id: user.id,
       attempt_id: attempt.id,
       titolo: `La mia proposta — ${mission.titolo}`,

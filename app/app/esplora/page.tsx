@@ -1,3 +1,4 @@
+import { PROVINCE_ITALIANE } from "@/lib/province";
 import { getAppContext } from "@/lib/app/studentContext";
 import { createClient } from "@/lib/supabase/server";
 import { cercaEnti } from "@/lib/app/esplora";
@@ -69,13 +70,20 @@ export default async function EsploraPage({
             </option>
           ))}
         </select>
-        <input
-          type="text"
+        {/* Una scelta dallo stesso elenco con cui l'ente dichiara la sua (27/10). */}
+        <select
           name="provincia"
           defaultValue={params.provincia ?? ""}
-          placeholder="Provincia"
-          className="rounded-lg border border-white/10 bg-kireo-dark px-3 py-2 text-sm text-kireo-light placeholder:text-kireo-muted"
-        />
+          aria-label="Provincia"
+          className="rounded-lg border border-white/10 bg-kireo-dark px-3 py-2 text-sm text-kireo-light"
+        >
+          <option value="">Tutte le province</option>
+          {PROVINCE_ITALIANE.map((p) => (
+            <option key={p} value={p}>
+              {p}
+            </option>
+          ))}
+        </select>
         <label className="flex items-center gap-2 text-sm text-kireo-light/90 sm:col-span-2">
           <input type="checkbox" name="eventi" value="1" defaultChecked={params.eventi === "1"} className="h-4 w-4 rounded border-white/20 bg-kireo-dark accent-kireo-green" />
           Solo con eventi in programma

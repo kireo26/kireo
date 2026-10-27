@@ -54,3 +54,9 @@ group by e.organizzatore_id, e.id, e.titolo, e.data_inizio, e.domanda_consegna, 
 
 comment on view public.stats_eventi_istituzione is
   '20261103100000: per evento pubblicato (non bozze né rifiutati), solo per l''organizzatore (o admin). iscritti = ogni iscrizione, in qualunque stato; presenti = studenti distinti collegati alla diretta (NULL se non è una diretta); partecipati = presenze CERTIFICATE (soglia raggiunta o certificate a mano), mai più di iscritti — a schermo «con presenza certificata»; risposte = consegne_evento, con domanda_posta che dice se quel numero ha un senso.';
+
+-- Il nome nel database resta `partecipati` (vedi sopra): il commento sulla
+-- colonna è per chi lo legge senza contesto, perché il nome dice «c'era» e il
+-- numero no.
+comment on column public.stats_eventi_istituzione.partecipati is
+  '⚠️ NON «chi c''era»: le presenze CERTIFICATE (soglia raggiunta alla chiusura della diretta, o certificate da una scuola, dall''ente o da KIREO). Chi si è collegato è `presenti`. A schermo: «Con presenza certificata».';

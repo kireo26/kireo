@@ -139,7 +139,12 @@ async function main() {
     const voci = await getPercorsoRitratto(finto({ missioni: [senzaStato] }), "u1");
     ok(voci.length === 1, "la riga compare");
     ok(
-      !/\.eq\("stato"/.test(leggiSorgente("lib/app/attivita.ts")),
+      // Solo il corpo di getPercorsoRitratto: dal 27/10 lo stesso file ha
+      // un'altra lettura (le presenze certificate per il tetto giornaliero) che
+      // filtra su `stato` di proposito, e la proprietà riguarda questa.
+      !/\.eq\("stato"/.test(
+        (leggiSorgente("lib/app/attivita.ts").match(/export async function getPercorsoRitratto[\s\S]*?(?=\nexport )/) ?? ["MANCA"])[0],
+      ) && /export async function getPercorsoRitratto/.test(leggiSorgente("lib/app/attivita.ts")),
       "…e nessuna query filtra su `stato`, che è la ragione per cui passa",
     );
   }

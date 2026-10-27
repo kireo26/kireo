@@ -76,11 +76,14 @@ export default async function AttivitaAppPage() {
         ) : (
           <ul className="mt-4 space-y-2">
             {percorso.map((voce) => (
-              <li key={voce.id} className="flex flex-wrap items-baseline justify-between gap-2 text-sm text-kireo-light">
-                <span>{voce.testo}</span>
-                <span className="text-xs text-kireo-muted">
-                  {formattaData(voce.data, "medium")}
-                </span>
+              <li key={voce.id} className="text-sm text-kireo-light">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <span>{voce.testo}</span>
+                  <span className="text-xs text-kireo-muted">
+                    {formattaData(voce.data, "medium")}
+                  </span>
+                </div>
+                {voce.nota && <p className="mt-0.5 text-xs text-kireo-muted">{voce.nota}</p>}
               </li>
             ))}
           </ul>

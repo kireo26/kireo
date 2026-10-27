@@ -169,6 +169,65 @@ console.log("\n§4 — «Per evento» e i riquadri dicono cosa contano\n");
   ok(/nonLetto \?/.test(pagina), "una lettura fallita non si presenta come «nessuna interazione»");
 }
 
+
+console.log("\n§5 — le colonne di istituzioni che decidono non le scrive il client\n");
+{
+  const dir = path.join(ROOT, "supabase/migrations");
+  // L'ultimo grant di update su istituzioni, dalle migrazioni: l'atteso è
+  // scritto qui (le colonne che DECIDONO), non preso dalla migrazione.
+  let ultimoGrant = null;
+  for (const f of fs.readdirSync(dir).filter((x) => x.endsWith(".sql")).sort()) {
+    const sql = senzaCommentiSql(fs.readFileSync(path.join(dir, f), "utf8"));
+    const m = sql.match(/grant update \(([^)]*)\) on public\.istituzioni to authenticated/);
+    if (m) ultimoGrant = m[1].split(",").map((c) => c.trim());
+  }
+  ok(Array.isArray(ultimoGrant), "esiste un grant di update per colonna su istituzioni");
+  for (const c of ["tipo", "nome", "slug", "id"]) ok(!(ultimoGrant ?? []).includes(c), `«${c}» non è fra le colonne che il client aggiorna`);
+  for (const c of ["descrizione", "sito_ufficiale", "provincia", "immagine_copertina_url"]) ok((ultimoGrant ?? []).includes(c), `«${c}» resta aggiornabile dal profilo`);
+  // Il profilo non deve aggiornare una colonna che non ha più.
+  const form = leggi("components/ente/ProfiloEnteForm.tsx");
+  const scritte = [...form.matchAll(/\.from\("istituzioni"\)\s*\.update\(\{([^}]*)\}/g)].flatMap((m) => m[1].split(",").map((x) => x.split(":")[0].trim()).filter(Boolean));
+  ok(scritte.length >= 3 && scritte.every((c) => (ultimoGrant ?? []).includes(c)), "ogni colonna che il profilo scrive è fra quelle concesse", scritte);
+}
+
+console.log("\n§6 — i limiti dei file stanno anche sul server, con gli stessi numeri\n");
+{
+  const media = require(path.join(ROOT, "lib/ente/media.ts"));
+  const sql = senzaCommentiSql(fs.readFileSync(path.join(ROOT, "supabase/migrations/20261103140000_storage_istituzioni_media_limiti.sql"), "utf8"));
+  const limite = Number((sql.match(/file_size_limit = (\d+)/) ?? [])[1]);
+  const tipi = [...((sql.match(/allowed_mime_types = array\[([^\]]*)\]/) ?? [])[1] ?? "").matchAll(/'([^']+)'/g)].map((m) => m[1]).sort();
+  ok(limite === media.MAX_GUIDA_MB * 1024 * 1024, "il tetto del bucket è quello della guida", { limite, guida: media.MAX_GUIDA_MB });
+  ok(JSON.stringify(tipi) === JSON.stringify([...media.TIPI_COPERTINA, media.TIPO_GUIDA].sort()), "i tipi del bucket sono quelli che il form accetta", tipi);
+  ok(!tipi.some((t) => /svg/.test(t)), "niente SVG in un bucket pubblico");
+  const form = leggi("components/ente/ProfiloEnteForm.tsx");
+  ok(/tipoCopertinaAmmesso\(file\.type\)/.test(form) && !/const MAX_(COPERTINA|GUIDA)_MB/.test(form), "il form usa i limiti condivisi, non una copia sua");
+}
+
+console.log("\n§7 — la provincia è una scelta da un elenco\n");
+{
+  const form = leggi("components/ente/ProfiloEnteForm.tsx");
+  ok(/<Combobox\s+id="provincia"/.test(form) && /OPZIONI_PROVINCIA = PROVINCE_ITALIANE/.test(form), "il profilo dell'ente la fa scegliere dall'elenco delle province");
+  ok(!/<input\s+id="provincia"/.test(form), "…e non è più un campo di testo libero");
+  const esplora = leggi("app/app/esplora/page.tsx");
+  ok(/<select\s+name="provincia"/.test(esplora) && /PROVINCE_ITALIANE\.map/.test(esplora), "Esplora cerca con lo stesso elenco");
+  const { PROVINCE_ITALIANE } = require(path.join(ROOT, "lib/province.ts"));
+  const scuole = Object.keys(JSON.parse(fs.readFileSync(path.join(ROOT, "public/data/scuole-secondarie-superiori.json"), "utf8")));
+  const fuori = scuole.filter((p) => !PROVINCE_ITALIANE.includes(p));
+  ok(PROVINCE_ITALIANE.length === 107 && fuori.length === 0, "l'elenco ha le 107 province, e ogni provincia del dataset delle scuole ci sta", fuori);
+}
+
+console.log("\n§8 — chi revisiona vede la quota\n");
+{
+  const { testoQuotaRevisione } = require(path.join(ROOT, "lib/ente/quote.ts"));
+  const q = { newsletterUsate: 5, newsletterTotali: 5, comunicazioniKireoUsate: 1, comunicazioniKireoTotali: 5, ctaUsate: 0, ctaTotali: 2, evidenzaUsate: 0, evidenzaTotali: 0 };
+  const piena = testoQuotaRevisione(q, "newsletter");
+  ok(piena.piena && /5 di 5/.test(piena.testo) && /si supera/.test(piena.testo), "a quota piena lo dice", piena);
+  ok(!testoQuotaRevisione(q, "comunicazione_kireo").piena && /1 di 5/.test(testoQuotaRevisione(q, "comunicazione_kireo").testo), "sotto quota dice quante");
+  ok(/non siamo riusciti/i.test(testoQuotaRevisione(null, "cta").testo), "una quota non letta non si scrive 0 di 0");
+  ok(/testoQuotaRevisione\(/.test(leggi("app/admin/page.tsx")), "la coda delle comunicazioni la mostra");
+  ok(/testoQuotaRevisione\(await getQuotePerRevisione/.test(leggi("components/admin/PlanciaAdminEvento.tsx")), "la plancia dell'evento la mostra per una CTA");
+}
+
 console.log("");
 console.log(`${falliti === 0 ? "✅" : "❌"} ${fatte - falliti}/${fatte} proprietà (npm run test:statistiche)`);
 process.exit(falliti === 0 ? 0 : 1);

@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/Button";
 import { createClient } from "@/lib/supabase/client";
+import { descriviErrore } from "@/lib/erroreSupabase";
+import { testoEsitoIscrizione } from "@/lib/scuola/esitoIscrizione";
 
 type Classe = { id: string; nomeVisualizzato: string };
 
@@ -13,7 +15,7 @@ export default function IscriviClasseEventoForm({ eventoId, classi }: { eventoId
   const [modalita, setModalita] = useState<"individuale" | "dad">("individuale");
   const [caricamento, setCaricamento] = useState(false);
   const [errore, setErrore] = useState<string | null>(null);
-  const [fatto, setFatto] = useState(false);
+  const [esito, setEsito] = useState<{ testo: string; avviso: boolean } | null>(null);
 
   async function handleIscrivi() {
     if (!classeId) return;
@@ -21,16 +23,17 @@ export default function IscriviClasseEventoForm({ eventoId, classi }: { eventoId
     setErrore(null);
     try {
       const supabase = createClient();
-      const { error } = await supabase.rpc("iscrivi_classe_evento", {
+      const { data, error } = await supabase.rpc("iscrivi_classe_evento", {
         p_classe_id: classeId,
         p_evento_id: eventoId,
         p_modalita: modalita,
       });
       if (error) {
+        console.error("[scuola] iscrivi_classe_evento:", descriviErrore(error));
         setErrore("Non è stato possibile iscrivere la classe.");
         return;
       }
-      setFatto(true);
+      setEsito(testoEsitoIscrizione(data));
       router.refresh();
     } finally {
       setCaricamento(false);
@@ -60,7 +63,7 @@ export default function IscriviClasseEventoForm({ eventoId, classi }: { eventoId
       <Button type="button" variant="outline" onClick={handleIscrivi} disabled={!classeId || caricamento}>
         {caricamento ? "…" : "Iscrivi classe"}
       </Button>
-      {fatto && <span className="text-sm text-kireo-green-light">Classe iscritta ✓</span>}
+      {esito && <span className={`text-sm ${esito.avviso ? "text-kireo-orange" : "text-kireo-green-light"}`}>{esito.testo}</span>}
       {errore && <span className="text-sm text-red-400">{errore}</span>}
     </div>
   );

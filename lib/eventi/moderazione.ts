@@ -47,6 +47,8 @@ export type ContestoModerazione = {
     // parte che vede la correzione. Null senza correzione o senza lettura.
     ore_pcto_fissate_da_nome: string | null;
     organizzatore: string | null;
+    // L'id dell'ente: la plancia dell'admin legge le sue quote (27/10).
+    organizzatore_id: string | null;
     // Per la plancia dell'admin (27/10): approvare un evento si fa qui, e si
     // decide leggendo cosa l'ente ha scritto.
     descrizione: string | null;
@@ -140,6 +142,7 @@ export async function getContestoModerazione(eventoId: string): Promise<Contesto
       ore_pcto_fissate_il: evento.ore_pcto_fissate_il,
       ore_pcto_fissate_da_nome: nomeCorrettore,
       organizzatore: istituzione?.nome ?? null,
+      organizzatore_id: evento.organizzatore_id ?? null,
       descrizione: evento.descrizione ?? null,
       cta_esterna_url: evento.cta_esterna_url ?? null,
       note_revisione: note === null ? undefined : (note.get(evento.id) ?? null),

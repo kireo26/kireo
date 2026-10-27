@@ -114,3 +114,38 @@ export async function getQuoteEnte(supabase: SupabaseClient, istituzioneId: stri
     return null;
   }
 }
+
+// LE QUOTE VISTE DA CHI REVISIONA (Mario, 27/10). Da quando le quote contano
+// solo l'approvato, il form non ferma più un ente che ha proposto più di quanto
+// il piano conceda: lo ferma la revisione. Allora chi revisiona deve vedere il
+// numero — senza, il controllo spostato su di lui gli arriva senza
+// l'informazione per esercitarlo. Legge il piano dell'ente e poi le stesse
+// quote che vede l'ente (`getQuoteEnte`): un conto solo, non un secondo.
+export async function getQuotePerRevisione(supabase: SupabaseClient, istituzioneId: string): Promise<Quote | null> {
+  const { data, error } = await supabase.from("istituzioni").select("piani(nome)").eq("id", istituzioneId).maybeSingle();
+  const piano = Array.isArray(data?.piani) ? data?.piani[0] : (data?.piani as { nome?: string } | null | undefined);
+  if (error || !piano?.nome) {
+    console.error("[quote revisione] piano:", descriviErrore(error ?? "piano non trovato"));
+    return null;
+  }
+  return getQuoteEnte(supabase, istituzioneId, piano.nome);
+}
+
+export type VoceQuota = "newsletter" | "comunicazione_kireo" | "cta";
+
+// Una riga per la coda: «Già approvate quest'anno: 5 di 5». Testo mio,
+// provvisorio. A quota piena lo dice, perché approvare vuol dire superarla.
+export function testoQuotaRevisione(quote: Quote | null, voce: VoceQuota): { testo: string; piena: boolean } {
+  if (!quote) return { testo: "Non siamo riusciti a leggere quante ne ha già approvate questo ente.", piena: false };
+  const [usate, totali] =
+    voce === "newsletter"
+      ? [quote.newsletterUsate, quote.newsletterTotali]
+      : voce === "comunicazione_kireo"
+        ? [quote.comunicazioniKireoUsate, quote.comunicazioniKireoTotali]
+        : [quote.ctaUsate, quote.ctaTotali];
+  const piena = usate >= totali;
+  return {
+    testo: `Già approvate quest'anno accademico: ${usate} di ${totali} previste dal piano.${piena ? " Approvando, la quota si supera." : ""}`,
+    piena,
+  };
+}
