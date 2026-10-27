@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/Button";
 import { createClient } from "@/lib/supabase/client";
+import { segnaNelRecinto } from "@/lib/app/recinto";
 
 export default function IscrivitiNewsletterButton({
   istituzioneId,
@@ -41,12 +42,7 @@ export default function IscrivitiNewsletterButton({
 
       if (!error || error.code === "23505") {
         setIscritto(true);
-        await supabase
-          .from("recinto_enti")
-          .upsert(
-            { student_id: userId, istituzione_id: istituzioneId, origine: "newsletter" },
-            { onConflict: "student_id,istituzione_id", ignoreDuplicates: true },
-          );
+        if (userId) await segnaNelRecinto(supabase, userId, istituzioneId, "newsletter");
       }
     } finally {
       setCaricamento(false);

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/Button";
 import { createClient } from "@/lib/supabase/client";
+import { segnaNelRecinto } from "@/lib/app/recinto";
 import { registraAttivita } from "@/lib/app/activityLog";
 import { ETICHETTA_ISCRIVITI, ETICHETTA_ISCRIVITI_ED_ENTRA } from "@/lib/live";
 
@@ -70,13 +71,8 @@ export default function IscrivitiEventoButton({
         } else {
           setIscritto(true);
           if (areaSlug) registraAttivita(areaSlug, "iscrizione_webinar");
-          if (organizzatoreId) {
-            await supabase
-              .from("recinto_enti")
-              .upsert(
-                { student_id: userId, istituzione_id: organizzatoreId, origine: "evento" },
-                { onConflict: "student_id,istituzione_id", ignoreDuplicates: true },
-              );
+          if (userId && organizzatoreId) {
+            await segnaNelRecinto(supabase, userId, organizzatoreId, "evento");
           }
           // Un gesto solo: iscritti, si entra.
           if (entraHref) {

@@ -1,0 +1,117 @@
+-- Verifica di 20261102110000 (J1) e 20261102120000 (J2) (Mario, 27/10): le
+-- statistiche dell'ente contano quello che dicono.
+--
+-- I due casi visti a schermo su Davante:
+--   - test7 iscritto a un evento, poi la guida scaricata: «Download guida: 0»;
+--   - «0 iscritti · 1 partecipati» sulla stessa riga.
+--
+-- LA CONTROPROVA va fatta su repliche NATE SENZA: senza J1 e J2 sono rosse la
+-- 2, la 3, la 5 e la 6 (la guida dopo l'evento non lascia riga, e gli iscritti
+-- non contano i certificati); senza la sola J2 è rossa la 2 (il vecchio
+-- vincolo scarta ancora la seconda riga) e, con lei, la 3.
+--
+-- Transazione con ROLLBACK. Le scritture sul recinto passano dalla sessione
+-- dello studente, con lo stesso ON CONFLICT di `segnaNelRecinto`.
+
+begin;
+set local role postgres;
+
+create temp table esiti (n int, cosa text, atteso text, trovato text, ok boolean) on commit drop;
+grant all on esiti to anon, authenticated;
+
+insert into auth.users (id, email) values
+  ('11111111-0000-0000-0000-0000000000f1', 'ente-stat@test.it'),
+  ('11111111-0000-0000-0000-0000000000f2', 'stud-stat-1@test.it'),
+  ('11111111-0000-0000-0000-0000000000f3', 'stud-stat-2@test.it'),
+  ('11111111-0000-0000-0000-0000000000f4', 'stud-stat-3@test.it');
+insert into public.profiles (id, ruolo, nome, cognome, data_nascita) values
+  ('11111111-0000-0000-0000-0000000000f1', 'istituzione', 'E', 'Stat', '1980-01-01'),
+  ('11111111-0000-0000-0000-0000000000f2', 'studente', 'S', 'Uno', '2008-01-01'),
+  ('11111111-0000-0000-0000-0000000000f3', 'studente', 'S', 'Due', '2008-01-01'),
+  ('11111111-0000-0000-0000-0000000000f4', 'studente', 'S', 'Tre', '2008-01-01');
+insert into public.istituzioni (id, nome, slug, tipo, stato) values
+  ('aaaaaaaa-0000-0000-0000-0000000000f1', 'Ente Stat', 'ente-stat', 'universita', 'attiva');
+insert into public.institution_profiles (user_id, istituzione_id) values
+  ('11111111-0000-0000-0000-0000000000f1', 'aaaaaaaa-0000-0000-0000-0000000000f1');
+
+-- Due eventi finiti dell'ente: A con un iscritto, un certificato e un assente;
+-- B con un solo certificato e nessun «iscritto» (la riga del 25/10).
+insert into public.eventi (id, titolo, descrizione, tipo, organizzatore_id, data_inizio, data_fine, stato, pubblico) values
+  ('eeeeeeee-0000-0000-0000-0000000000f1', 'Evento A', 'x', 'webinar', 'aaaaaaaa-0000-0000-0000-0000000000f1', now() - interval '3 hours', now() - interval '2 hours', 'approvato', 'studenti'),
+  ('eeeeeeee-0000-0000-0000-0000000000f2', 'Evento B', 'x', 'webinar', 'aaaaaaaa-0000-0000-0000-0000000000f1', now() - interval '3 hours', now() - interval '2 hours', 'approvato', 'studenti');
+insert into public.iscrizioni_eventi (evento_id, student_id, stato, ore_riconosciute) values
+  ('eeeeeeee-0000-0000-0000-0000000000f1', '11111111-0000-0000-0000-0000000000f2', 'iscritto', null),
+  ('eeeeeeee-0000-0000-0000-0000000000f1', '11111111-0000-0000-0000-0000000000f3', 'partecipato', 1),
+  ('eeeeeeee-0000-0000-0000-0000000000f1', '11111111-0000-0000-0000-0000000000f4', 'assente', null),
+  ('eeeeeeee-0000-0000-0000-0000000000f2', '11111111-0000-0000-0000-0000000000f3', 'partecipato', 1);
+
+-- Lo studente 1 si iscrive a un evento (origine evento), POI scarica la guida
+-- (origine guida), POI la riscarica. È il gesto di test7 su Davante.
+do $$
+declare
+  v_righe integer;
+  v_seconda boolean := true;
+begin
+  set local role authenticated;
+  perform set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000f2', true);
+  insert into public.recinto_enti (student_id, istituzione_id, origine)
+    values ('11111111-0000-0000-0000-0000000000f2', 'aaaaaaaa-0000-0000-0000-0000000000f1', 'evento')
+    on conflict do nothing;
+  begin
+    insert into public.recinto_enti (student_id, istituzione_id, origine)
+      values ('11111111-0000-0000-0000-0000000000f2', 'aaaaaaaa-0000-0000-0000-0000000000f1', 'guida')
+      on conflict do nothing;
+    get diagnostics v_righe = row_count;
+    v_seconda := v_righe = 1;
+  exception when others then
+    v_seconda := false;
+  end;
+  begin
+    insert into public.recinto_enti (student_id, istituzione_id, origine)
+      values ('11111111-0000-0000-0000-0000000000f2', 'aaaaaaaa-0000-0000-0000-0000000000f1', 'guida')
+      on conflict do nothing;
+  exception when others then null;
+  end;
+  reset role;
+  insert into esiti values (1, 'la prima traccia (l''iscrizione all''evento) si scrive', 'sì', 'sì', true);
+  insert into esiti values (2, 'la guida scaricata DOPO l''evento lascia la sua riga', 'scritta: sì',
+    'scritta: ' || case when v_seconda then 'sì' else 'no' end, v_seconda);
+end $$;
+
+-- Lo studente 2 scarica solo la guida.
+do $$
+begin
+  set local role authenticated;
+  perform set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000f3', true);
+  insert into public.recinto_enti (student_id, istituzione_id, origine)
+    values ('11111111-0000-0000-0000-0000000000f3', 'aaaaaaaa-0000-0000-0000-0000000000f1', 'guida')
+    on conflict do nothing;
+  reset role;
+end $$;
+
+-- I numeri, letti come li legge l'ente.
+do $$
+declare
+  v_raggiunti bigint; v_download bigint;
+  v_ia bigint; v_pa bigint; v_ib bigint; v_pb bigint; v_oltre bigint;
+begin
+  set local role authenticated;
+  perform set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000f1', true);
+  select studenti_nel_recinto, download_guida into v_raggiunti, v_download from public.stats_istituzione;
+  select iscritti, partecipati into v_ia, v_pa from public.stats_eventi_istituzione where evento_id = 'eeeeeeee-0000-0000-0000-0000000000f1';
+  select iscritti, partecipati into v_ib, v_pb from public.stats_eventi_istituzione where evento_id = 'eeeeeeee-0000-0000-0000-0000000000f2';
+  select count(*) into v_oltre from public.stats_eventi_istituzione where partecipati > iscritti;
+  reset role;
+  insert into esiti values (3, 'download guida: i due studenti che l''hanno scaricata, una volta sola ciascuno', '2', v_download::text, v_download = 2);
+  insert into esiti values (4, 'studenti raggiunti: distinti, non una riga per gesto', '2', v_raggiunti::text, v_raggiunti = 2);
+  insert into esiti values (5, 'evento A: iscritti conta ogni stato (iscritto, partecipato, assente)', '3 iscritti · 1 partecipati',
+    format('%s iscritti · %s partecipati', v_ia, v_pa), v_ia = 3 and v_pa = 1);
+  insert into esiti values (6, 'evento B, il caso del 25/10: un certificato è anche un iscritto', '1 iscritti · 1 partecipati',
+    format('%s iscritti · %s partecipati', v_ib, v_pb), v_ib = 1 and v_pb = 1);
+  insert into esiti values (7, 'nessuna riga dice più partecipati che iscritti', '0', v_oltre::text, v_oltre = 0);
+end $$;
+
+select n, case when coalesce(ok, false) then 'ok' else 'ROTTA' end as esito, cosa, atteso, trovato from esiti order by n;
+select count(*) filter (where coalesce(ok, false)) || '/' || count(*) || ' verificate' as riepilogo from esiti;
+
+rollback;

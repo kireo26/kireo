@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/Button";
 import { inputClass, fieldBorder } from "@/lib/formStyles";
 import { createClient } from "@/lib/supabase/client";
+import { segnaNelRecinto } from "@/lib/app/recinto";
 
 const CLASSI = [
   { value: "3", label: "3° anno" },
@@ -93,15 +94,11 @@ export default function GuidaEnteForm({
         data: { session },
       } = await supabase.auth.getSession();
       if (session?.user) {
-        await supabase
-          .from("recinto_enti")
-          .upsert(
-            { student_id: session.user.id, istituzione_id: istituzioneId, origine: "guida" },
-            { onConflict: "student_id,istituzione_id", ignoreDuplicates: true },
-          );
+        await segnaNelRecinto(supabase, session.user.id, istituzioneId, "guida");
       }
-    } catch {
-      // no-op: il download è già partito, non blocchiamo per la sola traccia
+    } catch (e) {
+      // Il download è già partito: la traccia non lo blocca, ma non si butta.
+      console.error("[recinto] guida: sessione non letta", e);
     }
   }
 
