@@ -110,6 +110,16 @@ export async function POST(request: NextRequest) {
   // se il client dichiara una conversazione nuova: per il nostro client è il
   // limite che si incontra prima, per un client scritto a mano non c'è. Questo
   // non chiede niente a chi chiama. Se non riusciamo a contare, non spendiamo.
+  //
+  // DUE NUMERI CHE NON TORNERANNO MAI UGUALI, ED È GIUSTO (Mario, 27/10): questa
+  // riga conta le RICHIESTE FATTE, e si scrive prima di chiamare il modello; il
+  // conto della spesa (`registraConsumo` più giù, `consumo_ai_giorno`) conta le
+  // RISPOSTE RICEVUTE, e si scrive dopo. La differenza fra le richieste del giorno
+  // e le chiamate di `assistente` in `npm run banco spesa` è il numero delle
+  // richieste che una risposta non l'hanno avuta: una chiamata fallita, uno
+  // stream interrotto prima della fine, la chiave mancante qui sotto. È
+  // un'informazione, non un disallineamento: non si «corregge» spostando una
+  // delle due scritture.
   const { error: erroreRichiesta } = await supabase.from("assistente_richieste").insert({ student_id: user.id });
   if (erroreRichiesta) {
     if (erroreRichiesta.message?.includes("troppe_richieste_assistente_oggi")) {

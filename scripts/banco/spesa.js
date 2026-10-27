@@ -111,6 +111,10 @@ async function spesa(giorniArg) {
   console.log("  stream dell'assistente interrotto a metà (si paga, il consumo arriva solo alla");
   console.log("  fine); gli script lanciati in locale (`npm run misura:genere`), che chiamano il");
   console.log("  modello senza passare dal prodotto. Token, non euro: il prezzo si moltiplica a mano.");
+  console.log("  Le chiamate di `assistente` qui sono RISPOSTE ricevute; il tetto dell'assistente");
+  console.log("  conta le RICHIESTE (`assistente_richieste`, scritte prima della chiamata). La");
+  console.log("  differenza fra i due è il numero delle richieste rimaste senza risposta: non è");
+  console.log("  un disallineamento.");
   console.log("");
 }
 

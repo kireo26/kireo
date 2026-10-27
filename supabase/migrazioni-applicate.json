@@ -245,6 +245,24 @@
       "commit": "b28f86d",
       "stato": "verificata",
       "fonte": "Mario, 27/10 notte: storage.buckets workshop-consegne → public false · 5242880 · {image/png,image/jpeg}. E prima: storage.objects del bucket → 0 righe, cioè abbiamo misurato che nei mesi senza limiti non è stato caricato nessun file (non: «non è successo niente»)"
+    },
+    {
+      "file": "20261104130000_chiudi_consegna_progetto_workshop.sql",
+      "commit": "ea41244",
+      "stato": "verificata",
+      "fonte": "Mario, 27/10 notte: to_regprocedure('public.consegna_progetto_workshop(uuid, jsonb)') → null. ⚠️ La porta è stata chiusa senza sapere se qualcuno ci fosse passato: le righe scritte da quella strada non si distinguono da quelle del cron (punto aperto «Se un giorno servisse sapere quali consegne… sono autentiche»)"
+    },
+    {
+      "file": "20261104140000_tetti_spesa_e_tentativi.sql",
+      "commit": "72a445f",
+      "stato": "verificata",
+      "fonte": "Mario, 27/10 notte: has_column_privilege(authenticated, mission_attempt, stato, UPDATE) → false; to_regclass('public.assistente_richieste') → esiste. (La migrazione rilegge da sé i privilegi e si ferma se non tornano: girata senza errore)"
+    },
+    {
+      "file": "20261104150000_consumo_ai.sql",
+      "commit": "2ce9832",
+      "stato": "verificata",
+      "fonte": "Mario, 27/10 notte: to_regclass('public.consumo_ai_giorno') → esiste. (Il privilegio su registra_consumo_ai lo rilegge la migrazione stessa e si ferma se authenticated la esegue: girata senza errore)"
     }
   ]
 }

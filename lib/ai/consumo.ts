@@ -15,6 +15,12 @@
 // che niente lo dica (vedi «Un default retrocompatibile nasconde un
 // collegamento mancante»). `npm run test:consumo` pretende che ogni chiamata al
 // modello passi da qui.
+//
+// ⚠️ CONTA LE RISPOSTE, NON LE RICHIESTE. Il tetto dell'assistente
+// (`assistente_richieste`, app/api/assistente/route.ts) conta le richieste, e
+// scrive prima della chiamata; qui si scrive dopo, solo se il modello ha
+// risposto. I due numeri non tornano mai uguali, e la differenza è il numero
+// delle chiamate fallite: un'informazione, non un disallineamento.
 
 import { createServiceRoleClient } from "@/lib/supabase/serviceRole";
 import { descriviErrore } from "@/lib/erroreSupabase";
