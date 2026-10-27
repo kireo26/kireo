@@ -642,7 +642,7 @@ ok(/col rename, senza rubrica:\s+1 rapporto/.test(conRotto), "…quindi «col re
   ok(scrittori.length >= 2, `i comandi del banco che scrivono con la service-role sono ${scrittori.length} (atteso almeno 2: azzera-percorsi e azzera-tentativi)`);
   for (const f of scrittori) {
     const t = senzaCommenti(fs.readFileSync(f, "utf8"));
-    ok(/di_prova/.test(t), `${path.relative(radice, f)} scrive con la service-role e guarda di_prova`);
+    ok(/di_prova\s*!==\s*true|di_prova=is\.true/.test(t), `${path.relative(radice, f)} scrive con la service-role e filtra o rifiuta su di_prova (non basta nominarlo)`);
   }
   const sess = senzaCommenti(fs.readFileSync(path.join(radice, "robot", "sessione.js"), "utf8"));
   ok(/profilo\.di_prova\s*!==\s*true/.test(sess), "apriSessione rifiuta un account non di prova (robot, studente, pagine)");
