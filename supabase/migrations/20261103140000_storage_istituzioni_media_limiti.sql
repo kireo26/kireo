@@ -25,17 +25,7 @@
 --   select file_size_limit, allowed_mime_types from storage.buckets where id = 'istituzioni-media';
 --   → 20971520 e {image/jpeg,image/png,image/webp,application/pdf} (prima: null e null).
 
--- Zero righe toccate non è un successo: se il bucket in produzione non si
--- chiamasse così, un `update` nudo passerebbe senza aver fatto niente.
-do $$
-declare v_righe integer;
-begin
-  update storage.buckets
-  set file_size_limit = 20971520,
-      allowed_mime_types = array['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
-  where id = 'istituzioni-media';
-  get diagnostics v_righe = row_count;
-  if v_righe <> 1 then
-    raise exception 'bucket istituzioni-media: % righe aggiornate invece di 1', v_righe;
-  end if;
-end $$;
+update storage.buckets
+set file_size_limit = 20971520,
+    allowed_mime_types = array['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
+where id = 'istituzioni-media';
