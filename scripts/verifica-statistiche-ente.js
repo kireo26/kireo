@@ -143,6 +143,10 @@ console.log("\n§3 — il limite delle aree dipende dal tipo, e sta in un posto 
   const form = leggi("components/ente/ProfiloEnteForm.tsx");
   ok(!/MAX_AREE/.test(form), "il form non ha più una costante sua per il limite");
   ok(/\.rpc\("max_aree_istituzione"/.test(form), "…lo chiede alla funzione del database");
+  // Non basta che il nome della costante sia sparito: un 3 scritto a mano nel
+  // confronto è la stessa copia senza nome (controprova del 27/10).
+  ok(/attive\.length >= massimo\b/.test(form) && !/attive\.length >= \d/.test(form),
+    "…e confronta le aree con il numero letto, non con un numero scritto");
   // L'ultima definizione del trigger, dalle migrazioni.
   const dir = path.join(ROOT, "supabase/migrations");
   let ultima = "";
