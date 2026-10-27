@@ -102,8 +102,18 @@ for (const s of suite) {
   // QUALI sono rosse, e un muro di righe verdi nasconde le due che contano.
   const r = spawnSync("npm", ["run", s], { encoding: "utf8" });
   const secondi = ((Date.now() - t) / 1000).toFixed(1);
-  if (r.status === 0) {
+  // ⚠️ USCITA 0 E NESSUN ✓ NON È UN VERDE (27/10). Il lanciatore SQL contava
+  // «zero righe rosse» anche su uno script che non aveva stampato niente, e la
+  // stessa forma qui sarebbe una suite che esce 0 senza aver controllato niente
+  // (un ciclo su un elenco vuoto, un `ok()` mai raggiunto). Misurato prima di
+  // scrivere la regola: tutte e 74 le suite stampano almeno un ✓.
+  const uscitaTesto = [r.stdout, r.stderr].filter(Boolean).join("\n");
+  const verdiStampati = (uscitaTesto.match(/✓/g) || []).length;
+  if (r.status === 0 && verdiStampati > 0) {
     console.log(`✓  ${secondi}s`);
+  } else if (r.status === 0) {
+    console.log(`✗  ${secondi}s  (uscita 0 e nessun esito stampato: non ha controllato niente)`);
+    falliti.push({ nome, s, uscita: uscitaTesto });
   } else {
     console.log(`✗  ${secondi}s`);
     falliti.push({ nome, s, uscita: [r.stdout, r.stderr].filter(Boolean).join("\n") });

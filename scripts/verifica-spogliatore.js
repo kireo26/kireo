@@ -137,6 +137,15 @@ console.log("\n4) Le àncore sui nomi non crescono");
   // conversione sia avvenuta.
   const TETTO = 67;
   const { grezze, perFile } = censimentoAncore(DIR);
+  // ⚠️ IL PAVIMENTO (27/10): questo cricchetto premia il numero basso, quindi
+  // un censimento diventato cieco — che conta zero perché non legge più niente
+  // — sarebbe verde, e stamperebbe solo «il tetto si può abbassare a 0», che si
+  // legge come una buona notizia. Il pavimento è la metà del tetto di oggi: una
+  // conversione onesta scende a passi di una o due àncore, un lettore rotto
+  // cade a zero in un colpo. Il giorno in cui le conversioni lo raggiungono
+  // davvero, si abbassa insieme al tetto.
+  const PAVIMENTO = 30;
+  ok(grezze >= PAVIMENTO, `il censimento vede ancora le àncore che ci sono (${grezze}, pavimento ${PAVIMENTO}): a zero sarebbe verde su niente`);
   const peggiori = [...perFile.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3);
   ok(
     grezze <= TETTO,
