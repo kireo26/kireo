@@ -46,6 +46,25 @@ async function azzeraTentativi(iscrizioneId, faseId) {
     process.exit(1);
   }
 
+  // LA STESSA GUARDIA DEGLI ALTRI DUE (Mario, 27/10). Fino al 27/10 questo
+  // comando prendeva un id e non chiedeva altro: con la service-role, che
+  // scavalca la RLS, avrebbe azzerato i tentativi di uno studente vero come di
+  // uno di prova. Si tocca solo un'iscrizione il cui studente è marcato
+  // `di_prova`; se il profilo non si legge, non si tocca niente (fallisce chiuso).
+  const iscr = await fetch(
+    `${c.supabaseUrl}/rest/v1/workshop_iscrizioni?id=eq.${encodeURIComponent(iscrizioneId)}&select=student_id,profiles!student_id(di_prova)`,
+    { headers: intestazioni },
+  );
+  const righeIscr = iscr.ok ? await iscr.json() : null;
+  const profilo = Array.isArray(righeIscr) && righeIscr[0] ? righeIscr[0].profiles : null;
+  if (!profilo || profilo.di_prova !== true) {
+    console.error(
+      `\n✗ L'iscrizione ${iscrizioneId} non è di un profilo marcato «di_prova»${profilo ? "" : " (o non sono riuscito a leggerlo)"}.\n` +
+        `  Questo comando tocca solo i profili di prova: niente è stato scritto.\n`,
+    );
+    process.exit(1);
+  }
+
   const r = righe[0];
   console.log("\nSTO PER MODIFICARE QUESTA RIGA:");
   console.log(`  fase        ${r.fase_id}`);

@@ -612,6 +612,42 @@ ok(/col rename, senza rubrica:\s+1 rapporto/.test(conRotto), "…quindi «col re
   ok(!/playerVars|rel\s*[:=]|youtube|<iframe/i.test(ing), "…e non riscrive nessun parametro del player (niente playerVars, rel, iframe, indirizzi YouTube)");
 }
 
+// ── Chi scrive con la service-role guarda il flag di prova (Mario, 27/10) ──
+// La service-role scavalca la RLS: un comando del banco che scrive o cancella
+// con quella chiave tocca le righe di chiunque gli si nomini. Il 27/10 due
+// comandi su tre guardavano `di_prova` e il terzo (`azzera-tentativi`) no:
+// «una protezione applicata a due strumenti su tre non è una regola, è
+// un'abitudine, e un'abitudine non si eredita». Questa la rende una regola
+// per il prossimo che nasce. ⚠️ È lessicale: vede che il file NOMINA il flag,
+// non che lo controlli bene — il controllo vero lo prova la controprova.
+// I comandi che scrivono con la sessione dello studente (robot, studente,
+// pagine) passano da `apriSessione`, guardata qui sotto.
+{
+  const fs = require("fs");
+  const path = require("path");
+  const { senzaCommenti } = require("./lib/senza-commenti");
+  const radice = path.join(__dirname, "banco");
+  const tutti = [];
+  (function giro(d) {
+    for (const v of fs.readdirSync(d, { withFileTypes: true })) {
+      const p = path.join(d, v.name);
+      if (v.isDirectory()) giro(p);
+      else if (v.name.endsWith(".js")) tutti.push(p);
+    }
+  })(radice);
+  const scrittori = tutti.filter((f) => {
+    const t = senzaCommenti(fs.readFileSync(f, "utf8"));
+    return /supabaseServiceRoleKey/.test(t) && /method:\s*"(PATCH|DELETE|POST)"/.test(t);
+  });
+  ok(scrittori.length >= 2, `i comandi del banco che scrivono con la service-role sono ${scrittori.length} (atteso almeno 2: azzera-percorsi e azzera-tentativi)`);
+  for (const f of scrittori) {
+    const t = senzaCommenti(fs.readFileSync(f, "utf8"));
+    ok(/di_prova/.test(t), `${path.relative(radice, f)} scrive con la service-role e guarda di_prova`);
+  }
+  const sess = senzaCommenti(fs.readFileSync(path.join(radice, "robot", "sessione.js"), "utf8"));
+  ok(/profilo\.di_prova\s*!==\s*true/.test(sess), "apriSessione rifiuta un account non di prova (robot, studente, pagine)");
+}
+
 console.log("\n═══════════════════════════════════════════\n");
 if (falliti) { console.error(`✗ ${falliti} controlli falliti.\n`); process.exit(1); }
 console.log("✓ Ogni esito ha la sua frase, il fallimento non si nasconde dietro un successo,\n  e «non posso vederle» non si legge come «non ci sono».\n");
