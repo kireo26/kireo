@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { registraConsumo } from "@/lib/ai/consumo";
 import { createClient } from "@/lib/supabase/server";
 import {
   MODELLO_CLIENTE_WORKSHOP,
@@ -163,6 +164,10 @@ export async function POST(request: NextRequest) {
       system: systemPrompt,
       messages: messaggiAPI,
     });
+    // Il conto di quello che paghiamo (lib/ai/consumo.ts). `di_prova` solo per
+    // separare il robot dagli studenti; se non si legge, conta come produzione.
+    const { data: profiloConto } = await supabase.from("profiles").select("di_prova").eq("id", user.id).maybeSingle();
+    await registraConsumo("workshop/cliente-chat", MODELLO_CLIENTE_WORKSHOP, profiloConto?.di_prova === true, risposta.usage);
 
     const testoRisposta = risposta.content[0]?.type === "text" ? risposta.content[0].text : "";
     const testoFinale = testoRisposta || FALLBACK_RISPOSTA_CLIENTE;

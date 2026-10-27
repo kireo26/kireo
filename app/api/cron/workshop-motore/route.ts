@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { registraConsumo } from "@/lib/ai/consumo";
 import { createServiceRoleClient } from "@/lib/supabase/serviceRole";
 import { chiamaJson } from "@/lib/ai/chiamaJson";
 import { inviaEmail } from "@/lib/email/brevo";
@@ -272,6 +273,7 @@ export async function GET(request: NextRequest) {
       let esitoRevisioneStato: EsitoGenerazione = "non_riuscita";
       const esitoRevisione = await chiamaJson(client, {
         diProva: rigaDiProva,
+        processo: "cron/revisione-tappa",
         model: MODELLO_CLIENTE_WORKSHOP,
         maxTokens: MAX_TOKEN_REVISIONE,
         system: promptRevisore(ctx),
@@ -348,6 +350,7 @@ export async function GET(request: NextRequest) {
             system: promptCliente + REGOLA_LINGUA_INVARIANTE,
             messages: [{ role: "user", content: promptReazioneClienteUser(sintesi, fase.reazioneCliente) }],
           });
+          await registraConsumo("cron/reazione-cliente", MODELLO_CLIENTE_WORKSHOP, rigaDiProva, rispostaReazione.usage);
           reazioneCliente = rispostaReazione.content[0]?.type === "text" ? rispostaReazione.content[0].text : "";
         } catch (erroreReazione) {
           // Contata nell'alert come gli altri guasti AI (prima era solo un
@@ -406,6 +409,7 @@ export async function GET(request: NextRequest) {
 
         const esitoFinale = await chiamaJson(client, {
           diProva: rigaDiProva,
+          processo: "cron/feedback-finale",
           model: MODELLO_CLIENTE_WORKSHOP,
           maxTokens: MAX_TOKEN_FEEDBACK_FINALE,
           system: promptFeedbackFinale(ctx, fiduciaDopo),
@@ -478,6 +482,7 @@ export async function GET(request: NextRequest) {
 
             const esitoModo = await chiamaJson(client, {
               diProva: rigaDiProva,
+              processo: "cron/modo-di-lavorare",
               model: MODELLO_CLIENTE_WORKSHOP,
               maxTokens: MAX_TOKEN_MODO_DI_LAVORARE,
               system: promptModoDiLavorare(ctx, conTappa),

@@ -30,6 +30,7 @@ const { azzeraPercorsi } = require("./azzera-percorsi");
 const { robot } = require("./robot");
 const { iscrizioni } = require("./iscrizioni");
 const { guasti } = require("./guasti");
+const { spesa } = require("./spesa");
 const { confronta } = require("./confronta");
 const { comando: registro } = require("./registro");
 const { pagine } = require("./pagine");
@@ -57,6 +58,12 @@ BANCO DI PROVA — i gesti manuali, fatti dal terminale
       feedback finale mancante è la pagina di chiusura di un progetto.
       Dice sempre se sta rispondendo «zero guasti» o «non ho guardato».
       Non è «banco log»: quello legge la build su Vercel, e dura poche ore.
+
+  npm run banco spesa [giorni]
+      QUELLO CHE PAGHIAMO AL MODELLO (default: ultimi 7 giorni). Somma per
+      giorno e per processo, separando il robot del banco, mai per persona.
+      Token, non euro. Dice sempre se sta rispondendo «zero» o «non ho
+      guardato», e cosa la tabella non vede.
 
   npm run banco -- log [minuti] [dpl_...] [--tutto]
       GLI EVENTI DEL DEPLOY su Vercel — in pratica, la build (default: 60
@@ -225,6 +232,8 @@ async function main() {
     }
     case "guasti":
       return guasti(resto[0]);
+    case "spesa":
+      return spesa(resto[0]);
     case "deploy":
       return deploy(true);
     case "iscrizioni":

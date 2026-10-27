@@ -133,6 +133,8 @@ export function chiamaEscape(
   system: string,
   user: string,
   diProva: boolean,
+  // Chi sta spendendo, per il conto di quello che paghiamo (lib/ai/consumo.ts).
+  processo: string,
   controlloExtra?: (dati: unknown) => string[],
 ): Promise<EsitoAI> {
   return chiamaJson(anthropic, {
@@ -142,5 +144,6 @@ export function chiamaEscape(
     user,
     controlloExtra,
     diProva,
+    processo,
   });
 }

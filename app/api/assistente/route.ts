@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { registraConsumo } from "@/lib/ai/consumo";
 import { createClient } from "@/lib/supabase/server";
 import { getAreaBySlug } from "@/data/aree";
 import { buildSystemPrompt } from "@/lib/assistente/prompt";
@@ -55,7 +56,7 @@ export async function POST(request: NextRequest) {
     return erroreDiCortesia("Devi accedere con il tuo profilo studente per parlare con l'assistente digitale.", 401);
   }
 
-  const { data: profilo } = await supabase.from("profiles").select("ruolo").eq("id", user.id).maybeSingle();
+  const { data: profilo } = await supabase.from("profiles").select("ruolo, di_prova").eq("id", user.id).maybeSingle();
   if (profilo?.ruolo !== "studente") {
     return erroreDiCortesia("L'assistente digitale è disponibile solo per il profilo studente.", 403);
   }
@@ -167,6 +168,11 @@ export async function POST(request: NextRequest) {
             controller.enqueue(encoder.encode(event.delta.text));
           }
         }
+        // Il conto di quello che paghiamo (lib/ai/consumo.ts). Lo stream dà il
+        // consumo solo alla fine: un flusso interrotto a metà si paga e non lo
+        // registra — un limite dichiarato, non un buco nascosto.
+        const finale = await anthropicStream.finalMessage();
+        await registraConsumo("assistente", MODELLO_ASSISTENTE, profilo?.di_prova === true, finale.usage);
       } catch (errore) {
         console.error("Errore durante lo streaming dell'assistente:", errore);
         controller.enqueue(

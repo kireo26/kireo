@@ -17,6 +17,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { REGOLA_LINGUA_INVARIANTE, trovaAccordiInJson } from "@/lib/lingua/accordoGenere";
 import { REGOLA_REGISTRO, trovaRegistroInJson } from "@/lib/lingua/registroStudente";
 import { registraGuardiaLingua } from "@/lib/lingua/contatoreGuardia";
+import { registraConsumo } from "@/lib/ai/consumo";
 import { togliFormulaTesta } from "@/lib/lingua/formulaTesta";
 import { mappaStringheInJson } from "@/lib/lingua/scansione";
 
@@ -85,6 +86,8 @@ async function chiamaJsonGrezzo(
     // string per i prompt testuali (Escape, revisione), array di blocchi per il
     // multimodale (analisi di un'immagine/PDF di consegna workshop).
     user: Anthropic.Messages.MessageParam["content"];
+    processo: string;
+    diProva?: boolean;
   },
 ): Promise<EsitoAI> {
   const system = opzioni.system + ISTRUZIONE_ANTI_POSCRITTO;
@@ -100,6 +103,9 @@ async function chiamaJsonGrezzo(
         system,
         messages: [{ role: "user", content: opzioni.user }],
       });
+      // Il conto di quello che paghiamo, dopo OGNI risposta: anche il secondo
+      // tentativo (JSON o guardia sulla lingua) si paga (lib/ai/consumo.ts).
+      await registraConsumo(opzioni.processo, opzioni.model, opzioni.diProva === true, risposta.usage);
       testo = risposta.content[0]?.type === "text" ? risposta.content[0].text : "";
       troncata = risposta.stop_reason === "max_tokens";
       const usati = risposta.usage?.output_tokens ?? 0;
@@ -186,6 +192,9 @@ export async function chiamaJson(
     // `chiamaJson` non può saperlo da sé — è trasporto, non conosce il
     // contesto — quindi glielo dice chi chiama, che lo sa.
     diProva?: boolean;
+    // Chi sta spendendo: il nome con cui la chiamata entra nel conto di
+    // quello che paghiamo (lib/ai/consumo.ts). Obbligatorio, senza default.
+    processo: string;
   },
 ): Promise<EsitoAI> {
   const conRegola = { ...opzioni, system: opzioni.system + REGOLA_LINGUA_INVARIANTE + REGOLA_REGISTRO };

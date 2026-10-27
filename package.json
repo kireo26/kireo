@@ -87,7 +87,8 @@
     "sql:tutti": "scripts/verifica-sql-tutti.sh",
     "test:scritture": "node scripts/verifica-scritture-mute.js",
     "censimento:spesa": "node scripts/censimento-spesa-ai.js",
-    "test:tettispesa": "node scripts/verifica-tetti-spesa.js"
+    "test:tettispesa": "node scripts/verifica-tetti-spesa.js",
+    "test:consumo": "node scripts/verifica-consumo-ai.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.112.5",

@@ -1070,7 +1070,7 @@ export async function calcolaEvidenze(
           if (!testo || !anthropic) break;
           // Fix B: nessuna dipendenza dal mandato — questo step ora emette qualità
           // di missione (area null), non ha più bisogno di sapere qual è il mandato.
-          const esito = await chiamaEscape(anthropic, PROMPT_NON_APPROFONDIRE, testo, diProva, cifreInJson);
+          const esito = await chiamaEscape(anthropic, PROMPT_NON_APPROFONDIRE, testo, diProva, "escape/non-approfondire", cifreInJson);
           if (esito.ok) {
             const parsed = esito.dati as { consapevolezza?: number; motivazione?: string };
             if (typeof parsed.consapevolezza === "number") {
@@ -1097,7 +1097,7 @@ export async function calcolaEvidenze(
           if (eProposta) revisoreEsito = "non_riuscito";
           break;
         }
-        const esito = await chiamaEscape(anthropic, spec.promptProposta(mission.areeCandidate, { letti }), testo, diProva, cifreInJson);
+        const esito = await chiamaEscape(anthropic, spec.promptProposta(mission.areeCandidate, { letti }), testo, diProva, "escape/proposta", cifreInJson);
         if (!esito.ok) {
           if (eProposta) revisoreEsito = "non_riuscito";
           break;
@@ -1248,7 +1248,7 @@ export async function calcolaEvidenze(
         const p = payload as PayloadTesto | undefined;
         const testo = p?.testo?.trim();
         if (!testo || !anthropic) break;
-        const esito = await chiamaEscape(anthropic, PROMPT_RIFLESSIONE(mission.areeCandidate), testo, diProva, cifreInJson);
+        const esito = await chiamaEscape(anthropic, PROMPT_RIFLESSIONE(mission.areeCandidate), testo, diProva, "escape/riflessione", cifreInJson);
         const parsed = esito.ok ? (esito.dati as { aree?: unknown[] }) : null;
         const aree = Array.isArray(parsed?.aree) ? parsed!.aree : [];
         let emesse = 0;

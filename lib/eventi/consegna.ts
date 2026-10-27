@@ -196,6 +196,7 @@ export async function giudicaConsegna(
     promptConsegnaEvento(titoloEvento, domanda, aree),
     testoStudente,
     diProva,
+    "eventi/consegna",
     // Come nelle missioni: innesca il secondo tentativo della guardia se la
     // prima risposta contiene una cifra che non torna. Il terminale (la
     // sostituzione con il ripiego) sta in leggiGiudizioConsegna, perché qui si
