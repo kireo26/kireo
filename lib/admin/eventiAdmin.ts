@@ -23,9 +23,12 @@
 import { eventoNonFinito } from "@/lib/app/eventi";
 import { COLONNE_EVENTO_ENTE, type EventoEnte, type GruppoEventi } from "@/lib/ente/eventiEnte";
 
-export type EventoAdmin = EventoEnte & { ente: string | null; note_revisione: string | null };
+// La frase sotto un rifiutato è una sola per l'ente e per l'admin: sta là.
+export { motivoRifiuto } from "@/lib/ente/eventiEnte";
 
-export const COLONNE_EVENTO_ADMIN = `${COLONNE_EVENTO_ENTE}, note_revisione, istituzioni(nome)`;
+export type EventoAdmin = EventoEnte & { ente: string | null };
+
+export const COLONNE_EVENTO_ADMIN = `${COLONNE_EVENTO_ENTE}, istituzioni(nome)`;
 
 const GRUPPI_IN_PROGRAMMAZIONE = [{ chiave: "approvato", titolo: "Approvati" }];
 // Gli stati che hanno una sezione loro. Tutto il resto — tranne la bozza — è
@@ -35,13 +38,20 @@ const STATI_CON_SEZIONE = new Set(["in_approvazione", "approvato", "rifiutato"])
 export function dividiEventiAdmin<E extends EventoAdmin>(
   eventi: E[],
   ora: Date = new Date(),
-): { daApprovare: E[]; inProgrammazione: GruppoEventi<E>[]; passati: E[]; rifiutati: E[] } {
+): { daApprovare: E[]; scaduti: E[]; inProgrammazione: GruppoEventi<E>[]; passati: E[]; rifiutati: E[] } {
   const t = (e: E) => new Date(e.data_inizio).getTime();
   const consegnati = eventi.filter((e) => e.stato !== "bozza");
 
-  // In attesa di una decisione, di qualunque data: anche uno la cui data è
-  // passata aspetta una risposta, e sparire non è una risposta.
-  const daApprovare = consegnati.filter((e) => e.stato === "in_approvazione").sort((a, b) => t(a) - t(b));
+  // ⚠️ DA APPROVARE È UNA CODA DI LAVORO (Mario, 27/10): ci sta solo quello su
+  // cui una decisione cambia ancora qualcosa. Un evento in approvazione la cui
+  // data è passata non si fa accadere approvandolo, e rifiutarlo non cambia
+  // niente: «una coda che contiene cose su cui non si può più agire diventa un
+  // elenco, e chi la guarda impara a scorrerla invece di svuotarla». Quelli
+  // vanno in `scaduti`, un gruppo in fondo alla stessa scheda, e NON nel numero
+  // accanto alla voce — che conta solo `daApprovare`.
+  const inAttesa = consegnati.filter((e) => e.stato === "in_approvazione");
+  const daApprovare = inAttesa.filter((e) => eventoNonFinito(e, ora)).sort((a, b) => t(a) - t(b));
+  const scaduti = inAttesa.filter((e) => !eventoNonFinito(e, ora)).sort((a, b) => t(b) - t(a));
   // I più recenti in cima: si apre questa sezione per un caso preciso, di solito recente.
   const rifiutati = consegnati.filter((e) => e.stato === "rifiutato").sort((a, b) => t(b) - t(a));
 
@@ -53,7 +63,7 @@ export function dividiEventiAdmin<E extends EventoAdmin>(
   }
   const passati = vivi.filter((e) => !eventoNonFinito(e, ora)).sort((a, b) => t(b) - t(a));
 
-  return { daApprovare, inProgrammazione: inProgrammazione.filter((g) => g.eventi.length > 0), passati, rifiutati };
+  return { daApprovare, scaduti, inProgrammazione: inProgrammazione.filter((g) => g.eventi.length > 0), passati, rifiutati };
 }
 
 /** L'etichetta della scheda «Da approvare», con il numero accanto. */
@@ -63,17 +73,6 @@ export function etichettaDaApprovare(n: number | null): string {
   return n === null ? "Da approvare" : `Da approvare (${n})`;
 }
 
-/**
- * La riga sotto un evento da approvare, o null. ⚠️ Testo mio, provvisorio.
- * Una proposta la cui data è già passata non si approva più per farla
- * accadere: si dice, così la decisione è informata.
- */
-export function avvisoDaApprovare(e: EventoAdmin, ora: Date = new Date()): string | null {
-  return eventoNonFinito(e, ora) ? null : "La data di questo incontro è già passata.";
-}
-
-/** Sotto un rifiutato: la nota che ha ricevuto l'ente, o che non ne ha ricevuta nessuna. ⚠️ Testo mio, provvisorio. */
-export function motivoRifiuto(e: EventoAdmin): string {
-  const nota = e.note_revisione?.trim();
-  return nota ? `Nota di revisione: ${nota}` : "Rifiutato senza una nota di revisione.";
-}
+/** Il titolo del gruppo in fondo a «Da approvare», e la riga sotto ognuno. ⚠️ Testi miei, provvisori. */
+export const TITOLO_SCADUTI = "Con la data già passata";
+export const AVVISO_SCADUTO = "La data di questo incontro è già passata: approvarlo non lo fa più accadere.";

@@ -33,10 +33,14 @@ export type EventoEnte = {
   filone: string | null;
   diretta_chiusa_il: string | null;
   diretta_chiusa_presenti: number | null;
+  // La nota di chi ha rivisto l'evento (27/10): fino ad allora l'ente non la
+  // leggeva da nessuna parte, mentre il campo dell'admin prometteva «visibile
+  // all'ente». Un rifiuto che porta una ragione che nessuno vede è muto uguale.
+  note_revisione: string | null;
 };
 
 export const COLONNE_EVENTO_ENTE =
-  "id, titolo, tipo, data_inizio, data_fine, stato, pubblico, filone, diretta_chiusa_il, diretta_chiusa_presenti";
+  "id, titolo, tipo, data_inizio, data_fine, stato, pubblico, filone, diretta_chiusa_il, diretta_chiusa_presenti, note_revisione";
 
 export const ETICHETTA_STATO: Record<string, { label: string; classe: string }> = {
   bozza: { label: "Bozza", classe: "bg-white/10 text-kireo-light" },
@@ -137,3 +141,16 @@ export function esitoEventoPassato(e: EventoEnte, docentiCertificati: number | n
   }
   return "Le presenze le registra la scuola.";
 }
+
+/**
+ * Sotto un rifiutato: la nota di revisione, o che non ce n'è nessuna. La legge
+ * l'ente (la sua lista e la pagina dell'evento) e la legge l'admin (la scheda
+ * Rifiutati): lo stesso testo, perché è lo stesso fatto. ⚠️ Testo mio,
+ * provvisorio. Dal 27/10 un rifiuto senza nota non si può più scrivere
+ * (`lib/admin/rifiuto.ts`): la seconda frase resta per le righe di prima.
+ */
+export function motivoRifiuto(e: Pick<EventoEnte, "note_revisione">): string {
+  const nota = e.note_revisione?.trim();
+  return nota ? `Nota di revisione: ${nota}` : "Rifiutato senza una nota di revisione.";
+}
+

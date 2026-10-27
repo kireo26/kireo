@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import RigaEventoEnte from "@/components/ente/RigaEventoEnte";
 import RispondiPropostaForm, { CreaEventoDaPropostaLink } from "@/components/ente/RispondiPropostaForm";
 import { caricaEventiEnte } from "@/lib/ente/caricaEventiEnte";
-import { areaEventoEnte, dividiEventiEnte, testoCodaRevisione } from "@/lib/ente/eventiEnte";
+import { areaEventoEnte, dividiEventiEnte, motivoRifiuto, testoCodaRevisione } from "@/lib/ente/eventiEnte";
 
 // IN PROGRAMMAZIONE (Mario, 27/10): gli eventi non ancora finiti — approvati e
 // in attesa di revisione insieme, per data, i più vicini in cima — con in testa
@@ -102,7 +102,7 @@ export default async function EnteEventiPage() {
           <h2 className="mb-3 font-heading text-base font-semibold text-kireo-light">Rifiutati</h2>
           <ul className="space-y-3">
             {rifiutati.map((e) => (
-              <RigaEventoEnte key={e.id} evento={e} area={areaEventoEnte(e, aree[e.id] ?? [])} />
+              <RigaEventoEnte key={e.id} evento={e} area={areaEventoEnte(e, aree[e.id] ?? [])} esito={motivoRifiuto(e)} />
             ))}
           </ul>
         </section>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { fineEffettiva } from "@/lib/live";
 import { getContestoModerazione } from "@/lib/eventi/moderazione";
+import { motivoRifiuto } from "@/lib/ente/eventiEnte";
 import ControlloDirettaEvento from "@/components/ente/ControlloDirettaEvento";
 import ReportEventoButton from "@/components/ente/ReportEventoButton";
 import GestisciVideoDirettaForm from "@/components/admin/GestisciVideoDirettaForm";
@@ -73,6 +74,9 @@ export default async function ModerazioneDirettaPage({ params }: { params: Promi
             Questo evento non è approvato ({evento.stato}): finché non lo è, gli studenti non possono iscriversi né collegarsi.
           </p>
         )}
+        {/* La ragione del rifiuto, per tutti e due i ruoli (27/10): è la cosa
+            che l'ente deve leggere per correggere, e l'admin per ricordare. */}
+        {evento.stato === "rifiutato" && <p className="mt-2 text-sm text-kireo-light/90">{motivoRifiuto(evento)}</p>}
       </header>
 
       {/* Approva/rifiuta e la chiave: dal 27/10 stanno qui e non nella coda di

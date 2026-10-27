@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/Button";
 import { createClient } from "@/lib/supabase/client";
+import { erroreRifiuto } from "@/lib/admin/rifiuto";
 
 export default function AzioneApprovazione({
   tabella,
@@ -22,6 +23,15 @@ export default function AzioneApprovazione({
   const [errore, setErrore] = useState<string | null>(null);
 
   async function handleAzione(stato: string, chiave: "approva" | "rifiuta") {
+    // Un rifiuto porta la sua ragione (`lib/admin/rifiuto.ts`): si controlla
+    // prima di scrivere, così un rifiuto muto non parte mai.
+    if (chiave === "rifiuta") {
+      const manca = erroreRifiuto(nota);
+      if (manca) {
+        setErrore(manca);
+        return;
+      }
+    }
     setCaricamento(chiave);
     setErrore(null);
     try {
@@ -46,7 +56,7 @@ export default function AzioneApprovazione({
         value={nota}
         onChange={(e) => setNota(e.target.value)}
         rows={2}
-        placeholder="Nota di revisione (facoltativa, visibile all'ente)"
+        placeholder="Nota di revisione (obbligatoria per rifiutare, visibile all'ente)"
         className="w-full rounded-lg border border-white/10 bg-kireo-dark px-3 py-2 text-sm text-kireo-light placeholder:text-kireo-muted"
       />
       {errore && <p className="text-sm text-red-400">{errore}</p>}

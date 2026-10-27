@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/Button";
 import { createClient } from "@/lib/supabase/client";
+import { erroreRifiuto } from "@/lib/admin/rifiuto";
 
 // Variante dedicata di AzioneApprovazione (tabella diversa: post_enti usa
 // motivo_rifiuto invece di note_revisione, e registra approvato_da/il
@@ -38,6 +39,12 @@ export default function AzioneApprovazionePost({ id }: { id: string }) {
   }
 
   async function rifiuta() {
+    // Un rifiuto porta la sua ragione (`lib/admin/rifiuto.ts`).
+    const manca = erroreRifiuto(motivo);
+    if (manca) {
+      setErrore(manca);
+      return;
+    }
     setCaricamento("rifiuta");
     setErrore(null);
     try {
@@ -62,7 +69,7 @@ export default function AzioneApprovazionePost({ id }: { id: string }) {
         value={motivo}
         onChange={(e) => setMotivo(e.target.value)}
         rows={2}
-        placeholder="Motivo del rifiuto (facoltativo, visibile all'ente)"
+        placeholder="Motivo del rifiuto (obbligatorio per rifiutare, visibile all'ente)"
         className="w-full rounded-lg border border-white/10 bg-kireo-dark px-3 py-2 text-sm text-kireo-light placeholder:text-kireo-muted"
       />
       {errore && <p className="text-sm text-red-400">{errore}</p>}

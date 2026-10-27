@@ -2,7 +2,7 @@
 // come `lib/ente/caricaEventiEnte.ts`: quattro viste della stessa lettura.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getAreeDegliEventi } from "@/lib/app/eventi";
-import { COLONNE_EVENTO_ADMIN, type EventoAdmin } from "@/lib/admin/eventiAdmin";
+import { COLONNE_EVENTO_ADMIN, dividiEventiAdmin, type EventoAdmin } from "@/lib/admin/eventiAdmin";
 
 export async function caricaEventiAdmin(
   supabase: SupabaseClient,
@@ -21,12 +21,17 @@ export async function caricaEventiAdmin(
   return { eventi, aree, letturaFallita: !!error };
 }
 
-/** Quanti eventi aspettano una decisione: per il numero accanto a «Da approvare». `null` = non letto. */
+/**
+ * Il numero accanto a «Da approvare». `null` = non letto, che non è zero.
+ *
+ * ⚠️ NON È UN `count` SU `stato = 'in_approvazione'`, ed era così fino al 27/10:
+ * contava anche le proposte con la data già passata, cioè prometteva un lavoro
+ * che in parte non esisteva — sul primo numero che l'admin guarda ogni mattina.
+ * Ora esce dalla stessa divisione della scheda (`dividiEventiAdmin`), così il
+ * numero e l'elenco non possono dire due cose diverse.
+ */
 export async function contaDaApprovare(supabase: SupabaseClient): Promise<number | null> {
-  const { count, error } = await supabase.from("eventi").select("id", { count: "exact", head: true }).eq("stato", "in_approvazione");
-  if (error) {
-    console.error("[admin/eventi] conteggio da approvare:", error);
-    return null;
-  }
-  return count ?? 0;
+  const { eventi, letturaFallita } = await caricaEventiAdmin(supabase);
+  if (letturaFallita) return null;
+  return dividiEventiAdmin(eventi).daApprovare.length;
 }

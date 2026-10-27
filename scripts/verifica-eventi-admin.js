@@ -53,7 +53,10 @@ console.log("\n§1 — le quattro sezioni, e le bozze da nessuna parte\n");
   ];
   const d = A.dividiEventiAdmin(eventi, ORA);
   // Gli attesi sono scritti a mano.
-  ok(ids(d.daApprovare) === "rev_passato,rev_vicino,rev_lontano", "da approvare: tutti gli in approvazione, di qualunque data, i più vicini in cima", ids(d.daApprovare));
+  // ⚠️ Dal 27/10 una proposta con la data già passata non è lavoro (Mario):
+  // esce da «Da approvare», e quindi dal numero, e va in un gruppo suo.
+  ok(ids(d.daApprovare) === "rev_vicino,rev_lontano", "da approvare: solo gli in approvazione che si possono ancora far accadere, i più vicini in cima", ids(d.daApprovare));
+  ok(ids(d.scaduti) === "rev_passato", "…e quelli con la data passata in un gruppo loro", ids(d.scaduti));
   const forma = d.inProgrammazione.map((g) => `${g.titolo}: ${ids(g.eventi)}`);
   ok(
     JSON.stringify(forma) === JSON.stringify(["Approvati: appr_in_corso,appr_lontano", "sospeso: sospeso"]),
@@ -62,7 +65,7 @@ console.log("\n§1 — le quattro sezioni, e le bozze da nessuna parte\n");
   );
   ok(ids(d.passati) === "chiusa_in_anticipo,ieri,mese_scorso", "passati: sulla fine effettiva, dal più recente", ids(d.passati));
   ok(ids(d.rifiutati) === "rif_futuro,rif_vecchio", "rifiutati: di qualunque data, i più recenti in cima", ids(d.rifiutati));
-  const tutti = [...d.daApprovare, ...d.inProgrammazione.flatMap((g) => g.eventi), ...d.passati, ...d.rifiutati].map((e) => e.id);
+  const tutti = [...d.daApprovare, ...d.scaduti, ...d.inProgrammazione.flatMap((g) => g.eventi), ...d.passati, ...d.rifiutati].map((e) => e.id);
   ok(!tutti.some((i) => i.startsWith("bozza")), "nessuna bozza in nessuna sezione, nemmeno se la lettura le lasciasse passare");
   ok(tutti.length === eventi.length - 2, "ogni evento che non è una bozza sta in una sezione, una volta sola", `${tutti.length} su ${eventi.length - 2}`);
   ok(new Set(tutti).size === tutti.length, "…e nessuno in due");
@@ -73,10 +76,37 @@ console.log("\n§2 — le frasi\n");
   ok(A.etichettaDaApprovare(3) === "Da approvare (3)", "il numero accanto alla voce");
   ok(A.etichettaDaApprovare(0) === "Da approvare (0)", "zero è un numero");
   ok(A.etichettaDaApprovare(null) === "Da approvare", "non letto non è zero: nessun numero");
-  ok(A.avvisoDaApprovare(ev("p", { data_inizio: "2026-10-20T10:00:00Z", data_fine: "2026-10-20T11:00:00Z" }), ORA) === "La data di questo incontro è già passata.", "una proposta con la data passata lo dice");
-  ok(A.avvisoDaApprovare(ev("f", {}), ORA) === null, "…una futura no");
+  ok(A.AVVISO_SCADUTO === "La data di questo incontro è già passata: approvarlo non lo fa più accadere.", "il gruppo delle scadute dice perché sta lì");
   ok(A.motivoRifiuto(ev("r", { note_revisione: "  Manca il programma.  " })) === "Nota di revisione: Manca il programma.", "un rifiutato dice la nota che ha ricevuto l'ente");
   ok(A.motivoRifiuto(ev("r", { note_revisione: "   " })) === "Rifiutato senza una nota di revisione.", "…e dice anche quando non ne ha ricevuta nessuna");
+}
+
+console.log("\n§2bis — un rifiuto porta la sua ragione\n");
+{
+  const R = require("@/lib/admin/rifiuto");
+  ok(R.erroreRifiuto("") !== null && R.erroreRifiuto("   \n ") !== null, "senza nota (o solo spazi) non si rifiuta");
+  ok(R.erroreRifiuto("Manca il programma.") === null, "…con una nota sì");
+  // L'USO, non solo la regola (il modo 10): tutti e due i componenti che
+  // rifiutano la chiamano, e PRIMA di scrivere — un controllo dopo l'update
+  // direbbe «manca la nota» su un rifiuto già partito.
+  for (const [f, apertura] of [
+    ["components/admin/AzioneApprovazione.tsx", /async function handleAzione\(/],
+    ["components/admin/AzioneApprovazionePost.tsx", /async function rifiuta\(\)/],
+  ]) {
+    const src = leggi(f);
+    const da = src.search(apertura);
+    const corpo = da >= 0 ? src.slice(da) : "";
+    const controllo = corpo.search(/erroreRifiuto\(/);
+    const scrittura = corpo.search(/\.update\(/);
+    ok(da >= 0 && controllo >= 0 && scrittura > controllo, `${f}: il rifiuto chiede la nota prima di scrivere`, `controllo ${controllo}, scrittura ${scrittura}`);
+    ok(!/facoltativ[ao], visibile all'ente/.test(src), `${f}: il campo non dice più «facoltativo»`);
+  }
+  // E la nota arriva a chi deve leggerla: senza, un rifiuto con la ragione
+  // resta muto uguale.
+  ok(/note_revisione/.test(leggi("lib/ente/eventiEnte.ts").match(/COLONNE_EVENTO_ENTE =[\s\S]*?;/)?.[0] ?? ""), "l'elenco dell'ente legge la nota");
+  ok(/esito=\{motivoRifiuto\(e\)\}/.test(leggi("app/ente/(dashboard)/eventi/page.tsx")), "…e la mostra sotto ogni rifiutato");
+  ok(/note_revisione/.test(leggi("lib/eventi/moderazione.ts")) && /motivoRifiuto\(evento\)/.test(leggi("app/diretta/[id]/page.tsx")), "…e così la pagina dell'evento");
+  ok(A.motivoRifiuto === require("@/lib/ente/eventiEnte").motivoRifiuto, "la frase è una sola per l'ente e per l'admin");
 }
 
 console.log("\n§3 — i posti\n");
@@ -85,6 +115,7 @@ console.log("\n§3 — i posti\n");
   const ordine = ["/admin/eventi\"", "/admin/eventi/in-programmazione", "/admin/eventi/passati", "/admin/eventi/rifiutati"].map((h) => layout.indexOf(h));
   ok(ordine.every((i) => i >= 0) && ordine.every((i, k) => k === 0 || i > ordine[k - 1]), "le schede nell'ordine del mestiere: da approvare, in programmazione, passati, rifiutati", ordine);
   ok(/etichettaDaApprovare\(daApprovare\)/.test(layout), "…e «Da approvare» porta il numero");
+  ok(/dividiEventiAdmin\(eventi\)\.daApprovare\.length/.test(leggi("lib/admin/caricaEventiAdmin.ts")), "…e il numero esce dalla stessa divisione della scheda, non da un conto a parte");
   ok(/\.neq\("stato", "bozza"\)/.test(leggi("lib/admin/caricaEventiAdmin.ts")), "la lettura esclude le bozze nel database, non solo a schermo");
   const elenco = leggi("app/admin/eventi/ElencoAdmin.tsx");
   ok(/ente=\{e\.ente\}/.test(elenco), "ogni riga porta il nome dell'ente");
