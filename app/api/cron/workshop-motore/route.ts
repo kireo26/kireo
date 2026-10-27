@@ -209,7 +209,21 @@ export async function GET(request: NextRequest) {
       // sola definizione del predicato, non due che col tempo divergono.
       const { data: diProva } = await supabase.rpc("e_profilo_di_prova", { p_student_id: iscrizione.student_id });
       rigaDiProva = diProva === true;
-      if (!rigaDiProva) {
+      // L'attesa fra le tappe è un CANCELLO, non un conto: dal 20261031100000
+      // la salta chi è esente dai cancelli, non chi è fuori dai conti (Mario,
+      // 27/10 — fino all'apertura ogni account nuovo è di prova, e non per
+      // questo deve saltare l'attesa). Se la lettura fallisce l'attesa vale:
+      // si sbaglia verso la regola di uno studente vero.
+      const { data: esente, error: erroreEsente } = await supabase.rpc("e_esente_dai_cancelli", { p_student_id: iscrizione.student_id });
+      // Si registra come guasto della revisione, perché è lei che ne paga il
+      // prezzo: un profilo esente aspetterebbe l'attesa di uno studente vero.
+      if (erroreEsente) {
+        await guasto(
+          { specie: "revisione", motivo: "lettura_esenzione", dettaglio: erroreEsente },
+          `Errore lettura e_esente_dai_cancelli (iscrizione ${riga.iscrizione_id}): si applica l'attesa`,
+        );
+      }
+      if (esente !== true) {
         const dueDa = new Date(riga.consegnata_at).getTime() + fase.cooldownGiorni * 86_400_000;
         if (Date.now() < dueDa) {
           saltate++;

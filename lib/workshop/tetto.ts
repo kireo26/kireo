@@ -34,7 +34,6 @@ export type StatoTetto = {
   usate: number;
   tetto: number;
   puo: boolean;
-  esente: boolean;
   attivoSlug: string | null;
   attivoTitolo: string | null;
   attivoRuolo: string | null;
@@ -53,7 +52,6 @@ export async function leggiTettoWorkshop(supabase: SupabaseClient): Promise<Stat
       usate: Number(r.usate) || 0,
       tetto: Number(r.tetto) || 0,
       puo: r.puo === true,
-      esente: r.esente === true,
       attivoSlug: r.attivo_slug ?? null,
       attivoTitolo: r.attivo_titolo ?? null,
       attivoRuolo: r.attivo_ruolo ?? null,

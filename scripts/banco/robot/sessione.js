@@ -119,7 +119,7 @@ async function apriSessione() {
   // scrivere qualunque cosa, e se non è marcato NON SI PARTE.
   const { data: profilo, error: erroreProfilo } = await supabase
     .from("profiles")
-    .select("nome, ruolo, di_prova")
+    .select("nome, ruolo, di_prova, esente_cancelli")
     .eq("id", data.user.id)
     .maybeSingle();
 
@@ -138,6 +138,21 @@ async function apriSessione() {
         `Marcalo da admin (o con la service-role) nel SQL Editor:\n` +
         `    update public.profiles set di_prova = true where id = '${data.user.id}';\n\n` +
         `Il trigger blocca chiunque non sia admin, quindi non basta farlo dalla sessione dell'account stesso.`,
+    );
+  }
+
+  // IL BANCO RESTA ESENTE (Mario, 27/10). Dal 20261031100000 «fuori dai
+  // conti» ed «esente dai cancelli» sono due colonne: un account solo che gioca
+  // venticinque ruoli batterebbe contro il tetto dei tre al quarto, e ogni
+  // tappa aspetterebbe due giorni. Il controllo sopra protegge i dati degli
+  // studenti; questo dice perché la passata si fermerebbe a ogni cancello.
+  if (profilo.esente_cancelli !== true) {
+    esci(
+      `L'account ${c.robotEmail} è di prova ma NON è esente dai cancelli dei workshop.\n\n` +
+        `Il banco gioca molti ruoli con un account solo: senza l'esenzione si fermerebbe al\n` +
+        `tetto dei tre e aspetterebbe due giorni a ogni tappa.\n\n` +
+        `Esentalo da admin (o con la service-role) nel SQL Editor:\n` +
+        `    update public.profiles set esente_cancelli = true where id = '${data.user.id}';\n`,
     );
   }
 

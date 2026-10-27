@@ -49,17 +49,16 @@ const { senzaCommenti } = require("./lib/senza-commenti");
 
 console.log("\n═══ IL TETTO DEI WORKSHOP (lato pagina) ═══\n");
 
-const APERTO = { usate: 1, tetto: 3, puo: true, esente: false, attivoSlug: null, attivoTitolo: null, attivoRuolo: null };
+const APERTO = { usate: 1, tetto: 3, puo: true, attivoSlug: null, attivoTitolo: null, attivoRuolo: null };
 const UNO_ATTIVO = {
   usate: 1,
   tetto: 3,
   puo: false,
-  esente: false,
   attivoSlug: "palestra-popolare",
   attivoTitolo: "Apri una palestra popolare",
   attivoRuolo: "Salute e sicurezza",
 };
-const PIENO = { usate: 3, tetto: 3, puo: false, esente: false, attivoSlug: null, attivoTitolo: null, attivoRuolo: null };
+const PIENO = { usate: 3, tetto: 3, puo: false, attivoSlug: null, attivoTitolo: null, attivoRuolo: null };
 
 // ── 1. chi può non legge niente ──────────────────────────────────────────────
 console.log("Chi può cominciarne un altro:");
@@ -197,7 +196,7 @@ const finto = {
     // sarebbe passata anche su `tetto: 3` cablato a mano — il caso che la
     // controprova F ha trovato muto.
     return Promise.resolve({
-      data: [{ usate: 2, tetto: 7, puo: false, esente: false, attivo_slug: "s", attivo_titolo: "T", attivo_ruolo: "R" }],
+      data: [{ usate: 2, tetto: 7, puo: false, attivo_slug: "s", attivo_titolo: "T", attivo_ruolo: "R" }],
       error: null,
     });
   },

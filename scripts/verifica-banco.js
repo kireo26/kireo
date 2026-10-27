@@ -646,6 +646,7 @@ ok(/col rename, senza rubrica:\s+1 rapporto/.test(conRotto), "…quindi «col re
   }
   const sess = senzaCommenti(fs.readFileSync(path.join(radice, "robot", "sessione.js"), "utf8"));
   ok(/profilo\.di_prova\s*!==\s*true/.test(sess), "apriSessione rifiuta un account non di prova (robot, studente, pagine)");
+  ok(/profilo\.esente_cancelli\s*!==\s*true/.test(sess) && /select\("[^"]*esente_cancelli/.test(sess), "…e uno non esente dai cancelli: il banco resta esente (dal 20261031100000 è una colonna sua)");
 }
 
 console.log("\n═══════════════════════════════════════════\n");

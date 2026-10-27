@@ -46,7 +46,20 @@ begin
     (robot,  'studente', 'Robot', 'C', '2008-01-01'),
     (vicino, 'studente', 'Vicino', 'D', '2008-01-01');
   -- Il robot del banco è riconoscibile, non invisibile.
-  update public.profiles set di_prova = true where id = robot;
+  -- Dal 20261031100000 «fuori dai conti» ed «esente dai cancelli» sono due
+  -- colonne: il robot del banco ha tutte e due, e la 11 prova la seconda.
+  update public.profiles set di_prova = true, esente_cancelli = true where id = robot;
+
+  -- ── 0. premessa della 9 e della 10 (27/10) ──────────────────────────────
+  --     Dal 20261031100000 ogni profilo nasce di prova e NON esente: «pieno»
+  --     lo è, quindi quando la 9 e la 10 lo fermano provano anche che essere
+  --     fuori dai conti non apre i cancelli. Senza questa premessa la prova
+  --     sarebbe la stessa di prima, e la separazione non la guarderebbe nessuno.
+  select di_prova and not esente_cancelli into v_ok from public.profiles where id = pieno;
+  if not coalesce(v_ok, false) then
+    raise exception 'ROTTO 0: «pieno» dovrebbe essere di prova e non esente (default della colonna e copia della migrazione).';
+  end if;
+  raise notice '  ok  0. un profilo di prova non esente: le 9 e 10 lo trovano davanti al tetto';
 
   -- Quattro workshop finti: usarne di veri legherebbe l'esito a quello che
   -- stanno facendo studenti in carne e ossa.

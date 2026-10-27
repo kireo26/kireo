@@ -206,7 +206,33 @@ ok(
 );
 
 // (c) il complemento: un sospetto fra quelle che risultano non scrivere.
-const sospette = nonScrivono.filter((f) => PAROLA_LARGA.test(senzaCommenti(f.corpo)));
+// Le esenzioni del complemento, ognuna con la riga che la giustifica e il
+// perché. Una funzione esentata qui non è guardata dal punto 1: la ragione
+// deve dire perché non ne ha bisogno, non solo che la parola è innocua.
+const ESENTI_COMPLEMENTO = [
+  {
+    funzione: "blocca_autoflag_di_prova",
+    contiene: "tg_op = 'INSERT'",
+    perche:
+      "è un trigger BEFORE: non scrive con un'istruzione, assegna NEW, e la parola è il nome " +
+      "dell'operazione (tg_op). La sua guardia è già nella forma sicura: il ramo che lascia " +
+      "passare è `auth.uid() is not null and current_ruolo() is distinct from 'admin'` " +
+      "negato, e con un auth.uid() NULL vale la connessione privilegiata, come voluto " +
+      "(verifica-esente-dai-cancelli.sql 3-5).",
+  },
+];
+const sospette = nonScrivono.filter((f) => {
+  const corpo = senzaCommenti(f.corpo);
+  if (!PAROLA_LARGA.test(corpo)) return false;
+  const e = ESENTI_COMPLEMENTO.find((x) => x.funzione === f.nome);
+  if (!e) return true;
+  // L'esenzione vale per QUELLA riga: un'altra parola di scrittura nella
+  // stessa funzione torna sospetta.
+  return corpo.split("\n").some((r) => PAROLA_LARGA.test(r) && !r.includes(e.contiene));
+});
+for (const e of ESENTI_COMPLEMENTO) {
+  if (nonScrivono.some((f) => f.nome === e.funzione)) console.log(`  · esente dal complemento: ${e.funzione} — ${e.perche.split(":")[0]}.`);
+}
 ok(
   sospette.length === 0,
   sospette.length === 0
