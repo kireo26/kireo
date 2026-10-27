@@ -73,7 +73,9 @@ console.log("\n§2 — chi trasmette sa quanti non vedono\n");
   // deve far dichiarare stantii i presenti.
   ok(!/const andata = [^;]*Rotti/.test(console_), "un guasto della lettura dei rotti non degrada i presenti");
 
-  const pagine = ["app/diretta/[id]/page.tsx", "app/admin/page.tsx", "app/ente/(dashboard)/eventi/page.tsx"];
+  // La lista dell'ente non monta più la console dal 27/10 (sta nella pagina
+  // dell'evento, la prima di queste due).
+  const pagine = ["app/diretta/[id]/page.tsx", "app/admin/page.tsx"];
   for (const f of pagine) ok(/youtubeVideoId=\{/.test(leggi(f)), `${f}: la console riceve il video da riprovare`);
 }
 

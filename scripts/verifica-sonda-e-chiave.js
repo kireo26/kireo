@@ -255,7 +255,9 @@ ok(tMai.tono === "errore", "…e non lo si racconta come un'attesa");
 console.log("\n§8 — dove la chiave si legge e dove si scrive");
 // =====================================================================
 
-const pagEnte = senzaCommenti(leggi("app/ente/(dashboard)/eventi/page.tsx"));
+// Dal 27/10 la chiave non sta più nella lista di `/ente/eventi` ma nella plancia
+// dell'evento (`PlanciaEnteEvento`, montata da `app/diretta/[id]`).
+const pagEnte = senzaCommenti(leggi("components/ente/PlanciaEnteEvento.tsx"));
 const frasiEnte = frasiDi(pagEnte);
 ok(/<ChiaveTrasmissione/.test(pagEnte), "il pannello dell'ente mostra lo stato della chiave");
 ok(/statoChiaveTrasmissione\(/.test(pagEnte), "…chiedendolo alla funzione, invece di ricalcolare la regola");

@@ -70,7 +70,11 @@ const CLASSI = {
   "lib/eventi/moderazione.ts": ["effettiva", "legge le colonne della chiusura per la pagina della diretta"],
   "app/diretta/[id]/page.tsx": ["effettiva", "intestazione e report sulla fine effettiva"],
   "app/admin/page.tsx": ["effettiva", "passa la chiusura alla console"],
-  "app/ente/(dashboard)/eventi/page.tsx": ["effettiva", "passa la chiusura alla console, al report e alla chiave"],
+  // `app/ente/(dashboard)/eventi/page.tsx` è USCITA il 27/10: la lista non
+  // monta più console, report e chiave, e il confine fra programmazione e
+  // passati lo decide `lib/ente/eventiEnte.ts`.
+  "lib/ente/eventiEnte.ts": ["effettiva", "in programmazione / passati sulla fine effettiva (`eventoNonFinito`): una diretta chiusa prima è passata"],
+  "components/ente/PlanciaEnteEvento.tsx": ["effettiva", "passa la chiusura a `statoChiaveTrasmissione` (una chiave mai arrivata su una diretta chiusa è «mai arrivata»)"],
   "app/api/admin/presenze/[id]/route.ts": ["effettiva", "l'esito sa se la diretta è chiusa"],
   "app/api/scuola/presenze/[id]/route.ts": ["effettiva", "come sopra"],
   "components/EntraDirettaLink.tsx": ["riceve", "la fine la decidono i due chiamanti (CardEvento, CardWebinarDocente)"],

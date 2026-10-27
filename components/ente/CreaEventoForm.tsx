@@ -17,6 +17,7 @@ import { testoOreCreazione, TESTO_ORE_CREAZIONE_SENZA_NUMERO } from "@/lib/event
 import { useSondaIncorporamento } from "@/lib/useSondaIncorporamento";
 import { sondaBlocca, testoSonda } from "@/lib/sondaYoutube";
 import EsitoSondaIncorporamento from "@/components/EsitoSondaIncorporamento";
+import { MAX_EVENTI_IN_REVISIONE } from "@/lib/ente/eventiEnte";
 
 type ChiaveChecklist = "non_in_elenco" | "chat_disattivata" | "no_contenuti_terzi";
 
@@ -52,8 +53,6 @@ const TIPI = [
 ];
 
 const MAX_AREE_EVENTO = 2;
-
-const MAX_EVENTI_IN_REVISIONE = 4;
 
 // Un'istituzione di tipo formazione_docenti propone SOLO eventi per
 // docenti (pubblico=docenti + filone al posto delle aree): niente

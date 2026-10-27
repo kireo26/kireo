@@ -305,7 +305,10 @@ console.log("\n§4 — le due pagine passano la traccia\n");
 // finirebbe alla prima chiusura di tag qualunque essa sia.
 for (const [pagina, dopo] of [
   ["app/admin/page.tsx", "Esporta presenze (CSV)"],
-  ["app/ente/(dashboard)/eventi/page.tsx", "<ReportEventoButton"],
+  // `/ente/eventi` è USCITA il 27/10, e non per svista: la console non sta più
+  // nella lista dell'ente (Mario: la lista dice cosa c'è e quando, la plancia
+  // sta nella pagina dell'evento). L'ente la vede in `app/diretta/[id]`, che è
+  // fra i RENDITORI qui sotto.
 ]) {
   const src = leggi(pagina);
   const uso = fettaOppureRosso(
@@ -413,10 +416,11 @@ console.log("\n§7 — la ricevuta arriva a tutti i posti che la rendono\n");
     "components/ente/ControlloDirettaEvento.tsx",
     "lib/eventi/moderazione.ts",
     "app/admin/page.tsx",
-    "app/ente/(dashboard)/eventi/page.tsx",
   ];
-  const RENDITORI = ["app/diretta/[id]/page.tsx", "app/admin/page.tsx", "app/ente/(dashboard)/eventi/page.tsx"];
-  ok(LETTORI.length === 4 && RENDITORI.length === 3, "quattro lettori e tre punti che rendono (il conto è dichiarato)");
+  // Dal 27/10 la lista dell'ente non monta più la console (vedi §4): tre
+  // lettori e due punti che rendono.
+  const RENDITORI = ["app/diretta/[id]/page.tsx", "app/admin/page.tsx"];
+  ok(LETTORI.length === 3 && RENDITORI.length === 2, "tre lettori e due punti che rendono (il conto è dichiarato)");
   // ⚠️ SI GUARDA DENTRO LA `select`, NON IL FILE — e l'ha detto una controprova
   // che non ha morso: togliendo i due conteggi dalla `select` del poll, un
   // `src.includes("diretta_chiusa_presenti")` resta VERDE, perché quel nome
@@ -429,9 +433,9 @@ console.log("\n§7 — la ricevuta arriva a tutti i posti che la rendono\n");
   }
   // Soglia dichiarata: sotto quattro l'estrattore non sta leggendo, e la
   // proprietà qui sotto sarebbe verde su un insieme vuoto.
-  ok(selects.length >= 4, `le ${selects.length} \`select\` si leggono (sotto quattro l'estrattore non sta leggendo)`);
+  ok(selects.length >= 3, `le ${selects.length} \`select\` si leggono (sotto tre l'estrattore non sta leggendo)`);
   const conTraccia = selects.filter(([, q]) => q.includes("diretta_chiusa_il"));
-  ok(conTraccia.length === 4, "e quattro di loro leggono la traccia", `${conTraccia.length}`);
+  ok(conTraccia.length === 3, "e tre di loro leggono la traccia", `${conTraccia.length}`);
   for (const [rel, q] of conTraccia) {
     ok(
       q.includes("diretta_chiusa_presenti") && q.includes("diretta_chiusa_certificati"),

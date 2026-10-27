@@ -28,6 +28,7 @@ const fs = require("fs");
 const path = require("path");
 const { abilitaTypeScript, ROOT } = require("./banco/ts");
 const { senzaCommenti, senzaCommentiSql } = require("./lib/senza-commenti");
+const { fetta } = require("./lib/ancora");
 
 abilitaTypeScript();
 
@@ -809,12 +810,23 @@ ok(!/setErrore\("La domanda si pone/.test(tsxDomanda), "…invece di riscriverse
 ok(/dataInizio/.test(tsxDomanda) && /dataFine/.test(tsxDomanda), "…e riceve le date, senza cui non potrebbe dire l'ora");
 const tsxControllo = senzaCommenti(leggi("components/ente/ControlloDirettaEvento.tsx"));
 ok(/dataInizio={dataInizio}/.test(tsxControllo) && /dataFine={dataFine}/.test(tsxControllo), "il pannello gliele passa");
-for (const [nome, file] of [
-  ["/ente/eventi", "app/ente/(dashboard)/eventi/page.tsx"],
-  ["/admin", "app/admin/page.tsx"],
+// `/ente/eventi` è uscita il 27/10: la lista dell'ente non monta più il
+// pannello (sta in `app/diretta/[id]`, che gli passa le date: guardato qui sotto).
+for (const [nome, file, v] of [
+  ["/admin", "app/admin/page.tsx", "e"],
+  ["/diretta/[id]", "app/diretta/[id]/page.tsx", "evento"],
 ]) {
-  const src = senzaCommenti(leggi(file));
-  ok(/dataInizio={e\.data_inizio}/.test(src) && /dataFine={e\.data_fine}/.test(src), `${nome} passa le date al pannello`);
+  // Si guarda il MONTAGGIO del pannello, non il file: in `/diretta/[id]` anche
+  // lo spostamento della finestra riceve `evento.data_inizio` (il modo 6).
+  const tutto = senzaCommenti(leggi(file));
+  let src = "";
+  try {
+    // Dall'àncora (una sola, dichiarata) alla prima chiusura del tag.
+    src = (fetta(tutto, { nome: "<ControlloDirettaEvento", dove: `il pannello in ${file}` }).match(/^[\s\S]*?\/>/) ?? [""])[0];
+  } catch (e) {
+    ok(false, `il montaggio del pannello in ${file} si ritaglia`, e.message);
+  }
+  ok(src.includes(`dataInizio={${v}.data_inizio}`) && src.includes(`dataFine={${v}.data_fine}`), `${nome} passa le date al pannello`);
 }
 
 // ── 16) L'ETICHETTA DICE COSA C'È DIETRO ────────────────────────────────────

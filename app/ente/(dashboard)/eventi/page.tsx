@@ -1,46 +1,32 @@
 import Link from "next/link";
 import { getEnteContext } from "@/lib/ente/context";
-import { getQuoteEnte } from "@/lib/ente/quote";
 import { createClient } from "@/lib/supabase/server";
-import MettiInEvidenzaButton from "@/components/ente/MettiInEvidenzaButton";
-import CreaEventoForm from "@/components/ente/CreaEventoForm";
-import RegistroPresenzeDocenti from "@/components/ente/RegistroPresenzeDocenti";
-import ControlloDirettaEvento from "@/components/ente/ControlloDirettaEvento";
-import ReportEventoButton from "@/components/ente/ReportEventoButton";
+import RigaEventoEnte from "@/components/ente/RigaEventoEnte";
 import RispondiPropostaForm, { CreaEventoDaPropostaLink } from "@/components/ente/RispondiPropostaForm";
-import ChiaveTrasmissione from "@/components/ente/ChiaveTrasmissione";
-import { statoChiaveTrasmissione } from "@/lib/eventi/chiaveTrasmissione";
-import { getFiloneBySlug } from "@/data/filoniDocenti";
-import { formattaDataOra } from "@/lib/formato";
+import { caricaEventiEnte } from "@/lib/ente/caricaEventiEnte";
+import { areaEventoEnte, dividiEventiEnte, testoCodaRevisione } from "@/lib/ente/eventiEnte";
 
-const ETICHETTA_STATO: Record<string, { label: string; classe: string }> = {
-  bozza: { label: "Bozza", classe: "bg-white/10 text-kireo-light" },
-  in_approvazione: { label: "In approvazione", classe: "bg-kireo-orange/15 text-kireo-orange" },
-  approvato: { label: "Approvato", classe: "bg-kireo-green/15 text-kireo-green-light" },
-  rifiutato: { label: "Rifiutato", classe: "bg-red-500/15 text-red-300" },
-};
-
-export default async function EnteEventiPage({ searchParams }: { searchParams: Promise<{ proposta?: string }> }) {
-  const { proposta: propostaIdParam } = await searchParams;
+// IN PROGRAMMAZIONE (Mario, 27/10): gli eventi non ancora finiti — approvati e
+// in attesa di revisione insieme, per data, i più vicini in cima — con in testa
+// la coda della revisione. Il confine fra questa lista e i passati è la fine
+// EFFETTIVA (`dividiEventiEnte` → `eventoNonFinito`), come nel resto del prodotto.
+//
+// LE PROPOSTE DALLE SCUOLE restano qui, sotto l'elenco: sono incontri che una
+// scuola chiede e che aspettano una risposta, e la loro risposta porta a
+// «Crea evento». (Scelta mia, da rileggere: la lista di Mario non le nomina.)
+export default async function EnteEventiPage() {
   const contesto = await getEnteContext();
   const supabase = await createClient();
-  const perDocenti = contesto.tipo === "formazione_docenti";
 
-  const [{ data: eventi }, quote, { data: proposte }] = await Promise.all([
-    supabase
-      .from("eventi")
-      .select(
-        "id, titolo, tipo, data_inizio, data_fine, stato, in_evidenza, pubblico, filone, hosting_diretta, youtube_video_id, domanda_consegna, diretta_chiusa_il, diretta_chiusa_da_tipo, diretta_chiusa_presenti, diretta_chiusa_certificati, diretta_durata_minuti",
-      )
-      .eq("organizzatore_id", contesto.istituzioneId)
-      .order("created_at", { ascending: false }),
-    getQuoteEnte(supabase, contesto.istituzioneId, contesto.pianoNome),
+  const [{ eventi, aree, letturaFallita }, { data: proposte }] = await Promise.all([
+    caricaEventiEnte(supabase, contesto.istituzioneId),
     supabase
       .from("proposte_incontro")
       .select("id, scuola_profilo_id, stato, descrizione, n_studenti_stimato, classi_coinvolte, date_preferite, created_at")
       .eq("istituzione_id", contesto.istituzioneId)
       .order("created_at", { ascending: false }),
   ]);
+  const { inProgrammazione } = dividiEventiEnte(eventi);
 
   const scuolaProfiloIds = Array.from(new Set((proposte ?? []).map((p) => p.scuola_profilo_id)));
   const nomeScuolaPerProposta = new Map<string, string>();
@@ -54,161 +40,26 @@ export default async function EnteEventiPage({ searchParams }: { searchParams: P
     }
   }
 
-  const propostaAccettataPerEvento = propostaIdParam ? (proposte ?? []).find((p) => p.id === propostaIdParam && p.stato === "accettata") : null;
-
-  // Le chiavi dei propri eventi ospitati da KIREO: la RLS fa già passare
-  // solo le proprie (chiavi_trasmissione_select_propria). L'errore si logga —
-  // una lettura muta qui direbbe «non ancora preparata» su una chiave che
-  // c'è, cioè farebbe aspettare qualcuno che non deve più aspettare.
-  const eventiKireo = (eventi ?? []).filter((e) => e.hosting_diretta === "kireo").map((e) => e.id);
-  const chiavi = new Map<string, { chiave: string; server: string | null; aggiornata_il: string }>();
-  if (eventiKireo.length > 0) {
-    const { data: righe, error: erroreChiavi } = await supabase
-      .from("chiavi_trasmissione")
-      .select("evento_id, chiave, server, aggiornata_il")
-      .in("evento_id", eventiKireo);
-    if (erroreChiavi) console.error("[ente/eventi] chiavi_trasmissione:", erroreChiavi);
-    for (const riga of righe ?? []) chiavi.set(riga.evento_id, { chiave: riga.chiave, server: riga.server, aggiornata_il: riga.aggiornata_il });
-  }
-
-  const eventiInRevisione = (eventi ?? []).filter((e) => e.stato === "in_approvazione").length;
-  const quotaEvidenzaRimasta = quote.evidenzaTotali - quote.evidenzaUsate;
-
-  // Registro presenze: solo per i propri webinar docenti già approvati.
-  const eventiDocentiApprovati = (eventi ?? []).filter((e) => e.pubblico === "docenti" && e.stato === "approvato");
-  const registriPresenze = new Map<string, { userId: string; nomeCompleto: string; stato: string }[]>();
-  if (eventiDocentiApprovati.length > 0) {
-    const { data: iscrizioni } = await supabase
-      .from("iscrizioni_eventi")
-      .select("evento_id, student_id, stato, profiles!student_id(nome, cognome)")
-      .in(
-        "evento_id",
-        eventiDocentiApprovati.map((e) => e.id),
-      );
-    for (const riga of iscrizioni ?? []) {
-      const profilo = Array.isArray(riga.profiles) ? riga.profiles[0] : riga.profiles;
-      const lista = registriPresenze.get(riga.evento_id) ?? [];
-      lista.push({
-        userId: riga.student_id,
-        nomeCompleto: profilo ? `${profilo.nome} ${profilo.cognome}` : "Docente",
-        stato: riga.stato,
-      });
-      registriPresenze.set(riga.evento_id, lista);
-    }
-  }
-
   return (
     <div className="space-y-8">
-      <div>
-        <p className="mb-4 font-sans text-sm font-semibold uppercase tracking-wide text-kireo-orange">Eventi</p>
-        <h1 className="py-1 font-heading text-3xl font-bold leading-[1.25] text-kireo-light sm:text-4xl">I tuoi eventi</h1>
-      </div>
+      {!letturaFallita && <p className="text-sm text-kireo-muted">{testoCodaRevisione(eventi)}</p>}
 
-      {!eventi || eventi.length === 0 ? (
+      {letturaFallita ? (
+        <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-6 text-center text-sm text-red-300">
+          Non siamo riusciti a leggere i tuoi eventi: è un problema nostro. Ricarica la pagina fra un momento.
+        </div>
+      ) : inProgrammazione.length === 0 ? (
         <div className="rounded-2xl border border-white/5 bg-kireo-card p-6 text-center text-kireo-muted">
-          Non hai ancora proposto nessun evento. Crea il primo qui sotto.
+          Nessun evento in programmazione.{" "}
+          <Link href="/ente/eventi/nuovo" className="text-kireo-orange underline underline-offset-2">
+            Crea un evento
+          </Link>
         </div>
       ) : (
         <ul className="space-y-3">
-          {eventi.map((e) => {
-            const stato = ETICHETTA_STATO[e.stato] ?? ETICHETTA_STATO.bozza;
-            const eDocenti = e.pubblico === "docenti";
-            const filone = eDocenti ? getFiloneBySlug(e.filone) : undefined;
-            return (
-              <li key={e.id} className="rounded-xl border border-white/5 bg-kireo-card p-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <span className={`mr-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${stato.classe}`}>
-                      {stato.label}
-                    </span>
-                    {e.in_evidenza && (
-                      <span className="mr-2 inline-block rounded-full bg-kireo-orange/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-kireo-orange">
-                        In evidenza
-                      </span>
-                    )}
-                    {filone && (
-                      <span className="mr-2 inline-block rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-kireo-light/80">
-                        {filone.nome}
-                      </span>
-                    )}
-                    <span className="font-heading text-sm font-semibold text-kireo-light">{e.titolo}</span>
-                    <p className="mt-1 text-xs text-kireo-muted">
-                      {formattaDataOra(e.data_inizio, "long")}
-                    </p>
-                  </div>
-                  {e.stato === "approvato" && !e.in_evidenza && (
-                    <MettiInEvidenzaButton eventoId={e.id} quotaRimasta={quotaEvidenzaRimasta} />
-                  )}
-                </div>
-                {eDocenti && e.stato === "approvato" && (
-                  <div className="mt-4 border-t border-white/5 pt-4">
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-kireo-muted">Registro presenze</p>
-                    <RegistroPresenzeDocenti eventoId={e.id} iscritti={registriPresenze.get(e.id) ?? []} />
-                  </div>
-                )}
-                {e.tipo === "webinar" && (
-                  <div className="mt-4 border-t border-white/5 pt-4">
-                    <p className="text-xs text-kireo-muted">
-                      {e.hosting_diretta === "proprio"
-                        ? e.youtube_video_id
-                          ? "Diretta sul tuo canale YouTube."
-                          : "Diretta sul tuo canale YouTube (link in attesa di conferma)."
-                        : "Diretta ospitata da KIREO."}
-                    </p>
-                    {/*
-                      FINO AL 4/10 QUI C'ERA UNA PROMESSA: «riceverai la chiave
-                      di trasmissione da KIREO prima dell'evento» — e nel
-                      prodotto non c'era niente che gliela mandasse. L'ente che
-                      non l'aveva non sapeva se era in ritardo lui o noi.
-                      Adesso i tre momenti si distinguono, e il buco si vede
-                      (vedi lib/eventi/chiaveTrasmissione.ts).
-                    */}
-                    {e.hosting_diretta === "kireo" && (
-                      <ChiaveTrasmissione
-                        stato={statoChiaveTrasmissione({
-                          haChiave: chiavi.has(e.id),
-                          haServer: !!chiavi.get(e.id)?.server,
-                          dataInizio: e.data_inizio,
-                          dataFine: e.data_fine,
-                          chiusaIl: e.diretta_chiusa_il,
-                        })}
-                        chiave={chiavi.get(e.id)?.chiave ?? null}
-                        server={chiavi.get(e.id)?.server ?? null}
-                        aggiornataIl={chiavi.get(e.id)?.aggiornata_il ?? null}
-                      />
-                    )}
-                    {e.stato === "approvato" && (
-                      <>
-                        {/* La porta verso la pagina di quell'evento: è lì che si
-                            sta durante la diretta, non in questa lista. Vedi
-                            app/diretta/[id]/page.tsx. */}
-                        <div className="mt-3">
-                          <Link href={`/diretta/${e.id}`} className="text-sm font-semibold text-kireo-orange underline underline-offset-2">
-                            Apri la pagina di questa diretta →
-                          </Link>
-                        </div>
-                        <ControlloDirettaEvento
-                          eventoId={e.id}
-                          domandaConsegna={e.domanda_consegna}
-                          dataInizio={e.data_inizio}
-                          dataFine={e.data_fine}
-                          chiusaIl={e.diretta_chiusa_il}
-                          chiusaDaTipo={e.diretta_chiusa_da_tipo}
-                          chiusaPresenti={e.diretta_chiusa_presenti}
-                          chiusaCertificati={e.diretta_chiusa_certificati}
-                    chiusaDurata={e.diretta_durata_minuti}
-                          youtubeVideoId={e.youtube_video_id}
-                        />
-                        <div className="mt-3">
-                          <ReportEventoButton eventoId={e.id} evento={e} />
-                        </div>
-                      </>
-                    )}
-                  </div>
-                )}
-              </li>
-            );
-          })}
+          {inProgrammazione.map((e) => (
+            <RigaEventoEnte key={e.id} evento={e} area={areaEventoEnte(e, aree[e.id] ?? [])} />
+          ))}
         </ul>
       )}
 
@@ -234,24 +85,6 @@ export default async function EnteEventiPage({ searchParams }: { searchParams: P
           </ul>
         </div>
       )}
-
-      <div id="crea-evento">
-        <h2 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">Proponi un nuovo evento</h2>
-        <p className="mt-1 text-sm text-kireo-muted">
-          Nessun limite di creazione: KIREO revisiona ogni proposta prima che compaia pubblicamente. Puoi avere al massimo 4 eventi
-          in attesa di revisione contemporaneamente.
-          {propostaAccettataPerEvento && " Questo evento sarà collegato alla proposta della scuola che hai accettato."}
-        </p>
-        <div className="mt-4">
-          <CreaEventoForm
-            istituzioneId={contesto.istituzioneId}
-            eventiInRevisione={eventiInRevisione}
-            perDocenti={perDocenti}
-            propostaIncontroId={propostaAccettataPerEvento?.id ?? null}
-            descrizionePrefill={propostaAccettataPerEvento?.descrizione ?? null}
-          />
-        </div>
-      </div>
     </div>
   );
 }

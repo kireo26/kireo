@@ -381,9 +381,11 @@ console.log("\n§5 — la pagina si raggiunge\n");
 {
   // ⚠️ UNA FUNZIONE COMPLETA SENZA PORTA è il difetto del 28/09 («la consegna,
   // completa, corretta, provata, e senza porta»), e si trova solo cercandola.
-  for (const pagina of ["app/admin/page.tsx", "app/ente/(dashboard)/eventi/page.tsx"]) {
+  // Dal 27/10 la riga della lista dell'ente è un componente, e il suo link si
+  // chiama `evento.id`: la proprietà è la stessa, il nome della variabile no.
+  for (const [pagina, link] of [["app/admin/page.tsx", "/diretta/${e.id}"], ["components/ente/RigaEventoEnte.tsx", "/diretta/${evento.id}"]]) {
     const src = leggi(pagina);
-    ok(src.includes("/diretta/${e.id}"), `${pagina} linka la pagina della diretta`);
+    ok(src.includes(link), `${pagina} linka la pagina della diretta`);
     ok(src.includes('import Link from "next/link"'), `${pagina} importa Link`);
   }
   // E il prefisso è protetto dal middleware: senza, la pagina sarebbe

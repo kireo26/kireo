@@ -76,6 +76,7 @@
     "test:diretta1810": "node scripts/verifica-diretta-18-10.js",
     "test:pausa": "node scripts/verifica-pausa-video.js",
     "test:riquadri": "node scripts/verifica-riquadri-diretta.js",
+    "test:eventiente": "node scripts/verifica-eventi-ente.js",
     "test:durata": "node scripts/verifica-durata-vera.js",
     "test:uscita": "node scripts/verifica-uscita.js",
     "test:fine": "node scripts/verifica-fine-effettiva.js",

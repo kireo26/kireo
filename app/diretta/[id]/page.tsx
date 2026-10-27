@@ -6,6 +6,7 @@ import ReportEventoButton from "@/components/ente/ReportEventoButton";
 import GestisciVideoDirettaForm from "@/components/admin/GestisciVideoDirettaForm";
 import SpostaFinestraForm from "@/components/ente/SpostaFinestraForm";
 import CorreggiOreForm from "@/components/admin/CorreggiOreForm";
+import PlanciaEnteEvento from "@/components/ente/PlanciaEnteEvento";
 import { formattaDataOra } from "@/lib/formato";
 import { getFiloneBySlug } from "@/data/filoniDocenti";
 
@@ -118,6 +119,18 @@ export default async function ModerazioneDirettaPage({ params }: { params: Promi
         </section>
       )}
 
+      {/* Quello che fino al 27/10 stava nella lista di `/ente/eventi`, riga per
+          riga: evidenza, registro dei docenti, chiave. Ora la lista dice cosa
+          c'è e quando, e questa è la plancia dell'evento (Mario). */}
+      {parte === "ente" && <PlanciaEnteEvento evento={evento} />}
+
+      {/* ⚠️ LA CONSOLE E IL REPORT SOLO PER UNA DIRETTA (27/10): da quando
+          «Apri» porta qui da ogni riga della lista dell'ente, ci arriva anche un
+          incontro in presenza — e lì «presenti ora», la domanda finale e «chiudi
+          la diretta» non descrivono niente. Prima del 27/10 la lista mostrava la
+          console solo sui webinar; questa condizione è la stessa, spostata. */}
+      {evento.tipo === "webinar" && (
+      <>
       <section className="mt-6 rounded-xl border border-white/5 bg-kireo-card p-4">
         <ControlloDirettaEvento
           eventoId={evento.id}
@@ -149,6 +162,8 @@ export default async function ModerazioneDirettaPage({ params }: { params: Promi
           <ReportEventoButton eventoId={evento.id} evento={evento} />
         )}
       </section>
+      </>
+      )}
     </main>
   );
 }

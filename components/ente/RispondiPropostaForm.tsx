@@ -57,7 +57,7 @@ export default function RispondiPropostaForm({ propostaId }: { propostaId: strin
 
 export function CreaEventoDaPropostaLink({ propostaId }: { propostaId: string }) {
   return (
-    <Link href={`/ente/eventi?proposta=${propostaId}`} className="mt-3 inline-block text-xs text-kireo-orange underline underline-offset-2">
+    <Link href={`/ente/eventi/nuovo?proposta=${propostaId}`} className="mt-3 inline-block text-xs text-kireo-orange underline underline-offset-2">
       Crea l&apos;evento collegato →
     </Link>
   );
