@@ -147,12 +147,14 @@ function riconta(misura) {
     righe.push({
       genere: g,
       testi,
-      catture: perGenere[g]?.registro ?? 0,
+      // ⚠️ `null` e non 0 quando il campo manca (27/10): uno zero qui si stampava
+      // «0  0%», cioè un genere pulito, su un rapporto che quel conto non l'aveva.
+      catture: typeof perGenere[g]?.registro === "number" ? perGenere[g].registro : null,
       // `dove` è l'etichetta del testo: distinti = testi con almeno una cattura.
       testiConCattura: dellGenere ? new Set(dellGenere.map((r) => r.dove)).size : null,
     });
   }
-  return { righe, haElencoCatture: registro !== null, generi };
+  return { righe, haElencoCatture: registro !== null, generi, haMisura: Boolean(misura && misura.perGenere) };
 }
 
 function leggi(percorso) {
@@ -217,10 +219,26 @@ function stampa(letti, di = console.log) {
     }
 
     di("");
+    // Un rapporto senza la misura, o con la misura e nessun testo, non si
+    // stampa come una tabella vuota: una tabella senza righe si legge «niente
+    // da segnalare», ed è «niente da ricontare».
+    if (!l.conto.haMisura) {
+      di("   NON HO RICONTATO NIENTE: il rapporto non porta la misura (`misura.perGenere`).");
+      di("");
+      continue;
+    }
+    if (l.conto.righe.length === 0) {
+      di("   NON HO RICONTATO NIENTE: la misura c'è, ma con zero testi in ogni genere.");
+      di("   Zero catture qui non vorrebbe dire pulito: vorrebbe dire che non c'era niente da leggere.");
+      di("");
+      continue;
+    }
     di("   genere                 testi   catture  catture/testi   testi sporchi");
     for (const r of l.conto.righe) {
       const sporchi = r.testiConCattura === null ? "     n/d" : `${String(r.testiConCattura).padStart(3)} ${pc(r.testiConCattura, r.testi).padStart(4)}`;
-      di(`   ${r.genere.padEnd(22)}${String(r.testi).padStart(4)}   ${String(r.catture).padStart(6)}   ${pc(r.catture, r.testi).padStart(10)}   ${sporchi}`);
+      const catture = r.catture === null ? "n/d" : String(r.catture);
+      const quota = r.catture === null ? "n/d" : pc(r.catture, r.testi);
+      di(`   ${r.genere.padEnd(22)}${String(r.testi).padStart(4)}   ${catture.padStart(6)}   ${quota.padStart(10)}   ${sporchi}`);
     }
     if (!l.conto.haElencoCatture) {
       di("   («testi sporchi» non si può ricontare: questo rapporto non porta l'elenco");

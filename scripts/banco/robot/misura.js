@@ -745,12 +745,24 @@ function stampaRapporto(m, righe = console.log) {
   }
 
   di(`TESTI RACCOLTI: ${m.testi}`);
+  // ⚠️ ZERO TESTI NON È UNA PASSATA PULITA (27/10). Le due sezioni qui sotto
+  // dicevano «Nessuna. I pattern non hanno trovato niente da guardare» e «Nessuna
+  // parola-verdetto» anche su zero testi — cioè su una passata in cui nessun
+  // revisore ha scritto niente, che è il caso in cui c'è più da guardare.
+  const senzaTesti = m.testi === 0;
+  if (senzaTesti) {
+    di("  ⚠️ NON HO GUARDATO: nessun testo raccolto. Le catture qui sotto sono zero perché");
+    di("     non c'era niente da leggere, non perché i testi siano puliti. Guarda prima gli");
+    di("     esiti dei revisori e i ruoli caduti o fermati.\n");
+  }
   di("  Revisioni di tappa, reazioni del cliente e feedback finali. Sono i testi che");
   di("  uno studente avrebbe letto: su questi passano i pattern, non su un campione.\n");
 
   const certe = m.accordi.filter((a) => a.certa).length;
   di(`LINGUA INVARIANTE — ${m.accordi.length} catture da leggere su ${m.testi} testi`);
-  if (m.accordi.length === 0) {
+  if (senzaTesti) {
+    di("  Non misurata: zero testi.");
+  } else if (m.accordi.length === 0) {
     di("  Nessuna. I pattern non hanno trovato niente da guardare.");
   } else {
     di("  NON sono ancora un tasso di esposizione: i pattern sono larghi apposta e");
@@ -781,7 +793,8 @@ function stampaRapporto(m, righe = console.log) {
   const formule = m.registro.filter((r) => r.formula).length;
   const giudizi = m.registro.length - formule;
   di(`REGISTRO — ${m.registro.length} catture da leggere: ${formule} formula, ${giudizi} giudizi`);
-  if (m.registro.length === 0) di("  Nessuna parola-verdetto e nessuna terza persona.");
+  if (senzaTesti) di("  Non misurato: zero testi.");
+  else if (m.registro.length === 0) di("  Nessuna parola-verdetto e nessuna terza persona.");
   else {
     di("  Sono DUE problemi. La FORMULA («hai capito», «hai riconosciuto») è tolta in");
     di("  codice quando la segue «che»: quello che resta qui è il residuo, le forme");
@@ -807,7 +820,11 @@ function stampaRapporto(m, righe = console.log) {
     for (const v of attive) {
       di(`  ${String(v.catture).padStart(4)}  ${v.famiglia.padEnd(22)} /${v.pattern}/${v.esempi.length ? `   «${v.esempi.join("», «")}»` : ""}`);
     }
-    if (mute.length > 0) {
+    if (senzaTesti) {
+      // Con zero testi ogni voce è «mai scattata», e l'elenco direbbe che il
+      // lessico intero è inutile: non lo sa, perché non ha letto niente.
+      di("  Nessuna voce poteva scattare: zero testi. Non è un dato sul lessico.");
+    } else if (mute.length > 0) {
       di("");
       di(`  Mai scattate in questa passata (${mute.length}):`);
       // Per famiglia, che è l'unità con cui la lista è scritta e con cui si
@@ -904,7 +921,11 @@ function stampaRapporto(m, righe = console.log) {
     di("");
   }
 
-  if (m.fiducia.length > 0) {
+  if (m.fiducia.length === 0) {
+    // Prima la sezione spariva in silenzio: un rapporto senza la riga della
+    // fiducia si legge come uno in cui la fiducia non aveva niente da dire.
+    di("FIDUCIA PER RUOLO: nessun ruolo ha una fiducia finale — non c'è niente da leggere qui.");
+  } else {
     di("FIDUCIA PER RUOLO (dal più basso):");
     for (const f of m.fiducia) di(`  ${String(f.valore).padStart(3)}/100  ${f.etichetta}`);
     const min = m.fiducia[0].valore;

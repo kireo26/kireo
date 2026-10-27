@@ -96,6 +96,11 @@ function inversioni(a, b) {
 }
 
 // La tabella per genere di testo, con due colonne invece di una.
+//
+// ⚠️ UN GENERE ASSENTE DA UNA PASSATA È `null`, NON ZERO (27/10). Fino a oggi
+// era riempito con `{ testi: 0, certe: 0, … }`, e la riga stampava «4/24 → 0/0»:
+// a chi la legge — e questo comando lo legge una persona — sembra un calo a
+// zero, mentre è un genere che quella passata non aveva. Si stampa «—».
 function affiancaGeneri(a, b) {
   const generi = new Set([...Object.keys(a.misura?.perGenere ?? {}), ...Object.keys(b.misura?.perGenere ?? {})]);
   const righe = [];
@@ -103,7 +108,7 @@ function affiancaGeneri(a, b) {
     const va = a.misura?.perGenere?.[g];
     const vb = b.misura?.perGenere?.[g];
     if (!va && !vb) continue;
-    righe.push({ genere: g, a: va ?? { testi: 0, accordi: 0, certe: 0, registro: 0 }, b: vb ?? { testi: 0, accordi: 0, certe: 0, registro: 0 } });
+    righe.push({ genere: g, a: va ?? null, b: vb ?? null });
   }
   return righe;
 }
@@ -129,6 +134,33 @@ function stessaDivisioneDeiGeneri(a, b) {
   const db = distingue(b);
   if (da === null || db === null) return { noto: false, a: da, b: db };
   return { noto: true, a: da, b: db, uguale: da === db };
+}
+
+// ⚠️ ZERO CONFRONTI NON È «STABILE» (27/10). Uno scarto si calcola sulle chiavi
+// comuni, e su zero chiavi comuni `scarti` dà medio 0 e massimo 0 — che stampato
+// diceva «scarto medio 0.00 su 100», cioè la passata più stabile della storia,
+// su due rapporti che non avevano un ruolo in comune (due workshop diversi, o un
+// rapporto senza esiti). E le inversioni su zero confronti dicevano «0 su 0
+// (0.0%)». Pure, provate da `npm run test:confronto`.
+function rigaScarti(nome, s, scala) {
+  if (s.coppie === 0) {
+    return `  per ${nome.padEnd(6)}  NON HO CONFRONTATO NIENTE: nessuna chiave in comune fra le due passate (${s.soloA} solo nella prima, ${s.soloB} solo nella seconda). Uno scarto qui non direbbe che il punteggio è stabile.`;
+  }
+  return `  per ${nome.padEnd(6)}  ${s.coppie} confrontabili   scarto medio ${s.medio.toFixed(2)} su ${scala}   massimo ${s.massimo}`;
+}
+function rigaInversioni(inv) {
+  if (inv.confronti === 0) {
+    return "  INVERSIONI: NON HO CONFRONTATO NIENTE — servono almeno due ruoli in comune, e qui non ci sono. Non vuol dire che l'ordine regge.";
+  }
+  return `  INVERSIONI: ${inv.invertite} su ${inv.confronti} confronti fra due ruoli (${per(inv.tasso)})`;
+}
+
+// Una riga della tabella per genere: il lato assente è «—», mai 0.
+function rigaGenere(r) {
+  const t = (x) => (x ? String(x.testi) : "—");
+  const c = (x) => (x ? `${x.certe}/${x.testi}` : "—");
+  const g = (x) => (x ? String(x.registro) : "—");
+  return `  ${r.genere.padEnd(24)} ${t(r.a).padStart(3)}→${t(r.b).padEnd(4)} ${`${c(r.a)} → ${c(r.b)}`.padEnd(16)} ${g(r.a)} → ${g(r.b)}`;
 }
 
 // ── il contorno: cosa c'era in mezzo ────────────────────────────────────────
@@ -253,14 +285,14 @@ function confronta(fileA, fileB) {
   }
 
   console.log("\n─── STABILITÀ DEL PUNTEGGIO\n");
-  console.log(`  per RUOLO   ${sRuoli.coppie} confrontabili   scarto medio ${sRuoli.medio.toFixed(2)} su 100   massimo ${sRuoli.massimo}`);
-  if (sRuoli.soloA || sRuoli.soloB) {
+  console.log(rigaScarti("RUOLO", sRuoli, 100));
+  if (sRuoli.coppie > 0 && (sRuoli.soloA || sRuoli.soloB)) {
     console.log(`              (fuori dal confronto: ${sRuoli.soloA} solo nella prima, ${sRuoli.soloB} solo nella seconda)`);
   }
-  console.log(`              |Δ| ≥ 3: ${sRuoli.almeno3}   |Δ| ≥ 5: ${sRuoli.almeno5}`);
-  console.log(`  per TAPPA   ${sTappe.coppie} confrontabili   scarto medio ${sTappe.medio.toFixed(2)} su 25   massimo ${sTappe.massimo}`);
+  if (sRuoli.coppie > 0) console.log(`              |Δ| ≥ 3: ${sRuoli.almeno3}   |Δ| ≥ 5: ${sRuoli.almeno5}`);
+  console.log(rigaScarti("TAPPA", sTappe, 25));
   console.log("");
-  console.log(`  INVERSIONI: ${inv.invertite} su ${inv.confronti} confronti fra due ruoli (${per(inv.tasso)})`);
+  console.log(rigaInversioni(inv));
   console.log("  È la misura che conta più della media: un punteggio serve a dire «questo");
   console.log("  più di quello», e ogni inversione è una volta in cui quella frase cambia");
   console.log("  da sola, sullo stesso identico testo.");
@@ -286,11 +318,8 @@ function confronta(fileA, fileB) {
     console.log("     distinzione. Le altre due righe restano confrontabili.\n");
   }
   console.log("  genere                     testi        certe            registro");
-  for (const r of affiancaGeneri(a, b)) {
-    const certe = `${r.a.certe}/${r.a.testi} → ${r.b.certe}/${r.b.testi}`;
-    const reg = `${r.a.registro} → ${r.b.registro}`;
-    console.log(`  ${r.genere.padEnd(24)} ${String(r.a.testi).padStart(3)}→${String(r.b.testi).padEnd(4)} ${certe.padEnd(16)} ${reg}`);
-  }
+  for (const r of affiancaGeneri(a, b)) console.log(rigaGenere(r));
+  console.log("  («—» è un genere che quella passata non aveva: un'assenza, non uno zero.)");
   console.log("\n  «certe» sono le sole forme accordate su cui non serve leggere (il");
   console.log("  participio con «essere» in seconda persona). Il registro invece è");
   console.log("  sempre da leggere: una parte è legittima.");
@@ -307,6 +336,9 @@ module.exports = {
   scarti,
   inversioni,
   affiancaGeneri,
+  rigaGenere,
+  rigaScarti,
+  rigaInversioni,
   stessaDivisioneDeiGeneri,
   pulizia,
   ingressiConfrontabili,

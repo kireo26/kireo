@@ -511,6 +511,28 @@ ok(
   "un rapporto senza l'elenco delle catture dichiara «n/d» invece di stimare i testi sporchi",
 );
 
+// ⚠️ UN CONTO CHE MANCA NON È ZERO (27/10). Le catture di un genere senza il
+// campo valevano 0, e la tabella stampava «0  0%»: un genere pulito, su un
+// rapporto che quel conto non l'aveva. E un rapporto senza la misura stampava
+// l'intestazione della tabella e nessuna riga, che si legge «niente da dire».
+{
+  const senzaCampo = riconta({ perGenere: { revisione: { testi: 4 } } });
+  ok(senzaCampo.righe[0].catture === null, "un genere senza il conto delle catture dà null, non 0");
+  ok(riconta(undefined).haMisura === false && riconta({ perGenere: {} }).haMisura === true, "riconta dice se la misura c'era");
+  const { stampa: stampaReg } = require("./banco/registro");
+  const righe = (conto) => {
+    const out = [];
+    stampaReg([{ percorso: "x.json", quando: null, sha: null, titolo: null, sporco: false, epoca: epoca(null), conto }], (r) => out.push(r));
+    return out.join("\n");
+  };
+  const senzaMisura = righe(riconta(undefined));
+  ok(/NON HO RICONTATO NIENTE: il rapporto non porta la misura/.test(senzaMisura) && !/genere {17}testi/.test(senzaMisura), "un rapporto senza misura lo dice, invece di stampare una tabella vuota");
+  const vuota = righe(riconta({ perGenere: { revisione: { testi: 0 } } }));
+  ok(/zero testi in ogni genere/.test(vuota), "una misura con zero testi lo dice: zero catture lì non vuol dire pulito");
+  const nd = righe(senzaCampo);
+  ok(/revisione\s+4\s+n\/d\s+n\/d/.test(nd), "e la colonna che manca si stampa «n/d», non «0  0%»", nd);
+}
+
 // L'EPOCA VIENE DAL COMMIT, non dalla data del file: un rapporto ricopiato ha
 // la data sbagliata e il commit giusto. E un commit che non è in questa copia
 // del repository non si indovina.
@@ -568,7 +590,7 @@ ok(CONFINI.some((c) => c.chiave === "rename_riparato"), "il confine che chiude q
 // l'esistenza del separatore e non delle due cose che deve separare. Un
 // separatore fra due cose di cui una non c'è non separa niente.
 const { stampa } = require("./banco/registro");
-const conto0 = { righe: [], haElencoCatture: true, generi: [] };
+const conto0 = { righe: [], haElencoCatture: true, generi: [], haMisura: true };
 const finto = (sha) => ({ percorso: `${sha}.json`, quando: null, sha, titolo: null, sporco: false, epoca: epoca(sha), conto: conto0 });
 const stampato = (shas) => {
   const righe = [];

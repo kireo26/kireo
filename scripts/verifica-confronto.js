@@ -15,7 +15,7 @@
 
 /* eslint-disable @typescript-eslint/no-require-imports -- script Node CommonJS di utilità */
 
-const { punteggi, scarti, inversioni, affiancaGeneri, pulizia } = require("./banco/confronta");
+const { punteggi, scarti, inversioni, affiancaGeneri, rigaGenere, rigaScarti, rigaInversioni, pulizia } = require("./banco/confronta");
 
 let falliti = 0;
 const ok = (cond, msg) => { if (!cond) { console.error("  ✗ " + msg); falliti++; } else { console.log("  ✓ " + msg); } };
@@ -93,7 +93,30 @@ ok(fin.a.certe === 5 && fin.b.certe === 2, "e tiene i due valori distinti: è co
 
 // Un genere che compare solo in una passata non fa saltare la tabella.
 const solo = affiancaGeneri(ga, { misura: { perGenere: { revisione: { testi: 1, accordi: 0, certe: 0, registro: 0 } } } });
-ok(solo.length === 2 && solo.find((r) => r.genere === "feedback finale").b.testi === 0, "un genere assente da una passata vale zero, non fa saltare la riga");
+// ⚠️ Fino al 27/10 qui si pretendeva che valesse ZERO, ed era lo zero che la
+// riga stampava come «4/24 → 0/0»: un calo, per chi legge. Ora è null, e la
+// riga dice «—».
+ok(solo.length === 2 && solo.find((r) => r.genere === "feedback finale").b === null, "un genere assente da una passata è null, non zero, e non fa saltare la riga");
+{
+  const riga = rigaGenere(solo.find((r) => r.genere === "feedback finale"));
+  ok(riga.includes("5/24 → —") && !/→ 0\/0/.test(riga), "e la riga stampa «—» dal lato assente, non «0/0»", riga);
+}
+
+// ── zero confronti non è «stabile» (27/10) ─────────────────────────────────
+{
+  const nessuno = scarti(new Map([["w > a", 60]]), new Map([["w > b", 70]]));
+  const r = rigaScarti("RUOLO", nessuno, 100);
+  ok(nessuno.coppie === 0 && /NON HO CONFRONTATO NIENTE/.test(r) && !/scarto medio/.test(r), "zero chiavi in comune: la riga dice che non ha confrontato, non «scarto medio 0.00»", r);
+  ok(r.includes("1 solo nella prima, 1 solo nella seconda"), "e dice cosa è rimasto fuori");
+  const inv0 = inversioni(new Map([["w > a", 60]]), new Map([["w > a", 70]]));
+  const ri = rigaInversioni(inv0);
+  ok(inv0.confronti === 0 && /NON HO CONFRONTATO NIENTE/.test(ri) && !/0\.0%/.test(ri), "un ruolo solo in comune: le inversioni non dicono «0 su 0 (0.0%)»", ri);
+  // Il caso normale resta com'era: la regola nuova non deve mangiarsi i numeri.
+  const due = scarti(new Map([["a", 60], ["b", 70]]), new Map([["a", 62], ["b", 70]]));
+  ok(/2 confrontabili {3}scarto medio 1\.00 su 100/.test(rigaScarti("RUOLO", due, 100)), "con chiavi in comune la riga stampa i numeri come prima");
+  const inv2 = inversioni(new Map([["a", 60], ["b", 70]]), new Map([["a", 75], ["b", 70]]));
+  ok(rigaInversioni(inv2).includes("1 su 1 confronti"), "e le inversioni pure");
+}
 
 // ── ma uno zero può essere un'ASSENZA DI DISTINZIONE, non un calo ───────────
 // Dal 26/09 il «feedback finale» è diviso in tre (il revisore finale, il blocco

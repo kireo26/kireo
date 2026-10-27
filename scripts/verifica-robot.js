@@ -476,6 +476,23 @@ const conFiducia = (valori) => {
   stampaRapporto(misura(valori.map((v, i) => ({ etichetta: `w > r${i}`, tappe: [], fiduciaFinale: v }))), (t = "") => righe.push(t));
   return righe.join("\n");
 };
+// ⚠️ ZERO TESTI NON È UNA PASSATA PULITA (27/10): la misura diceva «Nessuna.
+// I pattern non hanno trovato niente da guardare» anche quando non c'era niente
+// da leggere, e la sezione della fiducia spariva in silenzio.
+{
+  const vuoto = [];
+  stampaRapporto(misura([{ etichetta: "w > a", tappe: [] }]), (t = "") => vuoto.push(t));
+  const v = vuoto.join("\n");
+  ok(/NON HO GUARDATO: nessun testo raccolto/.test(v), "zero testi: la misura dice che non ha guardato");
+  ok(!/Nessuna\. I pattern non hanno trovato/.test(v) && !/Nessuna parola-verdetto/.test(v), "…e non stampa le due frasi che si leggono «pulito»");
+  ok(!/Mai scattate in questa passata/.test(v), "…né l'elenco delle voci «mai scattate», che direbbe il lessico inutile");
+  ok(/FIDUCIA PER RUOLO: nessun ruolo ha una fiducia finale/.test(v), "e la fiducia assente lo dice invece di sparire");
+  // Il caso con i testi resta com'era: la regola nuova non deve mangiarsi l'altro ramo.
+  const pieno = [];
+  stampaRapporto(misura([{ etichetta: "w > a", fiduciaFinale: 60, tappe: [{ faseId: "t1", esitoRevisione: "riuscita", tentativi: 1, revisione: { commento_breve: "La tabella regge." } }] }]), (t = "") => pieno.push(t));
+  const p = pieno.join("\n");
+  ok(!/NON HO GUARDATO: nessun testo/.test(p) && /Nessuna\. I pattern non hanno trovato/.test(p), "con dei testi e nessuna cattura, la frase «Nessuna» resta", p.match(/TESTI RACCOLTI: \d+/)?.[0]);
+}
 const soloUno = conFiducia([76]);
 ok(!/forbice così stretta/.test(soloUno), "un ruolo solo NON fa scattare l'avviso sulla rubrica");
 ok(/non c'è nessuna forbice da leggere/.test(soloUno), "…e non stampa nemmeno «Estremi: 76 — 76», che si legge come un intervallo");
