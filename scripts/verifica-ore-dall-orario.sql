@@ -117,7 +117,8 @@ do $$
 begin
   set local role authenticated;
   perform set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000a1', true);
-  perform public.sposta_finestra_evento('e0000000-0000-0000-0000-0000000000a1', '2026-12-01 10:00+01', '2026-12-01 11:00+01');
+  -- Lo stato visto è quello dell'anteprima della 14 (0,33, non fissate, con fine).
+  perform public.sposta_finestra_evento('e0000000-0000-0000-0000-0000000000a1', '2026-12-01 10:00+01', '2026-12-01 11:00+01', 0.33, false, true);
   perform set_config('request.jwt.claim.sub', '', true);
   reset role;
 end $$;
@@ -155,7 +156,7 @@ begin
   insert into esiti values (18, 'anteprima su un valore fissato: 2,50 → 0,75, fissate', '2.50/0.75/t',
     format('%s/%s/%s', r.ore_attuali, r.ore_nuove, case when r.fissate_a_mano then 't' else 'f' end),
     r.ore_attuali = 2.50 and r.ore_nuove = 0.75 and r.fissate_a_mano);
-  perform public.sposta_finestra_evento('e0000000-0000-0000-0000-0000000000a1', '2026-12-01 10:00+01', '2026-12-01 10:45+01');
+  perform public.sposta_finestra_evento('e0000000-0000-0000-0000-0000000000a1', '2026-12-01 10:00+01', '2026-12-01 10:45+01', r.ore_attuali, r.fissate_a_mano, r.aveva_fine);
   perform set_config('request.jwt.claim.sub', '', true);
   reset role;
 end $$;
@@ -317,7 +318,7 @@ begin
   insert into esiti values (31, 'anteprima su un evento senza fine: aveva_fine falso, 1,00', '3.00/1.00/f',
     format('%s/%s/%s', r.ore_attuali, r.ore_nuove, case when r.aveva_fine then 't' else 'f' end),
     r.ore_attuali = 3 and r.ore_nuove = 1.00 and not r.aveva_fine);
-  perform public.sposta_finestra_evento('e0000000-0000-0000-0000-0000000000a4', '2026-12-03 10:00+01', '2026-12-03 11:00+01');
+  perform public.sposta_finestra_evento('e0000000-0000-0000-0000-0000000000a4', '2026-12-03 10:00+01', '2026-12-03 11:00+01', r.ore_attuali, r.fissate_a_mano, r.aveva_fine);
   perform set_config('request.jwt.claim.sub', '', true);
   reset role;
 end $$;

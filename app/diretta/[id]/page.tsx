@@ -89,7 +89,15 @@ export default async function ModerazioneDirettaPage({ params }: { params: Promi
           non si vieta, si dice: le ore già certificate restano quelle di allora. */}
       {parte === "kireo" && (
         <section className="mt-6 rounded-xl border border-white/5 bg-kireo-card p-4">
-          <CorreggiOreForm eventoId={evento.id} oreAttuali={evento.ore_pcto ?? 0} fissateIl={evento.ore_pcto_fissate_il} fissateDa={evento.ore_pcto_fissate_da_nome} />
+          <CorreggiOreForm
+            eventoId={evento.id}
+            oreAttuali={evento.ore_pcto ?? 0}
+            fissateIl={evento.ore_pcto_fissate_il}
+            fissateDa={evento.ore_pcto_fissate_da_nome}
+            dataInizio={evento.data_inizio}
+            dataFine={evento.data_fine}
+            chiusaIl={evento.diretta_chiusa_il}
+          />
         </section>
       )}
 
@@ -100,7 +108,13 @@ export default async function ModerazioneDirettaPage({ params }: { params: Promi
           il difetto che il bottone di chiusura ha già avuto. */}
       {!evento.diretta_chiusa_il && (
         <section className="mt-6 rounded-xl border border-white/5 bg-kireo-card p-4">
-          <SpostaFinestraForm eventoId={evento.id} dataInizio={evento.data_inizio} dataFine={evento.data_fine} />
+          <SpostaFinestraForm
+            eventoId={evento.id}
+            dataInizio={evento.data_inizio}
+            dataFine={evento.data_fine}
+            oreAttuali={evento.ore_pcto}
+            fissateIl={evento.ore_pcto_fissate_il}
+          />
         </section>
       )}
 

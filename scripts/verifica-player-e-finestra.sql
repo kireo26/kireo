@@ -157,47 +157,51 @@ begin
 end $$;
 
 -- ================================================================ §2 la finestra
+-- Dal 27/10 (`20261030100000`) lo spostamento riceve anche lo stato che chi
+-- preme ha visto. Qui si passa quello vero, letto dalla riga: queste proprietà
+-- non provano quel controllo (lo prova `verifica-spostamento-stato-visto.sql`),
+-- provano chi può spostare e quando.
 do $$
 declare r text; i timestamptz; f timestamptz;
 begin
   r := pg_temp.esito_di('11111111-0000-0000-0000-000000000001',
-    $q$select public.sposta_finestra_evento('e0000000-0000-0000-0000-0000000000aa', now() + interval '13 minutes', now() + interval '58 minutes')$q$);
+    $q$select public.sposta_finestra_evento('e0000000-0000-0000-0000-0000000000aa', now() + interval '13 minutes', now() + interval '58 minutes', (select ore_pcto from public.eventi where id = 'e0000000-0000-0000-0000-0000000000aa'), (select ore_pcto_fissate_il is not null from public.eventi where id = 'e0000000-0000-0000-0000-0000000000aa'), (select data_fine is not null from public.eventi where id = 'e0000000-0000-0000-0000-0000000000aa'))$q$);
   select data_inizio, data_fine into i, f from public.eventi where id = 'e0000000-0000-0000-0000-0000000000aa';
   insert into esiti values (13, 'l''ente organizzatore sposta la finestra di una diretta approvata',
     'riuscito, +13/+58 min', r || ', ' || round(extract(epoch from i - now()) / 60) || '/' || round(extract(epoch from f - now()) / 60),
     r = 'riuscito' and round(extract(epoch from i - now()) / 60) = 13 and round(extract(epoch from f - now()) / 60) = 58);
 
   r := pg_temp.esito_di('11111111-0000-0000-0000-000000000002',
-    $q$select public.sposta_finestra_evento('e0000000-0000-0000-0000-0000000000aa', now(), now() + interval '1 hour')$q$);
+    $q$select public.sposta_finestra_evento('e0000000-0000-0000-0000-0000000000aa', now(), now() + interval '1 hour', (select ore_pcto from public.eventi where id = 'e0000000-0000-0000-0000-0000000000aa'), (select ore_pcto_fissate_il is not null from public.eventi where id = 'e0000000-0000-0000-0000-0000000000aa'), (select data_fine is not null from public.eventi where id = 'e0000000-0000-0000-0000-0000000000aa'))$q$);
   insert into esiti values (14, 'un altro ente no', 'non_autorizzato', r, r like '%non_autorizzato%');
 
   r := pg_temp.esito_di('22222222-0000-0000-0000-000000000001',
-    $q$select public.sposta_finestra_evento('e0000000-0000-0000-0000-0000000000aa', now(), now() + interval '1 hour')$q$);
+    $q$select public.sposta_finestra_evento('e0000000-0000-0000-0000-0000000000aa', now(), now() + interval '1 hour', (select ore_pcto from public.eventi where id = 'e0000000-0000-0000-0000-0000000000aa'), (select ore_pcto_fissate_il is not null from public.eventi where id = 'e0000000-0000-0000-0000-0000000000aa'), (select data_fine is not null from public.eventi where id = 'e0000000-0000-0000-0000-0000000000aa'))$q$);
   insert into esiti values (15, 'uno studente no', 'non_autorizzato', r, r like '%non_autorizzato%');
 
   r := pg_temp.esito_di('11111111-0000-0000-0000-000000000001',
-    $q$select public.sposta_finestra_evento('e0000000-0000-0000-0000-0000000000aa', now() + interval '1 hour', now())$q$);
+    $q$select public.sposta_finestra_evento('e0000000-0000-0000-0000-0000000000aa', now() + interval '1 hour', now(), (select ore_pcto from public.eventi where id = 'e0000000-0000-0000-0000-0000000000aa'), (select ore_pcto_fissate_il is not null from public.eventi where id = 'e0000000-0000-0000-0000-0000000000aa'), (select data_fine is not null from public.eventi where id = 'e0000000-0000-0000-0000-0000000000aa'))$q$);
   insert into esiti values (16, 'la fine prima dell''inizio è rifiutata', 'fine_prima_di_inizio', r, r like '%fine_prima_di_inizio%');
 
   r := pg_temp.esito_di('11111111-0000-0000-0000-000000000001',
     $q$select public.chiudi_diretta_evento('e0000000-0000-0000-0000-0000000000bb')$q$);
   r := pg_temp.esito_di('11111111-0000-0000-0000-000000000001',
-    $q$select public.sposta_finestra_evento('e0000000-0000-0000-0000-0000000000bb', now(), now() + interval '1 hour')$q$);
+    $q$select public.sposta_finestra_evento('e0000000-0000-0000-0000-0000000000bb', now(), now() + interval '1 hour', (select ore_pcto from public.eventi where id = 'e0000000-0000-0000-0000-0000000000bb'), (select ore_pcto_fissate_il is not null from public.eventi where id = 'e0000000-0000-0000-0000-0000000000bb'), (select data_fine is not null from public.eventi where id = 'e0000000-0000-0000-0000-0000000000bb'))$q$);
   insert into esiti values (17, 'a diretta chiusa la finestra non si sposta più', 'diretta_gia_chiusa', r, r like '%diretta_gia_chiusa%');
 
   r := pg_temp.esito_di('11111111-0000-0000-0000-000000000003',
-    $q$select public.sposta_finestra_evento('e0000000-0000-0000-0000-0000000000aa', now() + interval '20 minutes', now() + interval '65 minutes')$q$);
+    $q$select public.sposta_finestra_evento('e0000000-0000-0000-0000-0000000000aa', now() + interval '20 minutes', now() + interval '65 minutes', (select ore_pcto from public.eventi where id = 'e0000000-0000-0000-0000-0000000000aa'), (select ore_pcto_fissate_il is not null from public.eventi where id = 'e0000000-0000-0000-0000-0000000000aa'), (select data_fine is not null from public.eventi where id = 'e0000000-0000-0000-0000-0000000000aa'))$q$);
   insert into esiti values (18, 'l''admin sposta la finestra', 'riuscito', r, r = 'riuscito');
 end $$;
 
 do $$
 declare v boolean;
 begin
-  if to_regprocedure('public.sposta_finestra_evento(uuid, timestamptz, timestamptz)') is null then
+  if to_regprocedure('public.sposta_finestra_evento(uuid, timestamptz, timestamptz, numeric, boolean, boolean)') is null then
     insert into esiti values (21, 'anon non sposta niente', 'false', 'funzione assente', false);
     return;
   end if;
-  v := has_function_privilege('anon', 'public.sposta_finestra_evento(uuid, timestamptz, timestamptz)', 'execute');
+  v := has_function_privilege('anon', 'public.sposta_finestra_evento(uuid, timestamptz, timestamptz, numeric, boolean, boolean)', 'execute');
   insert into esiti values (21, 'anon non sposta niente', 'false', v::text, not v);
 end $$;
 

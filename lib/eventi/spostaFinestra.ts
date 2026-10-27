@@ -15,6 +15,13 @@ export function messaggioSpostaFinestra(chiave: string | null): string {
   if (chiave.includes("diretta_gia_chiusa")) {
     return "La diretta è già stata chiusa: presenze e ore sono state certificate su quell'orario, che quindi non si può più cambiare.";
   }
+  // ⚠️ Mio, provvisorio. Non un guasto e non un dato sbagliato: qualcun altro
+  // ha cambiato le ore mentre la persona guardava (`20261030100000`). Il testo
+  // chiede di RILEGGERE, non di riprovare — riprovare senza rileggere è
+  // esattamente il gesto che il rifiuto esiste per fermare.
+  if (chiave.includes("stato_cambiato")) {
+    return "Le ore di questo incontro sono cambiate mentre guardavi, e l'orario non è stato spostato. Rileggi qui sopra cosa succede con il nuovo orario, poi conferma di nuovo.";
+  }
   if (chiave.includes("fine_prima_di_inizio")) return "La fine deve venire dopo l'inizio.";
   if (chiave.includes("date_mancanti")) return "Servono sia l'inizio sia la fine, in ora italiana.";
   if (chiave.includes("non_autorizzato")) return "Solo chi organizza l'incontro, o KIREO, può spostarne l'orario.";

@@ -25,19 +25,40 @@ type StatoAnteprima =
 //
 // Gli orari si leggono e si scrivono IN ORA ITALIANA: un orario di scuola, non
 // un orario del browser di chi compila (vedi `istanteDaOrarioItaliano`).
+//
+// ⚠️ IL RIQUADRO SEGUE IL SERVER (Mario, 27/10). Aperto mentre l'admin
+// correggeva le ore, il riquadro teneva l'anteprima di prima: «…da 2,00 a 3,00»
+// accanto a ore già fissate a mano, cioè SENZA la frase che avvisa che lo
+// spostamento cancella una correzione — e con il bottone acceso, perché
+// l'anteprima risultava «pronta». Pronta vuol dire «ha risposto», non «ha
+// risposto su questo mondo». Quindi lo stato del server (ore, correzione, fine)
+// entra nella chiave: il `router.refresh()` dopo l'azione dell'altro riquadro la
+// cambia, l'anteprima si rilegge, e intanto né la frase vecchia né il bottone ci
+// sono. Il caso di due persone su due computer, dove nessun refresh arriva, lo
+// chiude il database (`stato_cambiato`, `20261030100000`).
+//
+// ⚠️ LA REGOLA DEI CAMPI (Mario): un valore non ancora toccato è una proposta
+// nostra e si aggiorna; un valore toccato è una scelta di chi scrive e non si
+// tocca. La differenza non è il contenuto del campo: è di chi è.
 export default function SpostaFinestraForm({
   eventoId,
   dataInizio,
   dataFine,
+  oreAttuali,
+  fissateIl,
 }: {
   eventoId: string;
   dataInizio: string;
   dataFine: string | null;
+  oreAttuali: number | string | null;
+  fissateIl: string | null;
 }) {
   const router = useRouter();
   const [aperto, setAperto] = useState(false);
-  const [inizio, setInizio] = useState(() => orarioItalianoDaIstante(dataInizio));
-  const [fine, setFine] = useState(() => (dataFine ? orarioItalianoDaIstante(dataFine) : ""));
+  const [inizioScritto, setInizioScritto] = useState<string | null>(null);
+  const [fineScritta, setFineScritta] = useState<string | null>(null);
+  const inizio = inizioScritto ?? orarioItalianoDaIstante(dataInizio);
+  const fine = fineScritta ?? (dataFine ? orarioItalianoDaIstante(dataFine) : "");
   const [salvataggio, setSalvataggio] = useState(false);
   const [confermaDurata, setConfermaDurata] = useState(false);
   // Una diretta lunga si fa confermare anche qui: è da qui che il 26/10 è
@@ -54,10 +75,13 @@ export default function SpostaFinestraForm({
   const chiaveDate = isoI && isoF && new Date(isoF).getTime() > new Date(isoI).getTime() ? `${isoI}|${isoF}` : null;
   const [anteprima, setAnteprima] = useState<StatoAnteprima | null>(null);
   const [giroAnteprima, setGiroAnteprima] = useState(0);
-  // Il giro entra nella chiave: «Riprova il calcolo» rende vecchia la risposta
-  // fallita, e finché la nuova non arriva lo stato è «in corso» — derivato,
-  // non scritto (nessun `setState` sincrono dentro l'effetto).
-  const chiave = chiaveDate ? `${chiaveDate}|${giroAnteprima}` : null;
+  // Il giro entra nella chiave: «Riprova il calcolo», una nuova apertura e un
+  // `stato_cambiato` rendono vecchia la risposta di prima, e finché la nuova non
+  // arriva lo stato è «in corso» — derivato, non scritto (nessun `setState`
+  // sincrono dentro l'effetto). Lo stato del server entra per la ragione scritta
+  // in testa.
+  const statoServer = `${oreAttuali ?? ""}|${fissateIl ?? ""}|${dataFine ?? ""}`;
+  const chiave = chiaveDate ? `${chiaveDate}|${statoServer}|${giroAnteprima}` : null;
   useEffect(() => {
     if (!aperto || !chiave) return;
     const [pInizio, pFine] = chiave.split("|");
@@ -119,13 +143,29 @@ export default function SpostaFinestraForm({
     // di qualcun altro non si conferma al buio. Il testo e il bottone per
     // riprovare sono già a schermo; qui non si dice niente di nuovo.
     if (anteprimaCorrente?.tipo !== "pronta") return;
+    // Lo stato che la persona ha LETTO, non quello delle props: è su questo che
+    // la frase sopra il bottone è stata scritta, ed è questo che il database
+    // confronta (`stato_cambiato`). Nessun valore predefinito dall'altra parte.
+    const visto = anteprimaCorrente.dati;
     setSalvataggio(true);
     try {
       const { error } = await createClient().rpc("sposta_finestra_evento", {
         p_evento_id: eventoId,
         p_data_inizio: isoInizio,
         p_data_fine: isoFine,
+        p_ore_viste: visto.ore_attuali,
+        p_fissate_viste: visto.fissate_a_mano,
+        p_aveva_fine_vista: visto.aveva_fine,
       });
+      if (error && error.message.includes("stato_cambiato")) {
+        // Non un guasto: le ore sono cambiate mentre si guardava. Si rilegge
+        // l'anteprima (il giro la rende vecchia anche se le props non sono
+        // cambiate — fra due computer nessun refresh arriva) e la pagina.
+        setMessaggio({ ok: false, testo: messaggioSpostaFinestra(error.message) });
+        setGiroAnteprima((g) => g + 1);
+        router.refresh();
+        return;
+      }
       if (error) {
         console.error("SpostaFinestraForm:", error);
         setMessaggio({ ok: false, testo: messaggioSpostaFinestra(error.message) });
@@ -145,7 +185,7 @@ export default function SpostaFinestraForm({
 
   if (!aperto) {
     return (
-      <button type="button" onClick={() => setAperto(true)} className="text-sm text-kireo-orange underline underline-offset-2">
+      <button type="button" onClick={() => { setGiroAnteprima((g) => g + 1); setAperto(true); }} className="text-sm text-kireo-orange underline underline-offset-2">
         Sposta l&apos;orario della diretta
       </button>
     );
@@ -160,7 +200,7 @@ export default function SpostaFinestraForm({
           <input
             type="datetime-local"
             value={inizio}
-            onChange={(e) => { setInizio(e.target.value); setConfermaDurata(false); }}
+            onChange={(e) => { setInizioScritto(e.target.value); setConfermaDurata(false); }}
             className="mt-1 block rounded-lg border border-white/10 bg-kireo-dark px-3 py-2 text-sm text-kireo-light"
           />
         </label>
@@ -169,7 +209,7 @@ export default function SpostaFinestraForm({
           <input
             type="datetime-local"
             value={fine}
-            onChange={(e) => { setFine(e.target.value); setConfermaDurata(false); }}
+            onChange={(e) => { setFineScritta(e.target.value); setConfermaDurata(false); }}
             className="mt-1 block rounded-lg border border-white/10 bg-kireo-dark px-3 py-2 text-sm text-kireo-light"
           />
         </label>

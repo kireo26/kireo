@@ -1,0 +1,17 @@
+-- LO SPOSTAMENTO DICE COSA HA VISTO CHI PREME — migrazione D di due: via la porta senza controllo.
+--
+-- ⚠️⚠️ SI APPLICA DOPO IL DEPLOY, NON PRIMA (come la B delle ore, 26/10): il
+-- form di prima del deploy chiama la versione a tre argomenti, e senza di lei
+-- nessuno riuscirebbe a spostare un orario finché il deploy non arriva. Dopo il
+-- deploy il form chiama quella a sei (`20261030100000`), e questa riga non
+-- rompe niente.
+--
+-- PERCHÉ NON RESTA: una versione a tre argomenti accanto a quella a sei è una
+-- strada che sposta l'orario senza sapere cosa ha letto chi preme — cioè
+-- esattamente il caso delle due persone, aperto a chiunque la chiami. Lasciata
+-- «per compatibilità», sarebbe la porta che un client dimenticato usa in
+-- silenzio.
+--
+-- COME SI VERIFICA APPLICATA: `to_regprocedure('public.sposta_finestra_evento(uuid,
+-- timestamptz, timestamptz)')` è null, e quella a sei argomenti c'è ancora.
+drop function public.sposta_finestra_evento(uuid, timestamptz, timestamptz);

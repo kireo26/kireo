@@ -77,6 +77,11 @@ const CLASSI = {
   "components/live/BoxDomandeLive.tsx": ["riceve", "la fine la decide PannelloLive"],
   "components/ente/CreaEventoForm.tsx": ["programmata", "scrive la finestra programmata: non c'è ancora nessuna chiusura"],
   "components/ente/SpostaFinestraForm.tsx": ["programmata", "sposta la finestra programmata; il database rifiuta una diretta già chiusa"],
+  // Entrato il 27/10: la fine (e la chiusura) qui non decidono niente — sono un
+  // pezzo della CHIAVE che dice quando rileggere l'anteprima, dopo che l'altro
+  // riquadro ha spostato l'orario. Durata, massimo e chiusura li decide
+  // `anteprima_correzione_ore`, nel database.
+  "components/admin/CorreggiOreForm.tsx": ["programmata", "la fine è solo un pezzo della chiave dell'anteprima: quando cambia, la frase si rilegge; i numeri li decide `anteprima_correzione_ore`"],
   // `lib/eventi/orePcto.ts` è USCITO il 26/10, e non per svista: l'avviso sulle
   // ore dichiarate (che leggeva la durata programmata) non esiste più — le ore
   // SONO la durata, le calcola il database (`20261029100000`). La guardia lo
