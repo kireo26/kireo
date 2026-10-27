@@ -16,6 +16,7 @@
 
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { leggiNoteRevisione } from "@/lib/eventi/noteRevisione";
 
 /** Quale delle due parti sta moderando. Congelato nel nome come `certificata_da_tipo`. */
 export type ParteModeratrice = "kireo" | "ente";
@@ -50,7 +51,8 @@ export type ContestoModerazione = {
     // decide leggendo cosa l'ente ha scritto.
     descrizione: string | null;
     cta_esterna_url: string | null;
-    note_revisione: string | null;
+    // Da `note_revisione_eventi`, non dalla tabella (20261101100000): `undefined` = non letta.
+    note_revisione?: string | null;
   };
 };
 
@@ -66,7 +68,7 @@ export async function getContestoModerazione(eventoId: string): Promise<Contesto
   const { data: evento, error } = await supabase
     .from("eventi")
     .select(
-      "id, titolo, descrizione, cta_esterna_url, note_revisione, tipo, pubblico, filone, data_inizio, data_fine, stato, in_evidenza, hosting_diretta, youtube_video_id, domanda_consegna, diretta_chiusa_il, diretta_chiusa_da_tipo, diretta_chiusa_presenti, diretta_chiusa_certificati, diretta_durata_minuti, ore_pcto, ore_pcto_fissate_il, ore_pcto_fissate_da, organizzatore_id, istituzioni(nome)",
+      "id, titolo, descrizione, cta_esterna_url, tipo, pubblico, filone, data_inizio, data_fine, stato, in_evidenza, hosting_diretta, youtube_video_id, domanda_consegna, diretta_chiusa_il, diretta_chiusa_da_tipo, diretta_chiusa_presenti, diretta_chiusa_certificati, diretta_durata_minuti, ore_pcto, ore_pcto_fissate_il, ore_pcto_fissate_da, organizzatore_id, istituzioni(nome)",
     )
     .eq("id", eventoId)
     .maybeSingle();
@@ -110,6 +112,9 @@ export async function getContestoModerazione(eventoId: string): Promise<Contesto
     nomeCorrettore = nome || null;
   }
 
+  // La nota non sta nella select: la colonna è fuori dalla lettura del client
+  // (20261101110000), e la dà la funzione a chi ne ha diritto.
+  const note = await leggiNoteRevisione(supabase, [evento.id]);
   const istituzione = Array.isArray(evento.istituzioni) ? evento.istituzioni[0] : evento.istituzioni;
   return {
     parte,
@@ -137,7 +142,7 @@ export async function getContestoModerazione(eventoId: string): Promise<Contesto
       organizzatore: istituzione?.nome ?? null,
       descrizione: evento.descrizione ?? null,
       cta_esterna_url: evento.cta_esterna_url ?? null,
-      note_revisione: evento.note_revisione ?? null,
+      note_revisione: note === null ? undefined : (note.get(evento.id) ?? null),
     },
   };
 }

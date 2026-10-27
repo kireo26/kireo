@@ -4,6 +4,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getAreeDegliEventi } from "@/lib/app/eventi";
 import { COLONNE_EVENTO_ENTE, type EventoEnte } from "@/lib/ente/eventiEnte";
+import { conNoteRevisione, leggiNoteRevisione } from "@/lib/eventi/noteRevisione";
 
 export async function caricaEventiEnte(
   supabase: SupabaseClient,
@@ -13,9 +14,12 @@ export async function caricaEventiEnte(
   // Una lettura fallita non è una lista vuota: «non hai ancora eventi» detto a
   // chi ne ha dieci lo manda a crearli di nuovo.
   if (error) console.error("[ente/eventi] eventi:", error);
-  const eventi = (data ?? []) as EventoEnte[];
-  const aree = await getAreeDegliEventi(supabase, eventi.map((e) => e.id));
-  return { eventi, aree, letturaFallita: !!error };
+  const letti = (data ?? []) as EventoEnte[];
+  const [aree, note] = await Promise.all([
+    getAreeDegliEventi(supabase, letti.map((e) => e.id)),
+    leggiNoteRevisione(supabase, letti.map((e) => e.id)),
+  ]);
+  return { eventi: conNoteRevisione(letti, note), aree, letturaFallita: !!error };
 }
 
 /** Per i webinar ai docenti: quante presenze l'ente ha certificato nel registro. `null` = non letto, che non è zero. */

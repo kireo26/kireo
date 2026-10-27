@@ -36,11 +36,16 @@ export type EventoEnte = {
   // La nota di chi ha rivisto l'evento (27/10): fino ad allora l'ente non la
   // leggeva da nessuna parte, mentre il campo dell'admin prometteva «visibile
   // all'ente». Un rifiuto che porta una ragione che nessuno vede è muto uguale.
-  note_revisione: string | null;
+  // ⚠️ NON SI LEGGE DALLA TABELLA (20261101100000/110000): la colonna è fuori
+  // dalla lettura del client, perché `eventi_select_approvati` la mostrava a
+  // chiunque. Arriva da `note_revisione_eventi`, che la dà solo all'admin e
+  // all'organizzatore (`leggiNoteRevisione`). `undefined` = non letta, che NON
+  // è «senza nota».
+  note_revisione?: string | null;
 };
 
 export const COLONNE_EVENTO_ENTE =
-  "id, titolo, tipo, data_inizio, data_fine, stato, pubblico, filone, diretta_chiusa_il, diretta_chiusa_presenti, note_revisione";
+  "id, titolo, tipo, data_inizio, data_fine, stato, pubblico, filone, diretta_chiusa_il, diretta_chiusa_presenti";
 
 export const ETICHETTA_STATO: Record<string, { label: string; classe: string }> = {
   bozza: { label: "Bozza", classe: "bg-white/10 text-kireo-light" },
@@ -150,7 +155,16 @@ export function esitoEventoPassato(e: EventoEnte, docentiCertificati: number | n
  * (`lib/admin/rifiuto.ts`): la seconda frase resta per le righe di prima.
  */
 export function motivoRifiuto(e: Pick<EventoEnte, "note_revisione">): string {
+  // Non letta non è «senza nota»: dire «rifiutato senza una nota» a chi una
+  // nota ce l'ha sarebbe la bugia di prima spostata di posto.
+  if (e.note_revisione === undefined) return "Non siamo riusciti a leggere la nota di revisione: ricarica la pagina.";
   const nota = e.note_revisione?.trim();
   return nota ? `Nota di revisione: ${nota}` : "Rifiutato senza una nota di revisione.";
+}
+
+/** La nota sotto un evento NON rifiutato, se c'è (un'approvazione con una richiesta), o `null`. ⚠️ Testo mio, provvisorio. */
+export function notaRevisione(e: Pick<EventoEnte, "note_revisione">): string | null {
+  const nota = e.note_revisione?.trim();
+  return nota ? `Nota di revisione: ${nota}` : null;
 }
 

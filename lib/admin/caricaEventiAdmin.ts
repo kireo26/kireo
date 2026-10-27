@@ -3,6 +3,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getAreeDegliEventi } from "@/lib/app/eventi";
 import { COLONNE_EVENTO_ADMIN, dividiEventiAdmin, type EventoAdmin } from "@/lib/admin/eventiAdmin";
+import { conNoteRevisione, leggiNoteRevisione } from "@/lib/eventi/noteRevisione";
 
 export async function caricaEventiAdmin(
   supabase: SupabaseClient,
@@ -13,12 +14,15 @@ export async function caricaEventiAdmin(
   // Una lettura fallita non è una coda vuota: «niente da approvare» detto con
   // tre eventi in attesa è la frase che li lascia lì.
   if (error) console.error("[admin/eventi] eventi:", error);
-  const eventi = ((data ?? []) as Array<Record<string, unknown>>).map((r) => {
+  const letti = ((data ?? []) as Array<Record<string, unknown>>).map((r) => {
     const ist = Array.isArray(r.istituzioni) ? r.istituzioni[0] : r.istituzioni;
     return { ...r, ente: (ist as { nome?: string } | null)?.nome ?? null } as unknown as EventoAdmin;
   });
-  const aree = await getAreeDegliEventi(supabase, eventi.map((e) => e.id));
-  return { eventi, aree, letturaFallita: !!error };
+  const [aree, note] = await Promise.all([
+    getAreeDegliEventi(supabase, letti.map((e) => e.id)),
+    leggiNoteRevisione(supabase, letti.map((e) => e.id)),
+  ]);
+  return { eventi: conNoteRevisione(letti, note), aree, letturaFallita: !!error };
 }
 
 /**

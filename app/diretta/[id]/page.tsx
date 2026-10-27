@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { fineEffettiva } from "@/lib/live";
 import { getContestoModerazione } from "@/lib/eventi/moderazione";
-import { motivoRifiuto } from "@/lib/ente/eventiEnte";
+import { motivoRifiuto, notaRevisione } from "@/lib/ente/eventiEnte";
 import ControlloDirettaEvento from "@/components/ente/ControlloDirettaEvento";
 import ReportEventoButton from "@/components/ente/ReportEventoButton";
 import GestisciVideoDirettaForm from "@/components/admin/GestisciVideoDirettaForm";
@@ -76,7 +76,13 @@ export default async function ModerazioneDirettaPage({ params }: { params: Promi
         )}
         {/* La ragione del rifiuto, per tutti e due i ruoli (27/10): è la cosa
             che l'ente deve leggere per correggere, e l'admin per ricordare. */}
-        {evento.stato === "rifiutato" && <p className="mt-2 text-sm text-kireo-light/90">{motivoRifiuto(evento)}</p>}
+        {evento.stato === "rifiutato" ? (
+          <p className="mt-2 text-sm text-kireo-light/90">{motivoRifiuto(evento)}</p>
+        ) : (
+          // Anche un'approvazione può portare una nota (una richiesta): il
+          // campo dice «visibile all'ente», e da qui lo è.
+          notaRevisione(evento) && <p className="mt-2 text-sm text-kireo-light/90">{notaRevisione(evento)}</p>
+        )}
       </header>
 
       {/* Approva/rifiuta e la chiave: dal 27/10 stanno qui e non nella coda di
