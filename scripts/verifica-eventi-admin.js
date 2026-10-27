@@ -103,7 +103,23 @@ console.log("\n§2bis — un rifiuto porta la sua ragione\n");
   }
   // E la nota arriva a chi deve leggerla: senza, un rifiuto con la ragione
   // resta muto uguale.
-  ok(/note_revisione/.test(leggi("lib/ente/eventiEnte.ts").match(/COLONNE_EVENTO_ENTE =[\s\S]*?;/)?.[0] ?? ""), "l'elenco dell'ente legge la nota");
+  // ⚠️ Dal 20261101 la nota NON si legge dalla tabella: `eventi_select_approvati`
+  // la mostrava a chiunque, e la colonna è uscita dalla lettura del client. Una
+  // `select` che la nominasse oggi fallirebbe per intero (permesso negato).
+  for (const [f, nome] of [["lib/ente/eventiEnte.ts", "COLONNE_EVENTO_ENTE"], ["lib/admin/eventiAdmin.ts", "COLONNE_EVENTO_ADMIN"]]) {
+    const def = leggi(f).match(new RegExp(nome + " =[\\s\\S]*?;"))?.[0] ?? "";
+    ok(def.length > 0 && !/note_revisione/.test(def), `${nome} non nomina la colonna della nota`);
+  }
+  const mod = leggi("lib/eventi/moderazione.ts");
+  ok(!/\.select\([^)]*note_revisione/.test(mod), "la pagina dell'evento non la nomina nella select");
+  for (const f of ["lib/ente/caricaEventiEnte.ts", "lib/admin/caricaEventiAdmin.ts", "lib/eventi/moderazione.ts"]) {
+    ok(/leggiNoteRevisione\(/.test(leggi(f)), `${f} la legge dalla funzione`);
+  }
+  ok(/rpc\("note_revisione_eventi"/.test(leggi("lib/eventi/noteRevisione.ts")), "…che chiama note_revisione_eventi");
+  // Non letta non è «senza nota».
+  const E = require("@/lib/ente/eventiEnte");
+  ok(E.motivoRifiuto({ note_revisione: undefined }) !== E.motivoRifiuto({ note_revisione: null }), "una nota non letta non si dice «senza nota»");
+  ok(E.motivoRifiuto({ note_revisione: null }) === "Rifiutato senza una nota di revisione.", "…e una davvero assente sì");
   ok(/esito=\{motivoRifiuto\(e\)\}/.test(leggi("app/ente/(dashboard)/eventi/page.tsx")), "…e la mostra sotto ogni rifiutato");
   ok(/note_revisione/.test(leggi("lib/eventi/moderazione.ts")) && /motivoRifiuto\(evento\)/.test(leggi("app/diretta/[id]/page.tsx")), "…e così la pagina dell'evento");
   ok(A.motivoRifiuto === require("@/lib/ente/eventiEnte").motivoRifiuto, "la frase è una sola per l'ente e per l'admin");
