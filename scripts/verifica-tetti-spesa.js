@@ -41,6 +41,10 @@ console.log("\n§1 — il taglio del contesto lo decide il server\n");
   ok(tot <= 100, "quello che si manda sta nel tetto", tot);
   ok(tenuti[0].role === "user", "si comincia da un messaggio dello studente", tenuti.map((x) => x.role));
   ok(tenuti.length === 3 && tenuti[tenuti.length - 1] === lunga[lunga.length - 1], "si tiene la coda, e l'ultima domanda c'è sempre", tenuti.length);
+  // Tetto 70: ci starebbero gli ultimi due (assistente + studente), e il primo
+  // va tolto — è il caso in cui la regola lavora davvero.
+  const dueUltimi = tagliaContesto(lunga, 70);
+  ok(dueUltimi.length === 1 && dueUltimi[0].role === "user", "se il taglio cade su una risposta dell'assistente, quella esce", dueUltimi.map((x) => x.role));
   ok(tagliaContesto([m("user", 500)], 100).length === 1, "una domanda sola più lunga del tetto resta (l'ha già limitata la route)");
   ok(tagliaContesto(lunga, 10_000).length === lunga.length, "sotto il tetto non si toglie niente");
   ok(MAX_CARATTERI_CONTESTO < 20 * 2000, "il tetto è più stretto di quello che un client può mandare (20 × 2000)", MAX_CARATTERI_CONTESTO);
