@@ -203,6 +203,22 @@ console.log("\n§6 — i limiti dei file stanno anche sul server, con gli stessi
   ok(/tipoCopertinaAmmesso\(file\.type\)/.test(form) && !/const MAX_(COPERTINA|GUIDA)_MB/.test(form), "il form usa i limiti condivisi, non una copia sua");
 }
 
+console.log("\n§6bis — il bucket delle consegne dei workshop accetta quello che accetta il form, non di più\n");
+{
+  const imm = require(path.join(ROOT, "lib/workshop/immagini.ts"));
+  const sql = senzaCommentiSql(fs.readFileSync(path.join(ROOT, "supabase/migrations/20261104120000_storage_workshop_consegne_limiti.sql"), "utf8"));
+  const limite = Number((sql.match(/file_size_limit = (\d+)/) ?? [])[1]);
+  const tipi = [...((sql.match(/allowed_mime_types = array\[([^\]]*)\]/) ?? [])[1] ?? "").matchAll(/'([^']+)'/g)].map((m) => m[1]).sort();
+  ok(imm.BUCKET_IMMAGINI === "workshop-consegne" && /where id = 'workshop-consegne'/.test(sql), "la migrazione scrive il bucket in cui il form carica");
+  ok(limite === imm.MAX_IMMAGINE_MB * 1024 * 1024, "il tetto del bucket è quello del form", { limite, form: imm.MAX_IMMAGINE_MB });
+  ok(tipi.length > 0 && JSON.stringify(tipi) === JSON.stringify([...imm.TIPI_IMMAGINE_CONSENTITI].sort()), "i tipi del bucket sono quelli che il form accetta", tipi);
+  ok(/get diagnostics v_righe = row_count/.test(sql) && /if v_righe <> 1 then/.test(sql), "la migrazione si ferma se non tocca esattamente una riga");
+  const form = leggi("components/workshop/elaborato/SezioneEditor.tsx");
+  ok(/tipoImmagineAmmesso\(file\.type\)/.test(form) && !/const (MAX_IMMAGINE_MB|TIPI_IMMAGINE_CONSENTITI|BUCKET_IMMAGINI)/.test(form), "il form usa i limiti condivisi, non una copia sua");
+  const accept = (form.match(/accept="([^"]*)"/) ?? [])[1];
+  ok(JSON.stringify((accept ?? "").split(",").sort()) === JSON.stringify(tipi), "la finestra di scelta propone gli stessi tipi", accept);
+}
+
 console.log("\n§7 — la provincia è una scelta da un elenco\n");
 {
   const form = leggi("components/ente/ProfiloEnteForm.tsx");

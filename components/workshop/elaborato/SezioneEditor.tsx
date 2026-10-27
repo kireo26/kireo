@@ -4,11 +4,8 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { SezioneElaborato } from "@/lib/workshop/elaborato-config";
 import { serializzaValoreSezione, type ValoreChecklist, type ValoreScelta, type ValoreSezione, type ValoreTabella } from "@/lib/workshop/elaboratoValore";
+import { BUCKET_IMMAGINI, MAX_IMMAGINE_MB, tipoImmagineAmmesso } from "@/lib/workshop/immagini";
 import TutorPanel from "./TutorPanel";
-
-const BUCKET_IMMAGINI = "workshop-consegne";
-const MAX_IMMAGINE_MB = 5;
-const TIPI_IMMAGINE_CONSENTITI = ["image/png", "image/jpeg"];
 
 const INPUT_CLASSI = "w-full rounded-lg border border-white/10 bg-kireo-dark px-3 py-2 text-sm text-kireo-light placeholder:text-kireo-muted focus:outline-none focus:border-kireo-green";
 
@@ -328,7 +325,7 @@ function ImmagineInput({
 
   async function handleFile(file: File) {
     setErrore(null);
-    if (!TIPI_IMMAGINE_CONSENTITI.includes(file.type)) {
+    if (!tipoImmagineAmmesso(file.type)) {
       setErrore("Carica un'immagine (PNG o JPG).");
       return;
     }

@@ -199,6 +199,30 @@
       "fonte": "Mario, 27/10, dopo il deploy: recinto_enti_unica non è più in pg_constraint → 0"
     },
     {
+      "file": "20261103100000_statistiche_evento_presenti.sql",
+      "commit": "f19c756",
+      "stato": "verificata",
+      "fonte": "Mario, 27/10 sera, subito dopo l'applicazione: colonna presenti in information_schema.columns di stats_eventi_istituzione → 1"
+    },
+    {
+      "file": "20261103110000_aree_ente_per_tipo.sql",
+      "commit": "a5318fe",
+      "stato": "verificata",
+      "fonte": "Mario, 27/10 sera: to_regprocedure('public.max_aree_istituzione(uuid)') is not null → true"
+    },
+    {
+      "file": "20261103120000_istituzioni_colonne_che_decidono.sql",
+      "commit": "f19c756",
+      "stato": "verificata",
+      "fonte": "Mario, 27/10 sera: has_column_privilege(authenticated, istituzioni, tipo, UPDATE) → false; …descrizione… → true; has_table_privilege(authenticated, istituzioni, INSERT) → false"
+    },
+    {
+      "file": "20261103130000_iscrizioni_scuola_dicono_quanti.sql",
+      "commit": "f19c756",
+      "stato": "verificata",
+      "fonte": "Mario, 27/10 sera: pg_get_function_result(iscrivi_studenti_evento(uuid, uuid[])) → jsonb"
+    },
+    {
       "file": "20261103140000_storage_istituzioni_media_limiti.sql",
       "commit": "802ccc4",
       "stato": "verificata",
