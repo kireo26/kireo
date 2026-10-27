@@ -3,7 +3,7 @@
 -- `to_jsonb(p) ->>`, che dà null invece di fallire quando non c'è).
 --
 -- Come si legge:
---   prima: «esenti» è null (la colonna non esiste) e «di prova» è il numero da ricordare;
+--   prima: «esenti» e «righe diverse» sono 0 (la colonna non esiste) e «di prova» è il numero da ricordare;
 --   dopo:  «esenti» = «di prova» di prima, e «righe diverse» = 0.
 -- Un «righe diverse» maggiore di zero subito dopo la migrazione vuol dire che la
 -- copia non ha preso tutte le righe: nell'istante della migrazione qualcuno ha

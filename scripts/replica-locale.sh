@@ -10,6 +10,9 @@
 # giorni diversi siano la stessa replica.
 #
 # Uso: scripts/replica-locale.sh [cartella] [porta]   (default: /tmp/kireo-replica 54329)
+#      FERMA_PRIMA=<prefisso> scripts/replica-locale.sh → si ferma PRIMA della
+#      migrazione con quel prefisso (27/10): serve a provare una migrazione che
+#      trasforma righe che esistono già, seminandole e applicandola a mano.
 # Stampa la stringa di connessione sull'ultima riga.
 set -euo pipefail
 DIR="${1:-/tmp/kireo-replica}"
@@ -28,6 +31,7 @@ CONN="host=/tmp port=$PORTA user=postgres dbname=postgres"
 psql "$CONN" -q -v ON_ERROR_STOP=1 -f "$RADICE/scripts/replica-shim.sql" >/dev/null
 for f in "$RADICE"/supabase/migrations/*.sql; do
   case "$(basename "$f")" in *storage*) continue ;; esac
+  if [ -n "${FERMA_PRIMA:-}" ] && [[ "$(basename "$f")" == "$FERMA_PRIMA"* ]]; then break; fi
   if ! psql "$CONN" -q -v ON_ERROR_STOP=1 --single-transaction -f "$f" >/dev/null 2>"$DIR/errore.txt"; then
     echo "MIGRAZIONE FALLITA: $(basename "$f")" >&2; cat "$DIR/errore.txt" >&2; exit 1
   fi
