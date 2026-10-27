@@ -267,6 +267,7 @@ export const ATTESE: { tabella: string; natura: NaturaDato; nominataDa: IdVoceDe
   { tabella: "seguiti", natura: "fatto", nominataDa: "enti", cosa: "gli enti che segue" },
   { tabella: "manifestazioni_interesse", natura: "fatto", nominataDa: "enti", cosa: "gli enti a cui ha manifestato interesse" },
   { tabella: "assistente_conversazioni", natura: "fatto", nominataDa: "assistente_newsletter", cosa: "quante conversazioni ha aperto con l'assistente — mai il contenuto, che non si salva" },
+  { tabella: "assistente_richieste", natura: "fatto", nominataDa: "assistente_newsletter", cosa: "quando ha fatto una domanda all'assistente (il tetto del giorno, dal 27/10) — mai il testo" },
   { tabella: "workshop_iscrizioni", natura: "fatto", nominataDa: "workshop", cosa: "i ruoli di workshop presi, lasciati, completati" },
   { tabella: "test_attempt", natura: "fatto", nominataDa: "test_missioni", cosa: "i tentativi dei tre test" },
   { tabella: "mission_attempt", natura: "fatto", nominataDa: "test_missioni", cosa: "le missioni giocate" },

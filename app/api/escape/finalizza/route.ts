@@ -45,6 +45,17 @@ export async function POST(request: NextRequest) {
     .maybeSingle();
   if (!attempt) return erroreDiCortesia("Tentativo non trovato.", 404);
 
+  // Un tentativo che non è in corso non si finalizza di nuovo (27/10). Lo stato
+  // lo leggevamo già e non lo usavamo: un tentativo completato si rifinalizzava,
+  // e ogni volta gli step aperti costavano fino a tre chiamate a pagamento.
+  // Il nostro client chiama questa route una volta sola, all'ultimo passo; chi
+  // ci arriva su un tentativo concluso trova l'esito sulla pagina della missione.
+  // ⚠️ Due richieste contemporanee sullo stesso tentativo in corso passano
+  // tutte e due: il tetto vero è quello dei tentativi al giorno.
+  if (attempt.stato !== "in_corso") {
+    return erroreDiCortesia("Questa missione è già conclusa: l'esito è nella pagina della missione.", 409);
+  }
+
   // risposte autorevoli dal DB
   const { data: righe } = await supabase
     .from("step_response")

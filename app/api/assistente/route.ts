@@ -5,6 +5,7 @@ import { getAreaBySlug } from "@/data/aree";
 import { buildSystemPrompt } from "@/lib/assistente/prompt";
 import { isAreaAttiva, MODELLO_ASSISTENTE, MAX_MESSAGGI_CONVERSAZIONE, MAX_CARATTERI_MESSAGGIO } from "@/lib/assistente/config";
 import { descriviErrore } from "@/lib/erroreSupabase";
+import { tagliaContesto } from "@/lib/assistente/contesto";
 
 export const runtime = "nodejs";
 
@@ -102,6 +103,24 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // IL TETTO VERO, e lo decide il server (27/10): ogni richiesta scrive una
+  // riga PRIMA della chiamata, e il trigger la rifiuta oltre il tetto del
+  // giorno (20261104140000). Il tetto delle conversazioni qui sopra scatta solo
+  // se il client dichiara una conversazione nuova: per il nostro client è il
+  // limite che si incontra prima, per un client scritto a mano non c'è. Questo
+  // non chiede niente a chi chiama. Se non riusciamo a contare, non spendiamo.
+  const { error: erroreRichiesta } = await supabase.from("assistente_richieste").insert({ student_id: user.id });
+  if (erroreRichiesta) {
+    if (erroreRichiesta.message?.includes("troppe_richieste_assistente_oggi")) {
+      return erroreDiCortesia(
+        "Per oggi hai fatto tutte le domande che l'assistente digitale può ricevere in un giorno. Puoi tornare domani.",
+        429,
+      );
+    }
+    console.error("Errore insert assistente_richieste:", descriviErrore(erroreRichiesta));
+    return erroreDiCortesia("Non è stato possibile contattare l'assistente digitale. Riprova più tardi.", 500);
+  }
+
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     console.error("ANTHROPIC_API_KEY non configurata: impossibile contattare l'assistente digitale.");
@@ -130,7 +149,9 @@ export async function POST(request: NextRequest) {
       // Haiku 4.5 — 4096 token — finché il prompt resta breve come oggi,
       // il marker non ha ancora effetto ma non costa nulla lasciarlo).
       system: [{ type: "text", text: systemPrompt, cache_control: { type: "ephemeral" } }],
-      messages: messaggi.map((m) => ({ role: m.role, content: m.content })),
+      // Solo la coda che sta nel tetto di caratteri: quanto costa la chiamata
+      // non lo decide la history che manda il client (lib/assistente/contesto.ts).
+      messages: tagliaContesto(messaggi).map((m) => ({ role: m.role, content: m.content })),
     });
   } catch (errore) {
     console.error("Errore nell'avvio dello stream Anthropic:", errore);

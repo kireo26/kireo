@@ -109,6 +109,10 @@ const ESENTI = new Map([
     "Stessa specie dei due file qui sotto: crea i propri studenti finti e il proprio workshop finto dentro una transazione, prova nove proprietà dei cancelli e fa ROLLBACK. Non conta niente su nessuno.",
   ],
   [
+    "scripts/verifica-tetti-spesa.sql",
+    "Stessa specie di verifica-cancelli-percorso.sql: crea i propri due studenti finti dentro una transazione, prova otto proprietà dei tetti e delle colonne dei tentativi e fa ROLLBACK. Non conta niente su nessuno.",
+  ],
+  [
     "scripts/verifica-missione-senza-prove.sql",
     "La gemella del file qui sopra, per le missioni: stesso studente finto dentro una transazione, stesse sei proprietà, stesso ROLLBACK.",
   ],
