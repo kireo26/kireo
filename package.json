@@ -85,7 +85,8 @@
     "test:fine": "node scripts/verifica-fine-effettiva.js",
     "test:migrazioni": "node scripts/verifica-migrazioni-applicate.js",
     "sql:tutti": "scripts/verifica-sql-tutti.sh",
-    "test:scritture": "node scripts/verifica-scritture-mute.js"
+    "test:scritture": "node scripts/verifica-scritture-mute.js",
+    "censimento:spesa": "node scripts/censimento-spesa-ai.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.112.5",

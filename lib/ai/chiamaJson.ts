@@ -69,11 +69,10 @@ export function estraiJson(testo: string): unknown | undefined {
 // Erano quattro fino al 2026-08-29: il quarto era l'analisi del file caricato
 // (app/api/workshop/consegna), chiusa insieme al caricamento file del workshop
 // e uscita dal repo il 2026-10-27.
-// Ne resta un quinto RAGGIUNGIBILE MA ORFANO: il feedback finale in
-// app/api/workshop/elaborato/consegna, che nessun componente chiama più da
-// quando la chiusura del progetto la fa il cron sull'ultima tappa. Sta qui
-// scritto perché non venga contato per errore fra i vivi, e perché la
-// decisione se chiuderlo sia presa apposta invece che dimenticata.
+// Il quinto, il feedback finale in app/api/workshop/elaborato/consegna, era
+// raggiungibile e orfano dal 29/08 (la chiusura del progetto la fa il cron
+// sull'ultima tappa): è uscito il 2026-10-27, insieme alla funzione SQL che
+// chiamava (20261104130000).
 //
 // È il punto giusto per la guardia sulla lingua invariante — vedi `chiamaJson`
 // più sotto, che la avvolge.
