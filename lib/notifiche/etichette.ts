@@ -51,3 +51,22 @@ export const LINK_TIPO: Record<TipoNotifica, string> = {
   chiave_trasmissione_pronta: "/ente/eventi",
   chiave_trasmissione_cambiata: "/ente/eventi",
 };
+
+// ⚠️ UN LINK CHE ARRIVA NEL POSTO SBAGLIATO SI CREDE (Mario, 27/10). Fino al
+// 27/10 la chiave di trasmissione si leggeva nella lista di `/ente/eventi`; da
+// quando la lista dice solo cosa c'è e quando, la chiave sta nella pagina
+// dell'evento (`PlanciaEnteEvento`, montata da `/diretta/[id]`). Il link vecchio
+// funzionava ancora — portava a una pagina che aveva cambiato mestiere — e un
+// collegamento rotto si vede, uno che arriva altrove no. Per la chiave il
+// `riferimento_id` è l'evento (`imposta_chiave_trasmissione`), quindi il link
+// porta lì; `LINK_TIPO` resta il ripiego per una riga senza riferimento.
+const LINK_ALL_EVENTO: Partial<Record<TipoNotifica, (id: string) => string>> = {
+  chiave_trasmissione_pronta: (id) => `/diretta/${id}`,
+  chiave_trasmissione_cambiata: (id) => `/diretta/${id}`,
+};
+
+export function linkNotifica(tipo: TipoNotifica, riferimentoId: string | null | undefined): string {
+  const all = LINK_ALL_EVENTO[tipo];
+  if (all && riferimentoId) return all(riferimentoId);
+  return LINK_TIPO[tipo] ?? "/app";
+}

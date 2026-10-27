@@ -26,7 +26,7 @@ export default async function EnteEventiPage() {
       .eq("istituzione_id", contesto.istituzioneId)
       .order("created_at", { ascending: false }),
   ]);
-  const { inProgrammazione } = dividiEventiEnte(eventi);
+  const { inProgrammazione, rifiutati } = dividiEventiEnte(eventi);
 
   const scuolaProfiloIds = Array.from(new Set((proposte ?? []).map((p) => p.scuola_profilo_id)));
   const nomeScuolaPerProposta = new Map<string, string>();
@@ -56,11 +56,20 @@ export default async function EnteEventiPage() {
           </Link>
         </div>
       ) : (
-        <ul className="space-y-3">
-          {inProgrammazione.map((e) => (
-            <RigaEventoEnte key={e.id} evento={e} area={areaEventoEnte(e, aree[e.id] ?? [])} />
+        // Un gruppo per stato, con la sua intestazione: il titolo della pagina
+        // è un'affermazione su tutto quello che contiene (`dividiEventiEnte`).
+        <div className="space-y-6">
+          {inProgrammazione.map((g) => (
+            <section key={g.chiave}>
+              <h2 className="mb-3 font-heading text-base font-semibold text-kireo-light">{g.titolo}</h2>
+              <ul className="space-y-3">
+                {g.eventi.map((e) => (
+                  <RigaEventoEnte key={e.id} evento={e} area={areaEventoEnte(e, aree[e.id] ?? [])} />
+                ))}
+              </ul>
+            </section>
           ))}
-        </ul>
+        </div>
       )}
 
       {proposte && proposte.length > 0 && (
@@ -84,6 +93,19 @@ export default async function EnteEventiPage() {
             ))}
           </ul>
         </div>
+      )}
+      {/* I RIFIUTATI, in fondo e con un titolo loro (Mario, 27/10): non sono in
+          programmazione e non lo saranno mai, ma toglierli li farebbe sparire
+          dalla vista di chi li ha scritti. Rari: un gruppo e non una voce di menu. */}
+      {!letturaFallita && rifiutati.length > 0 && (
+        <section>
+          <h2 className="mb-3 font-heading text-base font-semibold text-kireo-light">Rifiutati</h2>
+          <ul className="space-y-3">
+            {rifiutati.map((e) => (
+              <RigaEventoEnte key={e.id} evento={e} area={areaEventoEnte(e, aree[e.id] ?? [])} />
+            ))}
+          </ul>
+        </section>
       )}
     </div>
   );

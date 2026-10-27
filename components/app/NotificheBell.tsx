@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { formattaData } from "@/lib/formato";
-import { ETICHETTA_TIPO, LINK_TIPO, type TipoNotifica } from "@/lib/notifiche/etichette";
+import { ETICHETTA_TIPO, linkNotifica, type TipoNotifica } from "@/lib/notifiche/etichette";
 
 // Le due liste (etichetta e link per tipo) vivono in lib/notifiche/etichette.ts:
 // qui dentro non si potevano provare da uno script Node, ed era proprio una
@@ -121,7 +121,7 @@ export default function NotificheBell({ userId, allineamento = "destra" }: { use
               {notifiche.map((n) => (
                 <li key={n.id}>
                   <Link
-                    href={LINK_TIPO[n.tipo] ?? "/app"}
+                    href={linkNotifica(n.tipo, n.riferimento_id)}
                     onClick={() => !n.letta && segnaLetta(n.id)}
                     className={`block rounded-lg px-3 py-2 text-sm transition-colors hover:bg-white/5 ${n.letta ? "text-kireo-muted" : "text-kireo-light"}`}
                   >

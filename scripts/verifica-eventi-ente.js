@@ -31,21 +31,36 @@ const ev = (id, o) => ({
   stato: "approvato", pubblico: "studenti", filone: null, diretta_chiusa_il: null, diretta_chiusa_presenti: null, ...o,
 });
 
-console.log("\n§1 — in programmazione e passati\n");
+console.log("\n§1 — in programmazione (per gruppi), i rifiutati, i passati\n");
 {
   const eventi = [
     ev("lontano", { data_inizio: "2026-12-10T10:00:00Z", data_fine: "2026-12-10T11:00:00Z" }),
-    ev("vicino", { data_inizio: "2026-10-28T10:00:00Z", data_fine: "2026-10-28T11:00:00Z", stato: "in_approvazione" }),
+    ev("vicino_rev", { data_inizio: "2026-10-28T10:00:00Z", data_fine: "2026-10-28T11:00:00Z", stato: "in_approvazione" }),
     ev("in_corso", { data_inizio: "2026-10-27T09:30:00Z", data_fine: "2026-10-27T10:30:00Z" }),
+    ev("bozza", { data_inizio: "2026-11-05T10:00:00Z", data_fine: "2026-11-05T11:00:00Z", stato: "bozza" }),
+    ev("rifiutato_futuro", { data_inizio: "2026-11-02T10:00:00Z", data_fine: "2026-11-02T11:00:00Z", stato: "rifiutato" }),
+    ev("rifiutato_passato", { data_inizio: "2026-09-02T10:00:00Z", data_fine: "2026-09-02T11:00:00Z", stato: "rifiutato" }),
     ev("chiusa_in_anticipo", { data_inizio: "2026-10-27T09:00:00Z", data_fine: "2026-10-27T11:00:00Z", diretta_chiusa_il: "2026-10-27T09:50:00Z", diretta_chiusa_presenti: 3 }),
     ev("ieri", { data_inizio: "2026-10-26T10:00:00Z", data_fine: "2026-10-26T11:00:00Z" }),
     ev("mese_scorso", { data_inizio: "2026-09-26T10:00:00Z", data_fine: "2026-09-26T11:00:00Z" }),
   ];
-  const { inProgrammazione, passati } = E.dividiEventiEnte(eventi, ORA);
-  ok(inProgrammazione.map((e) => e.id).join(",") === "in_corso,vicino,lontano", "in programmazione: per data, i più vicini in cima — uno in corso è ancora qui", inProgrammazione.map((e) => e.id));
-  ok(inProgrammazione.some((e) => e.stato === "in_approvazione") && inProgrammazione.some((e) => e.stato === "approvato"), "approvati e in attesa di revisione insieme");
-  ok(passati.map((e) => e.id).join(",") === "chiusa_in_anticipo,ieri,mese_scorso", "passati: dal più recente; una diretta chiusa prima della fine è passata", passati.map((e) => e.id));
-  ok(inProgrammazione.length + passati.length === eventi.length, "nessun evento sparisce fra le due liste");
+  const { inProgrammazione, rifiutati, passati } = E.dividiEventiEnte(eventi, ORA);
+  const forma = inProgrammazione.map((g) => `${g.titolo}: ${g.eventi.map((e) => e.id).join(",")}`);
+  // L'atteso è scritto a mano: gruppi, intestazioni e ordine.
+  ok(
+    JSON.stringify(forma) === JSON.stringify(["Approvati: in_corso,lontano", "In attesa di revisione: vicino_rev", "Bozze: bozza"]),
+    "in programmazione: un gruppo per stato, con la sua intestazione, i più vicini in cima — uno in corso è ancora qui",
+    forma,
+  );
+  const dentro = inProgrammazione.flatMap((g) => g.eventi);
+  ok(!dentro.some((e) => e.stato === "rifiutato"), "nessun rifiutato sotto «In programmazione»: il titolo è un'affermazione su tutto quello che contiene");
+  ok(rifiutati.map((e) => e.id).join(",") === "rifiutato_passato,rifiutato_futuro", "i rifiutati hanno un gruppo loro, di qualunque data", rifiutati.map((e) => e.id));
+  ok(passati.map((e) => e.id).join(",") === "chiusa_in_anticipo,ieri,mese_scorso", "passati: dal più recente; una diretta chiusa prima della fine è passata; un rifiutato non è «passato»", passati.map((e) => e.id));
+  ok(dentro.length + rifiutati.length + passati.length === eventi.length, "nessun evento sparisce fra le tre liste");
+  const ignoto = E.dividiEventiEnte([ev("strano", { stato: "sospeso" })], ORA).inProgrammazione;
+  ok(ignoto.length === 1 && ignoto[0].eventi.length === 1, "uno stato che i gruppi non conoscono non sparisce: ha un gruppo suo");
+  const pagina = leggi("app/ente/(dashboard)/eventi/page.tsx");
+  ok(/rifiutati\.map\(/.test(pagina) && />Rifiutati</.test(pagina) && /g\.titolo/.test(pagina), "la pagina rende i gruppi con le loro intestazioni, e i rifiutati con la loro");
 }
 
 console.log("\n§2 — la coda della revisione\n");

@@ -117,6 +117,16 @@ export default function CorreggiOreForm({
     }
     setSalvataggio(true);
     try {
+      // ⚠️ ASIMMETRIA VOLUTA, non una dimenticanza (Mario, 27/10): lo
+      // spostamento manda lo stato che ha mostrato e il database lo confronta
+      // (`stato_cambiato`, 20261030100000); la correzione no. Lo spostamento
+      // CANCELLA la scelta di un'altra persona (la correzione a mano), questa
+      // sovrascrive un valore calcolato e non distrugge niente di nessuno.
+      // IL CASO CHE RESTA APERTO, ed è questo: l'admin legge «il massimo è 1,00»
+      // mentre l'ente, da un altro computer, ha appena portato la finestra a tre
+      // ore. Decide con un numero vecchio — ma quello che scrive non cancella
+      // niente. Chi volesse «completare» il controllo anche qui deve prima dire
+      // quale scelta di chi questa correzione distruggerebbe.
       const { error } = await createClient().rpc("correggi_ore_evento", { p_evento_id: eventoId, p_ore: numero });
       if (error) {
         console.error("CorreggiOreForm:", error);

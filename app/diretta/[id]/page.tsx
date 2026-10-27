@@ -115,6 +115,7 @@ export default async function ModerazioneDirettaPage({ params }: { params: Promi
             dataFine={evento.data_fine}
             oreAttuali={evento.ore_pcto}
             fissateIl={evento.ore_pcto_fissate_il}
+            eDiretta={evento.tipo === "webinar"}
           />
         </section>
       )}

@@ -95,6 +95,15 @@ async function main() {
   const bottone = (page, id, nome) => page.locator(`#${id} button`, { hasText: nome });
   const chiamate = (page, nome) => page.evaluate((n) => window.__chiamate.filter((c) => c.nome === n), nome);
   try {
+    console.log("\n§0 — il nome del comando dice cosa si sposta\n");
+    {
+      const page = await apri({ inizio: INIZIO, fine: FINE, ore: 1, fissate: null, chiusa: null });
+      const incontro = await testo(page, "spostamento-incontro");
+      ok(incontro.includes("Sposta l'orario dell'incontro") && !/diretta/i.test(incontro), "su un incontro in presenza il comando dice «dell'incontro», e non nomina nessuna diretta", incontro);
+      ok((await testo(page, "spostamento")).includes("Sposta l'orario della diretta"), "su una diretta dice «della diretta»");
+      await page.close();
+    }
+
     console.log("\n§1 — il riquadro della correzione, quando l'orario si sposta (il difetto del giro)\n");
     {
       const page = await apri({ inizio: INIZIO, fine: FINE, ore: 2, fissate: "2026-11-30T09:00:00Z", chiusa: null });

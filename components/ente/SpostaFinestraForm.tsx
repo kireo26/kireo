@@ -46,13 +46,21 @@ export default function SpostaFinestraForm({
   dataFine,
   oreAttuali,
   fissateIl,
+  eDiretta,
 }: {
   eventoId: string;
   dataInizio: string;
   dataFine: string | null;
   oreAttuali: number | string | null;
   fissateIl: string | null;
+  // ⚠️ IL NOME DEL COMANDO (Mario, 27/10): da quando «Apri» porta qui anche gli
+  // incontri in presenza, «Sposta l'orario della diretta» era un comando che fa
+  // una cosa vera — sposta l'orario e ricalcola le ore — sotto un nome falso, e
+  // chi non lo riconosce come suo non lo usa pur avendone bisogno. Obbligatorio:
+  // un default sceglierebbe in silenzio uno dei due nomi per chi non lo passa.
+  eDiretta: boolean;
 }) {
+  const nomeComando = eDiretta ? "Sposta l'orario della diretta" : "Sposta l'orario dell'incontro";
   const router = useRouter();
   const [aperto, setAperto] = useState(false);
   const [inizioScritto, setInizioScritto] = useState<string | null>(null);
@@ -186,14 +194,14 @@ export default function SpostaFinestraForm({
   if (!aperto) {
     return (
       <button type="button" onClick={() => { setGiroAnteprima((g) => g + 1); setAperto(true); }} className="text-sm text-kireo-orange underline underline-offset-2">
-        Sposta l&apos;orario della diretta
+        {nomeComando}
       </button>
     );
   }
 
   return (
     <form onSubmit={salva} className="space-y-3">
-      <p className="text-sm font-semibold text-kireo-light">Sposta l&apos;orario della diretta</p>
+      <p className="text-sm font-semibold text-kireo-light">{nomeComando}</p>
       <div className="flex flex-wrap gap-4">
         <label className="text-xs text-kireo-muted">
           Inizio (ora italiana)

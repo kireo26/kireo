@@ -44,7 +44,7 @@ const {
   MS_ATTESA_SONDA,
 } = require("@/lib/sondaYoutube");
 const { statoChiaveTrasmissione, testoChiaveTrasmissione } = require("@/lib/eventi/chiaveTrasmissione");
-const { ETICHETTA_TIPO, LINK_TIPO } = require("@/lib/notifiche/etichette");
+const { ETICHETTA_TIPO, LINK_TIPO, linkNotifica } = require("@/lib/notifiche/etichette");
 
 let falliti = 0;
 function ok(cond, testo) {
@@ -364,7 +364,11 @@ ok(etichetteOrfane.length === 0, `nessuna etichetta per un tipo che non esiste (
 // Ogni tipo appartiene a UN ruolo, e il link deve portare nella sua area.
 ok(LINK_TIPO.proposta_incontro_risposta.startsWith("/scuola"), "la risposta a una proposta porta nell'area scuola, non in quella studente");
 ok(LINK_TIPO.proposta_incontro_ricevuta.startsWith("/ente"), "una proposta ricevuta porta nell'area ente");
-ok(LINK_TIPO.chiave_trasmissione_pronta.startsWith("/ente"), "la chiave pronta porta dove la chiave si legge");
+// Dal 27/10 la chiave si legge nella pagina dell'evento, non nella lista:
+// il link si costruisce dal riferimento (`linkNotifica`), e il componente lo usa.
+ok(linkNotifica("chiave_trasmissione_pronta", "e1") === "/diretta/e1" && linkNotifica("chiave_trasmissione_cambiata", "e1") === "/diretta/e1", "la chiave pronta (o cambiata) porta alla pagina dell'evento, dove la chiave si legge");
+ok(linkNotifica("chiave_trasmissione_pronta", null).startsWith("/ente"), "…e senza riferimento resta nell'area ente, non cade su /app");
+ok(/linkNotifica\(n\.tipo, n\.riferimento_id\)/.test(senzaCommenti(leggi("components/app/NotificheBell.tsx"))), "la campanella costruisce il link con il riferimento, non con il solo tipo");
 ok(new Set(Object.values(ETICHETTA_TIPO)).size === Object.keys(ETICHETTA_TIPO).length, "nessuna etichetta ripetuta: due notifiche con la stessa frase non si distinguono");
 
 // LA CAMPANELLA ERA MONTATA IN DUE SHELL SU TRE. Una riga scritta in un canale

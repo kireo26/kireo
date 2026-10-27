@@ -58,16 +58,43 @@ export const ETICHETTA_TIPO: Record<string, string> = {
  * (`eventoNonFinito`, sulla fine EFFETTIVA): una diretta chiusa alle 14:24 è
  * passata dalle 14:24, una in corso è ancora in programmazione.
  *
- * ⚠️ «In programmazione» non sono solo gli approvati futuri e quelli in attesa
- * di revisione (la richiesta di Mario): ci stanno anche le bozze e i rifiutati
- * non ancora passati. Toglierli non li farebbe sparire dal database, li farebbe
- * sparire dalla vista di chi li ha scritti. La pastiglia dice cosa sono.
+ * ⚠️ IL TITOLO DI UNA SEZIONE È UN'AFFERMAZIONE SU TUTTO QUELLO CHE CONTIENE
+ * (Mario, 27/10). La prima stesura metteva i rifiutati dentro «In
+ * programmazione», perché toglierli li avrebbe fatti sparire dalla vista di chi
+ * li ha scritti: la ragione era giusta, la cura no — un rifiutato non è in
+ * programmazione e non lo sarà mai, e lì rendeva falso il titolo. Ora:
+ *  - «In programmazione» ha i suoi gruppi, ognuno con la sua intestazione e i
+ *    più vicini in cima: approvati, in attesa di revisione, bozze (una bozza è
+ *    un evento che si sta preparando, quindi è in programmazione);
+ *  - i rifiutati stanno in un gruppo loro, in fondo alla stessa pagina, di
+ *    qualunque data: un rifiutato non è nemmeno «passato», non c'è mai stato;
+ *  - «Eventi passati» ha gli eventi finiti che non sono stati rifiutati.
  */
-export function dividiEventiEnte<E extends EventoEnte>(eventi: E[], ora: Date = new Date()): { inProgrammazione: E[]; passati: E[] } {
+export type GruppoEventi<E> = { chiave: string; titolo: string; eventi: E[] };
+
+const GRUPPI_IN_PROGRAMMAZIONE = [
+  { chiave: "approvato", titolo: "Approvati" },
+  { chiave: "in_approvazione", titolo: "In attesa di revisione" },
+  { chiave: "bozza", titolo: "Bozze" },
+];
+
+export function dividiEventiEnte<E extends EventoEnte>(
+  eventi: E[],
+  ora: Date = new Date(),
+): { inProgrammazione: GruppoEventi<E>[]; rifiutati: E[]; passati: E[] } {
   const t = (e: E) => new Date(e.data_inizio).getTime();
-  const inProgrammazione = eventi.filter((e) => eventoNonFinito(e, ora)).sort((a, b) => t(a) - t(b));
-  const passati = eventi.filter((e) => !eventoNonFinito(e, ora)).sort((a, b) => t(b) - t(a));
-  return { inProgrammazione, passati };
+  const rifiutati = eventi.filter((e) => e.stato === "rifiutato").sort((a, b) => t(a) - t(b));
+  const vivi = eventi.filter((e) => e.stato !== "rifiutato");
+  const futuri = vivi.filter((e) => eventoNonFinito(e, ora)).sort((a, b) => t(a) - t(b));
+  const noti = new Set(GRUPPI_IN_PROGRAMMAZIONE.map((g) => g.chiave));
+  const inProgrammazione = GRUPPI_IN_PROGRAMMAZIONE.map((g) => ({ ...g, eventi: futuri.filter((e) => e.stato === g.chiave) }));
+  // Uno stato che i gruppi non conoscono non sparisce: ha un gruppo suo, col
+  // nome dello stato, finché qualcuno non gli dà un titolo vero.
+  for (const stato of Array.from(new Set(futuri.map((e) => e.stato))).filter((st) => !noti.has(st))) {
+    inProgrammazione.push({ chiave: stato, titolo: stato, eventi: futuri.filter((e) => e.stato === stato) });
+  }
+  const passati = vivi.filter((e) => !eventoNonFinito(e, ora)).sort((a, b) => t(b) - t(a));
+  return { inProgrammazione: inProgrammazione.filter((g) => g.eventi.length > 0), rifiutati, passati };
 }
 
 /** «2 di 4 in attesa di revisione» — in cima a «In programmazione», dove si vede prima di crearne un altro. */
