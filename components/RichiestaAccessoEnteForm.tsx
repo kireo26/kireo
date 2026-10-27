@@ -256,11 +256,16 @@ export default function RichiestaAccessoEnteForm() {
         </label>
         <input
           id="sitoUfficiale"
-          type="url"
+          // Testo e non `type="url"`: «davante.it» è quello che le persone
+          // scrivono, e lo schema lo mette il database quando salva
+          // (`normalizza_sito_ufficiale`, 20261102100000).
+          type="text"
+          inputMode="url"
+          autoComplete="url"
           value={sitoUfficiale}
           onChange={(e) => setSitoUfficiale(e.target.value)}
           className={`${inputClass} ${fieldBorder(false)}`}
-          placeholder="https://..."
+          placeholder="www.vostrosito.it"
         />
       </div>
 

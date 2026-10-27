@@ -112,11 +112,23 @@ function SezioneDatiProfilo({
     setStato("salvando");
     try {
       const supabase = createClient();
-      const { error } = await supabase
+      // Si rilegge la riga scritta: il database mette lo schema al sito
+      // («davante.it» → «https://davante.it», 20261102100000), e il campo deve
+      // mostrare quello che è stato salvato davvero. Zero righe vuol dire che la
+      // RLS ha filtrato l'update senza errore: non è un «salvato».
+      const { data, error } = await supabase
         .from("istituzioni")
         .update({ descrizione: descrizione.trim() || null, sito_ufficiale: sito.trim() || null, provincia: provincia.trim() || null })
-        .eq("id", istituzioneId);
-      setStato(error ? "errore" : "ok");
+        .eq("id", istituzioneId)
+        .select("sito_ufficiale")
+        .maybeSingle();
+      if (error || !data) {
+        if (error) console.error("[ente] salvataggio profilo:", error.message);
+        setStato("errore");
+        return;
+      }
+      setSito(data.sito_ufficiale ?? "");
+      setStato("ok");
     } catch {
       setStato("errore");
     }
@@ -148,14 +160,19 @@ function SezioneDatiProfilo({
           </label>
           <input
             id="sito"
-            type="url"
+            // Testo e non `type="url"`: fuori da un `<form>` il browser avvisava
+            // («Inserisci un URL») e salvava lo stesso. Lo schema lo mette il
+            // database (`normalizza_sito_ufficiale`).
+            type="text"
+            inputMode="url"
+            autoComplete="url"
             value={sito}
             onChange={(e) => {
               setSito(e.target.value);
               setStato("idle");
             }}
             className={`${inputClass} ${fieldBorder(false)}`}
-            placeholder="https://..."
+            placeholder="www.vostrosito.it"
           />
         </div>
         <div>
