@@ -263,6 +263,12 @@
       "commit": "2ce9832",
       "stato": "verificata",
       "fonte": "Mario, 27/10 notte: to_regclass('public.consumo_ai_giorno') → esiste. (Il privilegio su registra_consumo_ai lo rilegge la migrazione stessa e si ferma se authenticated la esegue: girata senza errore)"
+    },
+    {
+      "file": "20261105100000_quattro_colonne_che_decidono.sql",
+      "commit": "2c3a902",
+      "stato": "verificata",
+      "fonte": "Mario, 27/10 notte: has_column_privilege(authenticated, profiles, ruolo, UPDATE) → false; telefono UPDATE → true (la migrazione rilegge da sé gli altri 23 privilegi e si ferma se non tornano: girata senza errore)"
     }
   ]
 }

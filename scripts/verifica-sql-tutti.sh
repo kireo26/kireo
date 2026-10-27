@@ -40,15 +40,31 @@ declare -A DIAGNOSTICA=(
   [verifica-flag-di-prova]="stampa i profili marcati di prova; da leggere sul database vero"
 )
 
-rosse=0; verdi=0; leggere=0; tot=0
+rosse=0; verdi=0; leggere=0; tot=0; con_numeri=0
 for f in "$RADICE"/scripts/verifica-*.sql; do
   n="$(basename "$f" .sql)"; tot=$((tot + 1))
   psql "$CONN" -v ON_ERROR_STOP=1 -P pager=off -f "$f" >"$OUT/$n.out" 2>&1
   e=$?
   segni=$(grep -E '✗|\bROTT[AOE]\b|\|[[:space:]]+f[[:space:]]*$|ERROR:' "$OUT/$n.out" | grep -vcE '\b0 ROTTE\b')
+  # ⚠️ UNA PROPRIETÀ SCRITTA NEL SORGENTE E ASSENTE DALL'USCITA È UN ROSSO (27/10):
+  # `verifica-esente-dai-cancelli` §3 scriveva il proprio esito con un
+  # `select … from` su una riga che la cura aveva impedito, e spariva senza un
+  # errore. L'estrattore vede solo le forme `esiti values (N` / `esiti select N`,
+  # quindi sbaglia per difetto (un numero scritto in un'altra forma non lo
+  # cerca); misurato il 27/10, nessuno script ha oggi un numero del sorgente
+  # che manca dall'uscita.
+  attese=$(grep -oE '(esiti values|esiti select)[[:space:]]*\(?[[:space:]]*[0-9]+' "$f" | grep -oE '[0-9]+$' | sort -u)
+  if [ -n "$attese" ]; then
+    con_numeri=$((con_numeri + 1))
+    stampate=$(grep -oE '^[[:space:]]*[0-9]+[[:space:]]*\|' "$OUT/$n.out" | tr -dc '0-9\n' | sort -u)
+    mancanti=$(comm -23 <(echo "$attese") <(echo "$stampate") | tr '\n' ' ')
+    if [ -n "${mancanti// /}" ]; then
+      segni=$((segni + 1)); echo "      proprietà scritte e non stampate: $mancanti" >>"$OUT/$n.out"
+    fi
+  fi
   if [ $e -ne 0 ] || [ "$segni" -gt 0 ]; then
     rosse=$((rosse + 1)); echo "  ✗ $n  (uscita $e, $segni righe rosse)"
-    grep -E 'ERROR|✗|\bROTT[AOE]\b|\|[[:space:]]+f[[:space:]]*$' "$OUT/$n.out" | grep -vE '\b0 ROTTE\b' | head -3 | sed 's/^/      /'
+    grep -E 'ERROR|✗|\bROTT[AOE]\b|\|[[:space:]]+f[[:space:]]*$|scritte e non stampate' "$OUT/$n.out" | grep -vE '\b0 ROTTE\b' | head -3 | sed 's/^/      /'
   elif [ -n "${DIAGNOSTICA[$n]:-}" ]; then
     leggere=$((leggere + 1)); echo "  ? $n  — da leggere: ${DIAGNOSTICA[$n]}"
   else
@@ -59,4 +75,8 @@ echo
 echo "$tot script: $verdi verdi, $rosse rossi, $leggere di sola diagnostica (uscite in $OUT)"
 # La soglia: sotto venti script l'elenco non sta leggendo la cartella.
 [ "$tot" -ge 20 ] || { echo "✗ solo $tot script trovati: il lanciatore non sta leggendo la cartella" >&2; exit 1; }
+# E sotto venticinque script con proprietà numerate l'estrattore non le sta vedendo
+# (il 27/10 sono 31 su 45): il controllo qui sopra sarebbe verde su niente.
+echo "(proprietà numerate confrontate col sorgente in $con_numeri script)"
+[ "$con_numeri" -ge 25 ] || { echo "✗ solo $con_numeri script con proprietà numerate: l'estrattore non le sta vedendo" >&2; exit 1; }
 [ "$rosse" -eq 0 ]
