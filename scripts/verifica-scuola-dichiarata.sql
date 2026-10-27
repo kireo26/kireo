@@ -45,25 +45,32 @@ insert into public.conventions(school_code, stato)
 insert into public.class_codes(convention_id, codice, classe, max_usi)
   values ((select id from public.conventions where school_code = 'ZZ00000009'), 'KIREO-VR01', '3ª A', 30);
 
--- l'intruso: un account qualunque
+-- l'intruso: un account qualunque, registrato come docente. Il ruolo si sceglie
+-- al SIGNUP (finalize_registration), ed è legittimo; dal 27/10
+-- (20261105100000) non si riscrive più dopo dal client. Fino al 27/10 questa
+-- fixture lo creava studente e il §1 se lo cambiava da sé: una prova scritta
+-- su una porta che ora è chiusa, che è il motivo per cui la catena qui sotto
+-- parte già dal ruolo docente.
 insert into auth.users(id, email) values ('aaaaaaaa-0000-0000-0000-00000000000a', 'intruso@prova.it');
 insert into public.profiles(id, ruolo, nome, cognome, data_nascita)
-  values ('aaaaaaaa-0000-0000-0000-00000000000a', 'studente', 'I', 'Ntruso', '2006-01-01');
+  values ('aaaaaaaa-0000-0000-0000-00000000000a', 'docente', 'I', 'Ntruso', '2006-01-01');
 
 set local role authenticated;
 set local request.jwt.claim.sub = 'aaaaaaaa-0000-0000-0000-00000000000a';
 
--- ═══ 1-2) LE DUE SCRITTURE DELLA CATENA RESTANO LEGITTIME ═══
--- Si eseguono per provare che dopo la cura non aprono più niente, non perché
--- siano il difetto.
+-- ═══ 1) IL RUOLO NON SI RISCRIVE DAL CLIENT (dal 27/10, 20261105100000) ═══
 do $$ begin
-  update public.profiles set ruolo = 'docente' where id = auth.uid();
-  insert into esiti values (1, 'darsi il ruolo docente (self-service, deliberato)',
-    'riesce', true, 'riuscito: il ruolo da solo non deve aprire niente');
+  update public.profiles set ruolo = 'studente' where id = auth.uid();
+  insert into esiti values (1, 'riscriversi il ruolo dal client',
+    'RESPINTO', false, '*** PASSA ***');
 exception when others then
-  insert into esiti values (1, 'darsi il ruolo docente (self-service, deliberato)',
-    'riesce', false, 'respinto: ' || sqlerrm);
+  insert into esiti values (1, 'riscriversi il ruolo dal client',
+    'RESPINTO', sqlstate = '42501', 'respinto: ' || sqlerrm);
 end $$;
+
+-- ═══ 2) LA SCRITTURA DELLA CATENA CHE RESTA LEGITTIMA ═══
+-- Si esegue per provare che dopo la cura non apre più niente, non perché sia
+-- il difetto.
 
 do $$ begin
   insert into public.teacher_profiles(user_id, school_code, materia)
@@ -107,10 +114,15 @@ begin
 end $$;
 
 -- ═══ 9) e non ne FABBRICA uno, nemmeno col ruolo di referente ═══
+-- Il ruolo di referente lo scrive postgres: dal client non si scrive più
+-- (§1), e farlo scrivere qui al client renderebbe il §9 verde per la ragione
+-- sbagliata (respinto all'update del ruolo, non alla fabbricazione).
+reset role;
+update public.profiles set ruolo = 'referente_scuola' where id = 'aaaaaaaa-0000-0000-0000-00000000000a';
+set local role authenticated;
 do $$
 declare v_conv uuid;
 begin
-  update public.profiles set ruolo = 'referente_scuola' where id = auth.uid();
   select id into v_conv from public.conventions where school_code = 'ZZ00000009';
   insert into public.class_codes(convention_id, codice, classe, max_usi)
     values (v_conv, 'KIREO-FK01', '3ª A', 30);

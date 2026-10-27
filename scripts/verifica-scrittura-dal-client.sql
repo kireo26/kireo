@@ -68,17 +68,24 @@ insert into public.activities(id, titolo, tipo, ore_pcto)
 set local role authenticated;
 set local request.jwt.claim.sub = 'aaaaaaaa-0000-0000-0000-00000000000a';
 
--- Il passo 1 della catena è e resta LEGITTIMO: il ruolo `istituzione` è
--- self-service di proposito (20260713110000). Si esegue per provare che dopo la
--- cura non apre più niente, non perché sia il difetto.
+-- Il passo 1 della catena, fino al 27/10, era «darsi il ruolo istituzione dal
+-- client», eseguito come legittimo («self-service di proposito»,
+-- 20260713110000). Quella frase parlava del SIGNUP; dal 27/10
+-- (20261105100000) il ruolo non si riscrive più dopo dal client, e il §1 lo
+-- prova. Il resto della catena parte dal ruolo istituzione scritto da postgres,
+-- cioè da un account che si è registrato come ente: la proprietà resta «il
+-- ruolo da solo non apre niente».
 do $$ begin
   update public.profiles set ruolo = 'istituzione' where id = 'aaaaaaaa-0000-0000-0000-00000000000a';
-  insert into esiti values (1, 'il ruolo istituzione resta self-service (deliberato)',
-    'riesce', true, 'riuscito: il ruolo da solo non deve aprire niente');
+  insert into esiti values (1, 'riscriversi il ruolo dal client',
+    'respinto', false, '*** RIUSCITO ***');
 exception when others then
-  insert into esiti values (1, 'il ruolo istituzione resta self-service (deliberato)',
-    'riesce', false, 'respinto: ' || sqlerrm);
+  insert into esiti values (1, 'riscriversi il ruolo dal client',
+    'respinto', sqlstate = '42501', 'respinto: ' || sqlerrm);
 end $$;
+reset role;
+update public.profiles set ruolo = 'istituzione' where id = 'aaaaaaaa-0000-0000-0000-00000000000a';
+set local role authenticated;
 
 do $$ begin
   insert into public.institution_profiles(user_id, istituzione_id)
@@ -127,8 +134,8 @@ end $$;
 -- utente diverso), ma si cancella comunque per non lasciare lo studente
 -- travestito da ente nelle proprietà che seguono.
 delete from public.institution_profiles where user_id = 'aaaaaaaa-0000-0000-0000-00000000000a';
-update public.profiles set ruolo = 'studente' where id = 'aaaaaaaa-0000-0000-0000-00000000000a';
 reset role;
+update public.profiles set ruolo = 'studente' where id = 'aaaaaaaa-0000-0000-0000-00000000000a';
 
 -- ─── e la registrazione di un ente vero deve continuare a funzionare ───
 -- È la metà che la cura può rompere: la funzione è passata a SECURITY DEFINER

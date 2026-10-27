@@ -323,10 +323,16 @@ begin
   end;
   perform set_config('request.jwt.claim.sub', '', true);
   reset role;
+  -- Dal 27/10 (20261105100000) le colonne della chiusura non sono più concesse
+  -- al client, quindi a respingere per primi sono i PRIVILEGI, e la `with check`
+  -- qui non viene più esercitata: resta come seconda rete, e nessuna prova la
+  -- tocca finché i privilegi reggono. Il testo dice quale dei tre strati ha
+  -- respinto.
   insert into esiti values (11, 'l''ente non si scrive la chiusura sulla propria bozza',
-    'respinta (with check o zero righe)',
-    case when v_errore <> 'nessuno' then 'with check: ' || v_errore else v_righe || ' righe' end,
-    v_errore like '%row-level security%' or v_righe = 0);
+    'respinta (privilegi, with check o zero righe)',
+    case when v_errore like 'permission denied%' then 'privilegi: ' || v_errore
+         when v_errore <> 'nessuno' then 'with check: ' || v_errore else v_righe || ' righe' end,
+    v_errore like 'permission denied%' or v_errore like '%row-level security%' or v_righe = 0);
 end $$;
 
 -- 12) …e un update LEGITTIMO sulla stessa bozza passa ancora. È la metà che

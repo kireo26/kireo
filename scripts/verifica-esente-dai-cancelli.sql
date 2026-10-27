@@ -61,31 +61,52 @@ insert into esiti select 2, 'il default di di_prova è di_prova_di_partenza(), c
   from pg_attrdef d join pg_attribute a on a.attrelid = d.adrelid and a.attnum = d.adnum
   where d.adrelid = 'public.profiles'::regclass and a.attname = 'di_prova';
 
--- 3) LA PORTA DELL'INSERT: chi crea il proprio profilo e scrive di_prova falso
---    ed esente vero riceve i valori decisi dal trigger.
+-- 3) LA PORTA DELL'INSERT: chi crea il proprio profilo e prova a scrivere
+--    di_prova falso ed esente vero è RESPINTO (dal 27/10, 20261105100000: le
+--    due colonne non sono più concesse al client). Fino al 27/10 l'insert
+--    riusciva e il trigger rimetteva i valori; con la colonna tolta l'insert
+--    falliva e il `select … from profiles` qui sotto non trovava righe, quindi
+--    la proprietà SPARIVA dall'uscita e il lanciatore la contava verde (il
+--    modo 2). Per questo la riga dell'esito ora si scrive sempre.
 do $$
-declare r text;
+declare r text; v_di_prova boolean; v_esente boolean;
 begin
   r := pg_temp.come('11111111-0000-0000-0000-0000000000e1',
     $q$insert into public.profiles (id, ruolo, nome, cognome, data_nascita, di_prova, esente_cancelli)
        values ('11111111-0000-0000-0000-0000000000e1', 'studente', 'N', 'Uovo', '2008-01-01', false, true)$q$);
-  insert into esiti select 3, 'insert del proprio profilo con esente=vero, di_prova=falso: riuscito ma non esente, e di prova',
-    'riuscito/di_prova/non_esente',
-    format('%s/%s/%s', r, case when di_prova then 'di_prova' else 'non_di_prova' end, case when esente_cancelli then 'esente' else 'non_esente' end),
-    r = 'riuscito' and di_prova and not esente_cancelli
-    from public.profiles where id = '11111111-0000-0000-0000-0000000000e1';
+  insert into esiti values (3, 'insert del proprio profilo con esente=vero, di_prova=falso: respinto',
+    'permission denied', r, r like 'permission denied%');
 end $$;
 
--- 4) L'update di sé: né si esenta né esce dai conti.
+-- 3bis) …e lo stesso insert senza le due colonne riesce, e nasce di prova e
+--      non esente: la cura non deve rompere la registrazione.
+do $$
+declare r text; v_di_prova boolean; v_esente boolean;
+begin
+  r := pg_temp.come('11111111-0000-0000-0000-0000000000e1',
+    $q$insert into public.profiles (id, ruolo, nome, cognome, data_nascita)
+       values ('11111111-0000-0000-0000-0000000000e1', 'studente', 'N', 'Uovo', '2008-01-01')$q$);
+  select di_prova, esente_cancelli into v_di_prova, v_esente
+  from public.profiles where id = '11111111-0000-0000-0000-0000000000e1';
+  insert into esiti values (10, 'insert del proprio profilo senza le due colonne: riuscito, di prova e non esente',
+    'riuscito/di_prova/non_esente',
+    format('%s/%s/%s', r, case when v_di_prova then 'di_prova' when v_di_prova is null then '(nessuna riga)' else 'non_di_prova' end,
+           case when v_esente then 'esente' else 'non_esente' end),
+    r = 'riuscito' and coalesce(v_di_prova, false) and not coalesce(v_esente, true));
+end $$;
+
+-- 4) L'update di sé: né si esenta né esce dai conti. Dal 27/10 (20261105100000)
+--    perché è respinto, non perché il trigger rimette i valori in silenzio: la
+--    proprietà lo dice, così un ritorno al silenzio fa rosso.
 do $$
 declare r text;
 begin
   r := pg_temp.come('11111111-0000-0000-0000-0000000000e2',
     $q$update public.profiles set esente_cancelli = true, di_prova = false where id = '11111111-0000-0000-0000-0000000000e2'$q$);
-  insert into esiti select 4, 'update di sé con esente=vero, di_prova=falso: resta di prova e non esente',
-    'di_prova/non_esente',
-    format('%s/%s', case when di_prova then 'di_prova' else 'non_di_prova' end, case when esente_cancelli then 'esente' else 'non_esente' end),
-    di_prova and not esente_cancelli
+  insert into esiti select 4, 'update di sé con esente=vero, di_prova=falso: respinto, resta di prova e non esente',
+    'permission denied/di_prova/non_esente',
+    format('%s/%s/%s', r, case when di_prova then 'di_prova' else 'non_di_prova' end, case when esente_cancelli then 'esente' else 'non_esente' end),
+    r like 'permission denied%' and di_prova and not esente_cancelli
     from public.profiles where id = '11111111-0000-0000-0000-0000000000e2';
 end $$;
 

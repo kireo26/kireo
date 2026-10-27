@@ -15,6 +15,17 @@
 # che dice ✗/ROTTA/ROTTO, oppure un booleano `f` in fondo a una riga di
 # tabella); VERDE; DA LEGGERE (gli script di sola diagnostica, che non
 # affermano niente: stampano qualcosa da confrontare a mano).
+#
+# ⚠️ UN `ERROR:` NELL'USCITA È UN ROSSO (27/10). Tre script cominciano con
+# `\set ON_ERROR_STOP off`, quindi un comando che fallisce fuori da un blocco
+# protetto non cambia l'uscita: la transazione abortisce, ogni comando dopo
+# viene ignorato, lo script non stampa nessun risultato, e «zero righe rosse»
+# lo contava verde. È successo il 27/10 a `verifica-scrittura-dal-client.sql`,
+# morto alla riga 130 sotto la migrazione 20261105100000 (il modo 2 nel
+# lanciatore: verde su zero righe). Misurato prima di scrivere la regola: su una
+# replica senza quella migrazione nessuno dei 44 script stampa un `ERROR:` di
+# primo livello, quindi oggi la regola non ha falsi positivi. Un errore
+# ATTESO si cattura dentro un `do $$ … exception … end $$`, che non lo stampa.
 set -uo pipefail
 RADICE="$(cd "$(dirname "$0")/.." && pwd)"
 CONN="${CONN:-}"
@@ -34,7 +45,7 @@ for f in "$RADICE"/scripts/verifica-*.sql; do
   n="$(basename "$f" .sql)"; tot=$((tot + 1))
   psql "$CONN" -v ON_ERROR_STOP=1 -P pager=off -f "$f" >"$OUT/$n.out" 2>&1
   e=$?
-  segni=$(grep -E '✗|\bROTT[AOE]\b|\|[[:space:]]+f[[:space:]]*$' "$OUT/$n.out" | grep -vcE '\b0 ROTTE\b')
+  segni=$(grep -E '✗|\bROTT[AOE]\b|\|[[:space:]]+f[[:space:]]*$|ERROR:' "$OUT/$n.out" | grep -vcE '\b0 ROTTE\b')
   if [ $e -ne 0 ] || [ "$segni" -gt 0 ]; then
     rosse=$((rosse + 1)); echo "  ✗ $n  (uscita $e, $segni righe rosse)"
     grep -E 'ERROR|✗|\bROTT[AOE]\b|\|[[:space:]]+f[[:space:]]*$' "$OUT/$n.out" | grep -vE '\b0 ROTTE\b' | head -3 | sed 's/^/      /'
