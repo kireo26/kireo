@@ -268,9 +268,12 @@ ok(
 );
 ok(/console\.error\("\[ente\/eventi\] chiavi_trasmissione:/.test(pagEnte), "una lettura fallita si logga: muta direbbe «non preparata» su una chiave che c'è");
 
-const pagAdmin = senzaCommenti(leggi("app/admin/page.tsx"));
-ok(/<GestisciChiaveTrasmissioneForm/.test(pagAdmin), "l'admin la scrive accanto al video");
+// Dal 27/10 la chiave l'admin la scrive nella pagina dell'evento
+// (`PlanciaAdminEvento`), non più nella coda di `/admin`, che è un elenco.
+const pagAdmin = senzaCommenti(leggi("components/admin/PlanciaAdminEvento.tsx"));
+ok(/<GestisciChiaveTrasmissioneForm/.test(pagAdmin), "l'admin la scrive nella pagina dell'evento, accanto al video");
 ok(/hosting_diretta === "kireo"/.test(pagAdmin), "…solo sugli eventi che trasmette KIREO");
+ok(/parte === "kireo" && <PlanciaAdminEvento/.test(senzaCommenti(leggi("app/diretta/[id]/page.tsx"))), "…e la pagina dell'evento la monta solo per KIREO");
 ok(/console\.error\("\[admin\] chiavi_trasmissione:/.test(pagAdmin), "anche qui una lettura fallita si logga");
 
 const formChiave = senzaCommenti(leggi("components/admin/GestisciChiaveTrasmissioneForm.tsx"));

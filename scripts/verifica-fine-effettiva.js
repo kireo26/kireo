@@ -69,7 +69,9 @@ const CLASSI = {
   "components/ente/ControlloDirettaEvento.tsx": ["effettiva", "la console legge la chiusura dal poll"],
   "lib/eventi/moderazione.ts": ["effettiva", "legge le colonne della chiusura per la pagina della diretta"],
   "app/diretta/[id]/page.tsx": ["effettiva", "intestazione e report sulla fine effettiva"],
-  "app/admin/page.tsx": ["effettiva", "passa la chiusura alla console"],
+  // `app/admin/page.tsx` è USCITA il 27/10: la coda non monta più la console
+  // (sta nella pagina dell'evento), e il confine fra in programmazione e
+  // passati dell'admin passa da `eventoNonFinito` (`lib/admin/eventiAdmin.ts`).
   // `app/ente/(dashboard)/eventi/page.tsx` è USCITA il 27/10: la lista non
   // monta più console, report e chiave, e il confine fra programmazione e
   // passati lo decide `lib/ente/eventiEnte.ts`.

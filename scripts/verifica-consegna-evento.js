@@ -810,10 +810,10 @@ ok(!/setErrore\("La domanda si pone/.test(tsxDomanda), "…invece di riscriverse
 ok(/dataInizio/.test(tsxDomanda) && /dataFine/.test(tsxDomanda), "…e riceve le date, senza cui non potrebbe dire l'ora");
 const tsxControllo = senzaCommenti(leggi("components/ente/ControlloDirettaEvento.tsx"));
 ok(/dataInizio={dataInizio}/.test(tsxControllo) && /dataFine={dataFine}/.test(tsxControllo), "il pannello gliele passa");
-// `/ente/eventi` è uscita il 27/10: la lista dell'ente non monta più il
-// pannello (sta in `app/diretta/[id]`, che gli passa le date: guardato qui sotto).
+// `/ente/eventi` e `/admin` sono uscite il 27/10: né la lista dell'ente né la
+// coda dell'admin montano più il pannello (sta in `app/diretta/[id]`, che gli
+// passa le date: guardato qui sotto).
 for (const [nome, file, v] of [
-  ["/admin", "app/admin/page.tsx", "e"],
   ["/diretta/[id]", "app/diretta/[id]/page.tsx", "evento"],
 ]) {
   // Si guarda il MONTAGGIO del pannello, non il file: in `/diretta/[id]` anche

@@ -46,6 +46,10 @@ export type ContestoModerazione = {
     // parte che vede la correzione. Null senza correzione o senza lettura.
     ore_pcto_fissate_da_nome: string | null;
     organizzatore: string | null;
+    // Per la plancia dell'admin (27/10): approvare un evento si fa qui, e si
+    // decide leggendo cosa l'ente ha scritto.
+    descrizione: string | null;
+    cta_esterna_url: string | null;
   };
 };
 
@@ -61,7 +65,7 @@ export async function getContestoModerazione(eventoId: string): Promise<Contesto
   const { data: evento, error } = await supabase
     .from("eventi")
     .select(
-      "id, titolo, tipo, pubblico, filone, data_inizio, data_fine, stato, in_evidenza, hosting_diretta, youtube_video_id, domanda_consegna, diretta_chiusa_il, diretta_chiusa_da_tipo, diretta_chiusa_presenti, diretta_chiusa_certificati, diretta_durata_minuti, ore_pcto, ore_pcto_fissate_il, ore_pcto_fissate_da, organizzatore_id, istituzioni(nome)",
+      "id, titolo, descrizione, cta_esterna_url, tipo, pubblico, filone, data_inizio, data_fine, stato, in_evidenza, hosting_diretta, youtube_video_id, domanda_consegna, diretta_chiusa_il, diretta_chiusa_da_tipo, diretta_chiusa_presenti, diretta_chiusa_certificati, diretta_durata_minuti, ore_pcto, ore_pcto_fissate_il, ore_pcto_fissate_da, organizzatore_id, istituzioni(nome)",
     )
     .eq("id", eventoId)
     .maybeSingle();
@@ -130,6 +134,8 @@ export async function getContestoModerazione(eventoId: string): Promise<Contesto
       ore_pcto_fissate_il: evento.ore_pcto_fissate_il,
       ore_pcto_fissate_da_nome: nomeCorrettore,
       organizzatore: istituzione?.nome ?? null,
+      descrizione: evento.descrizione ?? null,
+      cta_esterna_url: evento.cta_esterna_url ?? null,
     },
   };
 }

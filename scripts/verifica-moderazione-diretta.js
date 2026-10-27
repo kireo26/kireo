@@ -342,8 +342,12 @@ console.log("\n§4 — una pagina per due ruoli, con una sola differenza\n");
   // scarica cosa) — più il link indietro, il kill switch e (dal 26/10) la
   // correzione delle ore PCTO: tre cose che l'altro ruolo non può fare per
   // costruzione (la correzione passa da `correggi_ore_evento`, solo admin).
+  // Dal 27/10 il quinto: la plancia dell'admin (approva/rifiuta e la chiave),
+  // uscita dalla coda di `/admin` — la gemella di `PlanciaEnteEvento`, e come
+  // lei sono cose che l'altro ruolo non può fare (lo stato e la chiave li
+  // scrive solo KIREO).
   const rami = (src.match(/parte === "kireo"/g) ?? []).length;
-  ok(rami === 4, "quattro soli rami sul ruolo: dove si torna, il kill switch, la correzione delle ore, quale export", `${rami}`);
+  ok(rami === 5, "cinque soli rami sul ruolo: dove si torna, la plancia dell'admin, il kill switch, la correzione delle ore, quale export", `${rami}`);
   // Il link indietro è UN ramo e non due: l'indirizzo e il nome del posto
   // escono dallo stesso oggetto, quindi non possono divergere (un href verso
   // `/admin` con l'etichetta «ai tuoi eventi»).
@@ -383,7 +387,11 @@ console.log("\n§5 — la pagina si raggiunge\n");
   // completa, corretta, provata, e senza porta»), e si trova solo cercandola.
   // Dal 27/10 la riga della lista dell'ente è un componente, e il suo link si
   // chiama `evento.id`: la proprietà è la stessa, il nome della variabile no.
-  for (const [pagina, link] of [["app/admin/page.tsx", "/diretta/${e.id}"], ["components/ente/RigaEventoEnte.tsx", "/diretta/${evento.id}"]]) {
+  // Dal 27/10 anche la coda dell'admin passa dalla stessa riga
+  // (`app/admin/eventi/ElencoAdmin.tsx` → `RigaEventoEnte`): il link è uno.
+  ok(leggi("app/admin/eventi/ElencoAdmin.tsx").includes("<RigaEventoEnte"), "le schede dell'admin usano la stessa riga, con il suo «Apri»");
+  ok(leggi("app/admin/page.tsx").includes('href="/admin/eventi"'), "la coda di /admin porta alla pagina degli eventi");
+  for (const [pagina, link] of [["components/ente/RigaEventoEnte.tsx", "/diretta/${evento.id}"]]) {
     const src = leggi(pagina);
     ok(src.includes(link), `${pagina} linka la pagina della diretta`);
     ok(src.includes('import Link from "next/link"'), `${pagina} importa Link`);

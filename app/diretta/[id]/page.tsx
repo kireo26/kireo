@@ -7,6 +7,7 @@ import GestisciVideoDirettaForm from "@/components/admin/GestisciVideoDirettaFor
 import SpostaFinestraForm from "@/components/ente/SpostaFinestraForm";
 import CorreggiOreForm from "@/components/admin/CorreggiOreForm";
 import PlanciaEnteEvento from "@/components/ente/PlanciaEnteEvento";
+import PlanciaAdminEvento from "@/components/admin/PlanciaAdminEvento";
 import { formattaDataOra } from "@/lib/formato";
 import { getFiloneBySlug } from "@/data/filoniDocenti";
 
@@ -43,7 +44,7 @@ export default async function ModerazioneDirettaPage({ params }: { params: Promi
   // decisione, e divergono — un href verso `/admin` con l'etichetta «ai tuoi
   // eventi» è a una modifica di distanza.
   const indietro =
-    parte === "kireo" ? { href: "/admin", dove: "alla coda KIREO" } : { href: "/ente/eventi", dove: "ai tuoi eventi" };
+    parte === "kireo" ? { href: "/admin/eventi", dove: "agli eventi" } : { href: "/ente/eventi", dove: "ai tuoi eventi" };
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
@@ -73,6 +74,10 @@ export default async function ModerazioneDirettaPage({ params }: { params: Promi
           </p>
         )}
       </header>
+
+      {/* Approva/rifiuta e la chiave: dal 27/10 stanno qui e non nella coda di
+          `/admin`, che è diventata un elenco (`/admin/eventi`). */}
+      {parte === "kireo" && <PlanciaAdminEvento evento={evento} />}
 
       {/* Il kill switch sul video sta QUI e non solo nella coda: se il video si
           rompe durante la diretta, è il primo posto in cui si cerca. Solo

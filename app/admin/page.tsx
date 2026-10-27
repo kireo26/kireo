@@ -5,37 +5,29 @@ import AzioneApprovazioneUpgrade from "@/components/admin/AzioneApprovazioneUpgr
 import AttivaIstituzioneButton from "@/components/admin/AttivaIstituzioneButton";
 import AttivaScuolaControlli from "@/components/admin/AttivaScuolaControlli";
 import ToggleGestitaRichiesta from "@/components/admin/ToggleGestitaRichiesta";
-import GestisciVideoDirettaForm from "@/components/admin/GestisciVideoDirettaForm";
-import GestisciChiaveTrasmissioneForm from "@/components/admin/GestisciChiaveTrasmissioneForm";
-import ControlloDirettaEvento from "@/components/ente/ControlloDirettaEvento";
 import AzioneApprovazionePost from "@/components/admin/AzioneApprovazionePost";
 import AzioneChiudiConversazione from "@/components/admin/AzioneChiudiConversazione";
 import LogoutButton from "@/components/LogoutButton";
 import { ETICHETTA_PIANO } from "@/lib/ente/pianoSuccessivo";
-import { getFiloneBySlug } from "@/data/filoniDocenti";
 import { formattaData, formattaDataOra } from "@/lib/formato";
+import { contaDaApprovare } from "@/lib/admin/caricaEventiAdmin";
+import { etichettaDaApprovare } from "@/lib/admin/eventiAdmin";
 
 export default async function AdminPage() {
   const { supabase, nome } = await requireAdmin();
 
   const [
     { data: istituzioniInAttesa },
-    { data: eventiInApprovazione },
     { data: comunicazioniInApprovazione },
     { data: richiesteUpgrade },
     { data: scuoleInAttesa },
     { data: messaggiScuola },
     { data: richiesteContatto },
-    { data: webinarApprovati },
     { data: postInApprovazione },
     { data: conversazioniEnti },
+    daApprovare,
   ] = await Promise.all([
     supabase.from("istituzioni").select("id, nome, tipo, created_at").eq("stato", "in_attesa").order("created_at", { ascending: true }),
-    supabase
-      .from("eventi")
-      .select("id, titolo, descrizione, tipo, data_inizio, cta_esterna_url, pubblico, filone, hosting_diretta, youtube_video_id, istituzioni(nome)")
-      .eq("stato", "in_approvazione")
-      .order("created_at", { ascending: true }),
     supabase
       .from("comunicazioni")
       .select("id, oggetto, corpo, tipo, istituzioni(nome)")
@@ -58,15 +50,6 @@ export default async function AdminPage() {
       .eq("gestita", false)
       .order("created_at", { ascending: true }),
     supabase
-      .from("eventi")
-      .select(
-        "id, titolo, pubblico, hosting_diretta, youtube_video_id, data_inizio, data_fine, domanda_consegna, diretta_chiusa_il, diretta_chiusa_da_tipo, diretta_chiusa_presenti, diretta_chiusa_certificati, diretta_durata_minuti, istituzioni(nome)",
-      )
-      .eq("tipo", "webinar")
-      .eq("stato", "approvato")
-      .order("data_inizio", { ascending: false })
-      .limit(30),
-    supabase
       .from("post_enti")
       .select("id, tipo, corpo, immagine_url, embed_url, created_at, istituzioni(nome)")
       .eq("stato", "in_approvazione")
@@ -76,23 +59,8 @@ export default async function AdminPage() {
       .select("id, stato, created_at, profiles!student_id(nome, cognome), istituzioni(nome)")
       .order("created_at", { ascending: false })
       .limit(50),
+    contaDaApprovare(supabase),
   ]);
-
-  // QUANDO È STATA PREPARATA, non la chiave: l'admin deve sapere se c'è e da
-  // quando, e un valore segreto ricaricato a schermo a ogni apertura della
-  // coda sarebbe esposto senza che nessuno l'abbia chiesto. L'errore si
-  // logga: una lettura muta qui farebbe dire «non preparata» su una chiave
-  // che c'è, e l'admin la sostituirebbe per niente.
-  const eventiKireo = (webinarApprovati ?? []).filter((e) => e.hosting_diretta === "kireo").map((e) => e.id);
-  const chiavePerEvento = new Map<string, { aggiornata_il: string; server: string | null }>();
-  if (eventiKireo.length > 0) {
-    const { data: chiavi, error: erroreChiavi } = await supabase
-      .from("chiavi_trasmissione")
-      .select("evento_id, server, aggiornata_il")
-      .in("evento_id", eventiKireo);
-    if (erroreChiavi) console.error("[admin] chiavi_trasmissione:", erroreChiavi);
-    for (const riga of chiavi ?? []) chiavePerEvento.set(riga.evento_id, { aggiornata_il: riga.aggiornata_il, server: riga.server });
-  }
 
   const { data: scuoleProfiloPerMessaggio } =
     messaggiScuola && messaggiScuola.length > 0
@@ -142,105 +110,18 @@ export default async function AdminPage() {
         )}
       </section>
 
+      {/* GLI EVENTI HANNO UNA PAGINA LORO dal 27/10 (`/admin/eventi`): qui
+          c'erano la coda delle approvazioni e trenta dirette, ognuna con la
+          sua console — una plancia per riga. Ora la coda dice il numero e
+          porta là; la plancia di un evento sta nella pagina dell'evento. */}
       <section className="mb-12">
-        <h2 className="py-0.5 font-heading text-xl font-semibold leading-[1.25] text-kireo-light">Eventi in approvazione</h2>
-        {!eventiInApprovazione || eventiInApprovazione.length === 0 ? (
-          <p className="mt-4 text-sm text-kireo-muted">Nessun evento in coda.</p>
-        ) : (
-          <ul className="mt-4 space-y-4">
-            {eventiInApprovazione.map((e) => {
-              const organizzatore = Array.isArray(e.istituzioni) ? e.istituzioni[0] : e.istituzioni;
-              return (
-                <li key={e.id} className="rounded-xl border border-white/5 bg-kireo-card p-4">
-                  <p className="font-heading text-sm font-semibold text-kireo-light">{e.titolo}</p>
-                  <p className="mt-1 text-xs text-kireo-muted">
-                    {organizzatore?.nome ?? "KIREO"} · {e.tipo} ·{" "}
-                    {formattaDataOra(e.data_inizio, "long")}
-                    {e.pubblico === "docenti" && ` · Docenti · ${getFiloneBySlug(e.filone)?.nome ?? e.filone}`}
-                  </p>
-                  <p className="mt-2 text-sm text-kireo-light/90">{e.descrizione}</p>
-                  {e.cta_esterna_url && (
-                    <p className="mt-2 text-xs text-kireo-muted">CTA esterna richiesta: {e.cta_esterna_url}</p>
-                  )}
-                  {e.tipo === "webinar" && (
-                    <p className="mt-2 text-xs text-kireo-muted">
-                      Hosting diretta: {e.hosting_diretta === "proprio" ? "canale proprio dell'ente" : "ospitata da KIREO"}
-                    </p>
-                  )}
-                  {e.tipo === "webinar" && e.hosting_diretta === "kireo" && (
-                    <GestisciVideoDirettaForm eventoId={e.id} videoIdAttuale={e.youtube_video_id} />
-                  )}
-                  <AzioneApprovazione tabella="eventi" id={e.id} statoApprovato="approvato" statoRifiutato="rifiutato" />
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </section>
-
-      <section className="mb-12">
-        <h2 className="py-0.5 font-heading text-xl font-semibold leading-[1.25] text-kireo-light">Dirette webinar</h2>
-        <p className="mt-1 text-xs text-kireo-muted">
-          Stato/presenti in tempo reale, kill switch sul video, chiusura al posto dell&apos;ente, export presenze.
+        <h2 className="py-0.5 font-heading text-xl font-semibold leading-[1.25] text-kireo-light">Eventi</h2>
+        <p className="mt-4 text-sm text-kireo-light">
+          <Link href="/admin/eventi" className="font-semibold text-kireo-orange underline underline-offset-2">
+            {etichettaDaApprovare(daApprovare)} →
+          </Link>
         </p>
-        {!webinarApprovati || webinarApprovati.length === 0 ? (
-          <p className="mt-4 text-sm text-kireo-muted">Nessun webinar approvato al momento.</p>
-        ) : (
-          <ul className="mt-4 space-y-4">
-            {webinarApprovati.map((e) => {
-              const organizzatore = Array.isArray(e.istituzioni) ? e.istituzioni[0] : e.istituzioni;
-              return (
-                <li key={e.id} className="rounded-xl border border-white/5 bg-kireo-card p-4">
-                  <p className="font-heading text-sm font-semibold text-kireo-light">{e.titolo}</p>
-                  <p className="mt-1 text-xs text-kireo-muted">
-                    {organizzatore?.nome ?? "KIREO"} · {e.pubblico === "docenti" ? "Docenti" : "Studenti"} ·{" "}
-                    {formattaDataOra(e.data_inizio, "long")} · hosting:{" "}
-                    {e.hosting_diretta === "proprio" ? "canale dell'ente" : "KIREO"}
-                  </p>
-                  {e.hosting_diretta === "kireo" && (
-                    <>
-                      <GestisciVideoDirettaForm eventoId={e.id} videoIdAttuale={e.youtube_video_id} />
-                      {/* La chiave sta accanto al video perché è lo stesso
-                          momento in cui l'admin prepara la diretta: altrove
-                          sarebbe un gesto in più da ricordare, e il gesto che
-                          si ricorda a parte è quello che si dimentica. */}
-                      <GestisciChiaveTrasmissioneForm eventoId={e.id} aggiornataIl={chiavePerEvento.get(e.id)?.aggiornata_il ?? null} server={chiavePerEvento.get(e.id)?.server ?? null} />
-                    </>
-                  )}
-                  {/* ⚠️ LA PORTA VERSO LA PAGINA DI QUELL'EVENTO, e sta in
-                      cima: durante una diretta si modera da lì, non scorrendo
-                      questa lista mentre la pagina attorno parla di istituzioni
-                      in attesa. Una funzione che esiste e non si raggiunge è il
-                      difetto del 28/09 («la consegna, completa e senza porta»):
-                      il pannello qui sotto resta per chi apre questa pagina per
-                      altro, ma il posto in cui si sta quaranta minuti è l'altro. */}
-                  <div className="mt-3">
-                    <Link href={`/diretta/${e.id}`} className="text-sm font-semibold text-kireo-orange underline underline-offset-2">
-                      Apri la pagina di questa diretta →
-                    </Link>
-                  </div>
-                  <ControlloDirettaEvento
-                    eventoId={e.id}
-                    domandaConsegna={e.domanda_consegna}
-                    dataInizio={e.data_inizio}
-                    dataFine={e.data_fine}
-                    chiusaIl={e.diretta_chiusa_il}
-                    chiusaDaTipo={e.diretta_chiusa_da_tipo}
-                    chiusaPresenti={e.diretta_chiusa_presenti}
-                    chiusaCertificati={e.diretta_chiusa_certificati}
-                    chiusaDurata={e.diretta_durata_minuti}
-                    youtubeVideoId={e.youtube_video_id}
-                  />
-                  <div className="mt-3">
-                    <a href={`/api/admin/presenze/${e.id}`} className="text-xs text-kireo-orange underline underline-offset-2">
-                      Esporta presenze (CSV)
-                    </a>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
+        <p className="mt-1 text-xs text-kireo-muted">In programmazione, eventi passati e rifiutati stanno nella stessa pagina.</p>
       </section>
 
       <section className="mb-12">

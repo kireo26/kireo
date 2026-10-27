@@ -303,12 +303,12 @@ console.log("\n§4 — le due pagine passano la traccia\n");
 // L'àncora di CHIUSURA è quello che viene subito dopo il componente in quella
 // pagina, e non `"/>"`: una fine generica compare decine di volte, e la fetta
 // finirebbe alla prima chiusura di tag qualunque essa sia.
-for (const [pagina, dopo] of [
-  ["app/admin/page.tsx", "Esporta presenze (CSV)"],
-  // `/ente/eventi` è USCITA il 27/10, e non per svista: la console non sta più
-  // nella lista dell'ente (Mario: la lista dice cosa c'è e quando, la plancia
-  // sta nella pagina dell'evento). L'ente la vede in `app/diretta/[id]`, che è
-  // fra i RENDITORI qui sotto.
+for (const [pagina, dopo, v, fileSelect] of [
+  // Dal 27/10 la console sta in UNA pagina sola, quella dell'evento: `/admin`
+  // è uscita come `/ente/eventi` (Mario: la coda dice cosa c'è, di chi e
+  // quando; la plancia sta nella pagina dell'evento). La `select` di quella
+  // pagina è in `lib/eventi/moderazione.ts`, e lì si guarda.
+  ["app/diretta/[id]/page.tsx", "Esporta presenze, domande e risposte (CSV)", "evento", "lib/eventi/moderazione.ts"],
 ]) {
   const src = leggi(pagina);
   const uso = fettaOppureRosso(
@@ -317,13 +317,16 @@ for (const [pagina, dopo] of [
     { nome: dopo, dove: `quello che viene dopo il componente in ${pagina}` },
     `il montaggio in ${pagina}`,
   );
-  ok(uso.includes("chiusaIl={e.diretta_chiusa_il}"), `${pagina} passa chiusaIl`);
-  ok(uso.includes("chiusaDaTipo={e.diretta_chiusa_da_tipo}"), `${pagina} passa chiusaDaTipo`);
+  ok(uso.includes(`chiusaIl={${v}.diretta_chiusa_il}`), `${pagina} passa chiusaIl`);
+  ok(uso.includes(`chiusaDaTipo={${v}.diretta_chiusa_da_tipo}`), `${pagina} passa chiusaDaTipo`);
   // La metà che si dimentica: il prop si passa e la `select` non legge la
   // colonna, quindi arriva `undefined` e il bottone resta. Verde su tutto il
   // resto, e il prodotto fa la cosa di prima.
-  ok(src.includes("diretta_chiusa_il, diretta_chiusa_da_tipo"), `${pagina} legge le due colonne nella select`);
+  ok(leggi(fileSelect).includes("diretta_chiusa_il, diretta_chiusa_da_tipo"), `${fileSelect} legge le due colonne nella select`);
 }
+// E la coda di `/admin` non monta più la console: una seconda copia della
+// plancia è la cosa che il 27/10 è uscita, e non deve tornare per abitudine.
+ok(!leggi("app/admin/page.tsx").includes("<ControlloDirettaEvento"), "la coda di /admin non monta la console (sta nella pagina dell'evento)");
 
 console.log("\n§5 — lo stato non si indovina\n");
 
@@ -415,12 +418,11 @@ console.log("\n§7 — la ricevuta arriva a tutti i posti che la rendono\n");
   const LETTORI = [
     "components/ente/ControlloDirettaEvento.tsx",
     "lib/eventi/moderazione.ts",
-    "app/admin/page.tsx",
   ];
-  // Dal 27/10 la lista dell'ente non monta più la console (vedi §4): tre
-  // lettori e due punti che rendono.
-  const RENDITORI = ["app/diretta/[id]/page.tsx", "app/admin/page.tsx"];
-  ok(LETTORI.length === 3 && RENDITORI.length === 2, "tre lettori e due punti che rendono (il conto è dichiarato)");
+  // Dal 27/10 né la lista dell'ente né la coda di `/admin` montano la console
+  // (vedi §4): due lettori e un punto che rende.
+  const RENDITORI = ["app/diretta/[id]/page.tsx"];
+  ok(LETTORI.length === 2 && RENDITORI.length === 1, "due lettori e un punto che rende (il conto è dichiarato)");
   // ⚠️ SI GUARDA DENTRO LA `select`, NON IL FILE — e l'ha detto una controprova
   // che non ha morso: togliendo i due conteggi dalla `select` del poll, un
   // `src.includes("diretta_chiusa_presenti")` resta VERDE, perché quel nome
@@ -431,11 +433,11 @@ console.log("\n§7 — la ricevuta arriva a tutti i posti che la rendono\n");
     const src = leggi(rel);
     for (const m of src.matchAll(/\.select\(\s*"([^"]*)"/g)) selects.push([rel, m[1]]);
   }
-  // Soglia dichiarata: sotto quattro l'estrattore non sta leggendo, e la
+  // Soglia dichiarata: sotto due l'estrattore non sta leggendo, e la
   // proprietà qui sotto sarebbe verde su un insieme vuoto.
-  ok(selects.length >= 3, `le ${selects.length} \`select\` si leggono (sotto tre l'estrattore non sta leggendo)`);
+  ok(selects.length >= 2, `le ${selects.length} \`select\` si leggono (sotto due l'estrattore non sta leggendo)`);
   const conTraccia = selects.filter(([, q]) => q.includes("diretta_chiusa_il"));
-  ok(conTraccia.length === 3, "e tre di loro leggono la traccia", `${conTraccia.length}`);
+  ok(conTraccia.length === 2, "e due di loro leggono la traccia", `${conTraccia.length}`);
   for (const [rel, q] of conTraccia) {
     ok(
       q.includes("diretta_chiusa_presenti") && q.includes("diretta_chiusa_certificati"),
