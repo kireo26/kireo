@@ -92,11 +92,21 @@ console.log("\n§4 — «non letto» non si scrive come «vuoto»: il cricchetto
   // letto» diventa «non c'è niente». Le 16 che ci sono si sistemano quando si
   // passa di lì; questo numero può solo scendere.
   const TETTO = 16;
-  const trovati = ["app", "lib", "components"].flatMap(fileSorgenti).flatMap((f) => {
+  const letti = ["app", "lib", "components"].flatMap(fileSorgenti);
+  let catchTutti = 0;
+  const trovati = letti.flatMap((f) => {
     const s = fs.readFileSync(path.join(ROOT, f), "utf8");
+    catchTutti += (s.match(/\bcatch\s*(\([^)]*\))?\s*\{/g) ?? []).length;
     return [...s.matchAll(/catch\s*(\([^)]*\))?\s*\{\s*(\/\/[^\n]*\n\s*)*return\s+\[\];?\s*\}/g)].map(() => f);
   });
-  ok(trovati.length > 5, `il cricchetto vede i catch che ci sono (${trovati.length}: a zero sarebbe verde su niente)`);
+  // ⚠️ IL PAVIMENTO NON STA SU `trovati` (27/10, Mario): quello è il numero che
+  // deve scendere, e un pavimento lì griderebbe contro un miglioramento. Sta su
+  // due quantità che una cura non tocca: i file letti, e i `catch` trovati in
+  // tutto — curarne uno vuol dire cambiare `return []` in `return null`, e il
+  // `catch` resta. Un lettore cieco li fa cadere a zero. Misurati il 27/10: 400
+  // file, 137 catch; i pavimenti stanno sotto con margine.
+  ok(letti.length >= 300, `il cricchetto legge i sorgenti (${letti.length} file, pavimento 300): a zero sarebbe verde su niente`);
+  ok(catchTutti >= 100, `il cricchetto trova i catch che ci sono, buoni e cattivi (${catchTutti}, pavimento 100)`);
   ok(trovati.length <= TETTO, `catch che scrivono «vuoto» al posto di «non letto»: ${trovati.length} (tetto ${TETTO})`,
     trovati.length > TETTO ? "ne è nato uno nuovo: una lettura fallita deve dirlo (null, o un errore), non restituire []" : "");
 }

@@ -123,12 +123,20 @@ function creaFetta(ok) {
   return { fettaOppureRosso, dentro, fuori };
 }
 
-// Quante àncore grezze restano nei controlli: il numero da far scendere.
+// Quante àncore grezze restano nei controlli: il numero da far scendere. E,
+// accanto, due numeri che NON scendono quando il prodotto migliora (27/10,
+// Mario): quanti file il censimento ha letto, e quante àncore ha trovato in
+// tutto, grezze e via helper insieme. Convertire un `indexOf` in `ancora()` fa
+// scendere `grezze` e lascia `totale` dov'è; un lettore diventato cieco li fa
+// scendere tutti e tre. Il pavimento sta su questi due, non su `grezze`.
 function censimentoAncore(dirScripts) {
   const dir = dirScripts ?? path.join(__dirname, "..");
   let grezze = 0;
+  let conHelper = 0;
+  let file = 0;
   const perFile = new Map();
   for (const n of fs.readdirSync(dir).filter((f) => /^verifica-.*\.js$/.test(f))) {
+    file++;
     // ⚠️ SPOGLIATO DAI COMMENTI. Il 10/10/2026 il conto è salito di uno per
     // un `lastIndexOf("try {", …)` citato DENTRO un commento che spiegava
     // perché quella forma non va usata — cioè il censimento gridava su un
@@ -141,8 +149,10 @@ function censimentoAncore(dirScripts) {
     const q = (src.match(/\b(?:lastI|i)ndexOf\(\s*["'`]/g) ?? []).length;
     if (q > 0) perFile.set(n, q);
     grezze += q;
+    // Le àncore scritte con l'helper: le chiamate, non le definizioni.
+    conHelper += (src.match(/(?<![\w.])(?:ancora|fetta|fettaOppureRosso)\(/g) ?? []).length;
   }
-  return { grezze, perFile };
+  return { grezze, conHelper, totale: grezze + conHelper, file, perFile };
 }
 
 module.exports = { ancora, fetta, creaFetta, censimentoAncore };

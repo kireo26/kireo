@@ -136,16 +136,27 @@ console.log("\n4) Le àncore sui nomi non crescono");
   // scoperto essere 67 da sempre. Chi lo rilegge non deve credere che una
   // conversione sia avvenuta.
   const TETTO = 67;
-  const { grezze, perFile } = censimentoAncore(DIR);
-  // ⚠️ IL PAVIMENTO (27/10): questo cricchetto premia il numero basso, quindi
-  // un censimento diventato cieco — che conta zero perché non legge più niente
-  // — sarebbe verde, e stamperebbe solo «il tetto si può abbassare a 0», che si
-  // legge come una buona notizia. Il pavimento è la metà del tetto di oggi: una
-  // conversione onesta scende a passi di una o due àncore, un lettore rotto
-  // cade a zero in un colpo. Il giorno in cui le conversioni lo raggiungono
-  // davvero, si abbassa insieme al tetto.
-  const PAVIMENTO = 30;
-  ok(grezze >= PAVIMENTO, `il censimento vede ancora le àncore che ci sono (${grezze}, pavimento ${PAVIMENTO}): a zero sarebbe verde su niente`);
+  const { grezze, totale, file, perFile } = censimentoAncore(DIR);
+  // ⚠️ IL PAVIMENTO (27/10). Questo cricchetto premia il numero basso, quindi un
+  // censimento diventato cieco — che conta zero perché non legge più niente —
+  // sarebbe verde, e stamperebbe «il tetto si può abbassare a 0», che si legge
+  // come una buona notizia.
+  //   La prima stesura metteva il pavimento su `grezze` (≥ 30), ed era il numero
+  // sbagliato (Mario): `grezze` è la quantità che DEVE scendere, quindi il giorno
+  // in cui le conversioni oneste lo portassero sotto 30 il pavimento griderebbe
+  // contro un miglioramento, e qualcuno lo abbasserebbe a occhio. Il pavimento va
+  // su una quantità che non scende quando il prodotto migliora: i file letti, e
+  // le àncore trovate in tutto (grezze + via helper). Una conversione sposta
+  // un'àncora da una colonna all'altra e lascia il totale dov'è; un lettore rotto
+  // fa cadere tutti e due.
+  //   Misurati il 27/10: 74 file, 136 àncore (67 grezze + 69 via helper). I
+  // pavimenti stanno sotto con margine, perché togliere una suite intera è
+  // legittimo; si abbassano solo se una suite viene tolta davvero, e lo si
+  // scrive qui.
+  const PAVIMENTO_FILE = 60;
+  const PAVIMENTO_TOTALE = 110;
+  ok(file >= PAVIMENTO_FILE, `il censimento legge i file dei controlli (${file}, pavimento ${PAVIMENTO_FILE}): a zero sarebbe verde su niente`);
+  ok(totale >= PAVIMENTO_TOTALE, `il censimento trova le àncore che ci sono, grezze e via helper (${totale}, pavimento ${PAVIMENTO_TOTALE})`);
   const peggiori = [...perFile.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3);
   ok(
     grezze <= TETTO,
