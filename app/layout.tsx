@@ -1,33 +1,42 @@
 import type { Metadata } from "next";
-import { Space_Grotesk, DM_Sans, Poppins } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import Header from "@/components/Header";
 import FooterGate from "@/components/FooterGate";
 import { SITE_URL } from "@/lib/site";
 
-const spaceGrotesk = Space_Grotesk({
+// I CARATTERI STANNO DENTRO IL PROGETTO (27/10), non si scaricano a ogni
+// costruzione. Con `next/font/google` la build andava a prenderli da Google:
+// due volte in due giorni è fallita su Vercel (`module-not-found` sul CSS del
+// carattere, 26/10 e 27/10), con lo stesso codice che sette minuti prima era
+// verde. *Una costruzione che dipende da qualcosa che va a prendere fuori
+// fallisce a caso, addosso a chi ha distribuito per ultimo* (Mario).
+// I file vengono dai pacchetti Fontsource 5.3.0 (gli stessi caratteri di
+// Google Fonts, sottoinsieme latino, solo tondo: era quello che chiedeva
+// `subsets: ["latin"]`), con la loro licenza OFL accanto in `app/fonts/`.
+// ⚠️ Non tornare a `next/font/google` per comodità: il guasto che toglie è
+// esattamente quello che si ripresenterebbe. `npm run test:caratteri` lo vieta.
+const spaceGrotesk = localFont({
   variable: "--font-display",
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
+  src: "./fonts/space-grotesk/space-grotesk-latin-wght-normal.woff2",
+  weight: "300 700",
   display: "swap",
-  adjustFontFallback: true,
   fallback: ["system-ui", "sans-serif"],
 });
 
-const dmSans = DM_Sans({
+const dmSans = localFont({
   variable: "--font-dm-sans",
-  subsets: ["latin"],
+  src: "./fonts/dm-sans/dm-sans-latin-wght-normal.woff2",
+  weight: "100 1000",
   display: "swap",
-  adjustFontFallback: true,
   fallback: ["system-ui", "sans-serif"],
 });
 
-const poppins = Poppins({
+const poppins = localFont({
   variable: "--font-poppins",
-  subsets: ["latin"],
-  weight: ["300"],
+  src: "./fonts/poppins/poppins-latin-300-normal.woff2",
+  weight: "300",
   display: "swap",
-  adjustFontFallback: true,
   fallback: ["system-ui", "sans-serif"],
 });
 
