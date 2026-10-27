@@ -167,6 +167,18 @@
       "commit": "3a713f0",
       "stato": "verificata",
       "fonte": "Mario 27/10, scripts/fotografia-esente.sql dopo F: profili 15 · di_prova 15 · non_di_prova 0 · esenti 11 · righe_diverse 4 — le quattro righe diverse sono i quattro profili marcati, di prova e non esenti, che è l'effetto proprio di questa migrazione."
+    },
+    {
+      "file": "20261101100000_nota_revisione_per_chi_la_riceve.sql",
+      "commit": "91563d9",
+      "stato": "verificata",
+      "fonte": "Mario, 27/10: prima di G1 has_column_privilege su eventi.note_revisione SELECT → collegati true, anonimi true (la fuga, vista in produzione); dopo G1 to_regprocedure('public.note_revisione_eventi(uuid[])') is not null → true (la crea solo questa migrazione)"
+    },
+    {
+      "file": "20261101110000_nota_revisione_fuori_dalla_lettura.sql",
+      "commit": "91563d9",
+      "stato": "verificata",
+      "fonte": "Mario, 27/10, dopo il deploy: has_column_privilege su eventi.note_revisione SELECT → authenticated false, anon false; su eventi.titolo → true"
     }
   ]
 }
