@@ -149,3 +149,13 @@ grant usage on schema public to anon, authenticated, service_role;
 alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
 alter default privileges in schema public grant all on functions to anon, authenticated, service_role;
 alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
+
+-- E lo schema `storage`, che qui non serve a niente (le migrazioni di storage si
+-- saltano) ma in produzione ha la stessa riga di `postgres`: misurata da Mario
+-- il 28/10 (`postgres  storage  r  anon=arwdDxtm, authenticated=arwdDxtm`). Senza,
+-- la replica diceva che una sola fabbrica restava da chiudere, e la migrazione
+-- 20261106100000 è passata qui e si è fermata in produzione. Le righe di
+-- `supabase_admin` non si imitano: valgono per gli oggetti che crea Supabase, e
+-- qui quel ruolo non esiste.
+create schema if not exists storage;
+alter default privileges in schema storage grant all on tables to anon, authenticated, service_role;

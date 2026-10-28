@@ -60,8 +60,10 @@
 --   where n.nspname = 'public' and c.relkind = 'r'
 --     and (has_table_privilege('authenticated', c.oid, 'INSERT') or has_table_privilege('authenticated', c.oid, 'UPDATE')
 --       or has_table_privilege('anon', c.oid, 'INSERT') or has_table_privilege('anon', c.oid, 'UPDATE'));   → 0
---   select defaclacl from pg_default_acl where defaclrole = 'postgres'::regrole and defaclobjtype = 'r';
---     → anon e authenticated senza «a» e senza «w»
+--   select n.nspname, d.defaclacl from pg_default_acl d left join pg_namespace n on n.oid = d.defaclnamespace
+--   where d.defaclrole = 'postgres'::regrole and d.defaclobjtype = 'r';
+--     → per public e per storage, anon e authenticated senza «a» e senza «w»
+--     (le righe di supabase_admin restano com'erano: sono di Supabase)
 --   e `scripts/diagnostica-colonne-del-client.sql`: 199 colonne scrivibili, tutte nel registro.
 
 -- ── 1 · si toglie tutto ──────────────────────────────────────────────────────
@@ -69,6 +71,18 @@ revoke insert, update on all tables in schema public from anon, authenticated;
 
 -- ── 2 · la fabbrica ──────────────────────────────────────────────────────────
 alter default privileges in schema public revoke insert, update on tables from anon, authenticated;
+-- E `storage`: in produzione `postgres` ha lì la stessa riga (arwdDxtm per anon e
+-- authenticated, misurata da Mario il 28/10), cioè una tabella creata da noi in
+-- `storage` nascerebbe scrivibile dal client. Oggi lì non creiamo niente; la
+-- fabbrica però è la stessa. Il 28/10 il primo tentativo di questa migrazione si è
+-- fermato proprio su quella riga, che il controllo qui sotto non sapeva nominare.
+-- Lo schema c'è in produzione e nello shim; il `do` lo rende innocuo dove manca.
+do $$
+begin
+  if to_regnamespace('storage') is not null then
+    execute 'alter default privileges in schema storage revoke insert, update on tables from anon, authenticated';
+  end if;
+end $$;
 
 -- ── 3 · le colonne che il client scrive davvero ──────────────────────────────
 -- richieste_contatto: app/api/richiesta-contatto/route.ts (il modulo pubblico, senza sessione)
@@ -200,10 +214,17 @@ begin
     raise exception 'colonne scrivibili dal client: %, ne erano dichiarate 199 (supabase/colonne-del-client.json)', v_colonne;
   end if;
 
-  -- I privilegi predefiniti non concedono più insert e update al client.
-  select string_agg(x::text, ', ') into v_predefiniti
-  from pg_default_acl d, unnest(d.defaclacl) x
+  -- I privilegi predefiniti di chi esegue (cioè di chi crea le nostre tabelle) non
+  -- concedono più insert e update al client: né in `public`, né in `storage`, né
+  -- nella riga senza schema, che vale per tutti. Il messaggio NOMINA LO SCHEMA:
+  -- il 28/10 non lo nominava, e due righe identiche in due schemi diversi si
+  -- leggevano come una sola. Le righe di `supabase_admin` restano fuori di
+  -- proposito: valgono per gli oggetti che crea Supabase, non per i nostri.
+  select string_agg(coalesce(n.nspname, '(tutti gli schemi)') || ': ' || x::text, ', ' order by n.nspname, x::text)
+    into v_predefiniti
+  from pg_default_acl d left join pg_namespace n on n.oid = d.defaclnamespace, unnest(d.defaclacl) x
   where d.defaclrole = current_user::regrole and d.defaclobjtype = 'r'
+    and (d.defaclnamespace = 0 or n.nspname in ('public', 'storage'))
     and (x::text like 'anon=%' or x::text like 'authenticated=%')
     and split_part(split_part(x::text, '=', 2), '/', 1) ~ '[aw]';
   if v_predefiniti is not null then

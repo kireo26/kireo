@@ -377,9 +377,16 @@ if (!CONN) {
   ok(vere.size > 100, `le colonne scrivibili lette dalla replica: ${vere.size}`);
   ok(differenza(vere, dichiarate).length === 0, "la replica non concede niente che il registro non dichiari", differenza(vere, dichiarate).join(", "));
   ok(differenza(dichiarate, vere).length === 0, "e il registro non dichiara niente che la replica non conceda", differenza(dichiarate, vere).join(", "));
-  const predefiniti = psql(`select coalesce(string_agg(x::text, ','), '') from pg_default_acl d, unnest(d.defaclacl) x
-    where d.defaclrole = 'postgres'::regrole and d.defaclobjtype = 'r' and (x::text like 'anon=%' or x::text like 'authenticated=%')
+  // Per schema, e nominandolo: il 28/10 in produzione `postgres` aveva DUE righe
+  // (public e storage), e un controllo che non nominava lo schema le leggeva come una.
+  const predefiniti = psql(`select coalesce(string_agg(coalesce(n.nspname, '(tutti)') || ': ' || x::text, ','), '')
+    from pg_default_acl d left join pg_namespace n on n.oid = d.defaclnamespace, unnest(d.defaclacl) x
+    where d.defaclrole = 'postgres'::regrole and d.defaclobjtype = 'r' and (d.defaclnamespace = 0 or n.nspname in ('public', 'storage'))
+      and (x::text like 'anon=%' or x::text like 'authenticated=%')
       and split_part(split_part(x::text, '=', 2), '/', 1) ~ '[aw]'`);
+  const schemiConRiga = psql(`select coalesce(string_agg(distinct n.nspname, ',' order by n.nspname), '') from pg_default_acl d join pg_namespace n on n.oid = d.defaclnamespace
+    where d.defaclrole = 'postgres'::regrole and d.defaclobjtype = 'r' and n.nspname in ('public', 'storage')`);
+  ok(schemiConRiga === "public,storage", "la replica ha le due righe di postgres che ha la produzione (public e storage): senza, il controllo qui sotto guarderebbe il vuoto", schemiConRiga);
   ok(predefiniti === "", "i privilegi predefiniti non concedono insert o update al client: una tabella nuova nasce chiusa", predefiniti);
   // Le funzioni non definer che scrivono: le loro colonne vere contro FUNZIONI_NON_DEFINER.
   const corpi = psql(`select p.proname || '§' || replace(p.prosrc, chr(10), ' ') from pg_proc p join pg_namespace n on n.oid = p.pronamespace
