@@ -134,9 +134,10 @@ export default function ManifestazioneInteresseButton({
         <div className="max-w-sm space-y-3 rounded-xl border border-white/10 bg-kireo-dark/60 p-4 text-left">
           <p className="text-xs text-kireo-muted">
             L&apos;ente vedrà nome, cognome, la tua scuola e le aree di orientamento che hai scelto, e cosa hai fatto
-            verso di lui su KIREO: a quali suoi eventi hai partecipato e per quanto, e se hai scaricato la sua guida.
-            Non vedrà i tuoi test, le missioni né i workshop. Non condivide mai email o telefono:
-            potrà scriverti solo tramite i messaggi di KIREO. Puoi revocare quando vuoi.
+            verso di lui su KIREO: a quali suoi eventi hai partecipato e quanto tempo ci hai passato, e se hai scaricato
+            la sua guida. Non vedrà i tuoi test, le missioni né i workshop. KIREO non gli dà mai la tua email o il tuo
+            telefono: vi scriverete solo tramite i messaggi di KIREO, e la conversazione la apri tu. Puoi revocare la
+            condivisione quando vuoi.
           </p>
           {errore && <p className="text-xs text-red-400">{errore}</p>}
           <div className="flex gap-3">

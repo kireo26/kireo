@@ -201,11 +201,16 @@ export const TESTI_INTERESSATI = {
     "Questo studente non condivide più il proprio profilo con te, oppure non l'ha mai fatto.",
   schedaSenzaAttivita:
     "Ha condiviso il profilo prima che il consenso includesse l'attività verso di te: qui vedi solo quello che ha dichiarato.",
+  // Le aree sono le sole che sommano più del totale: le altre tre
+  // ripartizioni hanno una voce per studente.
+  notaAree: "Ogni studente può aver scelto più aree.",
   nessunaAttivita: "Non è ancora stato a un tuo evento e non ha scaricato la tua guida.",
-  // ⚠️ Oggi un ente non può aprire una conversazione: la apre lo studente
-  // (apri_conversazione_ente è solo per lui). Il bottone c'è solo dove una
-  // conversazione esiste già. Dare all'ente il primo messaggio verso un
-  // minorenne è una decisione di Mario, non un ritocco della scheda.
+  // ⚠️ L'ENTE NON SCRIVE PER PRIMO, ed è una REGOLA, non un limite tecnico
+  // (Mario, 28/10): una conversazione fra un adulto che paga e un minorenne
+  // parte dal minorenne. Condividere il profilo vuol dire «mi sono fatto
+  // vedere», non «contattami». Per questo il bottone c'è solo dove una
+  // conversazione esiste già. La regola per intero sta accanto a
+  // apri_conversazione_ente (20261112100000): non si aggira da qui.
   senzaConversazione:
     "Puoi scrivergli quando ti avrà scritto lui: le conversazioni con gli studenti le apre lo studente, dai messaggi di KIREO.",
 };

@@ -311,6 +311,12 @@
       "commit": "c70028f",
       "stato": "verificata",
       "fonte": "Mario, 28/10: applicata; with_check di manifestazioni_interesse_insert_own nomina puo_contattare_enti; diagnostica-data-nascita-vuota: 5 profili senza data (1 referente_scuola, 3 istituzione, 1 tutor_scuola, tutti di prova), 0 condivisioni, 0 conversazioni, 0 newsletter"
+    },
+    {
+      "file": "20261111100000_interessati_quadro_e_scheda.sql",
+      "commit": "6190790",
+      "stato": "verificata",
+      "fonte": "Mario 28/10: dopo l'applicazione select copre_attivita, count(*) da manifestazioni_interesse = false·2, valore di partenza true"
     }
   ]
 }

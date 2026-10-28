@@ -110,6 +110,31 @@ ok(/copreAttivita=\{condivisioneCopreAttivita\}/.test(leggi("app/istituzioni/[sl
 ok(/attivit/.test(G.DIDASCALIA_CONDIVISO_SENZA_ATTIVITA) === false && /verso di lui/.test(G.DIDASCALIA_CONDIVISO_CON_ATTIVITA), "la forma stretta non promette l'attività, quella larga sì");
 ok(/test, missioni/.test(G.DIDASCALIA_CONDIVISO_CON_ATTIVITA) && /test, le missioni/.test(btn), "la riga e il pannello dicono che test e missioni non si vedono");
 ok(/verso di lui/.test(G.DIDASCALIA_CONDIVIDI) && /verso di lui su KIREO/.test(btn), "la didascalia e il pannello nominano l'attività verso l'ente, che il consenso nuovo copre");
+
+// §5 (Mario, 28/10): il soggetto della promessa, l'ente che non scrive per
+// primo, la nota sulle aree. Il pannello si legge con gli spazi normalizzati:
+// un a-capo del formattatore non è contenuto.
+console.log("\n§5 le promesse del pannello e la regola del primo messaggio");
+const pannello = btn.replace(/\s+/g, " ");
+ok(/KIREO non gli dà mai la tua email o il tuo telefono/.test(pannello) && !/Non condivide mai/.test(pannello),
+  "è KIREO a non dare email e telefono: una promessa fatta a nome di un altro non è una promessa");
+ok(/revocare la condivisione/.test(pannello), "si revoca la condivisione, non una cosa qualunque");
+// «sei rimasto» (Mario) accorda col genere di chi legge: la forma con *avere*
+// dice la stessa cosa e non concorda.
+ok(/quanto tempo ci hai passato/.test(pannello) && !/e per quanto,/.test(pannello) && !/sei rimast/.test(pannello),
+  "«e quanto tempo ci hai passato», non «e per quanto» né «sei rimasto»");
+ok(/la conversazione la apri tu/.test(pannello), "il pannello dice che la conversazione la apre lo studente");
+ok(!/pag(a|ano|amento)|soldi|piano/i.test(pannello), "di soldi non si parla nel pannello");
+for (const t of [G.DIDASCALIA_CONDIVIDI, G.DIDASCALIA_CONDIVISO_CON_ATTIVITA, G.DIDASCALIA_CONDIVISO_SENZA_ATTIVITA]) {
+  ok(!/può scriverti/.test(t), "nessuna didascalia dice che l'ente può scrivere per primo", t);
+}
+const migrRegola = leggi("supabase/migrations/20261112100000_ente_non_scrive_per_primo.sql");
+ok(/comment on function public\.apri_conversazione_ente\(uuid, text\)/.test(migrRegola) && /REGOLA, non limite tecnico/.test(migrRegola),
+  "la regola sta accanto a apri_conversazione_ente, scritta come regola");
+const paginaInt = leggi("app/ente/(dashboard)/interessati/page.tsx");
+ok(/titolo="Per area dichiarata" nota=\{TESTI_INTERESSATI\.notaAree\}/.test(paginaInt) && /più aree/.test(I.TESTI_INTERESSATI.notaAree),
+  "sotto «Per area dichiarata» la nota: ogni studente può aver scelto più aree");
+ok((paginaInt.match(/nota=\{/g) || []).length === 1, "e solo lì: le altre ripartizioni sommano al totale");
 for (const t of [G.DIDASCALIA_CONDIVIDI, G.DIDASCALIA_CONDIVISO_CON_ATTIVITA, G.DIDASCALIA_CONDIVISO_SENZA_ATTIVITA, ...Object.values(I.TESTI_INTERESSATI)]) {
   ok(trovaAccordi(t).length === 0, "nessun accordo di genere", t);
 }

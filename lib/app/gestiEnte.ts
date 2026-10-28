@@ -22,10 +22,12 @@ export const DIDASCALIA_SEGUI = "I suoi post nella tua Bacheca, e a volte una no
 export const DIDASCALIA_NEWSLETTER =
   "Le sue novità per email, mandate da KIREO: l'ente non vede il tuo indirizzo. Dai 18 anni, per un impegno nostro.";
 // Dal 20261111100000 l'ente vede anche cosa hai fatto VERSO DI LUI (i suoi
-// eventi a cui sei stato e per quanto, la sua guida scaricata): il pannello di
+// eventi a cui sei stato e quanto tempo ci hai passato, la sua guida scaricata): il pannello di
 // conferma lo nomina, e la riga lo dice. Mai i test, le missioni, i workshop.
+// «Può scriverti» era impreciso: l'ente non scrive per primo, risponde (la
+// regola sta accanto a apri_conversazione_ente, 20261112100000).
 export const DIDASCALIA_CONDIVIDI =
-  "L'ente vede nome, scuola, le aree che hai scelto e cosa hai fatto verso di lui, e può scriverti solo dentro KIREO.";
+  "L'ente vede nome, scuola, le aree che hai scelto e cosa hai fatto verso di lui. I messaggi restano dentro KIREO, e li cominci tu.";
 
 // A PROFILO GIÀ CONDIVISO la riga resta, e dice quello che sta succedendo
 // adesso (Mario, 28/10: «l'unico momento in cui lo studente legge cosa

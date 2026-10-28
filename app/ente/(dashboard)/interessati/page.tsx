@@ -132,7 +132,7 @@ export default async function EnteInteressatiPage({
       </section>
 
       <section className="grid gap-3 sm:grid-cols-2">
-        <Ripartizione titolo="Per area dichiarata" voci={quadro.perArea} filtri={filtri} chiave="area" />
+        <Ripartizione titolo="Per area dichiarata" nota={TESTI_INTERESSATI.notaAree} voci={quadro.perArea} filtri={filtri} chiave="area" />
         <Ripartizione titolo="Per anno di corso" voci={quadro.perAnno} filtri={filtri} chiave="anno" />
         <Ripartizione titolo="Per provincia" voci={quadro.perProvincia} filtri={filtri} chiave="provincia" />
         <Ripartizione titolo="Per scuola" voci={quadro.perScuola} filtri={filtri} chiave="scuola" />
@@ -181,12 +181,25 @@ export default async function EnteInteressatiPage({
   );
 }
 
-function Ripartizione({ titolo, voci, filtri, chiave }: { titolo: string; voci: Voce[]; filtri: Filtri; chiave: keyof Filtri }) {
+function Ripartizione({
+  titolo,
+  nota,
+  voci,
+  filtri,
+  chiave,
+}: {
+  titolo: string;
+  nota?: string;
+  voci: Voce[];
+  filtri: Filtri;
+  chiave: keyof Filtri;
+}) {
   if (voci.length === 0) return null;
   const attivo = filtri[chiave];
   return (
     <div className="rounded-2xl border border-white/5 bg-kireo-card p-5">
-      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-kireo-muted">{titolo}</p>
+      <p className={`${nota ? "" : "mb-2 "}text-xs font-semibold uppercase tracking-wide text-kireo-muted`}>{titolo}</p>
+      {nota && <p className="mb-2 text-xs text-kireo-muted">{nota}</p>}
       <ul className="space-y-1 text-sm">
         {voci.slice(0, 8).map((v) => (
           <li key={v.valore} className="flex justify-between gap-3">
