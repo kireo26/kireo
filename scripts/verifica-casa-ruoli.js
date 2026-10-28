@@ -55,8 +55,10 @@ console.log("\n§2 — chi la usa\n");
     const ultimo = tutti[tutti.length - 1];
     return ultimo ? (ultimo[1] ?? ultimo[2]) : null;
   });
-  ok(voci.length === 2, `«La mia area» compare due volte nel menu (desktop e telefono): ${voci.length}`, voci);
-  ok(voci.every((v) => v === "HREF_LA_MIA_AREA"), "e tutte e due portano a HREF_LA_MIA_AREA, non a /app", voci);
+  // Tre dal 28/10: il bottone visibile su desktop (Mario: il ritorno stava solo
+  // nella tendina), la voce della tendina, e il menu del telefono.
+  ok(voci.length === 3, `«La mia area» compare tre volte (bottone e tendina su desktop, menu del telefono): ${voci.length}`, voci);
+  ok(voci.every((v) => v === "HREF_LA_MIA_AREA"), "e tutte e tre portano a HREF_LA_MIA_AREA, non a /app", voci);
   ok(C.HREF_LA_MIA_AREA === "/dopo-accesso", "che è /dopo-accesso: la decisione sta sul server, dove si legge il profilo");
   const dopo = leggi("app/dopo-accesso/page.tsx");
   ok(/redirect\(casaPerRuolo\(ruolo\) \?\? "\/app"\)/.test(dopo) && !/redirect\("\/ente"\)/.test(dopo), "/dopo-accesso chiede la casa alla mappa invece di riscriversela");

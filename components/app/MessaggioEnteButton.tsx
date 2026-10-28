@@ -6,19 +6,17 @@ import { useRouter, usePathname } from "next/navigation";
 import { Button } from "@/components/Button";
 import { createClient } from "@/lib/supabase/client";
 
-// Riservato ai maggiorenni (gate anche server-side in apri_conversazione_ente).
+// Aperto dai 14 anni, come la condivisione del profilo (20261109100000).
 // Se esiste già una conversazione aperta con questo ente, porta dritti lì
 // invece di aprirne un'altra (nessun vincolo DB sull'unicità, gestito qui
 // lato UI).
 export default function MessaggioEnteButton({
   istituzioneId,
   userId,
-  maggiorenne,
   conversazioneEsistenteId,
 }: {
   istituzioneId: string;
   userId: string | null;
-  maggiorenne: boolean;
   conversazioneEsistenteId: string | null;
 }) {
   const router = useRouter();
@@ -33,14 +31,6 @@ export default function MessaggioEnteButton({
       <Link href={`/accedi?redirectedFrom=${encodeURIComponent(pathname)}`} className="text-sm font-medium text-kireo-orange underline underline-offset-2">
         Scrivi un messaggio
       </Link>
-    );
-  }
-
-  if (!maggiorenne) {
-    return (
-      <Button type="button" variant="outline" disabled>
-        Messaggi disponibili dai 18 anni
-      </Button>
     );
   }
 

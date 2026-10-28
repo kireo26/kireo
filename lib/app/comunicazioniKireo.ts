@@ -8,12 +8,22 @@ import { descriviErrore } from "@/lib/erroreSupabase";
 // Tre stati: true, false, null (mai chiesto — un account di prima della
 // casella). null non vale come sì.
 //
-// ⚠️ Non è un permesso di invio: l'informativa promette le comunicazioni
-// facoltative «solo agli utenti maggiorenni». Dal 20261107110000 un sì vale
-// solo se dato da maggiorenni (consenso_dato_da_maggiorenne): al compimento dei
-// 18 anni si chiede, non si eredita. Il database rifiuta un sì da chi non lo è
+// ⚠️ Non è un permesso di invio. I 18 anni sono una PROMESSA DELLA NOSTRA
+// INFORMATIVA (/privacy: le comunicazioni facoltative «solo agli utenti
+// maggiorenni»), non un divieto di legge: in Italia il consenso digitale vale
+// dai 14 anni, che è anche il minimo per iscriversi. Per questo condividere il
+// profilo e scrivere a un ente sono aperti dai 14 (20261109100000), e qui il
+// limite resta: vale per le comunicazioni di KIREO e per le newsletter degli
+// enti, che manda KIREO. Dal 20261107110000 un sì vale solo se dato da
+// maggiorenni (consenso_dato_da_maggiorenne): al compimento dei 18 anni si
+// chiede, non si eredita. Il database rifiuta un sì da chi non lo è
 // (`consenso_solo_maggiorenni`); qui la regola serve solo a non mostrare una
 // domanda a cui non si può rispondere sì.
+//
+// IL GIORNO IN CUI L'INFORMATIVA CAMBIA SOGLIA si cambiano due righe, e solo
+// due: ETA_COMUNICAZIONI_FACOLTATIVE qui sotto e l'intervallo dentro
+// consenso_dato_da_maggiorenne (SQL, ultima definizione in 20261107110000), in
+// una migrazione nuova. La regola «com'era quando ha detto sì» non cambia.
 
 export type ConsensoKireo = boolean | null;
 export type OrigineConsenso = "registrazione" | "profilo" | "disiscrizione";
@@ -38,12 +48,14 @@ export async function impostaComunicazioniKireo(
 // database ha la sua copia e decide; questa serve dove il database guarderebbe
 // l'istante sbagliato — la registrazione finalizzata giorni dopo la risposta,
 // quando `now()` direbbe «maggiorenne» di una risposta data a diciassette anni.
+export const ETA_COMUNICAZIONI_FACOLTATIVE = 18;
+
 export function consensoDatoDaMaggiorenne(quando: string | Date, dataNascita: string | null | undefined): boolean {
   if (!dataNascita) return false;
   const nascita = new Date(`${dataNascita.slice(0, 10)}T00:00:00Z`);
   if (Number.isNaN(nascita.getTime())) return false;
   const diciotto = new Date(nascita);
-  diciotto.setUTCFullYear(diciotto.getUTCFullYear() + 18);
+  diciotto.setUTCFullYear(diciotto.getUTCFullYear() + ETA_COMUNICAZIONI_FACOLTATIVE);
   return new Date(quando).getTime() >= diciotto.getTime();
 }
 
@@ -59,6 +71,15 @@ export function testoStatoConsenso(consenso: ConsensoKireo): string {
   if (consenso === false) return "Hai detto no alle comunicazioni di KIREO.";
   return "Non ci hai ancora detto se vuoi ricevere le comunicazioni di KIREO.";
 }
+
+// Seguire un ente (Mario, 28/10: il quarto canale). Vero per costruzione: i
+// post degli enti seguiti stanno nella Bacheca (lib/app/bacheca.ts), e i
+// trigger notifica_follower_* (20260727140000) scrivono una notifica per i
+// soli enti con un piano a pagamento — da qui «di alcuni enti», senza dire
+// perché: il piano di un ente non è un'informazione per lo studente. Testo
+// mio, provvisorio.
+export const TESTO_SEGUITI =
+  "I post degli enti che segui compaiono nella tua Bacheca, e di alcuni ricevi una notifica in KIREO quando pubblicano un evento o un post. Non ti arriva nessuna email.";
 
 // Una regola nostra, non un limite della persona (Mario, 28/10): «non puoi
 // ricevere» descriverebbe chi legge, che non ha fatto niente di sbagliato.

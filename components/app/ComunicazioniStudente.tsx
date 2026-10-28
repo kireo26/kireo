@@ -10,10 +10,12 @@ import {
   TESTO_A_COSA_SERVE,
   TESTO_SOLO_MAGGIORENNI,
   TESTO_NEWSLETTER_SOLO_MAGGIORENNI,
+  TESTO_SEGUITI,
   type ConsensoKireo,
 } from "@/lib/app/comunicazioniKireo";
 
 export type IscrizioneNewsletter = { id: string; istituzioneNome: string; istituzioneSlug: string; creataIl: string };
+export type EnteSeguito = { istituzioneId: string; istituzioneNome: string; istituzioneSlug: string };
 
 // Le comunicazioni che uno studente può ricevere, e l'uscita da ognuna.
 //
@@ -28,11 +30,15 @@ export default function ComunicazioniStudente({
   consensoIniziale,
   maggiorenne,
   iscrizioniIniziali,
+  seguitiIniziali,
   origine = "profilo",
 }: {
   consensoIniziale: ConsensoKireo | undefined;
   maggiorenne: boolean;
   iscrizioniIniziali: IscrizioneNewsletter[] | undefined;
+  // Facoltativo: /disiscrizione non lo passa (lì si parla di email), e allora
+  // la sezione non c'è. `undefined` passato dal profilo è «non letto».
+  seguitiIniziali?: EnteSeguito[] | undefined;
   origine?: "profilo" | "disiscrizione";
 }) {
   const [consenso, setConsenso] = useState(consensoIniziale);
@@ -41,6 +47,31 @@ export default function ComunicazioniStudente({
   const [iscrizioni, setIscrizioni] = useState(iscrizioniIniziali);
   const [uscendoDa, setUscendoDa] = useState<string | null>(null);
   const [erroreUscita, setErroreUscita] = useState<string | null>(null);
+  const mostraSeguiti = seguitiIniziali !== undefined || origine === "profilo";
+  const [seguiti, setSeguiti] = useState(seguitiIniziali);
+  const [smettendoDi, setSmettendoDi] = useState<string | null>(null);
+  const [erroreSmetti, setErroreSmetti] = useState<string | null>(null);
+
+  async function smettiDiSeguire(istituzioneId: string) {
+    setSmettendoDi(istituzioneId);
+    setErroreSmetti(null);
+    try {
+      // .select(): zero righe tolte è un rifiuto, non un'uscita (il modo 11).
+      const { data, error } = await createClient()
+        .from("seguiti")
+        .delete()
+        .eq("istituzione_id", istituzioneId)
+        .select("istituzione_id");
+      if (error || !data || data.length === 0) {
+        if (error) console.error("Smetti di seguire:", descriviErrore(error));
+        setErroreSmetti(istituzioneId);
+        return;
+      }
+      setSeguiti((prima) => prima?.filter((e) => e.istituzioneId !== istituzioneId));
+    } finally {
+      setSmettendoDi(null);
+    }
+  }
 
   async function scegli(valore: boolean) {
     setSalvando(true);
@@ -150,6 +181,41 @@ export default function ComunicazioniStudente({
           </ul>
         )}
       </div>
+
+      {mostraSeguiti && (
+        <div>
+          <h3 className="font-heading text-base font-semibold text-kireo-light">Gli enti che segui</h3>
+          <p className="mt-1 text-sm text-kireo-muted">{TESTO_SEGUITI}</p>
+          {seguiti === undefined ? (
+            <p className="mt-1 text-sm text-kireo-muted">Non siamo riusciti a leggere gli enti che segui: ricarica la pagina.</p>
+          ) : seguiti.length === 0 ? (
+            <p className="mt-1 text-sm text-kireo-muted">Non segui nessun ente.</p>
+          ) : (
+            <ul className="mt-3 space-y-2">
+              {seguiti.map((e) => (
+                <li key={e.istituzioneId} className="rounded-lg border border-white/5 bg-kireo-dark p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <Link href={`/istituzioni/${e.istituzioneSlug}`} className="text-sm text-kireo-light hover:underline">
+                      {e.istituzioneNome}
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => smettiDiSeguire(e.istituzioneId)}
+                      disabled={smettendoDi === e.istituzioneId}
+                      className="text-xs text-red-300 underline underline-offset-2"
+                    >
+                      {smettendoDi === e.istituzioneId ? "…" : "Smetti di seguire"}
+                    </button>
+                  </div>
+                  {erroreSmetti === e.istituzioneId && (
+                    <p className="mt-2 text-xs text-red-400">Non siamo riusciti a toglierti da questo ente: riprova.</p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
     </div>
   );
 }

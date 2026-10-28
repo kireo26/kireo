@@ -225,6 +225,14 @@ export default function Header() {
 
         <div className="hidden items-center gap-5 md:flex">
           {user === undefined ? null : user ? (
+            <>
+            {/* Il ritorno all'area personale si vede (Mario, 28/10): stava
+                solo nella tendina del nome, che chi è sul sito pubblico non
+                apre per cercarlo. È il posto dove chi non ha fatto l'accesso
+                trova «Inizia ora». */}
+            <ButtonLink href={HREF_LA_MIA_AREA} variant="primary">
+              La mia area
+            </ButtonLink>
             <div ref={userMenuRef} className="relative">
               <button
                 type="button"
@@ -261,6 +269,7 @@ export default function Header() {
                 </div>
               )}
             </div>
+            </>
           ) : (
             <>
               <Link

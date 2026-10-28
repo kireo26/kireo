@@ -6,19 +6,18 @@ import { usePathname } from "next/navigation";
 import { Button } from "@/components/Button";
 import { createClient } from "@/lib/supabase/client";
 
-// Riservato ai maggiorenni (gate anche server-side, vedi
-// manifestazioni_interesse_insert_own): condivide nome, cognome, scuola e
+// Aperto dai 14 anni, cioè a chiunque possa iscriversi (dal 20261109100000:
+// il blocco dei 18 anni non lo chiedeva nessuna legge, e chiudeva il gesto a
+// quasi tutti su una piattaforma di quarte e quinte). Condivide nome, cognome, scuola e
 // aree di interesse con l'ente — MAI email/telefono, il contatto passa
 // solo dai messaggi in piattaforma. Revocabile qui e da /app/profilo.
 export default function ManifestazioneInteresseButton({
   istituzioneId,
   userId,
-  maggiorenne,
   manifestazioneAttivaId,
 }: {
   istituzioneId: string;
   userId: string | null;
-  maggiorenne: boolean;
   manifestazioneAttivaId: string | null;
 }) {
   const pathname = usePathname();
@@ -35,14 +34,6 @@ export default function ManifestazioneInteresseButton({
       >
         Condividi il tuo profilo con questo ente
       </Link>
-    );
-  }
-
-  if (!maggiorenne) {
-    return (
-      <Button type="button" variant="outline" disabled>
-        Disponibile dai 18 anni
-      </Button>
     );
   }
 

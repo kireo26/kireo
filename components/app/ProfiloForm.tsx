@@ -281,7 +281,10 @@ function SezioneAree({ userId, areeIniziali }: { userId: string; areeIniziali: s
   );
 }
 
-function BloccoPrivacy({ userId }: { userId: string }) {
+// In fondo alla pagina del profilo, sotto le comunicazioni (Mario, 28/10):
+// l'uscita definitiva è l'ultima cosa che si incontra, non una sezione fra le
+// altre. Per questo la monta la pagina e non ProfiloForm.
+export function BloccoPrivacy({ userId }: { userId: string }) {
   const router = useRouter();
   const [esportando, setEsportando] = useState(false);
   const [erroreEsportazione, setErroreEsportazione] = useState<string | null>(null);
@@ -444,7 +447,6 @@ export default function ProfiloForm({
         nomeScuolaAttuale={nomeScuolaAttuale}
       />
       <SezioneAree userId={userId} areeIniziali={areeInteresseIniziali} />
-      <BloccoPrivacy userId={userId} />
     </div>
   );
 }

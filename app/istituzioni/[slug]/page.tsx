@@ -129,24 +129,28 @@ export default async function IstituzionePubblicaPage({ params }: { params: Prom
           </a>
         )}
 
-        <div className="mt-6 flex flex-wrap items-center gap-4">
+        {/* I TRE GESTI UNO ACCANTO ALL'ALTRO (Mario, 28/10): seguire, la
+            newsletter e il profilo condiviso sono tre modi di stare in
+            contatto con lo stesso ente, e stavano in due punti diversi della
+            pagina. Il messaggio è un'altra cosa (una conversazione), e sta
+            sotto. */}
+        <div className="mt-6 flex flex-wrap items-start gap-4">
           <SeguiButton istituzioneId={istituzione.id} userId={user?.id ?? null} seguitoIniziale={seguito} />
-          <p className="text-sm text-kireo-muted">
-            <strong className="text-kireo-light">{conteggioFollower}</strong> {conteggioFollower === 1 ? "follower" : "follower"}
-          </p>
-        </div>
-
-        <div className="mt-6 flex flex-wrap items-center gap-4">
+          <IscrivitiNewsletterButton istituzioneId={istituzione.id} userId={user?.id ?? null} iscrittoIniziale={iscrittoNewsletter} maggiorenne={maggiorenne} />
           <ManifestazioneInteresseButton
             istituzioneId={istituzione.id}
             userId={user?.id ?? null}
-            maggiorenne={maggiorenne}
             manifestazioneAttivaId={manifestazioneAttivaId}
           />
+        </div>
+        <p className="mt-3 text-sm text-kireo-muted">
+          <strong className="text-kireo-light">{conteggioFollower}</strong> {conteggioFollower === 1 ? "follower" : "follower"}
+        </p>
+
+        <div className="mt-6">
           <MessaggioEnteButton
             istituzioneId={istituzione.id}
             userId={user?.id ?? null}
-            maggiorenne={maggiorenne}
             conversazioneEsistenteId={conversazioneEsistenteId}
           />
         </div>
@@ -197,17 +201,6 @@ export default async function IstituzionePubblicaPage({ params }: { params: Prom
         </section>
       )}
 
-      <section className="mx-auto max-w-2xl px-6 py-16 text-center">
-        <h2 className="py-1 font-heading text-2xl font-bold leading-[1.25] text-kireo-light sm:text-3xl">
-          Resta aggiornato
-        </h2>
-        <p className="mx-auto mt-3 max-w-xl text-kireo-muted">
-          Iscriviti alla newsletter di {istituzione.nome} per ricevere aggiornamenti su corsi ed eventi.
-        </p>
-        <div className="mt-6 flex justify-center">
-          <IscrivitiNewsletterButton istituzioneId={istituzione.id} userId={user?.id ?? null} iscrittoIniziale={iscrittoNewsletter} maggiorenne={maggiorenne} />
-        </div>
-      </section>
       {/* L'ARCHIVIO, IN FONDO E SENZA L'ETICHETTA DELLE ORE: le ore di un
           evento passato possono essere state corrette dopo la chiusura, e le
           ore di chi c'era sono quelle certificate allora — due numeri per la

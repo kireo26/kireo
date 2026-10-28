@@ -102,7 +102,7 @@ ok(iCasellaCondizione > 0 && iCasella > iCasellaCondizione, "la casella si mostr
 ok(/dataNascita && isMaggiorenne\(dataNascita\) \? \{ newsletter \} : \{\}/.test(reg), "a un minorenne la chiave non si scrive (resta «mai chiesto»)");
 const bottone = leggi("components/app/IscrivitiNewsletterButton.tsx");
 ok(/maggiorenne: boolean;/.test(bottone), "il bottone della newsletter pretende l'età (nessun default)");
-ok(posizione(bottone, "if (!maggiorenne) {") > 0 && posizione(bottone, "if (!maggiorenne) {") < posizione(bottone, "async function handleClick()"), "a un minorenne la frase al posto del bottone, prima del clic");
+ok(posizione(bottone, "if (!maggiorenne && !iscritto) {") > 0 && posizione(bottone, "if (!maggiorenne && !iscritto) {") < posizione(bottone, "async function handleClick()"), "a un minorenne non iscritto la frase al posto del bottone, prima del clic (a uno già iscritto, l'uscita)");
 ok(leggi("app/istituzioni/[slug]/page.tsx").includes("maggiorenne={maggiorenne}"), "la pagina dell'ente gliela passa");
 const iRamoMinore = posizione(com, "{!maggiorenne ? (");
 ok(iRamoMinore > 0 && iRamoMinore < posizione(com, "Sì, voglio riceverle"), "a un minorenne il profilo non fa la domanda");
@@ -120,6 +120,62 @@ ok(C.sottoNewsletterEnte(4, 4) === null, "iscritti e riceventi uguali: un numero
 ok(/Iscritti in tutto: 5\./.test(C.sottoNewsletterEnte(5, 3) ?? ""), "diversi: la seconda cifra, con il perché", C.sottoNewsletterEnte(5, 3));
 ok(trovaAccordi(C.sottoNewsletterEnte(5, 3) ?? "").length === 0, "senza accordi di genere");
 ok(/sotto: sottoNewsletterEnte\(stats\?\.iscritti_newsletter \?\? 0, stats\?\.iscritti_newsletter_raggiungibili \?\? 0\)/.test(senzaCommenti(stat)), "la pagina dell'ente chiama sottoNewsletterEnte con i due numeri nell'ordine giusto");
+
+console.log("§6 l'età: due gesti aperti dai 14, le comunicazioni facoltative dai 18");
+// I due gesti tornano aperti (20261109100000): nessun ramo d'età nei bottoni,
+// nessuna età passata dalla pagina, e la migrazione toglie i due cancelli SQL.
+for (const f of ["components/app/ManifestazioneInteresseButton.tsx", "components/app/MessaggioEnteButton.tsx"]) {
+  const src = leggi(f);
+  ok(!/maggiorenne/i.test(src) && !/dai 18 anni/.test(src), `${path.basename(f)}: nessun blocco d'età`);
+}
+const paginaEnte = leggi("app/istituzioni/[slug]/page.tsx");
+ok((paginaEnte.match(/maggiorenne=\{maggiorenne\}/g) ?? []).length === 1, "la pagina dell'ente passa l'età a un bottone solo (la newsletter)");
+ok(/<IscrivitiNewsletterButton[^>]*maggiorenne=\{maggiorenne\}/.test(paginaEnte), "e quel bottone è la newsletter");
+// L'ULTIMA definizione SQL di ciascun cancello, dalle migrazioni in ordine:
+// la policy di insert e le due funzioni dei messaggi non guardano più l'età.
+const migrazioni = fs.readdirSync(path.join(ROOT, "supabase/migrations")).filter((f) => f.endsWith(".sql")).sort();
+function ultima(re) {
+  let trovata = null;
+  for (const f of migrazioni) {
+    const src = fs.readFileSync(path.join(ROOT, "supabase/migrations", f), "utf8").replace(/--.*$/gm, "");
+    const m = src.match(re);
+    if (m) trovata = { file: f, testo: m[0] };
+  }
+  return trovata;
+}
+const policy = ultima(/create policy manifestazioni_interesse_insert_own[\s\S]*?;/);
+ok(policy && !/maggiorenne/.test(policy.testo), "l'ultima policy di insert delle condivisioni non guarda l'età", policy?.file);
+for (const fn of ["apri_conversazione_ente", "invia_messaggio_ente"]) {
+  const d = ultima(new RegExp(`create or replace function public\\.${fn}\\([\\s\\S]*?\\$\\$;`));
+  ok(d && !/maggiorenne/.test(d.testo), `l'ultima ${fn} non guarda l'età`, d?.file);
+}
+// La soglia delle comunicazioni sta in due righe, e le due concordano: il TS
+// contro l'intervallo dell'ultima consenso_dato_da_maggiorenne (atteso da una
+// fonte indipendente dal file TS: la migrazione).
+const regola = ultima(/create or replace function public\.consenso_dato_da_maggiorenne\([\s\S]*?\$\$;/);
+const anniSql = Number(regola?.testo.match(/interval '(\d+) years'/)?.[1]);
+ok(anniSql === C.ETA_COMUNICAZIONI_FACOLTATIVE, "la soglia del TS è quella del SQL", `${C.ETA_COMUNICAZIONI_FACOLTATIVE} / ${anniSql}`);
+ok(C.consensoDatoDaMaggiorenne("2025-03-10T00:00:00Z", "2007-03-10") && !C.consensoDatoDaMaggiorenne("2025-03-09T12:00:00Z", "2007-03-10"), "la regola usa la soglia: vale il giorno dei 18, non il giorno prima");
+const btnNewsletter = leggi("components/app/IscrivitiNewsletterButton.tsx");
+ok(/if \(!maggiorenne && !iscritto\)/.test(btnNewsletter), "la newsletter di un ente resta ai maggiorenni");
+
+console.log("§7 l'uscita sta dove sta l'entrata, e l'eliminazione in fondo");
+ok(!/disabled=\{[^}]*iscritto/.test(btnNewsletter), "«Iscritto» non è un bottone spento: si esce con lo stesso clic");
+ok(/\.from\("newsletter_iscrizioni"\)\s*\.delete\(\)[\s\S]*?\.select\("id"\)/.test(btnNewsletter), "l'uscita dalla pagina dell'ente conta le righe tolte");
+const paginaProfilo = leggi("app/app/profilo/page.tsx");
+const iCom = posizione(paginaProfilo, "<ComunicazioniStudente");
+const iPrivacy = posizione(paginaProfilo, "<BloccoPrivacy");
+const iCondivisi = posizione(paginaProfilo, "<ListaManifestazioniInteresse");
+ok(iCom > 0 && iCondivisi > iCom && iPrivacy > iCondivisi, "il profilo: comunicazioni, condivisioni, e in fondo privacy ed eliminazione", `${iCom} / ${iCondivisi} / ${iPrivacy}`);
+ok(!/<BloccoPrivacy/.test(leggi("components/app/ProfiloForm.tsx").replace(/export function BloccoPrivacy/, "")), "ProfiloForm non monta più l'eliminazione in mezzo alle sezioni");
+ok(/seguitiIniziali=\{seguiti\}/.test(paginaProfilo), "il profilo passa gli enti seguiti alle comunicazioni");
+ok(/\.from\("seguiti"\)\s*\.delete\(\)[\s\S]*?\.select\("istituzione_id"\)/.test(com), "smettere di seguire conta le righe tolte");
+ok(/seguiti === undefined/.test(com), "gli enti seguiti non letti si dicono, non diventano «nessuno»");
+ok(trovaAccordi(C.TESTO_SEGUITI).length === 0, "il testo dei seguiti senza accordi di genere");
+const ente = leggi("app/istituzioni/[slug]/page.tsx");
+const riga = ente.slice(posizione(ente, "<SeguiButton"), posizione(ente, "<MessaggioEnteButton"));
+ok(/<IscrivitiNewsletterButton/.test(riga) && /<ManifestazioneInteresseButton/.test(riga), "sulla pagina dell'ente i tre gesti stanno insieme, prima del messaggio");
+ok((ente.match(/<IscrivitiNewsletterButton/g) ?? []).length === 1, "e la newsletter non ha più una seconda sezione sua");
 
 console.log(`\n${falliti === 0 ? "✓" : "✗"} ${fatte - falliti}/${fatte} proprietà`);
 process.exit(falliti === 0 ? 0 : 1);

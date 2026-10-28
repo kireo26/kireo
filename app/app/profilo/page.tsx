@@ -2,9 +2,9 @@ import { getAppContext } from "@/lib/app/studentContext";
 import { createClient } from "@/lib/supabase/server";
 import type { Indirizzo } from "@/components/ScuolaCascadeFields";
 import { CLASSI } from "@/lib/registrazione";
-import ProfiloForm from "@/components/app/ProfiloForm";
+import ProfiloForm, { BloccoPrivacy } from "@/components/app/ProfiloForm";
 import ListaManifestazioniInteresse, { type ManifestazioneAttiva } from "@/components/app/ListaManifestazioniInteresse";
-import ComunicazioniStudente, { type IscrizioneNewsletter } from "@/components/app/ComunicazioniStudente";
+import ComunicazioniStudente, { type IscrizioneNewsletter, type EnteSeguito } from "@/components/app/ComunicazioniStudente";
 import { isMaggiorenne } from "@/lib/eta";
 import { descriviErrore } from "@/lib/erroreSupabase";
 import type { ConsensoKireo } from "@/lib/app/comunicazioniKireo";
@@ -92,6 +92,22 @@ export default async function ProfiloAppPage() {
       return { id: r.id, istituzioneNome: istituzione?.nome ?? "Istituzione", istituzioneSlug: istituzione?.slug ?? "", creataIl: r.created_at };
     });
 
+  // Gli enti seguiti: il quarto canale (Mario, 28/10). Seguire un ente porta i
+  // suoi post nella Bacheca e, per alcuni enti, una notifica in KIREO: è un
+  // canale aperto da un gesto, quindi sta con gli altri, con la sua uscita.
+  let seguiti: EnteSeguito[] | undefined;
+  const conSeguiti = await supabase
+    .from("seguiti")
+    .select("istituzione_id, created_at, istituzioni(nome, slug)")
+    .eq("student_id", contesto.userId)
+    .order("created_at", { ascending: false });
+  if (conSeguiti.error) console.error("Profilo, enti seguiti:", descriviErrore(conSeguiti.error));
+  else
+    seguiti = (conSeguiti.data ?? []).map((r) => {
+      const istituzione = Array.isArray(r.istituzioni) ? r.istituzioni[0] : r.istituzioni;
+      return { istituzioneId: r.istituzione_id, istituzioneNome: istituzione?.nome ?? "Istituzione", istituzioneSlug: istituzione?.slug ?? "" };
+    });
+
   return (
     <div className="space-y-8">
       <div>
@@ -119,6 +135,7 @@ export default async function ProfiloAppPage() {
             consensoIniziale={consensoKireo}
             maggiorenne={isMaggiorenne(dataNascita)}
             iscrizioniIniziali={iscrizioniNewsletter}
+            seguitiIniziali={seguiti}
           />
         </div>
       </div>
@@ -130,6 +147,8 @@ export default async function ProfiloAppPage() {
           <ListaManifestazioniInteresse manifestazioni={manifestazioni} />
         </div>
       </div>
+
+      <BloccoPrivacy userId={contesto.userId} />
     </div>
   );
 }

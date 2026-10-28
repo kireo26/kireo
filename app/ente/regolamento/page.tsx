@@ -19,7 +19,7 @@ const REGOLE = [
   {
     titolo: "Niente richiesta o condivisione di contatti diretti",
     testo:
-      "Email e numeri di telefono degli studenti non vengono mai richiesti né condivisi, in nessuna forma. Il contatto avviene solo tramite i messaggi in piattaforma, con uno studente maggiorenne che ha scelto di condividere il proprio profilo.",
+      "Email e numeri di telefono degli studenti non vengono mai richiesti né condivisi, in nessuna forma. Il contatto avviene solo tramite i messaggi in piattaforma, con uno studente che ha scelto di condividere il proprio profilo.",
   },
   {
     titolo: "Tutto resta in piattaforma",
