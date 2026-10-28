@@ -24,13 +24,21 @@ insert into esiti select 0, 'un profilo nuovo nasce senza risposta (NULL, non no
 set local role authenticated;
 set local request.jwt.claim.sub = 'c0c0c0c0-0000-0000-0000-00000000000c';
 
--- 1) lo studente non scrive la colonna dal client
+-- 1) lo studente non scrive il consenso dal client, e 9) nemmeno la sua data.
+-- Una colonna per prova: scritte insieme, il rifiuto di una copre l'altra (una
+-- controprova che concedeva la sola prima restava verde).
 do $$ begin
-  update public.profiles set comunicazioni_kireo = true, comunicazioni_kireo_il = now() - interval '1 year'
-   where id = auth.uid();
-  insert into esiti values (1, 'lo studente scrive il consenso (e la sua data) dal client', 'RESPINTO', false, '*** PASSA ***');
+  update public.profiles set comunicazioni_kireo = true where id = auth.uid();
+  insert into esiti values (1, 'lo studente scrive il consenso dal client', 'RESPINTO', false, '*** PASSA ***');
 exception when others then
-  insert into esiti values (1, 'lo studente scrive il consenso (e la sua data) dal client', 'RESPINTO', sqlstate = '42501', 'respinto: ' || sqlerrm);
+  insert into esiti values (1, 'lo studente scrive il consenso dal client', 'RESPINTO', sqlstate = '42501', 'respinto: ' || sqlerrm);
+end $$;
+
+do $$ begin
+  update public.profiles set comunicazioni_kireo_il = now() - interval '1 year' where id = auth.uid();
+  insert into esiti values (9, 'lo studente scrive la data del consenso dal client', 'RESPINTO', false, '*** PASSA ***');
+exception when others then
+  insert into esiti values (9, 'lo studente scrive la data del consenso dal client', 'RESPINTO', sqlstate = '42501', 'respinto: ' || sqlerrm);
 end $$;
 
 -- 2) dalla registrazione, su una risposta che non c'è, scrive
