@@ -1,4 +1,5 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js";
+import { impostaComunicazioniKireo } from "@/lib/app/comunicazioniKireo";
 
 // Chiamata condivisa a finalize_registration, usata sia dal link di conferma
 // email (app/auth/confirm/route.ts) sia come auto-riparazione al primo
@@ -60,13 +61,17 @@ export async function finalizzaRegistrazioneSeNecessario(
     p_aree_interesse: areeInteresse.length > 0 ? areeInteresse : null,
   });
 
-  if (!error) {
-    return { ok: true };
-  }
-
   // Race condition (es. doppia richiesta concorrente): il profilo esiste
   // già, non è un fallimento.
-  if (error.code === "23505") {
+  if (!error || error.code === "23505") {
+    // La casella della registrazione è il consenso alle comunicazioni di
+    // KIREO (20261107100000). La funzione scrive solo se non c'è già una
+    // risposta, quindi una seconda conferma non sovrascrive una scelta fatta
+    // dopo. Se non riesce lo dice nel log e la registrazione resta riuscita:
+    // il consenso resta NULL, cioè «mai chiesto», che non vale come sì.
+    if (ruolo === "studente" && typeof meta.newsletter === "boolean") {
+      await impostaComunicazioniKireo(supabase, meta.newsletter, "registrazione");
+    }
     return { ok: true };
   }
 

@@ -90,7 +90,8 @@
     "censimento:spesa": "node scripts/censimento-spesa-ai.js",
     "test:tettispesa": "node scripts/verifica-tetti-spesa.js",
     "test:consumo": "node scripts/verifica-consumo-ai.js",
-    "test:caratteri": "node scripts/verifica-caratteri-locali.js"
+    "test:caratteri": "node scripts/verifica-caratteri-locali.js",
+    "test:comunicazioni": "node scripts/verifica-comunicazioni.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.112.5",

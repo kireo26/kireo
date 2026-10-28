@@ -1,20 +1,23 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
+import { descriviErrore } from "@/lib/erroreSupabase";
+import { isMaggiorenne } from "@/lib/eta";
+import ComunicazioniStudente, { type IscrizioneNewsletter } from "@/components/app/ComunicazioniStudente";
+import type { ConsensoKireo } from "@/lib/app/comunicazioniKireo";
 
-// Pagina di gestione della disiscrizione dalle comunicazioni FACOLTATIVE
-// (promemoria, progressione, nudge, newsletter). È la destinazione del link
-// di unsubscribe presente nel footer di tutti i template email
+// Pagina di gestione delle comunicazioni FACOLTATIVE, destinazione del link
+// di disiscrizione nel footer di tutti i template email
 // (lib/email/templates.ts).
 //
-// Stato onesto per costruzione: oggi KIREO invia SOLO email di servizio
-// (richieste dall'utente o conseguenti a una sua azione — conferma richiesta
-// di contatto, follow-up guida, conferma registrazione, reset password) e
-// comunicazioni B2B. Le comunicazioni facoltative agli studenti — con il
-// relativo consenso e il motore di mailing — sono un cantiere a parte, non
-// ancora attivo: finché non lo sono, non c'è alcuna preferenza da revocare
-// in autonomia. La pagina lo dice apertamente e indirizza a un canale reale
-// (la pagina Contatti) per qualunque richiesta immediata, invece di simulare
-// una disiscrizione che oggi non avrebbe nulla su cui agire.
+// Dal 28/10 (20261107100000) la pagina LEGGE il consenso vero: la casella
+// della registrazione è il consenso alle comunicazioni di KIREO, e uno
+// studente collegato lo vede e lo cambia qui, insieme alle newsletter degli
+// enti a cui è iscritto. Prima la pagina diceva, onestamente, che non c'era
+// niente da revocare — e la casella finiva in un metadato che nessuno leggeva.
+//
+// Chi non ha fatto l'accesso legge come funziona e il link per entrare: un
+// consenso non si cambia senza sapere di chi è.
 //
 // noindex: pagina di utilità raggiunta solo dal link nelle email, non
 // pensata per la ricerca (stesso trattamento delle landing del funnel).
@@ -24,7 +27,41 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default function Disiscrizione() {
+export default async function Disiscrizione() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // Solo uno studente ha questo consenso: gli altri ruoli non vedono la casella.
+  let studente: { consenso: ConsensoKireo | undefined; maggiorenne: boolean; iscrizioni: IscrizioneNewsletter[] | undefined } | null = null;
+  if (user) {
+    const { data: profilo, error } = await supabase
+      .from("profiles")
+      .select("ruolo, data_nascita, comunicazioni_kireo")
+      .eq("id", user.id)
+      .maybeSingle();
+    if (error) console.error("Disiscrizione, profilo:", descriviErrore(error));
+    if (error || profilo?.ruolo === "studente") {
+      const iscr = await supabase
+        .from("newsletter_iscrizioni")
+        .select("id, created_at, istituzioni(nome, slug)")
+        .eq("student_id", user.id)
+        .order("created_at", { ascending: false });
+      if (iscr.error) console.error("Disiscrizione, iscrizioni:", descriviErrore(iscr.error));
+      studente = {
+        consenso: error ? undefined : ((profilo?.comunicazioni_kireo as boolean | null | undefined) ?? null),
+        maggiorenne: isMaggiorenne(profilo?.data_nascita ?? null),
+        iscrizioni: iscr.error
+          ? undefined
+          : (iscr.data ?? []).map((r) => {
+              const ist = Array.isArray(r.istituzioni) ? r.istituzioni[0] : r.istituzioni;
+              return { id: r.id, istituzioneNome: ist?.nome ?? "Istituzione", istituzioneSlug: ist?.slug ?? "", creataIl: r.created_at };
+            }),
+      };
+    }
+  }
+
   return (
     <section className="mx-auto max-w-3xl px-6 py-20">
       <p className="mb-4 font-sans text-sm font-semibold uppercase tracking-wide text-kireo-orange">
@@ -54,14 +91,32 @@ export default function Disiscrizione() {
 
         <div>
           <h2 className="py-0.5 font-heading text-xl font-semibold leading-[1.25] text-kireo-light">
-            La situazione oggi
+            Le tue scelte
           </h2>
           <p className="mt-3">
-            Al momento KIREO invia soltanto email di servizio: le comunicazioni facoltative agli studenti non sono ancora
-            attive. Non c&apos;è quindi alcuna preferenza da revocare in autonomia in questo momento. Quando le
-            comunicazioni facoltative saranno disponibili, potrai gestirle e disattivarle da questa pagina e dalla tua
-            area personale.
+            Oggi KIREO non manda ancora comunicazioni facoltative. Il consenso che dai serve per le comunicazioni di KIREO;
+            le newsletter degli enti sono a parte, e ognuna ha la sua uscita.
           </p>
+          {studente ? (
+            <div className="mt-6">
+              <ComunicazioniStudente
+                consensoIniziale={studente.consenso}
+                maggiorenne={studente.maggiorenne}
+                iscrizioniIniziali={studente.iscrizioni}
+                origine="disiscrizione"
+              />
+            </div>
+          ) : user ? (
+            <p className="mt-3">Il tuo account non riceve comunicazioni facoltative da KIREO.</p>
+          ) : (
+            <p className="mt-3">
+              Per vedere e cambiare le tue scelte,{" "}
+              <Link href="/accedi?redirectedFrom=%2Fdisiscrizione" className="text-kireo-orange underline underline-offset-2">
+                accedi
+              </Link>
+              : le trovi qui e nel tuo profilo.
+            </p>
+          )}
         </div>
 
         <div>

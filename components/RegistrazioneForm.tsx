@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { ETA_MINIMA, ETA_MASSIMA_PLAUSIBILE, CLASSI, calcolaAnnoDiploma, calcolaEta } from "@/lib/registrazione";
 import { messaggioErroreAuth } from "@/lib/authErrors";
 import AreeInteresseGrid from "./app/AreeInteresseGrid";
+import { TESTO_CASELLA_REGISTRAZIONE } from "@/lib/app/comunicazioniKireo";
 
 const MAX_AREE_INTERESSE = 3;
 
@@ -500,7 +501,7 @@ export default function RegistrazioneForm() {
           className="mt-1 h-5 w-5 flex-none rounded border-white/20 bg-kireo-dark accent-kireo-green"
         />
         <label htmlFor="newsletter" className="text-sm text-kireo-muted">
-          Voglio ricevere aggiornamenti sulle attività di orientamento
+          {TESTO_CASELLA_REGISTRAZIONE}
         </label>
       </div>
 

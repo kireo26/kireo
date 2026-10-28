@@ -4,6 +4,10 @@ import type { Indirizzo } from "@/components/ScuolaCascadeFields";
 import { CLASSI } from "@/lib/registrazione";
 import ProfiloForm from "@/components/app/ProfiloForm";
 import ListaManifestazioniInteresse, { type ManifestazioneAttiva } from "@/components/app/ListaManifestazioniInteresse";
+import ComunicazioniStudente, { type IscrizioneNewsletter } from "@/components/app/ComunicazioniStudente";
+import { isMaggiorenne } from "@/lib/eta";
+import { descriviErrore } from "@/lib/erroreSupabase";
+import type { ConsensoKireo } from "@/lib/app/comunicazioniKireo";
 
 export default async function ProfiloAppPage() {
   const contesto = await getAppContext();
@@ -68,6 +72,26 @@ export default async function ProfiloAppPage() {
     return { id: r.id, istituzioneNome: istituzione?.nome ?? "Istituzione", istituzioneSlug: istituzione?.slug ?? "", creataIl: r.created_at };
   });
 
+  // Il consenso a KIREO e le newsletter degli enti: due letture a parte, e
+  // una che fallisce dice «non letto» (undefined), mai «no» o «nessuna».
+  let consensoKireo: ConsensoKireo | undefined;
+  const conConsenso = await supabase.from("profiles").select("comunicazioni_kireo").eq("id", contesto.userId).maybeSingle();
+  if (conConsenso.error) console.error("Profilo, consenso KIREO:", descriviErrore(conConsenso.error));
+  else consensoKireo = (conConsenso.data?.comunicazioni_kireo as boolean | null | undefined) ?? null;
+
+  let iscrizioniNewsletter: IscrizioneNewsletter[] | undefined;
+  const conIscrizioni = await supabase
+    .from("newsletter_iscrizioni")
+    .select("id, created_at, istituzioni(nome, slug)")
+    .eq("student_id", contesto.userId)
+    .order("created_at", { ascending: false });
+  if (conIscrizioni.error) console.error("Profilo, iscrizioni newsletter:", descriviErrore(conIscrizioni.error));
+  else
+    iscrizioniNewsletter = (conIscrizioni.data ?? []).map((r) => {
+      const istituzione = Array.isArray(r.istituzioni) ? r.istituzioni[0] : r.istituzioni;
+      return { id: r.id, istituzioneNome: istituzione?.nome ?? "Istituzione", istituzioneSlug: istituzione?.slug ?? "", creataIl: r.created_at };
+    });
+
   return (
     <div className="space-y-8">
       <div>
@@ -87,6 +111,17 @@ export default async function ProfiloAppPage() {
         statoVerifica={statoVerifica}
         nomeScuolaAttuale={nomeScuolaAttuale}
       />
+
+      <div id="comunicazioni">
+        <h2 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">Comunicazioni</h2>
+        <div className="mt-4">
+          <ComunicazioniStudente
+            consensoIniziale={consensoKireo}
+            maggiorenne={isMaggiorenne(dataNascita)}
+            iscrizioniIniziali={iscrizioniNewsletter}
+          />
+        </div>
+      </div>
 
       <div>
         <h2 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">Profilo condiviso con</h2>
