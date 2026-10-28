@@ -9,24 +9,20 @@ import { createClient } from "@/lib/supabase/client";
 
 export default function CreaComunicazioneForm({
   istituzioneId,
-  pianoPremium,
   quotaNewsletterRimasta,
-  quotaComunicazioniKireoRimasta,
   nudgeNewsletter,
-  nudgeComunicazioneKireo,
 }: {
   istituzioneId: string;
-  pianoPremium: boolean;
   // null = non letta: il form non blocca (decide la revisione) e non dice zero.
   quotaNewsletterRimasta: number | null;
-  quotaComunicazioniKireoRimasta: number | null;
-  // null quando non c'è un piano superiore da suggerire (già su Premium) o
-  // quando il nudge non si applica al piano corrente.
+  // null quando non c'è un piano superiore da suggerire (già su Premium).
   nudgeNewsletter: string | null;
-  nudgeComunicazioneKireo: string | null;
 }) {
   const router = useRouter();
-  const [tipo, setTipo] = useState<"newsletter" | "comunicazione_kireo">("newsletter");
+  // Un tipo solo, dal 28/10: la «comunicazione mirata» del piano premium era una
+  // funzione che non esisteva (vedi lib/ente/quote.ts) ed è uscita. Non si
+  // rimette un secondo tipo nel form prima che esista l'invio.
+  const tipo = "newsletter";
   const [oggetto, setOggetto] = useState("");
   const [corpo, setCorpo] = useState("");
   const [errori, setErrori] = useState<Record<string, string>>({});
@@ -34,7 +30,7 @@ export default function CreaComunicazioneForm({
   const [erroreGenerale, setErroreGenerale] = useState<string | null>(null);
   const [inviato, setInviato] = useState(false);
 
-  const quotaRimasta = tipo === "newsletter" ? quotaNewsletterRimasta : quotaComunicazioniKireoRimasta;
+  const quotaRimasta = quotaNewsletterRimasta;
   const quotaEsaurita = quotaRimasta !== null && quotaRimasta <= 0;
 
   function validate() {
@@ -48,7 +44,7 @@ export default function CreaComunicazioneForm({
     e.preventDefault();
     setErroreGenerale(null);
     if (quotaEsaurita) {
-      setErroreGenerale("Hai esaurito la quota per questo tipo di comunicazione nell'anno accademico corrente.");
+      setErroreGenerale("Hai esaurito le newsletter previste dal tuo piano per quest'anno accademico.");
       return;
     }
     const validazione = validate();
@@ -98,27 +94,13 @@ export default function CreaComunicazioneForm({
       )}
 
       <div>
-        <label htmlFor="tipo" className="mb-1.5 block text-sm font-medium text-kireo-light">
-          Tipo
-        </label>
-        <select id="tipo" value={tipo} onChange={(e) => setTipo(e.target.value as typeof tipo)} className={`${inputClass} ${fieldBorder(false)}`}>
-          <option value="newsletter">Newsletter (ai tuoi iscritti)</option>
-          {pianoPremium && <option value="comunicazione_kireo">Comunicazione mirata (piano premium)</option>}
-        </select>
+        <p className="text-sm font-medium text-kireo-light">Newsletter ai tuoi iscritti</p>
         <p className="mt-1.5 text-xs text-kireo-muted">
           {quotaRimasta === null
             ? "Non siamo riusciti a leggere quante te ne restano quest'anno: la proposta passa comunque dalla revisione di KIREO."
             : `Quota rimasta quest'anno accademico: ${quotaRimasta < 0 ? 0 : quotaRimasta}`}
         </p>
-        {!pianoPremium && nudgeComunicazioneKireo && (
-          <p className="mt-1.5 text-xs text-kireo-orange">
-            {nudgeComunicazioneKireo}{" "}
-            <Link href="/ente/piano" className="underline underline-offset-2">
-              Scopri i piani →
-            </Link>
-          </p>
-        )}
-        {tipo === "newsletter" && quotaEsaurita && nudgeNewsletter && (
+        {quotaEsaurita && nudgeNewsletter && (
           <p className="mt-1.5 text-xs text-kireo-orange">
             {nudgeNewsletter}{" "}
             <Link href="/ente/piano" className="underline underline-offset-2">

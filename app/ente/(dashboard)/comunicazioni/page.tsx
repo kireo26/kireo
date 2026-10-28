@@ -25,7 +25,7 @@ export default async function EnteComunicazioniPage() {
       .order("created_at", { ascending: false }),
     supabase
       .from("piani")
-      .select("id, nome, prezzo_min, prezzo_max, quota_eventi_promossi, quota_newsletter, quota_cta_esterne, quota_comunicazioni_kireo"),
+      .select("id, nome, prezzo_min, prezzo_max, quota_eventi_promossi, quota_newsletter, quota_cta_esterne"),
     getQuoteEnte(supabase, contesto.istituzioneId, contesto.pianoNome),
   ]);
 
@@ -33,7 +33,6 @@ export default async function EnteComunicazioniPage() {
   const nudgeNewsletter = pianoSuccessivo
     ? `Il piano ${ETICHETTA_PIANO[pianoSuccessivo.nome] ?? pianoSuccessivo.nome} include fino a ${pianoSuccessivo.quota_newsletter} newsletter/anno.`
     : null;
-  const nudgeComunicazioneKireo = "Le comunicazioni mirate sono incluse nel piano Premium.";
 
   return (
     <div className="space-y-8">
@@ -62,6 +61,7 @@ export default async function EnteComunicazioniPage() {
                     </span>
                     <span className="font-heading text-sm font-semibold text-kireo-light">{c.oggetto}</span>
                     <p className="mt-1 text-xs text-kireo-muted">
+                      {/* «Comunicazione mirata» resta solo come etichetta di righe vecchie: dal 28/10 non si propone più. */}
                       {c.tipo === "newsletter" ? "Newsletter" : "Comunicazione mirata"} ·{" "}
                       {formattaData(c.created_at, "long")}
                     </p>
@@ -83,11 +83,8 @@ export default async function EnteComunicazioniPage() {
         <div className="mt-4">
           <CreaComunicazioneForm
             istituzioneId={contesto.istituzioneId}
-            pianoPremium={contesto.pianoNome === "premium"}
             quotaNewsletterRimasta={quote ? quote.newsletterTotali - quote.newsletterUsate : null}
-            quotaComunicazioniKireoRimasta={quote ? quote.comunicazioniKireoTotali - quote.comunicazioniKireoUsate : null}
             nudgeNewsletter={nudgeNewsletter}
-            nudgeComunicazioneKireo={nudgeComunicazioneKireo}
           />
         </div>
       </div>

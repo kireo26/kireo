@@ -52,7 +52,6 @@ const FEATURE_ROWS: { feature: string; base: string; standard: string; premium: 
   { feature: "Notifiche ai follower su nuovi contenuti", base: "—", standard: "✓", premium: "✓" },
   { feature: "Newsletter agli iscritti all'anno", base: "—", standard: "3", premium: "12" },
   { feature: "CTA verso il sito esterno all'anno", base: "—", standard: "1", premium: "5" },
-  { feature: "Comunicazioni mirate KIREO all'anno", base: "—", standard: "—", premium: "5" },
   { feature: "Studenti interessati (dettaglio nominativo)", base: "Solo conteggio", standard: "✓", premium: "✓" },
   { feature: "Messaggi con gli studenti", base: "—", standard: "✓", premium: "✓" },
   { feature: "Statistiche aggregate", base: "✓", standard: "✓", premium: "✓" },

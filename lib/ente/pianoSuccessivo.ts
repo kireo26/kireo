@@ -6,7 +6,6 @@ export type PianoQuote = {
   quota_eventi_promossi: number;
   quota_newsletter: number;
   quota_cta_esterne: number;
-  quota_comunicazioni_kireo: number;
 };
 
 const ORDINE_PIANI = ["free", "plus", "premium"] as const;

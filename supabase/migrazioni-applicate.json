@@ -275,6 +275,12 @@
       "commit": "b79fbe9",
       "stato": "verificata",
       "fonte": "Mario 28/10: applicata in produzione (secondo tentativo, dopo b79fbe9). Misurato: 0 tabelle scrivibili per intero da anon/authenticated (erano 59); pg_default_acl di postgres per public e per storage = anon=rdDxtm, authenticated=rdDxtm (prima arwdDxtm); righe di supabase_admin invariate; le 199 colonne le verifica la migrazione stessa, che si ferma se non tornano. Giro a schermo passato: /contatti senza accesso, test, missione, progetto workshop, creazione evento, approvazione admin."
+    },
+    {
+      "file": "20261107100000_consenso_comunicazioni_kireo.sql",
+      "commit": "8575867",
+      "stato": "verificata",
+      "fonte": "Mario, 28/10: applicata; colonne profiles.comunicazioni_kireo e comunicazioni_kireo_il presenti (oggetti lasciati solo da lei); copia verificata riga per riga contro raw_user_meta_data con scripts/diagnostica-copia-consenso.sql: 6 sì · 5 no · 5 mai chiesto, ogni riga uguale alla sua sorgente"
     }
   ]
 }

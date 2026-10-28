@@ -23,8 +23,6 @@ export type Quote = {
   newsletterTotali: number;
   ctaUsate: number;
   ctaTotali: number;
-  comunicazioniKireoUsate: number;
-  comunicazioniKireoTotali: number;
 };
 
 // COSA CONTA OGNI RIQUADRO DEL PROFILO (27/10), sull'anno accademico corrente.
@@ -37,11 +35,13 @@ export type Quote = {
 // - Newsletter: newsletter approvate (o inviate) create quest'anno.
 // - CTA esterne: eventi APPROVATI creati quest'anno con un link esterno. NON
 //   conta i clic su quei link.
-// - Comunicazioni KIREO: «comunicazioni mirate» (solo piano premium) approvate
-//   o inviate, create quest'anno. ⚠️ Nessuna è mai stata inviata a nessuno:
-//   l'invio («inviata») non esiste, e i destinatari di una comunicazione
-//   «mirata» non sono scritti da nessuna parte. È una funzione del piano che
-//   non c'è (vedi i punti aperti di CLAUDE.md).
+// - Le «comunicazioni mirate» (piano premium) NON hanno più un riquadro (28/10):
+//   erano una funzione del piano che non esisteva — nessun invio, nessun
+//   destinatario scritto da nessuna parte — e in produzione non ne era mai
+//   stata proposta una (misurato da Mario: 0). Tolte dal form, dal piano e dal
+//   listino. La colonna `piani.quota_comunicazioni_kireo` resta, commentata
+//   come inutilizzata (20261108100000). Non rimetterle qui finché non esiste
+//   l'invio: un contatore di una cosa che non c'è è una promessa.
 // ⚠️ La conseguenza di contare solo l'approvato: il form non ferma più un ente
 // che ha già proposto più di quanto il piano conceda, finché nessuna proposta è
 // approvata. A fermarlo è la revisione dell'admin, che vede il conto.
@@ -55,11 +55,11 @@ export async function getQuoteEnte(supabase: SupabaseClient, istituzioneId: stri
 
     const { data: piano, error: errorePiano } = await supabase
       .from("piani")
-      .select("quota_eventi_promossi, quota_newsletter, quota_cta_esterne, quota_comunicazioni_kireo")
+      .select("quota_eventi_promossi, quota_newsletter, quota_cta_esterne")
       .eq("nome", pianoNome)
       .maybeSingle();
 
-    const [evidenzaRes, ctaRes, newsletterRes, comunicazioniKireoRes] = await Promise.all([
+    const [evidenzaRes, ctaRes, newsletterRes] = await Promise.all([
       supabase
         .from("eventi")
         .select("id", { count: "exact", head: true })
@@ -83,17 +83,9 @@ export async function getQuoteEnte(supabase: SupabaseClient, istituzioneId: stri
         .in("stato", STATI_CHE_CONTANO)
         .gte("created_at", inizio)
         .lte("created_at", fine),
-      supabase
-        .from("comunicazioni")
-        .select("id", { count: "exact", head: true })
-        .eq("istituzione_id", istituzioneId)
-        .eq("tipo", "comunicazione_kireo")
-        .in("stato", STATI_CHE_CONTANO)
-        .gte("created_at", inizio)
-        .lte("created_at", fine),
     ]);
 
-    const errore = errorePiano ?? [evidenzaRes, ctaRes, newsletterRes, comunicazioniKireoRes].find((r) => r.error)?.error;
+    const errore = errorePiano ?? [evidenzaRes, ctaRes, newsletterRes].find((r) => r.error)?.error;
     if (errore || !piano) {
       console.error("[quote ente]:", descriviErrore(errore ?? "piano non trovato"));
       return null;
@@ -106,8 +98,6 @@ export async function getQuoteEnte(supabase: SupabaseClient, istituzioneId: stri
       newsletterTotali: piano.quota_newsletter ?? 0,
       ctaUsate: ctaRes.count ?? 0,
       ctaTotali: piano.quota_cta_esterne ?? 0,
-      comunicazioniKireoUsate: comunicazioniKireoRes.count ?? 0,
-      comunicazioniKireoTotali: piano.quota_comunicazioni_kireo ?? 0,
     };
   } catch (e) {
     console.error("[quote ente]:", descriviErrore(e));
@@ -131,18 +121,14 @@ export async function getQuotePerRevisione(supabase: SupabaseClient, istituzione
   return getQuoteEnte(supabase, istituzioneId, piano.nome);
 }
 
-export type VoceQuota = "newsletter" | "comunicazione_kireo" | "cta";
+export type VoceQuota = "newsletter" | "cta";
 
 // Una riga per la coda: «Già approvate quest'anno: 5 di 5». Testo mio,
 // provvisorio. A quota piena lo dice, perché approvare vuol dire superarla.
 export function testoQuotaRevisione(quote: Quote | null, voce: VoceQuota): { testo: string; piena: boolean } {
   if (!quote) return { testo: "Non siamo riusciti a leggere quante ne ha già approvate questo ente.", piena: false };
   const [usate, totali] =
-    voce === "newsletter"
-      ? [quote.newsletterUsate, quote.newsletterTotali]
-      : voce === "comunicazione_kireo"
-        ? [quote.comunicazioniKireoUsate, quote.comunicazioniKireoTotali]
-        : [quote.ctaUsate, quote.ctaTotali];
+    voce === "newsletter" ? [quote.newsletterUsate, quote.newsletterTotali] : [quote.ctaUsate, quote.ctaTotali];
   const piena = usate >= totali;
   return {
     testo: `Già approvate quest'anno accademico: ${usate} di ${totali} previste dal piano.${piena ? " Approvando, la quota si supera." : ""}`,

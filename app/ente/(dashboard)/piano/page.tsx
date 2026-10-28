@@ -10,7 +10,8 @@ const RIGHE_QUOTA: { chiave: keyof PianoQuote; label: string }[] = [
   { chiave: "quota_eventi_promossi", label: "Eventi in evidenza all'anno" },
   { chiave: "quota_newsletter", label: "Newsletter agli iscritti all'anno" },
   { chiave: "quota_cta_esterne", label: "CTA verso il sito esterno all'anno" },
-  { chiave: "quota_comunicazioni_kireo", label: "Comunicazioni mirate KIREO all'anno" },
+  // Le «comunicazioni mirate» sono uscite il 28/10: una funzione del piano che
+  // non esisteva (vedi lib/ente/quote.ts). Non si rimettono prima dell'invio.
 ];
 
 function formattaPrezzo(min: number, max: number) {
@@ -27,7 +28,7 @@ export default async function EntePianoPage() {
     supabase.from("istituzioni").select("piano_attivato_il, piano_scade_il").eq("id", contesto.istituzioneId).maybeSingle(),
     supabase
       .from("piani")
-      .select("id, nome, prezzo_min, prezzo_max, quota_eventi_promossi, quota_newsletter, quota_cta_esterne, quota_comunicazioni_kireo")
+      .select("id, nome, prezzo_min, prezzo_max, quota_eventi_promossi, quota_newsletter, quota_cta_esterne")
       .order("prezzo_min", { ascending: true }),
     supabase
       .from("richieste_upgrade")

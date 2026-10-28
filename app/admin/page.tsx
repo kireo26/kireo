@@ -219,13 +219,13 @@ export default async function AdminPage() {
                     {ente?.nome ?? "—"} · {c.tipo === "newsletter" ? "Newsletter" : "Comunicazione mirata"}
                   </p>
                   <p className="mt-2 whitespace-pre-wrap text-sm text-kireo-light/90">{c.corpo}</p>
-                  {(() => {
-                    const q = testoQuotaRevisione(
-                      quotePerEnte.get(c.istituzione_id as string) ?? null,
-                      c.tipo === "newsletter" ? "newsletter" : "comunicazione_kireo",
-                    );
-                    return <p className={`mt-2 text-xs ${q.piena ? "text-kireo-orange" : "text-kireo-muted"}`}>{q.testo}</p>;
-                  })()}
+                  {/* Una «comunicazione mirata» non ha più una quota (uscita il 28/10): una
+                      riga così può solo essere vecchia, e la quota non si stampa. */}
+                  {c.tipo === "newsletter" &&
+                    (() => {
+                      const q = testoQuotaRevisione(quotePerEnte.get(c.istituzione_id as string) ?? null, "newsletter");
+                      return <p className={`mt-2 text-xs ${q.piena ? "text-kireo-orange" : "text-kireo-muted"}`}>{q.testo}</p>;
+                    })()}
                   <AzioneApprovazione tabella="comunicazioni" id={c.id} statoApprovato="approvata" statoRifiutato="rifiutata" />
                 </li>
               );

@@ -93,7 +93,7 @@ console.log("\n§2 — le quote contano solo l'approvato, e «non letto» non è
           gte() { return catena; },
           lte() { return catena; },
           maybeSingle() {
-            return Promise.resolve({ data: { quota_eventi_promossi: 5, quota_newsletter: 12, quota_cta_esterne: 5, quota_comunicazioni_kireo: 5 }, error: null });
+            return Promise.resolve({ data: { quota_eventi_promossi: 5, quota_newsletter: 12, quota_cta_esterne: 5 }, error: null });
           },
           then(ok, ko) {
             const tipo = filtri.find((f) => f[1] === "tipo")?.[2] ?? (filtri.some((f) => f[1] === "cta_esterna_url") ? "cta" : "evidenza");
@@ -111,7 +111,7 @@ console.log("\n§2 — le quote contano solo l'approvato, e «non letto» non è
   const finto = clienteFinto();
   const q = await getQuoteEnte(finto, "ente", "premium");
   const nulle = [];
-  for (const tipo of ["evidenza", "cta", "newsletter", "comunicazione_kireo"]) {
+  for (const tipo of ["evidenza", "cta", "newsletter"]) {
     nulle.push([tipo, await getQuoteEnte(clienteFinto({ fallisce: tipo }), "ente", "premium")]);
   }
   console.error = erroreOriginale;
@@ -120,12 +120,28 @@ console.log("\n§2 — le quote contano solo l'approvato, e «non letto» non è
   const di = (pred) => finto.letture.find((l) => pred(l.filtri));
   const cta = di((f) => f.some((x) => x[1] === "cta_esterna_url"));
   ok(cta && cta.filtri.some((x) => x[0] === "eq" && x[1] === "stato" && x[2] === "approvato"), "le CTA contano solo gli eventi approvati", cta?.filtri);
-  for (const tipo of ["newsletter", "comunicazione_kireo"]) {
-    const l = di((f) => f.some((x) => x[1] === "tipo" && x[2] === tipo));
+  {
+    const l = di((f) => f.some((x) => x[1] === "tipo" && x[2] === "newsletter"));
     const stati = l?.filtri.find((x) => x[0] === "in" && x[1] === "stato")?.[2] ?? null;
     // L'atteso è scritto qui, non importato da quote.ts.
     ok(JSON.stringify([...(stati ?? [])].sort()) === JSON.stringify(["approvata", "inviata"]),
-      `le ${tipo} contano solo approvate e inviate (non bozze, in approvazione, rifiutate)`, stati);
+      "le newsletter contano solo approvate e inviate (non bozze, in approvazione, rifiutate)", stati);
+  }
+  // LE «COMUNICAZIONI MIRATE» SONO USCITE (28/10): una funzione del piano che non
+  // esisteva. Nessuna lettura le conta, e nessuna superficie le offre o le
+  // conta più. Torna rosso il giorno in cui qualcuno le rimette senza l'invio.
+  ok(!finto.letture.some((l) => l.filtri.some((x) => x[1] === "tipo" && x[2] === "comunicazione_kireo")),
+    "le quote non contano più le comunicazioni mirate");
+  for (const [file, cosa] of [
+    ["components/ente/CreaComunicazioneForm.tsx", "il form"],
+    ["components/ente/RiquadriQuote.tsx", "i riquadri delle quote"],
+    ["app/ente/(dashboard)/piano/page.tsx", "la pagina del piano"],
+    ["app/istituzioni/page.tsx", "il listino pubblico"],
+    ["lib/ente/quote.ts", "le quote"],
+  ]) {
+    const codice = senzaCommenti(leggi(file));
+    ok(!/comunicazione_kireo|comunicazioniKireo|quota_comunicazioni_kireo|[Cc]omunicazion[ei] mirat|Comunicazioni KIREO/.test(codice),
+      `${cosa} non offre né conta le comunicazioni mirate`);
   }
   for (const [tipo, esito] of nulle) ok(esito === null, `una lettura fallita (${tipo}) dà «non letto», non zero`, esito);
 
@@ -235,10 +251,10 @@ console.log("\n§7 — la provincia è una scelta da un elenco\n");
 console.log("\n§8 — chi revisiona vede la quota\n");
 {
   const { testoQuotaRevisione } = require(path.join(ROOT, "lib/ente/quote.ts"));
-  const q = { newsletterUsate: 5, newsletterTotali: 5, comunicazioniKireoUsate: 1, comunicazioniKireoTotali: 5, ctaUsate: 0, ctaTotali: 2, evidenzaUsate: 0, evidenzaTotali: 0 };
+  const q = { newsletterUsate: 5, newsletterTotali: 5, ctaUsate: 0, ctaTotali: 2, evidenzaUsate: 0, evidenzaTotali: 0 };
   const piena = testoQuotaRevisione(q, "newsletter");
   ok(piena.piena && /5 di 5/.test(piena.testo) && /si supera/.test(piena.testo), "a quota piena lo dice", piena);
-  ok(!testoQuotaRevisione(q, "comunicazione_kireo").piena && /1 di 5/.test(testoQuotaRevisione(q, "comunicazione_kireo").testo), "sotto quota dice quante");
+  ok(!testoQuotaRevisione(q, "cta").piena && /0 di 2/.test(testoQuotaRevisione(q, "cta").testo), "sotto quota dice quante");
   ok(/non siamo riusciti/i.test(testoQuotaRevisione(null, "cta").testo), "una quota non letta non si scrive 0 di 0");
   ok(/testoQuotaRevisione\(/.test(leggi("app/admin/page.tsx")), "la coda delle comunicazioni la mostra");
   ok(/testoQuotaRevisione\(await getQuotePerRevisione/.test(leggi("components/admin/PlanciaAdminEvento.tsx")), "la plancia dell'evento la mostra per una CTA");
