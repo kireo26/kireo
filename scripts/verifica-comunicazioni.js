@@ -210,5 +210,29 @@ for (const t of [K.TESTO_MANCA_DATA_CONTATTO, K.TESTO_MANCA_DATA_COMUNICAZIONI])
 const layoutApp = leggi("app/app/layout.tsx");
 ok(!/riservate ai maggiorenni/.test(layoutApp), "la richiesta della data in /app non promette più un blocco dei 18 anni che non c'è");
 
+console.log("§9 le etichette dei tre gesti dicono cosa apre ciascuno");
+const G = require("@/lib/app/gestiEnte");
+// Gli attesi sono i fatti, scritti a mano (le notifiche ai follower, chi manda
+// la newsletter, i campi che l'ente vede): non i testi.
+ok(/Bacheca/.test(G.DIDASCALIA_SEGUI) && /Nessuna email/.test(G.DIDASCALIA_SEGUI), "«Segui» dice dove arrivano i post, e che non arriva nessuna email");
+ok(/KIREO/.test(G.DIDASCALIA_NEWSLETTER) && /indirizzo/.test(G.DIDASCALIA_NEWSLETTER) && /18 anni/.test(G.DIDASCALIA_NEWSLETTER), "la newsletter dice chi la manda, che l'indirizzo non passa all'ente, e da che età");
+ok(/nostro/.test(G.DIDASCALIA_NEWSLETTER) && !/legge/i.test(G.DIDASCALIA_NEWSLETTER), "e i 18 anni sono un impegno nostro, non una legge");
+const pannello = leggi("components/app/ManifestazioneInteresseButton.tsx");
+for (const campo of ["nome", "scuola", "aree"]) {
+  ok(G.DIDASCALIA_CONDIVIDI.includes(campo) && pannello.includes(campo), `la didascalia della condivisione e il pannello nominano tutti e due «${campo}»`);
+}
+ok(/dentro KIREO/.test(G.DIDASCALIA_CONDIVIDI) && /solo tramite i messaggi di KIREO/.test(pannello), "e tutti e due dicono che il contatto resta dentro KIREO");
+for (const t of [G.DIDASCALIA_SEGUI, G.DIDASCALIA_NEWSLETTER, G.DIDASCALIA_CONDIVIDI]) {
+  ok(trovaAccordi(t).length === 0 && !/non puoi/i.test(t), "nessun accordo e nessun «non puoi»", t);
+}
+ok(/didascalia=\{DIDASCALIA_SEGUI\}/.test(paginaEnte) && /didascalia=\{DIDASCALIA_NEWSLETTER\}/.test(paginaEnte) && /didascalia=\{DIDASCALIA_CONDIVIDI\}/.test(paginaEnte), "la pagina dell'ente passa le tre didascalie");
+for (const f of ["app/app/esplora/page.tsx", "app/aree/[slug]/page.tsx"]) {
+  ok(!/didascalia=/.test(leggi(f)), `${f}: le card non portano la didascalia (la riga si legge accanto agli altri due gesti)`);
+}
+// La didascalia della newsletter sta DOPO il `return null`: quando il bottone
+// non c'è, non resta una didascalia orfana.
+ok(ancora(btnNewsletter, 'if (eta !== "maggiorenne" && !iscritto) return null;') < btnNewsletter.search(/\{didascalia &&[^\n]*\n\s*\{errore && \(/), "la didascalia della newsletter compare solo con il bottone");
+ok(/!mostraInfo \? \([\s\S]*?\{didascalia &&[\s\S]*?\) : \(/.test(pannello), "a pannello aperto la didascalia della condivisione sparisce");
+
 console.log(`\n${falliti === 0 ? "✓" : "✗"} ${fatte - falliti}/${fatte} proprietà`);
 process.exit(falliti === 0 ? 0 : 1);

@@ -299,6 +299,18 @@
       "commit": "ce5345e",
       "stato": "verificata",
       "fonte": "Mario, 28/10: applicata; pg_constraint comunicazioni_solo_newsletter convalidated = t"
+    },
+    {
+      "file": "20261109100000_condivisione_e_messaggi_senza_eta.sql",
+      "commit": "26f94b5",
+      "stato": "verificata",
+      "fonte": "Mario, 28/10: applicata; verifica-gesti-dei-minorenni 7/7 in produzione; with_check di manifestazioni_interesse_insert_own senza maggiorenne"
+    },
+    {
+      "file": "20261109110000_contatto_enti_solo_studenti_con_data.sql",
+      "commit": "c70028f",
+      "stato": "verificata",
+      "fonte": "Mario, 28/10: applicata; with_check di manifestazioni_interesse_insert_own nomina puo_contattare_enti; diagnostica-data-nascita-vuota: 5 profili senza data (1 referente_scuola, 3 istituzione, 1 tutor_scuola, tutti di prova), 0 condivisioni, 0 conversazioni, 0 newsletter"
     }
   ]
 }

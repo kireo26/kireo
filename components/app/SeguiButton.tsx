@@ -12,10 +12,14 @@ export default function SeguiButton({
   istituzioneId,
   userId,
   seguitoIniziale,
+  didascalia,
 }: {
   istituzioneId: string;
   userId: string | null;
   seguitoIniziale: boolean;
+  // La riga che dice cosa apre il gesto (lib/app/gestiEnte.ts). Facoltativa:
+  // la passa la pagina dell'ente, non le card di Esplora e delle aree.
+  didascalia?: string;
 }) {
   const pathname = usePathname();
   const [seguito, setSeguito] = useState(seguitoIniziale);
@@ -23,12 +27,15 @@ export default function SeguiButton({
 
   if (!userId) {
     return (
-      <Link
-        href={`/accedi?redirectedFrom=${encodeURIComponent(pathname)}`}
-        className="inline-flex items-center justify-center rounded-full bg-kireo-green px-5 py-2.5 font-sans text-sm font-semibold text-kireo-light transition-colors hover:bg-kireo-green-light"
-      >
-        Segui
-      </Link>
+      <div>
+        <Link
+          href={`/accedi?redirectedFrom=${encodeURIComponent(pathname)}`}
+          className="inline-flex items-center justify-center rounded-full bg-kireo-green px-5 py-2.5 font-sans text-sm font-semibold text-kireo-light transition-colors hover:bg-kireo-green-light"
+        >
+          Segui
+        </Link>
+        {didascalia && <p className="mt-2 max-w-[15rem] text-xs leading-snug text-kireo-muted">{didascalia}</p>}
+      </div>
     );
   }
 
@@ -49,8 +56,11 @@ export default function SeguiButton({
   }
 
   return (
-    <Button type="button" variant={seguito ? "outline" : "primary"} onClick={handleClick} disabled={caricamento}>
-      {caricamento ? "Un momento…" : seguito ? "Seguito ✓" : "Segui"}
-    </Button>
+    <div>
+      <Button type="button" variant={seguito ? "outline" : "primary"} onClick={handleClick} disabled={caricamento}>
+        {caricamento ? "Un momento…" : seguito ? "Seguito ✓" : "Segui"}
+      </Button>
+      {didascalia && <p className="mt-2 max-w-[15rem] text-xs leading-snug text-kireo-muted">{didascalia}</p>}
+    </div>
   );
 }

@@ -17,6 +17,7 @@ export default function ManifestazioneInteresseButton({
   userId,
   contatto,
   manifestazioneAttivaId,
+  didascalia,
 }: {
   istituzioneId: string;
   userId: string | null;
@@ -24,6 +25,7 @@ export default function ManifestazioneInteresseButton({
   // database lo rifiuta (lib/app/contattoEnti.ts).
   contatto: ContattoEnti;
   manifestazioneAttivaId: string | null;
+  didascalia?: string;
 }) {
   const pathname = usePathname();
   const [id, setId] = useState(manifestazioneAttivaId);
@@ -33,12 +35,15 @@ export default function ManifestazioneInteresseButton({
 
   if (!userId) {
     return (
-      <Link
-        href={`/accedi?redirectedFrom=${encodeURIComponent(pathname)}`}
-        className="inline-flex items-center justify-center rounded-full border border-white/20 px-5 py-2.5 text-sm font-semibold text-kireo-light transition-colors hover:border-kireo-light/50"
-      >
-        Condividi il tuo profilo con questo ente
-      </Link>
+      <div>
+        <Link
+          href={`/accedi?redirectedFrom=${encodeURIComponent(pathname)}`}
+          className="inline-flex items-center justify-center rounded-full border border-white/20 px-5 py-2.5 text-sm font-semibold text-kireo-light transition-colors hover:border-kireo-light/50"
+        >
+          Condividi il tuo profilo con questo ente
+        </Link>
+        {didascalia && <p className="mt-2 max-w-[15rem] text-xs leading-snug text-kireo-muted">{didascalia}</p>}
+      </div>
     );
   }
 
@@ -99,9 +104,15 @@ export default function ManifestazioneInteresseButton({
   return (
     <div className="space-y-3">
       {!mostraInfo ? (
-        <Button type="button" variant="outline" onClick={() => setMostraInfo(true)}>
-          Condividi il tuo profilo con questo ente
-        </Button>
+        // A pannello aperto la didascalia sparisce: lì i campi si leggono per
+        // intero, e due testi sulla stessa cosa a un centimetro si
+        // contraddirebbero appena uno dei due cambia.
+        <div>
+          <Button type="button" variant="outline" onClick={() => setMostraInfo(true)}>
+            Condividi il tuo profilo con questo ente
+          </Button>
+          {didascalia && <p className="mt-2 max-w-[15rem] text-xs leading-snug text-kireo-muted">{didascalia}</p>}
+        </div>
       ) : (
         <div className="max-w-sm space-y-3 rounded-xl border border-white/10 bg-kireo-dark/60 p-4 text-left">
           <p className="text-xs text-kireo-muted">

@@ -7,6 +7,14 @@
 }
 
 @theme inline {
+  /* Il punto in cui l'intestazione passa dal menu del telefono a quello del
+     computer (Mario, 28/10). Misurato sulla costruzione di produzione: sotto
+     i 1152px la fila del computer non ci sta — il logo tocca «Home», quattro
+     voci vanno su due righe, a 768 la pagina scorre di lato —, anche da non
+     collegati. Un tablet in orizzontale vede il menu del telefono, e va bene:
+     un menu più semplice che funziona batte uno giusto che si rompe. Se le
+     voci del menu cambiano, la soglia si rimisura (non si stima). */
+  --breakpoint-menu: 72rem;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
 

@@ -7,6 +7,7 @@ import { getEventiIstituzione, getAreeDegliEventi, getIscrizioniStudente, evento
 import { statoEta, type StatoEta } from "@/lib/eta";
 import { contattoEnti, type ContattoEnti, TESTO_MANCA_DATA_CONTATTO, HREF_AGGIUNGI_DATA, TESTO_AGGIUNGI_DATA } from "@/lib/app/contattoEnti";
 import { TESTO_NEWSLETTER_SOLO_MAGGIORENNI } from "@/lib/app/comunicazioniKireo";
+import { DIDASCALIA_SEGUI, DIDASCALIA_NEWSLETTER, DIDASCALIA_CONDIVIDI } from "@/lib/app/gestiEnte";
 import GuidaEnteForm from "@/components/app/GuidaEnteForm";
 import IscrivitiNewsletterButton from "@/components/app/IscrivitiNewsletterButton";
 import SeguiButton from "@/components/app/SeguiButton";
@@ -143,16 +144,17 @@ export default async function IstituzionePubblicaPage({ params }: { params: Prom
             contatto con lo stesso ente, e stavano in due punti diversi della
             pagina. Il messaggio è un'altra cosa (una conversazione), e sta
             sotto. */}
-        <div className="mt-6 flex flex-wrap items-start gap-4">
-          <SeguiButton istituzioneId={istituzione.id} userId={user?.id ?? null} seguitoIniziale={seguito} />
+        <div className="mt-6 flex flex-wrap items-start gap-x-6 gap-y-4">
+          <SeguiButton istituzioneId={istituzione.id} userId={user?.id ?? null} seguitoIniziale={seguito} didascalia={DIDASCALIA_SEGUI} />
           {contatto !== "non_studente" || iscrittoNewsletter || !user ? (
-            <IscrivitiNewsletterButton istituzioneId={istituzione.id} userId={user?.id ?? null} iscrittoIniziale={iscrittoNewsletter} eta={eta} />
+            <IscrivitiNewsletterButton istituzioneId={istituzione.id} userId={user?.id ?? null} iscrittoIniziale={iscrittoNewsletter} eta={eta} didascalia={DIDASCALIA_NEWSLETTER} />
           ) : null}
           <ManifestazioneInteresseButton
             istituzioneId={istituzione.id}
             userId={user?.id ?? null}
             contatto={contatto}
             manifestazioneAttivaId={manifestazioneAttivaId}
+            didascalia={DIDASCALIA_CONDIVIDI}
           />
         </div>
         {/* Le ragioni dei gesti che mancano stanno SOTTO la fila, mai al posto

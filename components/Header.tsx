@@ -157,7 +157,7 @@ export default function Header() {
       <div ref={topBarRef} className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
         <Logo />
 
-        <nav className="hidden items-center gap-8 md:flex" aria-label="Navigazione principale">
+        <nav className="hidden items-center gap-8 menu:flex" aria-label="Navigazione principale">
           {NAV_LINKS.map((link) => (
             <Link
               key={link.href}
@@ -223,7 +223,7 @@ export default function Header() {
           </Link>
         </nav>
 
-        <div className="hidden items-center gap-5 md:flex">
+        <div className="hidden items-center gap-5 menu:flex">
           {user === undefined ? null : user ? (
             <>
             {/* Il ritorno all'area personale si vede (Mario, 28/10): stava
@@ -292,7 +292,7 @@ export default function Header() {
 
         <button
           type="button"
-          className="flex h-10 w-10 items-center justify-center rounded-lg text-kireo-light md:hidden"
+          className="flex h-10 w-10 items-center justify-center rounded-lg text-kireo-light menu:hidden"
           aria-expanded={open}
           aria-controls="mobile-nav"
           aria-label={open ? "Chiudi il menu" : "Apri il menu"}
@@ -312,7 +312,7 @@ export default function Header() {
         <nav
           id="mobile-nav"
           aria-label="Navigazione mobile"
-          className="max-h-[calc(100dvh_-_var(--kireo-topbar-h,_4rem))] overflow-y-auto overscroll-contain border-t border-white/5 px-6 pb-6 [-webkit-overflow-scrolling:touch] md:hidden"
+          className="max-h-[calc(100dvh_-_var(--kireo-topbar-h,_4rem))] overflow-y-auto overscroll-contain border-t border-white/5 px-6 pb-6 [-webkit-overflow-scrolling:touch] menu:hidden"
         >
           <ul className="flex flex-col gap-1 pt-4">
             {NAV_LINKS.map((link) => (

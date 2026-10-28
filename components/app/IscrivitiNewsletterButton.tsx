@@ -14,6 +14,7 @@ export default function IscrivitiNewsletterButton({
   userId,
   iscrittoIniziale,
   eta,
+  didascalia,
 }: {
   istituzioneId: string;
   userId: string | null;
@@ -22,6 +23,7 @@ export default function IscrivitiNewsletterButton({
   // Obbligatorio apposta: un default farebbe ricomparire il bottone a chi non
   // riceverà niente.
   eta: StatoEta;
+  didascalia?: string;
 }) {
   const pathname = usePathname();
   const [iscritto, setIscritto] = useState(iscrittoIniziale);
@@ -30,12 +32,15 @@ export default function IscrivitiNewsletterButton({
 
   if (!userId) {
     return (
-      <Link
-        href={`/accedi?redirectedFrom=${encodeURIComponent(pathname)}`}
-        className="inline-flex items-center justify-center rounded-full bg-kireo-green px-6 py-3 font-sans text-sm font-semibold text-kireo-light transition-colors hover:bg-kireo-green-light"
-      >
-        Iscriviti alla newsletter
-      </Link>
+      <div>
+        <Link
+          href={`/accedi?redirectedFrom=${encodeURIComponent(pathname)}`}
+          className="inline-flex items-center justify-center rounded-full bg-kireo-green px-6 py-3 font-sans text-sm font-semibold text-kireo-light transition-colors hover:bg-kireo-green-light"
+        >
+          Iscriviti alla newsletter
+        </Link>
+        {didascalia && <p className="mt-2 max-w-[15rem] text-xs leading-snug text-kireo-muted">{didascalia}</p>}
+      </div>
     );
   }
 
@@ -94,6 +99,7 @@ export default function IscrivitiNewsletterButton({
       <Button type="button" variant={iscritto ? "outline" : "primary"} onClick={handleClick} disabled={caricamento}>
         {caricamento ? "Un momento…" : iscritto ? "Iscritto alla newsletter ✓ — Esci" : "Iscriviti alla newsletter"}
       </Button>
+      {didascalia && <p className="max-w-[15rem] text-xs leading-snug text-kireo-muted">{didascalia}</p>}
       {errore && (
         <p className="text-xs text-red-400">
           {iscritto ? "Non siamo riusciti a toglierti dalla newsletter: riprova." : "Non siamo riusciti a iscriverti: riprova."}

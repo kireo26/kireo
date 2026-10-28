@@ -26,7 +26,7 @@ export default function AzioneApprovazionePost({ id }: { id: string }) {
       } = await supabase.auth.getUser();
       const { error } = await supabase
         .from("post_enti")
-        .update({ stato: "approvato", approvato_da: user?.id ?? null, approvato_il: new Date().toISOString() })
+        .update({ stato: "approvato", approvato_da: user?.id ?? null })
         .eq("id", id);
       if (error) {
         setErrore("Non è stato possibile approvare. Riprova.");
