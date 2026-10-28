@@ -352,8 +352,17 @@ console.log("\n§4 — una pagina per due ruoli, con una sola differenza\n");
   // escono dallo stesso oggetto, quindi non possono divergere (un href verso
   // `/admin` con l'etichetta «ai tuoi eventi»).
   ok(src.includes("indietro.href") && src.includes("indietro.dove"), "indirizzo e nome del posto da cui si viene: un ramo solo");
-  ok(src.includes("/api/admin/presenze/"), "l'admin scarica il CSV individuale");
-  ok(src.includes("ReportEventoButton"), "l'ente il report aggregato");
+  // Chi scarica cosa si guarda DENTRO il ramo, non nel file (28/10): con
+  // `src.includes` le due proprietà restavano verdi anche con i due rami
+  // scambiati, cioè il titolo nominava chi agisce e l'asserzione guardava solo
+  // che la cosa esistesse da qualche parte (il quattordicesimo modo, in un file
+  // condiviso da due ruoli).
+  const ternario = fettaOppureRosso(src, { nome: 'parte === "kireo" ? (' }, null, "quale export");
+  const [ramoKireo, ramoEnte] = ternario === null ? [null, null] : ternario.split(") : (");
+  ok(dentro(ramoKireo ?? null, "/api/admin/presenze/") && fuori(ramoKireo ?? null, "ReportEventoButton"),
+    "l'admin scarica il CSV individuale (nel ramo «kireo», e solo lui)");
+  ok(dentro(ramoEnte ?? null, "<ReportEventoButton") && fuori(ramoEnte ?? null, "/api/admin/presenze/"),
+    "l'ente il report aggregato (nell'altro ramo, e solo lui)");
   ok(!src.includes("esporta_consegne_evento"), "e la pagina non legge i testi: lo fa la route, che è admin-only");
 
   // La guardia ammette i due e dice quale: `notFound()` e non un redirect —
