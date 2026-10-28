@@ -94,8 +94,10 @@ begin
   end;
 
   -- Il lavoro di A. Se una delle due strade lo cancellasse, sparirebbe qui.
-  insert into public.workshop_elaborati (iscrizione_id, contenuto, fase_corrente)
-  values (v_ia, '{"s":"il lavoro di A"}'::jsonb, 'prima');
+  -- Le colonne del salvataggio vero (ElaboratoEditor): `fase_corrente` il client
+  -- non la scrive, e dal 20261106100000 non la può scrivere.
+  insert into public.workshop_elaborati (iscrizione_id, contenuto, updated_at)
+  values (v_ia, '{"s":"il lavoro di A"}'::jsonb, now());
 
   -- ── 4. il ritiro è mio e di nessun altro ────────────────────────────────
   perform set_config('request.jwt.claim.sub', c::text, true);

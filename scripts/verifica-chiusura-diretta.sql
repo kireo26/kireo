@@ -335,20 +335,49 @@ begin
     v_errore like 'permission denied%' or v_errore like '%row-level security%' or v_righe = 0);
 end $$;
 
--- 12) …e un update LEGITTIMO sulla stessa bozza passa ancora. È la metà che
---     la cura poteva rompere: una clausola in più nel `with check` chiude
---     tutto se è scritta male.
+-- 12) L'ENTE NON MODIFICA PIÙ LA PROPRIA BOZZA DAL CLIENT (28/10, 20261106100000).
+--     Fino al 27/10 qui c'era «…e un update legittimo sulla stessa bozza passa
+--     ancora»: era il controllo della §11, la metà che una `with check` scritta
+--     male avrebbe rotto. Ma nessuna schermata dell'ente modifica una bozza dal
+--     client (lo spostamento passa da sposta_finestra_evento, definer), e il
+--     rovesciamento ha tolto le colonne che nessun codice scrive. La proprietà
+--     adesso è la porta chiusa; il controllo è la 20, sulla scrittura che il
+--     client fa davvero su `eventi`.
 do $$
-declare v_righe integer;
+declare v_righe integer := -1; v_errore text := 'nessuno';
 begin
   set local role authenticated;
   perform set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-000000000001', true);
-  update public.eventi set titolo = 'Bozza rinominata'
-  where id = 'e0000000-0000-0000-0000-0000000000dd';
-  get diagnostics v_righe = row_count;
+  begin
+    update public.eventi set titolo = 'Bozza rinominata'
+    where id = 'e0000000-0000-0000-0000-0000000000dd';
+    get diagnostics v_righe = row_count;
+  exception when insufficient_privilege then v_errore := sqlerrm;
+  end;
   perform set_config('request.jwt.claim.sub', '', true);
   reset role;
-  insert into esiti values (12, 'l''ente modifica ancora la propria bozza', '1 riga', v_righe || ' righe', v_righe = 1);
+  insert into esiti values (12, 'l''ente non rinomina più la propria bozza dal client', 'permission denied',
+    case when v_errore = 'nessuno' then v_righe || ' righe' else v_errore end, v_errore like 'permission denied%');
+end $$;
+
+-- 20) LA COLONNA DI CONTROLLO: la scrittura che il client fa davvero su `eventi`
+--     (AzioneApprovazione: l'admin scrive la nota) passa ancora. Senza, la 12
+--     sarebbe verde anche su un revoke che toglie tutto.
+do $$
+declare v_righe integer := -1; v_errore text := 'nessuno';
+begin
+  set local role authenticated;
+  perform set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-000000000003', true);
+  begin
+    update public.eventi set note_revisione = 'controllo'
+    where id = 'e0000000-0000-0000-0000-0000000000dd';
+    get diagnostics v_righe = row_count;
+  exception when others then v_errore := sqlerrm;
+  end;
+  perform set_config('request.jwt.claim.sub', '', true);
+  reset role;
+  insert into esiti values (20, 'l''admin dal client scrive ancora la nota di revisione', '1 riga',
+    case when v_errore = 'nessuno' then v_righe || ' righe' else v_errore end, v_righe = 1);
 end $$;
 
 -- 13) Il CHECK rifiuta una parte inventata: `kireo` o `ente`, non altro.

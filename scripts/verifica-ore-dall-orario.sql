@@ -195,14 +195,26 @@ begin
   get diagnostics v_n = row_count;
   insert into esiti values (22, 'l''admin dal client scrive ancora note_revisione', '1 riga', v_n || ' righe', v_n = 1);
 
-  -- 23) L'ente in bozza sposta le date dal client: il trigger ricalcola anche lì.
-  update public.eventi set data_fine = '2026-12-02 10:30+01' where id = 'e0000000-0000-0000-0000-0000000000a2';
-  get diagnostics v_n = row_count;
-  insert into esiti values (23, 'l''ente in bozza cambia la fine dal client', '1 riga', v_n || ' righe', v_n = 1);
+  -- 23) Dal 20261106100000 le date non si cambiano più con un update dal client:
+  -- nessuna schermata lo faceva (lo spostamento passa da sposta_finestra_evento,
+  -- definer), e il rovesciamento ha tolto le colonne che nessun codice scrive.
+  -- Fino al 27/10 qui c'era «l'ente in bozza cambia la fine dal client: 1 riga»
+  -- (con l'identità dell'admin della 21, nonostante il nome).
+  v_msg := 'nessun errore';
+  begin
+    update public.eventi set data_fine = '2026-12-02 10:30+01' where id = 'e0000000-0000-0000-0000-0000000000a2';
+  exception when insufficient_privilege then v_msg := 'permesso negato';
+            when others then v_msg := 'altro: ' || sqlerrm;
+  end;
+  insert into esiti values (23, 'il client non cambia più la fine con un update diretto', 'permesso negato', v_msg, v_msg = 'permesso negato');
   perform set_config('request.jwt.claim.sub', '', true);
   reset role;
 end $$;
-insert into esiti select 24, '…e le ore seguono anche su quella strada', '0.50',
+-- 24) …e il trigger ricalcola su ogni strada che resta: qui chi scrive fuori dal
+-- client (il SQL Editor, una funzione), che è la proprietà del trigger — «una
+-- regola che sta sul posto vale per tutti quelli che arrivano».
+update public.eventi set data_fine = '2026-12-02 10:30+01' where id = 'e0000000-0000-0000-0000-0000000000a2';
+insert into esiti select 24, '…e le ore seguono la fine anche fuori dal client', '0.50',
   ore_pcto::text, ore_pcto = 0.50 from public.eventi where id = 'e0000000-0000-0000-0000-0000000000a2';
 
 -- 25-26) La correzione è solo dell'admin, e due decimali al massimo.

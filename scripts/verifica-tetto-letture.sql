@@ -174,17 +174,24 @@ end $$;
 -- Nessuna policy di update esiste su consegne_evento, ed è per questo che il
 -- contatore ha bisogno di una funzione definer: senza, uno studente potrebbe
 -- riportarlo a zero e il tetto non sarebbe un tetto.
+-- Dal 20261106100000 il rifiuto arriva PRIMA, dal privilegio di colonna (il
+-- client non scrive `letture_tentate` per niente), invece che dalla RLS che non
+-- trovava una policy di update: tutte e due sono un «no», e la proprietà è quella.
 do $$
-declare v_righe integer;
+declare v_righe integer := -1; v_errore text := 'nessuno';
 begin
   set local role authenticated;
   perform set_config('request.jwt.claim.sub', 'b1111111-0000-0000-0000-000000000002', true);
-  update public.consegne_evento set letture_tentate = 0
-   where evento_id = 'b3333333-0000-0000-0000-00000000000a' and student_id = 'b1111111-0000-0000-0000-000000000002';
-  get diagnostics v_righe = row_count;
+  begin
+    update public.consegne_evento set letture_tentate = 0
+     where evento_id = 'b3333333-0000-0000-0000-00000000000a' and student_id = 'b1111111-0000-0000-0000-000000000002';
+    get diagnostics v_righe = row_count;
+  exception when insufficient_privilege then v_errore := sqlerrm;
+  end;
   reset role;
-  insert into esiti values (10, 'lo studente non può azzerare il contatore in diretto (nessuna policy update)',
-    '0 righe scritte', format('%s righe', v_righe), v_righe = 0);
+  insert into esiti values (10, 'lo studente non può azzerare il contatore in diretto',
+    'respinto (permesso) o 0 righe', format('%s righe, errore: %s', v_righe, v_errore),
+    v_errore like 'permission denied%' or v_righe = 0);
 end $$;
 
 -- ════════ 11 · «letta» e «quante volte» restano due cose ════════

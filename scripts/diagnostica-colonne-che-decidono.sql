@@ -102,6 +102,11 @@ insert into public.eventi (id,titolo,descrizione,tipo,organizzatore_id,data_iniz
  ('e0000000-0000-0000-0000-0000000000f1','IN ONDA','x','webinar','aaaaaaaa-0000-0000-0000-0000000000f1', now()-interval '10 minutes', now()+interval '50 minutes','approvato','studenti');
 insert into public.eventi_aree values ('e0000000-0000-0000-0000-0000000000f1','informatica-digitale');
 insert into public.iscrizioni_eventi (student_id, evento_id) values ('77777777-0000-0000-0000-0000000000f2','e0000000-0000-0000-0000-0000000000f1');
+-- La riga della sonda 8, scritta qui e non dalla 7 (28/10): finché la 7 mordeva,
+-- la 8 aggiornava la riga che la 7 aveva appena inserito; chiusa la 7, la 8
+-- aggiornava una riga che non c'era e stampava una cella vuota (il modo 9).
+insert into public.school_staff (id, scuola_profilo_id, ruolo_staff, attivo, codice_invito, creato_da)
+  values ('cccccccc-0000-0000-0000-0000000000f2','bbbbbbbb-0000-0000-0000-0000000000f1','tutor', true, 'INVITO8', '77777777-0000-0000-0000-0000000000f3');
 set local role authenticated;
 -- 7-8: referente
 select set_config('request.jwt.claim.sub','77777777-0000-0000-0000-0000000000f3',true);
@@ -112,10 +117,10 @@ do $$ declare r text := 'ok'; v text; begin
   select coalesce(creato_da::text,'-') into v from public.school_staff where id='cccccccc-0000-0000-0000-0000000000f1';
   insert into esiti values (7,'referente: invito con creato_da e delega a nome di un altro', r||', creato_da='||coalesce(v,'-'));
   r := 'ok';
-  begin update public.school_staff set user_id='77777777-0000-0000-0000-0000000000f4', puo_certificare_presenze=true where id='cccccccc-0000-0000-0000-0000000000f1';
+  begin update public.school_staff set user_id='77777777-0000-0000-0000-0000000000f4', puo_certificare_presenze=true where id='cccccccc-0000-0000-0000-0000000000f2';
   exception when others then r := sqlerrm; end;
-  select coalesce(user_id::text,'-') into v from public.school_staff where id='cccccccc-0000-0000-0000-0000000000f1';
-  insert into esiti values (8,'referente: un utente qualunque diventa tutor con un update, senza riscattare l''invito', r||', user_id='||v);
+  select coalesce(user_id::text,'-') into v from public.school_staff where id='cccccccc-0000-0000-0000-0000000000f2';
+  insert into esiti values (8,'referente: un utente qualunque diventa tutor con un update, senza riscattare l''invito', r||', user_id='||coalesce(v,'nessuna riga'));
 end $$;
 -- 9: ente, evento che nasce chiuso
 select set_config('request.jwt.claim.sub','77777777-0000-0000-0000-0000000000f1',true);

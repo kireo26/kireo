@@ -173,15 +173,21 @@ do $b$ begin perform pg_temp.prova(18, 'workshop_ruoli', 'il client sposta l''ar
 reset role;
 
 -- ════════════════════════════════════════════════════ workshop_consegne
--- Ancorata alla propria iscrizione (19-20), append-only (21-22) — e con il
--- 🟡 che resta aperto di proposito (23): il giudizio se lo scrive il client.
--- Non è un rosso perché è lo stato di oggi, verificato: va nella passata
--- unica del censimento.
+-- DAL 28/10 (20261106100000) IL CLIENT NON SCRIVE QUESTA TABELLA PER NIENTE:
+-- è il caricamento della v1, che non ha più un ingresso, e nessun codice la
+-- scrive. Quindi la 19 («la consegna sulla propria iscrizione passa») è
+-- diventata un rifiuto, e il 🟡 della 23 — il giudizio AI che il client si
+-- scriveva da sé, lasciato aperto di proposito fino alla passata unica — è
+-- CHIUSO. ⚠️ La 20 resta verde, ma adesso per il privilegio e non per la
+-- policy che ancora l'insert alla propria iscrizione: quella policy non la
+-- esercita più nessuna prova, ed è giusto finché nessuno può inserire. Il giorno
+-- in cui un ingresso torna (un grant nuovo nel registro), la 19 torna «passa» e
+-- la 20 torna a provare la policy.
 set local role authenticated;
 set local request.jwt.claim.sub = '11110000-0000-0000-0000-000000000001';
-do $b$ begin perform pg_temp.prova(19, 'workshop_consegne', 'la consegna sulla propria iscrizione',
+do $b$ begin perform pg_temp.prova(19, 'workshop_consegne', 'la consegna sulla propria iscrizione: il client non scrive più la tabella',
   $$insert into public.workshop_consegne (iscrizione_id, file_nome, file_percorso, file_tipo, file_dimensione)
-    values ('f0110000-0000-0000-0000-0000000000f1','x.pdf','p/x.pdf','application/pdf',1)$$, 'passa'); end $b$;
+    values ('f0110000-0000-0000-0000-0000000000f1','x.pdf','p/x.pdf','application/pdf',1)$$, 'respinta'); end $b$;
 do $b$ begin perform pg_temp.prova(20, 'workshop_consegne', 'la consegna sull''iscrizione di un altro',
   $$insert into public.workshop_consegne (iscrizione_id, file_nome, file_percorso, file_tipo, file_dimensione)
     values ('f0220000-0000-0000-0000-0000000000f2','y.pdf','p/y.pdf','application/pdf',1)$$, 'respinta'); end $b$;
@@ -189,10 +195,10 @@ do $b$ begin perform pg_temp.prova(21, 'workshop_consegne', 'il client riscrive 
   $$update public.workshop_consegne set file_nome = 'z.pdf' where true$$, 'respinta'); end $b$;
 do $b$ begin perform pg_temp.prova(22, 'workshop_consegne', 'il client cancella una consegna',
   $$delete from public.workshop_consegne where true$$, 'respinta'); end $b$;
-do $b$ begin perform pg_temp.prova(23, 'workshop_consegne', '🟡 NOTO: il client si scrive da sé il giudizio AI',
+do $b$ begin perform pg_temp.prova(23, 'workshop_consegne', 'il client non si scrive più da sé il giudizio AI (era il 🟡 aperto)',
   $$insert into public.workshop_consegne (iscrizione_id, file_nome, file_percorso, file_tipo, file_dimensione, feedback_ai, stato)
     values ('f0110000-0000-0000-0000-0000000000f1','w.pdf','p/w.pdf','application/pdf',1,
-            '{"punti_forza":["me lo scrivo io"]}'::jsonb,'analizzato')$$, 'passa'); end $b$;
+            '{"punti_forza":["me lo scrivo io"]}'::jsonb,'analizzato')$$, 'respinta'); end $b$;
 reset role;
 
 -- ════════════════════════════════════════════════════

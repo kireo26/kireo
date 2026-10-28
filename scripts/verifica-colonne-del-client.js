@@ -224,8 +224,22 @@ function argomento(src, inizio) {
 
 // Le chiavi del primo oggetto letterale di un argomento, o null se non ce n'è
 // uno, o se ha una chiave calcolata o uno spread (allora è dinamico).
+function primaGraffa(arg) {
+  // La prima graffa FUORI dalle stringhe: una `{` dentro un testo non apre un oggetto.
+  let stringa = null;
+  for (let i = 0; i < arg.length; i++) {
+    const c = arg[i];
+    if (stringa) {
+      if (c === "\\") i++;
+      else if (c === stringa) stringa = null;
+    } else if (c === '"' || c === "'" || c === "`") stringa = c;
+    else if (c === "{") return i;
+  }
+  return -1;
+}
+
 function chiaviOggetto(arg) {
-  const a = arg.indexOf("{");
+  const a = primaGraffa(arg);
   if (a === -1) return null;
   const corpo = argomento(arg, a);
   if (corpo === null) return null;
