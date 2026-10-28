@@ -62,6 +62,16 @@ const dis = leggi("app/disiscrizione/page.tsx");
 ok(dis.includes("comunicazioni_kireo") && dis.includes("<ComunicazioniStudente"), "la pagina legge il consenso e lo fa cambiare");
 ok(dis.includes('origine="disiscrizione"'), "con la sua origine");
 ok(!/non c&apos;è quindi alcuna preferenza da revocare/.test(dis), "la frase «non c'è niente da revocare» è uscita");
+// Chi vede le scelte: chi ha qualcosa da revocare, non chi è studente oggi (28/10).
+// Gli attesi sono scritti qui, non importati.
+ok(C.mostraLeScelte({ ruolo: "admin", consenso: true, iscrizioni: 0 }) === true, "un admin che ha detto sì da studente vede il suo consenso e può ritirarlo (il sesto sì)");
+ok(C.mostraLeScelte({ ruolo: "referente_scuola", consenso: null, iscrizioni: 2 }) === true, "chi è diventato referente con due iscrizioni ne vede l'uscita");
+ok(C.mostraLeScelte({ ruolo: "studente", consenso: null, iscrizioni: 0 }) === true, "uno studente vede sempre la domanda");
+ok(C.mostraLeScelte({ ruolo: "docente", consenso: null, iscrizioni: 0 }) === false, "un docente senza niente da revocare non vede una domanda che non lo riguarda");
+ok(C.mostraLeScelte({ ruolo: "docente", consenso: undefined, iscrizioni: 0 }) === true, "non letto non diventa «non ricevi niente»");
+const disCodice = senzaCommenti(dis);
+ok(/mostraLeScelte\(\{ ruolo: profilo\?\.ruolo, consenso, iscrizioni:/.test(disCodice), "la pagina decide con mostraLeScelte");
+ok(!/ruolo === "studente"/.test(disCodice), "e non filtra più sul ruolo di oggi");
 
 console.log("\n§4 — i testi\n");
 const stati = [true, false, null].map((v) => C.testoStatoConsenso(v));
@@ -104,7 +114,12 @@ for (const t of [C.TESTO_SOLO_MAGGIORENNI, C.TESTO_NEWSLETTER_SOLO_MAGGIORENNI])
 ok(/Non siamo riusciti a toglierti/.test(com) && !/non risult/i.test(com), "un'uscita fallita dice che non è riuscita, mai che non risulti iscritto");
 const stat = leggi("app/ente/(dashboard)/statistiche/page.tsx");
 ok(/valore: stats\?\.iscritti_newsletter_raggiungibili/.test(stat), "il numero grande dell'ente è chi la riceverà");
-ok(/su \$\{stats\?\.iscritti_newsletter \?\? 0\} iscritti/.test(stat), "e accanto quanti si sono iscritti in tutto");
+// Due cifre uguali non si stampano una sopra l'altra (Mario, 28/10): la seconda
+// solo quando differisce. Atteso scritto a mano.
+ok(C.sottoNewsletterEnte(4, 4) === null, "iscritti e riceventi uguali: un numero solo");
+ok(/Iscritti in tutto: 5\./.test(C.sottoNewsletterEnte(5, 3) ?? ""), "diversi: la seconda cifra, con il perché", C.sottoNewsletterEnte(5, 3));
+ok(trovaAccordi(C.sottoNewsletterEnte(5, 3) ?? "").length === 0, "senza accordi di genere");
+ok(/sotto: sottoNewsletterEnte\(stats\?\.iscritti_newsletter \?\? 0, stats\?\.iscritti_newsletter_raggiungibili \?\? 0\)/.test(senzaCommenti(stat)), "la pagina dell'ente chiama sottoNewsletterEnte con i due numeri nell'ordine giusto");
 
 console.log(`\n${falliti === 0 ? "✓" : "✗"} ${fatte - falliti}/${fatte} proprietà`);
 process.exit(falliti === 0 ? 0 : 1);

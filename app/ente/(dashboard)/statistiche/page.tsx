@@ -2,6 +2,7 @@ import { getEnteContext } from "@/lib/ente/context";
 import { createClient } from "@/lib/supabase/server";
 import { formattaData } from "@/lib/formato";
 import { descriviErrore } from "@/lib/erroreSupabase";
+import { sottoNewsletterEnte } from "@/lib/app/comunicazioniKireo";
 
 export default async function EnteStatistichePage() {
   const contesto = await getEnteContext();
@@ -65,11 +66,13 @@ export default async function EnteStatistichePage() {
               (iscritti_newsletter_raggiungibili, 20261107110000: KIREO non
               invia comunicazioni facoltative a chi ha meno di 18 anni, e un
               consenso dato prima non si eredita a 18). Sotto, quanti si sono
-              iscritti in tutto. Chi esce dal profilo non è più contato. NON
-              conta le newsletter ricevute: l'invio non esiste ancora. ⚠️ Le
-              due cifre si mostrano entrambe e la grande è quella vera (Mario,
-              28/10): «340 iscritti» e poi un invio che ne raggiunge 180 è un
-              numero che promette una cosa che non succede.
+              iscritti in tutto, ma SOLO quando differiscono (sottoNewsletterEnte:
+              i casi in cui succede sono scritti lì). Chi esce dal profilo non è
+              più contato. NON conta le newsletter ricevute: l'invio non esiste
+              ancora. ⚠️ La grande è quella vera (Mario, 28/10): «340 iscritti»
+              e poi un invio che ne raggiunge 180 è un numero che promette una
+              cosa che non succede; e due cifre uguali una sopra l'altra fanno
+              cercare una perdita che non c'è.
             - Download guida: studenti DISTINTI che, da collegati, hanno
               scaricato almeno una guida dell'ente. NON conta i download senza
               accesso, i download ripetuti, né quelli di chi era già passato di
@@ -84,7 +87,7 @@ export default async function EnteStatistichePage() {
               {
                 label: "Newsletter: chi la riceverà",
                 valore: stats?.iscritti_newsletter_raggiungibili ?? 0,
-                sotto: `su ${stats?.iscritti_newsletter ?? 0} iscritti in tutto: KIREO invia solo a chi si è iscritto da maggiorenne.`,
+                sotto: sottoNewsletterEnte(stats?.iscritti_newsletter ?? 0, stats?.iscritti_newsletter_raggiungibili ?? 0),
               },
               { label: "Download guida", valore: stats?.download_guida ?? 0 },
               { label: "Guide pubblicate", valore: stats?.guide_pubblicate ?? 0 },

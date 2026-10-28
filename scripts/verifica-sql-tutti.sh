@@ -26,6 +26,15 @@
 # replica senza quella migrazione nessuno dei 44 script stampa un `ERROR:` di
 # primo livello, quindi oggi la regola non ha falsi positivi. Un errore
 # ATTESO si cattura dentro un `do $$ … exception … end $$`, che non lo stampa.
+#
+# ⚠️ ROSSO PERCHÉ È CADUTA UNA PROPRIETÀ ≠ ROSSO PERCHÉ NON È PARTITO NIENTE
+# (28/10, Mario). Uno script con proprietà numerate che non ne stampa nessuna
+# non ha guardato niente: è morto prima (una fixture rotta, una replica
+# preparata male, una tabella che non c'è). Si conta a parte, «NON PARTITO»:
+# resta un rosso del giro, ma non si legge mai come la conferma di una
+# controprova. *Un rosso che arriva perché niente è partito non dimostra che
+# qualcosa stava guardando.* Per le controprove c'è scripts/controprova-sql.sh,
+# che pretende di sapere QUALI proprietà devono diventare rosse.
 set -uo pipefail
 RADICE="$(cd "$(dirname "$0")/.." && pwd)"
 CONN="${CONN:-}"
@@ -51,7 +60,7 @@ declare -A DIAGNOSTICA=(
   [verifica-flag-di-prova]="stampa i profili marcati di prova; da leggere sul database vero"
 )
 
-rosse=0; verdi=0; leggere=0; tot=0; con_numeri=0
+rosse=0; verdi=0; leggere=0; tot=0; con_numeri=0; non_partiti=0
 for f in "$RADICE"/scripts/verifica-*.sql; do
   n="$(basename "$f" .sql)"; tot=$((tot + 1))
   psql "$CONN" -v ON_ERROR_STOP=1 -P pager=off -f "$f" >"$OUT/$n.out" 2>&1
@@ -69,15 +78,22 @@ for f in "$RADICE"/scripts/verifica-*.sql; do
   # estrattore guardava una riga sola, e la controprova sul §14 di
   # verifica-quattro-colonne non mordeva).
   attese=$(tr '\n' ' ' <"$f" | grep -oE 'esiti[[:space:]]+(values[[:space:]]*\(|select)[[:space:]]*[0-9]+' | grep -oE '[0-9]+$' | sort -u)
+  partito=1
   if [ -n "$attese" ]; then
     con_numeri=$((con_numeri + 1))
     stampate=$(grep -oE '^[[:space:]]*[0-9]+[[:space:]]*\|' "$OUT/$n.out" | tr -dc '0-9\n' | sort -u)
     mancanti=$(comm -23 <(echo "$attese") <(echo "$stampate") | tr '\n' ' ')
-    if [ -n "${mancanti// /}" ]; then
+    if [ -z "$stampate" ]; then
+      partito=0
+    elif [ -n "${mancanti// /}" ]; then
       segni=$((segni + 1)); echo "      proprietà scritte e non stampate: $mancanti" >>"$OUT/$n.out"
     fi
   fi
-  if [ $e -ne 0 ] || [ "$segni" -gt 0 ]; then
+  if [ "$partito" -eq 0 ]; then
+    rosse=$((rosse + 1)); non_partiti=$((non_partiti + 1))
+    echo "  ✗ $n  NON PARTITO: nessuna delle sue proprietà è stata stampata (non ha guardato niente)"
+    grep -m1 -E 'ERROR' "$OUT/$n.out" | sed 's/^/      /'
+  elif [ $e -ne 0 ] || [ "$segni" -gt 0 ]; then
     rosse=$((rosse + 1)); echo "  ✗ $n  (uscita $e, $segni righe rosse)"
     grep -E 'ERROR|✗|\bROTT[AOE]\b|\|[[:space:]]+f[[:space:]]*$|scritte e non stampate' "$OUT/$n.out" | grep -vE '\b0 ROTTE\b' | head -3 | sed 's/^/      /'
   elif [ -n "${DIAGNOSTICA[$n]:-}" ]; then
@@ -87,7 +103,7 @@ for f in "$RADICE"/scripts/verifica-*.sql; do
   fi
 done
 echo
-echo "$tot script: $verdi verdi, $rosse rossi, $leggere di sola diagnostica (uscite in $OUT)"
+echo "$tot script: $verdi verdi, $rosse rossi (di cui $non_partiti non partiti), $leggere di sola diagnostica (uscite in $OUT)"
 # La soglia: sotto venti script l'elenco non sta leggendo la cartella.
 [ "$tot" -ge 20 ] || { echo "✗ solo $tot script trovati: il lanciatore non sta leggendo la cartella" >&2; exit 1; }
 # E sotto venticinque script con proprietà numerate l'estrattore non le sta vedendo

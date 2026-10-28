@@ -69,3 +69,42 @@ export const TESTO_SOLO_MAGGIORENNI = "KIREO non invia comunicazioni facoltative
 // PRIMA del clic, non in una conferma. Testo mio, provvisorio.
 export const TESTO_NEWSLETTER_SOLO_MAGGIORENNI =
   "KIREO non invia le newsletter degli enti a chi ha meno di 18 anni: da quel giorno potrai iscriverti da qui.";
+
+// CHI VEDE LE PROPRIE SCELTE SU /disiscrizione (28/10). Non chi è studente
+// OGGI: chi ha qualcosa da revocare. Il consenso e le iscrizioni sono gesti
+// fermi nel passato, il ruolo si muove — uno studente diventato referente o
+// admin ha ancora il sì che ha dato alla registrazione (il caso vero: il sesto
+// sì in produzione è di un account oggi admin), e con la regola di prima
+// leggeva «il tuo account non riceve comunicazioni facoltative» senza nessun
+// modo di ritirarlo. *Un filtro su un ruolo che cambia nel tempo non seleziona
+// chi ha agito: seleziona chi è adesso.* ⚠️ Lo stesso vale il giorno
+// dell'invio: a chi mandare lo decidono il consenso e l'età di quando l'ha
+// dato (consenso_dato_da_maggiorenne), mai il ruolo di oggi.
+//
+// `undefined` vuol dire non letto: si mostrano le scelte (che diranno da sé di
+// non averle lette) invece di affermare che non c'è niente.
+export function mostraLeScelte(p: {
+  ruolo: string | null | undefined;
+  consenso: ConsensoKireo | undefined;
+  iscrizioni: number | undefined;
+}): boolean {
+  if (p.consenso === undefined || p.iscrizioni === undefined) return true;
+  return p.ruolo === "studente" || p.consenso !== null || p.iscrizioni > 0;
+}
+
+// LA SECONDA CIFRA DELLA NEWSLETTER DELL'ENTE, SOLO QUANDO DICE QUALCOSA (28/10,
+// Mario: «due numeri uguali stampati uno sopra l'altro non informano: suggeriscono
+// che possano differire»). Dal nostro prodotto un minorenne non si iscrive (il
+// bottone non c'è), quindi di solito iscritti e raggiungibili coincidono, e si
+// stampa un numero solo. ⚠️ I CASI IN CUI DIFFERISCONO, e per cui la riga esiste:
+// (1) un'iscrizione arrivata da un'altra strada — il database non la blocca, per
+// decisione di Mario (il cancello sta sull'invio); (2) una data di nascita
+// scritta o corretta DOPO l'iscrizione, che il client può aggiornare
+// (CompletaEtaForm, e il privilegio su `data_nascita`): la regola guarda l'età di
+// quando si è iscritto con la data di oggi; (3) un'iscrizione senza data di
+// nascita. Testo mio e provvisorio; la forma «Iscritti in tutto: N» evita il
+// plurale da accordare.
+export function sottoNewsletterEnte(iscritti: number, raggiungibili: number): string | null {
+  if (iscritti === raggiungibili) return null;
+  return `Iscritti in tutto: ${iscritti}. Chi risulta iscritto prima dei 18 anni, o senza una data di nascita, non la riceve.`;
+}

@@ -281,6 +281,12 @@
       "commit": "8575867",
       "stato": "verificata",
       "fonte": "Mario, 28/10: applicata; colonne profiles.comunicazioni_kireo e comunicazioni_kireo_il presenti (oggetti lasciati solo da lei); copia verificata riga per riga contro raw_user_meta_data con scripts/diagnostica-copia-consenso.sql: 6 sì · 5 no · 5 mai chiesto, ogni riga uguale alla sua sorgente"
+    },
+    {
+      "file": "20261107110000_consenso_solo_da_maggiorenni.sql",
+      "commit": "85f3f79",
+      "stato": "verificata",
+      "fonte": "Mario, 28/10: applicata; consenso_dato_da_maggiorenne presente (contata su pg_proc da Mario; la firma (timestamptz, date) di to_regprocedure è quella del file, provata vera sulla replica); diagnostica-consensi-minorenni: 0 sì da minorenni, 0 senza data; newsletter_iscrizioni 0"
     }
   ]
 }

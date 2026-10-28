@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { descriviErrore } from "@/lib/erroreSupabase";
 import { isMaggiorenne } from "@/lib/eta";
 import ComunicazioniStudente, { type IscrizioneNewsletter } from "@/components/app/ComunicazioniStudente";
-import type { ConsensoKireo } from "@/lib/app/comunicazioniKireo";
+import { mostraLeScelte, type ConsensoKireo } from "@/lib/app/comunicazioniKireo";
 
 // Pagina di gestione delle comunicazioni FACOLTATIVE, destinazione del link
 // di disiscrizione nel footer di tutti i template email
@@ -33,7 +33,8 @@ export default async function Disiscrizione() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Solo uno studente ha questo consenso: gli altri ruoli non vedono la casella.
+  // Le scelte le vede chi ha qualcosa da revocare, non chi è studente oggi
+  // (mostraLeScelte): il ruolo cambia, il consenso dato resta.
   let studente: { consenso: ConsensoKireo | undefined; maggiorenne: boolean; iscrizioni: IscrizioneNewsletter[] | undefined } | null = null;
   if (user) {
     const { data: profilo, error } = await supabase
@@ -42,15 +43,16 @@ export default async function Disiscrizione() {
       .eq("id", user.id)
       .maybeSingle();
     if (error) console.error("Disiscrizione, profilo:", descriviErrore(error));
-    if (error || profilo?.ruolo === "studente") {
-      const iscr = await supabase
-        .from("newsletter_iscrizioni")
-        .select("id, created_at, istituzioni(nome, slug)")
-        .eq("student_id", user.id)
-        .order("created_at", { ascending: false });
-      if (iscr.error) console.error("Disiscrizione, iscrizioni:", descriviErrore(iscr.error));
+    const iscr = await supabase
+      .from("newsletter_iscrizioni")
+      .select("id, created_at, istituzioni(nome, slug)")
+      .eq("student_id", user.id)
+      .order("created_at", { ascending: false });
+    if (iscr.error) console.error("Disiscrizione, iscrizioni:", descriviErrore(iscr.error));
+    const consenso: ConsensoKireo | undefined = error ? undefined : ((profilo?.comunicazioni_kireo as boolean | null | undefined) ?? null);
+    if (mostraLeScelte({ ruolo: profilo?.ruolo, consenso, iscrizioni: iscr.error ? undefined : (iscr.data ?? []).length })) {
       studente = {
-        consenso: error ? undefined : ((profilo?.comunicazioni_kireo as boolean | null | undefined) ?? null),
+        consenso,
         maggiorenne: isMaggiorenne(profilo?.data_nascita ?? null),
         iscrizioni: iscr.error
           ? undefined
