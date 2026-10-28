@@ -134,6 +134,15 @@ exception when others then
 end $$;
 
 -- ═══ 10) LA METÀ CHE LA CURA POTEVA ROMPERE: il docente legge la PROPRIA riga
+-- ⚠️ Il §9 ha promosso questo account a referente_scuola, e fino al 28/10 il §10
+-- girava così: il titolo diceva «il docente» e il database vedeva un referente
+-- (il quattordicesimo modo, trovato con la sonda su auth.uid()). Oggi l'esito
+-- non cambia, perché la policy guarda solo user_id; ma una prova che si chiama
+-- come uno scenario che non esegue occupa il posto di quella vera. Si rimette
+-- il ruolo da postgres, come fa il §9 per toglierlo.
+reset role;
+update public.profiles set ruolo = 'docente' where id = 'aaaaaaaa-0000-0000-0000-00000000000a';
+set local role authenticated;
 set local request.jwt.claim.sub = 'aaaaaaaa-0000-0000-0000-00000000000a';
 do $$
 declare v text;

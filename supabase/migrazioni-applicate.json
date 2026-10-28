@@ -269,6 +269,12 @@
       "commit": "2c3a902",
       "stato": "verificata",
       "fonte": "Mario, 27/10 notte: has_column_privilege(authenticated, profiles, ruolo, UPDATE) → false; telefono UPDATE → true (la migrazione rilegge da sé gli altri 23 privilegi e si ferma se non tornano: girata senza errore)"
+    },
+    {
+      "file": "20261106100000_colonne_del_client.sql",
+      "commit": "b79fbe9",
+      "stato": "verificata",
+      "fonte": "Mario 28/10: applicata in produzione (secondo tentativo, dopo b79fbe9). Misurato: 0 tabelle scrivibili per intero da anon/authenticated (erano 59); pg_default_acl di postgres per public e per storage = anon=rdDxtm, authenticated=rdDxtm (prima arwdDxtm); righe di supabase_admin invariate; le 199 colonne le verifica la migrazione stessa, che si ferma se non tornano. Giro a schermo passato: /contatti senza accesso, test, missione, progetto workshop, creazione evento, approvazione admin."
     }
   ]
 }

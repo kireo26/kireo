@@ -2,7 +2,9 @@
 # UNA REPLICA LOCALE DA ZERO (26/10): Postgres 16 nudo + `scripts/replica-shim.sql`
 # + tutte le migrazioni in ordine, una transazione per file (un valore enum
 # appena creato non si usa nella stessa transazione). Le tre di Storage si
-# saltano: lo schema `storage` qui non esiste.
+# saltano: qui Storage non c'è. Lo schema `storage` esiste dal 28/10, ma è vuoto:
+# lo crea lo shim solo per imitare la riga dei privilegi predefiniti che
+# `postgres` ha lì in produzione (vedi `scripts/replica-shim.sql`).
 #
 # Fino al 26/10 questa sequenza veniva ricostruita a mano a ogni sessione. Il
 # copione esiste perché `scripts/verifica-sql-tutti.sh` possa lanciare TUTTI gli
