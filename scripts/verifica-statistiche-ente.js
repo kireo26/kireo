@@ -141,7 +141,7 @@ console.log("\n§2 — le quote contano solo l'approvato, e «non letto» non è
   ]) {
     const codice = senzaCommenti(leggi(file));
     ok(!/comunicazione_kireo|comunicazioniKireo|quota_comunicazioni_kireo|[Cc]omunicazion[ei] mirat|Comunicazioni KIREO/.test(codice),
-      `${cosa} non offre né conta le comunicazioni mirate`);
+      `${cosa}: nessuna comunicazione mirata offerta o contata`);
   }
   for (const [tipo, esito] of nulle) ok(esito === null, `una lettura fallita (${tipo}) dà «non letto», non zero`, esito);
 
