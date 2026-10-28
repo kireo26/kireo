@@ -96,6 +96,20 @@ exception when others then
 end $$;
 reset role;
 
+-- 10) la seconda protezione, provata da sola. Sulle due colonne ce ne sono due
+-- sovrapposte: il privilegio revocato (la §1 e la §9, che accettano SOLO
+-- 42501) e il CHECK che pretende la data insieme alla risposta. Una prova sola
+-- su due protezioni racconta quella esterna e tace sull'altra (Mario, 28/10),
+-- quindi il CHECK si prova da postgres, dove il privilegio non c'è: se un
+-- giorno si allenta, è questa che diventa rossa, non la §1.
+do $$ begin
+  update public.profiles set comunicazioni_kireo = true, comunicazioni_kireo_il = null
+   where id = 'c0c0c0c0-0000-0000-0000-00000000000c';
+  insert into esiti values (10, 'una risposta senza la sua data (da postgres, oltre il privilegio)', 'RESPINTO dal CHECK', false, '*** PASSA ***');
+exception when others then
+  insert into esiti values (10, 'una risposta senza la sua data (da postgres, oltre il privilegio)', 'RESPINTO dal CHECK', sqlstate = '23514', sqlstate || ': ' || sqlerrm);
+end $$;
+
 select n, proprieta, atteso, case when coalesce(ok, false) then 'ok' else 'ROTTO' end as esito, osservato
 from esiti order by n;
 

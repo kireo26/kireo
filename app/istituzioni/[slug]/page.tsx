@@ -205,7 +205,7 @@ export default async function IstituzionePubblicaPage({ params }: { params: Prom
           Iscriviti alla newsletter di {istituzione.nome} per ricevere aggiornamenti su corsi ed eventi.
         </p>
         <div className="mt-6 flex justify-center">
-          <IscrivitiNewsletterButton istituzioneId={istituzione.id} userId={user?.id ?? null} iscrittoIniziale={iscrittoNewsletter} />
+          <IscrivitiNewsletterButton istituzioneId={istituzione.id} userId={user?.id ?? null} iscrittoIniziale={iscrittoNewsletter} maggiorenne={maggiorenne} />
         </div>
       </section>
       {/* L'ARCHIVIO, IN FONDO E SENZA L'ETICHETTA DELLE ORE: le ore di un

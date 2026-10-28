@@ -77,5 +77,34 @@ ok(testi.length >= 10, "testi letti (soglia)", String(testi.length));
 const accordi = testi.flatMap((t) => trovaAccordi(t).map((a) => `${a} in «${t}»`));
 ok(accordi.length === 0, "nessun accordo col genere di chi legge", accordi.join("; "));
 
+console.log("\n§5 — un consenso vale solo se dato da maggiorenni (20261107110000)\n");
+// Le date sono scritte a mano qui, e sono le stesse di
+// scripts/verifica-consenso-maggiorenni.sql: due copie della regola (TS e SQL)
+// devono dire la stessa cosa sugli stessi casi.
+ok(C.consensoDatoDaMaggiorenne("2025-03-10T00:00:00Z", "2007-03-10") === true, "il giorno dei 18 anni vale");
+ok(C.consensoDatoDaMaggiorenne("2025-03-09T12:00:00Z", "2007-03-10") === false, "il giorno prima non vale");
+ok(C.consensoDatoDaMaggiorenne("2023-03-10T00:00:00Z", "2007-03-10") === false, "un sì a 16 anni non vale nemmeno dopo (non si eredita)");
+ok(C.consensoDatoDaMaggiorenne(new Date(), null) === false, "senza data di nascita non vale");
+ok(/consensoDatoDaMaggiorenne\(user\.created_at, dataNascita\)/.test(fin), "la registrazione guarda l'età di QUANDO ha risposto, non di adesso");
+const iCasellaCondizione = posizione(reg, "{dataNascita && isMaggiorenne(dataNascita) && (");
+const iCasella = posizione(reg, "{TESTO_CASELLA_REGISTRAZIONE}");
+ok(iCasellaCondizione > 0 && iCasella > iCasellaCondizione, "la casella si mostra solo a una data di nascita maggiorenne", `${iCasellaCondizione} / ${iCasella}`);
+ok(/dataNascita && isMaggiorenne\(dataNascita\) \? \{ newsletter \} : \{\}/.test(reg), "a un minorenne la chiave non si scrive (resta «mai chiesto»)");
+const bottone = leggi("components/app/IscrivitiNewsletterButton.tsx");
+ok(/maggiorenne: boolean;/.test(bottone), "il bottone della newsletter pretende l'età (nessun default)");
+ok(posizione(bottone, "if (!maggiorenne) {") > 0 && posizione(bottone, "if (!maggiorenne) {") < posizione(bottone, "async function handleClick()"), "a un minorenne la frase al posto del bottone, prima del clic");
+ok(leggi("app/istituzioni/[slug]/page.tsx").includes("maggiorenne={maggiorenne}"), "la pagina dell'ente gliela passa");
+const iRamoMinore = posizione(com, "{!maggiorenne ? (");
+ok(iRamoMinore > 0 && iRamoMinore < posizione(com, "Sì, voglio riceverle"), "a un minorenne il profilo non fa la domanda");
+// Gli attesi dei testi sono scritti a mano: il primo è di Mario, parola per parola.
+ok(C.TESTO_SOLO_MAGGIORENNI === "KIREO non invia comunicazioni facoltative a chi ha meno di 18 anni.", "la regola detta come una regola nostra (testo di Mario)", C.TESTO_SOLO_MAGGIORENNI);
+for (const t of [C.TESTO_SOLO_MAGGIORENNI, C.TESTO_NEWSLETTER_SOLO_MAGGIORENNI]) {
+  ok(!/non puoi/i.test(t) && trovaAccordi(t).length === 0, "nessun «non puoi» e nessun accordo", t);
+}
+ok(/Non siamo riusciti a toglierti/.test(com) && !/non risult/i.test(com), "un'uscita fallita dice che non è riuscita, mai che non risulti iscritto");
+const stat = leggi("app/ente/(dashboard)/statistiche/page.tsx");
+ok(/valore: stats\?\.iscritti_newsletter_raggiungibili/.test(stat), "il numero grande dell'ente è chi la riceverà");
+ok(/su \$\{stats\?\.iscritti_newsletter \?\? 0\} iscritti/.test(stat), "e accanto quanti si sono iscritti in tutto");
+
 console.log(`\n${falliti === 0 ? "✓" : "✗"} ${fatte - falliti}/${fatte} proprietà`);
 process.exit(falliti === 0 ? 0 : 1);

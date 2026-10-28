@@ -9,6 +9,7 @@ import {
   testoStatoConsenso,
   TESTO_A_COSA_SERVE,
   TESTO_SOLO_MAGGIORENNI,
+  TESTO_NEWSLETTER_SOLO_MAGGIORENNI,
   type ConsensoKireo,
 } from "@/lib/app/comunicazioniKireo";
 
@@ -58,7 +59,9 @@ export default function ComunicazioniStudente({
     setErroreUscita(null);
     try {
       // .select(): sotto RLS una cancellazione che non tocca niente non dà
-      // errore (il modo 11). Zero righe è un rifiuto, non un'uscita.
+      // errore (il modo 11). Zero righe è un rifiuto, non un'uscita — e il
+      // testo dice che l'operazione non è riuscita, MAI che «non risulti
+      // iscritto»: è proprio il fatto che chi legge stava cercando di cambiare.
       const { data, error } = await createClient().from("newsletter_iscrizioni").delete().eq("id", id).select("id");
       if (error || !data || data.length === 0) {
         if (error) console.error("Uscita dalla newsletter:", descriviErrore(error));
@@ -76,12 +79,16 @@ export default function ComunicazioniStudente({
       <div>
         <h3 className="font-heading text-base font-semibold text-kireo-light">Le comunicazioni di KIREO</h3>
         <p className="mt-1 text-sm text-kireo-muted">{TESTO_A_COSA_SERVE}</p>
-        {consenso === undefined ? (
+        {!maggiorenne ? (
+          // Niente domanda a un minorenne: un sì non si può registrare
+          // (consenso_solo_maggiorenni), e una domanda con una risposta sola
+          // non è una domanda.
+          <p className="mt-3 text-sm text-kireo-light">{TESTO_SOLO_MAGGIORENNI}</p>
+        ) : consenso === undefined ? (
           <p className="mt-3 text-sm text-kireo-muted">Non siamo riusciti a leggere la tua scelta: ricarica la pagina.</p>
         ) : (
           <>
             <p className="mt-3 text-sm text-kireo-light">{testoStatoConsenso(consenso)}</p>
-            {!maggiorenne && <p className="mt-1 text-sm text-kireo-muted">{TESTO_SOLO_MAGGIORENNI}</p>}
             <div className="mt-3 flex flex-wrap gap-3">
               {consenso !== true && (
                 <button
@@ -113,6 +120,7 @@ export default function ComunicazioniStudente({
 
       <div>
         <h3 className="font-heading text-base font-semibold text-kireo-light">Le newsletter degli enti</h3>
+        {!maggiorenne && <p className="mt-1 text-sm text-kireo-muted">{TESTO_NEWSLETTER_SOLO_MAGGIORENNI}</p>}
         {iscrizioni === undefined ? (
           <p className="mt-1 text-sm text-kireo-muted">Non siamo riusciti a leggere le tue iscrizioni: ricarica la pagina.</p>
         ) : iscrizioni.length === 0 ? (

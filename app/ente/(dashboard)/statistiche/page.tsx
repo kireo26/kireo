@@ -60,9 +60,16 @@ export default async function EnteStatistichePage() {
               scende: chi disdice un'iscrizione resta contato, ed è per questo
               che il nome dice «dall'inizio» (Mario, 27/10). NON è dell'anno
               accademico, come i riquadri delle quote: conta da sempre.
-            - Iscritti newsletter: le iscrizioni alla newsletter dell'ente, oggi
-              (non c'è un modo di disiscriversi). NON conta le newsletter
-              ricevute: l'invio non esiste ancora.
+            - Newsletter: il numero grande è chi la riceverà, cioè gli iscritti
+              che si sono iscritti da maggiorenni
+              (iscritti_newsletter_raggiungibili, 20261107110000: KIREO non
+              invia comunicazioni facoltative a chi ha meno di 18 anni, e un
+              consenso dato prima non si eredita a 18). Sotto, quanti si sono
+              iscritti in tutto. Chi esce dal profilo non è più contato. NON
+              conta le newsletter ricevute: l'invio non esiste ancora. ⚠️ Le
+              due cifre si mostrano entrambe e la grande è quella vera (Mario,
+              28/10): «340 iscritti» e poi un invio che ne raggiunge 180 è un
+              numero che promette una cosa che non succede.
             - Download guida: studenti DISTINTI che, da collegati, hanno
               scaricato almeno una guida dell'ente. NON conta i download senza
               accesso, i download ripetuti, né quelli di chi era già passato di
@@ -74,13 +81,18 @@ export default async function EnteStatistichePage() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
               { label: "Studenti raggiunti dall'inizio", valore: stats?.studenti_nel_recinto ?? 0 },
-              { label: "Iscritti newsletter", valore: stats?.iscritti_newsletter ?? 0 },
+              {
+                label: "Newsletter: chi la riceverà",
+                valore: stats?.iscritti_newsletter_raggiungibili ?? 0,
+                sotto: `su ${stats?.iscritti_newsletter ?? 0} iscritti in tutto: KIREO invia solo a chi si è iscritto da maggiorenne.`,
+              },
               { label: "Download guida", valore: stats?.download_guida ?? 0 },
               { label: "Guide pubblicate", valore: stats?.guide_pubblicate ?? 0 },
             ].map((s) => (
               <div key={s.label} className="rounded-2xl border border-white/5 bg-kireo-card p-4">
                 <p className="text-xs font-semibold uppercase tracking-wide text-kireo-muted">{s.label}</p>
                 <p className="mt-1 font-heading text-2xl font-bold text-kireo-light">{s.valore}</p>
+                {"sotto" in s && s.sotto && <p className="mt-1 text-xs text-kireo-muted">{s.sotto}</p>}
               </div>
             ))}
           </div>

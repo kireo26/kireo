@@ -9,6 +9,7 @@ import { ETA_MINIMA, ETA_MASSIMA_PLAUSIBILE, CLASSI, calcolaAnnoDiploma, calcola
 import { messaggioErroreAuth } from "@/lib/authErrors";
 import AreeInteresseGrid from "./app/AreeInteresseGrid";
 import { TESTO_CASELLA_REGISTRAZIONE } from "@/lib/app/comunicazioniKireo";
+import { isMaggiorenne } from "@/lib/eta";
 
 const MAX_AREE_INTERESSE = 3;
 
@@ -164,7 +165,11 @@ export default function RegistrazioneForm() {
             telefono: telefono.trim() || null,
             data_nascita: dataNascita,
             anno_diploma: annoDiploma,
-            newsletter,
+            // `newsletter` è il consenso alle comunicazioni di KIREO, non la
+            // newsletter di un ente (vedi lib/finalizzaRegistrazione.ts). Solo
+            // da maggiorenni: a un minorenne la casella non si mostra, e la
+            // chiave non si scrive (resta «mai chiesto»).
+            ...(dataNascita && isMaggiorenne(dataNascita) ? { newsletter } : {}),
             aree_interesse: areeInteresse,
             ...(codiceValido
               ? { codice_classe: codiceClasse.trim().toUpperCase() }
@@ -491,6 +496,11 @@ export default function RegistrazioneForm() {
         )}
       </div>
 
+      {/* La casella solo a una data di nascita maggiorenne (Mario, 28/10): non
+          si registra un'affermazione — «voglio ricevere» — che l'informativa
+          dice non può esistere. Prima della data non si mostra: la domanda
+          arriva quando sappiamo che ha una risposta. */}
+      {dataNascita && isMaggiorenne(dataNascita) && (
       <div className="flex items-start gap-3">
         <input
           id="newsletter"
@@ -504,6 +514,7 @@ export default function RegistrazioneForm() {
           {TESTO_CASELLA_REGISTRAZIONE}
         </label>
       </div>
+      )}
 
       <Button type="submit" variant="primary" className="w-full" disabled={caricamento || etaSottoMinimo}>
         {caricamento ? "Creazione in corso…" : "Crea il mio profilo"}

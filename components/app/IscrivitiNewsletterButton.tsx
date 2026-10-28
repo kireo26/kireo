@@ -6,15 +6,20 @@ import { usePathname } from "next/navigation";
 import { Button } from "@/components/Button";
 import { createClient } from "@/lib/supabase/client";
 import { segnaNelRecinto } from "@/lib/app/recinto";
+import { TESTO_NEWSLETTER_SOLO_MAGGIORENNI } from "@/lib/app/comunicazioniKireo";
 
 export default function IscrivitiNewsletterButton({
   istituzioneId,
   userId,
   iscrittoIniziale,
+  maggiorenne,
 }: {
   istituzioneId: string;
   userId: string | null;
   iscrittoIniziale: boolean;
+  // Letto dalla pagina sul profilo di chi guarda. Obbligatorio apposta: un
+  // default farebbe sparire in silenzio la frase per chi non lo passa.
+  maggiorenne: boolean;
 }) {
   const pathname = usePathname();
   const [iscritto, setIscritto] = useState(iscrittoIniziale);
@@ -29,6 +34,15 @@ export default function IscrivitiNewsletterButton({
         Iscriviti alla newsletter
       </Link>
     );
+  }
+
+  // Dove l'età la sappiamo e non basta, la frase al posto del bottone, PRIMA
+  // del clic (Mario, 28/10): un'iscrizione da minorenne non vale nemmeno a 18
+  // anni, perché il consenso si chiede allora e non si eredita
+  // (consenso_dato_da_maggiorenne, 20261107110000). Il cancello vero sta
+  // sull'invio; questo è solo non invitare a un gesto che non porta niente.
+  if (!maggiorenne) {
+    return <p className="max-w-md text-sm text-kireo-muted">{TESTO_NEWSLETTER_SOLO_MAGGIORENNI}</p>;
   }
 
   async function handleClick() {

@@ -1,5 +1,5 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js";
-import { impostaComunicazioniKireo } from "@/lib/app/comunicazioniKireo";
+import { impostaComunicazioniKireo, consensoDatoDaMaggiorenne } from "@/lib/app/comunicazioniKireo";
 
 // Chiamata condivisa a finalize_registration, usata sia dal link di conferma
 // email (app/auth/confirm/route.ts) sia come auto-riparazione al primo
@@ -69,7 +69,24 @@ export async function finalizzaRegistrazioneSeNecessario(
     // risposta, quindi una seconda conferma non sovrascrive una scelta fatta
     // dopo. Se non riesce lo dice nel log e la registrazione resta riuscita:
     // il consenso resta NULL, cioè «mai chiesto», che non vale come sì.
-    if (ruolo === "studente" && typeof meta.newsletter === "boolean") {
+    //
+    // ⚠️ LA CHIAVE SI CHIAMA `newsletter` E NON CONTIENE LA NEWSLETTER: è il
+    // consenso alle comunicazioni di KIREO, non l'iscrizione alla newsletter
+    // di un ente (quelle stanno in newsletter_iscrizioni, una per ente). Il
+    // nome viene da prima che le due cose esistessero, e un metadato già
+    // scritto non si rinomina: resta, e si dice qui cosa contiene.
+    //
+    // Un sì vale solo se era maggiorenne QUANDO l'ha dato, cioè alla
+    // registrazione (`user.created_at`), non adesso: il profilo può nascere
+    // giorni dopo (il ripristino al primo accesso a /app), e chi ha risposto
+    // sì a diciassette anni lo erediterebbe a diciotto — il consenso che si
+    // accende da solo (Mario, 28/10). Un sì così non si passa e resta «mai
+    // chiesto», che è vero. Un no si passa sempre.
+    if (
+      ruolo === "studente" &&
+      typeof meta.newsletter === "boolean" &&
+      (meta.newsletter === false || consensoDatoDaMaggiorenne(user.created_at, dataNascita))
+    ) {
       await impostaComunicazioniKireo(supabase, meta.newsletter, "registrazione");
     }
     return { ok: true };
