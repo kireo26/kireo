@@ -317,6 +317,12 @@
       "commit": "6190790",
       "stato": "verificata",
       "fonte": "Mario 28/10: dopo l'applicazione select copre_attivita, count(*) da manifestazioni_interesse = false·2, valore di partenza true"
+    },
+    {
+      "file": "20261112100000_ente_non_scrive_per_primo.sql",
+      "commit": "f25eddc",
+      "stato": "verificata",
+      "fonte": "Mario 28/10: applicata senza errore. La migrazione rilegge da sé obj_description di apri_conversazione_ente e si ferma se non comincia con 20261112100000: (misura interna alla migrazione, non una query separata)"
     }
   ]
 }
