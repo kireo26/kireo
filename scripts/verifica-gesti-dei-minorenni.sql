@@ -1,13 +1,19 @@
 -- CONDIVIDERE IL PROFILO E SCRIVERE A UN ENTE: APERTI DAI 14 ANNI, NON DAI 18.
 --
--- Prova la migrazione 20261109100000. Gira in una transazione con ROLLBACK.
--- Le rosse attese su una replica nata senza la migrazione: 1, 2 e 3 (i tre
--- gesti di un sedicenne). Verdi nei due mondi: 4 (un sì alle comunicazioni di
--- KIREO resta rifiutato a un minorenne: è la promessa dell'informativa, non
--- tocca a questa migrazione), 5 (un maggiorenne condivide), 6 (sotto i 14
--- anni un profilo non nasce), 7 (non si condivide a nome di un altro).
+-- Prova le migrazioni 20261109100000 (i gesti aperti dai 14 anni) e
+-- 20261109110000 (solo a uno studente con una data di nascita). Gira in una
+-- transazione con ROLLBACK, e nel SQL Editor di Supabase così com'è: niente
+-- meta-comandi di psql (`npm run test:sqleditor`).
+-- Le rosse attese:
+--   - su una replica nata senza 20261109100000: 1, 2 e 3 (i tre gesti di un
+--     sedicenne), più 8-12 se manca anche la seconda;
+--   - su una replica nata senza la sola 20261109110000: 8-12 (lo studente
+--     senza data, il docente e l'ente che contattano un ente).
+-- Verdi nei due mondi: 4 (un sì alle comunicazioni di KIREO resta rifiutato a
+-- un minorenne: è la promessa dell'informativa), 5 (un maggiorenne condivide),
+-- 6 (sotto i 14 anni un profilo non nasce), 7 (non si condivide a nome di un
+-- altro).
 
-\set ON_ERROR_STOP off
 begin;
 
 create temp table esiti(n int, proprieta text, atteso text, ok boolean, osservato text);
@@ -16,10 +22,16 @@ grant all on esiti to anon, authenticated;
 insert into auth.users(id, email) values
   ('a1a1a1a1-0000-0000-0000-0000000000a1', 'adulto@prova.it'),
   ('b2b2b2b2-0000-0000-0000-0000000000b2', 'sedicenne@prova.it'),
-  ('d4d4d4d4-0000-0000-0000-0000000000d4', 'tredicenne@prova.it');
+  ('d4d4d4d4-0000-0000-0000-0000000000d4', 'tredicenne@prova.it'),
+  ('c5c5c5c5-0000-0000-0000-0000000000c5', 'senzadata@prova.it'),
+  ('c6c6c6c6-0000-0000-0000-0000000000c6', 'docente@prova.it'),
+  ('c7c7c7c7-0000-0000-0000-0000000000c7', 'ente@prova.it');
 insert into public.profiles(id, ruolo, nome, cognome, data_nascita) values
   ('a1a1a1a1-0000-0000-0000-0000000000a1', 'studente', 'A', 'Dulto', current_date - interval '19 years'),
-  ('b2b2b2b2-0000-0000-0000-0000000000b2', 'studente', 'S', 'Edici', current_date - interval '16 years');
+  ('b2b2b2b2-0000-0000-0000-0000000000b2', 'studente', 'S', 'Edici', current_date - interval '16 years'),
+  ('c5c5c5c5-0000-0000-0000-0000000000c5', 'studente', 'S', 'Enzadata', null),
+  ('c6c6c6c6-0000-0000-0000-0000000000c6', 'docente', 'D', 'Ocente', null),
+  ('c7c7c7c7-0000-0000-0000-0000000000c7', 'istituzione', 'E', 'Nte', null);
 insert into public.istituzioni(id, nome, slug, tipo, stato)
   values ('f5f5f5f5-0000-0000-0000-0000000000f5', 'Ente Prova', 'ente-prova-minorenni', 'its', 'attiva');
 
@@ -92,6 +104,45 @@ do $$ begin
   insert into esiti values (5, 'un maggiorenne condivide il profilo', 'riuscito', true, 'riuscito');
 exception when others then
   insert into esiti values (5, 'un maggiorenne condivide il profilo', 'riuscito', false, 'respinto: ' || sqlerrm);
+end $$;
+
+-- ─────────────── 8-12) chi contatta un ente: uno studente con una data
+set local request.jwt.claim.sub = 'c5c5c5c5-0000-0000-0000-0000000000c5';
+do $$ begin
+  insert into public.manifestazioni_interesse(student_id, istituzione_id)
+    values ('c5c5c5c5-0000-0000-0000-0000000000c5', 'f5f5f5f5-0000-0000-0000-0000000000f5');
+  insert into esiti values (8, 'uno studente senza data di nascita condivide il profilo', 'RESPINTO', false, '*** PASSA ***');
+exception when others then
+  insert into esiti values (8, 'uno studente senza data di nascita condivide il profilo', 'RESPINTO', sqlstate = '42501', 'respinto: ' || sqlerrm);
+end $$;
+do $$ begin
+  perform public.apri_conversazione_ente('f5f5f5f5-0000-0000-0000-0000000000f5', 'Buongiorno.');
+  insert into esiti values (9, 'uno studente senza data di nascita scrive a un ente', 'data_nascita_mancante', false, '*** PASSA ***');
+exception when others then
+  insert into esiti values (9, 'uno studente senza data di nascita scrive a un ente', 'data_nascita_mancante', sqlerrm like '%data_nascita_mancante%', 'respinto: ' || sqlerrm);
+end $$;
+
+set local request.jwt.claim.sub = 'c6c6c6c6-0000-0000-0000-0000000000c6';
+do $$ begin
+  insert into public.manifestazioni_interesse(student_id, istituzione_id)
+    values ('c6c6c6c6-0000-0000-0000-0000000000c6', 'f5f5f5f5-0000-0000-0000-0000000000f5');
+  insert into esiti values (10, 'un docente «condivide il profilo» con un ente', 'RESPINTO', false, '*** PASSA ***');
+exception when others then
+  insert into esiti values (10, 'un docente «condivide il profilo» con un ente', 'RESPINTO', sqlstate = '42501', 'respinto: ' || sqlerrm);
+end $$;
+do $$ begin
+  perform public.apri_conversazione_ente('f5f5f5f5-0000-0000-0000-0000000000f5', 'Buongiorno.');
+  insert into esiti values (11, 'un docente apre una conversazione da studente', 'solo_studenti', false, '*** PASSA ***');
+exception when others then
+  insert into esiti values (11, 'un docente apre una conversazione da studente', 'solo_studenti', sqlerrm like '%solo_studenti%', 'respinto: ' || sqlerrm);
+end $$;
+
+set local request.jwt.claim.sub = 'c7c7c7c7-0000-0000-0000-0000000000c7';
+do $$ begin
+  perform public.apri_conversazione_ente('f5f5f5f5-0000-0000-0000-0000000000f5', 'Buongiorno.');
+  insert into esiti values (12, 'un account d''ente apre una conversazione da studente', 'solo_studenti', false, '*** PASSA ***');
+exception when others then
+  insert into esiti values (12, 'un account d''ente apre una conversazione da studente', 'solo_studenti', sqlerrm like '%solo_studenti%', 'respinto: ' || sqlerrm);
 end $$;
 reset role;
 

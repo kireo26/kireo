@@ -6,21 +6,22 @@ import { usePathname } from "next/navigation";
 import { Button } from "@/components/Button";
 import { createClient } from "@/lib/supabase/client";
 import { segnaNelRecinto } from "@/lib/app/recinto";
-import { TESTO_NEWSLETTER_SOLO_MAGGIORENNI } from "@/lib/app/comunicazioniKireo";
+import type { StatoEta } from "@/lib/eta";
 import { descriviErrore } from "@/lib/erroreSupabase";
 
 export default function IscrivitiNewsletterButton({
   istituzioneId,
   userId,
   iscrittoIniziale,
-  maggiorenne,
+  eta,
 }: {
   istituzioneId: string;
   userId: string | null;
   iscrittoIniziale: boolean;
-  // Letto dalla pagina sul profilo di chi guarda. Obbligatorio apposta: un
-  // default farebbe sparire in silenzio la frase per chi non lo passa.
-  maggiorenne: boolean;
+  // Letto dalla pagina sul profilo di chi guarda, in tre stati (lib/eta.ts).
+  // Obbligatorio apposta: un default farebbe ricomparire il bottone a chi non
+  // riceverà niente.
+  eta: StatoEta;
 }) {
   const pathname = usePathname();
   const [iscritto, setIscritto] = useState(iscrittoIniziale);
@@ -38,16 +39,16 @@ export default function IscrivitiNewsletterButton({
     );
   }
 
-  // Dove l'età la sappiamo e non basta, la frase al posto del bottone, PRIMA
-  // del clic (Mario, 28/10): un'iscrizione da minorenne non vale nemmeno a 18
+  // Dove l'età non basta, o non la sappiamo, il bottone non compare, e la
+  // pagina dice perché SOTTO la fila dei tre gesti, PRIMA del clic (Mario,
+  // 28/10: una fila di tre bottoni va disegnata sapendo che per molti uno dei
+  // tre non è un bottone). Un'iscrizione da minorenne non vale nemmeno a 18
   // anni, perché il consenso si chiede allora e non si eredita
   // (consenso_dato_da_maggiorenne, 20261107110000). Il cancello vero sta
   // sull'invio; questo è solo non invitare a un gesto che non porta niente.
-  // Ma chi è GIÀ iscritto vede l'uscita anche da minorenne: un'uscita non si
-  // nasconde mai dietro una regola sull'entrata.
-  if (!maggiorenne && !iscritto) {
-    return <p className="max-w-md text-sm text-kireo-muted">{TESTO_NEWSLETTER_SOLO_MAGGIORENNI}</p>;
-  }
+  // Ma chi è GIÀ iscritto vede l'uscita: un'uscita non si nasconde mai dietro
+  // una regola sull'entrata.
+  if (eta !== "maggiorenne" && !iscritto) return null;
 
   // Dove si entra con un clic si esce con un clic (Mario, 28/10): «Iscritto ✓»
   // era un bottone spento, e l'uscita stava solo nel profilo.

@@ -37,9 +37,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     );
   }
 
-  // Blocco obbligatorio, non aggirabile: senza data di nascita nessun gate
-  // 18+ (manifestazione di interesse, messaggi con gli enti) può funzionare
-  // in sicurezza. Stesso principio del blocco duro già in uso in
+  // Blocco obbligatorio, non aggirabile: senza data di nascita non sappiamo
+  // se chi entra ha l'età minima (14 anni), e le regole che la guardano non
+  // possono decidere — i gesti verso un ente (puo_contattare_enti,
+  // 20261109110000) e le comunicazioni facoltative (i 18 anni dell'informativa). Stesso principio del blocco duro già in uso in
   // app/scuola/(dashboard)/layout.tsx — non renderizza i figli finché la
   // condizione non è soddisfatta.
   if (!contesto.dataNascita) {
@@ -48,8 +49,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <p className="mb-4 font-sans text-sm font-semibold uppercase tracking-wide text-kireo-orange">Un'ultima cosa</p>
         <h1 className="py-1 font-heading text-3xl font-bold leading-[1.25] text-kireo-light">Completa il tuo profilo</h1>
         <p className="mt-4 text-kireo-muted">
-          Ci serve la tua data di nascita per continuare: alcune funzioni di KIREO (come condividere il tuo profilo con
-          un ente o scrivergli un messaggio) sono riservate ai maggiorenni.
+          Ci serve la tua data di nascita per continuare: su KIREO ci si iscrive dai 14 anni, e alcune funzioni dipendono
+          dalla tua età.
         </p>
         <CompletaEtaForm userId={contesto.userId} />
         <div className="mt-6">

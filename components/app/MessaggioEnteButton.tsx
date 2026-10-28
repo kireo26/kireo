@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { Button } from "@/components/Button";
 import { createClient } from "@/lib/supabase/client";
+import type { ContattoEnti } from "@/lib/app/contattoEnti";
 
 // Aperto dai 14 anni, come la condivisione del profilo (20261109100000).
 // Se esiste già una conversazione aperta con questo ente, porta dritti lì
@@ -13,10 +14,12 @@ import { createClient } from "@/lib/supabase/client";
 export default function MessaggioEnteButton({
   istituzioneId,
   userId,
+  contatto,
   conversazioneEsistenteId,
 }: {
   istituzioneId: string;
   userId: string | null;
+  contatto: ContattoEnti;
   conversazioneEsistenteId: string | null;
 }) {
   const router = useRouter();
@@ -33,6 +36,10 @@ export default function MessaggioEnteButton({
       </Link>
     );
   }
+
+  // Una conversazione già aperta resta raggiungibile; una nuova la apre solo
+  // chi può (la ragione, per chi non può, la dice la pagina).
+  if (contatto !== "si" && !conversazioneEsistenteId) return null;
 
   if (conversazioneEsistenteId) {
     return (
@@ -52,6 +59,10 @@ export default function MessaggioEnteButton({
       const { data, error } = await supabase.rpc("apri_conversazione_ente", { p_istituzione_id: istituzioneId, p_corpo: testo.trim() });
       if (error || !data) {
         if (error?.message?.includes("troppe_conversazioni_oggi")) setErrore("Hai raggiunto il numero massimo di conversazioni per oggi. Riprova domani.");
+        // Il database ha deciso diversamente dalla pagina (una data tolta nel
+        // frattempo, un ruolo cambiato): si dice cosa manca, non «riprova».
+        else if (error?.message?.includes("data_nascita_mancante")) setErrore("Per scrivere a un ente ci serve la tua data di nascita: aggiungila nella tua area.");
+        else if (error?.message?.includes("solo_studenti")) setErrore("I messaggi agli enti sono per gli studenti.");
         else setErrore("Non è stato possibile inviare il messaggio. Riprova.");
         return;
       }

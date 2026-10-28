@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { descriviErrore } from "@/lib/erroreSupabase";
-import { isMaggiorenne } from "@/lib/eta";
+import { statoEta, type StatoEta } from "@/lib/eta";
 import ComunicazioniStudente, { type IscrizioneNewsletter } from "@/components/app/ComunicazioniStudente";
 import { mostraLeScelte, type ConsensoKireo } from "@/lib/app/comunicazioniKireo";
 
@@ -35,7 +35,7 @@ export default async function Disiscrizione() {
 
   // Le scelte le vede chi ha qualcosa da revocare, non chi è studente oggi
   // (mostraLeScelte): il ruolo cambia, il consenso dato resta.
-  let studente: { consenso: ConsensoKireo | undefined; maggiorenne: boolean; iscrizioni: IscrizioneNewsletter[] | undefined } | null = null;
+  let studente: { consenso: ConsensoKireo | undefined; eta: StatoEta; iscrizioni: IscrizioneNewsletter[] | undefined } | null = null;
   if (user) {
     const { data: profilo, error } = await supabase
       .from("profiles")
@@ -53,7 +53,7 @@ export default async function Disiscrizione() {
     if (mostraLeScelte({ ruolo: profilo?.ruolo, consenso, iscrizioni: iscr.error ? undefined : (iscr.data ?? []).length })) {
       studente = {
         consenso,
-        maggiorenne: isMaggiorenne(profilo?.data_nascita ?? null),
+        eta: statoEta(profilo?.data_nascita ?? null),
         iscrizioni: iscr.error
           ? undefined
           : (iscr.data ?? []).map((r) => {
@@ -103,7 +103,7 @@ export default async function Disiscrizione() {
             <div className="mt-6">
               <ComunicazioniStudente
                 consensoIniziale={studente.consenso}
-                maggiorenne={studente.maggiorenne}
+                eta={studente.eta}
                 iscrizioniIniziali={studente.iscrizioni}
                 origine="disiscrizione"
               />

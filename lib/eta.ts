@@ -16,3 +16,15 @@ export function isMaggiorenne(dataNascita: string | null | undefined): boolean {
   sogliaDiciottoAnniFa.setFullYear(sogliaDiciottoAnniFa.getFullYear() - 18);
   return nascita <= sogliaDiciottoAnniFa;
 }
+
+// TRE STATI, NON DUE (28/10). `isMaggiorenne(null)` risponde «no», ed è giusto
+// per un cancello; per una FRASE no: a chi non ha una data di nascita dire
+// «KIREO non invia comunicazioni facoltative a chi ha meno di 18 anni» afferma
+// un'età che non sappiamo. «Non lo so» non diventa né un sì né un no
+// silenzioso: diventa una richiesta di dircelo.
+export type StatoEta = "maggiorenne" | "minorenne" | "sconosciuta";
+
+export function statoEta(dataNascita: string | null | undefined): StatoEta {
+  if (!dataNascita) return "sconosciuta";
+  return isMaggiorenne(dataNascita) ? "maggiorenne" : "minorenne";
+}

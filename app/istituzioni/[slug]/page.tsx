@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getIstituzionePubblicaBySlug, getGuideEnte, isIscrittoNewsletter, getConteggioFollower, isSeguito, etichettaTipoIstituzione, getAreeApprovateIstituzione } from "@/lib/app/istituzioni";
 import { getEventiIstituzione, getAreeDegliEventi, getIscrizioniStudente, eventoNonFinito } from "@/lib/app/eventi";
-import { isMaggiorenne } from "@/lib/eta";
+import { statoEta, type StatoEta } from "@/lib/eta";
+import { contattoEnti, type ContattoEnti, TESTO_MANCA_DATA_CONTATTO, HREF_AGGIUNGI_DATA, TESTO_AGGIUNGI_DATA } from "@/lib/app/contattoEnti";
+import { TESTO_NEWSLETTER_SOLO_MAGGIORENNI } from "@/lib/app/comunicazioniKireo";
 import GuidaEnteForm from "@/components/app/GuidaEnteForm";
 import IscrivitiNewsletterButton from "@/components/app/IscrivitiNewsletterButton";
 import SeguiButton from "@/components/app/SeguiButton";
@@ -57,11 +60,17 @@ export default async function IstituzionePubblicaPage({ params }: { params: Prom
   const conteggioFollower = await getConteggioFollower(supabase, istituzione.id);
   const seguito = user ? await isSeguito(supabase, user.id, istituzione.id) : false;
 
-  let maggiorenne = false;
+  // L'età in tre stati e chi può contattare l'ente (lib/eta.ts,
+  // lib/app/contattoEnti.ts). Una lettura che fallisce dà «sconosciuta» e
+  // «non studente»: i bottoni non compaiono, e il database li rifiuterebbe
+  // comunque — la direzione sicura.
+  let eta: StatoEta = "sconosciuta";
+  let contatto: ContattoEnti = "non_studente";
   let manifestazioneAttivaId: string | null = null;
   if (user) {
-    const { data: profilo } = await supabase.from("profiles").select("data_nascita").eq("id", user.id).maybeSingle();
-    maggiorenne = isMaggiorenne(profilo?.data_nascita ?? null);
+    const { data: profilo } = await supabase.from("profiles").select("ruolo, data_nascita").eq("id", user.id).maybeSingle();
+    eta = statoEta(profilo?.data_nascita ?? null);
+    contatto = contattoEnti(profilo?.ruolo ?? null, profilo?.data_nascita ?? null);
     const { data: manifestazione } = await supabase
       .from("manifestazioni_interesse")
       .select("id")
@@ -136,13 +145,29 @@ export default async function IstituzionePubblicaPage({ params }: { params: Prom
             sotto. */}
         <div className="mt-6 flex flex-wrap items-start gap-4">
           <SeguiButton istituzioneId={istituzione.id} userId={user?.id ?? null} seguitoIniziale={seguito} />
-          <IscrivitiNewsletterButton istituzioneId={istituzione.id} userId={user?.id ?? null} iscrittoIniziale={iscrittoNewsletter} maggiorenne={maggiorenne} />
+          {contatto !== "non_studente" || iscrittoNewsletter || !user ? (
+            <IscrivitiNewsletterButton istituzioneId={istituzione.id} userId={user?.id ?? null} iscrittoIniziale={iscrittoNewsletter} eta={eta} />
+          ) : null}
           <ManifestazioneInteresseButton
             istituzioneId={istituzione.id}
             userId={user?.id ?? null}
+            contatto={contatto}
             manifestazioneAttivaId={manifestazioneAttivaId}
           />
         </div>
+        {/* Le ragioni dei gesti che mancano stanno SOTTO la fila, mai al posto
+            di un bottone (Mario, 28/10): da minorenne la frase della newsletter
+            spezzava la riga e mandava «3 follower» in mezzo ai bottoni. */}
+        {user && contatto === "manca_data" ? (
+          <p className="mt-3 max-w-xl text-sm text-kireo-muted">
+            {TESTO_MANCA_DATA_CONTATTO}{" "}
+            <Link href={HREF_AGGIUNGI_DATA} className="text-kireo-orange underline underline-offset-2">
+              {TESTO_AGGIUNGI_DATA}
+            </Link>
+          </p>
+        ) : user && contatto === "si" && eta === "minorenne" && !iscrittoNewsletter ? (
+          <p className="mt-3 max-w-xl text-sm text-kireo-muted">{TESTO_NEWSLETTER_SOLO_MAGGIORENNI}</p>
+        ) : null}
         <p className="mt-3 text-sm text-kireo-muted">
           <strong className="text-kireo-light">{conteggioFollower}</strong> {conteggioFollower === 1 ? "follower" : "follower"}
         </p>
@@ -151,6 +176,7 @@ export default async function IstituzionePubblicaPage({ params }: { params: Prom
           <MessaggioEnteButton
             istituzioneId={istituzione.id}
             userId={user?.id ?? null}
+            contatto={contatto}
             conversazioneEsistenteId={conversazioneEsistenteId}
           />
         </div>

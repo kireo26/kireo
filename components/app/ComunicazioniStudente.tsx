@@ -13,6 +13,8 @@ import {
   TESTO_SEGUITI,
   type ConsensoKireo,
 } from "@/lib/app/comunicazioniKireo";
+import { TESTO_MANCA_DATA_COMUNICAZIONI } from "@/lib/app/contattoEnti";
+import type { StatoEta } from "@/lib/eta";
 
 export type IscrizioneNewsletter = { id: string; istituzioneNome: string; istituzioneSlug: string; creataIl: string };
 export type EnteSeguito = { istituzioneId: string; istituzioneNome: string; istituzioneSlug: string };
@@ -28,13 +30,15 @@ export type EnteSeguito = { istituzioneId: string; istituzioneNome: string; isti
 // direbbe «non sei iscritto a niente», che non sappiamo.
 export default function ComunicazioniStudente({
   consensoIniziale,
-  maggiorenne,
+  eta,
   iscrizioniIniziali,
   seguitiIniziali,
   origine = "profilo",
 }: {
   consensoIniziale: ConsensoKireo | undefined;
-  maggiorenne: boolean;
+  // Tre stati (lib/eta.ts): a chi non ha una data non si dice «hai meno di 18
+  // anni», si dice che non la sappiamo.
+  eta: StatoEta;
   iscrizioniIniziali: IscrizioneNewsletter[] | undefined;
   // Facoltativo: /disiscrizione non lo passa (lì si parla di email), e allora
   // la sezione non c'è. `undefined` passato dal profilo è «non letto».
@@ -110,11 +114,13 @@ export default function ComunicazioniStudente({
       <div>
         <h3 className="font-heading text-base font-semibold text-kireo-light">Le comunicazioni di KIREO</h3>
         <p className="mt-1 text-sm text-kireo-muted">{TESTO_A_COSA_SERVE}</p>
-        {!maggiorenne ? (
+        {eta === "minorenne" ? (
           // Niente domanda a un minorenne: un sì non si può registrare
           // (consenso_solo_maggiorenni), e una domanda con una risposta sola
           // non è una domanda.
           <p className="mt-3 text-sm text-kireo-light">{TESTO_SOLO_MAGGIORENNI}</p>
+        ) : eta === "sconosciuta" ? (
+          <p className="mt-3 text-sm text-kireo-light">{TESTO_MANCA_DATA_COMUNICAZIONI}</p>
         ) : consenso === undefined ? (
           <p className="mt-3 text-sm text-kireo-muted">Non siamo riusciti a leggere la tua scelta: ricarica la pagina.</p>
         ) : (
@@ -151,7 +157,7 @@ export default function ComunicazioniStudente({
 
       <div>
         <h3 className="font-heading text-base font-semibold text-kireo-light">Le newsletter degli enti</h3>
-        {!maggiorenne && <p className="mt-1 text-sm text-kireo-muted">{TESTO_NEWSLETTER_SOLO_MAGGIORENNI}</p>}
+        {eta === "minorenne" && <p className="mt-1 text-sm text-kireo-muted">{TESTO_NEWSLETTER_SOLO_MAGGIORENNI}</p>}
         {iscrizioni === undefined ? (
           <p className="mt-1 text-sm text-kireo-muted">Non siamo riusciti a leggere le tue iscrizioni: ricarica la pagina.</p>
         ) : iscrizioni.length === 0 ? (

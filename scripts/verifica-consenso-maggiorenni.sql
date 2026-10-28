@@ -4,7 +4,6 @@
 -- Le tre metà: la regola (consenso_dato_da_maggiorenne), il rifiuto del sì
 -- (imposta_comunicazioni_kireo), il conto dell'ente (stats_istituzione).
 
-\set ON_ERROR_STOP off
 begin;
 
 create temp table esiti(n int, proprieta text, atteso text, ok boolean, osservato text);

@@ -20,7 +20,6 @@
 -- controprova va fatta ricostruendo, perché `drop policy`/`create policy` non
 -- si disfanno riapplicando un file.
 
-\set ON_ERROR_STOP off
 begin;
 
 create temp table esiti(n int, proprieta text, atteso text, ok boolean, osservato text);

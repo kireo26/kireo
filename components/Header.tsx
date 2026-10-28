@@ -239,13 +239,18 @@ export default function Header() {
                 onClick={() => setUserMenuOpen((v) => !v)}
                 aria-expanded={userMenuOpen}
                 aria-haspopup="true"
-                className="flex items-center gap-2 rounded-full py-1 pl-1 pr-3 transition-colors hover:bg-white/5"
+                aria-label={`Il tuo account: ${nomeUtente(user)}`}
+                title={nomeUtente(user)}
+                className="flex items-center gap-1 rounded-full py-1 pl-1 pr-2 transition-colors hover:bg-white/5"
               >
+                {/* SOLO LE INIZIALI (Mario, 28/10): il bottone «La mia area» è
+                    entrato in una fila già piena, e una cosa aggiunta lì sposta
+                    tutto il resto. Misurato sulla costruzione di produzione: a
+                    1152px il margine fra «Contatti» e il blocco di destra era
+                    passato da 54px a 10px. Si è tolto il nome, che il bottone
+                    accanto rende superfluo; resta nell'etichetta e nel titolo. */}
                 <span className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-kireo-green/20 font-heading text-xs font-bold text-kireo-green-light">
                   {inizialiUtente(user)}
-                </span>
-                <span className="max-w-[10rem] truncate font-sans text-sm font-medium text-kireo-light/90">
-                  {nomeUtente(user)}
                 </span>
                 <ChevronIcon open={userMenuOpen} />
               </button>

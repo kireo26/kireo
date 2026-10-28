@@ -16,8 +16,6 @@
 -- sbagliato. Quindi si conta: `get diagnostics … row_count`, e zero righe
 -- toccate è «respinta», non «passata».
 
-\set ON_ERROR_STOP on
-\pset pager off
 
 begin;
 

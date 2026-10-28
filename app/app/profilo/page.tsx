@@ -5,7 +5,7 @@ import { CLASSI } from "@/lib/registrazione";
 import ProfiloForm, { BloccoPrivacy } from "@/components/app/ProfiloForm";
 import ListaManifestazioniInteresse, { type ManifestazioneAttiva } from "@/components/app/ListaManifestazioniInteresse";
 import ComunicazioniStudente, { type IscrizioneNewsletter, type EnteSeguito } from "@/components/app/ComunicazioniStudente";
-import { isMaggiorenne } from "@/lib/eta";
+import { statoEta } from "@/lib/eta";
 import { descriviErrore } from "@/lib/erroreSupabase";
 import type { ConsensoKireo } from "@/lib/app/comunicazioniKireo";
 
@@ -133,7 +133,7 @@ export default async function ProfiloAppPage() {
         <div className="mt-4">
           <ComunicazioniStudente
             consensoIniziale={consensoKireo}
-            maggiorenne={isMaggiorenne(dataNascita)}
+            eta={statoEta(dataNascita)}
             iscrizioniIniziali={iscrizioniNewsletter}
             seguitiIniziali={seguiti}
           />

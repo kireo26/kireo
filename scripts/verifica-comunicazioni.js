@@ -101,10 +101,10 @@ const iCasella = posizione(reg, "{TESTO_CASELLA_REGISTRAZIONE}");
 ok(iCasellaCondizione > 0 && iCasella > iCasellaCondizione, "la casella si mostra solo a una data di nascita maggiorenne", `${iCasellaCondizione} / ${iCasella}`);
 ok(/dataNascita && isMaggiorenne\(dataNascita\) \? \{ newsletter \} : \{\}/.test(reg), "a un minorenne la chiave non si scrive (resta «mai chiesto»)");
 const bottone = leggi("components/app/IscrivitiNewsletterButton.tsx");
-ok(/maggiorenne: boolean;/.test(bottone), "il bottone della newsletter pretende l'età (nessun default)");
-ok(posizione(bottone, "if (!maggiorenne && !iscritto) {") > 0 && posizione(bottone, "if (!maggiorenne && !iscritto) {") < posizione(bottone, "async function handleClick()"), "a un minorenne non iscritto la frase al posto del bottone, prima del clic (a uno già iscritto, l'uscita)");
-ok(leggi("app/istituzioni/[slug]/page.tsx").includes("maggiorenne={maggiorenne}"), "la pagina dell'ente gliela passa");
-const iRamoMinore = posizione(com, "{!maggiorenne ? (");
+ok(/eta: StatoEta;/.test(bottone), "il bottone della newsletter pretende l'età in tre stati (nessun default)");
+ok(posizione(bottone, 'if (eta !== "maggiorenne" && !iscritto) return null;') > 0 && posizione(bottone, 'if (eta !== "maggiorenne" && !iscritto) return null;') < posizione(bottone, "async function handleClick()"), "a chi non riceverà niente il bottone non compare (a uno già iscritto, l'uscita resta)");
+ok(leggi("app/istituzioni/[slug]/page.tsx").includes("eta={eta}"), "la pagina dell'ente gliela passa");
+const iRamoMinore = posizione(com, '{eta === "minorenne" ? (');
 ok(iRamoMinore > 0 && iRamoMinore < posizione(com, "Sì, voglio riceverle"), "a un minorenne il profilo non fa la domanda");
 // Gli attesi dei testi sono scritti a mano: il primo è di Mario, parola per parola.
 ok(C.TESTO_SOLO_MAGGIORENNI === "KIREO non invia comunicazioni facoltative a chi ha meno di 18 anni.", "la regola detta come una regola nostra (testo di Mario)", C.TESTO_SOLO_MAGGIORENNI);
@@ -129,8 +129,8 @@ for (const f of ["components/app/ManifestazioneInteresseButton.tsx", "components
   ok(!/maggiorenne/i.test(src) && !/dai 18 anni/.test(src), `${path.basename(f)}: nessun blocco d'età`);
 }
 const paginaEnte = leggi("app/istituzioni/[slug]/page.tsx");
-ok((paginaEnte.match(/maggiorenne=\{maggiorenne\}/g) ?? []).length === 1, "la pagina dell'ente passa l'età a un bottone solo (la newsletter)");
-ok(/<IscrivitiNewsletterButton[^>]*maggiorenne=\{maggiorenne\}/.test(paginaEnte), "e quel bottone è la newsletter");
+ok((paginaEnte.match(/eta=\{eta\}/g) ?? []).length === 1, "la pagina dell'ente passa l'età a un bottone solo (la newsletter)");
+ok(/<IscrivitiNewsletterButton[^>]*eta=\{eta\}/.test(paginaEnte), "e quel bottone è la newsletter");
 // L'ULTIMA definizione SQL di ciascun cancello, dalle migrazioni in ordine:
 // la policy di insert e le due funzioni dei messaggi non guardano più l'età.
 const migrazioni = fs.readdirSync(path.join(ROOT, "supabase/migrations")).filter((f) => f.endsWith(".sql")).sort();
@@ -157,7 +157,7 @@ const anniSql = Number(regola?.testo.match(/interval '(\d+) years'/)?.[1]);
 ok(anniSql === C.ETA_COMUNICAZIONI_FACOLTATIVE, "la soglia del TS è quella del SQL", `${C.ETA_COMUNICAZIONI_FACOLTATIVE} / ${anniSql}`);
 ok(C.consensoDatoDaMaggiorenne("2025-03-10T00:00:00Z", "2007-03-10") && !C.consensoDatoDaMaggiorenne("2025-03-09T12:00:00Z", "2007-03-10"), "la regola usa la soglia: vale il giorno dei 18, non il giorno prima");
 const btnNewsletter = leggi("components/app/IscrivitiNewsletterButton.tsx");
-ok(/if \(!maggiorenne && !iscritto\)/.test(btnNewsletter), "la newsletter di un ente resta ai maggiorenni");
+ok(/if \(eta !== "maggiorenne" && !iscritto\) return null;/.test(btnNewsletter), "la newsletter di un ente resta ai maggiorenni");
 
 console.log("§7 l'uscita sta dove sta l'entrata, e l'eliminazione in fondo");
 ok(!/disabled=\{[^}]*iscritto/.test(btnNewsletter), "«Iscritto» non è un bottone spento: si esce con lo stesso clic");
@@ -176,6 +176,39 @@ const ente = leggi("app/istituzioni/[slug]/page.tsx");
 const riga = ente.slice(posizione(ente, "<SeguiButton"), posizione(ente, "<MessaggioEnteButton"));
 ok(/<IscrivitiNewsletterButton/.test(riga) && /<ManifestazioneInteresseButton/.test(riga), "sulla pagina dell'ente i tre gesti stanno insieme, prima del messaggio");
 ok((ente.match(/<IscrivitiNewsletterButton/g) ?? []).length === 1, "e la newsletter non ha più una seconda sezione sua");
+
+console.log("§8 chi contatta un ente: uno studente con una data, e «non lo so» non è un no silenzioso");
+const E = require("@/lib/eta");
+const K = require("@/lib/app/contattoEnti");
+// Gli attesi sono scritti a mano: la tabella che il database applica
+// (puo_contattare_enti, 20261109110000) è «studente E data».
+ok(K.contattoEnti("studente", "2010-05-01") === "si", "uno studente con una data contatta un ente (anche a 16 anni)");
+ok(K.contattoEnti("studente", null) === "manca_data", "uno studente senza data: manca la data, non «no»");
+ok(K.contattoEnti("docente", "1980-01-01") === "non_studente", "un docente, anche con una data, non condivide «il profilo da studente»");
+ok(K.contattoEnti("istituzione", null) === "non_studente" && K.contattoEnti(null, null) === "non_studente", "un ente, o un ruolo non letto, no");
+ok(E.statoEta(null) === "sconosciuta" && E.statoEta("") === "sconosciuta", "un'età assente è sconosciuta, non minorenne");
+ok(E.statoEta("1990-01-01") === "maggiorenne" && E.statoEta(new Date(Date.now() - 16 * 365.25 * 864e5).toISOString().slice(0, 10)) === "minorenne", "e le due che sappiamo");
+for (const f of ["components/app/ManifestazioneInteresseButton.tsx", "components/app/MessaggioEnteButton.tsx"]) {
+  const src = leggi(f);
+  ok(/contatto: ContattoEnti;/.test(src), `${path.basename(f)}: pretende chi può contattare (nessun default)`);
+  ok(/if \(contatto !== "si" && !(id|conversazioneEsistenteId)\) return null;/.test(src), `${path.basename(f)}: senza il permesso niente bottone, ma l'uscita o la conversazione già aperta restano`);
+}
+ok((paginaEnte.match(/contatto=\{contatto\}/g) ?? []).length === 2, "la pagina passa chi può contattare ai due bottoni");
+ok(/contattoEnti\(profilo\?\.ruolo/.test(paginaEnte), "e lo deriva dal ruolo e dalla data letti, non da una costante");
+// La ragione di un gesto che manca sta SOTTO la fila, non dentro (Mario, 28/10).
+const iFila = posizione(paginaEnte, "<SeguiButton");
+const iFineFila = posizione(paginaEnte, "contatto={contatto}\n            manifestazioneAttivaId");
+const iManca = posizione(paginaEnte, "{TESTO_MANCA_DATA_CONTATTO}");
+const iMinore = posizione(paginaEnte, "{TESTO_NEWSLETTER_SOLO_MAGGIORENNI}");
+const iFollower = posizione(paginaEnte, "{conteggioFollower}");
+ok(iFila > 0 && iManca > iFineFila && iMinore > iFineFila && iFollower > iMinore, "le frasi stanno dopo la fila dei tre gesti, e i follower dopo le frasi", `${iFila} / ${iFineFila} / ${iManca} / ${iMinore} / ${iFollower}`);
+ok(!/TESTO_NEWSLETTER_SOLO_MAGGIORENNI/.test(btnNewsletter), "il bottone della newsletter non mette più la frase al proprio posto");
+ok(/eta === "sconosciuta"/.test(com) && /TESTO_MANCA_DATA_COMUNICAZIONI/.test(com), "le comunicazioni a chi non ha una data dicono che non la sappiamo");
+for (const t of [K.TESTO_MANCA_DATA_CONTATTO, K.TESTO_MANCA_DATA_COMUNICAZIONI]) {
+  ok(trovaAccordi(t).length === 0 && !/meno di 18|maggiorenn/i.test(t), "un testo per chi non ha una data non afferma un'età", t);
+}
+const layoutApp = leggi("app/app/layout.tsx");
+ok(!/riservate ai maggiorenni/.test(layoutApp), "la richiesta della data in /app non promette più un blocco dei 18 anni che non c'è");
 
 console.log(`\n${falliti === 0 ? "✓" : "✗"} ${fatte - falliti}/${fatte} proprietà`);
 process.exit(falliti === 0 ? 0 : 1);

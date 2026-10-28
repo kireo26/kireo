@@ -44,16 +44,17 @@
 -- sostituisce il diff quando le CANONICHE divergono.
 --
 -- ─────────────────────────── come si usa
--- Nel SQL Editor di Supabase: sostituire il nome qui sotto. Da psql:
---   psql -v nome=finalize_registration_istituzione -f scripts/impronta-funzione.sql
+-- Nel SQL Editor di Supabase: si cambia il nome nella riga `parametri` qui
+-- sotto, e basta. Niente meta-comandi di psql (`\set`, `\if`): il SQL Editor
+-- li rifiuta e non esegue niente (Mario, 28/10 — vedi «Uno script per Mario è
+-- SQL e basta» in CLAUDE.md). Una sola istruzione, perché il SQL Editor mostra
+-- solo il risultato dell'ultima: il conto degli overload sta su ogni riga.
 -- Sola lettura, nessuna transazione da annullare.
 
-\if :{?nome}
-\else
-  \set nome 'finalize_registration_istituzione'
-\endif
-
-with corpi as (
+with parametri as (
+  select 'finalize_registration_istituzione'::text as nome
+),
+corpi as (
   select
     p.oid,
     pg_get_function_identity_arguments(p.oid) as firma,
@@ -61,7 +62,7 @@ with corpi as (
     p.prosrc                                  as corpo
   from pg_proc p
   join pg_namespace n on n.oid = p.pronamespace
-  where n.nspname = 'public' and p.proname = :'nome'
+  where n.nspname = 'public' and p.proname = (select nome from parametri)
 ),
 canoniche as (
   select *,
@@ -74,20 +75,17 @@ canoniche as (
     ) as canonica
   from corpi
 )
+-- QUANTI OVERLOAD: la colonna che conta più delle impronte. Con più di uno, un
+-- `create or replace` ne lascia uno vivo — è la trappola di `finalize_
+-- registration` in Fase 2, dove un parametro aggiunto creò una seconda funzione
+-- invece di sostituire la prima. Zero righe vuol dire che il nome non esiste.
 select
   firma,
   case when e_definer then 'definer' else 'invoker' end as sicurezza,
   md5(canonica)                                         as impronta_canonica,
   md5(corpo)                                            as impronta_grezza,
   length(canonica)                                      as car_canonici,
-  length(corpo)                                         as car_grezzi
+  length(corpo)                                         as car_grezzi,
+  count(*) over ()                                      as overload
 from canoniche
 order by firma;
-
--- QUANTI OVERLOAD: la riga che conta più delle impronte. Con più di uno, un
--- `create or replace` ne lascia uno vivo — è la trappola di `finalize_
--- registration` in Fase 2, dove un parametro aggiunto creò una seconda funzione
--- invece di sostituire la prima.
-select count(*) as overload from pg_proc p
-join pg_namespace n on n.oid = p.pronamespace
-where n.nspname = 'public' and p.proname = :'nome';

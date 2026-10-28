@@ -20,7 +20,6 @@
 -- proprietà 1-4 e 9-11 sono ROTTE — e la controprova va fatta su una replica
 -- ricostruita da zero, perché `drop policy` non si disfà riapplicando un file.
 
-\set ON_ERROR_STOP off
 begin;
 
 create temp table esiti(n int, proprieta text, atteso text, ok boolean, osservato text);

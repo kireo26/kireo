@@ -5,7 +5,6 @@
 -- colonna non c'è): la controprova delle singole proprietà si fa togliendo i
 -- pezzi della funzione, non la migrazione intera.
 
-\set ON_ERROR_STOP off
 begin;
 
 create temp table esiti(n int, proprieta text, atteso text, ok boolean, osservato text);

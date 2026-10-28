@@ -91,7 +91,8 @@
     "test:tettispesa": "node scripts/verifica-tetti-spesa.js",
     "test:consumo": "node scripts/verifica-consumo-ai.js",
     "test:caratteri": "node scripts/verifica-caratteri-locali.js",
-    "test:comunicazioni": "node scripts/verifica-comunicazioni.js"
+    "test:comunicazioni": "node scripts/verifica-comunicazioni.js",
+    "test:sqleditor": "node scripts/verifica-sql-per-editor.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.112.5",

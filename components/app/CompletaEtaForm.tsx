@@ -19,9 +19,10 @@ function calcolaEta(dataNascita: string): number {
 }
 
 // Blocco obbligatorio per chi si è registrato prima che la data di nascita
-// fosse un campo raccolto: senza questo dato nessun gate 18+ (manifestazione
-// di interesse, messaggi con gli enti) può funzionare in sicurezza — vedi
-// is_maggiorenne/current_e_maggiorenne, che trattano NULL come minorenne.
+// fosse un campo raccolto: senza questo dato non sappiamo se ha l'età minima,
+// e le regole che guardano l'età non possono decidere — i gesti verso un ente
+// (puo_contattare_enti, 20261109110000, che senza data dice no) e le
+// comunicazioni facoltative (consenso_dato_da_maggiorenne).
 export default function CompletaEtaForm({ userId }: { userId: string }) {
   const router = useRouter();
   const [dataNascita, setDataNascita] = useState("");

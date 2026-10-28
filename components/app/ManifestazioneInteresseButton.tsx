@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/Button";
 import { createClient } from "@/lib/supabase/client";
+import type { ContattoEnti } from "@/lib/app/contattoEnti";
 
 // Aperto dai 14 anni, cioè a chiunque possa iscriversi (dal 20261109100000:
 // il blocco dei 18 anni non lo chiedeva nessuna legge, e chiudeva il gesto a
@@ -14,10 +15,14 @@ import { createClient } from "@/lib/supabase/client";
 export default function ManifestazioneInteresseButton({
   istituzioneId,
   userId,
+  contatto,
   manifestazioneAttivaId,
 }: {
   istituzioneId: string;
   userId: string | null;
+  // Obbligatorio apposta: un default farebbe ricomparire il bottone a chi il
+  // database lo rifiuta (lib/app/contattoEnti.ts).
+  contatto: ContattoEnti;
   manifestazioneAttivaId: string | null;
 }) {
   const pathname = usePathname();
@@ -36,6 +41,11 @@ export default function ManifestazioneInteresseButton({
       </Link>
     );
   }
+
+  // Chi non può condividere non vede il bottone; la ragione la dice la pagina,
+  // sotto la fila. Ma una condivisione già attiva mostra sempre la revoca:
+  // un'uscita non si nasconde dietro una regola sull'entrata.
+  if (contatto !== "si" && !id) return null;
 
   async function condividi() {
     setCaricamento(true);

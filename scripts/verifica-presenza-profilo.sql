@@ -20,7 +20,6 @@
 -- quello che la funzione ha scritto, e una rilettura vuota si legge come «non è
 -- successo niente». Dopo ogni blocco che cambia ruolo si fa `reset role`.
 
-\set ON_ERROR_STOP on
 begin;
 
 create temp table esiti (n int, cosa text, atteso text, trovato text, ok boolean) on commit drop;

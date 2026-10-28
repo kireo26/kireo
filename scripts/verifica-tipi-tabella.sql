@@ -237,9 +237,6 @@ begin
   perform set_config('request.jwt.claim.sub', '', true);
 end $$;
 
-\echo ''
-\echo '════════ I TIPI DICHIARATI CONTRO QUELLO CHE LA QUERY PRODUCE ════════'
-\echo ''
 
 select
   case esito when 'ROTTA' then '✗' when 'pulita' then '✓' when 'nota' then ' ' else '⚠' end as " ",
@@ -250,7 +247,6 @@ select
 from esiti
 order by case esito when 'nota' then 0 when 'ROTTA' then 1 when 'non raggiunta' then 2 else 3 end, funzione;
 
-\echo ''
 -- ⚠️ LA SOGLIA DICHIARATA: se l'enumerazione da pg_proc tornasse vuota o
 -- quasi, ogni riga qui sopra sarebbe verde per un insieme vuoto — il modo 2.
 -- Al 11/10/2026 le funzioni plpgsql con RETURNS TABLE sono DODICI: sotto le
