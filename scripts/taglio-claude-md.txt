@@ -24,7 +24,7 @@ Togliere un vincolo apre
 Una cattura non è un'esposizione
 La quarta volta, ed era al contrario
 Una regola su una riga si scrive in RLS
-⚠️⚠️ I TREDICI MODI
+⚠️⚠️ I QUATTORDICI MODI
 ⚠️ Un'impronta sul sorgente
 Una domanda ha risposta dove
 Divieti e compiti
