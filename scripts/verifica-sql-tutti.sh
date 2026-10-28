@@ -34,6 +34,17 @@ if [ -z "$CONN" ]; then
 fi
 OUT="$(mktemp -d)"
 
+# LE COLONNE DEL CLIENT SULLA REPLICA (28/10), PRIMA degli script, su una replica
+# che nessuno ha ancora toccato: è la metà di `npm run test:colonne` che guarda i
+# privilegi veri invece delle migrazioni (§5). Un rosso qui ferma il giro.
+echo "colonne del client, sulla replica:"
+if ! CONN="$CONN" node "$RADICE/scripts/verifica-colonne-del-client.js" >"$OUT/colonne.out" 2>&1; then
+  grep -E '✗|→' "$OUT/colonne.out" | head -6 | sed 's/^/  /'
+  echo "  ✗ verifica-colonne-del-client (uscita in $OUT/colonne.out)"; COLONNE_ROSSE=1
+else
+  echo "  ✓ $(tail -1 "$OUT/colonne.out")"; COLONNE_ROSSE=0
+fi
+
 # Diagnostica, non asserzioni: il perché accanto a ognuno.
 declare -A DIAGNOSTICA=(
   [verifica-cascata-profili]="stampa la chiusura della cascata da confrontare con scripts/lib/cascata-profili.js"
@@ -83,4 +94,4 @@ echo "$tot script: $verdi verdi, $rosse rossi, $leggere di sola diagnostica (usc
 # (il 27/10 sono 34 su 45): il controllo qui sopra sarebbe verde su niente.
 echo "(proprietà numerate confrontate col sorgente in $con_numeri script)"
 [ "$con_numeri" -ge 25 ] || { echo "✗ solo $con_numeri script con proprietà numerate: l'estrattore non le sta vedendo" >&2; exit 1; }
-[ "$rosse" -eq 0 ]
+[ "$rosse" -eq 0 ] && [ "$COLONNE_ROSSE" -eq 0 ]

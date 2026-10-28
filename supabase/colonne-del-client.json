@@ -1,0 +1,224 @@
+{
+  "_leggimi": [
+    "LE COLONNE CHE IL CLIENT PUÒ SCRIVERE (Mario, 27/10: «non sono 35 difetti, è un'abitudine con 35 istanze»).",
+    "Dal 20261106100000 il valore di partenza è rovesciato: anon e authenticated non scrivono niente, e ogni colonna qui sotto è concessa una per una. Una tabella nuova nasce chiusa (i privilegi predefiniti sono rovesciati anche loro).",
+    "Questo file è il registro, e `npm run test:colonne` lo confronta con tre cose: le concessioni scritte nelle migrazioni, le scritture del codice (app/, lib/, components/, il banco), e — su una replica — i privilegi veri.",
+    "Per aprire una colonna: una migrazione nuova con il grant, e la colonna qui, con chi la scrive. Il totale ha un tetto (`tetto_colonne`) che si abbassa e non si alza senza dirlo: è il cricchetto.",
+    "`chi` dice quale codice scrive la tabella: è la ragione per cui la colonna è aperta. Una colonna senza un `chi` vero è una porta che nessuno usa."
+  ],
+  "tetto_colonne": 199,
+  "anon": {
+    "richieste_contatto": {
+      "insert": ["origine", "nome", "ruolo", "istituto", "codice_meccanografico", "email", "messaggio"],
+      "update": [],
+      "chi": "app/api/richiesta-contatto/route.ts (il modulo pubblico, senza sessione)"
+    }
+  },
+  "authenticated": {
+    "activity_log": {
+      "insert": ["student_id", "area_slug", "tipo_attivita", "peso", "livello"],
+      "update": [],
+      "chi": "lib/app/activityLog.ts, app/api/assistente/route.ts"
+    },
+    "assistente_conversazioni": {
+      "insert": ["student_id", "area_slug"],
+      "update": [],
+      "chi": "app/api/assistente/route.ts"
+    },
+    "assistente_richieste": {
+      "insert": ["student_id"],
+      "update": [],
+      "chi": "app/api/assistente/route.ts (il tetto, scritto prima della chiamata)"
+    },
+    "classi": {
+      "insert": ["scuola_profilo_id", "anno", "sezione", "nome_visualizzato"],
+      "update": [],
+      "chi": "components/scuola/CreaClasseForm.tsx"
+    },
+    "classi_studenti": {
+      "insert": ["classe_id", "student_id"],
+      "update": [],
+      "chi": "components/scuola/GestioneClasseStudenti.tsx"
+    },
+    "comunicazioni": {
+      "insert": ["istituzione_id", "tipo", "oggetto", "corpo", "stato"],
+      "update": ["stato", "note_revisione"],
+      "chi": "components/ente/CreaComunicazioneForm.tsx (insert), components/admin/AzioneApprovazione.tsx (update, l'admin)"
+    },
+    "consegne_evento": {
+      "insert": ["evento_id", "student_id", "testo"],
+      "update": [],
+      "chi": "app/api/eventi/[id]/consegna/route.ts"
+    },
+    "domande_live": {
+      "insert": ["evento_id", "user_id", "testo"],
+      "update": [],
+      "chi": "components/live/BoxDomandeLive.tsx"
+    },
+    "eventi": {
+      "insert": ["titolo", "descrizione", "tipo", "organizzatore_id", "data_inizio", "data_fine", "sede", "link", "posti", "cta_esterna_url", "stato", "pubblico", "filone", "hosting_diretta", "youtube_video_id", "checklist_diretta", "checklist_diretta_accettata_il", "incorporamento_sonda", "proposta_incontro_id"],
+      "update": ["stato", "note_revisione", "youtube_video_id", "incorporamento_sonda"],
+      "chi": "components/ente/CreaEventoForm.tsx (insert), components/admin/AzioneApprovazione.tsx e components/admin/GestisciVideoDirettaForm.tsx (update, l'admin)"
+    },
+    "eventi_aree": {
+      "insert": ["evento_id", "area_slug"],
+      "update": [],
+      "chi": "components/ente/CreaEventoForm.tsx"
+    },
+    "guide_enti": {
+      "insert": ["istituzione_id", "titolo", "pdf_url"],
+      "update": [],
+      "chi": "components/ente/ProfiloEnteForm.tsx"
+    },
+    "iscrizioni_eventi": {
+      "insert": ["student_id", "evento_id"],
+      "update": [],
+      "chi": "components/app/IscrivitiEventoButton.tsx, components/docente/IscrivitiWebinarButton.tsx"
+    },
+    "istituzioni": {
+      "insert": [],
+      "update": ["descrizione", "immagine_copertina_url", "sito_ufficiale", "provincia", "regolamento_accettato_il", "stato", "piano_id", "piano_attivato_il", "piano_scade_il"],
+      "chi": "components/ente/ProfiloEnteForm.tsx, components/ente/AccettaRegolamentoForm.tsx, lib/finalizzaRegistrazioneEnte.ts, components/admin/AttivaIstituzioneButton.tsx, approva_richiesta_upgrade (non definer: scrive con i privilegi dell'admin). Stato e piano li difende il trigger blocca_autoescalation_istituzione"
+    },
+    "istituzioni_aree": {
+      "insert": ["istituzione_id", "area_slug"],
+      "update": [],
+      "chi": "components/ente/ProfiloEnteForm.tsx"
+    },
+    "journal_entry": {
+      "insert": ["student_id", "attempt_id", "testo"],
+      "update": [],
+      "chi": "app/api/escape/finalizza/route.ts"
+    },
+    "manifestazioni_interesse": {
+      "insert": ["student_id", "istituzione_id"],
+      "update": ["revocata_il"],
+      "chi": "components/app/ManifestazioneInteresseButton.tsx, components/app/ListaManifestazioniInteresse.tsx"
+    },
+    "messaggi_scuola": {
+      "insert": ["id", "scuola_profilo_id", "mittente_user", "destinatari", "classe_id", "oggetto", "corpo", "canale"],
+      "update": [],
+      "chi": "invia_messaggio_scuola (non definer: scrive con i privilegi del referente)"
+    },
+    "messaggi_scuola_destinatari": {
+      "insert": ["messaggio_id", "student_id"],
+      "update": ["letto_il"],
+      "chi": "invia_messaggio_scuola (insert), components/app/MessaggiScuola.tsx (update)"
+    },
+    "mission_attempt": {
+      "insert": ["student_id", "mission_slug"],
+      "update": ["stanza_corrente", "updated_at", "revisore_esito"],
+      "chi": "components/escape/IniziaMissione.tsx, components/escape/EscapePlayer.tsx, app/api/escape/finalizza/route.ts, il banco (giocaMissione)"
+    },
+    "newsletter_docenti": {
+      "insert": ["user_id"],
+      "update": [],
+      "chi": "components/docente/NewsletterToggle.tsx"
+    },
+    "newsletter_iscrizioni": {
+      "insert": ["student_id", "istituzione_id"],
+      "update": [],
+      "chi": "components/app/IscrivitiNewsletterButton.tsx"
+    },
+    "notifiche_studenti": {
+      "insert": [],
+      "update": ["letta"],
+      "chi": "components/app/NotificheBell.tsx (le notifiche le scrive il cron, con la service-role)"
+    },
+    "portfolio_item": {
+      "insert": ["student_id", "attempt_id", "titolo", "contenuto"],
+      "update": [],
+      "chi": "app/api/escape/finalizza/route.ts"
+    },
+    "post_enti": {
+      "insert": ["istituzione_id", "tipo", "corpo", "immagine_url", "embed_url"],
+      "update": ["stato", "approvato_da", "approvato_il", "motivo_rifiuto"],
+      "chi": "components/ente/CreaPostForm.tsx (insert), components/admin/AzioneApprovazionePost.tsx (update, l'admin)"
+    },
+    "profiles": {
+      "insert": ["id", "ruolo", "nome", "cognome", "data_nascita"],
+      "update": ["data_nascita", "telefono"],
+      "chi": "finalize_registration (insert, non definer), components/app/CompletaEtaForm.tsx, components/app/ProfiloForm.tsx"
+    },
+    "recinto_enti": {
+      "insert": ["student_id", "istituzione_id", "origine"],
+      "update": [],
+      "chi": "lib/app/recinto.ts (upsert con ignoreDuplicates: un insert ... on conflict do nothing)"
+    },
+    "richieste_contatto": {
+      "insert": ["origine", "nome", "ruolo", "istituto", "codice_meccanografico", "email", "messaggio"],
+      "update": ["gestita"],
+      "chi": "app/api/richiesta-contatto/route.ts (insert, anche da collegati), components/admin/ToggleGestitaRichiesta.tsx (update, l'admin)"
+    },
+    "richieste_upgrade": {
+      "insert": ["istituzione_id", "piano_richiesto_id", "note", "stato"],
+      "update": ["stato", "note_kireo"],
+      "chi": "components/ente/RichiediUpgradeButton.tsx (insert), components/admin/AzioneApprovazioneUpgrade.tsx e approva_richiesta_upgrade (update)"
+    },
+    "school_staff": {
+      "insert": ["scuola_profilo_id", "ruolo_staff", "user_id", "codice_invito", "nome_invitato", "email_invitato", "creato_da"],
+      "update": ["attivo", "puo_verificare_studenti", "puo_gestire_classi", "puo_certificare_presenze", "puo_inviare_comunicazioni"],
+      "chi": "crea_invito_tutor (insert, non definer), components/scuola/TogglePermessiTutor.tsx, components/scuola/DisattivaStaffButton.tsx"
+    },
+    "scuole_profili": {
+      "insert": [],
+      "update": ["convenzione_firmata_il", "stato"],
+      "chi": "components/admin/AttivaScuolaControlli.tsx (l'admin)"
+    },
+    "seguiti": {
+      "insert": ["student_id", "istituzione_id"],
+      "update": [],
+      "chi": "components/app/SeguiButton.tsx"
+    },
+    "step_response": {
+      "insert": ["attempt_id", "stanza", "step_id", "tipo", "payload"],
+      "update": ["attempt_id", "stanza", "step_id", "tipo", "payload"],
+      "chi": "components/escape/EscapePlayer.tsx, il banco (giocaMissione): un upsert riscrive ogni colonna che manda, chiave del conflitto compresa"
+    },
+    "student_area_interests": {
+      "insert": ["user_id", "area_slug"],
+      "update": [],
+      "chi": "finalize_registration (non definer), components/app/ProfiloForm.tsx"
+    },
+    "student_profiles": {
+      "insert": ["user_id", "school_code", "classe", "anno_diploma"],
+      "update": ["school_code", "classe"],
+      "chi": "finalize_registration (insert, non definer), components/app/ProfiloForm.tsx"
+    },
+    "teacher_profiles": {
+      "insert": ["user_id", "school_code", "materia", "is_referente_orientamento"],
+      "update": [],
+      "chi": "finalize_registration (non definer)"
+    },
+    "test_attempt": {
+      "insert": ["student_id", "test_slug"],
+      "update": ["item_corrente", "updated_at"],
+      "chi": "components/test/IniziaTest.tsx, app/api/test/t3/inizia/route.ts, components/test/TestPlayer.tsx, il banco (giocaTest)"
+    },
+    "test_response": {
+      "insert": ["attempt_id", "item_id", "payload"],
+      "update": ["attempt_id", "item_id", "payload"],
+      "chi": "components/test/TestPlayer.tsx, app/api/test/t3/inizia/route.ts, il banco (giocaTest): upsert"
+    },
+    "workshop_elaborati": {
+      "insert": ["iscrizione_id", "contenuto", "updated_at"],
+      "update": ["iscrizione_id", "contenuto", "updated_at"],
+      "chi": "components/workshop/elaborato/ElaboratoEditor.tsx, il banco (gioca): upsert"
+    },
+    "workshop_iscrizioni": {
+      "insert": ["workshop_id", "student_id", "ruolo_id"],
+      "update": [],
+      "chi": "components/workshop/IscrizioneRuolo.tsx, il banco (gioca)"
+    },
+    "workshop_messaggi": {
+      "insert": [],
+      "update": ["letto"],
+      "chi": "components/workshop/NetworkPeers.tsx (l'invio passa da invia_messaggio_rete_workshop, definer)"
+    },
+    "workshop_tutor_log": {
+      "insert": ["iscrizione_id", "sezione_id", "modo"],
+      "update": [],
+      "chi": "app/api/workshop/tutor/route.ts (il tetto, scritto prima della chiamata)"
+    }
+  }
+}

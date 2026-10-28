@@ -250,7 +250,11 @@ async function giocaRuolo({ sessione, workshopSlug, ruoloSlug, consegne, fasi, r
 
       const { error: erroreSalva } = await supabase
         .from("workshop_elaborati")
-        .upsert({ iscrizione_id: iscrizione.id, contenuto, fase_corrente: fase.id }, { onConflict: "iscrizione_id" });
+        // Le stesse colonne di ElaboratoEditor, il salvataggio del prodotto.
+        // Fino al 28/10 qui c'era `fase_corrente`, che il prodotto non scrive e
+        // nessuno legge: il robot scriveva una colonna che uno studente non
+        // tocca mai, e dal 20261106100000 il client non la può più scrivere.
+        .upsert({ iscrizione_id: iscrizione.id, contenuto, updated_at: new Date().toISOString() }, { onConflict: "iscrizione_id" });
       if (erroreSalva) {
         return { ...esito, fermato: { dove: fase.id, perche: `salvataggio rifiutato: ${erroreSalva.message}` } };
       }
