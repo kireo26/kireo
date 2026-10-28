@@ -21,4 +21,18 @@
 export const DIDASCALIA_SEGUI = "I suoi post nella tua Bacheca, e a volte una notifica qui. Nessuna email.";
 export const DIDASCALIA_NEWSLETTER =
   "Le sue novità per email, mandate da KIREO: l'ente non vede il tuo indirizzo. Dai 18 anni, per un impegno nostro.";
-export const DIDASCALIA_CONDIVIDI = "L'ente vede nome, scuola e le aree che hai scelto, e può scriverti solo dentro KIREO.";
+// Dal 20261111100000 l'ente vede anche cosa hai fatto VERSO DI LUI (i suoi
+// eventi a cui sei stato e per quanto, la sua guida scaricata): il pannello di
+// conferma lo nomina, e la riga lo dice. Mai i test, le missioni, i workshop.
+export const DIDASCALIA_CONDIVIDI =
+  "L'ente vede nome, scuola, le aree che hai scelto e cosa hai fatto verso di lui, e può scriverti solo dentro KIREO.";
+
+// A PROFILO GIÀ CONDIVISO la riga resta, e dice quello che sta succedendo
+// adesso (Mario, 28/10: «l'unico momento in cui lo studente legge cosa
+// condivide è quello in cui non condivide ancora» — non più). Due forme,
+// perché chi ha condiviso prima del 20261111100000 ha dato un consenso più
+// stretto, e l'ente per lui vede meno: la frase non promette più del vero.
+export const DIDASCALIA_CONDIVISO_CON_ATTIVITA =
+  "L'ente vede nome, scuola, le aree che hai scelto e cosa hai fatto verso di lui. Non vede test, missioni né workshop.";
+export const DIDASCALIA_CONDIVISO_SENZA_ATTIVITA =
+  "L'ente vede nome, scuola e le aree che hai scelto. Non vede test, missioni né workshop.";

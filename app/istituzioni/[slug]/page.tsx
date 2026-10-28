@@ -68,18 +68,23 @@ export default async function IstituzionePubblicaPage({ params }: { params: Prom
   let eta: StatoEta = "sconosciuta";
   let contatto: ContattoEnti = "non_studente";
   let manifestazioneAttivaId: string | null = null;
+  let condivisioneCopreAttivita = false;
   if (user) {
     const { data: profilo } = await supabase.from("profiles").select("ruolo, data_nascita").eq("id", user.id).maybeSingle();
     eta = statoEta(profilo?.data_nascita ?? null);
     contatto = contattoEnti(profilo?.ruolo ?? null, profilo?.data_nascita ?? null);
     const { data: manifestazione } = await supabase
       .from("manifestazioni_interesse")
-      .select("id")
+      .select("id, copre_attivita")
       .eq("student_id", user.id)
       .eq("istituzione_id", istituzione.id)
       .is("revocata_il", null)
       .maybeSingle();
     manifestazioneAttivaId = manifestazione?.id ?? null;
+    // Il consenso dato prima del 20261111100000 non nominava l'attività: la
+    // riga sotto il bottone dice quello che l'ente vede DAVVERO, non quello
+    // che vedrebbe con un consenso nuovo.
+    condivisioneCopreAttivita = manifestazione?.copre_attivita === true;
   }
 
   let conversazioneEsistenteId: string | null = null;
@@ -155,6 +160,7 @@ export default async function IstituzionePubblicaPage({ params }: { params: Prom
             contatto={contatto}
             manifestazioneAttivaId={manifestazioneAttivaId}
             didascalia={DIDASCALIA_CONDIVIDI}
+            copreAttivita={condivisioneCopreAttivita}
           />
         </div>
         {/* Le ragioni dei gesti che mancano stanno SOTTO la fila, mai al posto

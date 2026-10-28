@@ -93,7 +93,8 @@
     "test:caratteri": "node scripts/verifica-caratteri-locali.js",
     "test:comunicazioni": "node scripts/verifica-comunicazioni.js",
     "test:sqleditor": "node scripts/verifica-sql-per-editor.js",
-    "test:bacheca": "node scripts/verifica-bacheca.js"
+    "test:bacheca": "node scripts/verifica-bacheca.js",
+    "test:interessati": "node scripts/verifica-interessati.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.112.5",

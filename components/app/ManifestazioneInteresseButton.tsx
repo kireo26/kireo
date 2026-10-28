@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { Button } from "@/components/Button";
 import { createClient } from "@/lib/supabase/client";
 import type { ContattoEnti } from "@/lib/app/contattoEnti";
+import { DIDASCALIA_CONDIVISO_CON_ATTIVITA, DIDASCALIA_CONDIVISO_SENZA_ATTIVITA } from "@/lib/app/gestiEnte";
 
 // Aperto dai 14 anni, cioè a chiunque possa iscriversi (dal 20261109100000:
 // il blocco dei 18 anni non lo chiedeva nessuna legge, e chiudeva il gesto a
@@ -18,6 +19,7 @@ export default function ManifestazioneInteresseButton({
   contatto,
   manifestazioneAttivaId,
   didascalia,
+  copreAttivita,
 }: {
   istituzioneId: string;
   userId: string | null;
@@ -26,9 +28,14 @@ export default function ManifestazioneInteresseButton({
   contatto: ContattoEnti;
   manifestazioneAttivaId: string | null;
   didascalia?: string;
+  // Che cosa copre la condivisione ATTIVA (20261111100000): obbligatorio,
+  // perché un default direbbe allo studente una cosa diversa da quella che
+  // l'ente vede.
+  copreAttivita: boolean;
 }) {
   const pathname = usePathname();
   const [id, setId] = useState(manifestazioneAttivaId);
+  const [copre, setCopre] = useState(copreAttivita);
   const [mostraInfo, setMostraInfo] = useState(false);
   const [caricamento, setCaricamento] = useState(false);
   const [errore, setErrore] = useState<string | null>(null);
@@ -67,6 +74,9 @@ export default function ManifestazioneInteresseButton({
         return;
       }
       setId(data.id);
+      // Una condivisione nuova nasce con il pannello di oggi, che nomina
+      // l'attività (il valore di partenza della colonna).
+      setCopre(true);
       setMostraInfo(false);
     } finally {
       setCaricamento(false);
@@ -96,6 +106,13 @@ export default function ManifestazioneInteresseButton({
         <Button type="button" variant="outline" onClick={revoca} disabled={caricamento}>
           {caricamento ? "Un momento…" : "Profilo condiviso ✓ — Revoca"}
         </Button>
+        {/* La riga resta anche a profilo condiviso, e qui dice il presente:
+            è il momento in cui descrive quello che sta succedendo. */}
+        {didascalia && (
+          <p className="max-w-[15rem] text-xs leading-snug text-kireo-muted">
+            {copre ? DIDASCALIA_CONDIVISO_CON_ATTIVITA : DIDASCALIA_CONDIVISO_SENZA_ATTIVITA}
+          </p>
+        )}
         {errore && <p className="text-xs text-red-400">{errore}</p>}
       </div>
     );
@@ -116,8 +133,10 @@ export default function ManifestazioneInteresseButton({
       ) : (
         <div className="max-w-sm space-y-3 rounded-xl border border-white/10 bg-kireo-dark/60 p-4 text-left">
           <p className="text-xs text-kireo-muted">
-            L&apos;ente vedrà nome, cognome, la tua scuola e le aree di orientamento che hai scelto. Non condivide mai
-            email o telefono: potrà scriverti solo tramite i messaggi di KIREO. Puoi revocare quando vuoi.
+            L&apos;ente vedrà nome, cognome, la tua scuola e le aree di orientamento che hai scelto, e cosa hai fatto
+            verso di lui su KIREO: a quali suoi eventi hai partecipato e per quanto, e se hai scaricato la sua guida.
+            Non vedrà i tuoi test, le missioni né i workshop. Non condivide mai email o telefono:
+            potrà scriverti solo tramite i messaggi di KIREO. Puoi revocare quando vuoi.
           </p>
           {errore && <p className="text-xs text-red-400">{errore}</p>}
           <div className="flex gap-3">
