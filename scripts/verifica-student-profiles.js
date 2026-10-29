@@ -151,7 +151,11 @@ console.log("\n§4 · nessun punto dell'app scrive le tre colonne della verifica
       if (e.isDirectory()) cammina(p);
       else if (/\.tsx?$/.test(e.name)) {
         const src = require("./lib/senza-commenti").senzaCommenti(fs.readFileSync(p, "utf8"));
-        if (/\b(stato_verifica|verificato_da|verificato_il)\s*:/.test(src)) {
+        // ESENTE, con la ragione (29/10): `lib/app/esportaDati.ts` nomina
+        // `verificato_da` come chiave di COLONNE_ESCLUSE, cioè per dire che
+        // l'export NON la dà. È una dichiarazione, non una scrittura.
+        const esente = path.relative(RADICE, p) === path.join("lib", "app", "esportaDati.ts");
+        if (!esente && /\b(stato_verifica|verificato_da|verificato_il)\s*:/.test(src)) {
           dentro.push(path.relative(RADICE, p));
         }
       }

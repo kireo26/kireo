@@ -365,6 +365,12 @@
       "commit": "7aa3d5d",
       "stato": "verificata",
       "fonte": "Mario 29/10: applicata e verificata; to_regprocedure('public.statistiche_ente(uuid)') is not null → true; has_function_privilege('anon','public.incrementa_scaricamenti_guida(uuid)','execute') → false; sum(contatore_scaricamenti_guide.scaricamenti) = 1 = count(scaricamenti_guide_enti)"
+    },
+    {
+      "file": "20261116100000_scaricamento_guida_resta.sql",
+      "commit": "18cf076",
+      "stato": "verificata",
+      "fonte": "Mario, 29/10: to_regprocedure('public.guide_enti_scaricate()') is not null → true; chiavi esterne su scaricamenti_guide_enti → 1; righe senza titolo_guida → 0. Giro a schermo passato (pubblica, archiviata, export)."
     }
   ]
 }

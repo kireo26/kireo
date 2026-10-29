@@ -49,7 +49,10 @@ const {
   VOCI_DEBITO,
   FUORI,
   COSA_CONTIENE,
+  COLONNE_ESCLUSE,
 } = require("@/lib/app/esportaDati");
+const { colonneDalleMigrazioni } = require("./lib/colonne-tabelle.js");
+const { execFileSync } = require("child_process");
 
 let rossi = 0;
 let fatti = 0;
@@ -386,6 +389,63 @@ ok(/console\.error/.test(esportazione),
   "il browser non può registrare un guasto: quella riga è l'unica traccia che resta");
 ok(esportazione.includes("TESTO_NESSUN_FILE"),
   "il caso «nessun file» ha il suo testo e non un silenzio");
+
+console.log("\n§9 · Il debito può solo scendere (29/10)");
+// LA REGOLA (Mario, 29/10): ogni lotto che aggiunge una tabella con dentro
+// qualcosa che lo studente ha fatto la aggiunge anche all'export, nello stesso
+// commit. Una tabella nuova sotto la cascata nasce rossa in §3; con questo
+// tetto non può più uscirne finendo in ATTESE: va nel file, o in FUORI con il
+// perché. Il tetto si abbassa quando una tabella esce dal debito, mai si alza.
+// Il pavimento sta sulla cascata (§1), che non scende quando l'export cresce.
+const ATTESE_MASSIME = 33;
+ok(ATTESE.length <= ATTESE_MASSIME,
+  `le tabelle dovute e non date sono ${ATTESE.length} (tetto ${ATTESE_MASSIME})`,
+  "una tabella nuova è finita nel debito invece che nel file: mettila in SEZIONI_EXPORT nello stesso commit che la crea");
+if (ATTESE.length < ATTESE_MASSIME) console.log(`  · il tetto si può abbassare a ${ATTESE.length}`);
+
+console.log("\n§10 · Ogni colonna esportata è dello studente, e nessuna è di un altro (29/10)");
+// Fino al 29/10 tre sezioni chiedevano `*`, e il file portava `verificato_da`
+// (il referente che ha verificato) e due bandierine nostre. Ora ogni colonna di
+// una tabella esportata sta nella select o in COLONNE_ESCLUSE con la ragione.
+const tabelleEsportate = SEZIONI_EXPORT.map((s) => s.tabella);
+const colonne = colonneDalleMigrazioni(tabelleEsportate);
+const selezionate = (s) => s.select.split(",").map((c) => c.trim().toLowerCase()).filter(Boolean);
+ok(SEZIONI_EXPORT.every((s) => !selezionate(s).includes("*")),
+  "nessuna sezione chiede `*`: una colonna nuova non entra nel file da sola",
+  SEZIONI_EXPORT.filter((s) => selezionate(s).includes("*")).map((s) => s.tabella).join(", "));
+// Pavimento sul lettore: colonne note, che la lettura deve trovare.
+const noti = [["profiles", "di_prova"], ["student_profiles", "verificato_da"], ["scaricamenti_guide_enti", "titolo_guida"]];
+ok(noti.every(([t, c]) => colonne.get(t)?.has(c)) && [...colonne.values()].reduce((n, m) => n + m.size, 0) > 30,
+  `il lettore delle colonne legge le tabelle esportate (${[...colonne.values()].reduce((n, m) => n + m.size, 0)} colonne)`,
+  "sotto le trenta, o senza le tre colonne note, il lettore ha smesso di leggere");
+for (const s of SEZIONI_EXPORT) {
+  const vere = colonne.get(s.tabella) ?? new Map();
+  const escluse = COLONNE_ESCLUSE[s.tabella] ?? {};
+  const sel = new Set(selezionate(s));
+  const scoperte = [...vere.keys()].filter((c) => c !== s.colonna && !sel.has(c) && !(c in escluse));
+  ok(scoperte.length === 0, `${s.tabella}: ogni colonna è nel file o esclusa con la ragione`,
+    `senza decisione: ${scoperte.join(", ")} → nella select, o in COLONNE_ESCLUSE con il perché`);
+  const inesistenti = [...sel, ...Object.keys(escluse)].filter((c) => !vere.has(c));
+  ok(inesistenti.length === 0, `${s.tabella}: la select e le esclusioni nominano colonne che esistono`, inesistenti.join(", "));
+  const altrui = [...sel].filter((c) => vere.get(c) === true && c !== s.colonna);
+  ok(altrui.length === 0, `${s.tabella}: nessuna colonna esportata punta a un'altra persona`,
+    `${altrui.join(", ")} è una chiave verso profiles: il file porterebbe l'identificativo di qualcun altro`);
+  ok(Object.values(escluse).every((r) => typeof r === "string" && r.length > 20), `${s.tabella}: ogni esclusione ha la sua ragione`);
+}
+ok(!SEZIONI_EXPORT.some((s) => /\b(di_prova|esente_cancelli|verificato_da)\b/.test(s.select)),
+  "le tre colonne del 29/10 non tornano nel file");
+// Il confronto con il catalogo vero, quando c'è una replica.
+const CONN = process.env.CONN;
+if (!CONN) {
+  console.log("  · NON HO GUARDATO la replica (CONN non è impostata): le colonne vengono solo dalle migrazioni.");
+} else {
+  const vere = execFileSync("psql", [CONN, "-At", "-c",
+    `select table_name || '.' || column_name from information_schema.columns where table_schema = 'public' and table_name in (${tabelleEsportate.map((t) => `'${t}'`).join(",")})`],
+  { encoding: "utf8" }).trim().split("\n").filter(Boolean).sort();
+  const lette = [...colonne].flatMap(([t, m]) => [...m.keys()].map((c) => `${t}.${c}`)).sort();
+  ok(JSON.stringify(vere) === JSON.stringify(lette), `sulla replica le colonne sono quelle lette dalle migrazioni (${vere.length})`,
+    `solo sulla replica: ${vere.filter((x) => !lette.includes(x)).join(", ")} · solo lette: ${lette.filter((x) => !vere.includes(x)).join(", ")}`);
+}
 
 console.log(`\n${rossi === 0 ? "✓" : "✗"} ${fatti - rossi}/${fatti} proprietà verificate\n`);
 process.exit(rossi === 0 ? 0 : 1);

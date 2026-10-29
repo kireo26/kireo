@@ -102,7 +102,7 @@ export const SEZIONI_EXPORT: SezioneExport[] = [
     chiave: "profilo",
     tabella: "profiles",
     colonna: "id",
-    select: "*",
+    select: "ruolo, nome, cognome, data_nascita, telefono, comunicazioni_kireo, comunicazioni_kireo_il, created_at",
     singola: true,
     voce: "I tuoi dati di profilo: nome, cognome, e quello che hai scritto nel tuo profilo",
   },
@@ -110,7 +110,7 @@ export const SEZIONI_EXPORT: SezioneExport[] = [
     chiave: "scuola",
     tabella: "student_profiles",
     colonna: "user_id",
-    select: "*",
+    select: "school_code, classe, anno_diploma, stato_verifica, verificato_il, created_at",
     singola: true,
     // ⚠️ Non «il tuo profilo»: questa tabella è la SCUOLA e la CLASSE. La
     // prima stesura della riga del debito le chiamava col nome di `profiles`,
@@ -130,7 +130,7 @@ export const SEZIONI_EXPORT: SezioneExport[] = [
     chiave: "attivita",
     tabella: "student_activities",
     colonna: "student_id",
-    select: "*",
+    select: "activity_id, stato, ore_certificate, completed_at, created_at",
     singola: false,
     // ⚠️ LA VOCE DICHIARA DI ESSERE VUOTA, E DEVE. Nessun codice scrive
     // `student_activities` — solo `select`, verificato — quindi questa sezione
@@ -160,6 +160,45 @@ export const SEZIONI_EXPORT: SezioneExport[] = [
     voce: "Le guide degli enti che hai scaricato: il titolo, l'ente e quando",
   },
 ];
+
+/**
+ * LE COLONNE CHE IL FILE NON DÀ, ognuna con la sua ragione (29/10, Mario).
+ *
+ * Fino al 29/10 tre sezioni chiedevano `select: "*"`, e il file portava
+ * `verificato_da`: l'identificativo del referente della scuola che ha
+ * verificato lo studente. *Il diritto a riavere i propri dati non include
+ * quelli altrui.* E portava `di_prova` ed `esente_cancelli`, che sono
+ * bandierine nostre e in gergo nostro. Da allora ogni sezione elenca le sue
+ * colonne, e ogni colonna di una tabella esportata o sta nella `select` o sta
+ * qui: `npm run test:export` legge le colonne dalle migrazioni e diventa rosso
+ * su una colonna che non sta da nessuna delle due parti. Una colonna nuova
+ * nasce rossa finché qualcuno non dice se è dello studente.
+ *
+ * La colonna su cui si filtra (`colonna` della sezione) è esclusa da sé: è
+ * l'identificativo di chi scarica, e non dice niente a chi legge.
+ */
+export const COLONNE_ESCLUSE: Record<string, Record<string, string>> = {
+  profiles: {
+    updated_at: "tecnica: quando la riga è stata toccata l'ultima volta, non un fatto suo",
+    di_prova: "nostra: dice come trattiamo l'account nei conteggi delle prove, non qualcosa su di lui",
+    esente_cancelli: "nostra: dice se l'account salta i cancelli nelle prove, non qualcosa su di lui",
+  },
+  student_profiles: {
+    updated_at: "tecnica: quando la riga è stata toccata l'ultima volta",
+    // ⚠️ Lo stato e la data della verifica ci sono («verificata dalla tua
+    // scuola il …»): quello che esce è CHI, perché è un'altra persona.
+    verificato_da: "di un'altra persona: l'identificativo del referente della scuola che ha verificato",
+  },
+  student_activities: {
+    id: "tecnica: l'identificativo interno della riga",
+    updated_at: "tecnica: quando la riga è stata toccata l'ultima volta",
+  },
+  student_area_interests: {},
+  scaricamenti_guide_enti: {
+    guida_id: "tecnica: l'identificativo interno della guida, che dopo una cancellazione non porta a niente; il titolo copiato sta nel file",
+    istituzione_id: "tecnica: l'identificativo interno dell'ente; il nome copiato sta nel file",
+  },
+};
 
 /**
  * Le quattro nature in cui si divide quello che abbiamo su uno studente. La

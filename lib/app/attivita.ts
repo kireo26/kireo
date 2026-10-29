@@ -10,7 +10,7 @@ import { descriviErrore } from "@/lib/erroreSupabase";
 
 export type VoceStorico = {
   id: string;
-  tipo: "attivita" | "evento";
+  tipo: "attivita" | "evento" | "guida";
   titolo: string;
   data: string;
   oreCertificate: number | null;
@@ -140,8 +140,51 @@ export async function getStoricoAttivita(supabase: SupabaseClient, userId: strin
     vociEventi = [];
   }
 
-  return [...vociAttivita, ...vociEventi].sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime());
+  // LE GUIDE DEGLI ENTI SCARICATE (29/10, Mario: che lo studente ritrovi
+  // tutto in un posto). ⚠️ Si RACCONTANO e non si CONTANO: qui si legge
+  // `scaricamenti_guide_enti`, che nessun punteggio legge. Una riga in
+  // `activity_log` muoverebbe il radar e le affinità, e per farlo dovrebbe
+  // attribuire il gesto a un'area — ma una guida d'ente non ne ha una sola,
+  // l'ente ne ha fino a sei, e sceglierne una vorrebbe dire inventare il
+  // segnale. *Un dato che per entrare in una tabella deve essere inventato non
+  // ci entra.* Quindi questa voce nello storico non muove le affinità, e non
+  // va spostata in `activity_log` per «allinearla» alle guide di KIREO.
+  // Il titolo e l'ente sono quelli copiati al momento dello scaricamento
+  // (20261116100000): restano anche se l'ente ha tolto la guida.
+  let vociGuide: VoceStorico[] = [];
+  try {
+    const { data, error } = await supabase
+      .from("scaricamenti_guide_enti")
+      .select("guida_id, titolo_guida, ente_nome, created_at")
+      .eq("student_id", userId);
+    if (error) console.error("getStoricoAttivita: guide degli enti non leggibili", descriviErrore(error));
+    vociGuide = ((data ?? []) as { guida_id: string; titolo_guida: string; ente_nome: string; created_at: string }[]).map((r) => ({
+      id: `guida-${r.guida_id}`,
+      tipo: "guida" as const,
+      titolo: r.titolo_guida,
+      data: r.created_at,
+      oreCertificate: null,
+      esito: testoGuidaStorico(r.ente_nome),
+    }));
+  } catch (e) {
+    console.error("getStoricoAttivita: guide degli enti non leggibili", e);
+    vociGuide = [];
+  }
+
+  return [...vociAttivita, ...vociEventi, ...vociGuide].sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime());
 }
+
+/** La riga di una guida d'ente nello storico. Testo mio e provvisorio (29/10). */
+export function testoGuidaStorico(enteNome: string): string {
+  return `Hai scaricato la guida di ${enteNome}. La ritrovi in Guide.`;
+}
+
+/** L'etichetta della pastiglia di una voce dello storico. */
+export const ETICHETTA_VOCE_STORICO: Record<VoceStorico["tipo"], string> = {
+  attivita: "Attività",
+  evento: "Evento",
+  guida: "Guida",
+};
 
 export type VoceEsplorazione = { id: string; testo: string; data: string };
 

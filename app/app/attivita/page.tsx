@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getAppContext } from "@/lib/app/studentContext";
 import { createClient } from "@/lib/supabase/server";
-import { getStoricoAttivita, getPercorsoEsplorazione, getPercorsoRitratto, getSuggerimentiPerAree } from "@/lib/app/attivita";
+import { getStoricoAttivita, getPercorsoEsplorazione, getPercorsoRitratto, getSuggerimentiPerAree, ETICHETTA_VOCE_STORICO } from "@/lib/app/attivita";
 import { getOreCertificate, testoOreCertificate } from "@/lib/app/pcto";
 import { formattaData } from "@/lib/formato";
 import { numeroOre } from "@/lib/eventi/orePcto";
@@ -114,7 +114,7 @@ export default async function AttivitaAppPage() {
       <div>
         <h2 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">Storico</h2>
         {storico.length === 0 ? (
-          <p className="mt-3 text-sm text-kireo-muted">Nessuna attività scolastica o iscrizione a eventi, per ora.</p>
+          <p className="mt-3 text-sm text-kireo-muted">Nessuna attività scolastica, iscrizione a eventi o guida di un ente scaricata, per ora.</p>
         ) : (
           <ul className="mt-4 space-y-3">
             {storico.map((voce) => (
@@ -125,10 +125,10 @@ export default async function AttivitaAppPage() {
                 <div>
                   <span
                     className={`mr-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-                      voce.tipo === "evento" ? "bg-kireo-orange/15 text-kireo-orange" : "bg-kireo-green/15 text-kireo-green-light"
+                      voce.tipo === "evento" ? "bg-kireo-orange/15 text-kireo-orange" : voce.tipo === "guida" ? "bg-white/10 text-kireo-light" : "bg-kireo-green/15 text-kireo-green-light"
                     }`}
                   >
-                    {voce.tipo === "evento" ? "Evento" : "Attività"}
+                    {ETICHETTA_VOCE_STORICO[voce.tipo]}
                   </span>
                   <span className="font-heading text-sm font-semibold text-kireo-light">{voce.titolo}</span>
                   <p className="mt-1 text-xs text-kireo-muted">

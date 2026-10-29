@@ -54,6 +54,16 @@ else
   echo "  ✓ $(tail -1 "$OUT/colonne.out")"; COLONNE_ROSSE=0
 fi
 
+# LE COLONNE DELL'EXPORT SULLA REPLICA (29/10): la metà di `npm run test:export`
+# che confronta le colonne lette dalle migrazioni con il catalogo vero (§10).
+echo "colonne dell'export, sulla replica:"
+if ! CONN="$CONN" node "$RADICE/scripts/verifica-export-dati.js" >"$OUT/export.out" 2>&1 || ! grep -q "sulla replica le colonne" "$OUT/export.out"; then
+  grep -E '✗|ROSSA' "$OUT/export.out" | head -6 | sed 's/^/  /'
+  echo "  ✗ verifica-export-dati (uscita in $OUT/export.out)"; COLONNE_ROSSE=1
+else
+  echo "  ✓ $(grep "sulla replica le colonne" "$OUT/export.out" | sed 's/^ *ok *//')"
+fi
+
 # Diagnostica, non asserzioni: il perché accanto a ognuno.
 declare -A DIAGNOSTICA=(
   [verifica-cascata-profili]="stampa la chiusura della cascata da confrontare con scripts/lib/cascata-profili.js"

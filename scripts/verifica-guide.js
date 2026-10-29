@@ -516,6 +516,21 @@ const supabaseSpia = () => {
   ok(canc?.pdfUrl === null, "una guida cancellata non offre un file, anche se ne arriva uno");
   const [arch] = await leggiGuideScaricate(finto({ data: [riga("archiviata", "https://esempio.it/a.pdf")], error: null }));
   ok(arch?.pdfUrl === "https://esempio.it/a.pdf" && arch.titolo === "Programma eventi" && arch.enteNome === "Davante", "un'archiviata offre il suo file, con il titolo e l'ente di quel momento");
+  // Lo storico racconta lo scaricamento, eseguito con un client finto.
+  const { getStoricoAttivita, testoGuidaStorico, ETICHETTA_VOCE_STORICO } = require("@/lib/app/attivita");
+  const righeFinte = { scaricamenti_guide_enti: { data: [{ guida_id: "g1", titolo_guida: "Programma eventi", ente_nome: "Davante", created_at: "2026-10-29T15:00:00Z" }], error: null } };
+  const viste = [];
+  const clientStorico = { from(t) { viste.push(t); const r = righeFinte[t] ?? { data: [], error: null }; const b = { select: () => b, eq: () => b, then: (ok2) => ok2(r) }; return b; } };
+  const storico = await getStoricoAttivita(clientStorico, "u1");
+  const vg = storico.find((v) => v.tipo === "guida");
+  ok(vg?.titolo === "Programma eventi" && vg.esito === "Hai scaricato la guida di Davante. La ritrovi in Guide." && vg.oreCertificate === null,
+    `lo storico racconta la guida scaricata, con titolo ed ente copiati e senza ore [${vg?.titolo} · ${vg?.esito}]`);
+  ok(!viste.includes("activity_log"), "lo storico non legge activity_log per le guide: le racconta, non le conta");
+  ok(ETICHETTA_VOCE_STORICO.guida === "Guida" && trovaAccordi(testoGuidaStorico("X")).length === 0, "la pastiglia dice «Guida», e il testo non accorda col genere");
+  righeFinte.scaricamenti_guide_enti = { data: null, error: { message: "finto" } };
+  ok(!(await getStoricoAttivita(clientStorico, "u1")).some((v) => v.tipo === "guida"), "una lettura fallita non inventa righe");
+  const attivitaSrc = fs.readFileSync(path.join(ROOT, "lib/app/attivita.ts"), "utf8");
+  ok(/non muove le affinità/.test(attivitaSrc), "accanto alla lettura è scritto che quella voce non muove le affinità");
   ok(TGS.stato(canc) === "Il file non è più disponibile: l'ente ha tolto questa guida.", `la cancellata lo dice [${TGS.stato(canc)}]`);
   ok(TGS.stato({ ...arch, stato: "pubblica" }) === null, "una guida ancora pubblica non ha una riga di stato");
   ok(TGS.riga(arch) === "Davante · scaricata il 29 ottobre 2026", `la riga dice ente e data [${TGS.riga(arch)}]`);
