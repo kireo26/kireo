@@ -7,8 +7,14 @@
 --     oggi non la manda), 3 (dal SQL Editor resta vuota), 4 (un approvato
 --     senza data entra), e 2 (il client la scrive, manca anche la seconda);
 --   - su una replica nata senza la sola 20261110110000: 2.
--- Verdi nei due mondi: 5 (rifiutare senza data va bene) e 6 (l'admin approva,
--- la strada vera).
+-- Verdi nei due mondi: 5 (rifiutare senza data va bene).
+--
+-- ⚠️ DAL 29/10 (20261113110000/120000) I POST NON PASSANO PIÙ DA UN'APPROVAZIONE:
+-- si pubblicano subito, e il client non aggiorna più `post_enti`. La 6 diceva
+-- «l'admin approva dal client», che era la strada vera; ora dice il contrario,
+-- e la 1 e la 5 girano dal SQL Editor, l'unica strada da cui un `approvato`
+-- (storia) si scrive ancora. La proprietà che resta è quella di questa prova:
+-- la data di approvazione la scrive il database, chiunque scriva.
 
 begin;
 
@@ -31,18 +37,13 @@ insert into public.post_enti(id, istituzione_id, tipo, corpo, stato) values
 set local role authenticated;
 set local request.jwt.claim.sub = 'ad000000-0000-0000-0000-0000000000ad';
 
--- 6 e 1) l'admin approva dal client, come AzioneApprovazionePost
+-- 6) l'admin non approva più un post dal client (dal 20261113120000)
 do $$ begin
   update public.post_enti set stato = 'approvato', approvato_da = 'ad000000-0000-0000-0000-0000000000ad'
    where id = '90000000-0000-0000-0000-000000000001';
-  insert into esiti select 6, 'l''admin approva un post dal client', 'approvato',
-    stato = 'approvato', stato::text from public.post_enti where id = '90000000-0000-0000-0000-000000000001';
-  insert into esiti select 1, 'la data è quella del database, non del browser', 'entro un minuto da adesso',
-    approvato_il between now() - interval '1 minute' and now() + interval '1 minute', coalesce(approvato_il::text, 'vuota')
-    from public.post_enti where id = '90000000-0000-0000-0000-000000000001';
+  insert into esiti values (6, 'l''admin non approva più un post dal client', 'RESPINTO', false, '*** PASSA ***');
 exception when others then
-  insert into esiti values (6, 'l''admin approva un post dal client', 'approvato', false, 'respinto: ' || sqlerrm);
-  insert into esiti values (1, 'la data è quella del database, non del browser', 'entro un minuto da adesso', false, 'respinto: ' || sqlerrm);
+  insert into esiti values (6, 'l''admin non approva più un post dal client', 'RESPINTO', sqlstate = '42501', 'respinto: ' || sqlerrm);
 end $$;
 
 -- 2) l'admin prova a scegliersi la data, come faceva il codice di prima
@@ -55,7 +56,21 @@ exception when others then
   insert into esiti values (2, 'il client non sceglie la data di approvazione', 'RESPINTO', sqlstate = '42501', 'respinto: ' || sqlerrm);
 end $$;
 
--- 5) controllo: rifiutare senza data va bene
+
+reset role;
+
+-- 1) dal SQL Editor, una data scritta a mano: il database la riscrive
+do $$ begin
+  update public.post_enti set stato = 'approvato', approvato_il = '2020-01-01'
+   where id = '90000000-0000-0000-0000-000000000001';
+  insert into esiti select 1, 'la data è quella del database, anche se chi scrive ne manda un''altra', 'entro un minuto da adesso',
+    approvato_il between now() - interval '1 minute' and now() + interval '1 minute', coalesce(approvato_il::text, 'vuota')
+    from public.post_enti where id = '90000000-0000-0000-0000-000000000001';
+exception when others then
+  insert into esiti values (1, 'la data è quella del database, anche se chi scrive ne manda un''altra', 'entro un minuto da adesso', false, 'respinto: ' || sqlerrm);
+end $$;
+
+-- 5) controllo: rifiutare (dal SQL Editor) senza data va bene
 do $$ begin
   update public.post_enti set stato = 'rifiutato', motivo_rifiuto = 'Non va'
    where id = '90000000-0000-0000-0000-000000000005';
@@ -65,7 +80,6 @@ do $$ begin
 exception when others then
   insert into esiti values (5, 'rifiutare un post non chiede una data di approvazione', 'rifiutato, senza data', false, 'respinto: ' || sqlerrm);
 end $$;
-reset role;
 
 -- 3) dal SQL Editor (postgres, nessuna sessione) la data c'è lo stesso
 do $$ begin

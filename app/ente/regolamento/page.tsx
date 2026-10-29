@@ -34,7 +34,7 @@ const REGOLE = [
   {
     titolo: "Rispetto della revisione KIREO",
     testo:
-      "Eventi, post di bacheca e le aree di competenza proposte passano da una revisione prima di comparire pubblicamente. Un rifiuto è sempre motivato: adeguarsi alle indicazioni ricevute è condizione per restare su KIREO.",
+      "Eventi e aree di competenza proposte passano da una revisione prima di comparire pubblicamente. I post di bacheca si pubblicano subito, e KIREO può toglierli dal feed se non rispettano queste regole. Un rifiuto o una rimozione sono sempre motivati: adeguarsi alle indicazioni ricevute è condizione per restare su KIREO.",
   },
 ];
 

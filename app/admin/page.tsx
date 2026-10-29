@@ -5,7 +5,8 @@ import AzioneApprovazioneUpgrade from "@/components/admin/AzioneApprovazioneUpgr
 import AttivaIstituzioneButton from "@/components/admin/AttivaIstituzioneButton";
 import AttivaScuolaControlli from "@/components/admin/AttivaScuolaControlli";
 import ToggleGestitaRichiesta from "@/components/admin/ToggleGestitaRichiesta";
-import AzioneApprovazionePost from "@/components/admin/AzioneApprovazionePost";
+import TogliPost from "@/components/admin/TogliPost";
+import NotificheBell from "@/components/app/NotificheBell";
 import AzioneChiudiConversazione from "@/components/admin/AzioneChiudiConversazione";
 import LogoutButton from "@/components/LogoutButton";
 import { ETICHETTA_PIANO } from "@/lib/ente/pianoSuccessivo";
@@ -13,9 +14,11 @@ import { formattaData, formattaDataOra } from "@/lib/formato";
 import { contaDaApprovare } from "@/lib/admin/caricaEventiAdmin";
 import { etichettaDaApprovare } from "@/lib/admin/eventiAdmin";
 import { getQuotePerRevisione, testoQuotaRevisione } from "@/lib/ente/quote";
+import { descriviErrore } from "@/lib/erroreSupabase";
+import { etichettaStatoPost, leggiMotiviPost, rigaMotivo } from "@/lib/ente/post";
 
 export default async function AdminPage() {
-  const { supabase, nome } = await requireAdmin();
+  const { supabase, nome, userId } = await requireAdmin();
 
   const [
     { data: istituzioniInAttesa },
@@ -24,7 +27,7 @@ export default async function AdminPage() {
     { data: scuoleInAttesa },
     { data: messaggiScuola },
     { data: richiesteContatto },
-    { data: postInApprovazione },
+    { data: postEnti, error: errorePostEnti },
     { data: conversazioniEnti },
     daApprovare,
   ] = await Promise.all([
@@ -52,9 +55,10 @@ export default async function AdminPage() {
       .order("created_at", { ascending: true }),
     supabase
       .from("post_enti")
-      .select("id, tipo, corpo, immagine_url, embed_url, created_at, istituzioni(nome)")
-      .eq("stato", "in_approvazione")
-      .order("created_at", { ascending: true }),
+      .select("id, tipo, corpo, immagine_url, embed_url, stato, visibile, visibile_dal, tolto_il, created_at, istituzioni(nome)")
+      .in("stato", ["pubblicato", "approvato", "tolto"])
+      .order("created_at", { ascending: false })
+      .limit(40),
     supabase
       .from("conversazioni_enti")
       .select("id, stato, created_at, profiles!student_id(nome, cognome), istituzioni(nome)")
@@ -69,6 +73,20 @@ export default async function AdminPage() {
   const quotePerEnte = new Map(
     await Promise.all(entiInCoda.map(async (id) => [id, await getQuotePerRevisione(supabase, id)] as const)),
   );
+
+  // I post degli enti (29/10): si pubblicano subito, e da qui si tolgono. Per
+  // ognuno quante notifiche «Nuovo post» sono già partite, che la conferma
+  // dice prima del gesto; `null` se non si è riusciti a contarle.
+  const idPost = (postEnti ?? []).map((p) => p.id as string);
+  const { data: notifichePost, error: erroreNotifichePost } =
+    idPost.length > 0
+      ? await supabase.from("notifiche_studenti").select("riferimento_id").eq("tipo", "nuovo_post").in("riferimento_id", idPost)
+      : { data: [] as { riferimento_id: string }[], error: null };
+  if (errorePostEnti) console.error("[admin] post degli enti:", descriviErrore(errorePostEnti));
+  if (erroreNotifichePost) console.error("[admin] notifiche dei post:", descriviErrore(erroreNotifichePost));
+  const notifichePerPost = new Map<string, number>();
+  for (const n of notifichePost ?? []) notifichePerPost.set(n.riferimento_id, (notifichePerPost.get(n.riferimento_id) ?? 0) + 1);
+  const motiviPost = await leggiMotiviPost(supabase, (postEnti ?? []).filter((p) => p.stato === "tolto").map((p) => p.id as string));
 
   const { data: scuoleProfiloPerMessaggio } =
     messaggiScuola && messaggiScuola.length > 0
@@ -92,7 +110,10 @@ export default async function AdminPage() {
           <p className="mb-2 font-sans text-sm font-semibold uppercase tracking-wide text-kireo-orange">Admin KIREO</p>
           <h1 className="py-1 font-heading text-3xl font-bold leading-[1.25] text-kireo-light">Ciao {nome}</h1>
         </div>
-        <LogoutButton />
+        <div className="flex items-center gap-3">
+          <NotificheBell userId={userId} />
+          <LogoutButton />
+        </div>
       </div>
 
       <section className="mb-12">
@@ -138,20 +159,30 @@ export default async function AdminPage() {
         <p className="mt-1 text-xs text-kireo-muted">In programmazione, eventi passati e rifiutati stanno nella stessa pagina.</p>
       </section>
 
-      <section className="mb-12">
-        <h2 className="py-0.5 font-heading text-xl font-semibold leading-[1.25] text-kireo-light">Post in approvazione</h2>
-        {!postInApprovazione || postInApprovazione.length === 0 ? (
-          <p className="mt-4 text-sm text-kireo-muted">Nessun post in coda.</p>
+      {/* I POST NON PASSANO PIÙ DA UNA CODA (Mario, 29/10): si pubblicano
+          subito, l'admin riceve una notifica, e da qui si tolgono con una
+          motivazione. Qui c'era «Post in approvazione». */}
+      <section className="mb-12" id="post">
+        <h2 className="py-0.5 font-heading text-xl font-semibold leading-[1.25] text-kireo-light">Post degli enti</h2>
+        <p className="mt-1 text-xs text-kireo-muted">Si pubblicano subito. Un post che non rispetta il regolamento si toglie dal feed con un motivo, che arriva all&apos;ente.</p>
+        {errorePostEnti ? (
+          <p className="mt-4 text-sm text-amber-200">Non siamo riusciti a leggere i post: ricarica la pagina.</p>
+        ) : !postEnti || postEnti.length === 0 ? (
+          <p className="mt-4 text-sm text-kireo-muted">Nessun post pubblicato.</p>
         ) : (
           <ul className="mt-4 space-y-4">
-            {postInApprovazione.map((p) => {
+            {postEnti.map((p) => {
               const organizzatore = Array.isArray(p.istituzioni) ? p.istituzioni[0] : p.istituzioni;
+              const stato = etichettaStatoPost(p.stato as string);
+              const motivo = rigaMotivo(p.stato as string, motiviPost, p.id as string, (p.tolto_il as string | null) ?? null);
               return (
-                <li key={p.id} className="rounded-xl border border-white/5 bg-kireo-card p-4">
+                <li key={p.id} id={`post-${p.id}`} className="rounded-xl border border-white/5 bg-kireo-card p-4">
                   <p className="font-heading text-sm font-semibold text-kireo-light">
                     {organizzatore?.nome ?? "—"} ·{" "}
-                    <span className="text-xs font-normal uppercase tracking-wide text-kireo-muted">{p.tipo}</span>
+                    <span className="text-xs font-normal uppercase tracking-wide text-kireo-muted">{p.tipo}</span>{" "}
+                    <span className={`ml-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${stato.classe}`}>{stato.label}</span>
                   </p>
+                  <p className="mt-1 text-xs text-kireo-muted">{formattaDataOra(p.created_at, "long")}</p>
                   <p className="mt-2 whitespace-pre-wrap text-sm text-kireo-light/90">{p.corpo}</p>
                   {p.immagine_url && (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -162,7 +193,10 @@ export default async function AdminPage() {
                       {p.embed_url}
                     </a>
                   )}
-                  <AzioneApprovazionePost id={p.id} />
+                  {motivo && <p className="mt-2 text-xs text-red-300">{motivo}</p>}
+                  {p.visibile && (
+                    <TogliPost id={p.id as string} notifiche={erroreNotifichePost ? null : (notifichePerPost.get(p.id as string) ?? 0)} />
+                  )}
                 </li>
               );
             })}

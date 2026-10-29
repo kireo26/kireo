@@ -5,26 +5,29 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/Button";
 import { inputClass, fieldBorder } from "@/lib/formStyles";
 import { createClient } from "@/lib/supabase/client";
+import { TESTI_POST } from "@/lib/ente/post";
+import { descriviErrore } from "@/lib/erroreSupabase";
 
 const MAX_CORPO = 2000;
 const MAX_IMMAGINE_MB = 5;
-const MAX_POST_IN_REVISIONE = 3;
 const REGEX_EMBED = /^https:\/\/(www\.)?(instagram\.com|tiktok\.com)\//i;
 
-// tipo=link_social riservato ai piani a pagamento (gating anche
-// server-side, vedi post_enti_insert_propria): qui l'opzione è nascosta
-// invece di mostrata-e-poi-respinta, con un nudge esplicito.
+// tipo=link_social riservato ai piani a pagamento (anche nel database, dal
+// 20261113110000 un trigger suo: post_enti_tipo_dal_piano): qui l'opzione è
+// spenta invece di mostrata-e-poi-respinta, con un nudge esplicito.
+// Il post si pubblica subito (29/10): il tetto è di 3 nelle ultime 24 ore, e
+// la pagina passa `avvisoTetto` con l'ora da cui si potrà di nuovo.
 export default function CreaPostForm({
   istituzioneId,
-  postInRevisione,
+  avvisoTetto,
   pianoAPagamento,
 }: {
   istituzioneId: string;
-  postInRevisione: number;
+  avvisoTetto: string | null;
   pianoAPagamento: boolean;
 }) {
   const router = useRouter();
-  const fairUseRaggiunto = postInRevisione >= MAX_POST_IN_REVISIONE;
+  const fairUseRaggiunto = avvisoTetto !== null;
   const [tipo, setTipo] = useState<"testo" | "immagine" | "link_social">("testo");
   const [corpo, setCorpo] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -50,7 +53,7 @@ export default function CreaPostForm({
     e.preventDefault();
     setErroreGenerale(null);
     if (fairUseRaggiunto) {
-      setErroreGenerale("Hai già 3 post in attesa di revisione: attendi l'esito prima di proporne altri.");
+      setErroreGenerale(avvisoTetto);
       return;
     }
     const validazione = validate();
@@ -83,10 +86,14 @@ export default function CreaPostForm({
       });
 
       if (error) {
-        if (error.message?.includes("troppi_post_in_revisione")) {
-          setErroreGenerale("Hai già 3 post in attesa di revisione: attendi l'esito prima di proporne altri.");
+        if (error.message?.includes("troppi_post_nelle_24_ore")) {
+          setErroreGenerale(TESTI_POST.tettoDalDatabase);
+          router.refresh();
+        } else if (error.message?.includes("link_social_solo_piani_a_pagamento")) {
+          setErroreGenerale(TESTI_POST.linkSocialSoloAPagamento);
         } else {
-          setErroreGenerale("Non è stato possibile inviare il post. Riprova più tardi.");
+          console.error("[ente] pubblicazione di un post:", descriviErrore(error));
+          setErroreGenerale("Non è stato possibile pubblicare il post. Riprova più tardi.");
         }
         return;
       }
@@ -103,8 +110,8 @@ export default function CreaPostForm({
   if (inviato) {
     return (
       <div className="rounded-2xl border border-kireo-green/40 bg-kireo-card p-8 text-center">
-        <h3 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">Post inviato in approvazione</h3>
-        <p className="mt-2 text-sm text-kireo-muted">KIREO lo revisiona prima che compaia nel feed degli studenti.</p>
+        <h3 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">{TESTI_POST.pubblicato}</h3>
+        <p className="mt-2 text-sm text-kireo-muted">{pianoAPagamento ? TESTI_POST.pubblicatoConNotifica : TESTI_POST.pubblicatoDettaglio}</p>
       </div>
     );
   }
@@ -114,7 +121,7 @@ export default function CreaPostForm({
       {erroreGenerale && <p className="rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">{erroreGenerale}</p>}
       {fairUseRaggiunto && (
         <div className="rounded-lg border border-kireo-orange/40 bg-kireo-orange/10 px-4 py-3 text-sm text-kireo-orange">
-          Hai già 3 post in attesa di revisione. Attendi l&apos;esito di KIREO su almeno uno di questi prima di proporne altri.
+          {avvisoTetto}
         </div>
       )}
 
@@ -199,7 +206,7 @@ export default function CreaPostForm({
       )}
 
       <Button type="submit" variant="primary" className="w-full" disabled={inviando || fairUseRaggiunto}>
-        {fairUseRaggiunto ? "3 post già in revisione" : inviando ? "Invio in corso…" : "Invia in approvazione"}
+        {fairUseRaggiunto ? TESTI_POST.bottoneTetto : inviando ? "Pubblicazione…" : TESTI_POST.bottone}
       </Button>
       <p className="text-center text-xs text-kireo-muted">
         Ricorda il{" "}

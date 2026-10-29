@@ -16,8 +16,8 @@
 //
 // OGNI TIPO APPARTIENE A UN RUOLO SOLO, quindi il link lo decide il tipo e
 // non serve sapere chi guarda: lo studente per post/eventi/workshop, l'ente
-// per le proposte ricevute e per la chiave di trasmissione, la scuola per la
-// risposta a una proposta. Un ripiego unico su `/app` manderebbe un
+// per le proposte ricevute, per la chiave di trasmissione e per un suo post
+// tolto, la scuola per la risposta a una proposta, l'admin per un post nuovo. Un ripiego unico su `/app` manderebbe un
 // referente e un ente in un'area che non è la loro.
 
 export type TipoNotifica =
@@ -28,7 +28,9 @@ export type TipoNotifica =
   | "proposta_incontro_ricevuta"
   | "proposta_incontro_risposta"
   | "chiave_trasmissione_pronta"
-  | "chiave_trasmissione_cambiata";
+  | "chiave_trasmissione_cambiata"
+  | "post_pubblicato"
+  | "post_tolto";
 
 export const ETICHETTA_TIPO: Record<TipoNotifica, string> = {
   nuovo_post: "Nuovo post di un ente che segui",
@@ -39,6 +41,9 @@ export const ETICHETTA_TIPO: Record<TipoNotifica, string> = {
   proposta_incontro_risposta: "Un ente ha risposto alla tua proposta di incontro",
   chiave_trasmissione_pronta: "La chiave di trasmissione della tua diretta è pronta",
   chiave_trasmissione_cambiata: "La chiave di trasmissione della tua diretta è cambiata",
+  // ⚠️ Testi miei e provvisori (29/10).
+  post_pubblicato: "Un ente ha pubblicato un post",
+  post_tolto: "KIREO ha tolto un tuo post dal feed",
 };
 
 export const LINK_TIPO: Record<TipoNotifica, string> = {
@@ -50,6 +55,8 @@ export const LINK_TIPO: Record<TipoNotifica, string> = {
   proposta_incontro_risposta: "/scuola/esplora",
   chiave_trasmissione_pronta: "/ente/eventi",
   chiave_trasmissione_cambiata: "/ente/eventi",
+  post_pubblicato: "/admin",
+  post_tolto: "/ente/bacheca",
 };
 
 // ⚠️ UN LINK CHE ARRIVA NEL POSTO SBAGLIATO SI CREDE (Mario, 27/10). Fino al
@@ -60,13 +67,22 @@ export const LINK_TIPO: Record<TipoNotifica, string> = {
 // collegamento rotto si vede, uno che arriva altrove no. Per la chiave il
 // `riferimento_id` è l'evento (`imposta_chiave_trasmissione`), quindi il link
 // porta lì; `LINK_TIPO` resta il ripiego per una riga senza riferimento.
-const LINK_ALL_EVENTO: Partial<Record<TipoNotifica, (id: string) => string>> = {
+//
+// E LO STESSO PER I POST (29/10): «Nuovo post di un ente che segui» portava a
+// `/app/bacheca` e basta. Se il post era stato tolto, lo studente cercava una
+// cosa che non c'era e nessuno gli diceva perché. Ora porta al post
+// (`?post=`), e la Bacheca dice se non c'è più. L'admin arriva al post nella
+// sua lista, l'ente al suo post nella sua Bacheca, dove legge il motivo.
+const LINK_AL_RIFERIMENTO: Partial<Record<TipoNotifica, (id: string) => string>> = {
   chiave_trasmissione_pronta: (id) => `/diretta/${id}`,
   chiave_trasmissione_cambiata: (id) => `/diretta/${id}`,
+  nuovo_post: (id) => `/app/bacheca?post=${id}`,
+  post_pubblicato: (id) => `/admin#post-${id}`,
+  post_tolto: (id) => `/ente/bacheca#post-${id}`,
 };
 
 export function linkNotifica(tipo: TipoNotifica, riferimentoId: string | null | undefined): string {
-  const all = LINK_ALL_EVENTO[tipo];
+  const all = LINK_AL_RIFERIMENTO[tipo];
   if (all && riferimentoId) return all(riferimentoId);
   return LINK_TIPO[tipo] ?? "/app";
 }

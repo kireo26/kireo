@@ -86,18 +86,20 @@ console.log("\n§2bis — un rifiuto porta la sua ragione\n");
   const R = require("@/lib/admin/rifiuto");
   ok(R.erroreRifiuto("") !== null && R.erroreRifiuto("   \n ") !== null, "senza nota (o solo spazi) non si rifiuta");
   ok(R.erroreRifiuto("Manca il programma.") === null, "…con una nota sì");
-  // L'USO, non solo la regola (il modo 10): tutti e due i componenti che
-  // rifiutano la chiamano, e PRIMA di scrivere — un controllo dopo l'update
-  // direbbe «manca la nota» su un rifiuto già partito.
-  for (const [f, apertura] of [
-    ["components/admin/AzioneApprovazione.tsx", /async function handleAzione\(/],
-    ["components/admin/AzioneApprovazionePost.tsx", /async function rifiuta\(\)/],
+  // L'USO, non solo la regola (il modo 10): chi rifiuta (e, dal 29/10, chi
+  // toglie un post) chiama la sua regola, e PRIMA di scrivere — un controllo
+  // dopo la scrittura direbbe «manca la nota» su un gesto già partito. Fino al
+  // 29/10 il secondo era `AzioneApprovazionePost`, uscito con la coda dei post:
+  // al suo posto `TogliPost`, che chiede la motivazione prima della conferma.
+  for (const [f, apertura, regola, scrive] of [
+    ["components/admin/AzioneApprovazione.tsx", /async function handleAzione\(/, /erroreRifiuto\(/, /\.update\(/],
+    ["components/admin/TogliPost.tsx", /function chiediConferma\(\)/, /erroreRimozione\(/, /\.rpc\("togli_post"/],
   ]) {
     const src = leggi(f);
     const da = src.search(apertura);
     const corpo = da >= 0 ? src.slice(da) : "";
-    const controllo = corpo.search(/erroreRifiuto\(/);
-    const scrittura = corpo.search(/\.update\(/);
+    const controllo = corpo.search(regola);
+    const scrittura = corpo.search(scrive);
     ok(da >= 0 && controllo >= 0 && scrittura > controllo, `${f}: il rifiuto chiede la nota prima di scrivere`, `controllo ${controllo}, scrittura ${scrittura}`);
     ok(!/facoltativ[ao], visibile all'ente/.test(src), `${f}: il campo non dice più «facoltativo»`);
   }

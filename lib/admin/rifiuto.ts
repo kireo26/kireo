@@ -8,9 +8,11 @@
 // spiegazioni — non toglie niente a nessuno —, rifiutare sì.
 //
 // Fino al 27/10 la nota era facoltativa, e nessun commento né messaggio diceva
-// perché: era nata il 13/07 copiata da `comunicazioni`. Una sola regola per i due
-// componenti che rifiutano (`AzioneApprovazione`, `AzioneApprovazionePost`), e
-// la prova la chiama invece di leggerla.
+// perché: era nata il 13/07 copiata da `comunicazioni`. Una sola regola per chi
+// rifiuta (`AzioneApprovazione`; fino al 29/10 anche `AzioneApprovazionePost`,
+// uscito quando i post hanno smesso di passare da una coda: un post si toglie
+// con `erroreRimozione`, lib/admin/rimozionePost.ts), e la prova la chiama
+// invece di leggerla.
 //
 // ⚠️ La regola sta nel client, che è l'unica strada da cui oggi si rifiuta
 // (l'admin dalla coda). Un vincolo nel database (`stato <> 'rifiutato' or nota

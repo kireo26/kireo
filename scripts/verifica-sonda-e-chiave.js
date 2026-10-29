@@ -355,7 +355,7 @@ const migrazioni = fs
 const valoriEnum = new Set();
 const creazione = migrazioni.match(/create type public\.notifica_tipo as enum \(([^)]*)\)/);
 if (creazione) for (const m of creazione[1].matchAll(/'([^']+)'/g)) valoriEnum.add(m[1]);
-for (const m of migrazioni.matchAll(/alter type public\.notifica_tipo add value '([^']+)'/g)) valoriEnum.add(m[1]);
+for (const m of migrazioni.matchAll(/alter type public\.notifica_tipo add value (?:if not exists )?'([^']+)'/g)) valoriEnum.add(m[1]);
 
 ok(valoriEnum.size >= 8, `l'estrattore vede i valori dell'enum (${valoriEnum.size})`);
 const senzaEtichetta = [...valoriEnum].filter((v) => !ETICHETTA_TIPO[v]);

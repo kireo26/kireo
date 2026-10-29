@@ -3,12 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { pianoAPagamento } from "@/lib/ente/pianoSuccessivo";
 import CreaPostForm from "@/components/ente/CreaPostForm";
 import { formattaData } from "@/lib/formato";
-
-const ETICHETTA_STATO: Record<string, { label: string; classe: string }> = {
-  in_approvazione: { label: "In approvazione", classe: "bg-kireo-orange/15 text-kireo-orange" },
-  approvato: { label: "Approvato", classe: "bg-kireo-green/15 text-kireo-green-light" },
-  rifiutato: { label: "Rifiutato", classe: "bg-red-500/15 text-red-300" },
-};
+import { descriviErrore } from "@/lib/erroreSupabase";
+import { TESTI_POST, etichettaStatoPost, leggiMotiviPost, prossimoPostDalle, rigaMotivo, testoTettoRaggiunto } from "@/lib/ente/post";
 
 const ETICHETTA_TIPO: Record<string, string> = {
   testo: "Testo",
@@ -20,34 +16,45 @@ export default async function EnteBachecaPage() {
   const contesto = await getEnteContext();
   const supabase = await createClient();
 
-  const { data: post } = await supabase
+  // I motivi (del rifiuto, di una rimozione) non si leggono dalla tabella:
+  // li dà `motivi_post_enti`, solo all'ente del post e all'admin (20261113120000).
+  const { data: post, error } = await supabase
     .from("post_enti")
-    .select("id, tipo, corpo, stato, motivo_rifiuto, created_at")
+    .select("id, tipo, corpo, stato, created_at, tolto_il")
     .eq("istituzione_id", contesto.istituzioneId)
     .order("created_at", { ascending: false });
+  if (error) console.error("[ente] bacheca, post:", descriviErrore(error));
+  const motivi = await leggiMotiviPost(
+    supabase,
+    (post ?? []).filter((p) => p.stato === "tolto" || p.stato === "rifiutato").map((p) => p.id as string),
+  );
 
-  const postInRevisione = (post ?? []).filter((p) => p.stato === "in_approvazione").length;
+  const dalle = prossimoPostDalle((post ?? []).map((p) => p.created_at as string), new Date());
+  const aPagamento = pianoAPagamento(contesto.pianoNome);
 
   return (
     <div className="space-y-8">
       <div>
         <p className="mb-4 font-sans text-sm font-semibold uppercase tracking-wide text-kireo-orange">Bacheca</p>
         <h1 className="py-1 font-heading text-3xl font-bold leading-[1.25] text-kireo-light sm:text-4xl">I tuoi post</h1>
-        <p className="mt-2 text-kireo-muted">
-          Compaiono nel feed degli studenti che ti seguono, dopo la revisione di KIREO.
-        </p>
+        <p className="mt-2 text-kireo-muted">{TESTI_POST.intestazione}</p>
       </div>
 
-      {!post || post.length === 0 ? (
+      {error ? (
+        <div className="rounded-2xl border border-amber-400/30 bg-amber-400/10 p-6 text-center text-amber-200">
+          Non siamo riusciti a leggere i tuoi post: ricarica la pagina.
+        </div>
+      ) : !post || post.length === 0 ? (
         <div className="rounded-2xl border border-white/5 bg-kireo-card p-6 text-center text-kireo-muted">
           Non hai ancora pubblicato nessun post. Crea il primo qui sotto.
         </div>
       ) : (
         <ul className="space-y-3">
           {post.map((p) => {
-            const stato = ETICHETTA_STATO[p.stato] ?? ETICHETTA_STATO.in_approvazione;
+            const stato = etichettaStatoPost(p.stato as string);
+            const motivo = rigaMotivo(p.stato as string, motivi, p.id as string, (p.tolto_il as string | null) ?? null);
             return (
-              <li key={p.id} className="rounded-xl border border-white/5 bg-kireo-card p-4">
+              <li key={p.id} id={`post-${p.id}`} className="rounded-xl border border-white/5 bg-kireo-card p-4">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${stato.classe}`}>
                     {stato.label}
@@ -58,9 +65,7 @@ export default async function EnteBachecaPage() {
                   <span className="text-xs text-kireo-muted">{formattaData(p.created_at, "long")}</span>
                 </div>
                 <p className="mt-2 text-sm text-kireo-light/90">{p.corpo}</p>
-                {p.stato === "rifiutato" && p.motivo_rifiuto && (
-                  <p className="mt-2 text-xs text-red-300">Motivo del rifiuto: {p.motivo_rifiuto}</p>
-                )}
+                {motivo && <p className="mt-2 text-xs text-red-300">{motivo}</p>}
               </li>
             );
           })}
@@ -69,9 +74,13 @@ export default async function EnteBachecaPage() {
 
       <div>
         <h2 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">Nuovo post</h2>
-        <p className="mt-1 text-sm text-kireo-muted">Puoi avere al massimo 3 post in attesa di revisione contemporaneamente.</p>
+        <p className="mt-1 text-sm text-kireo-muted">{TESTI_POST.tetto}</p>
         <div className="mt-4">
-          <CreaPostForm istituzioneId={contesto.istituzioneId} postInRevisione={postInRevisione} pianoAPagamento={pianoAPagamento(contesto.pianoNome)} />
+          <CreaPostForm
+            istituzioneId={contesto.istituzioneId}
+            avvisoTetto={dalle ? testoTettoRaggiunto(dalle) : null}
+            pianoAPagamento={aPagamento}
+          />
         </div>
       </div>
     </div>
