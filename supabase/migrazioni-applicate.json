@@ -313,6 +313,18 @@
       "fonte": "Mario, 28/10: applicata; with_check di manifestazioni_interesse_insert_own nomina puo_contattare_enti; diagnostica-data-nascita-vuota: 5 profili senza data (1 referente_scuola, 3 istituzione, 1 tutor_scuola, tutti di prova), 0 condivisioni, 0 conversazioni, 0 newsletter"
     },
     {
+      "file": "20261110100000_post_approvato_il_dal_database.sql",
+      "commit": "6baf01a",
+      "stato": "verificata",
+      "fonte": "Mario, 29/10, misura separata dopo l'applicazione: pg_constraint post_enti_approvato_con_data convalidated = true"
+    },
+    {
+      "file": "20261110110000_post_approvato_il_fuori_dal_client.sql",
+      "commit": "6baf01a",
+      "stato": "verificata",
+      "fonte": "Mario, 29/10, misura separata dopo l'applicazione: has_column_privilege('authenticated','public.post_enti','approvato_il','UPDATE') = false"
+    },
+    {
       "file": "20261111100000_interessati_quadro_e_scheda.sql",
       "commit": "6190790",
       "stato": "verificata",
