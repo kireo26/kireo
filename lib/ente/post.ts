@@ -34,7 +34,7 @@ export function prossimoPostDalle(creatiIl: string[], adesso: Date): Date | null
 // ⚠️ Testi miei e provvisori.
 export const TESTI_POST = {
   intestazione: "Compaiono subito nel feed degli studenti che ti seguono. KIREO può toglierne uno che non rispetta il regolamento, e ti scrive perché.",
-  tetto: `Puoi pubblicare al massimo ${MAX_POST_NELLE_24_ORE} post nelle ultime 24 ore.`,
+  tetto: `Puoi pubblicare al massimo ${MAX_POST_NELLE_24_ORE} post ogni 24 ore.`,
   pubblicato: "Post pubblicato",
   pubblicatoDettaglio: "È già nel feed degli studenti che ti seguono.",
   pubblicatoConNotifica: "È già nel feed degli studenti che ti seguono, e ognuno di loro riceve una notifica.",

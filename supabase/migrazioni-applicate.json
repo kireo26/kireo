@@ -335,6 +335,24 @@
       "commit": "f25eddc",
       "stato": "verificata",
       "fonte": "Mario 28/10: applicata senza errore. La migrazione rilegge da sé obj_description di apri_conversazione_ente e si ferma se non comincia con 20261112100000: (misura interna alla migrazione, non una query separata)"
+    },
+    {
+      "file": "20261113100000_post_stati_nuovi.sql",
+      "commit": "8e21255",
+      "stato": "verificata",
+      "fonte": "Mario, 29/10, misura separata: enum_range(post_ente_stato) = {in_approvazione, approvato, rifiutato, pubblicato, tolto}"
+    },
+    {
+      "file": "20261113110000_post_pubblicati_subito.sql",
+      "commit": "8e21255",
+      "stato": "verificata",
+      "fonte": "Mario, 29/10, misura separata: post visibili senza visibile_dal 0; trigger post_enti_tipo_dal_piano presente (1)"
+    },
+    {
+      "file": "20261113120000_post_motivi_fuori_dalla_lettura.sql",
+      "commit": "8e21255",
+      "stato": "verificata",
+      "fonte": "Mario, 29/10, misura separata: sulle colonne dei motivi il client ha solo REFERENCES, nessun SELECT"
     }
   ]
 }
