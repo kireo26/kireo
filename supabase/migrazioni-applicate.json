@@ -359,6 +359,12 @@
       "commit": "e38bbb6",
       "stato": "verificata",
       "fonte": "Mario 29/10: applicata, inizio_conteggio_download_guide() = 2026-10-29 08:55:59; giro a schermo passato (riga in scaricamenti_guide_enti con guida_id, recinto origine guida da 0 a 1, email arrivata, form senza nome/cognome/classe, scelta della guida pubblica nel pannello, riga «Contati dal 29 ottobre 2026»)"
+    },
+    {
+      "file": "20261115100000_statistiche_ente_quattro_sezioni.sql",
+      "commit": "7aa3d5d",
+      "stato": "verificata",
+      "fonte": "Mario 29/10: applicata e verificata; to_regprocedure('public.statistiche_ente(uuid)') is not null → true; has_function_privilege('anon','public.incrementa_scaricamenti_guida(uuid)','execute') → false; sum(contatore_scaricamenti_guide.scaricamenti) = 1 = count(scaricamenti_guide_enti)"
     }
   ]
 }

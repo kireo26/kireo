@@ -183,6 +183,7 @@ export const T = {
   cima:
     "Qui ci sono solo numeri, mai un nome: e un gruppo di meno di 5 studenti non compare da solo, finisce in «Altri gruppi». I nomi li trovi soltanto in «Interessati», e solo di chi ha scelto di mostrarsi a te, che può revocarlo quando vuole.",
   nonLetto: "Non siamo riusciti a leggere le statistiche: ricarica la pagina.",
+  tornaIndice: "← Tutte le statistiche",
   altre: (k: number) => `Altri gruppi (ciascuno sotto i ${k} studenti)`,
   notaAree: TESTI_INTERESSATI.notaAree,
   eventi: {
@@ -217,3 +218,55 @@ export const T = {
     nessuna: "Non hai ancora caricato una guida.",
   },
 } as const;
+
+// ── L'INDICE (29/10, Mario): quattro riquadri, e il dettaglio dentro.
+// Un riquadro dell'indice risponde a «sta andando bene?», non a «cosa c'è qui
+// dentro»: un numero grande e una riga sotto. Se per leggerlo bisogna già
+// sapere com'è fatto il prodotto, è il numero sbagliato.
+// ⚠️ I numeri vengono dallo STESSO oggetto che le sezioni mostrano: l'indice
+// non calcola niente che la sezione non abbia, così le due cose non possono
+// dire due numeri diversi.
+export type RiquadroIndice = { chiave: "eventi" | "studenti" | "newsletter" | "guide"; titolo: string; href: string; etichetta: string; valore: number; sotto: string };
+
+export function percentuale(parte: number, tutto: number): number | null {
+  if (tutto <= 0) return null;
+  return Math.round((parte / tutto) * 100);
+}
+
+export function riquadriIndice(s: StatisticheEnte): RiquadroIndice[] {
+  const pct = percentuale(s.eventi.iscritti_collegati, s.eventi.iscritti_dirette_finite);
+  return [
+    {
+      chiave: "eventi",
+      titolo: "Eventi",
+      href: "/ente/statistiche/eventi",
+      etichetta: "Eventi passati",
+      valore: s.eventi.passati,
+      sotto: pct === null ? "Ancora nessuna diretta conclusa con iscritti." : `Il ${pct}% di chi si era iscritto alle dirette si è collegato.`,
+    },
+    {
+      chiave: "studenti",
+      titolo: "Studenti",
+      href: "/ente/statistiche/studenti",
+      etichetta: "Studenti raggiunti dall'inizio",
+      valore: s.studenti.totale,
+      sotto: `Nuovi questo mese: ${s.studenti.nuovi_mese}`,
+    },
+    {
+      chiave: "newsletter",
+      titolo: "Newsletter",
+      href: "/ente/statistiche/newsletter",
+      etichetta: "Chi la riceverà",
+      valore: s.newsletter.raggiungibili,
+      sotto: `Nuove iscrizioni questo mese: ${s.newsletter.nuovi_mese} · uscite: ${s.newsletter.persi_mese}`,
+    },
+    {
+      chiave: "guide",
+      titolo: "Guide",
+      href: "/ente/statistiche/guide",
+      etichetta: "Scaricamenti delle tue guide",
+      valore: s.guide.scaricamenti,
+      sotto: `Studenti iscritti a KIREO che le hanno scaricate: ${s.guide.studenti}`,
+    },
+  ];
+}

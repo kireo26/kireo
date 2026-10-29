@@ -112,7 +112,7 @@ for (const t of [C.TESTO_SOLO_MAGGIORENNI, C.TESTO_NEWSLETTER_SOLO_MAGGIORENNI])
   ok(!/non puoi/i.test(t) && trovaAccordi(t).length === 0, "nessun «non puoi» e nessun accordo", t);
 }
 ok(/Non siamo riusciti a toglierti/.test(com) && !/non risult/i.test(com), "un'uscita fallita dice che non è riuscita, mai che non risulti iscritto");
-const stat = leggi("app/ente/(dashboard)/statistiche/page.tsx");
+const stat = leggi("app/ente/(dashboard)/statistiche/newsletter/page.tsx");
 ok(/valore=\{stats\.newsletter\.raggiungibili\}/.test(stat), "il numero grande dell'ente è chi la riceverà");
 // Due cifre uguali non si stampano una sopra l'altra (Mario, 28/10): la seconda
 // solo quando differisce. Atteso scritto a mano.

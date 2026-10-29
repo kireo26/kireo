@@ -430,7 +430,8 @@ ok(
 );
 const selectVista = sqlVista.slice(0, sqlVista.indexOf("comment on view"));
 ok(!/testo/.test(selectVista), "la vista non nomina mai il testo di una risposta: conta, non elenca");
-const paginaStats = senzaCommenti(leggi("app/ente/(dashboard)/statistiche/page.tsx"));
+// Dal 29/10 la riga dell'evento è un componente delle statistiche.
+const paginaStats = senzaCommenti(leggi("components/ente/statistiche/Parti.tsx"));
 ok(/Risposte: \{s\.risposte\}/.test(paginaStats), "la pagina mostra il numero in fila con gli altri dell'evento");
 ok(/s\.domanda_posta \? <span>Risposte:/.test(paginaStats), "…e solo dove una domanda è stata posta (uno zero senza domanda sarebbe un fallimento che non c'è stato)");
 ok(!/left join public\.presenze_live/.test(sqlVista) && /from public\.presenze_live pl where pl\.evento_id = e\.id/.test(sqlVista),

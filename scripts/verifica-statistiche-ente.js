@@ -185,12 +185,14 @@ console.log("\n§3 — il limite delle aree dipende dal tipo, e sta in un posto 
 
 console.log("\n§4 — «Per evento» e i riquadri dicono cosa contano\n");
 {
-  const pagina = leggi("app/ente/(dashboard)/statistiche/page.tsx");
+  // Dal 29/10 la riga dell'evento sta in un componente, e i testi nella lib.
+  const pagina = leggi("components/ente/statistiche/Parti.tsx");
   ok(!/\{s\.\w+\} (iscritti|partecipati|collegati|risposte)\b/.test(pagina), "nessun «{n} iscritti»: con 1 il plurale non accorda");
   ok(!/partecipati<\/span>|>\{?[^<]*\bpartecipati\b[^<]*</.test(pagina.replace(/s\.partecipati/g, "")), "la parola «partecipati» non compare più a schermo");
   ok(/s\.collegati != null \?/.test(pagina), "i collegati compaiono solo dove ci sono (una diretta)");
-  ok(/Studenti raggiunti dall'inizio/.test(pagina), "«Studenti raggiunti» dice che non è un conto dell'anno");
-  ok(/nonLetto \?/.test(pagina), "una lettura fallita non si presenta come «nessuna interazione»");
+  ok(/Studenti raggiunti dall'inizio/.test(leggi("lib/ente/statistiche.ts")) && /Studenti raggiunti dall'inizio/.test(leggi("app/ente/(dashboard)/statistiche/studenti/page.tsx")),
+    "«Studenti raggiunti» dice che non è un conto dell'anno, sull'indice e nella sezione");
+  ok(/nonLetto \?/.test(leggi("app/ente/(dashboard)/statistiche/page.tsx")), "una lettura fallita non si presenta come «nessuna interazione»");
 }
 
 
@@ -288,7 +290,7 @@ console.log("\n§8 — una guida pubblica per ente, e l'archivio (20261114100000
   ok(/testoPrimaDelCaricamento\(guide\)/.test(pannello), "il pannello mostra la riga prima del caricamento");
   ok(/scegli_guida_pubblica/.test(pannello), "…e sceglie la pubblica con la funzione, non con un update");
   ok(/rileggi\(\)/.test(pannello) && !/setGuide\(\(prev\)/.test(pannello), "dopo una scrittura rilegge l'elenco invece di aggiungere in locale (il trigger archivia le altre)");
-  ok(/sottoDownloadGuida\(/.test(leggi("app/ente/(dashboard)/statistiche/page.tsx")), "la pagina delle statistiche dice da quando conta i download");
+  ok(/sottoDownloadGuida\(/.test(leggi("app/ente/(dashboard)/statistiche/guide/page.tsx")), "la sezione Guide dice da quando conta i download");
   ok(/\.is\("archiviata_il", null\)/.test(leggi("lib/app/istituzioni.ts")), "la pagina pubblica legge la sola guida pubblica");
 }
 
@@ -327,10 +329,35 @@ console.log("\n§9 — le quattro sezioni (20261115100000)\n");
     "…e la frase falsa di prima non è più a schermo");
   ok(!/apertur|clic/i.test(S.T.newsletter.invii), "la newsletter non promette aperture né clic");
 
-  const pagina = leggi("app/ente/(dashboard)/statistiche/page.tsx");
-  ok(/rpc\("statistiche_ente"/.test(pagina) && !/stats_istituzione|stats_eventi_istituzione/.test(pagina), "la pagina legge statistiche_ente, non le due viste");
-  ok(!/Guide pubblicate/.test(pagina), "«Guide pubblicate» è uscita");
-  ok(/leggiStatistiche\(/.test(pagina) && /nonLetto \?/.test(pagina), "una forma inattesa si dice come non letta");
+  // L'INDICE E LE QUATTRO SEZIONI (29/10): una lettura sola, e i numeri dell'indice
+  // dallo stesso oggetto delle sezioni.
+  const DIR_S = "app/ente/(dashboard)/statistiche";
+  const pagine = ["page.tsx", "eventi/page.tsx", "studenti/page.tsx", "newsletter/page.tsx", "guide/page.tsx"].map((f) => [f, leggi(`${DIR_S}/${f}`)]);
+  for (const [f, src] of pagine) {
+    ok(/caricaStatisticheEnte\(\)/.test(src) && !/\.rpc\(|\.from\(|stats_istituzione|stats_eventi_istituzione/.test(src), `${f}: legge da caricaStatisticheEnte, e da nient'altro`);
+    ok(!/Guide pubblicate/.test(src), `${f}: «Guide pubblicate» non c'è`);
+  }
+  for (const [f, src] of pagine.slice(1)) ok(/<TestaSezione /.test(src) && /stats === null \?/.test(src), `${f}: il ritorno all'indice in cima, e «non letto» detto come tale`);
+  // L'insieme di chi chiama statistiche_ente: un posto solo in tutto il prodotto.
+  const sorgenti = ["app", "components", "lib"].flatMap(fileSorgenti);
+  const chiamanti = sorgenti.filter((f) => /rpc\(\s*"statistiche_ente"/.test(leggi(f)));
+  ok(sorgenti.length > 200 && chiamanti.length === 1 && chiamanti[0] === path.join("lib", "ente", "caricaStatistiche.ts"),
+    `statistiche_ente si chiama in un posto solo (${chiamanti.join(", ") || "nessuno"}, su ${sorgenti.length} file letti)`);
+  ok(/leggiStatistiche\(/.test(leggi("lib/ente/caricaStatistiche.ts")) && /cache\(/.test(leggi("lib/ente/caricaStatistiche.ts")), "il caricatore legge la forma con leggiStatistiche, una volta per richiesta");
+  const indice = leggi(`${DIR_S}/page.tsx`);
+  ok(/riquadriIndice\(stats\)/.test(indice) && /\{T\.cima\}/.test(indice), "l'indice mostra i riquadri e la frase sull'anonimato");
+  ok(pagine.slice(1).every(([, src]) => !/T\.cima/.test(src)), "…e la frase sta sull'indice, non in una sezione sola");
+  ok(!/RigaEvento|Tabella/.test(indice), "l'indice non porta elenchi né tabelle: solo i quattro riquadri");
+  // Gli attesi scritti a mano, sull'oggetto valido di sopra.
+  const R = S.riquadriIndice(S.leggiStatistiche(valido));
+  ok(R.map((r) => r.chiave).join(",") === "eventi,studenti,newsletter,guide", "quattro riquadri, in quest'ordine");
+  ok(R.map((r) => r.valore).join(",") === "2,8,2,3", "i numeri grandi sono quelli delle sezioni (passati 2, studenti 8, riceveranno 2, scaricamenti 3)", R.map((r) => r.valore));
+  ok(R[0].sotto === "Il 67% di chi si era iscritto alle dirette si è collegato.", "eventi: 2 collegati su 3 iscritti fanno 67%", R[0].sotto);
+  ok(R[1].sotto === "Nuovi questo mese: 2" && R[3].sotto === "Studenti iscritti a KIREO che le hanno scaricate: 1", "le righe sotto vengono dagli stessi campi", [R[1].sotto, R[3].sotto]);
+  ok(/uscite: 1/.test(R[2].sotto) && /questo mese: 1/.test(R[2].sotto), "newsletter: nuove e uscite del mese", R[2].sotto);
+  const senzaDirette = S.riquadriIndice(senza((c) => { c.eventi.iscritti_dirette_finite = 0; c.eventi.iscritti_collegati = 0; }));
+  ok(!/%/.test(senzaDirette[0].sotto), "senza iscritti alle dirette concluse nessuna percentuale inventata", senzaDirette[0].sotto);
+  ok(R.every((r) => r.href.startsWith("/ente/statistiche/")), "ogni riquadro porta alla sua sezione");
 
   const route = leggi("app/api/scarica-guida/ente/[guidaId]/route.ts");
   ok(/if \(!collegato\) await contaScaricamentoSenzaAccesso\(/.test(route), "la route conta lo scaricamento di chi non ha fatto l'accesso, prima di rispondere");
