@@ -12,12 +12,15 @@
 --
 -- Rosse attese:
 --   - su una replica nata senza 20261113110000 (e quindi senza la 120000):
---     1, 3 (l'insert pubblicato è respinto dalla policy di prima), 9, 11, 12, 15,
---     16, 17, 18, 19, 20, 21 (le funzioni, i trigger e le colonne non ci sono);
+--     1 (il post nasce `in_approvazione`), 9 e 11 (il tetto di prima conta la
+--     coda), 12 (nessuna notifica all'insert), 13, 14, 22 (i privilegi), 15, 16,
+--     17, 19, 20, 21 (le funzioni, i trigger e le colonne non ci sono). La 3 e
+--     la 18 restano verdi: l'insert del mondo di prima riesce, e un post in coda
+--     lo studente non lo vede;
 --   - su una replica nata senza la sola 20261113120000: 13, 14 (i motivi si
 --     leggono dal client), 22 (l'admin aggiorna lo stato dal client).
 -- Verdi nei due mondi: 2 (link_social da free: prima lo fermava la policy, ora
--- il trigger), 4, 5, 6, 7, 8, 10.
+-- il trigger), 3, 4, 5, 6, 7, 8, 10, 18.
 
 begin;
 
@@ -61,9 +64,11 @@ end $$;
 do $$ begin
   insert into public.post_enti(istituzione_id, tipo, corpo, embed_url)
     values ('e1000000-0000-0000-0000-0000000000e1', 'link_social', 'Social', 'https://www.instagram.com/p/x');
-  insert into esiti values (2, 'l''ente free NON pubblica un link_social (il secondo lavoro della policy di prima)', 'RESPINTO', false, '*** PASSA ***');
+  -- Se passa, si annulla: un post in più farebbe scattare il tetto più avanti (il modo 9).
+  raise exception 'passa_e_si_annulla';
 exception when others then
-  insert into esiti values (2, 'l''ente free NON pubblica un link_social (il secondo lavoro della policy di prima)', 'RESPINTO', true, 'respinto: ' || sqlerrm);
+  insert into esiti values (2, 'l''ente free NON pubblica un link_social (il secondo lavoro della policy di prima)', 'RESPINTO',
+    sqlerrm <> 'passa_e_si_annulla', case when sqlerrm = 'passa_e_si_annulla' then '*** PASSA ***' else 'respinto: ' || sqlerrm end);
 end $$;
 
 do $$ begin
@@ -224,11 +229,14 @@ exception when others then
   insert into esiti values (16, 'l''admin non toglie un post senza motivazione', 'motivo_mancante', sqlerrm = 'motivo_mancante', 'respinto: ' || sqlerrm);
 end $$;
 
+-- Se passa, l'effetto si annulla (il `raise` riporta indietro l'update): nel
+-- mondo di prima il post diventava visibile e la 18 lo vedeva — il modo 9.
 do $$ begin
   update public.post_enti set stato = 'approvato' where id = (select id from ids where n = 2);
-  insert into esiti values (22, 'l''admin non cambia lo stato di un post dal client', 'RESPINTO', false, '*** PASSA ***');
+  raise exception 'passa_e_si_annulla';
 exception when others then
-  insert into esiti values (22, 'l''admin non cambia lo stato di un post dal client', 'RESPINTO', sqlstate = '42501', 'respinto: ' || sqlerrm);
+  insert into esiti values (22, 'l''admin non cambia lo stato di un post dal client', 'RESPINTO', sqlstate = '42501',
+    case when sqlerrm = 'passa_e_si_annulla' then '*** PASSA ***' else 'respinto: ' || sqlerrm end);
 end $$;
 
 do $$ declare j jsonb; begin
