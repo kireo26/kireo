@@ -196,7 +196,7 @@ const TEMPLATE_EMAIL = [
     // sarebbe vera — ma non c'è, e aggiungerla è una decisione sui testi, non
     // una conseguenza di questo lavoro. Se un domani ci va, è già coperta.
     invito: "puo",
-    invio: { file: "app/api/guida-email/route.ts", ancora: "inviaEmail(corpo.email" },
+    invio: { file: "lib/guide/emailGuida.ts", ancora: "inviaEmail(email" },
   },
   {
     nome: "templateNotificaRichiestaContatto",
@@ -325,29 +325,29 @@ ok(
 // ── 3) LA PROPRIETÀ CHE CONTA: il contenuto non viene dal corpo ─────────────
 console.log("\n3) Le route che mandano email non prendono link né titolo dal corpo");
 
-const route = leggi("app/api/guida-email/route.ts");
+// Dal 29/10 il follow-up non ha più una route sua: parte solo insieme a uno
+// scaricamento vero (`/api/scarica-guida/...`), e la guida di un ente si legge
+// dal database dentro la route, non dal corpo della richiesta.
+const routeEnte = leggi("app/api/scarica-guida/ente/[guidaId]/route.ts");
+const routeArea = leggi("app/api/scarica-guida/area/[areaSlug]/route.ts");
 
-ok(/createClient\(\)/.test(route), "la route legge dal database (client normale: la RLS filtra alle istituzioni attive)");
-ok(/from\("guide_enti"\)/.test(route), "…e prende la guida da `guide_enti`");
-ok(
-  !/linkGuida\s*=\s*corpo\./.test(route),
-  "il LINK non viene dal corpo della richiesta",
-  "è la cura che fa scendere la gravità da phishing a spam: con il link dal corpo, un'email autentica a nome nostro manda la gente dove dice chi ha chiamato",
-);
-ok(!/titoloGuida\s*=\s*`?[^;]*corpo\.(istituzioneNome|titolo)/.test(route), "…e nemmeno il TITOLO");
-ok(
-  /guida\.istituzione_id !== corpo\.istituzioneId/.test(route),
-  "la guida viene verificata contro l'istituzione indicata",
-  "senza, il `guidaId` tornerebbe a essere un contenuto invece di una chiave",
-);
+ok(/registra_download_guida/.test(senzaCommenti(routeEnte)), "la route dell'ente prende la guida dal database (registra_download_guida)");
+ok(/from\("guide_enti"\)/.test(senzaCommenti(routeEnte)), "…e, senza accesso, dalla lettura pubblica di `guide_enti`");
+for (const [nome, src] of [["ente", routeEnte], ["area", routeArea]]) {
+  const c = senzaCommenti(src);
+  ok(/mandaEmailGuida\(/.test(c), `la route ${nome} manda il follow-up con mandaEmailGuida`);
+  ok(
+    !/form\??\.get\("(link|pdf|pdfUrl|titolo|nome)"\)/.test(c),
+    `la route ${nome} non prende link, titolo o nome dal corpo`,
+    "è la cura che fa scendere la gravità da phishing a spam: con il link dal corpo, un'email autentica a nome nostro manda la gente dove dice chi ha chiamato",
+  );
+}
+ok(!fs.existsSync(path.join(ROOT, "app/api/guida-email")), "la route sorella senza sessione non c'è più", "una route che manda email a chiunque, separata dallo scaricamento, era una porta in più");
 
-// Il form non manda più il contenuto: se tornasse a mandarlo, la route lo
-// ignorerebbe — ma la riga nel corpo è l'invito a riusarlo.
-const form = leggi("components/app/GuidaEnteForm.tsx");
-const dove = ancora(form, "/api/guida-email", { volte: 1, dove: "GuidaEnteForm" });
-const corpoFetch = form.slice(dove, dove + 400);
-ok(!/pdfUrl\s*[,}]/.test(corpoFetch.replace(/pdfUrl:\s*[^,}]*/g, "")), "il form non manda il `pdfUrl` nel corpo");
-ok(/guidaId/.test(corpoFetch), "…manda il `guidaId`, cioè una chiave");
+// Il form non manda il contenuto: manda la chiave nel percorso, e basta.
+const form = leggi("components/ScaricaGuidaForm.tsx");
+ok(!/name="(link|pdf|pdfUrl|titolo|nome|cognome|classe)"/.test(form), "il form non manda link, titolo, nome, cognome o classe");
+ok(/method="post"/.test(form), "…ed è una POST nativa (la traccia la scrive la route prima del file)");
 
 // ── 4) nessun'altra route compone un'email con un link dal corpo ────────────
 console.log("\n4) Nessun'altra route manda email con un link dal corpo");

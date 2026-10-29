@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { registraAttivita } from "@/lib/app/activityLog";
+import { usePathname } from "next/navigation";
 import { isAreaAttiva } from "@/lib/assistente/config";
-import { percorsoGuidaUno } from "@/lib/guide/config";
+import { CAMPO_RITORNO } from "@/lib/guide/scaricamento";
 
 export type AreaInteresse = { slug: string; nome: string; icona: string };
 
@@ -11,16 +11,15 @@ export type AreaInteresse = { slug: string; nome: string; icona: string };
 // markup, ora riusabile (Home e pagina Aree), con azioni rapide per chip
 // (Scarica la guida / Parla con l'assistente).
 //
-// Il percorso del PDF lo decide `percorsoGuidaUno` (lib/guide/config.ts).
-// Prima arrivava come prop `areeConGuida1`, un elenco di slug calcolato
-// server-side: la stessa scelta scritta con un secondo meccanismo, che è il
-// modo in cui due copie divergono senza che nessuno se ne accorga (e infatti
-// una terza, nell'email, se n'era dimenticata del tutto).
+// «Scarica la guida» è una POST alla route dell'area (29/10), come il form
+// della pagina pubblica: la riga in `activity_log` la scrive il server PRIMA di
+// rimandare al file. Prima qui c'erano `registraAttivita` senza aspettarla e
+// `window.location.assign` subito dopo: la stessa gara del form, che il 29/10
+// perdeva la riga secondo quanto durava la lettura della sessione (vedi
+// `lib/guide/scaricamento.ts`). Il percorso del PDF lo decide la route con
+// `percorsoGuidaUno`. Nessuna email: il chip non la chiede (`manda_link`).
 export default function BloccoLeMieAree({ aree }: { aree: AreaInteresse[] }) {
-  function handleScaricaGuida(slug: string) {
-    registraAttivita(slug, "download_guida", 1);
-    window.location.assign(percorsoGuidaUno(slug));
-  }
+  const percorso = usePathname();
 
   return (
     <div className="rounded-2xl border border-white/5 bg-kireo-card p-6">
@@ -43,13 +42,12 @@ export default function BloccoLeMieAree({ aree }: { aree: AreaInteresse[] }) {
                 {area.nome}
               </Link>
               <div className="flex flex-none flex-wrap gap-x-4 gap-y-1 text-xs">
-                <button
-                  type="button"
-                  onClick={() => handleScaricaGuida(area.slug)}
-                  className="text-kireo-orange underline underline-offset-2"
-                >
-                  Scarica la guida
-                </button>
+                <form method="post" action={`/api/scarica-guida/area/${area.slug}`}>
+                  <input type="hidden" name={CAMPO_RITORNO} value={percorso ?? "/app"} />
+                  <button type="submit" className="text-kireo-orange underline underline-offset-2">
+                    Scarica la guida
+                  </button>
+                </form>
                 {/* L'ASSISTENTE C'È PER UN'AREA SU DICIOTTO, e la scorciatoia
                     compare solo per quella. Fino al 27/09 compariva per tutte:
                     per le altre diciassette portava su `/aree/[slug]

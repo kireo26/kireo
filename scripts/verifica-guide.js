@@ -131,9 +131,10 @@ ok(percorsoGuidaUno("area-che-non-esiste") === "/api/guida/area-che-non-esiste",
 // guardia, il quinto punto che scarica una guida nascerà con la sua copia — che
 // è esattamente come è nato il difetto dell'email.
 const CONSUMATORI = [
-  ["app/api/guida-email/route.ts", "il follow-up via email"],
-  ["app/aree/[slug]/page.tsx", "il lead-magnet pubblico"],
-  ["components/app/BloccoLeMieAree.tsx", "il chip «Scarica la guida»"],
+  // Dal 29/10 il lead-magnet pubblico non riceve più il percorso dalla pagina:
+  // lo decide la route che registra lo scaricamento, e da lì parte anche il
+  // link dell'email (che prima ricalcolava `/api/guida-email`).
+  ["app/api/scarica-guida/area/[areaSlug]/route.ts", "il lead-magnet pubblico e il suo follow-up"],
 ];
 // Il percorso del segnaposto NON si cerca solo a inizio di stringa: la prima
 // stesura di questa guardia pretendeva una virgoletta subito prima
@@ -156,7 +157,13 @@ for (const [file, cosa] of CONSUMATORI) {
 }
 // Il form non decide: riceve. Un ripiego qui sarebbe la quarta copia.
 const form = fs.readFileSync(path.join(ROOT, "components/GuidaAreaForm.tsx"), "utf8");
-ok(!/\/api\/guida\//.test(senzaCommenti(form)), "GuidaAreaForm non ha nessun ripiego al segnaposto: usa l'url che riceve");
+ok(!/\/api\/guida\//.test(senzaCommenti(form)), "GuidaAreaForm non ha nessun ripiego al segnaposto");
+ok(!/pdfUrl|percorsoGuida/.test(senzaCommenti(form)), "…e nemmeno un percorso: il file lo decide la route");
+// Il chip della home (29/10) passa dalla stessa route: niente percorso scritto
+// lì, e niente scrittura dal browser prima di una navigazione.
+const chip = senzaCommenti(fs.readFileSync(path.join(ROOT, "components/app/BloccoLeMieAree.tsx"), "utf8"));
+ok(/action=\{`\/api\/scarica-guida\/area\//.test(chip), "il chip «Scarica la guida» è una POST alla route dell'area");
+ok(!/registraAttivita|location\.(assign|href)/.test(chip), "…e non scrive dal browser prima di navigare");
 
 // E la guardia si prova su sé stessa, a ogni giro: due forme sintetiche, quella
 // del difetto vero e quella letterale, devono essere tutte e due catturate.

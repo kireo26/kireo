@@ -4,6 +4,7 @@ import { getQuoteEnte } from "@/lib/ente/quote";
 import RiquadriQuote from "@/components/ente/RiquadriQuote";
 import { createClient } from "@/lib/supabase/server";
 import ProfiloEnteForm from "@/components/ente/ProfiloEnteForm";
+import { COLONNE_GUIDA_PANNELLO, type GuidaPannello } from "@/lib/ente/guida";
 
 export default async function EnteProfiloPage() {
   const contesto = await getEnteContext();
@@ -15,7 +16,7 @@ export default async function EnteProfiloPage() {
       .select("immagine_copertina_url, descrizione, sito_ufficiale, provincia")
       .eq("id", contesto.istituzioneId)
       .maybeSingle(),
-    supabase.from("guide_enti").select("id, titolo, pdf_url").eq("istituzione_id", contesto.istituzioneId).order("created_at", { ascending: false }),
+    supabase.from("guide_enti").select(COLONNE_GUIDA_PANNELLO).eq("istituzione_id", contesto.istituzioneId).order("created_at", { ascending: false }),
     getQuoteEnte(supabase, contesto.istituzioneId, contesto.pianoNome),
   ]);
 
@@ -40,7 +41,7 @@ export default async function EnteProfiloPage() {
         descrizioneIniziale={istituzione?.descrizione ?? null}
         sitoIniziale={istituzione?.sito_ufficiale ?? null}
         provinciaIniziale={istituzione?.provincia ?? null}
-        guideIniziali={guide ?? []}
+        guideIniziali={(guide ?? []) as GuidaPannello[]}
       />
     </div>
   );

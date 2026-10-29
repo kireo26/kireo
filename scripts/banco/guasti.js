@@ -47,6 +47,7 @@ const ORDINE = [
   "prove_test",
   "guida_riservata",
   "email_guida",
+  "traccia_guida",
   "email_contatto",
   "video_diretta",
   "misura_avvio_video",
@@ -82,6 +83,8 @@ const COSA_VUOL_DIRE = {
     "una guida 2 o 3 non è stata consegnata a chi aveva il diritto di leggerla: di solito il PDF non è nel bundle della funzione (vedi outputFileTracingIncludes in next.config.ts)",
   email_guida:
     "il follow-up via email dopo il download di una guida non è partito: chi ha lasciato la mail non ha ricevuto il link per riaprirla. Due motivi diversi — `link_non_ammesso` è un `pdf_url` di un ente che non è http/https (un dato da correggere), `invio_non_riuscito` è Brevo",
+  traccia_guida:
+    "lo scaricamento di una guida non è stato registrato, o il file non è partito (le route /api/scarica-guida, dal 29/10). Il motivo dice quale: `funzione_non_riuscita` (guida di un ente: il file non è partito, lo studente è tornato alla pagina con un messaggio), `link_non_ammesso` (il pdf_url di un ente non è http/https), `activity_log` o `sessione_non_letta` (Panoramica di un'area: il file è partito, la riga del percorso no)",
   email_contatto:
     "un'email di una richiesta di contatto non è partita. Due motivi diversi — `conferma_non_inviata` è la cortesia a chi ha scritto (la sua riga è in coda su /admin, quindi il messaggio c'è: la pagina smette di nominare l'email e nessuno perde niente), `notifica_non_inviata` è l'avviso a noi, e lì a mancare è proprio quello: la richiesta esiste e la vede solo chi apre la coda. Spesso è Brevo che blocca l'IP di Vercel, che va autorizzato a mano",
   video_diretta:

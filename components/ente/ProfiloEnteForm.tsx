@@ -11,6 +11,16 @@ import { MAX_COPERTINA_MB, MAX_GUIDA_MB, TIPO_GUIDA, tipoCopertinaAmmesso } from
 
 const OPZIONI_PROVINCIA = PROVINCE_ITALIANE.map((p) => ({ value: p, label: p }));
 import AreeInteresseGrid from "@/components/app/AreeInteresseGrid";
+import {
+  COLONNE_GUIDA_PANNELLO,
+  archiviate,
+  messaggioScelta,
+  pubbliche,
+  rigaArchiviata,
+  testoPrimaDelCaricamento,
+  testoSceltaNecessaria,
+  type GuidaPannello,
+} from "@/lib/ente/guida";
 
 type Stato = "idle" | "salvando" | "ok" | "errore";
 
@@ -222,12 +232,30 @@ function SezioneDatiProfilo({
   );
 }
 
-function SezioneGuida({ istituzioneId, guideIniziali }: { istituzioneId: string; guideIniziali: { id: string; titolo: string; pdf_url: string }[] }) {
+// La guida dell'ente: una pubblica, le altre in archivio (lib/ente/guida.ts).
+// Dopo ogni scrittura si rilegge l'elenco dal database: caricare una guida ne
+// archivia altre (un trigger), e lo stato vero lo sa solo lui.
+function SezioneGuida({ istituzioneId, guideIniziali }: { istituzioneId: string; guideIniziali: GuidaPannello[] }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [titolo, setTitolo] = useState("");
   const [guide, setGuide] = useState(guideIniziali);
   const [stato, setStato] = useState<Stato>("idle");
   const [messaggioErrore, setMessaggioErrore] = useState("Non è stato possibile caricare la guida. Riprova più tardi.");
+  const [scegliendo, setScegliendo] = useState<string | null>(null);
+
+  async function rileggi(): Promise<boolean> {
+    const { data, error } = await createClient()
+      .from("guide_enti")
+      .select(COLONNE_GUIDA_PANNELLO)
+      .eq("istituzione_id", istituzioneId)
+      .order("created_at", { ascending: false });
+    if (error) {
+      console.error("[ente] guide, rilettura:", descriviErrore(error));
+      return false;
+    }
+    setGuide((data ?? []) as GuidaPannello[]);
+    return true;
+  }
 
   async function handleFile(file: File) {
     if (!titolo.trim()) {
@@ -254,15 +282,17 @@ function SezioneGuida({ istituzioneId, guideIniziali }: { istituzioneId: string;
       if (erroreUpload) throw erroreUpload;
 
       const { data } = supabase.storage.from("istituzioni-media").getPublicUrl(percorso);
-      const { data: nuovaGuida, error: erroreInsert } = await supabase
+      const { error: erroreInsert } = await supabase
         .from("guide_enti")
-        .insert({ istituzione_id: istituzioneId, titolo: titolo.trim(), pdf_url: data.publicUrl })
-        .select("id, titolo, pdf_url")
-        .single();
+        .insert({ istituzione_id: istituzioneId, titolo: titolo.trim(), pdf_url: data.publicUrl });
       if (erroreInsert) throw erroreInsert;
 
-      setGuide((prev) => [nuovaGuida, ...prev]);
       setTitolo("");
+      if (!(await rileggi())) {
+        setMessaggioErrore("La guida è caricata, ma non siamo riusciti a rileggere l'elenco: ricarica la pagina.");
+        setStato("errore");
+        return;
+      }
       setStato("ok");
     } catch {
       setMessaggioErrore("Non è stato possibile caricare la guida. Riprova più tardi.");
@@ -270,27 +300,58 @@ function SezioneGuida({ istituzioneId, guideIniziali }: { istituzioneId: string;
     }
   }
 
+  async function scegli(id: string) {
+    setScegliendo(id);
+    const { error } = await createClient().rpc("scegli_guida_pubblica", { p_guida_id: id });
+    if (error) {
+      console.error("[ente] scegli_guida_pubblica:", descriviErrore(error));
+      setMessaggioErrore(messaggioScelta(error.message));
+      setStato("errore");
+    } else if (!(await rileggi())) {
+      setMessaggioErrore("La scelta è salvata, ma non siamo riusciti a rileggere l'elenco: ricarica la pagina.");
+      setStato("errore");
+    } else {
+      setStato("ok");
+    }
+    setScegliendo(null);
+  }
+
+  const ora = pubbliche(guide);
+  const vecchie = archiviate(guide);
+  const scelta = testoSceltaNecessaria(guide);
+
   return (
     <div className="rounded-2xl border border-white/5 bg-kireo-card p-6">
       <h2 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">Guida</h2>
-      <p className="mt-1 text-sm text-kireo-muted">
-        La guida caricata compare sul tuo profilo pubblico con un form di download.
-      </p>
 
-      {guide.length > 0 && (
+      {ora.length > 0 && (
         <ul className="mt-4 space-y-2">
-          {guide.map((g) => (
-            <li key={g.id} className="flex items-center justify-between text-sm text-kireo-light">
-              <span>{g.titolo}</span>
-              <a href={g.pdf_url} target="_blank" rel="noopener noreferrer" className="text-kireo-orange underline underline-offset-2">
-                Apri
-              </a>
+          {ora.map((g) => (
+            <li key={g.id} className="flex flex-wrap items-center justify-between gap-2 text-sm text-kireo-light">
+              <span>
+                <span className="mr-2 inline-block rounded-full bg-kireo-green/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-kireo-green-light">
+                  Pubblica
+                </span>
+                {g.titolo}
+              </span>
+              <span className="flex items-center gap-3">
+                {scelta && (
+                  <Button type="button" variant="outline" onClick={() => scegli(g.id)} disabled={scegliendo !== null}>
+                    {scegliendo === g.id ? "Salvataggio…" : "Tieni questa"}
+                  </Button>
+                )}
+                <a href={g.pdf_url} target="_blank" rel="noopener noreferrer" className="text-kireo-orange underline underline-offset-2">
+                  Apri
+                </a>
+              </span>
             </li>
           ))}
         </ul>
       )}
+      {scelta && <p className="mt-3 text-sm text-kireo-orange">{scelta}</p>}
 
       <div className="mt-4 space-y-3">
+        <p className="text-sm text-kireo-muted">{testoPrimaDelCaricamento(guide)}</p>
         <input
           value={titolo}
           onChange={(e) => setTitolo(e.target.value)}
@@ -314,6 +375,31 @@ function SezioneGuida({ istituzioneId, guideIniziali }: { istituzioneId: string;
           <MessaggioStato stato={stato} messaggioErrore={messaggioErrore} />
         </div>
       </div>
+
+      {vecchie.length > 0 && (
+        <div className="mt-6 border-t border-white/5 pt-4">
+          <h3 className="text-sm font-semibold text-kireo-light">In archivio</h3>
+          <ul className="mt-2 space-y-2">
+            {vecchie.map((g) => (
+              <li key={g.id} className="text-sm text-kireo-muted">
+                <span className="text-kireo-light/90">{g.titolo}</span> · {rigaArchiviata(g)}{" "}
+                <a href={g.pdf_url} target="_blank" rel="noopener noreferrer" className="text-kireo-orange underline underline-offset-2">
+                  Apri
+                </a>{" "}
+                ·{" "}
+                <button
+                  type="button"
+                  onClick={() => scegli(g.id)}
+                  disabled={scegliendo !== null}
+                  className="text-kireo-orange underline underline-offset-2 disabled:opacity-50"
+                >
+                  {scegliendo === g.id ? "Salvataggio…" : "Rendila di nuovo pubblica"}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
@@ -405,7 +491,7 @@ export default function ProfiloEnteForm({
   descrizioneIniziale: string | null;
   sitoIniziale: string | null;
   provinciaIniziale: string | null;
-  guideIniziali: { id: string; titolo: string; pdf_url: string }[];
+  guideIniziali: GuidaPannello[];
 }) {
   return (
     <div className="space-y-6">

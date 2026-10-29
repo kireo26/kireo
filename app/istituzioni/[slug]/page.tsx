@@ -9,6 +9,7 @@ import { contattoEnti, type ContattoEnti, TESTO_MANCA_DATA_CONTATTO, HREF_AGGIUN
 import { TESTO_NEWSLETTER_SOLO_MAGGIORENNI } from "@/lib/app/comunicazioniKireo";
 import { DIDASCALIA_SEGUI, DIDASCALIA_NEWSLETTER, DIDASCALIA_CONDIVIDI } from "@/lib/app/gestiEnte";
 import GuidaEnteForm from "@/components/app/GuidaEnteForm";
+import { testoEsitoGuida } from "@/lib/guide/testiScaricamento";
 import IscrivitiNewsletterButton from "@/components/app/IscrivitiNewsletterButton";
 import SeguiButton from "@/components/app/SeguiButton";
 import ManifestazioneInteresseButton from "@/components/app/ManifestazioneInteresseButton";
@@ -26,8 +27,15 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   };
 }
 
-export default async function IstituzionePubblicaPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function IstituzionePubblicaPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ guida?: string | string[] }>;
+}) {
   const { slug } = await params;
+  const esitoGuida = testoEsitoGuida((await searchParams).guida);
   const supabase = await createClient();
 
   const istituzione = await getIstituzionePubblicaBySlug(supabase, slug);
@@ -230,7 +238,7 @@ export default async function IstituzionePubblicaPage({ params }: { params: Prom
             <p className="mx-auto mt-4 max-w-xl text-kireo-muted">{guidaPrincipale.titolo}</p>
           </div>
           <div className="mt-10">
-            <GuidaEnteForm istituzioneId={istituzione.id} istituzioneNome={istituzione.nome} guidaId={guidaPrincipale.id} pdfUrl={guidaPrincipale.pdf_url} />
+            <GuidaEnteForm guidaId={guidaPrincipale.id} emailAccount={user ? (user.email ?? "") : null} esito={esitoGuida} />
           </div>
         </section>
       )}

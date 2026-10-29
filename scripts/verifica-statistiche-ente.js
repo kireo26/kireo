@@ -63,9 +63,17 @@ console.log("\n§1 — chi scrive il recinto, e su quale vincolo\n");
   ok(atteso.split(",").includes("origine"), "…e il vincolo comprende l'origine: una guida dopo un evento lascia la sua riga", atteso);
   ok(/if \(error\) console\.error/.test(recinto), "un errore della scrittura si scrive nel log, non si butta");
 
-  // Ogni gesto passa da lì, ognuno con la sua origine.
+  // Ogni gesto dal browser passa da lì, ognuno con la sua origine. La guida
+  // dal 29/10 no: la riga con origine `guida` la scrive il server, in
+  // `registra_download_guida` (20261114100000), prima di mandare il file —
+  // nel browser, dopo il download, non partiva quasi mai. E nel form non deve
+  // tornare nessuna scrittura.
+  const migGuida = leggi("supabase/migrations/20261114100000_guida_scaricata_dal_server.sql");
+  ok(/insert into public\.recinto_enti[\s\S]{0,120}'guida'/.test(migGuida), "la riga «guida» la scrive registra_download_guida");
+  for (const f of ["components/app/GuidaEnteForm.tsx", "components/ScaricaGuidaForm.tsx"]) {
+    ok(!/segnaNelRecinto|recinto_enti/.test(leggi(f)), `${f} non scrive il recinto dal browser`);
+  }
   for (const [f, origine] of [
-    ["components/app/GuidaEnteForm.tsx", "guida"],
     ["components/app/IscrivitiNewsletterButton.tsx", "newsletter"],
     ["components/app/IscrivitiEventoButton.tsx", "evento"],
   ]) {
@@ -258,6 +266,30 @@ console.log("\n§8 — chi revisiona vede la quota\n");
   ok(/non siamo riusciti/i.test(testoQuotaRevisione(null, "cta").testo), "una quota non letta non si scrive 0 di 0");
   ok(/testoQuotaRevisione\(/.test(leggi("app/admin/page.tsx")), "la coda delle comunicazioni la mostra");
   ok(/testoQuotaRevisione\(await getQuotePerRevisione/.test(leggi("components/admin/PlanciaAdminEvento.tsx")), "la plancia dell'evento la mostra per una CTA");
+}
+
+
+console.log("\n§8 — una guida pubblica per ente, e l'archivio (20261114100000)\n");
+{
+  const g = require(path.join(ROOT, "lib/ente/guida.ts"));
+  const una = { id: "1", titolo: "Guida vecchia", pdf_url: "https://x/1.pdf", created_at: "2026-10-01T10:00:00Z", archiviata_il: null };
+  const due = { id: "2", titolo: "Guida nuova", pdf_url: "https://x/2.pdf", created_at: "2026-10-20T10:00:00Z", archiviata_il: null };
+  const vecchia = { ...una, archiviata_il: "2026-10-20T10:00:00Z" };
+  ok(/«Guida vecchia» smette di essere quella pubblica/.test(g.testoPrimaDelCaricamento([una])), "prima di caricare, il pannello nomina la guida che smette di essere pubblica");
+  ok(/resta qui in archivio/.test(g.testoPrimaDelCaricamento([una])), "…e dice che resta, non che sparisce");
+  ok(!/smette/.test(g.testoPrimaDelCaricamento([])), "senza una guida pubblica non nomina niente");
+  ok(g.testoSceltaNecessaria([una, due]) !== null && g.testoSceltaNecessaria([due, vecchia]) === null, "la scelta si chiede solo a chi ne ha due pubbliche (Davante)");
+  ok(g.pubbliche([due, vecchia]).length === 1 && g.archiviate([due, vecchia]).length === 1, "pubbliche e archiviate si dividono sulla data di archivio");
+  ok(/in archivio dal/.test(g.rigaArchiviata(vecchia)), "un'archiviata dice da quando");
+  ok(/Contati dal/.test(g.sottoDownloadGuida("2026-10-29T12:00:00Z")) && /non sono stati registrati/.test(g.sottoDownloadGuida("2026-10-29T12:00:00Z")),
+    "sotto «Download guida»: da quando si conta, e che i download di prima non ci sono");
+  ok(!/\d/.test(g.sottoDownloadGuida(null)), "una data non letta non si inventa");
+  const pannello = leggi("components/ente/ProfiloEnteForm.tsx");
+  ok(/testoPrimaDelCaricamento\(guide\)/.test(pannello), "il pannello mostra la riga prima del caricamento");
+  ok(/scegli_guida_pubblica/.test(pannello), "…e sceglie la pubblica con la funzione, non con un update");
+  ok(/rileggi\(\)/.test(pannello) && !/setGuide\(\(prev\)/.test(pannello), "dopo una scrittura rilegge l'elenco invece di aggiungere in locale (il trigger archivia le altre)");
+  ok(/sottoDownloadGuida\(/.test(leggi("app/ente/(dashboard)/statistiche/page.tsx")), "la pagina delle statistiche dice da quando conta i download");
+  ok(/\.is\("archiviata_il", null\)/.test(leggi("lib/app/istituzioni.ts")), "la pagina pubblica legge la sola guida pubblica");
 }
 
 console.log("");

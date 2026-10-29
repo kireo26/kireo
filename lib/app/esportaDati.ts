@@ -275,6 +275,7 @@ export const ATTESE: { tabella: string; natura: NaturaDato; nominataDa: IdVoceDe
   // segui, a chi hai manifestato interesse e i messaggi, e una guida scaricata
   // non è nessuna delle tre. Ora la nomina («e le guide che hai scaricato»).
   { tabella: "recinto_enti", natura: "fatto", nominataDa: "enti", cosa: "le guide di un ente che ha scaricato" },
+  { tabella: "scaricamenti_guide_enti", natura: "fatto", nominataDa: "enti", cosa: "quale guida di un ente ha scaricato, e quando" },
   // ⚠️ «le iscrizioni alla newsletter» è la newsletter DI UN ENTE, cioè una
   // riga sua. `newsletter_docenti` è in `FUORI` ed è un'altra cosa: per questo
   // la parola «newsletter» non può essere un `termine` di sorveglianza.

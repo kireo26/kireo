@@ -36,12 +36,19 @@ export async function getIstituzionePubblicaBySlug(
 
 export type GuidaEnte = { id: string; titolo: string; pdf_url: string };
 
+// La guida PUBBLICA dell'ente (20261114100000): le archiviate non si leggono
+// dalla pagina pubblica. Il filtro è anche qui, oltre che nella policy, perché
+// l'ente che guarda la propria pagina legge tutte le sue guide (policy
+// `guide_enti_select_propria`), e vedrebbe una guida che il pubblico non vede.
+// Finché un ente ne ha due pubbliche (Davante, finché non sceglie) si mostra la
+// più recente, come prima.
 export async function getGuideEnte(supabase: SupabaseClient, istituzioneId: string): Promise<GuidaEnte[]> {
   try {
     const { data, error } = await supabase
       .from("guide_enti")
       .select("id, titolo, pdf_url")
       .eq("istituzione_id", istituzioneId)
+      .is("archiviata_il", null)
       .order("created_at", { ascending: false });
     if (error) return [];
     return data ?? [];

@@ -13,9 +13,15 @@
 -- vincolo scarta ancora la seconda riga). La 4 non la distingue nessuna delle
 -- due: si prova rimettendo `count(*)` al posto di `count(distinct …)` nella
 -- vista (misurato il 27/10: rossa la sola 4).
+-- ⚠️ Dal 29/10 lo script chiama `registra_download_guida`: su una replica
+-- nata senza 20261114100000 si ferma lì, quindi le controprove di J1 e J2 qui
+-- sopra si rifanno solo su una replica che ha anche quella migrazione, con J1
+-- o J2 tolte a mano.
 --
 -- Transazione con ROLLBACK. Le scritture sul recinto passano dalla sessione
--- dello studente, con lo stesso ON CONFLICT di `segnaNelRecinto`.
+-- dello studente, con lo stesso ON CONFLICT di `segnaNelRecinto`; dal 29/10
+-- (20261114100000) la guida si scarica con `registra_download_guida`, come fa
+-- la route, e la 3 conta gli scaricamenti, non il recinto.
 
 begin;
 set local role postgres;
@@ -37,6 +43,8 @@ insert into public.istituzioni (id, nome, slug, tipo, stato) values
   ('aaaaaaaa-0000-0000-0000-0000000000f1', 'Ente Stat', 'ente-stat', 'universita', 'attiva');
 insert into public.institution_profiles (user_id, istituzione_id) values
   ('11111111-0000-0000-0000-0000000000f1', 'aaaaaaaa-0000-0000-0000-0000000000f1');
+insert into public.guide_enti (id, istituzione_id, titolo, pdf_url) values
+  ('99999999-0000-0000-0000-0000000000f1', 'aaaaaaaa-0000-0000-0000-0000000000f1', 'La guida', 'https://esempio.it/g.pdf');
 
 -- Due eventi finiti dell'ente: A con un iscritto, un certificato e un assente;
 -- B con un solo certificato e nessun «iscritto» (la riga del 25/10).
@@ -73,21 +81,15 @@ begin
     values ('11111111-0000-0000-0000-0000000000f2', 'aaaaaaaa-0000-0000-0000-0000000000f1', 'evento')
     on conflict do nothing;
   begin
-    insert into public.recinto_enti (student_id, istituzione_id, origine)
-      values ('11111111-0000-0000-0000-0000000000f2', 'aaaaaaaa-0000-0000-0000-0000000000f1', 'guida')
-      on conflict do nothing;
-    get diagnostics v_righe = row_count;
-    v_seconda := v_righe = 1;
+    perform public.registra_download_guida('99999999-0000-0000-0000-0000000000f1');
+    perform public.registra_download_guida('99999999-0000-0000-0000-0000000000f1');
   exception when others then
     v_seconda := false;
   end;
-  begin
-    insert into public.recinto_enti (student_id, istituzione_id, origine)
-      values ('11111111-0000-0000-0000-0000000000f2', 'aaaaaaaa-0000-0000-0000-0000000000f1', 'guida')
-      on conflict do nothing;
-  exception when others then null;
-  end;
   reset role;
+  select count(*) into v_righe from public.recinto_enti
+   where student_id = '11111111-0000-0000-0000-0000000000f2' and origine = 'guida';
+  v_seconda := v_seconda and v_righe = 1;
   insert into esiti values (1, 'la prima traccia (l''iscrizione all''evento) si scrive', 'sì', 'sì', true);
   insert into esiti values (2, 'la guida scaricata DOPO l''evento lascia la sua riga', 'scritta: sì',
     'scritta: ' || case when v_seconda then 'sì' else 'no' end, v_seconda);
@@ -98,9 +100,7 @@ do $$
 begin
   set local role authenticated;
   perform set_config('request.jwt.claim.sub', '11111111-0000-0000-0000-0000000000f3', true);
-  insert into public.recinto_enti (student_id, istituzione_id, origine)
-    values ('11111111-0000-0000-0000-0000000000f3', 'aaaaaaaa-0000-0000-0000-0000000000f1', 'guida')
-    on conflict do nothing;
+  perform public.registra_download_guida('99999999-0000-0000-0000-0000000000f1');
   reset role;
 end $$;
 

@@ -3,15 +3,18 @@ import { createClient } from "@/lib/supabase/server";
 import { formattaData } from "@/lib/formato";
 import { descriviErrore } from "@/lib/erroreSupabase";
 import { sottoNewsletterEnte } from "@/lib/app/comunicazioniKireo";
+import { sottoDownloadGuida } from "@/lib/ente/guida";
 
 export default async function EnteStatistichePage() {
   const contesto = await getEnteContext();
   const supabase = await createClient();
 
-  const [{ data: stats, error: erroreStats }, { data: statsEventi, error: erroreEventi }] = await Promise.all([
+  const [{ data: stats, error: erroreStats }, { data: statsEventi, error: erroreEventi }, { data: inizioDownload, error: erroreInizio }] = await Promise.all([
     supabase.from("stats_istituzione").select("*").eq("istituzione_id", contesto.istituzioneId).maybeSingle(),
     supabase.from("stats_eventi_istituzione").select("*").eq("istituzione_id", contesto.istituzioneId).order("data_inizio", { ascending: false }),
+    supabase.rpc("inizio_conteggio_download_guide"),
   ]);
+  if (erroreInizio) console.error("[statistiche ente] inizio_conteggio_download_guide:", descriviErrore(erroreInizio));
 
   // Non letto non è zero (27/10): con una lettura fallita la pagina diceva «Non
   // ci sono ancora interazioni», cioè affermava un fatto su studenti che non
@@ -74,12 +77,15 @@ export default async function EnteStatistichePage() {
               cosa che non succede; e due cifre uguali una sopra l'altra fanno
               cercare una perdita che non c'è.
             - Download guida: studenti DISTINTI che, da collegati, hanno
-              scaricato almeno una guida dell'ente. NON conta i download senza
-              accesso, i download ripetuti, né quelli di chi era già passato di
-              qui con un altro gesto prima del 20261102110000 (non sono mai stati
-              scritti).
-            - Guide pubblicate: le guide che l'ente ha caricato. Non è un gesto
-              di uno studente.
+              scaricato almeno una guida dell'ente, contati dal server prima di
+              mandare il file (`scaricamenti_guide_enti`, 20261114100000) e
+              dalla data di `inizio_conteggio_download_guide()`. Prima la
+              scrittura stava nel browser, dopo il download, e non partiva
+              quasi mai: quei download non si recuperano, e la riga sotto il
+              numero lo dice. NON conta i download senza accesso né quelli
+              ripetuti.
+            - Guide pubblicate: le guide non archiviate dell'ente. Non è un
+              gesto di uno studente.
           */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
@@ -89,7 +95,7 @@ export default async function EnteStatistichePage() {
                 valore: stats?.iscritti_newsletter_raggiungibili ?? 0,
                 sotto: sottoNewsletterEnte(stats?.iscritti_newsletter ?? 0, stats?.iscritti_newsletter_raggiungibili ?? 0),
               },
-              { label: "Download guida", valore: stats?.download_guida ?? 0 },
+              { label: "Download guida", valore: stats?.download_guida ?? 0, sotto: sottoDownloadGuida(inizioDownload as string | null) },
               { label: "Guide pubblicate", valore: stats?.guide_pubblicate ?? 0 },
             ].map((s) => (
               <div key={s.label} className="rounded-2xl border border-white/5 bg-kireo-card p-4">
