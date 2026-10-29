@@ -16,7 +16,7 @@ export function Riquadro({ etichetta, valore, sotto }: { etichetta: string; valo
   );
 }
 
-export function Tabella({ titolo, righe, nota }: { titolo: string; righe: RigaMostrata[]; nota?: string }) {
+export function Tabella({ titolo, righe, nota, resto }: { titolo: string; righe: RigaMostrata[]; nota?: string | null; resto?: string | null }) {
   return (
     <div className="rounded-2xl border border-white/5 bg-kireo-card p-4">
       <p className="text-xs font-semibold uppercase tracking-wide text-kireo-muted">{titolo}</p>
@@ -29,6 +29,8 @@ export function Tabella({ titolo, righe, nota }: { titolo: string; righe: RigaMo
           </li>
         ))}
       </ul>
+      {/* Il resto sotto la soglia non è un gruppo: si dice sotto la lista, non dentro. */}
+      {resto && <p className="mt-3 text-xs text-kireo-muted">{resto}</p>}
     </div>
   );
 }

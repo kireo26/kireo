@@ -313,10 +313,41 @@ console.log("\n§9 — le quattro sezioni (20261115100000)\n");
   ok(senza((c) => { c.studenti.per_area.altre = undefined; }) === null, "una ripartizione senza «altre» non si legge");
   ok(S.leggiStatistiche(null) === null && S.leggiStatistiche("x") === null, "una risposta assente non si legge");
 
-  const righe = S.righeMostrate(rip([{ chiave: "informatica-digitale", n: 6 }], 2), S.etichettaArea, 5);
-  ok(righe.length === 2 && righe[0].n === 6 && righe[1].n === 2 && /sotto i 5 studenti/.test(righe[1].etichetta),
-    "i gruppi sotto la soglia arrivano sommati e si mostrano come un gruppo solo", righe);
-  ok(S.righeMostrate(rip([{ chiave: "a", n: 7 }]), S.etichettaIndirizzo, 5).length === 1, "senza «altre» la riga non compare");
+  const righe = S.righeMostrate(rip([{ chiave: "informatica-digitale", n: 6 }], 2), S.etichettaArea);
+  ok(righe.length === 1 && righe[0].n === 6, "il resto sotto la soglia NON entra nella lista come un gruppo (29/10)", righe);
+
+  // LA SOGLIA COME CONDIZIONE (29/10, Mario): una forma sola, provata nei tre
+  // casi, con gli attesi scritti a mano.
+  const oggiS = new Date("2026-10-29T12:00:00Z");
+  const stud = (o) => ({ totale: 8, nuovi_mese: 0, soglia: 5, per_area: rip([]), per_anno_diploma: rip([]), per_indirizzo: rip([]), per_provincia: rip([]), ...o });
+  // (1) tutti sotto, con pochi studenti
+  const sotto3 = S.presentaRipartizioni(stud({ totale: 3, per_area: rip([], 4), per_anno_diploma: rip([], 3), per_indirizzo: rip([], 3), per_provincia: rip([], 3) }), oggiS);
+  ok(sotto3.tipo === "condizione" && sotto3.testo === "Studenti raggiunti finora: 3. Sono ancora troppo pochi perché le ripartizioni possano comparire: servono almeno 5 studenti per gruppo, per non far riconoscere nessuno.",
+    "tutti sotto, 3 studenti: una frase sola con il numero, la condizione e la ragione", sotto3);
+  // (1-bis) tutti sotto, con abbastanza studenti divisi in gruppi piccoli: «troppo pochi» sarebbe falso
+  const sotto8 = S.presentaRipartizioni(stud({ per_area: rip([], 8), per_anno_diploma: rip([], 8), per_indirizzo: rip([], 8), per_provincia: rip([], 8) }), oggiS);
+  ok(sotto8.tipo === "condizione" && /finora: 8, ma/.test(sotto8.testo) && !/troppo pochi perché/.test(sotto8.testo) && /5 studenti/.test(sotto8.testo),
+    "tutti sotto, 8 studenti in gruppi piccoli: la frase non dice «troppo pochi»", sotto8);
+  // (2) tutti sopra, nessun resto
+  const sopra = S.presentaRipartizioni(stud({ totale: 12, per_area: rip([{ chiave: "informatica-digitale", n: 12 }]), per_anno_diploma: rip([{ chiave: "2027", n: 12 }]),
+    per_indirizzo: rip([{ chiave: "Liceo", n: 12 }]), per_provincia: rip([{ chiave: "Napoli", n: 12 }]) }), oggiS);
+  ok(sopra.tipo === "gruppi" && sopra.mostrate.length === 4 && sopra.mostrate.every((r) => r.resto === null) && sopra.nascoste === null,
+    "tutti sopra: quattro tabelle, nessun resto, nessuna riga sulle nascoste", sopra);
+  ok(/5 studenti in su/.test(sopra.ragione) && /non ha scelto di farsi vedere/.test(sopra.ragione) && /Interessati/.test(sopra.ragione), "la ragione è una sola, sopra le tabelle, e dice la differenza con gli Interessati");
+  // (3) misto
+  const misto = S.presentaRipartizioni(stud({ per_area: rip([{ chiave: "informatica-digitale", n: 6 }], 2), per_anno_diploma: rip([], 8), per_indirizzo: rip([], 8),
+    per_provincia: rip([{ chiave: "Napoli", n: 7 }], 1) }), oggiS);
+  ok(misto.tipo === "gruppi" && misto.mostrate.map((r) => r.chiave).join(",") === "area,provincia", "misto: si mostrano solo le ripartizioni con un gruppo", misto.mostrate.map((r) => r.chiave));
+  ok(misto.mostrate[0].resto === "Altre 2 scelte, in aree scelte da troppo pochi studenti per essere mostrate da sole.", "per area il resto conta scelte, non studenti", misto.mostrate[0].resto);
+  ok(misto.mostrate[1].resto === "Un altro studente in un gruppo troppo piccolo per essere mostrato da solo.", "il resto di uno è al singolare", misto.mostrate[1].resto);
+  ok(misto.nascoste === "Per anno di corso e per indirizzo: nessun gruppo arriva ancora a 5 studenti, quindi queste ripartizioni non compaiono ancora.",
+    "misto: le ripartizioni senza gruppi nominate in una riga sola, non come tabelle vuote", misto.nascoste);
+  ok(S.T.studenti.resto(7) === "Altri 7 studenti in gruppi troppo piccoli per essere mostrati da soli." && S.T.studenti.resto(0) === null, "il resto con il numero, e niente se è zero");
+  ok(S.presentaRipartizioni(stud({ totale: 0 }), oggiS).tipo === "nessuno", "con zero studenti resta la frase di prima");
+  const paginaStud = leggi("app/ente/(dashboard)/statistiche/studenti/page.tsx");
+  ok(/presentaRipartizioni\(stats\.studenti, oggi\)/.test(paginaStud) && !/righeMostrate/.test(paginaStud), "la pagina passa da presentaRipartizioni, non compone le tabelle da sé");
+  const conAltri = ["app", "components", "lib"].flatMap(fileSorgenti).filter((f) => /Altri gruppi/.test(leggi(f).replace(/\/\/.*$/gm, "").replace(/\{\/\*[\s\S]*?\*\/\}/g, "")));
+  ok(conAltri.length === 0, `«Altri gruppi» non è più a schermo da nessuna parte (${conAltri.join(", ") || "nessuno"})`);
   // Due anni di diploma già passati hanno la stessa etichetta: si sommano.
   const anni = S.righeMostrate(rip([{ chiave: "2020", n: 5 }, { chiave: "2021", n: 6 }]), S.etichettaAnnoDiploma(new Date("2026-10-29T12:00:00Z")), 5);
   ok(anni.length === 1 && anni[0].n === 11 && anni[0].etichetta === "Già diplomato", "due anni di diploma passati diventano un gruppo «Già diplomato»", anni);

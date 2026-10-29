@@ -156,20 +156,60 @@ export function leggiStatistiche(dato: unknown): StatisticheEnte | null {
 
 export type RigaMostrata = { etichetta: string; n: number };
 
-/** Una ripartizione pronta per lo schermo: le etichette, e in fondo «altre» se c'è. */
-export function righeMostrate(r: Ripartizione, etichetta: (chiave: string | null) => string, soglia: number): RigaMostrata[] {
+/** Una ripartizione pronta per lo schermo: solo i gruppi da mostrare, con le etichette. */
+export function righeMostrate(r: Ripartizione, etichetta: (chiave: string | null) => string): RigaMostrata[] {
   // Due chiavi diverse possono avere la stessa etichetta (due anni di diploma
   // già passati sono tutti e due «Già diplomato»): si sommano. Un gruppo che
   // nasce da una somma ha almeno `soglia` studenti, perché ognuno dei pezzi li
-  // aveva.
+  // aveva. Quello che resta sotto la soglia (`r.altre`) NON è un gruppo e non
+  // sta in questa lista: lo dice `presentaRipartizioni`, sotto.
   const somma = new Map<string, number>();
   for (const g of r.righe) {
     const e = etichetta(g.chiave);
     somma.set(e, (somma.get(e) ?? 0) + g.n);
   }
-  const fuori = [...somma].map(([e, n]) => ({ etichetta: e, n })).sort((a, b) => b.n - a.n || a.etichetta.localeCompare(b.etichetta, "it"));
-  if (r.altre > 0) fuori.push({ etichetta: T.altre(soglia), n: r.altre });
-  return fuori;
+  return [...somma].map(([e, n]) => ({ etichetta: e, n })).sort((a, b) => b.n - a.n || a.etichetta.localeCompare(b.etichetta, "it"));
+}
+
+// ── LA SOGLIA DETTA COME UNA CONDIZIONE, NON COME UN GRUPPO (29/10, Mario).
+// La prima stesura metteva in fondo a ogni tabella «Altri gruppi (ciascuno
+// sotto i 5 studenti) N»: con pochi studenti erano quattro tabelle fatte solo
+// di quella riga, e «altri» presuppone dei primi che non c'erano. *Una soglia
+// che nasconde tutto non va mostrata come un gruppo: va spiegata come una
+// condizione.* Una forma sola per i tre casi:
+//   - NESSUNA ripartizione ha un gruppo da mostrare → una frase sola, con il
+//     numero vero, la condizione e la ragione, al posto delle tabelle;
+//   - ALCUNE sì → una tabella per ognuna di quelle, con sotto il resto
+//     («altri N studenti in gruppi troppo piccoli…»), e le ripartizioni senza
+//     gruppi nominate tutte insieme in una riga: mai una tabella fatta di una
+//     frase sola accanto a una piena;
+//   - TUTTE sì e nessun resto → le tabelle e basta.
+// La ragione si scrive una volta, sopra le tabelle.
+export type ChiaveRipartizione = "area" | "anno" | "indirizzo" | "provincia";
+export type RipartizioneMostrata = { chiave: ChiaveRipartizione; titolo: string; nota: string | null; righe: RigaMostrata[]; resto: string | null };
+export type PresentazioneRipartizioni =
+  | { tipo: "nessuno"; testo: string }
+  | { tipo: "condizione"; testo: string }
+  | { tipo: "gruppi"; ragione: string; mostrate: RipartizioneMostrata[]; nascoste: string | null };
+
+export function presentaRipartizioni(s: StatisticheEnte["studenti"], oggi: Date): PresentazioneRipartizioni {
+  if (s.totale === 0) return { tipo: "nessuno", testo: T.studenti.nessuno };
+  const k = s.soglia;
+  const tutte: RipartizioneMostrata[] = [
+    { chiave: "area", titolo: "Per area", nota: T.notaAree, righe: righeMostrate(s.per_area, etichettaArea), resto: T.studenti.restoAree(s.per_area.altre) },
+    { chiave: "anno", titolo: "Per anno di corso", nota: null, righe: righeMostrate(s.per_anno_diploma, etichettaAnnoDiploma(oggi)), resto: T.studenti.resto(s.per_anno_diploma.altre) },
+    { chiave: "indirizzo", titolo: "Per indirizzo", nota: null, righe: righeMostrate(s.per_indirizzo, etichettaIndirizzo), resto: T.studenti.resto(s.per_indirizzo.altre) },
+    { chiave: "provincia", titolo: "Per provincia", nota: null, righe: righeMostrate(s.per_provincia, etichettaProvincia), resto: T.studenti.resto(s.per_provincia.altre) },
+  ];
+  const mostrate = tutte.filter((r) => r.righe.length > 0);
+  if (mostrate.length === 0) return { tipo: "condizione", testo: T.studenti.condizione(s.totale, k) };
+  const nascoste = tutte.filter((r) => r.righe.length === 0).map((r) => r.titolo.toLowerCase());
+  return { tipo: "gruppi", ragione: T.studenti.ragione(k), mostrate, nascoste: nascoste.length ? T.studenti.nascoste(nascoste, k) : null };
+}
+
+/** «a», «a e b», «a, b e c». */
+function elenco(voci: string[]): string {
+  return voci.length <= 1 ? (voci[0] ?? "") : `${voci.slice(0, -1).join(", ")} e ${voci[voci.length - 1]}`;
 }
 
 export const etichettaArea = (slug: string | null) => (slug ? (getAreaBySlug(slug)?.nome ?? slug) : "Area non indicata");
@@ -181,10 +221,9 @@ export function etichettaAnnoDiploma(oggi: Date) {
 
 export const T = {
   cima:
-    "Qui ci sono solo numeri, mai un nome: e un gruppo di meno di 5 studenti non compare da solo, finisce in «Altri gruppi». I nomi li trovi soltanto in «Interessati», e solo di chi ha scelto di mostrarsi a te, che può revocarlo quando vuole.",
+    "Qui ci sono solo numeri, mai un nome: e un gruppo di meno di 5 studenti non compare da solo. I nomi li trovi soltanto in «Interessati», e solo di chi ha scelto di mostrarsi a te, che può revocarlo quando vuole.",
   nonLetto: "Non siamo riusciti a leggere le statistiche: ricarica la pagina.",
   tornaIndice: "← Tutte le statistiche",
-  altre: (k: number) => `Altri gruppi (ciascuno sotto i ${k} studenti)`,
   notaAree: TESTI_INTERESSATI.notaAree,
   eventi: {
     titolo: "Eventi",
@@ -200,6 +239,24 @@ export const T = {
     titolo: "Studenti",
     chi: "Gli studenti che hanno fatto almeno un gesto verso di te: seguirti, iscriversi a un tuo evento o alla tua newsletter, scaricare la tua guida, condividere il profilo. Non scende: chi smette resta contato.",
     nessuno: "Ancora nessuno studente: le ripartizioni compaiono quando ce ne sono.",
+    // Testi miei e provvisori (la forma è di Mario: il numero vero, la
+    // condizione, la ragione). «Studenti raggiunti finora: N» e non «Hai N
+    // studenti»: con 1 il plurale non accorda.
+    condizione: (n: number, k: number) =>
+      n < k
+        ? `Studenti raggiunti finora: ${n}. Sono ancora troppo pochi perché le ripartizioni possano comparire: servono almeno ${k} studenti per gruppo, per non far riconoscere nessuno.`
+        : `Studenti raggiunti finora: ${n}, ma per area, anno di corso, indirizzo e provincia sono ancora divisi in gruppi troppo piccoli. Una ripartizione compare quando un suo gruppo arriva a ${k} studenti, per non far riconoscere nessuno.`,
+    ragione: (k: number) =>
+      `Un gruppo compare solo da ${k} studenti in su: qui sono contati tutti quelli che ti hanno raggiunto, anche chi non ha scelto di farsi vedere, e un gruppo più piccolo potrebbe farlo riconoscere. Chi ha scelto di mostrarsi a te lo trovi in «Interessati».`,
+    resto: (n: number) =>
+      n <= 0 ? null : n === 1 ? "Un altro studente in un gruppo troppo piccolo per essere mostrato da solo." : `Altri ${n} studenti in gruppi troppo piccoli per essere mostrati da soli.`,
+    // Per area il resto conta SCELTE, non studenti: uno studente può averne più d'una.
+    restoAree: (n: number) =>
+      n <= 0 ? null : n === 1 ? "Un'altra scelta, in un'area scelta da troppo pochi studenti per essere mostrata da sola." : `Altre ${n} scelte, in aree scelte da troppo pochi studenti per essere mostrate da sole.`,
+    nascoste: (voci: string[], k: number) => {
+      const testa = elenco(voci);
+      return `${testa.charAt(0).toUpperCase()}${testa.slice(1)}: nessun gruppo arriva ancora a ${k} studenti, quindi ${voci.length === 1 ? "questa ripartizione non compare" : "queste ripartizioni non compaiono"} ancora.`;
+    },
   },
   newsletter: {
     titolo: "Newsletter",
