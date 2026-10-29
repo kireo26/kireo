@@ -129,14 +129,28 @@ const ESENTI = [
 // `$tag$…$tag$`, ammette il nome senza `public.` davanti) e resta diverso
 // apposta: il confronto (b) più sotto vale solo se le due letture sono
 // indipendenti.
+//
+// La testa (i parametri, e quello che sta fra `returns` e il corpo) non
+// contiene mai un `;` (29/10): senza
+// questo limite un `create function` scritto DENTRO una stringa (una funzione
+// creata con `execute format`, come `inizio_conteggio_uscite_newsletter`) si
+// prendeva per corpo tutto fino al `$$` della definizione dopo, che diventava
+// invisibile. L'ha detto il confronto (b) qui sotto: 157 contro 158.
 const fn = new Map();
 for (const nome of fs.readdirSync(DIR).filter((n) => n.endsWith(".sql")).sort()) {
   const sql = fs.readFileSync(path.join(DIR, nome), "utf8");
   const re =
-    /create\s+(?:or\s+replace\s+)?function\s+(?:public\.)?([a-z_0-9]+)\s*\([\s\S]*?\)\s*returns([\s\S]*?)\$(\w*)\$([\s\S]*?)\$\3\$/gi;
+    /create\s+(?:or\s+replace\s+)?function\s+(?:public\.)?([a-z_0-9]+)\s*\([^;]*?\)\s*returns([^;]*?)\$(\w*)\$([\s\S]*?)\$\3\$/gi;
   let m;
   while ((m = re.exec(sql))) {
     fn.set(m[1], { nome: m[1], file: nome, testa: m[2], corpo: m[4] });
+  }
+  // La seconda forma: una funzione creata con `execute format`, per scriverci
+  // dentro la data in cui la migrazione gira (`inizio_conteggio_*`). Il corpo
+  // è l'argomento del `format` interno.
+  const dinamica = /execute\s+format\(\s*'create\s+(?:or\s+replace\s+)?function\s+(?:public\.)?([a-z_0-9]+)\s*\([^;']*?\)\s*returns([^;']*?)as\s+%L'\s*,\s*([^;]*?)\)\s*;/gi;
+  while ((m = dinamica.exec(sql))) {
+    fn.set(m[1], { nome: m[1], file: nome, testa: m[2], corpo: m[3] });
   }
 }
 

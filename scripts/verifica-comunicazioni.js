@@ -113,13 +113,13 @@ for (const t of [C.TESTO_SOLO_MAGGIORENNI, C.TESTO_NEWSLETTER_SOLO_MAGGIORENNI])
 }
 ok(/Non siamo riusciti a toglierti/.test(com) && !/non risult/i.test(com), "un'uscita fallita dice che non è riuscita, mai che non risulti iscritto");
 const stat = leggi("app/ente/(dashboard)/statistiche/page.tsx");
-ok(/valore: stats\?\.iscritti_newsletter_raggiungibili/.test(stat), "il numero grande dell'ente è chi la riceverà");
+ok(/valore=\{stats\.newsletter\.raggiungibili\}/.test(stat), "il numero grande dell'ente è chi la riceverà");
 // Due cifre uguali non si stampano una sopra l'altra (Mario, 28/10): la seconda
 // solo quando differisce. Atteso scritto a mano.
 ok(C.sottoNewsletterEnte(4, 4) === null, "iscritti e riceventi uguali: un numero solo");
 ok(/Iscritti in tutto: 5\./.test(C.sottoNewsletterEnte(5, 3) ?? ""), "diversi: la seconda cifra, con il perché", C.sottoNewsletterEnte(5, 3));
 ok(trovaAccordi(C.sottoNewsletterEnte(5, 3) ?? "").length === 0, "senza accordi di genere");
-ok(/sotto: sottoNewsletterEnte\(stats\?\.iscritti_newsletter \?\? 0, stats\?\.iscritti_newsletter_raggiungibili \?\? 0\)/.test(senzaCommenti(stat)), "la pagina dell'ente chiama sottoNewsletterEnte con i due numeri nell'ordine giusto");
+ok(/sotto=\{sottoNewsletterEnte\(stats\.newsletter\.iscritti, stats\.newsletter\.raggiungibili\)\}/.test(senzaCommenti(stat)), "la pagina dell'ente chiama sottoNewsletterEnte con i due numeri nell'ordine giusto");
 
 console.log("§6 l'età: due gesti aperti dai 14, le comunicazioni facoltative dai 18");
 // I due gesti tornano aperti (20261109100000): nessun ramo d'età nei bottoni,

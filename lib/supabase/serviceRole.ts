@@ -1,14 +1,18 @@
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
-// Client con la service role key: bypassa la RLS, usato SOLO dal cron del
-// motore workshop (nessuna sessione studente da cui autenticarsi — il
-// cron non ha nessuno loggato quando scatta). Mai importato da codice che
-// gira nel browser o in una route raggiungibile da una richiesta non
-// autenticata come "sistema" (vedi il controllo CRON_SECRET nella route
-// che lo usa). SUPABASE_SERVICE_ROLE_KEY è una variabile d'ambiente nuova
-// per il progetto: da configurare su Vercel (valore preso da Supabase →
-// Project Settings → API → service_role secret), mai esposta con prefisso
-// NEXT_PUBLIC_.
+// Client con la service role key: bypassa la RLS. ⚠️ Fino al 29/10 questo
+// commento diceva «usato SOLO dal cron del motore workshop»: non era vero da
+// settimane (i guasti, il conto dell'intelligenza artificiale, il contatore
+// della guardia della lingua lo usano da route raggiungibili da uno studente,
+// e i guasti anche senza accesso). La regola vera, che i chiamanti rispettano:
+// con questo client si chiamano solo funzioni o tabelle FISSE, scelte qui nel
+// codice, e da una richiesta arrivano al più valori che la funzione
+// ricontrolla (un id). Mai una query costruita da quello che manda chi chiama.
+// Chi lo usa oggi: il cron del motore workshop, `lib/guasti/registra.ts`,
+// `lib/ai/consumo.ts`, `lib/lingua/contatoreGuardia.ts`,
+// `lib/guide/contatoreScaricamenti.ts`. Mai importato da codice che gira nel
+// browser. SUPABASE_SERVICE_ROLE_KEY sta su Vercel (Supabase → Project
+// Settings → API → service_role secret), mai con prefisso NEXT_PUBLIC_.
 export function createServiceRoleClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;

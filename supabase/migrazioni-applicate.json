@@ -353,6 +353,12 @@
       "commit": "8e21255",
       "stato": "verificata",
       "fonte": "Mario, 29/10, misura separata: sulle colonne dei motivi il client ha solo REFERENCES, nessun SELECT"
+    },
+    {
+      "file": "20261114100000_guida_scaricata_dal_server.sql",
+      "commit": "e38bbb6",
+      "stato": "verificata",
+      "fonte": "Mario 29/10: applicata, inizio_conteggio_download_guide() = 2026-10-29 08:55:59; giro a schermo passato (riga in scaricamenti_guide_enti con guida_id, recinto origine guida da 0 a 1, email arrivata, form senza nome/cognome/classe, scelta della guida pubblica nel pannello, riga «Contati dal 29 ottobre 2026»)"
     }
   ]
 }

@@ -188,7 +188,7 @@ console.log("\n§4 — «Per evento» e i riquadri dicono cosa contano\n");
   const pagina = leggi("app/ente/(dashboard)/statistiche/page.tsx");
   ok(!/\{s\.\w+\} (iscritti|partecipati|collegati|risposte)\b/.test(pagina), "nessun «{n} iscritti»: con 1 il plurale non accorda");
   ok(!/partecipati<\/span>|>\{?[^<]*\bpartecipati\b[^<]*</.test(pagina.replace(/s\.partecipati/g, "")), "la parola «partecipati» non compare più a schermo");
-  ok(/s\.presenti != null \?/.test(pagina), "i collegati compaiono solo dove la vista li ha (una diretta)");
+  ok(/s\.collegati != null \?/.test(pagina), "i collegati compaiono solo dove ci sono (una diretta)");
   ok(/Studenti raggiunti dall'inizio/.test(pagina), "«Studenti raggiunti» dice che non è un conto dell'anno");
   ok(/nonLetto \?/.test(pagina), "una lettura fallita non si presenta come «nessuna interazione»");
 }
@@ -290,6 +290,54 @@ console.log("\n§8 — una guida pubblica per ente, e l'archivio (20261114100000
   ok(/rileggi\(\)/.test(pannello) && !/setGuide\(\(prev\)/.test(pannello), "dopo una scrittura rilegge l'elenco invece di aggiungere in locale (il trigger archivia le altre)");
   ok(/sottoDownloadGuida\(/.test(leggi("app/ente/(dashboard)/statistiche/page.tsx")), "la pagina delle statistiche dice da quando conta i download");
   ok(/\.is\("archiviata_il", null\)/.test(leggi("lib/app/istituzioni.ts")), "la pagina pubblica legge la sola guida pubblica");
+}
+
+console.log("\n§9 — le quattro sezioni (20261115100000)\n");
+{
+  const S = require(path.join(ROOT, "lib/ente/statistiche.ts"));
+  const rip = (righe, altre = 0) => ({ righe, altre });
+  const valido = {
+    eventi: { in_programma: 1, passati: 2, iscritti: 3, collegati: 2, certificate: 1, iscritti_dirette_finite: 3, iscritti_collegati: 2, permanenza_media_pct: 75, permanenza_su: 2,
+      lista: [{ evento_id: "e1", titolo: "Uno", data_inizio: "2026-10-20T10:00:00Z", tipo: "webinar", passato: true, iscritti: 3, collegati: 2, certificate: 1, risposte: 0, domanda_posta: false }] },
+    studenti: { totale: 8, nuovi_mese: 2, soglia: 5, per_area: rip([{ chiave: "informatica-digitale", n: 6 }], 2), per_anno_diploma: rip([]), per_indirizzo: rip([]), per_provincia: rip([{ chiave: null, n: 8 }]) },
+    newsletter: { iscritti: 2, raggiungibili: 2, nuovi_mese: 1, persi_mese: 1, persi_contati_dal: "2026-10-29T08:00:00Z" },
+    guide: { scaricamenti: 3, scaricamenti_mese: 3, studenti: 1, contati_dal: "2026-10-29T08:00:00Z", per_guida: [] },
+  };
+  ok(S.leggiStatistiche(valido) !== null, "una risposta completa si legge");
+  // «Non letto» non è zero: ogni pezzo mancante, o un conteggio null, dà null.
+  const senza = (f) => { const c = JSON.parse(JSON.stringify(valido)); f(c); return S.leggiStatistiche(c); };
+  ok(senza((c) => delete c.guide) === null, "senza la sezione delle guide: non letto, non zeri");
+  ok(senza((c) => { c.eventi.iscritti = null; }) === null, "un conteggio null non diventa zero");
+  ok(senza((c) => { c.studenti.per_area.altre = undefined; }) === null, "una ripartizione senza «altre» non si legge");
+  ok(S.leggiStatistiche(null) === null && S.leggiStatistiche("x") === null, "una risposta assente non si legge");
+
+  const righe = S.righeMostrate(rip([{ chiave: "informatica-digitale", n: 6 }], 2), S.etichettaArea, 5);
+  ok(righe.length === 2 && righe[0].n === 6 && righe[1].n === 2 && /sotto i 5 studenti/.test(righe[1].etichetta),
+    "i gruppi sotto la soglia arrivano sommati e si mostrano come un gruppo solo", righe);
+  ok(S.righeMostrate(rip([{ chiave: "a", n: 7 }]), S.etichettaIndirizzo, 5).length === 1, "senza «altre» la riga non compare");
+  // Due anni di diploma già passati hanno la stessa etichetta: si sommano.
+  const anni = S.righeMostrate(rip([{ chiave: "2020", n: 5 }, { chiave: "2021", n: 6 }]), S.etichettaAnnoDiploma(new Date("2026-10-29T12:00:00Z")), 5);
+  ok(anni.length === 1 && anni[0].n === 11 && anni[0].etichetta === "Già diplomato", "due anni di diploma passati diventano un gruppo «Già diplomato»", anni);
+  ok(S.etichettaProvincia(null) === "Provincia non indicata", "una provincia mancante lo dice");
+
+  ok(S.T.guide.riepilogo(40, 3) === "Scaricamenti in tutto: 40 · studenti iscritti a KIREO fra chi le ha scaricate: 3", "le guide dicono i due numeri distinti", S.T.guide.riepilogo(40, 3));
+  ok(/Interessati/.test(S.T.cima) && /mai un nome/.test(S.T.cima) && /5 studenti/.test(S.T.cima) && /revocarlo/.test(S.T.cima),
+    "la frase in cima dice la differenza con gli Interessati, invece di negare che un elenco esista");
+  ok(!/nessun elenco di studenti, mai/.test(fs.readFileSync(path.join(ROOT, "app/ente/(dashboard)/statistiche/page.tsx"), "utf8").replace(/\{\/\*[\s\S]*?\*\/\}/g, "")),
+    "…e la frase falsa di prima non è più a schermo");
+  ok(!/apertur|clic/i.test(S.T.newsletter.invii), "la newsletter non promette aperture né clic");
+
+  const pagina = leggi("app/ente/(dashboard)/statistiche/page.tsx");
+  ok(/rpc\("statistiche_ente"/.test(pagina) && !/stats_istituzione|stats_eventi_istituzione/.test(pagina), "la pagina legge statistiche_ente, non le due viste");
+  ok(!/Guide pubblicate/.test(pagina), "«Guide pubblicate» è uscita");
+  ok(/leggiStatistiche\(/.test(pagina) && /nonLetto \?/.test(pagina), "una forma inattesa si dice come non letta");
+
+  const route = leggi("app/api/scarica-guida/ente/[guidaId]/route.ts");
+  ok(/if \(!collegato\) await contaScaricamentoSenzaAccesso\(/.test(route), "la route conta lo scaricamento di chi non ha fatto l'accesso, prima di rispondere");
+  ok(/contaScaricamentoSenzaAccesso\(PROCESSO[\s\S]*NextResponse\.redirect\(link, 303\)/.test(route) && !/NextResponse\.redirect\(link, 303\)[\s\S]*contaScaricamentoSenzaAccesso\(PROCESSO/.test(route), "…prima del rimando al file");
+  const contatore = leggi("lib/guide/contatoreScaricamenti.ts");
+  ok(/rpc\("incrementa_scaricamenti_guida", \{ p_guida_id: guidaId \}\)/.test(contatore), "il contatore manda solo l'id della guida");
+  ok(/segnalaGuasto\(/.test(contatore), "…e un conteggio fallito diventa un guasto, non un file negato");
 }
 
 console.log("");

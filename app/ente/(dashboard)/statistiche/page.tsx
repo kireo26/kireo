@@ -4,165 +4,242 @@ import { formattaData } from "@/lib/formato";
 import { descriviErrore } from "@/lib/erroreSupabase";
 import { sottoNewsletterEnte } from "@/lib/app/comunicazioniKireo";
 import { sottoDownloadGuida } from "@/lib/ente/guida";
+import {
+  T,
+  leggiStatistiche,
+  righeMostrate,
+  etichettaArea,
+  etichettaAnnoDiploma,
+  etichettaIndirizzo,
+  etichettaProvincia,
+  type EventoRiga,
+  type RigaMostrata,
+} from "@/lib/ente/statistiche";
+
+// LE STATISTICHE DELL'ENTE IN QUATTRO SEZIONI (29/10, 20261115100000). Una
+// lettura sola, `statistiche_ente`: la soglia di anonimato la applica lei, e qui
+// non arriva mai un gruppo sotto i 5 studenti. Il perché di ogni scelta sta in
+// `lib/ente/statistiche.ts` e nella testa della migrazione.
+
+function Riquadro({ etichetta, valore, sotto }: { etichetta: string; valore: number | string; sotto?: string | null }) {
+  return (
+    <div className="rounded-2xl border border-white/5 bg-kireo-card p-4">
+      <p className="text-xs font-semibold uppercase tracking-wide text-kireo-muted">{etichetta}</p>
+      <p className="mt-1 font-heading text-2xl font-bold text-kireo-light">{valore}</p>
+      {sotto && <p className="mt-1 text-xs text-kireo-muted">{sotto}</p>}
+    </div>
+  );
+}
+
+function Sezione({ titolo, children }: { titolo: string; children: React.ReactNode }) {
+  return (
+    <section className="space-y-4">
+      <h2 className="py-0.5 font-heading text-xl font-semibold leading-[1.25] text-kireo-light">{titolo}</h2>
+      {children}
+    </section>
+  );
+}
+
+function Tabella({ titolo, righe, nota }: { titolo: string; righe: RigaMostrata[]; nota?: string }) {
+  return (
+    <div className="rounded-2xl border border-white/5 bg-kireo-card p-4">
+      <p className="text-xs font-semibold uppercase tracking-wide text-kireo-muted">{titolo}</p>
+      {nota && <p className="mt-1 text-xs text-kireo-muted">{nota}</p>}
+      <ul className="mt-3 space-y-1 text-sm text-kireo-light">
+        {righe.map((r) => (
+          <li key={r.etichetta} className="flex justify-between gap-3">
+            <span>{r.etichetta}</span>
+            <span className="tabular-nums">{r.n}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function RigaEvento({ s }: { s: EventoRiga }) {
+  return (
+    <li className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/5 bg-kireo-card p-4">
+      <div>
+        <p className="font-heading text-sm font-semibold text-kireo-light">{s.titolo}</p>
+        <p className="mt-1 text-xs text-kireo-muted">{formattaData(s.data_inizio, "long")}</p>
+      </div>
+      {/*
+        COSA CONTA OGNI COLONNA (27/10, ripresa il 29/10 in `statistiche_ente`).
+        Solo gli eventi approvati: un evento mai pubblicato non è andato in
+        nessun modo, e una bozza non ha iscritti.
+        - iscritti: ogni iscrizione, in qualunque stato, comprese quelle fatte
+          da una scuola. NON conta chi l'ha disdetta.
+        - collegati: studenti distinti con almeno un battito sulla diretta. Solo
+          per una diretta: in un incontro in presenza la presenza la registra
+          la scuola, e uno zero direbbe «non c'era nessuno».
+        - con presenza certificata: soglia raggiunta alla chiusura, o
+          certificata da una scuola, dall'ente o da KIREO. Non «ore
+          riconosciute»: un evento senza ore certifica una presenza senza ore.
+        - risposte: le risposte alla domanda finale, solo dove una domanda è
+          stata posta (uno zero senza domanda sarebbe un fallimento che non c'è
+          stato).
+        «Etichetta: numero» e non «3 iscritti»: con 1 il plurale non accorda.
+      */}
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-kireo-light">
+        <span>Iscritti: {s.iscritti}</span>
+        {s.collegati != null ? <span>Collegati: {s.collegati}</span> : null}
+        <span>Con presenza certificata: {s.certificate}</span>
+        {s.domanda_posta ? <span>Risposte: {s.risposte}</span> : null}
+      </div>
+    </li>
+  );
+}
 
 export default async function EnteStatistichePage() {
   const contesto = await getEnteContext();
   const supabase = await createClient();
 
-  const [{ data: stats, error: erroreStats }, { data: statsEventi, error: erroreEventi }, { data: inizioDownload, error: erroreInizio }] = await Promise.all([
-    supabase.from("stats_istituzione").select("*").eq("istituzione_id", contesto.istituzioneId).maybeSingle(),
-    supabase.from("stats_eventi_istituzione").select("*").eq("istituzione_id", contesto.istituzioneId).order("data_inizio", { ascending: false }),
-    supabase.rpc("inizio_conteggio_download_guide"),
-  ]);
-  if (erroreInizio) console.error("[statistiche ente] inizio_conteggio_download_guide:", descriviErrore(erroreInizio));
-
-  // Non letto non è zero (27/10): con una lettura fallita la pagina diceva «Non
-  // ci sono ancora interazioni», cioè affermava un fatto su studenti che non
-  // avevamo guardato.
-  const nonLetto = Boolean(erroreStats || erroreEventi);
-  if (erroreStats) console.error("[statistiche ente] stats_istituzione:", descriviErrore(erroreStats));
-  if (erroreEventi) console.error("[statistiche ente] stats_eventi_istituzione:", descriviErrore(erroreEventi));
-
-  const nessunDato =
-    !stats ||
-    (stats.studenti_nel_recinto === 0 &&
-      stats.iscritti_newsletter === 0 &&
-      stats.guide_pubblicate === 0 &&
-      (!statsEventi || statsEventi.length === 0));
+  const { data, error } = await supabase.rpc("statistiche_ente", { p_istituzione_id: contesto.istituzioneId });
+  if (error) console.error("[statistiche ente] statistiche_ente:", descriviErrore(error));
+  const stats = error ? null : leggiStatistiche(data);
+  if (!error && !stats) console.error("[statistiche ente] statistiche_ente: forma inattesa");
+  // Non letto non è zero (27/10): con una lettura fallita la pagina non dice
+  // niente sugli studenti, perché non li abbiamo guardati.
+  const nonLetto = stats === null;
+  const oggi = new Date();
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       <div>
         <p className="mb-4 font-sans text-sm font-semibold uppercase tracking-wide text-kireo-orange">Statistiche</p>
         <h1 className="py-1 font-heading text-3xl font-bold leading-[1.25] text-kireo-light sm:text-4xl">Le tue statistiche</h1>
-        <p className="mt-2 text-sm text-kireo-muted">Dati in forma aggregata e anonima: nessun elenco di studenti, mai.</p>
+        {/*
+          ⚠️ La frase di prima («nessun elenco di studenti, mai») era falsa da
+          quando esistono gli Interessati (Mario, 29/10): l'ente un elenco di
+          nomi ce l'ha, di chi ha scelto di mostrarsi. Non si toglie, si rende
+          vera: qui niente nomi, sotto i 5 un gruppo non si mostra da solo, e
+          i nomi stanno altrove, solo per chi li ha dati.
+        */}
+        <p className="mt-2 text-sm text-kireo-muted">{T.cima}</p>
       </div>
 
       {nonLetto ? (
-        <div className="rounded-2xl border border-white/5 bg-kireo-card p-6 text-center text-kireo-muted">
-          Non siamo riusciti a leggere le statistiche: ricarica la pagina.
-        </div>
-      ) : nessunDato ? (
-        <div className="rounded-2xl border border-white/5 bg-kireo-card p-6 text-center text-kireo-muted">
-          Non ci sono ancora interazioni da mostrare. Torna qui dopo aver pubblicato eventi e guide.
-        </div>
+        <div className="rounded-2xl border border-white/5 bg-kireo-card p-6 text-center text-kireo-muted">{T.nonLetto}</div>
       ) : (
         <>
-          {/*
-            COSA CONTA OGNI NUMERO (Mario, 27/10: «un numero senza una
-            definizione scritta non è un dato»). Una riga per riquadro: cosa
-            conta, da quale gesto di uno studente, e cosa NON conta. I nomi a
-            schermo sono quelli di prima: si decidono con Mario, leggendo queste
-            righe. Le viste sono `stats_istituzione` e `stats_eventi_istituzione`
-            (20261102110000).
-            - Studenti raggiunti dall'inizio: studenti DISTINTI che, da collegati, hanno
-              scaricato una guida dell'ente, o si sono iscritti alla sua
-              newsletter, o si sono iscritti da sé a un suo evento. NON conta:
-              chi segue l'ente, chi ha manifestato interesse o scritto un
-              messaggio, chi ha solo aperto la pagina, gli studenti iscritti
-              dalla loro scuola, i docenti, i download senza accesso. E non
-              scende: chi disdice un'iscrizione resta contato, ed è per questo
-              che il nome dice «dall'inizio» (Mario, 27/10). NON è dell'anno
-              accademico, come i riquadri delle quote: conta da sempre.
-            - Newsletter: il numero grande è chi la riceverà, cioè gli iscritti
-              che si sono iscritti da maggiorenni
-              (iscritti_newsletter_raggiungibili, 20261107110000: KIREO non
-              invia comunicazioni facoltative a chi ha meno di 18 anni, e un
-              consenso dato prima non si eredita a 18). Sotto, quanti si sono
-              iscritti in tutto, ma SOLO quando differiscono (sottoNewsletterEnte:
-              i casi in cui succede sono scritti lì). Chi esce dal profilo non è
-              più contato. NON conta le newsletter ricevute: l'invio non esiste
-              ancora. ⚠️ La grande è quella vera (Mario, 28/10): «340 iscritti»
-              e poi un invio che ne raggiunge 180 è un numero che promette una
-              cosa che non succede; e due cifre uguali una sopra l'altra fanno
-              cercare una perdita che non c'è.
-            - Download guida: studenti DISTINTI che, da collegati, hanno
-              scaricato almeno una guida dell'ente, contati dal server prima di
-              mandare il file (`scaricamenti_guide_enti`, 20261114100000) e
-              dalla data di `inizio_conteggio_download_guide()`. Prima la
-              scrittura stava nel browser, dopo il download, e non partiva
-              quasi mai: quei download non si recuperano, e la riga sotto il
-              numero lo dice. NON conta i download senza accesso né quelli
-              ripetuti.
-            - Guide pubblicate: le guide non archiviate dell'ente. Non è un
-              gesto di uno studente.
-          */}
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {[
-              { label: "Studenti raggiunti dall'inizio", valore: stats?.studenti_nel_recinto ?? 0 },
-              {
-                label: "Newsletter: chi la riceverà",
-                valore: stats?.iscritti_newsletter_raggiungibili ?? 0,
-                sotto: sottoNewsletterEnte(stats?.iscritti_newsletter ?? 0, stats?.iscritti_newsletter_raggiungibili ?? 0),
-              },
-              { label: "Download guida", valore: stats?.download_guida ?? 0, sotto: sottoDownloadGuida(inizioDownload as string | null) },
-              { label: "Guide pubblicate", valore: stats?.guide_pubblicate ?? 0 },
-            ].map((s) => (
-              <div key={s.label} className="rounded-2xl border border-white/5 bg-kireo-card p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-kireo-muted">{s.label}</p>
-                <p className="mt-1 font-heading text-2xl font-bold text-kireo-light">{s.valore}</p>
-                {"sotto" in s && s.sotto && <p className="mt-1 text-xs text-kireo-muted">{s.sotto}</p>}
+          <Sezione titolo={T.eventi.titolo}>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+              <Riquadro etichetta="In programma" valore={stats.eventi.in_programma} />
+              <Riquadro etichetta="Passati" valore={stats.eventi.passati} />
+              <Riquadro etichetta="Iscritti" valore={stats.eventi.iscritti} />
+              <Riquadro etichetta="Collegati alle dirette" valore={stats.eventi.collegati} />
+              <Riquadro etichetta="Con presenza certificata" valore={stats.eventi.certificate} />
+            </div>
+            {stats.eventi.iscritti_dirette_finite > 0 && (
+              <p className="text-sm text-kireo-muted">{T.eventi.collegatiSuIscritti(stats.eventi.iscritti_collegati, stats.eventi.iscritti_dirette_finite)}</p>
+            )}
+            {stats.eventi.permanenza_media_pct != null && stats.eventi.permanenza_su > 0 && (
+              <p className="text-sm text-kireo-muted">{T.eventi.permanenza(stats.eventi.permanenza_media_pct, stats.eventi.permanenza_su)}</p>
+            )}
+            {(
+              [
+                [T.eventi.inProgramma, stats.eventi.lista.filter((e) => !e.passato).reverse(), T.eventi.nessunoInProgramma],
+                [T.eventi.passati, stats.eventi.lista.filter((e) => e.passato), T.eventi.nessunoPassato],
+              ] as const
+            ).map(([titolo, lista, vuoto]) => (
+              <div key={titolo}>
+                <h3 className="font-heading text-base font-semibold text-kireo-light">{titolo}</h3>
+                {lista.length === 0 ? (
+                  <p className="mt-2 text-sm text-kireo-muted">{vuoto}</p>
+                ) : (
+                  <ul className="mt-3 space-y-3">
+                    {lista.map((s) => (
+                      <RigaEvento key={s.evento_id} s={s} />
+                    ))}
+                  </ul>
+                )}
               </div>
             ))}
-          </div>
+          </Sezione>
 
-          {statsEventi && statsEventi.length > 0 && (
-            <div>
-              <h2 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">Per evento</h2>
-              <ul className="mt-4 space-y-3">
-                {statsEventi.map((s) => (
-                  <li key={s.evento_id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/5 bg-kireo-card p-4">
-                    <div>
-                      <p className="font-heading text-sm font-semibold text-kireo-light">{s.titolo}</p>
-                      <p className="mt-1 text-xs text-kireo-muted">
-                        {formattaData(s.data_inizio, "long")}
-                      </p>
-                    </div>
-                    {/*
-                      COSA CONTA OGNI COLONNA (27/10, 20261103100000). Gli
-                      eventi pubblicati dell'ente: approvati e in approvazione,
-                      non bozze né rifiutati (un evento mai pubblicato non è
-                      andato in nessun modo).
-                      - iscritti: ogni iscrizione, in qualunque stato (ancora
-                        iscritto, certificato, assente), comprese quelle fatte
-                        da una scuola e le presenze certificate senza
-                        un'iscrizione prima. NON conta chi l'ha disdetta.
-                      - collegati (`presenti`): studenti distinti con almeno un
-                        battito sulla diretta, qualunque cosa sia successo
-                        dopo. Solo per una diretta: in un incontro in presenza
-                        la presenza la registra la scuola, e lì il numero non
-                        compare (uno zero direbbe «non c'era nessuno»).
-                      - con presenza certificata (`partecipati` nella vista):
-                        soglia raggiunta alla chiusura della diretta, o
-                        certificata da una scuola, dall'ente o da KIREO. Fino al
-                        27/10 si chiamava «partecipati», che per un ente vuol dire
-                        «c'era» (Mario). Non si dice «ore riconosciute»: un
-                        webinar per docenti o un evento senza ore PCTO certifica
-                        una presenza senza ore.
-                      - risposte: le risposte alla domanda finale.
-                      «Etichetta: numero» e non «3 iscritti»: con 1 il plurale
-                      non accorda («1 iscritti», visto a schermo il 27/10), e
-                      l'accordo non vale la parola.
-                      Quattro numeri che raccontano una scala: chi si è
-                      iscritto, chi si è collegato, chi ha raggiunto la soglia,
-                      chi ha risposto. L'ultimo è la misura di attenzione,
-                      e quando una domanda è stata posta si scrive ANCHE se è
-                      zero — un ente che non vede il numero pensa che non lo
-                      misuriamo. Dove nessuna domanda è stata posta il numero non
-                      compare: uno zero là somiglierebbe a un fallimento che non
-                      c'è stato.
-                    */}
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-kireo-light">
-                      <span>Iscritti: {s.iscritti}</span>
-                      {s.presenti != null ? <span>Collegati: {s.presenti}</span> : null}
-                      <span>Con presenza certificata: {s.partecipati}</span>
-                      {s.domanda_posta ? <span>Risposte: {s.risposte}</span> : null}
-                    </div>
+          <Sezione titolo={T.studenti.titolo}>
+            {/*
+              Solo aggregato. Chi conta: vedi `T.studenti.chi`, e la stessa
+              definizione sta in `statistiche_ente`. Solo account con ruolo
+              studente: un docente che segue l'ente non è uno studente
+              raggiunto. Non scende, per questo «dall'inizio».
+            */}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Riquadro etichetta="Studenti raggiunti dall'inizio" valore={stats.studenti.totale} />
+              <Riquadro etichetta="Nuovi questo mese" valore={stats.studenti.nuovi_mese} />
+            </div>
+            <p className="text-sm text-kireo-muted">{T.studenti.chi}</p>
+            {stats.studenti.totale === 0 ? (
+              <p className="text-sm text-kireo-muted">{T.studenti.nessuno}</p>
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Tabella titolo="Per area" nota={T.notaAree} righe={righeMostrate(stats.studenti.per_area, etichettaArea, stats.studenti.soglia)} />
+                <Tabella
+                  titolo="Per anno di corso"
+                  righe={righeMostrate(stats.studenti.per_anno_diploma, etichettaAnnoDiploma(oggi), stats.studenti.soglia)}
+                />
+                <Tabella titolo="Per indirizzo" righe={righeMostrate(stats.studenti.per_indirizzo, etichettaIndirizzo, stats.studenti.soglia)} />
+                <Tabella titolo="Per provincia" righe={righeMostrate(stats.studenti.per_provincia, etichettaProvincia, stats.studenti.soglia)} />
+              </div>
+            )}
+          </Sezione>
+
+          <Sezione titolo={T.newsletter.titolo}>
+            {/*
+              Il numero grande è chi la riceverà: gli iscritti che si sono
+              iscritti da maggiorenni (20261107110000). Sotto, gli iscritti in
+              tutto, solo quando differiscono. Le uscite le conta un trigger
+              (`uscite_newsletter_giorno`), perché un'iscrizione tolta non lascia
+              una riga: si contano da quando il trigger esiste. Aperture e clic
+              non si promettono: l'invio non esiste ancora.
+            */}
+            <div className="grid gap-4 sm:grid-cols-3">
+              <Riquadro
+                etichetta="Chi la riceverà"
+                valore={stats.newsletter.raggiungibili}
+                sotto={sottoNewsletterEnte(stats.newsletter.iscritti, stats.newsletter.raggiungibili)}
+              />
+              <Riquadro etichetta="Nuove iscrizioni questo mese" valore={stats.newsletter.nuovi_mese} />
+              <Riquadro
+                etichetta="Uscite questo mese"
+                valore={stats.newsletter.persi_mese}
+                sotto={stats.newsletter.persi_contati_dal ? T.newsletter.persiDal(stats.newsletter.persi_contati_dal) : null}
+              />
+            </div>
+            <p className="text-sm text-kireo-muted">{T.newsletter.invii}</p>
+          </Sezione>
+
+          <Sezione titolo={T.guide.titolo}>
+            {/*
+              Due numeri distinti (Mario, 29/10): gli scaricamenti, tutti,
+              anche di chi non ha fatto l'accesso (un contatore senza identità,
+              `contatore_scaricamenti_guide`), e gli studenti iscritti a KIREO
+              che le hanno scaricate, una volta ciascuno
+              (`scaricamenti_guide_enti`). Tutti e due dalla data di
+              `inizio_conteggio_download_guide()`: quelli di prima non sono
+              stati registrati, e la riga sotto lo dice.
+            */}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Riquadro etichetta="Scaricamenti delle tue guide" valore={stats.guide.scaricamenti} sotto={sottoDownloadGuida(stats.guide.contati_dal)} />
+              <Riquadro etichetta="Scaricamenti questo mese" valore={stats.guide.scaricamenti_mese} />
+            </div>
+            <p className="text-sm text-kireo-light">{T.guide.riepilogo(stats.guide.scaricamenti, stats.guide.studenti)}</p>
+            <p className="text-xs text-kireo-muted">{T.guide.spiega}</p>
+            {stats.guide.per_guida.length === 0 ? (
+              <p className="text-sm text-kireo-muted">{T.guide.nessuna}</p>
+            ) : (
+              <ul className="space-y-3">
+                {stats.guide.per_guida.map((g) => (
+                  <li key={g.guida_id} className="rounded-xl border border-white/5 bg-kireo-card p-4">
+                    <p className="font-heading text-sm font-semibold text-kireo-light">{g.titolo}</p>
+                    <p className="mt-1 text-xs text-kireo-muted">{T.guide.periodo(g)}</p>
+                    <p className="mt-2 text-sm text-kireo-light">{T.guide.riga(g)}</p>
                   </li>
                 ))}
               </ul>
-            </div>
-          )}
+            )}
+          </Sezione>
         </>
       )}
     </div>
