@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { AREE } from "@/data/aree";
 import { guideDiArea, statoSblocco, GATE_GUIDE_ATTIVO, guidaPronta, TESTO_SBLOCCO_GUIDE } from "@/lib/guide/config";
 import { caricaContestoGuide } from "@/lib/guide/statoStudente";
+import { leggiGuideScaricate, TESTI_GUIDE_SCARICATE as TS } from "@/lib/app/guideScaricate";
 
 export const metadata = { title: "Guide di orientamento — KIREO" };
 
@@ -15,7 +16,7 @@ export const metadata = { title: "Guide di orientamento — KIREO" };
 export default async function GuideHome() {
   const contesto = await getAppContext();
   const supabase = await createClient();
-  const ctx = await caricaContestoGuide(supabase, contesto.userId);
+  const [ctx, scaricate] = await Promise.all([caricaContestoGuide(supabase, contesto.userId), leggiGuideScaricate(supabase)]);
 
   const righe = AREE.map((a) => {
     const guide = guideDiArea(a.slug);
@@ -38,6 +39,7 @@ export default async function GuideHome() {
         </p>
       </div>
 
+      <h2 className="font-heading text-xl font-semibold text-kireo-light">{TS.titoloKireo}</h2>
       <div className="grid gap-4 sm:grid-cols-2">
         {righe.map((r) => (
           <Link key={r.slug} href={`/app/guide/${r.slug}`} className="group flex items-center gap-4 rounded-2xl border border-white/5 bg-kireo-card p-5 transition hover:border-kireo-green/50">
@@ -53,6 +55,36 @@ export default async function GuideHome() {
           </Link>
         ))}
       </div>
+
+      {/* La seconda sezione (Mario, 29/10): il gesto dello studente verso un
+          ente, che resta anche quando l'ente sostituisce o cancella la guida.
+          Mai un link a un file che non c'è più. I contenuti salvabili che
+          verranno vanno in «Salvati», non qui. */}
+      <section className="space-y-4">
+        <h2 className="font-heading text-xl font-semibold text-kireo-light">{TS.titoloEnti}</h2>
+        {scaricate === null ? (
+          <p className="text-sm text-kireo-muted">{TS.nonLetto}</p>
+        ) : scaricate.length === 0 ? (
+          <p className="text-sm text-kireo-muted">{TS.nessuna}</p>
+        ) : (
+          <ul className="space-y-3">
+            {scaricate.map((g) => (
+              <li key={g.guidaId} className="flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-white/5 bg-kireo-card p-5">
+                <div className="min-w-0 flex-1">
+                  <p className="font-heading text-base font-semibold text-kireo-light">{g.titolo}</p>
+                  <p className="mt-0.5 text-xs text-kireo-muted">{TS.riga(g)}</p>
+                  {TS.stato(g) && <p className="mt-2 text-xs text-kireo-muted">{TS.stato(g)}</p>}
+                </div>
+                {g.pdfUrl && (
+                  <a href={g.pdfUrl} target="_blank" rel="noopener noreferrer" className="flex-none text-sm text-kireo-green-light hover:underline">
+                    {TS.apri} →
+                  </a>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </div>
   );
 }

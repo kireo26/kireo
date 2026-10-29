@@ -148,6 +148,17 @@ export const SEZIONI_EXPORT: SezioneExport[] = [
     // controllo dice che questa frase è diventata falsa.
     voce: "Le attività con ore certificate registrate dalla scuola (oggi questa parte è vuota per tutti: quella strada non è ancora in uso)",
   },
+  {
+    // Dal 29/10 (Mario: «Includila»). Il titolo e l'ente sono quelli del
+    // momento in cui l'ha scaricata (20261116100000): la riga resta anche se
+    // l'ente ha cancellato o sostituito la guida.
+    chiave: "guideEntiScaricate",
+    tabella: "scaricamenti_guide_enti",
+    colonna: "student_id",
+    select: "titolo_guida, ente_nome, guida_caricata_il, created_at",
+    singola: false,
+    voce: "Le guide degli enti che hai scaricato: il titolo, l'ente e quando",
+  },
 ];
 
 /**
@@ -216,7 +227,7 @@ export const VOCI_DEBITO = [
   { id: "conto_attivita", testo: "Il conto delle attività che hai fatto in ogni area" },
   { id: "workshop", testo: "I workshop: iscrizioni, elaborati, consegne, le chat con il cliente e con i compagni, quello che hai chiesto al tutor e le revisioni di ogni tappa" },
   { id: "eventi", testo: "Gli eventi: le iscrizioni, le presenze, le domande in diretta e le risposte alla domanda finale" },
-  { id: "enti", testo: "Gli enti: chi segui, a chi hai manifestato interesse, i messaggi che vi siete scritti e le guide che hai scaricato" },
+  { id: "enti", testo: "Gli enti: chi segui, a chi hai manifestato interesse, i messaggi che vi siete scritti e gli enti che hai incontrato con un evento, una guida o la newsletter" },
   { id: "classi", testo: "Le classi a cui la scuola ti ha assegnato" },
   { id: "notifiche", testo: "Le notifiche che ti abbiamo mandato e le comunicazioni della scuola" },
   { id: "assistente_newsletter", testo: "Quante volte hai usato l'assistente, e le iscrizioni alla newsletter" },
@@ -273,9 +284,12 @@ export const ATTESE: { tabella: string; natura: NaturaDato; nominataDa: IdVoceDe
   { tabella: "mission_attempt", natura: "fatto", nominataDa: "test_missioni", cosa: "le missioni giocate" },
   // Era una delle due SCOPERTE del 10/10: la voce degli enti enumerava chi
   // segui, a chi hai manifestato interesse e i messaggi, e una guida scaricata
-  // non è nessuna delle tre. Ora la nomina («e le guide che hai scaricato»).
-  { tabella: "recinto_enti", natura: "fatto", nominataDa: "enti", cosa: "le guide di un ente che ha scaricato" },
-  { tabella: "scaricamenti_guide_enti", natura: "fatto", nominataDa: "enti", cosa: "quale guida di un ente ha scaricato, e quando" },
+  // non è nessuna delle tre. Dal 10/10 la nominava («e le guide che hai
+  // scaricato»); dal 29/10 le guide scaricate sono nel file
+  // (`scaricamenti_guide_enti`), e la voce dice quello che il recinto è
+  // davvero: con quali enti c'è stato un contatto, e da quale gesto. Testo mio
+  // e provvisorio: la voce di prima era di Mario.
+  { tabella: "recinto_enti", natura: "fatto", nominataDa: "enti", cosa: "gli enti con cui c'è stato un contatto: un evento, una guida, la newsletter" },
   // ⚠️ «le iscrizioni alla newsletter» è la newsletter DI UN ENTE, cioè una
   // riga sua. `newsletter_docenti` è in `FUORI` ed è un'altra cosa: per questo
   // la parola «newsletter» non può essere un `termine` di sorveglianza.

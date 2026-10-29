@@ -313,6 +313,12 @@ console.log("\n§9 — le quattro sezioni (20261115100000)\n");
   ok(senza((c) => { c.studenti.per_area.altre = undefined; }) === null, "una ripartizione senza «altre» non si legge");
   ok(S.leggiStatistiche(null) === null && S.leggiStatistiche("x") === null, "una risposta assente non si legge");
 
+  // Una guida cancellata dall'ente resta nel dettaglio (20261116100000).
+  const conCancellata = senza((c) => { c.guide.per_guida = [{ guida_id: "g9", titolo: "Programma eventi", caricata_il: "2026-10-12T08:00:00Z", archiviata_il: null, cancellata: true, scaricamenti: 4, studenti: 1 }]; });
+  const gc = conCancellata?.guide.per_guida[0];
+  ok(gc?.cancellata === true, "una guida cancellata si legge come tale");
+  ok(S.T.guide.periodo(gc) === "Caricata il 12 ottobre 2026, poi cancellata. I suoi scaricamenti restano nel conto.", `il suo periodo lo dice [${gc && S.T.guide.periodo(gc)}]`);
+
   const righe = S.righeMostrate(rip([{ chiave: "informatica-digitale", n: 6 }], 2), S.etichettaArea);
   ok(righe.length === 1 && righe[0].n === 6, "il resto sotto la soglia NON entra nella lista come un gruppo (29/10)", righe);
 

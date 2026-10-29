@@ -502,6 +502,33 @@ const supabaseSpia = () => {
   await getPercorsoEsplorazione(spia.client, "u1");
   ok(/\blivello\b/.test(spia.visto.colonne), `…e la query chiede davvero `+"`livello`"+` a activity_log [${spia.visto.colonne}]`);
 
+  // ── L'archivio delle guide degli enti (29/10, 20261116100000) ────────────────
+  console.log("\n12) Le guide degli enti che hai scaricato: non letto ≠ vuoto, mai un link rotto");
+  const { leggiGuideScaricate, TESTI_GUIDE_SCARICATE: TGS } = require("@/lib/app/guideScaricate");
+  const finto = (risposta) => ({ rpc: async (fn) => (fn === "guide_enti_scaricate" ? risposta : { data: null, error: { message: "funzione sbagliata" } }) });
+  const riga = (stato, pdf) => ({ guida_id: "g1", titolo: "Programma eventi", ente_nome: "Davante", guida_caricata_il: "2026-10-12T08:00:00Z", scaricata_il: "2026-10-29T15:00:00Z", stato, pdf_url: pdf });
+  ok((await leggiGuideScaricate(finto({ data: null, error: { message: "giù" } }))) === null, "un errore è «non letto», non una lista vuota");
+  ok((await leggiGuideScaricate(finto({ data: "x", error: null }))) === null, "una risposta che non è un elenco è «non letto»");
+  ok((await leggiGuideScaricate(finto({ data: [riga("sparita", null)], error: null }))) === null, "uno stato sconosciuto è «non letto», non indovinato");
+  const vuote = await leggiGuideScaricate(finto({ data: [], error: null }));
+  ok(Array.isArray(vuote) && vuote.length === 0, "nessuna riga è un elenco vuoto, distinto da «non letto»");
+  const [canc] = await leggiGuideScaricate(finto({ data: [riga("cancellata", "https://esempio.it/a.pdf")], error: null }));
+  ok(canc?.pdfUrl === null, "una guida cancellata non offre un file, anche se ne arriva uno");
+  const [arch] = await leggiGuideScaricate(finto({ data: [riga("archiviata", "https://esempio.it/a.pdf")], error: null }));
+  ok(arch?.pdfUrl === "https://esempio.it/a.pdf" && arch.titolo === "Programma eventi" && arch.enteNome === "Davante", "un'archiviata offre il suo file, con il titolo e l'ente di quel momento");
+  ok(TGS.stato(canc) === "Il file non è più disponibile: l'ente ha tolto questa guida.", `la cancellata lo dice [${TGS.stato(canc)}]`);
+  ok(TGS.stato({ ...arch, stato: "pubblica" }) === null, "una guida ancora pubblica non ha una riga di stato");
+  ok(TGS.riga(arch) === "Davante · scaricata il 29 ottobre 2026", `la riga dice ente e data [${TGS.riga(arch)}]`);
+  for (const [nome, t] of Object.entries(TGS)) {
+    if (typeof t === "string") ok(trovaAccordi(t).length === 0, `«${nome}» non accorda col genere di chi legge`);
+  }
+  // La pagina: la chiama, e il link sta dietro pdfUrl.
+  const indiceGuide = fs.readFileSync(path.join(ROOT, "app/app/guide/page.tsx"), "utf8");
+  ok(/leggiGuideScaricate\(supabase\)/.test(indiceGuide), "l'indice /app/guide legge le guide scaricate");
+  ok(/scaricate === null \?[\s\S]*TS\.nonLetto[\s\S]*scaricate\.length === 0 \?[\s\S]*TS\.nessuna/.test(indiceGuide), "«non letto» e «nessuna» hanno due testi diversi");
+  ok(/\{g\.pdfUrl && \(\s*<a href=\{g\.pdfUrl\}/.test(indiceGuide), "il link al file c'è solo con un pdfUrl");
+  ok(/TS\.titoloKireo/.test(indiceGuide) && /TS\.titoloEnti/.test(indiceGuide), "le due sezioni: le guide di KIREO e quelle degli enti");
+
   console.log("");
   if (falliti > 0) { console.error(`✗ ${falliti} verifiche fallite`); process.exit(1); }
   console.log("✓ Tutte le verifiche Guide superate.");

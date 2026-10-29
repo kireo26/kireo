@@ -38,6 +38,8 @@ export type GuidaRiga = {
   titolo: string;
   caricata_il: string;
   archiviata_il: string | null;
+  /** Dal 20261116100000: una guida che l'ente ha cancellato resta nel conto, con titolo e data copiati. */
+  cancellata: boolean;
   scaricamenti: number;
   studenti: number;
 };
@@ -143,7 +145,7 @@ export function leggiStatistiche(dato: unknown): StatisticheEnte | null {
     if (!oggetto(r) || typeof r.guida_id !== "string" || typeof r.titolo !== "string" || typeof r.caricata_il !== "string") return null;
     const nr = numeri(r, ["scaricamenti", "studenti"] as const);
     if (!nr) return null;
-    per_guida.push({ guida_id: r.guida_id, titolo: r.titolo, caricata_il: r.caricata_il, archiviata_il: typeof r.archiviata_il === "string" ? r.archiviata_il : null, ...nr });
+    per_guida.push({ guida_id: r.guida_id, titolo: r.titolo, caricata_il: r.caricata_il, archiviata_il: typeof r.archiviata_il === "string" ? r.archiviata_il : null, cancellata: r.cancellata === true, ...nr });
   }
 
   return {
@@ -268,7 +270,9 @@ export const T = {
     riepilogo: (n: number, m: number) => `Scaricamenti in tutto: ${n} · studenti iscritti a KIREO fra chi le ha scaricate: ${m}`,
     spiega: "Il primo numero conta gli scaricamenti, non le persone: chi scarica due volte conta due, e conta anche chi non ha fatto l'accesso. Il secondo conta studenti, una volta ciascuno.",
     periodo: (g: GuidaRiga) =>
-      g.archiviata_il
+      g.cancellata
+        ? `Caricata il ${formattaData(g.caricata_il, "long")}, poi cancellata. I suoi scaricamenti restano nel conto.`
+        : g.archiviata_il
         ? `Pubblica dal ${formattaData(g.caricata_il, "long")} al ${formattaData(g.archiviata_il, "long")}, ora in archivio.`
         : `Pubblica dal ${formattaData(g.caricata_il, "long")}.`,
     riga: (g: GuidaRiga) => `Scaricamenti: ${g.scaricamenti} · Studenti iscritti a KIREO: ${g.studenti}`,
