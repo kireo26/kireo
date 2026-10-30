@@ -146,15 +146,6 @@ console.log("\n§3 — il codice non scrive una colonna che il registro non conc
 // più il codice è peggio di nessuna).
 const DINAMICHE = [
   {
-    file: "components/admin/AzioneApprovazione.tsx",
-    ancora: ".update({ stato, note_revisione:",
-    scritture: [
-      ["eventi", "update", ["stato", "note_revisione"]],
-      ["comunicazioni", "update", ["stato", "note_revisione"]],
-    ],
-    perche: "`.from(tabella)`: la stessa approvazione per eventi e comunicazioni",
-  },
-  {
     file: "app/api/escape/finalizza/route.ts",
     ancora: 'sostituisci("journal_entry", { student_id: user.id, attempt_id: attempt.id, testo: riflessione })',
     scritture: [["journal_entry", "insert", ["student_id", "attempt_id", "testo"]]],
@@ -339,7 +330,8 @@ let sitiLetti = 0;
     for (const col of colonne) scritteDalCodice.add(chiave(ruolo, tabella, comando, col));
   }
   // Le .from(variabile) senza una voce in DINAMICHE: le tre dichiarate oggi
-  // sono AzioneApprovazione (una) e finalizza (una, per due tabelle).
+  // sono finalizza (una, per due tabelle); AzioneApprovazione è uscita il 30/10,
+  // quando l'approvazione è passata da `/api/admin/decisione`.
   const variabiliDichiarate = nonDichiarate.filter((s) =>
     DINAMICHE.some((d) => s.startsWith(`${d.file}:`) && /\.from\(\w+\)\./.test(s)),
   );

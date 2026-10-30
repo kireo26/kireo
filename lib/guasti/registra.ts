@@ -54,6 +54,10 @@ export type SpecieGuasto =
   | "guida_riservata" // il PDF di una guida 2/3 non è stato consegnato
   | "email_guida" // il follow-up via email dopo il download non è partito
   | "traccia_guida" // lo scaricamento di una guida non è stato registrato (o il file non è partito)
+  // — la newsletter degli enti e l'avviso all'ente (30/10)
+  | "email_newsletter" // l'email di una newsletter a uno studente non è partita (resta da riprovare)
+  | "invio_newsletter" // un passo del motore della newsletter (preparazione, coda, segno) non è riuscito
+  | "avviso_ente" // l'email all'ente sulla decisione di KIREO (evento, newsletter) non è partita
   // — artefatti delle richieste di contatto
   | "email_contatto" // la conferma a chi ha scritto, o la notifica interna, non è partita
   // — artefatti della consegna di una diretta

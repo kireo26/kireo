@@ -36,6 +36,14 @@ export type OpzioniInvioEmail = {
    * gratis ed è strettamente meglio, anche senza nessuna frase che lo nomini.
    */
   rispondiA?: string;
+  /**
+   * Intestazioni in più (30/10, la newsletter: `List-Unsubscribe` e
+   * `List-Unsubscribe-Post`, RFC 8058). ⚠️ NON VERIFICATO che Brevo le passi
+   * così come sono: dal sandbox la documentazione non si raggiunge. Il link di
+   * uscita nel corpo dell'email funziona comunque; queste servono ai client di
+   * posta che mostrano «Annulla iscrizione».
+   */
+  intestazioni?: Record<string, string>;
 };
 
 // Client riusabile per l'invio email transazionale via Brevo — server-only,
@@ -69,6 +77,7 @@ export async function inviaEmail(
         // `undefined` lo lascia cadere `JSON.stringify`: senza `rispondiA` il
         // corpo è identico a prima.
         replyTo: opzioni.rispondiA ? { email: opzioni.rispondiA } : undefined,
+        headers: opzioni.intestazioni && Object.keys(opzioni.intestazioni).length > 0 ? opzioni.intestazioni : undefined,
         subject: oggetto,
         htmlContent: html,
       }),

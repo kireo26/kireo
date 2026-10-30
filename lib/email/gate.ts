@@ -1,8 +1,14 @@
 import { isMaggiorenne } from "@/lib/eta";
 
-// Gate email riusabile — PRONTO per il futuro motore di mailing, NON ancora
-// applicato a nessun invio esistente (oggi tutti gli invii sono di servizio
-// o B2B, vedi sotto). Punto di verità unico per la domanda: «questo invio
+// ⚠️ 30/10: IL MOTORE DELLA NEWSLETTER NON USA QUESTO GATE. Usa la regola
+// SQL `consenso_dato_da_maggiorenne(iscrizione.created_at, data_nascita)`
+// (20261107110000, 20261117110000): «era maggiorenne quando ha detto sì», non
+// «è maggiorenne adesso», che è quello che guarda `puoRicevereEmail`. Il
+// commento qui sotto è del 13/07 e descrive l'idea di allora; questa funzione
+// oggi non la chiama nessun invio.
+//
+// Gate email riusabile — scritto per il futuro motore di mailing, non
+// applicato a nessun invio (vedi sopra). Punto di verità unico per la domanda: «questo invio
 // può partire verso questo utente?».
 //
 // ─────────────────────────────────────────── Le due categorie di email

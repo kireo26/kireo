@@ -10,7 +10,10 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 // ricontrolla (un id). Mai una query costruita da quello che manda chi chiama.
 // Chi lo usa oggi: il cron del motore workshop, `lib/guasti/registra.ts`,
 // `lib/ai/consumo.ts`, `lib/lingua/contatoreGuardia.ts`,
-// `lib/guide/contatoreScaricamenti.ts`. Mai importato da codice che gira nel
+// `lib/guide/contatoreScaricamenti.ts`, il cron della newsletter, l'uscita dalla
+// newsletter dalla posta (`/api/newsletter/uscita/[codice]` e la sua pagina:
+// dalla richiesta arriva solo il codice) e l'avviso all'ente
+// (`lib/ente/avvisoDecisione.ts`, che rilegge la decisione). Mai importato da codice che gira nel
 // browser. SUPABASE_SERVICE_ROLE_KEY sta su Vercel (Supabase → Project
 // Settings → API → service_role secret), mai con prefisso NEXT_PUBLIC_.
 export function createServiceRoleClient() {

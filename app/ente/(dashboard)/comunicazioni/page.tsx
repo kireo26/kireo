@@ -1,93 +1,188 @@
+import Link from "next/link";
 import { getEnteContext } from "@/lib/ente/context";
 import { getQuoteEnte } from "@/lib/ente/quote";
 import { createClient } from "@/lib/supabase/server";
 import { ETICHETTA_PIANO, trovaPianoSuccessivo, type PianoQuote } from "@/lib/ente/pianoSuccessivo";
-import CreaComunicazioneForm from "@/components/ente/CreaComunicazioneForm";
+import NewsletterForm, { type NewsletterIniziale } from "@/components/ente/NewsletterForm";
 import { formattaData } from "@/lib/formato";
+import { descriviErrore } from "@/lib/erroreSupabase";
+import {
+  ETICHETTA_STATO_NEWSLETTER,
+  TESTI_NEWSLETTER,
+  giornoItaliano,
+  piuGiorni,
+  testoEsitoNewsletter,
+  type EsitoNewsletter,
+  type StatoNewsletter,
+} from "@/lib/newsletter/regole";
 
-const ETICHETTA_STATO: Record<string, { label: string; classe: string }> = {
-  bozza: { label: "Bozza", classe: "bg-white/10 text-kireo-light" },
-  in_approvazione: { label: "In approvazione", classe: "bg-kireo-orange/15 text-kireo-orange" },
-  approvata: { label: "Approvata", classe: "bg-kireo-green/15 text-kireo-green-light" },
-  rifiutata: { label: "Rifiutata", classe: "bg-red-500/15 text-red-300" },
-  inviata: { label: "Inviata", classe: "bg-kireo-green/15 text-kireo-green-light" },
+const CLASSE_STATO: Record<StatoNewsletter, string> = {
+  bozza: "bg-white/10 text-kireo-light",
+  in_approvazione: "bg-kireo-orange/15 text-kireo-orange",
+  approvata: "bg-kireo-green/15 text-kireo-green-light",
+  rifiutata: "bg-red-500/15 text-red-300",
+  inviata: "bg-kireo-green/15 text-kireo-green-light",
 };
 
-export default async function EnteComunicazioniPage() {
+type Riga = {
+  id: string;
+  oggetto: string;
+  corpo: string;
+  giorno: string;
+  ultimo_giorno: string;
+  stato: StatoNewsletter;
+  nota_revisione: string | null;
+};
+
+// La newsletter dell'ente (30/10, 20261117110000). Le proposte fatte prima
+// stanno in `comunicazioni` e restano qui come archivio: non le legge nessun
+// motore, e non partono (la regola è in testa alla migrazione).
+export default async function EnteComunicazioniPage({ searchParams }: { searchParams: Promise<{ modifica?: string }> }) {
+  const { modifica } = await searchParams;
   const contesto = await getEnteContext();
   const supabase = await createClient();
+  const oggi = giornoItaliano(new Date());
 
-  const [{ data: comunicazioni }, { data: piani }, quote] = await Promise.all([
+  const [nlRes, vecchieRes, { data: piani }, quote, pieniRes] = await Promise.all([
+    supabase
+      .from("newsletter_enti")
+      .select("id, oggetto, corpo, giorno, ultimo_giorno, stato, nota_revisione")
+      .eq("istituzione_id", contesto.istituzioneId)
+      .order("giorno", { ascending: false }),
     supabase
       .from("comunicazioni")
-      .select("id, tipo, oggetto, stato, note_revisione, created_at")
+      .select("id, oggetto, stato, created_at")
       .eq("istituzione_id", contesto.istituzioneId)
       .order("created_at", { ascending: false }),
-    supabase
-      .from("piani")
-      .select("id, nome, prezzo_min, prezzo_max, quota_eventi_promossi, quota_newsletter, quota_cta_esterne"),
+    supabase.from("piani").select("id, nome, prezzo_min, prezzo_max, quota_eventi_promossi, quota_newsletter, quota_cta_esterne"),
     getQuoteEnte(supabase, contesto.istituzioneId, contesto.pianoNome),
+    supabase.rpc("giorni_newsletter_pieni", { p_da: piuGiorni(oggi, 1), p_a: piuGiorni(oggi, 120) }),
   ]);
+  if (nlRes.error) console.error("[ente newsletter]:", descriviErrore(nlRes.error));
+  if (pieniRes.error) console.error("[ente newsletter] giorni pieni:", descriviErrore(pieniRes.error));
+
+  const righe = nlRes.error ? null : ((nlRes.data ?? []) as Riga[]);
+  const giorniPieni = pieniRes.error ? null : ((pieniRes.data ?? []) as { giorno: string }[]).map((g) => g.giorno);
+
+  // Com'è andata, per quelle già partite: solo conteggi, mai chi.
+  const esiti = new Map<string, EsitoNewsletter | null>();
+  for (const r of righe ?? []) {
+    if (r.stato !== "inviata") continue;
+    const { data, error } = await supabase.rpc("esito_newsletter", { p_id: r.id });
+    const e = data as { destinatari?: number; inviate?: number; in_coda?: number; fallite?: number; scadute?: number } | null;
+    esiti.set(
+      r.id,
+      error || !e
+        ? null
+        : { destinatari: e.destinatari ?? 0, inviate: e.inviate ?? 0, inCoda: e.in_coda ?? 0, fallite: e.fallite ?? 0, scadute: e.scadute ?? 0 },
+    );
+  }
+
+  const daModificare = modifica ? (righe ?? []).find((r) => r.id === modifica && r.stato !== "inviata") : undefined;
+  const iniziale: NewsletterIniziale | null = daModificare
+    ? {
+        id: daModificare.id,
+        oggetto: daModificare.oggetto,
+        corpo: daModificare.corpo,
+        giorno: daModificare.giorno,
+        ultimoGiorno: daModificare.ultimo_giorno,
+        stato: daModificare.stato,
+      }
+    : null;
 
   const pianoSuccessivo = trovaPianoSuccessivo(contesto.pianoNome, (piani ?? []) as PianoQuote[]);
-  const nudgeNewsletter = pianoSuccessivo
-    ? `Il piano ${ETICHETTA_PIANO[pianoSuccessivo.nome] ?? pianoSuccessivo.nome} include fino a ${pianoSuccessivo.quota_newsletter} newsletter/anno.`
-    : null;
+  const vecchie = vecchieRes.error ? [] : (vecchieRes.data ?? []);
 
   return (
     <div className="space-y-8">
       <div>
-        <p className="mb-4 font-sans text-sm font-semibold uppercase tracking-wide text-kireo-orange">Comunicazioni</p>
-        <h1 className="py-1 font-heading text-3xl font-bold leading-[1.25] text-kireo-light sm:text-4xl">
-          Newsletter e comunicazioni
-        </h1>
-        <p className="mt-2 text-kireo-muted">Proponi il contenuto: KIREO lo revisiona e lo veicola, nessun invio diretto.</p>
+        <p className="mb-4 font-sans text-sm font-semibold uppercase tracking-wide text-kireo-orange">Newsletter</p>
+        <h1 className="py-1 font-heading text-3xl font-bold leading-[1.25] text-kireo-light sm:text-4xl">La tua newsletter</h1>
+        <p className="mt-2 text-kireo-muted">
+          La scrivi tu, la legge KIREO, e la manda KIREO ai tuoi iscritti: non vedi i loro indirizzi.
+        </p>
+        <p className="mt-2 text-sm text-kireo-muted">
+          {quote ? TESTI_NEWSLETTER.quota(quote.newsletterUsate, quote.newsletterTotali) : TESTI_NEWSLETTER.quotaNonLetta}
+          {quote && quote.newsletterUsate >= quote.newsletterTotali && pianoSuccessivo && (
+            <>
+              {" "}
+              Il piano {ETICHETTA_PIANO[pianoSuccessivo.nome] ?? pianoSuccessivo.nome} ne include {pianoSuccessivo.quota_newsletter}.{" "}
+              <Link href="/ente/piano" className="text-kireo-orange underline underline-offset-2">
+                Scopri i piani →
+              </Link>
+            </>
+          )}
+        </p>
       </div>
 
-      {!comunicazioni || comunicazioni.length === 0 ? (
-        <div className="rounded-2xl border border-white/5 bg-kireo-card p-6 text-center text-kireo-muted">
-          Non hai ancora proposto nessuna comunicazione.
-        </div>
+      {righe === null ? (
+        <p className="rounded-2xl border border-white/5 bg-kireo-card p-6 text-kireo-muted">
+          Non siamo riusciti a leggere le tue newsletter: ricarica la pagina.
+        </p>
+      ) : righe.length === 0 ? (
+        <p className="rounded-2xl border border-white/5 bg-kireo-card p-6 text-center text-kireo-muted">
+          Non hai ancora scritto nessuna newsletter.
+        </p>
       ) : (
         <ul className="space-y-3">
-          {comunicazioni.map((c) => {
-            const stato = ETICHETTA_STATO[c.stato] ?? ETICHETTA_STATO.bozza;
-            return (
-              <li key={c.id} className="rounded-xl border border-white/5 bg-kireo-card p-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <span className={`mr-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${stato.classe}`}>
-                      {stato.label}
-                    </span>
-                    <span className="font-heading text-sm font-semibold text-kireo-light">{c.oggetto}</span>
-                    <p className="mt-1 text-xs text-kireo-muted">
-                      {/* «Comunicazione mirata» resta solo come etichetta di righe vecchie: dal 28/10 non si propone più. */}
-                      {c.tipo === "newsletter" ? "Newsletter" : "Comunicazione mirata"} ·{" "}
-                      {formattaData(c.created_at, "long")}
-                    </p>
-                  </div>
-                </div>
-                {c.note_revisione && (
-                  <p className="mt-3 rounded-lg bg-white/5 p-3 text-sm text-kireo-muted">
-                    Nota di revisione: {c.note_revisione}
+          {righe.map((r) => (
+            <li key={r.id} id={`newsletter-${r.id}`} className="rounded-xl border border-white/5 bg-kireo-card p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <span className={`mr-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${CLASSE_STATO[r.stato]}`}>
+                    {ETICHETTA_STATO_NEWSLETTER[r.stato] ?? r.stato}
+                  </span>
+                  <span className="font-heading text-sm font-semibold text-kireo-light">{r.oggetto}</span>
+                  <p className="mt-1 text-xs text-kireo-muted">
+                    Parte il {formattaData(r.giorno, "long")} alle 7:30 · per email fino al {formattaData(r.ultimo_giorno, "long")}
                   </p>
+                </div>
+                {r.stato !== "inviata" && !(r.giorno <= oggi && (r.stato === "approvata" || r.stato === "in_approvazione")) && (
+                  <Link href={`/ente/comunicazioni?modifica=${r.id}#form`} className="text-sm text-kireo-orange underline underline-offset-2">
+                    Modifica
+                  </Link>
                 )}
-              </li>
-            );
-          })}
+              </div>
+              {r.nota_revisione && (
+                <p className="mt-3 rounded-lg bg-white/5 p-3 text-sm text-kireo-muted">
+                  {r.stato === "rifiutata" ? "Perché non è stata approvata: " : "Nota di revisione: "}
+                  {r.nota_revisione}
+                </p>
+              )}
+              {r.stato === "inviata" && (
+                <div className="mt-3 space-y-1 text-sm text-kireo-muted">
+                  {testoEsitoNewsletter(esiti.get(r.id) ?? null).map((riga) => (
+                    <p key={riga}>{riga}</p>
+                  ))}
+                </div>
+              )}
+            </li>
+          ))}
         </ul>
       )}
 
-      <div>
-        <h2 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">Nuova comunicazione</h2>
+      <div id="form">
+        <h2 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">
+          {iniziale ? "Modifica la newsletter" : "Nuova newsletter"}
+        </h2>
         <div className="mt-4">
-          <CreaComunicazioneForm
-            istituzioneId={contesto.istituzioneId}
-            quotaNewsletterRimasta={quote ? quote.newsletterTotali - quote.newsletterUsate : null}
-            nudgeNewsletter={nudgeNewsletter}
-          />
+          <NewsletterForm key={iniziale?.id ?? "nuova"} iniziale={iniziale} oggi={oggi} giorniPieni={giorniPieni} />
         </div>
       </div>
+
+      {vecchie.length > 0 && (
+        <div>
+          <h2 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">Proposte di prima</h2>
+          <p className="mt-1 text-sm text-kireo-muted">{TESTI_NEWSLETTER.proposteDiPrima}</p>
+          <ul className="mt-3 space-y-2">
+            {vecchie.map((c) => (
+              <li key={c.id} className="rounded-xl border border-white/5 bg-kireo-card p-3 text-sm text-kireo-muted">
+                <span className="text-kireo-light">{c.oggetto}</span> · {formattaData(c.created_at, "long")}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

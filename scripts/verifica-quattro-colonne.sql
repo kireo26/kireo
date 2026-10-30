@@ -42,7 +42,7 @@ insert into public.profiles (id, ruolo, nome, cognome, data_nascita) values
 insert into public.student_profiles (user_id, school_code, classe, anno_diploma)
  select '66666666-0000-0000-0000-0000000000a2', codice_meccanografico, '4', 2028 from public.schools limit 1;
 insert into public.istituzioni (id, nome, slug, tipo, stato, piano_id)
- select 'aaaaaaaa-0000-0000-0000-0000000000a1', 'Ente Q', 'ente-q', 'universita', 'attiva', id from public.piani where nome = 'plus';
+ select 'aaaaaaaa-0000-0000-0000-0000000000a1', 'Ente Q', 'ente-q', 'universita', 'attiva', id from public.piani where nome = 'premium';
 insert into public.institution_profiles (user_id, istituzione_id) values
  ('66666666-0000-0000-0000-0000000000a1', 'aaaaaaaa-0000-0000-0000-0000000000a1');
 insert into public.scuole_profili (id, scuola_id, stato)

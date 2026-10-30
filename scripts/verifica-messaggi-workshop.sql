@@ -34,7 +34,7 @@ insert into public.profiles (id, ruolo, nome, cognome, data_nascita) values
 
 insert into public.istituzioni (id, nome, slug, stato, piano_id)
   values ('b0110000-0000-0000-0000-0000000000b1', 'Ente Uno', 'ente-uno', 'attiva',
-          (select id from public.piani where nome = 'plus'));
+          (select id from public.piani where nome = 'premium'));
 insert into public.institution_profiles (user_id, istituzione_id)
   values ('33330000-0000-0000-0000-000000000003', 'b0110000-0000-0000-0000-0000000000b1');
 

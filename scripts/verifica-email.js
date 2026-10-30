@@ -126,6 +126,8 @@ const {
   templateConfermaRichiestaContatto,
   templateNotificaRichiestaContatto,
   templateFollowUpGuida,
+  templateNewsletter,
+  templateAvvisoDecisione,
 } = require("@/lib/email/templates");
 
 ok(esc("<b>x</b>") === "&lt;b&gt;x&lt;/b&gt;", "i tag si neutralizzano");
@@ -215,6 +217,28 @@ const TEMPLATE_EMAIL = [
     perche:
       "il destinatario siamo noi, e il suo Reply-To è l'indirizzo di CHI HA SCRITTO: " +
       "un invito a rispondere qui sarebbe rivolto a noi, che lo sappiamo già",
+  },
+  {
+    nome: "templateNewsletter",
+    rende: () => [
+      templateNewsletter({
+        enteNome: "Ente",
+        oggetto: "Open day",
+        corpo: "Primo paragrafo.\n\nSecondo.",
+        linkLeggi: "https://kireo.it/app/newsletter/x",
+        linkUscita: "https://kireo.it/disiscrizione/newsletter/x",
+      }),
+    ],
+    invito: "mai",
+    perche:
+      "la manda KIREO a nome di un ente a cui lo studente non ha l'indirizzo: una risposta andrebbe a noreply@, " +
+      "e l'ente non la riceverebbe comunque (30/10)",
+  },
+  {
+    nome: "templateAvvisoDecisione",
+    rende: () => [templateAvvisoDecisione({ righe: ["KIREO ha approvato il tuo evento."], bottone: "Apri", link: "https://kireo.it/diretta/x" })],
+    invito: "mai",
+    perche: "l'avviso all'ente è un fatto, non una conversazione: il posto per rispondere è la pagina dell'evento (30/10)",
   },
 ];
 

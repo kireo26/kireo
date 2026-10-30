@@ -100,7 +100,9 @@ for (const s of superfici) console.log(`     · ${s}`);
 // numero vero all'11/10 è 11 (la prima stesura ne dichiarava 10, ed è stata la
 // soglia a dirlo) — dichiarato e non dedotto, così se cresce lo si
 // vede e se cala qualcuno deve spiegarlo.
-const ATTESE = 11;
+// 12 dal 30/10: `lib/ente/avvisoDecisione.ts`, l'email all'ente sulla decisione
+// di KIREO, che stampa il giorno di partenza di una newsletter con `formattaData`.
+const ATTESE = 12;
 ok(superfici.length === ATTESE, `il sovrainsieme ha ${ATTESE} file (CSV, email, PDF)`, `${superfici.length}: se è cambiato, guarda quale e aggiorna il conto`);
 
 // ─────────────────────────────────────────────────────────────────────────────

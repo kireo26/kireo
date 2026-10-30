@@ -3,7 +3,12 @@ import { descriviErrore } from "@/lib/erroreSupabase";
 
 // Gli stati di una comunicazione che hanno usato la quota: approvata (o già
 // inviata). Bozza, in approvazione e rifiutata no.
-const STATI_CHE_CONTANO = ["approvata", "inviata"];
+// La newsletter conta da quando PRENDE IL POSTO (30/10, 20261117110000): in
+// approvazione, approvata, inviata. È il conto con cui il database ferma la
+// quarta del piano free, quindi è anche quello che l'ente deve leggere — un
+// numero diverso da quello che decide gli direbbe «ne hai ancora una» e poi
+// gliela rifiuterebbe.
+const STATI_NEWSLETTER_CHE_CONTANO = ["in_approvazione", "approvata", "inviata"];
 
 // Anno accademico settembre-agosto: se oggi è tra settembre e dicembre
 // l'anno è iniziato quest'anno solare, altrimenti (gennaio-agosto) è
@@ -32,7 +37,10 @@ export type Quote = {
 // - Eventi in evidenza: eventi messi in evidenza (`in_evidenza_dal`)
 //   quest'anno. Si mette in evidenza solo un evento approvato, e il limite lo
 //   difende anche il database (`metti_in_evidenza_evento`).
-// - Newsletter: newsletter approvate (o inviate) create quest'anno.
+// - Newsletter: dal 30/10 da `newsletter_enti` (mai più `comunicazioni`), quelle
+//   con il GIORNO di partenza in quest'anno accademico che hanno preso un posto
+//   (in approvazione, approvate, inviate): è la stessa regola con cui il
+//   database ferma la prossima.
 // - CTA esterne: eventi APPROVATI creati quest'anno con un link esterno. NON
 //   conta i clic su quei link.
 // - Le «comunicazioni mirate» (piano premium) NON hanno più un riquadro (28/10):
@@ -76,13 +84,12 @@ export async function getQuoteEnte(supabase: SupabaseClient, istituzioneId: stri
         .gte("created_at", inizio)
         .lte("created_at", fine),
       supabase
-        .from("comunicazioni")
+        .from("newsletter_enti")
         .select("id", { count: "exact", head: true })
         .eq("istituzione_id", istituzioneId)
-        .eq("tipo", "newsletter")
-        .in("stato", STATI_CHE_CONTANO)
-        .gte("created_at", inizio)
-        .lte("created_at", fine),
+        .in("stato", STATI_NEWSLETTER_CHE_CONTANO)
+        .gte("giorno", inizio.slice(0, 10))
+        .lte("giorno", fine.slice(0, 10)),
     ]);
 
     const errore = errorePiano ?? [evidenzaRes, ctaRes, newsletterRes].find((r) => r.error)?.error;
@@ -121,14 +128,17 @@ export async function getQuotePerRevisione(supabase: SupabaseClient, istituzione
   return getQuoteEnte(supabase, istituzioneId, piano.nome);
 }
 
-export type VoceQuota = "newsletter" | "cta";
+// Solo la CTA, dal 30/10: la quota delle newsletter la fa rispettare il
+// database quando l'ente manda in approvazione (`salva_newsletter`), quindi
+// nella coda dell'admin non c'è più niente da «superare approvando».
+export type VoceQuota = "cta";
 
 // Una riga per la coda: «Già approvate quest'anno: 5 di 5». Testo mio,
 // provvisorio. A quota piena lo dice, perché approvare vuol dire superarla.
 export function testoQuotaRevisione(quote: Quote | null, voce: VoceQuota): { testo: string; piena: boolean } {
   if (!quote) return { testo: "Non siamo riusciti a leggere quante ne ha già approvate questo ente.", piena: false };
-  const [usate, totali] =
-    voce === "newsletter" ? [quote.newsletterUsate, quote.newsletterTotali] : [quote.ctaUsate, quote.ctaTotali];
+  void voce;
+  const [usate, totali] = [quote.ctaUsate, quote.ctaTotali];
   const piena = usate >= totali;
   return {
     testo: `Già approvate quest'anno accademico: ${usate} di ${totali} previste dal piano.${piena ? " Approvando, la quota si supera." : ""}`,

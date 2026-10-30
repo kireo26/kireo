@@ -17,7 +17,9 @@
 // OGNI TIPO APPARTIENE A UN RUOLO SOLO, quindi il link lo decide il tipo e
 // non serve sapere chi guarda: lo studente per post/eventi/workshop, l'ente
 // per le proposte ricevute, per la chiave di trasmissione e per un suo post
-// tolto, la scuola per la risposta a una proposta, l'admin per un post nuovo. Un ripiego unico su `/app` manderebbe un
+// tolto, per la decisione su un suo evento o una sua newsletter, la scuola per
+// la risposta a una proposta, l'admin per un post nuovo; la newsletter di un
+// ente allo studente. Un ripiego unico su `/app` manderebbe un
 // referente e un ente in un'area che non è la loro.
 
 export type TipoNotifica =
@@ -30,7 +32,12 @@ export type TipoNotifica =
   | "chiave_trasmissione_pronta"
   | "chiave_trasmissione_cambiata"
   | "post_pubblicato"
-  | "post_tolto";
+  | "post_tolto"
+  | "evento_approvato"
+  | "evento_rifiutato"
+  | "newsletter_approvata"
+  | "newsletter_rifiutata"
+  | "newsletter_ente";
 
 export const ETICHETTA_TIPO: Record<TipoNotifica, string> = {
   nuovo_post: "Nuovo post di un ente che segui",
@@ -44,6 +51,13 @@ export const ETICHETTA_TIPO: Record<TipoNotifica, string> = {
   // ⚠️ Testi miei e provvisori (29/10).
   post_pubblicato: "Un ente ha pubblicato un post",
   post_tolto: "KIREO ha tolto un tuo post dal feed",
+  // ⚠️ Testi miei e provvisori (30/10): l'avviso all'ente sulla decisione, e la
+  // newsletter che arriva allo studente dentro KIREO.
+  evento_approvato: "KIREO ha approvato un tuo evento",
+  evento_rifiutato: "KIREO non ha approvato un tuo evento",
+  newsletter_approvata: "KIREO ha approvato una tua newsletter",
+  newsletter_rifiutata: "KIREO non ha approvato una tua newsletter",
+  newsletter_ente: "Una newsletter di un ente a cui sei iscritto",
 };
 
 export const LINK_TIPO: Record<TipoNotifica, string> = {
@@ -57,6 +71,11 @@ export const LINK_TIPO: Record<TipoNotifica, string> = {
   chiave_trasmissione_cambiata: "/ente/eventi",
   post_pubblicato: "/admin",
   post_tolto: "/ente/bacheca",
+  evento_approvato: "/ente/eventi",
+  evento_rifiutato: "/ente/eventi",
+  newsletter_approvata: "/ente/comunicazioni",
+  newsletter_rifiutata: "/ente/comunicazioni",
+  newsletter_ente: "/app",
 };
 
 // ⚠️ UN LINK CHE ARRIVA NEL POSTO SBAGLIATO SI CREDE (Mario, 27/10). Fino al
@@ -79,6 +98,11 @@ const LINK_AL_RIFERIMENTO: Partial<Record<TipoNotifica, (id: string) => string>>
   nuovo_post: (id) => `/app/bacheca?post=${id}`,
   post_pubblicato: (id) => `/admin#post-${id}`,
   post_tolto: (id) => `/ente/bacheca#post-${id}`,
+  evento_approvato: (id) => `/diretta/${id}`,
+  evento_rifiutato: (id) => `/diretta/${id}`,
+  newsletter_approvata: (id) => `/ente/comunicazioni#newsletter-${id}`,
+  newsletter_rifiutata: (id) => `/ente/comunicazioni#newsletter-${id}`,
+  newsletter_ente: (id) => `/app/newsletter/${id}`,
 };
 
 export function linkNotifica(tipo: TipoNotifica, riferimentoId: string | null | undefined): string {

@@ -159,6 +159,20 @@ export const SEZIONI_EXPORT: SezioneExport[] = [
     singola: false,
     voce: "Le guide degli enti che hai scaricato: il titolo, l'ente e quando",
   },
+  // Dal 30/10 (20261117110000), nello stesso lotto dell'invio: la regola è che
+  // una tabella con dentro qualcosa che riguarda lo studente entra nel file
+  // nello stesso commit. ⚠️ Senza oggetto né ente: la newsletter è una riga
+  // dell'ente che lo studente non legge dal client (la legge in KIREO dalla
+  // notifica). Il giorno in cui serve il titolo, va copiato nella consegna come
+  // per le guide.
+  {
+    chiave: "newsletterRicevute",
+    tabella: "newsletter_consegne",
+    colonna: "student_id",
+    select: "stato, inviata_il, created_at",
+    singola: false,
+    voce: "Le newsletter degli enti che ti abbiamo mandato: quando e se sono arrivate per email",
+  },
 ];
 
 /**
@@ -194,6 +208,14 @@ export const COLONNE_ESCLUSE: Record<string, Record<string, string>> = {
     updated_at: "tecnica: quando la riga è stata toccata l'ultima volta",
   },
   student_area_interests: {},
+  newsletter_consegne: {
+    id: "tecnica: l'identificativo interno della riga",
+    newsletter_id: "tecnica: l'identificativo interno della newsletter dell'ente",
+    tentativi: "tecnica: quante volte il motore ha provato a mandarla",
+    tentata_il: "tecnica: quando il motore l'ha presa in un giro",
+    tentata_giorno: "tecnica: il giorno del giro che l'ha presa",
+    ultimo_errore: "tecnica: il messaggio d'errore del fornitore delle email, se l'invio è fallito",
+  },
   scaricamenti_guide_enti: {
     guida_id: "tecnica: l'identificativo interno della guida, che dopo una cancellazione non porta a niente; il titolo copiato sta nel file",
     istituzione_id: "tecnica: l'identificativo interno dell'ente; il nome copiato sta nel file",

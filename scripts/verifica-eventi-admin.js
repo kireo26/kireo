@@ -92,7 +92,12 @@ console.log("\n§2bis — un rifiuto porta la sua ragione\n");
   // 29/10 il secondo era `AzioneApprovazionePost`, uscito con la coda dei post:
   // al suo posto `TogliPost`, che chiede la motivazione prima della conferma.
   for (const [f, apertura, regola, scrive] of [
-    ["components/admin/AzioneApprovazione.tsx", /async function handleAzione\(/, /erroreRifiuto\(/, /\.update\(/],
+    // Dal 30/10 la decisione passa da `/api/admin/decisione` (con l'avviso
+    // all'ente): la «scrittura» del componente è quella richiesta.
+    ["components/admin/AzioneApprovazione.tsx", /async function handleAzione\(/, /erroreRifiuto\(/, /fetch\("\/api\/admin\/decisione"/],
+    // …e la route lo ricontrolla da sé, prima di scrivere: chi chiama la route
+    // senza il componente non rifiuta senza motivo.
+    ["app/api/admin/decisione/route.ts", /export async function POST\(/, /erroreRifiuto\(/, /\.update\(/],
     ["components/admin/TogliPost.tsx", /function chiediConferma\(\)/, /erroreRimozione\(/, /\.rpc\("togli_post"/],
   ]) {
     const src = leggi(f);
@@ -140,9 +145,9 @@ console.log("\n§3 — i posti\n");
   const riga = leggi("components/ente/RigaEventoEnte.tsx");
   ok(!/\?\? ETICHETTA_STATO\.bozza/.test(riga), "uno stato sconosciuto non si mostra come «Bozza»");
   const admin = leggi("app/admin/page.tsx");
-  ok(!/<AzioneApprovazione tabella="eventi"/.test(admin) && !/<ControlloDirettaEvento/.test(admin), "la coda di /admin non ha più plance di eventi: approvazione e console stanno nella pagina dell'evento");
+  ok(!/<AzioneApprovazione cosa="evento"/.test(admin) && !/<ControlloDirettaEvento/.test(admin), "la coda di /admin non ha più plance di eventi: approvazione e console stanno nella pagina dell'evento");
   const plancia = leggi("components/admin/PlanciaAdminEvento.tsx");
-  ok(/evento\.stato === "in_approvazione"/.test(plancia) && /<AzioneApprovazione tabella="eventi"/.test(plancia), "la pagina dell'evento ha approva/rifiuta, solo per un evento in approvazione");
+  ok(/evento\.stato === "in_approvazione"/.test(plancia) && /<AzioneApprovazione cosa="evento"/.test(plancia), "la pagina dell'evento ha approva/rifiuta, solo per un evento in approvazione");
   ok(/evento\.descrizione/.test(plancia), "…con la descrizione intera, su cui si decide");
 }
 

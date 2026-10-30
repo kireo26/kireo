@@ -85,6 +85,10 @@ const RIGA_5XX = /status\s*:\s*(5\d\d)\b|,\s*(5\d\d)\s*[,)]/;
 // Dove comincia lo statement: la riga del 5xx può essere la coda di un
 // `return` spezzato su più righe (succede quando il messaggio è lungo).
 function inizioStatement(righe, i) {
+  // Un `if (x) return …500` su una riga sola: lo statement comincia lì. Senza
+  // questa riga la risalita trovava il `return` del ramo PRECEDENTE (30/10,
+  // l'uscita dalla newsletter) e giudicava il ramo sbagliato.
+  if (/\breturn\b/.test(righe[i]) && !/^return\b/.test(righe[i].trim()) && /^(if|else)\b|^\}\s*else\b/.test(righe[i].trim())) return i;
   for (let j = i; j >= 0 && i - j <= 8; j--) {
     if (/^return\b/.test(righe[j].trim())) return j;
   }
@@ -164,6 +168,16 @@ const SOLO_REGISTRA = [
 
 let tarature = 0;
 tarature += provaRamo("un log dentro un ramo che ritorna prima non copre il 5xx dopo", LOG_DI_UN_ALTRO_RAMO, false);
+tarature += provaRamo(
+  "un `if (x) return …500` su una riga, con il log sopra: il ramo è suo",
+  ["    return NextResponse.redirect(pagina, 303);", "  } catch (e) {", "    console.error('log');", "    if (unClic) return NextResponse.json({ ok: false }, { status: 500 });"].join("\n"),
+  true,
+);
+tarature += provaRamo(
+  "…e senza il log sopra, non lo copre il ramo prima",
+  ["    console.error('log del ramo prima');", "    return NextResponse.redirect(pagina, 303);", "  } catch (e) {", "    if (unClic) return NextResponse.json({ ok: false }, { status: 500 });"].join("\n"),
+  false,
+);
 tarature += provaRamo("un log in un blocco senza return resta dello stesso ramo", LOG_IN_UN_BLOCCO_PRIMA, true);
 tarature += provaRamo("`segnalaGuasto` vale quanto un console.error: stampa e in più registra", SEGNALA_INVECE_DEL_LOG, true);
 tarature += provaRamo("`registraGuasto` da solo NON basta: scrive la riga ma non stampa", SOLO_REGISTRA, false);

@@ -27,24 +27,27 @@ insert into public.istituzioni (id, nome, slug, tipo, stato) values
 insert into public.institution_profiles (user_id, istituzione_id) values
   ('11111111-0000-0000-0000-0000000000c1', 'aaaaaaaa-0000-0000-0000-0000000000c1');
 
--- Dal client, come il form dell'ente.
+-- Dal client, come faceva il form dell'ente fino al 30/10. Da 20261117120000
+-- il client non scrive più `comunicazioni` per niente (la newsletter nasce in
+-- `newsletter_enti`): il rifiuto arriva dal privilegio, prima del vincolo, e
+-- per questo il vincolo lo prova la 3, dal SQL Editor.
 set local role authenticated;
 set local request.jwt.claim.sub = '11111111-0000-0000-0000-0000000000c1';
 
 do $$ begin
   insert into public.comunicazioni (istituzione_id, tipo, oggetto, corpo, stato)
   values ('aaaaaaaa-0000-0000-0000-0000000000c1', 'newsletter', 'o', 'c', 'in_approvazione');
-  insert into esiti values (1, 'l''ente propone una newsletter dal client (controllo)', 'riuscito', 'riuscito', true);
+  insert into esiti values (1, 'l''ente non scrive più una newsletter in comunicazioni dal client (dal 30/10)', '42501', 'riuscito', false);
 exception when others then
-  insert into esiti values (1, 'l''ente propone una newsletter dal client (controllo)', 'riuscito', sqlstate || ' ' || sqlerrm, false);
+  insert into esiti values (1, 'l''ente non scrive più una newsletter in comunicazioni dal client (dal 30/10)', '42501', sqlstate, sqlstate = '42501');
 end $$;
 
 do $$ begin
   insert into public.comunicazioni (istituzione_id, tipo, oggetto, corpo, stato)
   values ('aaaaaaaa-0000-0000-0000-0000000000c1', 'comunicazione_kireo', 'o', 'c', 'in_approvazione');
-  insert into esiti values (2, 'l''ente non scrive una comunicazione mirata dal client', '23514', 'riuscito', false);
+  insert into esiti values (2, 'l''ente non scrive una comunicazione mirata dal client', '42501', 'riuscito', false);
 exception when others then
-  insert into esiti values (2, 'l''ente non scrive una comunicazione mirata dal client', '23514', sqlstate, sqlstate = '23514');
+  insert into esiti values (2, 'l''ente non scrive una comunicazione mirata dal client', '42501', sqlstate, sqlstate = '42501');
 end $$;
 
 reset role;

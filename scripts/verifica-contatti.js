@@ -624,8 +624,10 @@ console.log("\n8) Un piano nominato in una pagina è uno di quelli che esistono"
 // disattiva.
 const { ETICHETTA_PIANO } = require("@/lib/ente/pianoSuccessivo");
 const nomiVeri = Object.values(ETICHETTA_PIANO);
-ok(nomiVeri.length >= 3, `\`ETICHETTA_PIANO\` elenca ${nomiVeri.length} piani: ${nomiVeri.join(", ")}`,
-  "sotto tre, l'unico elenco dei nomi non si sta leggendo: un verde su un insieme vuoto");
+// Due dal 30/10 (il plus è uscito, 20261117110000): sotto due l'elenco non si
+// sta leggendo.
+ok(nomiVeri.length >= 2, `\`ETICHETTA_PIANO\` elenca ${nomiVeri.length} piani: ${nomiVeri.join(", ")}`,
+  "sotto due, l'unico elenco dei nomi non si sta leggendo: un verde su un insieme vuoto");
 
 const nominati = [];
 for (const f of resi) {
@@ -634,8 +636,10 @@ for (const f of resi) {
     for (const nome of [m[1], m[2]].filter(Boolean)) nominati.push({ f, nome, frase: m[0].replace(/\s+/g, " ") });
   }
 }
-ok(nominati.length >= 5, `ci sono ${nominati.length} nomi di piano nominati nelle pagine`,
-  "sotto cinque, l'estrattore ha smesso di leggere e questa sezione è verde su niente");
+// Erano 5 il 10/10, sono 4 dal 30/10 (con due piani le pagine ne nominano
+// meno: «sui piani Plus e Premium» è diventato «sul piano Premium»).
+ok(nominati.length >= 3, `ci sono ${nominati.length} nomi di piano nominati nelle pagine`,
+  "sotto tre, l'estrattore ha smesso di leggere e questa sezione è verde su niente");
 const fantasmi = nominati.filter((n) => !nomiVeri.includes(n.nome));
 ok(fantasmi.length === 0,
   "ogni piano nominato in una pagina è uno di quelli che esistono",

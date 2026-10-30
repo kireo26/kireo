@@ -53,7 +53,7 @@ export default async function PlanciaAdminEvento({ evento }: { evento: ContestoM
               Hosting diretta: {evento.hosting_diretta === "proprio" ? "canale proprio dell'ente" : "ospitata da KIREO"}
             </p>
           )}
-          <AzioneApprovazione tabella="eventi" id={evento.id} statoApprovato="approvato" statoRifiutato="rifiutato" />
+          <AzioneApprovazione cosa="evento" id={evento.id} />
         </section>
       )}
       {/* La chiave sta accanto al video perché è lo stesso momento in cui

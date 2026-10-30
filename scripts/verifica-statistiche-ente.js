@@ -104,7 +104,12 @@ console.log("\n§2 — le quote contano solo l'approvato, e «non letto» non è
             return Promise.resolve({ data: { quota_eventi_promossi: 5, quota_newsletter: 12, quota_cta_esterne: 5 }, error: null });
           },
           then(ok, ko) {
-            const tipo = filtri.find((f) => f[1] === "tipo")?.[2] ?? (filtri.some((f) => f[1] === "cta_esterna_url") ? "cta" : "evidenza");
+            const tipo =
+              tabella === "newsletter_enti" || tabella === "comunicazioni"
+                ? "newsletter"
+                : filtri.some((f) => f[1] === "cta_esterna_url")
+                  ? "cta"
+                  : "evidenza";
             const r = fallisce === tipo ? { count: null, error: { message: "rete" } } : { count: 2, error: null };
             return Promise.resolve(r).then(ok, ko);
           },
@@ -129,11 +134,16 @@ console.log("\n§2 — le quote contano solo l'approvato, e «non letto» non è
   const cta = di((f) => f.some((x) => x[1] === "cta_esterna_url"));
   ok(cta && cta.filtri.some((x) => x[0] === "eq" && x[1] === "stato" && x[2] === "approvato"), "le CTA contano solo gli eventi approvati", cta?.filtri);
   {
-    const l = di((f) => f.some((x) => x[1] === "tipo" && x[2] === "newsletter"));
+    // Dal 30/10 la newsletter si conta da `newsletter_enti`, e mai più da
+    // `comunicazioni` (dove sta la riga del 18/10 che non parte). Conta da
+    // quando PRENDE IL POSTO: è lo stesso conto con cui il database ferma la
+    // prossima (`salva_newsletter`), quindi l'ente legge il numero che decide.
+    const l = finto.letture.find((x) => x.tabella === "newsletter_enti");
     const stati = l?.filtri.find((x) => x[0] === "in" && x[1] === "stato")?.[2] ?? null;
+    ok(!finto.letture.some((x) => x.tabella === "comunicazioni"), "la quota delle newsletter non legge più `comunicazioni`");
     // L'atteso è scritto qui, non importato da quote.ts.
-    ok(JSON.stringify([...(stati ?? [])].sort()) === JSON.stringify(["approvata", "inviata"]),
-      "le newsletter contano solo approvate e inviate (non bozze, in approvazione, rifiutate)", stati);
+    ok(JSON.stringify([...(stati ?? [])].sort()) === JSON.stringify(["approvata", "in_approvazione", "inviata"]),
+      "le newsletter contano da quando prendono il posto: in approvazione, approvate, inviate (non bozze, non rifiutate)", stati);
   }
   // LE «COMUNICAZIONI MIRATE» SONO USCITE (28/10): una funzione del piano che non
   // esisteva. Nessuna lettura le conta, e nessuna superficie le offre o le
@@ -141,7 +151,8 @@ console.log("\n§2 — le quote contano solo l'approvato, e «non letto» non è
   ok(!finto.letture.some((l) => l.filtri.some((x) => x[1] === "tipo" && x[2] === "comunicazione_kireo")),
     "le quote non contano più le comunicazioni mirate");
   for (const [file, cosa] of [
-    ["components/ente/CreaComunicazioneForm.tsx", "il form"],
+    ["components/ente/NewsletterForm.tsx", "il form"],
+    ["app/ente/(dashboard)/comunicazioni/page.tsx", "la pagina della newsletter"],
     ["components/ente/RiquadriQuote.tsx", "i riquadri delle quote"],
     ["app/ente/(dashboard)/piano/page.tsx", "la pagina del piano"],
     ["app/istituzioni/page.tsx", "il listino pubblico"],
@@ -158,8 +169,9 @@ console.log("\n§2 — le quote contano solo l'approvato, e «non letto» non è
   for (const f of ["app/ente/(dashboard)/page.tsx", "app/ente/(dashboard)/piano/page.tsx"]) {
     ok(/<RiquadriQuote quote=\{quote\} \/>/.test(leggi(f)), `${f} passa dai riquadri condivisi`);
   }
-  const form = leggi("components/ente/CreaComunicazioneForm.tsx");
-  ok(/quotaRimasta !== null && quotaRimasta <= 0/.test(form), "il form non dice «quota esaurita» su una quota non letta");
+  const pagina = leggi("app/ente/(dashboard)/comunicazioni/page.tsx");
+  ok(/quote \? TESTI_NEWSLETTER\.quota\(/.test(pagina) && /TESTI_NEWSLETTER\.quotaNonLetta/.test(pagina),
+    "la pagina della newsletter dice «non letto» su una quota non letta, non un numero");
 }
 
 console.log("\n§3 — il limite delle aree dipende dal tipo, e sta in un posto solo\n");
@@ -262,11 +274,16 @@ console.log("\n§8 — chi revisiona vede la quota\n");
 {
   const { testoQuotaRevisione } = require(path.join(ROOT, "lib/ente/quote.ts"));
   const q = { newsletterUsate: 5, newsletterTotali: 5, ctaUsate: 0, ctaTotali: 2, evidenzaUsate: 0, evidenzaTotali: 0 };
-  const piena = testoQuotaRevisione(q, "newsletter");
-  ok(piena.piena && /5 di 5/.test(piena.testo) && /si supera/.test(piena.testo), "a quota piena lo dice", piena);
+  const piena = testoQuotaRevisione({ ...q, ctaUsate: 2 }, "cta");
+  ok(piena.piena && /2 di 2/.test(piena.testo) && /si supera/.test(piena.testo), "a quota piena lo dice", piena);
   ok(!testoQuotaRevisione(q, "cta").piena && /0 di 2/.test(testoQuotaRevisione(q, "cta").testo), "sotto quota dice quante");
   ok(/non siamo riusciti/i.test(testoQuotaRevisione(null, "cta").testo), "una quota non letta non si scrive 0 di 0");
-  ok(/testoQuotaRevisione\(/.test(leggi("app/admin/page.tsx")), "la coda delle comunicazioni la mostra");
+  // Dal 30/10 la coda delle newsletter non mostra la quota: la quota la fa
+  // rispettare il database quando l'ente manda in approvazione, e approvare non
+  // può superarla. La coda legge `newsletter_enti`, mai `comunicazioni`.
+  const admin = senzaCommenti(leggi("app/admin/page.tsx"));
+  ok(/\.from\("newsletter_enti"\)/.test(admin) && !/\.from\("comunicazioni"\)/.test(admin),
+    "la coda dell'admin legge le newsletter nuove, non le proposte di prima");
   ok(/testoQuotaRevisione\(await getQuotePerRevisione/.test(leggi("components/admin/PlanciaAdminEvento.tsx")), "la plancia dell'evento la mostra per una CTA");
 }
 

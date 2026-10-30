@@ -6,7 +6,7 @@
     "Per aprire una colonna: una migrazione nuova con il grant, e la colonna qui, con chi la scrive. Il totale ha un tetto (`tetto_colonne`) che si abbassa e non si alza senza dirlo: è il cricchetto.",
     "`chi` dice quale codice scrive la tabella: è la ragione per cui la colonna è aperta. Una colonna senza un `chi` vero è una porta che nessuno usa."
   ],
-  "tetto_colonne": 195,
+  "tetto_colonne": 188,
   "anon": {
     "richieste_contatto": {
       "insert": ["origine", "nome", "ruolo", "istituto", "codice_meccanografico", "email", "messaggio"],
@@ -40,11 +40,6 @@
       "update": [],
       "chi": "components/scuola/GestioneClasseStudenti.tsx"
     },
-    "comunicazioni": {
-      "insert": ["istituzione_id", "tipo", "oggetto", "corpo", "stato"],
-      "update": ["stato", "note_revisione"],
-      "chi": "components/ente/CreaComunicazioneForm.tsx (insert), components/admin/AzioneApprovazione.tsx (update, l'admin)"
-    },
     "consegne_evento": {
       "insert": ["evento_id", "student_id", "testo"],
       "update": [],
@@ -58,7 +53,7 @@
     "eventi": {
       "insert": ["titolo", "descrizione", "tipo", "organizzatore_id", "data_inizio", "data_fine", "sede", "link", "posti", "cta_esterna_url", "stato", "pubblico", "filone", "hosting_diretta", "youtube_video_id", "checklist_diretta", "checklist_diretta_accettata_il", "incorporamento_sonda", "proposta_incontro_id"],
       "update": ["stato", "note_revisione", "youtube_video_id", "incorporamento_sonda"],
-      "chi": "components/ente/CreaEventoForm.tsx (insert), components/admin/AzioneApprovazione.tsx e components/admin/GestisciVideoDirettaForm.tsx (update, l'admin)"
+      "chi": "components/ente/CreaEventoForm.tsx (insert), app/api/admin/decisione/route.ts (dal 30/10, l'approvazione: prima AzioneApprovazione dal browser) e components/admin/GestisciVideoDirettaForm.tsx (update, l'admin)"
     },
     "eventi_aree": {
       "insert": ["evento_id", "area_slug"],

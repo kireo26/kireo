@@ -180,3 +180,39 @@ export function templateFollowUpGuida(dati: { nome: string; titoloGuida: string;
     <p style="margin-top:24px;">A presto,<br />Il team KIREO</p>
   `);
 }
+
+// La newsletter di un ente (30/10). La manda KIREO: l'ente scrive il testo e
+// non riceve la lista. Il testo dell'ente è testo, non markup: ogni riga passa
+// da `esc()`, e gli a capo diventano paragrafi. L'uscita sta IN OGNI EMAIL, con
+// il codice di quell'iscrizione: dalla posta non si è collegati.
+export function templateNewsletter(dati: {
+  enteNome: string;
+  oggetto: string;
+  corpo: string;
+  linkLeggi: string;
+  linkUscita: string;
+}): string {
+  return involucroEmail(`
+    <p style="margin:0 0 4px;font-size:12px;color:#9A9890;">Newsletter di ${esc(dati.enteNome)}, tramite KIREO</p>
+    <h1 style="margin:0 0 16px;font-size:20px;">${esc(dati.oggetto)}</h1>
+    ${dati.corpo
+      .split(/\n\s*\n/)
+      .map((p) => p.trim())
+      .filter(Boolean)
+      .map((p) => `<p style="margin:0 0 16px;">${esc(p).replaceAll("\n", "<br />")}</p>`)
+      .join("")}
+    ${bottone("Leggila su KIREO", dati.linkLeggi)}
+    <p style="margin:24px 0 0;font-size:12px;color:#9A9890;">
+      La ricevi perché hai scelto la newsletter di ${esc(dati.enteNome)} su KIREO. L'ente non vede il tuo indirizzo.
+      <a href="${esc(linkSicuro(dati.linkUscita))}" style="color:#9A9890;text-decoration:underline;">Non voglio più riceverla</a>
+    </p>`);
+}
+
+// L'avviso all'ente sulla decisione di KIREO su un evento o una newsletter
+// (30/10, lib/ente/avvisoDecisione.ts). Le righe le compone quel file, che è
+// l'unico posto del testo.
+export function templateAvvisoDecisione(dati: { righe: string[]; bottone: string; link: string }): string {
+  return involucroEmail(`
+    ${dati.righe.map((r) => `<p style="margin:0 0 12px;">${esc(r)}</p>`).join("")}
+    ${bottone(dati.bottone, dati.link)}`);
+}

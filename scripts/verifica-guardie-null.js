@@ -165,7 +165,10 @@ console.log("\n═══ Chi scrive fuori dalla RLS: guardia che scatta, porta c
 ok(fn.size >= 80, `l'estrattore dei corpi legge ${fn.size} funzioni dalle migrazioni`);
 
 // CHE COSA CONTA COME SCRITTURA (il pattern del punto cieco, vedi §3 in testa).
-const SCRIVE = /\binsert\s+into\b|\bdelete\s+from\b|\bupdate\s+(?:only\s+)?[\w."]+\s+set\b/i;
+// L'alias dopo la tabella (`update public.t c set`) è entrato il 30/10: la
+// prima funzione che lo usava (`newsletter_da_inviare`) risultava «non scrive»,
+// e l'ha presa il complemento (c), come doveva.
+const SCRIVE = /\binsert\s+into\b|\bdelete\s+from\b|\bupdate\s+(?:only\s+)?[\w."]+(?:\s+(?:as\s+)?(?!set\b)\w+)?\s+set\b/i;
 // Una parola di scrittura qualunque: troppo larga per decidere, buona per
 // sospettare. Serve solo al riscontro (c).
 const PAROLA_LARGA = /\b(insert|update|delete)\b/i;

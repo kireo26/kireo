@@ -13,7 +13,6 @@ import { ETICHETTA_PIANO } from "@/lib/ente/pianoSuccessivo";
 import { formattaData, formattaDataOra } from "@/lib/formato";
 import { contaDaApprovare } from "@/lib/admin/caricaEventiAdmin";
 import { etichettaDaApprovare } from "@/lib/admin/eventiAdmin";
-import { getQuotePerRevisione, testoQuotaRevisione } from "@/lib/ente/quote";
 import { descriviErrore } from "@/lib/erroreSupabase";
 import { etichettaStatoPost, leggiMotiviPost, rigaMotivo } from "@/lib/ente/post";
 
@@ -22,7 +21,7 @@ export default async function AdminPage() {
 
   const [
     { data: istituzioniInAttesa },
-    { data: comunicazioniInApprovazione },
+    { data: newsletterInApprovazione, error: erroreNewsletter },
     { data: richiesteUpgrade },
     { data: scuoleInAttesa },
     { data: messaggiScuola },
@@ -33,10 +32,10 @@ export default async function AdminPage() {
   ] = await Promise.all([
     supabase.from("istituzioni").select("id, nome, tipo, created_at").eq("stato", "in_attesa").order("created_at", { ascending: true }),
     supabase
-      .from("comunicazioni")
-      .select("id, oggetto, corpo, tipo, istituzione_id, istituzioni(nome)")
+      .from("newsletter_enti")
+      .select("id, oggetto, corpo, giorno, ultimo_giorno, istituzione_id, istituzioni(nome)")
       .eq("stato", "in_approvazione")
-      .order("created_at", { ascending: true }),
+      .order("giorno", { ascending: true }),
     supabase
       .from("richieste_upgrade")
       .select("id, note, created_at, istituzioni(nome), piani(nome, prezzo_min, prezzo_max)")
@@ -67,12 +66,6 @@ export default async function AdminPage() {
     contaDaApprovare(supabase),
   ]);
 
-  // Le quote di ogni ente con una comunicazione in coda (27/10): l'admin
-  // approva sapendo quante ne ha già approvate e quante ne prevede il piano.
-  const entiInCoda = [...new Set((comunicazioniInApprovazione ?? []).map((c) => c.istituzione_id as string))];
-  const quotePerEnte = new Map(
-    await Promise.all(entiInCoda.map(async (id) => [id, await getQuotePerRevisione(supabase, id)] as const)),
-  );
 
   // I post degli enti (29/10): si pubblicano subito, e da qui si tolgono. Per
   // ognuno quante notifiche «Nuovo post» sono già partite, che la conferma
@@ -239,28 +232,29 @@ export default async function AdminPage() {
       </section>
 
       <section>
-        <h2 className="py-0.5 font-heading text-xl font-semibold leading-[1.25] text-kireo-light">Comunicazioni in approvazione</h2>
-        {!comunicazioniInApprovazione || comunicazioniInApprovazione.length === 0 ? (
-          <p className="mt-4 text-sm text-kireo-muted">Nessuna comunicazione in coda.</p>
+        <h2 className="py-0.5 font-heading text-xl font-semibold leading-[1.25] text-kireo-light">Newsletter da leggere</h2>
+        {/* Dal 30/10 la newsletter nasce in `newsletter_enti` e arriva nella posta degli
+            studenti con il nome di KIREO sopra: per questo si approva, e i post no. Le
+            proposte di prima in `comunicazioni` non le legge più nessuno, e non partono.
+            La quota del piano e il giorno pieno li fa rispettare il database quando
+            l'ente manda in approvazione: qui non c'è niente da superare. */}
+        {erroreNewsletter ? (
+          <p className="mt-4 text-sm text-red-300">Non siamo riusciti a leggere le newsletter in coda: ricarica la pagina.</p>
+        ) : !newsletterInApprovazione || newsletterInApprovazione.length === 0 ? (
+          <p className="mt-4 text-sm text-kireo-muted">Nessuna newsletter da leggere.</p>
         ) : (
           <ul className="mt-4 space-y-4">
-            {comunicazioniInApprovazione.map((c) => {
-              const ente = Array.isArray(c.istituzioni) ? c.istituzioni[0] : c.istituzioni;
+            {newsletterInApprovazione.map((n) => {
+              const ente = Array.isArray(n.istituzioni) ? n.istituzioni[0] : n.istituzioni;
               return (
-                <li key={c.id} className="rounded-xl border border-white/5 bg-kireo-card p-4">
-                  <p className="font-heading text-sm font-semibold text-kireo-light">{c.oggetto}</p>
+                <li key={n.id} className="rounded-xl border border-white/5 bg-kireo-card p-4">
+                  <p className="font-heading text-sm font-semibold text-kireo-light">{n.oggetto}</p>
                   <p className="mt-1 text-xs text-kireo-muted">
-                    {ente?.nome ?? "—"} · {c.tipo === "newsletter" ? "Newsletter" : "Comunicazione mirata"}
+                    {ente?.nome ?? "—"} · parte il {formattaData(n.giorno, "long")} alle 7:30 · per email fino al{" "}
+                    {formattaData(n.ultimo_giorno, "long")}
                   </p>
-                  <p className="mt-2 whitespace-pre-wrap text-sm text-kireo-light/90">{c.corpo}</p>
-                  {/* Una «comunicazione mirata» non ha più una quota (uscita il 28/10): una
-                      riga così può solo essere vecchia, e la quota non si stampa. */}
-                  {c.tipo === "newsletter" &&
-                    (() => {
-                      const q = testoQuotaRevisione(quotePerEnte.get(c.istituzione_id as string) ?? null, "newsletter");
-                      return <p className={`mt-2 text-xs ${q.piena ? "text-kireo-orange" : "text-kireo-muted"}`}>{q.testo}</p>;
-                    })()}
-                  <AzioneApprovazione tabella="comunicazioni" id={c.id} statoApprovato="approvata" statoRifiutato="rifiutata" />
+                  <p className="mt-2 whitespace-pre-wrap text-sm text-kireo-light/90">{n.corpo}</p>
+                  <AzioneApprovazione cosa="newsletter" id={n.id} />
                 </li>
               );
             })}

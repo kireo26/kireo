@@ -1,6 +1,6 @@
 export type PianoQuote = {
   id: string;
-  nome: "free" | "plus" | "premium";
+  nome: "free" | "premium";
   prezzo_min: number;
   prezzo_max: number;
   quota_eventi_promossi: number;
@@ -8,12 +8,24 @@ export type PianoQuote = {
   quota_cta_esterne: number;
 };
 
-const ORDINE_PIANI = ["free", "plus", "premium"] as const;
+// I piani sono due dal 30/10 (Mario: «solo free e premium»; il plus è uscito
+// in 20261117110000, che si ferma se un ente o una richiesta lo usa ancora).
+const ORDINE_PIANI = ["free", "premium"] as const;
 
 export const ETICHETTA_PIANO: Record<string, string> = {
   free: "Free",
-  plus: "Plus",
   premium: "Premium",
+};
+
+// Le newsletter all'anno accademico, come le scrive il database
+// (20260722100000 per il premium, 20261117110000 per il free). Il listino
+// pubblico di /istituzioni non legge il database, quindi le legge da qui, e
+// `npm run test:newsletter` confronta questi numeri con le migrazioni. Le tre
+// gratuite sono l'assaggio (Mario): «mi serve all'inizio dare possibilità agli
+// enti di entrare gratis e capirne le potenzialità».
+export const QUOTA_NEWSLETTER: Record<(typeof ORDINE_PIANI)[number], number> = {
+  free: 3,
+  premium: 12,
 };
 
 // Gate booleano riusato ovunque un contenuto/funzione è riservata ai piani
@@ -34,8 +46,7 @@ export function trovaPianoSuccessivo(pianoCorrente: string, piani: PianoQuote[])
 }
 
 // Tutti i piani sopra quello corrente, in ordine — per i bottoni "Richiedi
-// l'upgrade" nella pagina /ente/piano (un piano può passare direttamente a
-// Premium senza passare da Plus).
+// l'upgrade" nella pagina /ente/piano.
 export function trovaPianiSuperiori(pianoCorrente: string, piani: PianoQuote[]): PianoQuote[] {
   const indice = ORDINE_PIANI.indexOf(pianoCorrente as (typeof ORDINE_PIANI)[number]);
   if (indice === -1) return [];

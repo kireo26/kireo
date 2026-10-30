@@ -96,8 +96,10 @@ export default async function Disiscrizione() {
             Le tue scelte
           </h2>
           <p className="mt-3">
-            Oggi KIREO non manda ancora comunicazioni facoltative. Il consenso che dai serve per le comunicazioni di KIREO;
-            le newsletter degli enti sono a parte, e ognuna ha la sua uscita.
+            {/* Dal 30/10 le newsletter degli enti partono davvero: la frase di prima («Oggi KIREO non manda
+                ancora comunicazioni facoltative») sarebbe diventata falsa il giorno del primo invio. */}
+            Le newsletter degli enti a cui sei iscritto le manda KIREO, e ognuna ha la sua uscita: qui sotto, e in fondo a
+            ogni email. KIREO non manda ancora comunicazioni sue; il consenso che dai qui serve per quelle.
           </p>
           {studente ? (
             <div className="mt-6">

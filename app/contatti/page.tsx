@@ -26,13 +26,14 @@ const TARGET = [
   },
   {
     titolo: "Istituzioni formative",
-    // ⚠️ I piani sono Free/Plus/Premium dal 13 luglio 2026: qui c'era
+    // ⚠️ I piani sono Free e Premium dal 30/10 (prima Free/Plus/Premium, dal
+    // 13 luglio 2026): qui c'era
     // «Standard e Premium», una copia stantia ferma tre mesi su una pagina
     // pubblica. L'unico posto che elenca i nomi è `ETICHETTA_PIANO`
     // (`lib/ente/pianoSuccessivo.ts`), e `npm run test:contatti` controlla che
     // un nome di piano nominato in una pagina sia uno di quelli.
     testo:
-      "Vuoi presentare la tua offerta formativa su KIREO o richiedere informazioni sui piani Plus e Premium? Contattaci.",
+      "Vuoi presentare la tua offerta formativa su KIREO o richiedere informazioni sul piano Premium? Contattaci.",
   },
   {
     titolo: "Docenti",

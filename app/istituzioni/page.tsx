@@ -5,6 +5,7 @@ import Card from "@/components/Card";
 import SectionHeading from "@/components/SectionHeading";
 import RichiestaAccessoEnteForm from "@/components/RichiestaAccessoEnteForm";
 import RichiestaContattoForm from "@/components/landing/RichiestaContattoForm";
+import { QUOTA_NEWSLETTER } from "@/lib/ente/pianoSuccessivo";
 
 export const metadata: Metadata = {
   title: "Per le istituzioni formative — KIREO",
@@ -35,26 +36,28 @@ const BENEFICI = [
   },
 ];
 
-// Nomi dei piani allineati all'enum piani.nome (free/plus/premium) invece
-// dei precedenti Base/Standard/Premium — stessi prezzi già comunicati.
+// I piani sono due dal 30/10 (free e premium, 20261117110000). Le newsletter
+// vengono da `QUOTA_NEWSLETTER`, che `npm run test:newsletter` confronta con il
+// database: è l'unica riga del listino che il lotto della newsletter ha
+// cambiato, e un listino che promette un numero diverso da quello che il
+// prodotto concede è la specie di casa.
 const PIANI = [
   { nome: "Free", prezzo: "Gratis", evidenziato: false },
-  { nome: "Plus", prezzo: "€290 / anno", evidenziato: true },
-  { nome: "Premium", prezzo: "€590 / anno", evidenziato: false },
+  { nome: "Premium", prezzo: "€590 / anno", evidenziato: true },
 ];
 
-const FEATURE_ROWS: { feature: string; base: string; standard: string; premium: string }[] = [
-  { feature: "Profilo istituzione verificato", base: "✓", standard: "✓", premium: "✓" },
-  { feature: "Creazione eventi/webinar", base: "Illimitata", standard: "Illimitata", premium: "Illimitata" },
-  { feature: "Eventi in evidenza all'anno", base: "—", standard: "5", premium: "20" },
-  { feature: "Post di bacheca (testo, immagine)", base: "✓", standard: "✓", premium: "✓" },
-  { feature: "Post con embed Instagram/TikTok", base: "—", standard: "✓", premium: "✓" },
-  { feature: "Notifiche ai follower su nuovi contenuti", base: "—", standard: "✓", premium: "✓" },
-  { feature: "Newsletter agli iscritti all'anno", base: "—", standard: "3", premium: "12" },
-  { feature: "CTA verso il sito esterno all'anno", base: "—", standard: "1", premium: "5" },
-  { feature: "Studenti interessati (dettaglio nominativo)", base: "Solo conteggio", standard: "✓", premium: "✓" },
-  { feature: "Messaggi con gli studenti", base: "—", standard: "✓", premium: "✓" },
-  { feature: "Statistiche aggregate", base: "✓", standard: "✓", premium: "✓" },
+const FEATURE_ROWS: { feature: string; free: string; premium: string }[] = [
+  { feature: "Profilo istituzione verificato", free: "✓", premium: "✓" },
+  { feature: "Creazione eventi/webinar", free: "Illimitata", premium: "Illimitata" },
+  { feature: "Eventi in evidenza all'anno", free: "—", premium: "20" },
+  { feature: "Post di bacheca (testo, immagine)", free: "✓", premium: "✓" },
+  { feature: "Post con embed Instagram/TikTok", free: "—", premium: "✓" },
+  { feature: "Notifiche ai follower su nuovi contenuti", free: "—", premium: "✓" },
+  { feature: "Newsletter agli iscritti all'anno", free: String(QUOTA_NEWSLETTER.free), premium: String(QUOTA_NEWSLETTER.premium) },
+  { feature: "CTA verso il sito esterno all'anno", free: "—", premium: "5" },
+  { feature: "Studenti interessati (dettaglio nominativo)", free: "Solo conteggio", premium: "✓" },
+  { feature: "Messaggi con gli studenti", free: "—", premium: "✓" },
+  { feature: "Statistiche aggregate", free: "✓", premium: "✓" },
 ];
 
 const TIPOLOGIE = [
@@ -157,10 +160,10 @@ export default function IstituzioniPage() {
                       <td className={`p-4 text-kireo-light/90 ${isLast ? "rounded-bl-2xl" : ""}`}>
                         {row.feature}
                       </td>
-                      {[row.base, row.standard, row.premium].map((value, idx) => (
+                      {[row.free, row.premium].map((value, idx) => (
                         <td
                           key={idx}
-                          className={`p-4 text-center ${isLast && idx === 2 ? "rounded-br-2xl" : ""}`}
+                          className={`p-4 text-center ${isLast && idx === PIANI.length - 1 ? "rounded-br-2xl" : ""}`}
                         >
                           <CellValue value={value} />
                         </td>
@@ -174,7 +177,7 @@ export default function IstituzioniPage() {
 
           <p className="mt-6 text-center text-xs text-kireo-muted">
             I prezzi sono indicativi e potranno essere aggiornati al lancio ufficiale. Le
-            istituzioni che aderiscono in fase beta ricevono 12 mesi di piano Plus inclusi.
+            istituzioni che aderiscono in fase beta ricevono 12 mesi di piano Premium inclusi.
           </p>
         </div>
       </section>

@@ -47,8 +47,8 @@ insert into public.student_area_interests (user_id, area_slug) values
   ('22222222-0000-0000-0000-0000000000b1', 'informatica-digitale');
 
 insert into public.istituzioni (id, nome, slug, tipo, stato, piano_id) values
-  ('aaaaaaaa-0000-0000-0000-0000000000a1', 'Ente Uno', 'ente-int-uno', 'universita', 'attiva', (select id from public.piani where nome = 'plus')),
-  ('aaaaaaaa-0000-0000-0000-0000000000a2', 'Ente Due', 'ente-int-due', 'universita', 'attiva', (select id from public.piani where nome = 'plus')),
+  ('aaaaaaaa-0000-0000-0000-0000000000a1', 'Ente Uno', 'ente-int-uno', 'universita', 'attiva', (select id from public.piani where nome = 'premium')),
+  ('aaaaaaaa-0000-0000-0000-0000000000a2', 'Ente Due', 'ente-int-due', 'universita', 'attiva', (select id from public.piani where nome = 'premium')),
   ('aaaaaaaa-0000-0000-0000-0000000000a3', 'Ente Free', 'ente-int-free', 'universita', 'attiva', (select id from public.piani where nome = 'free'));
 insert into public.institution_profiles (user_id, istituzione_id) values
   ('22222222-0000-0000-0000-0000000000a1', 'aaaaaaaa-0000-0000-0000-0000000000a1'),
