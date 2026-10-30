@@ -6,6 +6,8 @@ import AttivaIstituzioneButton from "@/components/admin/AttivaIstituzioneButton"
 import AttivaScuolaControlli from "@/components/admin/AttivaScuolaControlli";
 import ToggleGestitaRichiesta from "@/components/admin/ToggleGestitaRichiesta";
 import TogliPost from "@/components/admin/TogliPost";
+import RiprovaAvvisoEnte from "@/components/admin/RiprovaAvvisoEnte";
+import { TESTI_AVVISI, avvisiDaRiprovare, type RigaAvviso } from "@/lib/admin/avvisiEnte";
 import NotificheBell from "@/components/app/NotificheBell";
 import AzioneChiudiConversazione from "@/components/admin/AzioneChiudiConversazione";
 import LogoutButton from "@/components/LogoutButton";
@@ -29,6 +31,7 @@ export default async function AdminPage() {
     { data: postEnti, error: errorePostEnti },
     { data: conversazioniEnti },
     daApprovare,
+    { data: righeAvvisi, error: erroreAvvisi },
   ] = await Promise.all([
     supabase.from("istituzioni").select("id, nome, tipo, created_at").eq("stato", "in_attesa").order("created_at", { ascending: true }),
     supabase
@@ -64,6 +67,31 @@ export default async function AdminPage() {
       .order("created_at", { ascending: false })
       .limit(50),
     contaDaApprovare(supabase),
+    supabase
+      .from("avvisi_email_enti")
+      .select("cosa, riferimento_id, esito, motivo, created_at")
+      .order("created_at", { ascending: false })
+      .limit(200),
+  ]);
+
+  // Le email all'ente non partite (30/10, `avvisi_email_enti`): la decisione è
+  // presa e la sua riga è uscita dalla coda, quindi l'esito si legge qui e non
+  // là. Un elenco che non si legge lo dice, invece di sembrare vuoto.
+  if (erroreAvvisi) console.error("[admin] esiti delle email agli enti:", descriviErrore(erroreAvvisi));
+  const avvisiFalliti = erroreAvvisi ? null : avvisiDaRiprovare((righeAvvisi ?? []) as RigaAvviso[]);
+  const idEventiAvvisi = (avvisiFalliti ?? []).filter((a) => a.cosa === "evento").map((a) => a.riferimento_id);
+  const idNewsletterAvvisi = (avvisiFalliti ?? []).filter((a) => a.cosa === "newsletter").map((a) => a.riferimento_id);
+  const [{ data: titoliEventi }, { data: titoliNewsletter }] = await Promise.all([
+    idEventiAvvisi.length > 0
+      ? supabase.from("eventi").select("id, titolo").in("id", idEventiAvvisi)
+      : Promise.resolve({ data: [] as { id: string; titolo: string }[] }),
+    idNewsletterAvvisi.length > 0
+      ? supabase.from("newsletter_enti").select("id, oggetto").in("id", idNewsletterAvvisi)
+      : Promise.resolve({ data: [] as { id: string; oggetto: string }[] }),
+  ]);
+  const titoloAvviso = new Map<string, string>([
+    ...(titoliEventi ?? []).map((e) => [e.id, e.titolo] as [string, string]),
+    ...(titoliNewsletter ?? []).map((n) => [n.id, n.oggetto] as [string, string]),
   ]);
 
 
@@ -108,6 +136,33 @@ export default async function AdminPage() {
           <LogoutButton />
         </div>
       </div>
+
+      {(avvisiFalliti === null || avvisiFalliti.length > 0) && (
+        <section className="mb-12">
+          <h2 className="py-0.5 font-heading text-xl font-semibold leading-[1.25] text-kireo-orange">{TESTI_AVVISI.titolo}</h2>
+          {avvisiFalliti === null ? (
+            <p className="mt-4 text-sm text-red-300">{TESTI_AVVISI.nonLetto}</p>
+          ) : (
+            <>
+              <p className="mt-2 text-sm text-kireo-muted">{TESTI_AVVISI.spiegazione}</p>
+              <ul className="mt-4 space-y-3">
+                {avvisiFalliti.map((a) => (
+                  <li key={`${a.cosa}:${a.riferimento_id}`} className="rounded-xl border border-kireo-orange/30 bg-kireo-card p-4">
+                    <p className="text-sm text-kireo-light">
+                      {a.cosa === "evento" ? "Evento" : "Newsletter"} «{titoloAvviso.get(a.riferimento_id) ?? a.riferimento_id}» ·{" "}
+                      {formattaDataOra(a.created_at)}
+                    </p>
+                    <p className="mt-1 text-xs text-kireo-muted">
+                      {a.esito === "nessun_destinatario" ? TESTI_AVVISI.nessunDestinatario : `Motivo: ${a.motivo ?? "—"}`}
+                    </p>
+                    <RiprovaAvvisoEnte cosa={a.cosa} id={a.riferimento_id} />
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </section>
+      )}
 
       <section className="mb-12">
         <h2 className="py-0.5 font-heading text-xl font-semibold leading-[1.25] text-kireo-light">Istituzioni in attesa</h2>

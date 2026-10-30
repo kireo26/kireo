@@ -260,6 +260,13 @@ begin
 end $$;
 
 -- 16-17. La coda: una email al giorno per studente; chi è uscito non la riceve.
+-- ⚠️ (30/10) Le newsletter 1 e 2 hanno lo stesso giorno e sono state approvate
+-- nella stessa transazione, cioè con la stessa `approvata_il`: la coda le
+-- ordinava per l'uuid, a caso, e la 16 era verde un giorno e rossa l'altro. In
+-- produzione due approvazioni sono due richieste, e non coincidono: qui la 1
+-- si approva un minuto prima, scritto da postgres.
+update public.newsletter_enti set approvata_il = approvata_il - interval '1 minute'
+ where id = (select id from nl where chiave = 'n1');
 do $$
 declare v_primo text; v_secondo int; v_esce text;
 begin

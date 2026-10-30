@@ -213,7 +213,7 @@ begin
   insert into esiti values (14, 'anon non esegue ore_riconoscibili_evento', 'permesso negato', v_msg, v_msg = 'permesso negato');
 end $$;
 
-select n, ok, cosa, atteso, trovato from esiti order by n;
+select n, case when coalesce(ok, false) then 'ok' else 'ROTTA' end as esito, cosa, atteso, trovato from esiti order by n;
 select count(*) filter (where coalesce(ok, false)) || '/' || count(*) || ' verificate' as riassunto,
        count(*) filter (where not coalesce(ok, false)) || ' ROTTE' as rotte from esiti;
 rollback;

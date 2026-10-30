@@ -69,7 +69,7 @@ export default function NewsletterForm({
     setInviando(manda ? "manda" : "bozza");
     try {
       const supabase = createClient();
-      const { error } = await supabase.rpc("salva_newsletter", {
+      const { data, error } = await supabase.rpc("salva_newsletter", {
         p_id: iniziale?.id ?? null,
         p_oggetto: oggetto,
         p_corpo: corpo,
@@ -81,7 +81,10 @@ export default function NewsletterForm({
         setErrore(messaggioErroreNewsletter(error.message));
         return;
       }
-      router.push("/ente/comunicazioni");
+      // La pagina va alla riga salvata e la conferma lì; il form si svuota
+      // perché la pagina lo rimonta con una chiave nuova (`?salvata=`).
+      const salvata = (data as { id?: string } | null)?.id;
+      router.push(salvata ? `/ente/comunicazioni?salvata=${salvata}#newsletter-${salvata}` : "/ente/comunicazioni");
       router.refresh();
     } catch {
       setErrore(messaggioErroreNewsletter(null));

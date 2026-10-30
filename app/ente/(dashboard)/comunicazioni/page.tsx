@@ -37,8 +37,8 @@ type Riga = {
 // La newsletter dell'ente (30/10, 20261117110000). Le proposte fatte prima
 // stanno in `comunicazioni` e restano qui come archivio: non le legge nessun
 // motore, e non partono (la regola è in testa alla migrazione).
-export default async function EnteComunicazioniPage({ searchParams }: { searchParams: Promise<{ modifica?: string }> }) {
-  const { modifica } = await searchParams;
+export default async function EnteComunicazioniPage({ searchParams }: { searchParams: Promise<{ modifica?: string; salvata?: string }> }) {
+  const { modifica, salvata } = await searchParams;
   const contesto = await getEnteContext();
   const supabase = await createClient();
   const oggi = giornoItaliano(new Date());
@@ -126,7 +126,16 @@ export default async function EnteComunicazioniPage({ searchParams }: { searchPa
       ) : (
         <ul className="space-y-3">
           {righe.map((r) => (
-            <li key={r.id} id={`newsletter-${r.id}`} className="rounded-xl border border-white/5 bg-kireo-card p-4">
+            <li
+              key={r.id}
+              id={`newsletter-${r.id}`}
+              className={`scroll-mt-24 rounded-xl border bg-kireo-card p-4 ${r.id === salvata ? "border-kireo-green" : "border-white/5"}`}
+            >
+              {r.id === salvata && (
+                <p role="status" className="mb-3 rounded-lg bg-kireo-green/15 px-3 py-2 text-sm text-kireo-green-light">
+                  {TESTI_NEWSLETTER.salvata(r.stato)}
+                </p>
+              )}
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <span className={`mr-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${CLASSE_STATO[r.stato]}`}>
@@ -166,7 +175,7 @@ export default async function EnteComunicazioniPage({ searchParams }: { searchPa
           {iniziale ? "Modifica la newsletter" : "Nuova newsletter"}
         </h2>
         <div className="mt-4">
-          <NewsletterForm key={iniziale?.id ?? "nuova"} iniziale={iniziale} oggi={oggi} giorniPieni={giorniPieni} />
+          <NewsletterForm key={iniziale?.id ?? `nuova-${salvata ?? ""}`} iniziale={iniziale} oggi={oggi} giorniPieni={giorniPieni} />
         </div>
       </div>
 

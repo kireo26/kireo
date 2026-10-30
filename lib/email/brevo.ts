@@ -1,7 +1,10 @@
 const BREVO_API_URL = "https://api.brevo.com/v3/smtp/email";
 const MITTENTE = { name: "KIREO", email: "noreply@kireo.it" };
 
-export type EsitoInvioEmail = { ok: true } | { ok: false; motivo: string };
+// `messageId` è l'identificativo che Brevo restituisce a un invio accettato
+// (30/10): con quello la consegna si cerca nei registri di Brevo. «Accettato»
+// non vuol dire «consegnato»: la consegna la sa solo Brevo.
+export type EsitoInvioEmail = { ok: true; messageId?: string } | { ok: false; motivo: string };
 
 /**
  * Le opzioni di un invio. Un oggetto invece di due parametri posizionali in
@@ -89,7 +92,8 @@ export async function inviaEmail(
       return { ok: false, motivo: "errore_api" };
     }
 
-    return { ok: true };
+    const accettato = (await risposta.json().catch(() => null)) as { messageId?: unknown } | null;
+    return { ok: true, messageId: typeof accettato?.messageId === "string" ? accettato.messageId : undefined };
   } catch (errore) {
     console.error(`Errore di rete nell'invio email Brevo a ${destinatario}:`, errore);
     return { ok: false, motivo: "errore_rete" };

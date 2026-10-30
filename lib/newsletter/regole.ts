@@ -76,6 +76,17 @@ export const TESTI_NEWSLETTER = {
   quota: (usate: number, totali: number) =>
     `Newsletter quest'anno accademico: ${usate} di ${totali} (contano anche quelle in approvazione). Al massimo una al mese.`,
   quotaNonLetta: "Non siamo riusciti a leggere quante newsletter hai già usato quest'anno: ricarica la pagina.",
+  // La conferma di un salvataggio, sulla riga salvata (30/10, Mario: «una
+  // scrittura avvenuta deve dirlo dove è stata chiesta»). Prima il form restava
+  // pieno dello stesso testo, e un secondo clic produceva il rifiuto «una al mese».
+  salvata: (stato: StatoNewsletter | string | undefined) =>
+    stato === "in_approvazione"
+      ? "Mandata in approvazione. Quando KIREO l'ha letta te lo diciamo qui e con una notifica."
+      : stato === "approvata"
+        ? "Salvata: resta approvata."
+        : stato === "bozza"
+          ? "Salvata come bozza: non parte finché non la mandi in approvazione."
+          : "Salvata.",
   proposteDiPrima:
     "Le proposte fatte prima del 30 ottobre restano qui come archivio: non vengono inviate.",
 };

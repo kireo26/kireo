@@ -17,6 +17,11 @@
 #   CONN="…" scripts/controprova-sql.sh scripts/verifica-x.sql 2,3
 set -uo pipefail
 RADICE="$(cd "$(dirname "$0")/.." && pwd)"
+# Le parole che dicono «rosso» stanno in UN posto solo (30/10): il 30/10 uno
+# script scriveva «ROSSA» e i due lanciatori leggevano solo «ROTT…», e la
+# controprova non contava «✗». `npm run test:parolerosse` pretende che ogni
+# script dica rosso con una di queste, e che i lanciatori leggano da qui.
+PAROLE_ROSSE="$(cat "$RADICE/scripts/lib/parole-rosse.regex")"
 f="${1:?uso: controprova-sql.sh <script.sql> <rosse attese, es. 2,3>}"
 attese_rosse="$(echo "${2:?mancano le rosse attese}" | tr ',' '\n' | grep -E '^[0-9]+$' | sort -u)"
 [ -n "$attese_rosse" ] || { echo "? l'elenco delle rosse attese è vuoto: una controprova senza rosso atteso non prova niente" >&2; exit 2; }
@@ -36,7 +41,7 @@ if [ -z "$stampate" ]; then
   grep -m1 ERROR "$OUT" | sed 's/^/    /'
   exit 2
 fi
-rosse=$(grep -E '^[[:space:]]*[0-9]+[[:space:]]*\|' "$OUT" | grep -E '\bROTT[AOE]\b|\bROSS[AOE]\b|\|[[:space:]]+f[[:space:]]*$' | grep -oE '^[[:space:]]*[0-9]+' | tr -dc '0-9\n' | sort -u)
+rosse=$(grep -E '^[[:space:]]*[0-9]+[[:space:]]*\|' "$OUT" | grep -E "$PAROLE_ROSSE"'|\|[[:space:]]+f[[:space:]]*$' | grep -oE '^[[:space:]]*[0-9]+' | tr -dc '0-9\n' | sort -u)
 mancanti=$(comm -23 <(echo "$scritte") <(echo "$stampate") | tr '\n' ' ')
 inattese=$(comm -13 <(echo "$attese_rosse") <(echo "$rosse") | tr '\n' ' ')
 non_arrivate=$(comm -23 <(echo "$attese_rosse") <(echo "$rosse") | tr '\n' ' ')

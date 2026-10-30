@@ -37,6 +37,11 @@
 # che pretende di sapere QUALI proprietà devono diventare rosse.
 set -uo pipefail
 RADICE="$(cd "$(dirname "$0")/.." && pwd)"
+# Le parole che dicono «rosso» stanno in UN posto solo (30/10): il 30/10 uno
+# script scriveva «ROSSA» e i due lanciatori leggevano solo «ROTT…», e la
+# controprova non contava «✗». `npm run test:parolerosse` pretende che ogni
+# script dica rosso con una di queste, e che i lanciatori leggano da qui.
+PAROLE_ROSSE="$(cat "$RADICE/scripts/lib/parole-rosse.regex")"
 CONN="${CONN:-}"
 if [ -z "$CONN" ]; then
   CONN="$("$RADICE/scripts/replica-locale.sh" | tail -1)" || { echo "replica non costruita" >&2; exit 2; }
@@ -75,7 +80,7 @@ for f in "$RADICE"/scripts/verifica-*.sql; do
   n="$(basename "$f" .sql)"; tot=$((tot + 1))
   psql "$CONN" -v ON_ERROR_STOP=1 -P pager=off -f "$f" >"$OUT/$n.out" 2>&1
   e=$?
-  segni=$(grep -E '✗|\bROTT[AOE]\b|\bROSS[AOE]\b|\|[[:space:]]+f[[:space:]]*$|ERROR:' "$OUT/$n.out" | grep -vcE '\b0 ROTTE\b')
+  segni=$(grep -E "$PAROLE_ROSSE"'|\|[[:space:]]+f[[:space:]]*$|ERROR:' "$OUT/$n.out" | grep -vcE '\b0 ROTTE\b')
   # ⚠️ UNA PROPRIETÀ SCRITTA NEL SORGENTE E ASSENTE DALL'USCITA È UN ROSSO (27/10):
   # `verifica-esente-dai-cancelli` §3 scriveva il proprio esito con un
   # `select … from` su una riga che la cura aveva impedito, e spariva senza un
@@ -105,7 +110,7 @@ for f in "$RADICE"/scripts/verifica-*.sql; do
     grep -m1 -E 'ERROR' "$OUT/$n.out" | sed 's/^/      /'
   elif [ $e -ne 0 ] || [ "$segni" -gt 0 ]; then
     rosse=$((rosse + 1)); echo "  ✗ $n  (uscita $e, $segni righe rosse)"
-    grep -E 'ERROR|✗|\bROTT[AOE]\b|\bROSS[AOE]\b|\|[[:space:]]+f[[:space:]]*$|scritte e non stampate' "$OUT/$n.out" | grep -vE '\b0 ROTTE\b' | head -3 | sed 's/^/      /'
+    grep -E 'ERROR|'"$PAROLE_ROSSE"'|\|[[:space:]]+f[[:space:]]*$|scritte e non stampate' "$OUT/$n.out" | grep -vE '\b0 ROTTE\b' | head -3 | sed 's/^/      /'
   elif [ -n "${DIAGNOSTICA[$n]:-}" ]; then
     leggere=$((leggere + 1)); echo "  ? $n  — da leggere: ${DIAGNOSTICA[$n]}"
   else

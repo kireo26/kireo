@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/Button";
 import { erroreRifiuto } from "@/lib/admin/rifiuto";
+import { TESTI_AVVISI } from "@/lib/admin/avvisiEnte";
 
 // Approva / non approva un evento o una newsletter (30/10). La decisione e
 // l'avviso all'ente passano dal server (`/api/admin/decisione`): prima di
@@ -35,14 +36,17 @@ export default function AzioneApprovazione({ cosa, id }: { cosa: "evento" | "new
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ cosa, id, approva, nota }),
       });
-      const corpo = (await risposta.json().catch(() => ({}))) as { errore?: string; emailInviata?: boolean };
+      const corpo = (await risposta.json().catch(() => ({}))) as { errore?: string; emailInviata?: boolean; esitoEmail?: string };
       if (!risposta.ok) {
         setErrore(corpo.errore ?? "Non è stato possibile aggiornare. Riprova.");
         return;
       }
-      // Testo mio, provvisorio: la notifica dentro KIREO c'è comunque.
-      if (!corpo.emailInviata) setAvviso("Fatto. L'email all'ente non è partita: l'avviso dentro KIREO sì.");
-      router.refresh();
+      // Un'email non partita NON si rilegge subito: la riga della coda uscirebbe
+      // e l'avviso con lei (il 30/10 successo e fallimento erano lo stesso
+      // schermo). Si aggiorna quando l'admin l'ha letto; l'esito resta anche in
+      // «Email all'ente non partite».
+      if (corpo.emailInviata) router.refresh();
+      else setAvviso(TESTI_AVVISI.dopoDecisione(corpo.esitoEmail));
     } catch {
       setErrore("Non è stato possibile aggiornare. Riprova.");
     } finally {
@@ -60,12 +64,19 @@ export default function AzioneApprovazione({ cosa, id }: { cosa: "evento" | "new
         className="w-full rounded-lg border border-white/10 bg-kireo-dark px-3 py-2 text-sm text-kireo-light placeholder:text-kireo-muted"
       />
       {errore && <p className="text-sm text-red-400">{errore}</p>}
-      {avviso && <p className="text-sm text-kireo-orange">{avviso}</p>}
+      {avviso && (
+        <div className="space-y-2">
+          <p className="text-sm text-kireo-orange">{avviso}</p>
+          <Button type="button" variant="outline" onClick={() => router.refresh()}>
+            Ho letto, aggiorna la coda
+          </Button>
+        </div>
+      )}
       <div className="flex gap-3">
-        <Button type="button" variant="primary" onClick={() => handleAzione(true)} disabled={caricamento !== null}>
+        <Button type="button" variant="primary" onClick={() => handleAzione(true)} disabled={caricamento !== null || avviso !== null}>
           {caricamento === "approva" ? "Approvazione…" : "Approva"}
         </Button>
-        <Button type="button" variant="outline" onClick={() => handleAzione(false)} disabled={caricamento !== null}>
+        <Button type="button" variant="outline" onClick={() => handleAzione(false)} disabled={caricamento !== null || avviso !== null}>
           {caricamento === "rifiuta" ? "Un momento…" : "Non approvare"}
         </Button>
       </div>

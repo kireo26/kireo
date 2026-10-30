@@ -207,13 +207,51 @@ const P = require("@/lib/ente/pianoSuccessivo");
     const nl = A.testoAvvisoDecisione({ cosa: "newsletter", id: "n1", titolo: "Novità", approvata: true, nota: null, giorno: "2027-10-10" });
     ok(nl.righe.some((r) => /parte il 10 ottobre 2027 alle 7:30/.test(r)), "una newsletter approvata dice quando parte", nl.righe);
     // La decisione si RILEGGE dal database: l'avviso prende solo cosa e quale.
-    ok(/export async function avvisaEnteDellaDecisione\(cosa: CosaDecisa, id: string\)/.test(leggi("lib/ente/avvisoDecisione.ts")),
+    ok(/export async function avvisaEnteDellaDecisione\(\s*cosa: CosaDecisa,\s*id: string,?\s*\)/.test(leggi("lib/ente/avvisoDecisione.ts")),
       "l'email non prende il testo da chi chiama: riceve solo cosa e quale, e rilegge stato e nota");
     ok(/fetch\("\/api\/admin\/decisione"/.test(leggi("components/admin/AzioneApprovazione.tsx"))
       && /avvisaEnteDellaDecisione\(cosa, id\)/.test(leggi("app/api/admin/decisione/route.ts")),
       "la decisione dell'admin passa dal server, e lì parte l'avviso");
     ok(/create trigger eventi_avvisa_ente[\s\S]*?create trigger newsletter_avvisa_ente/.test(MIGRAZIONE),
       "la notifica dentro KIREO la scrive un trigger, per gli eventi e per le newsletter, da qualunque strada");
+  }
+
+  console.log("\n§11 — un'email all'ente non partita non resta muta, e un salvataggio lo dice dov'è stato chiesto\n");
+  {
+    const AV = require("@/lib/admin/avvisiEnte");
+    const r = (cosa, id, esito, t) => ({ cosa, riferimento_id: id, esito, motivo: esito === "inviata" ? null : "Brevo: errore_api", created_at: t });
+    // Le righe arrivano dalla più recente: conta l'ULTIMA di ogni decisione.
+    const da = AV.avvisiDaRiprovare([
+      r("newsletter", "n1", "inviata", "3"), r("newsletter", "n1", "non_partita", "1"), // riprovata e partita: fuori
+      r("newsletter", "n2", "non_partita", "2"),                                        // fallita: dentro
+      r("evento", "e1", "nessun_destinatario", "2"),                                    // senza account: dentro
+      r("evento", "e2", "non_dovuta", "2"),                                             // nessuna email da mandare: fuori
+    ]);
+    ok(da.map((x) => `${x.cosa}:${x.riferimento_id}`).join(",") === "newsletter:n2,evento:e1",
+      "da riprovare: le decisioni la cui ULTIMA email non è partita, e solo quelle", da);
+    const L = leggi("lib/ente/avvisoDecisione.ts");
+    ok(/from\("avvisi_email_enti"\)\.insert/.test(L) && /await scriviEsitoAvviso\(/.test(L.slice(ancora(L, "export async function avvisaEnteDellaDecisione"))),
+      "ogni decisione scrive il suo esito in avvisi_email_enti, riuscita o no");
+    ok(/messageId\.push\(invio\.messageId\)/.test(L), "un invio accettato da Brevo conserva il suo messageId");
+    const B = leggi("lib/email/brevo.ts");
+    ok(/messageId: typeof accettato\?\.messageId === "string"/.test(B), "inviaEmail restituisce il messageId di Brevo");
+    const AZ = leggi("components/admin/AzioneApprovazione.tsx");
+    ok(/if \(corpo\.emailInviata\) router\.refresh\(\);\s*else setAvviso\(/.test(AZ),
+      "un'email non partita NON fa rileggere la coda: l'avviso resta finché l'admin l'ha letto");
+    const AP = leggi("app/admin/page.tsx");
+    ok(/from\("avvisi_email_enti"\)/.test(AP) && /avvisiDaRiprovare\(/.test(AP) && /<RiprovaAvvisoEnte /.test(AP) && /TESTI_AVVISI\.nonLetto/.test(AP),
+      "/admin mostra le email non partite, con «Riprova», e dice quando non le ha lette");
+    const M = leggi("supabase/migrations/20261118100000_avvisi_email_enti.sql");
+    ok(/revoke all on public\.avvisi_email_enti from anon, authenticated/.test(M) && !/references public\.profiles/.test(M),
+      "il client non scrive avvisi_email_enti, e la tabella non ha chiavi verso le persone");
+    const F = leggi("components/ente/NewsletterForm.tsx");
+    ok(/\?salvata=\$\{salvata\}#newsletter-\$\{salvata\}/.test(F), "dopo il salvataggio la pagina va alla riga salvata");
+    const P = leggi("app/ente/(dashboard)/comunicazioni/page.tsx");
+    ok(/key=\{iniziale\?\.id \?\? `nuova-\$\{salvata \?\? ""\}`\}/.test(P),
+      "il form si rimonta con una chiave nuova dopo un salvataggio, quindi si svuota");
+    ok(/r\.id === salvata && \([\s\S]*?TESTI_NEWSLETTER\.salvata\(r\.stato\)/.test(P), "la conferma sta sulla riga salvata, e dice lo stato che il database ha scritto");
+    ok(!/per email/.test(R.TESTI_NEWSLETTER.salvata("in_approvazione")),
+      "la conferma non promette un'email all'ente finché quell'email non è vista arrivare");
   }
 
   console.log("");

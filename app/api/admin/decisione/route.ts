@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     }
 
     const avviso = await avvisaEnteDellaDecisione(cosa, id);
-    return NextResponse.json({ ok: true, emailInviata: avviso.ok && avviso.inviate > 0 });
+    return NextResponse.json({ ok: true, emailInviata: avviso.esito === "inviata", esitoEmail: avviso.esito });
   } catch (e) {
     console.error("[admin/decisione]:", descriviErrore(e));
     return NextResponse.json({ errore: "Non è stato possibile aggiornare. Riprova." }, { status: 500 });

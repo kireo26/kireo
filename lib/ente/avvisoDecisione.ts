@@ -66,8 +66,27 @@ export function htmlAvvisoDecisione(d: Decisione): string {
   return templateAvvisoDecisione({ righe: t.righe, bottone: t.bottone, link: t.link });
 }
 
-/** Rilegge la decisione e manda l'email agli account dell'ente. Non lancia mai. */
-export async function avvisaEnteDellaDecisione(cosa: CosaDecisa, id: string): Promise<{ ok: boolean; inviate: number }> {
+export type EsitoAvviso = "inviata" | "non_partita" | "nessun_destinatario" | "non_dovuta";
+
+/**
+ * Rilegge la decisione, manda l'email agli account dell'ente e SCRIVE com'è
+ * andata in `avvisi_email_enti` (20261118100000): una riga per ogni decisione,
+ * riuscita o no. Il 30/10 un'email non arrivata non si poteva spiegare, perché
+ * un invio riuscito non lasciava niente e l'avviso di un invio fallito spariva
+ * con la riga della coda. Non lancia mai.
+ */
+export async function avvisaEnteDellaDecisione(
+  cosa: CosaDecisa,
+  id: string,
+): Promise<{ ok: boolean; inviate: number; esito: EsitoAvviso }> {
+  let istituzioneId: string | null = null;
+  let statoDecisione: string | null = null;
+  let account = 0;
+  let inviate = 0;
+  let fallite = 0;
+  const motivi: string[] = [];
+  const messageId: string[] = [];
+  let esito: EsitoAvviso = "non_partita";
   try {
     const supabase = createServiceRoleClient();
     const riga =
@@ -76,43 +95,87 @@ export async function avvisaEnteDellaDecisione(cosa: CosaDecisa, id: string): Pr
         : await supabase.from("newsletter_enti").select("oggetto, stato, nota_revisione, istituzione_id, giorno").eq("id", id).maybeSingle();
     if (riga.error || !riga.data) throw riga.error ?? new Error("riga non trovata");
     const r = riga.data as Record<string, unknown>;
-    const stato = String(r.stato);
-    const approvata = stato === "approvato" || stato === "approvata";
-    if (!approvata && stato !== "rifiutato" && stato !== "rifiutata") return { ok: true, inviate: 0 };
-    const istituzioneId = String(cosa === "evento" ? r.organizzatore_id : r.istituzione_id);
-    const d: Decisione = {
-      cosa,
-      id,
-      titolo: String(cosa === "evento" ? r.titolo : r.oggetto),
-      approvata,
-      nota: (cosa === "evento" ? r.note_revisione : r.nota_revisione) as string | null,
-      giorno: cosa === "newsletter" ? (r.giorno as string) : null,
-    };
-
-    const utenti = await supabase.from("institution_profiles").select("user_id").eq("istituzione_id", istituzioneId);
-    if (utenti.error) throw utenti.error;
-    const t = testoAvvisoDecisione(d);
-    const html = htmlAvvisoDecisione(d);
-    let inviate = 0;
-    let fallite = 0;
-    for (const u of utenti.data ?? []) {
-      const { data: utente, error } = await supabase.auth.admin.getUserById(u.user_id as string);
-      if (error || !utente?.user?.email) {
-        fallite++;
-        continue;
+    statoDecisione = String(r.stato);
+    istituzioneId = String(cosa === "evento" ? r.organizzatore_id : r.istituzione_id);
+    const approvata = statoDecisione === "approvato" || statoDecisione === "approvata";
+    if (!approvata && statoDecisione !== "rifiutato" && statoDecisione !== "rifiutata") {
+      esito = "non_dovuta";
+    } else {
+      const d: Decisione = {
+        cosa,
+        id,
+        titolo: String(cosa === "evento" ? r.titolo : r.oggetto),
+        approvata,
+        nota: (cosa === "evento" ? r.note_revisione : r.nota_revisione) as string | null,
+        giorno: cosa === "newsletter" ? (r.giorno as string) : null,
+      };
+      const utenti = await supabase.from("institution_profiles").select("user_id").eq("istituzione_id", istituzioneId);
+      if (utenti.error) throw utenti.error;
+      account = (utenti.data ?? []).length;
+      const t = testoAvvisoDecisione(d);
+      const html = htmlAvvisoDecisione(d);
+      for (const u of utenti.data ?? []) {
+        const { data: utente, error } = await supabase.auth.admin.getUserById(u.user_id as string);
+        if (error || !utente?.user?.email) {
+          fallite++;
+          motivi.push(error ? `account non letto: ${descriviErrore(error)}` : "account senza email");
+          continue;
+        }
+        const invio = await inviaEmail(utente.user.email, t.oggetto, html);
+        if (invio.ok) {
+          inviate++;
+          if (invio.messageId) messageId.push(invio.messageId);
+        } else {
+          fallite++;
+          motivi.push(`Brevo: ${invio.motivo}`);
+        }
       }
-      const esito = await inviaEmail(utente.user.email, t.oggetto, html);
-      if (esito.ok) inviate++;
-      else fallite++;
+      esito = account === 0 ? "nessun_destinatario" : fallite > 0 ? "non_partita" : "inviata";
+      if (account === 0) motivi.push("l'ente non ha nessun account collegato");
     }
-    if (fallite > 0) {
-      console.error(`[avviso ente] ${cosa} ${id}: ${fallite} email non partite`);
-      await registraGuasto({ processo: "admin/decisione", specie: "avviso_ente", motivo: `${cosa}: ${fallite} non partite` });
-    }
-    return { ok: fallite === 0, inviate };
   } catch (e) {
-    console.error(`[avviso ente] ${cosa} ${id}:`, descriviErrore(e));
-    await registraGuasto({ processo: "admin/decisione", specie: "avviso_ente", motivo: cosa, dettaglio: e });
-    return { ok: false, inviate: 0 };
+    fallite = Math.max(fallite, 1);
+    motivi.push(descriviErrore(e));
+    esito = "non_partita";
+  }
+
+  if (esito === "non_partita" || esito === "nessun_destinatario") {
+    console.error(`[avviso ente] ${cosa} ${id}: ${esito} — ${motivi.join("; ")}`);
+    await registraGuasto({ processo: "admin/decisione", specie: "avviso_ente", motivo: `${cosa}: ${esito}`, dettaglio: motivi.join("; ") });
+  }
+  await scriviEsitoAvviso({ cosa, id, istituzioneId, statoDecisione, esito, account, inviate, fallite, motivi, messageId });
+  return { ok: esito === "inviata" || esito === "non_dovuta", inviate, esito };
+}
+
+async function scriviEsitoAvviso(a: {
+  cosa: CosaDecisa;
+  id: string;
+  istituzioneId: string | null;
+  statoDecisione: string | null;
+  esito: EsitoAvviso;
+  account: number;
+  inviate: number;
+  fallite: number;
+  motivi: string[];
+  messageId: string[];
+}): Promise<void> {
+  try {
+    const supabase = createServiceRoleClient();
+    const { error } = await supabase.from("avvisi_email_enti").insert({
+      cosa: a.cosa,
+      riferimento_id: a.id,
+      istituzione_id: a.istituzioneId,
+      stato_decisione: a.statoDecisione,
+      esito: a.esito,
+      account_ente: a.account,
+      inviate: a.inviate,
+      fallite: a.fallite,
+      motivo: a.motivi.length > 0 ? a.motivi.join("; ").slice(0, 1000) : null,
+      message_id: a.messageId,
+    });
+    // Un registro che non si scrive lo dice nel log: l'email intanto è partita (o no) lo stesso.
+    if (error) console.error(`[avviso ente] esito non scritto ${a.cosa} ${a.id}:`, descriviErrore(error));
+  } catch (e) {
+    console.error(`[avviso ente] esito non scritto ${a.cosa} ${a.id}:`, descriviErrore(e));
   }
 }
