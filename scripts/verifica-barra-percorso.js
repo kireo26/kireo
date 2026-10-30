@@ -114,6 +114,17 @@ ok(/<hr /.test(srcBarra), "…e una riga li separa nella barra desktop");
 const iAgenda = ancora(srcBarra, 'label: "Agenda"', { volte: 1, dove: "la barra" });
 const iGruppoResto = ancora(srcBarra, "const GRUPPO_RESTO", { volte: 1, dove: "la barra" });
 ok(iAgenda > iGruppoResto && iGruppoResto !== -1, "Agenda sta nel gruppo «il resto», non fra i passi");
+// L'ordine del secondo gruppo è per parentela (Mario, 30/10): «Le mie
+// attività» subito dopo l'Agenda, «Le mie cose» subito dopo la Bacheca. Atteso
+// scritto a mano: l'ordine intero, non una relazione ricavata dal file.
+{
+  const blocco = srcBarra.slice(iGruppoResto).split("];")[0];
+  const ordine = [...blocco.matchAll(/label:\s*(?:"([^"]+)"|TESTI_LE_MIE_COSE\.etichetta)/g)].map((m) => m[1] ?? "Le mie cose");
+  const atteso = ["Agenda", "Le mie attività", "Esplora", "Bacheca", "Le mie cose", "Messaggi", "Profilo"];
+  ok(JSON.stringify(ordine) === JSON.stringify(atteso), "il secondo gruppo: Le mie attività con l'Agenda, Le mie cose con la Bacheca", ordine.join(" · "));
+  ok(!PASSI_PERCORSO.some((p) => p.nome === "Le mie cose") && PASSI_PERCORSO.some((p) => p.chiave === "guide" && p.nome === "Guide" && p.href === "/app/guide"),
+    "«Guide» resta il passo del percorso, e «Le mie cose» non è un passo");
+}
 
 // ── 3) NIENTE È DISABILITATO ────────────────────────────────────────────────
 console.log("\n3) Niente è disabilitato, e niente è sbiadito");

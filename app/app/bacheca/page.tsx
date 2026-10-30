@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getFeedBacheca, getPostDellaNotifica, leggiCursore, leggiIdPost, leggiPostSalvati } from "@/lib/app/bacheca";
 import { TESTI_CONTENUTI } from "@/lib/post/contenuti";
 import { TESTI_BACHECA } from "@/lib/app/testiBacheca";
+import { HREF_LE_MIE_COSE } from "@/lib/app/leMieCose";
 import FeedPost from "@/components/app/FeedPost";
 
 // La Bacheca: i post visibili degli enti che segui, dal più recentemente
@@ -40,7 +41,7 @@ export default async function BachecaPage({ searchParams }: { searchParams: Prom
         <p className="mb-4 font-sans text-sm font-semibold uppercase tracking-wide text-kireo-orange">Bacheca</p>
         <h1 className="py-1 font-heading text-3xl font-bold leading-[1.25] text-kireo-light sm:text-4xl">Novità dagli enti che segui</h1>
         <p className="mt-2 text-sm text-kireo-muted">
-          <Link href="/app/guide#salvati" className="text-kireo-orange underline underline-offset-2">
+          <Link href={`${HREF_LE_MIE_COSE}#salvati`} className="text-kireo-orange underline underline-offset-2">
             {TESTI_BACHECA.vaiAiSalvati}
           </Link>
         </p>

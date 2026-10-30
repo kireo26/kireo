@@ -176,7 +176,7 @@ export async function getStoricoAttivita(supabase: SupabaseClient, userId: strin
 
 /** La riga di una guida d'ente nello storico. Testo mio e provvisorio (29/10). */
 export function testoGuidaStorico(enteNome: string): string {
-  return `Hai scaricato la guida di ${enteNome}. La ritrovi in Guide.`;
+  return `Hai scaricato la guida di ${enteNome}. La ritrovi in Le mie cose.`;
 }
 
 /** L'etichetta della pastiglia di una voce dello storico. */

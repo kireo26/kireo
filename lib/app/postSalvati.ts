@@ -1,5 +1,5 @@
 // I POST CHE UNO STUDENTE HA SALVATO (30/10, 20261119110000). Stanno nello
-// stesso archivio delle guide degli enti (`/app/guide`): «un archivio solo
+// stesso archivio delle guide degli enti («Le mie cose», `/app/le-mie-cose`): «un archivio solo
 // dello studente» (Mario). La regola è la stessa delle guide: il gesto dello
 // studente resta. La riga è una copia fatta dal database al momento del
 // salvataggio, e un post tolto dal flusso, di un ente che non è più attivo, o

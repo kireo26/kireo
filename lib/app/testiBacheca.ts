@@ -18,6 +18,6 @@ export const TESTI_BACHECA = {
   dallaNotifica: "Il post della notifica",
   postNonPiu: "Il post di questa notifica non è più in Bacheca: è stato tolto.",
   postNonLetto: "Non siamo riusciti a leggere il post di questa notifica: ricarica la pagina.",
-  // L'archivio dei post salvati sta in Guide (30/10).
+  // L'archivio dei post salvati sta in «Le mie cose» (30/10, `lib/app/leMieCose.ts`).
   vaiAiSalvati: "I post che hai salvato →",
 } as const;

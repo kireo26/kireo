@@ -523,7 +523,7 @@ const supabaseSpia = () => {
   const clientStorico = { from(t) { viste.push(t); const r = righeFinte[t] ?? { data: [], error: null }; const b = { select: () => b, eq: () => b, then: (ok2) => ok2(r) }; return b; } };
   const storico = await getStoricoAttivita(clientStorico, "u1");
   const vg = storico.find((v) => v.tipo === "guida");
-  ok(vg?.titolo === "Programma eventi" && vg.esito === "Hai scaricato la guida di Davante. La ritrovi in Guide." && vg.oreCertificate === null,
+  ok(vg?.titolo === "Programma eventi" && vg.esito === "Hai scaricato la guida di Davante. La ritrovi in Le mie cose." && vg.oreCertificate === null,
     `lo storico racconta la guida scaricata, con titolo ed ente copiati e senza ore [${vg?.titolo} · ${vg?.esito}]`);
   ok(!viste.includes("activity_log"), "lo storico non legge activity_log per le guide: le racconta, non le conta");
   ok(ETICHETTA_VOCE_STORICO.guida === "Guida" && trovaAccordi(testoGuidaStorico("X")).length === 0, "la pastiglia dice «Guida», e il testo non accorda col genere");
@@ -538,11 +538,17 @@ const supabaseSpia = () => {
     if (typeof t === "string") ok(trovaAccordi(t).length === 0, `«${nome}» non accorda col genere di chi legge`);
   }
   // La pagina: la chiama, e il link sta dietro pdfUrl.
-  const indiceGuide = fs.readFileSync(path.join(ROOT, "app/app/guide/page.tsx"), "utf8");
-  ok(/leggiGuideScaricate\(supabase\)/.test(indiceGuide), "l'indice /app/guide legge le guide scaricate");
+  // Dal 30/10 l'archivio sta in «Le mie cose» (`lib/app/leMieCose.ts`), e
+  // «Guide» resta il passo del percorso con le sole guide di KIREO.
+  const indiceGuide = fs.readFileSync(path.join(ROOT, "app/app/le-mie-cose/page.tsx"), "utf8");
+  const soloGuide = fs.readFileSync(path.join(ROOT, "app/app/guide/page.tsx"), "utf8");
+  ok(/leggiGuideScaricate\(supabase\)/.test(indiceGuide), "«Le mie cose» legge le guide scaricate");
+  ok(!/leggiGuideScaricate|leggiPostSalvatiMiei/.test(soloGuide) && /TS\.titoloKireo/.test(soloGuide), "/app/guide non legge più l'archivio, e tiene le guide di KIREO");
+  ok(/id="salvati"/.test(soloGuide) && /TLC\.spostate/.test(soloGuide) && /href=\{HREF_LE_MIE_COSE\}/.test(soloGuide),
+    "dove stava l'archivio resta una riga, con l'àncora di prima, che porta a «Le mie cose»");
   ok(/scaricate === null \?[\s\S]*TS\.nonLetto[\s\S]*scaricate\.length === 0 \?[\s\S]*TS\.nessuna/.test(indiceGuide), "«non letto» e «nessuna» hanno due testi diversi");
   ok(/\{g\.pdfUrl && \(\s*<a href=\{g\.pdfUrl\}/.test(indiceGuide), "il link al file c'è solo con un pdfUrl");
-  ok(/TS\.titoloKireo/.test(indiceGuide) && /TS\.titoloEnti/.test(indiceGuide), "le due sezioni: le guide di KIREO e quelle degli enti");
+  ok(/TS\.titoloEnti/.test(indiceGuide) && /TP\.titolo/.test(indiceGuide) && !/TS\.titoloKireo/.test(indiceGuide), "le due sezioni di «Le mie cose»: le guide degli enti e i post salvati, e non le guide di KIREO");
 
   console.log("");
   if (falliti > 0) { console.error(`✗ ${falliti} verifiche fallite`); process.exit(1); }

@@ -135,7 +135,8 @@ export const TESTI_CONTENUTI = {
   scaricaFile: "Scarica il file",
   salva: "Salva",
   salvato: "Salvato ✓ — Togli",
-  salvatoDove: "Lo ritrovi in Guide, fra i post che hai salvato.",
+  // Di Mario (30/10). Se a schermo, col posto nuovo nel menù, sembra superflua, si toglie.
+  salvatoDove: "Lo ritrovi in Le mie cose.",
   salvaNonRiuscito: "Non è stato possibile salvarlo. Riprova.",
   togliNonRiuscito: "Non è stato possibile toglierlo. Riprova.",
   salvaNonVisibile: "Questo post non è più nel flusso: non si può salvare.",

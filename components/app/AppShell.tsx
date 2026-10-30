@@ -31,6 +31,7 @@ import NotificheBell from "@/components/app/NotificheBell";
 // condivisa) e le due voci di navigazione che NON sono passi del viaggio.
 import { PASSI_PERCORSO, type ChiavePasso } from "@/lib/percorso/passi";
 import { USCITA_SOLO_QUI } from "@/lib/supabase/uscita";
+import { HREF_LE_MIE_COSE, TESTI_LE_MIE_COSE } from "@/lib/app/leMieCose";
 
 const ICONE_PASSI: Record<ChiavePasso, (p: { className?: string }) => React.ReactElement> = {
   aree: IconAree,
@@ -40,7 +41,7 @@ const ICONE_PASSI: Record<ChiavePasso, (p: { className?: string }) => React.Reac
   workshop: IconWorkshop,
 };
 
-const ABBREVIAZIONI: Record<string, string> = { "Le mie attività": "Attività", "Il percorso": "Percorso" };
+const ABBREVIAZIONI: Record<string, string> = { "Le mie attività": "Attività", "Il percorso": "Percorso", "Le mie cose": "Mie cose" };
 
 type Voce = { href: string; label: string; icon: (p: { className?: string }) => React.ReactElement; passo?: ChiavePasso };
 
@@ -52,12 +53,18 @@ const GRUPPO_PERCORSO: Voce[] = [
 
 // AGENDA STA QUI E NON NEL PERCORSO: gli eventi non sono un passo del viaggio, e
 // in mezzo ad Aree e Guide romperebbero la fila.
+//
+// ORDINATE PER PARENTELA, NON PER POSSESSIVO (Mario, 30/10): «Le mie attività»
+// sta con l'Agenda, perché è il tempo che hai speso; «Le mie cose» sta con la
+// Bacheca, perché è lì che finisce quello che salvi. In fila una sotto l'altra
+// le due voci si confrontano e sembrano la stessa cosa.
 const GRUPPO_RESTO: Voce[] = [
   { href: "/app/agenda", label: "Agenda", icon: IconAgenda },
+  { href: "/app/attivita", label: "Le mie attività", icon: IconAttivita },
   { href: "/app/esplora", label: "Esplora", icon: IconEsplora },
   { href: "/app/bacheca", label: "Bacheca", icon: IconBacheca },
+  { href: HREF_LE_MIE_COSE, label: TESTI_LE_MIE_COSE.etichetta, icon: IconLeMieCose },
   { href: "/app/messaggi", label: "Messaggi", icon: IconMessaggi },
-  { href: "/app/attivita", label: "Le mie attività", icon: IconAttivita },
   { href: "/app/profilo", label: "Profilo", icon: IconProfilo },
 ];
 
@@ -143,6 +150,14 @@ function IconEscape({ className }: { className?: string }) {
     <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" aria-hidden="true">
       <circle cx="12" cy="12" r="9" strokeWidth="2" />
       <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M15 9l-2.5 5.5L7 17l2.5-5.5L15 9z" />
+    </svg>
+  );
+}
+
+function IconLeMieCose({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" aria-hidden="true">
+      <path strokeWidth="2" strokeLinejoin="round" d="M7 4h10v16l-5-3.5L7 20V4z" />
     </svg>
   );
 }
