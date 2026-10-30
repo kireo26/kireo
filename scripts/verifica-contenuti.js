@@ -233,6 +233,31 @@ const riga = (stato, extra = {}) => ({
   const sql = leggi("supabase/migrations/20261119110000_post_contenuti_salva.sql");
   ok(/add column copre_contenuti boolean not null default false/.test(sql) && /alter column copre_contenuti set default true/.test(sql), "le righe di prima nascono false, le nuove true");
 
+  // §7 — Il motivo di una rimozione non arriva allo studente (Mario, 30/10).
+  // Allo studente si dice perché un post non è più nel flusso e quando, mai il
+  // testo che KIREO ha scritto all'ente: è un giudizio su un terzo. Si guarda
+  // ogni file delle superfici dello studente (app/app, components/app, lib/app),
+  // con un pavimento sui file letti, perché un lettore cieco qui sarebbe verde.
+  {
+    const fs = require("fs");
+    const path = require("path");
+    const radici = ["app/app", "components/app", "lib/app"];
+    const files = [];
+    const giro = (d) => {
+      for (const e of fs.readdirSync(path.join(process.cwd(), d), { withFileTypes: true })) {
+        const r = path.join(d, e.name);
+        if (e.isDirectory()) giro(r);
+        else if (/\.(tsx?|js)$/.test(e.name)) files.push(r);
+      }
+    };
+    radici.forEach(giro);
+    ok(files.length > 60, `le superfici dello studente lette: ${files.length} file`);
+    const vietati = /motivi_post_enti|motivo_rimozione|motivo_rifiuto/;
+    const colpevoli = files.filter((f) => vietati.test(senzaCommenti(fs.readFileSync(f, "utf8"))));
+    ok(colpevoli.length === 0, "nessuna superficie dello studente legge il motivo di una rimozione", colpevoli.join(", "));
+    ok(vietati.test("x.rpc('motivi_post_enti')") && !vietati.test("// motivo"), "taratura: la forma vietata si riconosce");
+  }
+
   console.log(`\n${falliti ? "✗" : "✓"} ${fatte - falliti}/${fatte} proprietà (npm run test:contenuti)`);
   process.exit(falliti ? 1 : 0);
 })();

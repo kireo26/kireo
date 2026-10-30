@@ -44,9 +44,12 @@ export const TESTI_POST = {
   // altro post pubblicato da un'altra finestra): l'ora la dice la pagina, che
   // si rilegge.
   tettoDalDatabase: `Hai già pubblicato ${MAX_POST_NELLE_24_ORE} post nelle ultime 24 ore: qui sopra c'è da quando potrai pubblicare il prossimo.`,
+  // I tre testi del link sono di Mario (30/10). La nota dice COSA produce il
+  // campo, non solo quale indirizzo è ammesso: un ente che non sa cosa produce
+  // un campo lo lascia vuoto.
   etichettaLink: "Link (facoltativo)",
-  notaLink: "Il tuo sito, o un tuo post su Instagram, Facebook o TikTok: sotto il post lo studente trova un bottone che lo apre fuori da KIREO. Il nome del bottone lo scegliamo noi dall'indirizzo.",
-  linkNonValido: "Il link deve cominciare con https:// ed essere un indirizzo completo, senza spazi.",
+  notaLink: "Se lo metti, sotto il post compare un bottone che porta lì. Solo indirizzi che iniziano con https://.",
+  linkNonValido: "Il link deve iniziare con https://.",
   notaFile: "Lo studente lo scarica con un clic. Chi ha il link al file può aprirlo anche fuori da KIREO.",
   motivoNonLetto: "Non siamo riusciti a leggere il motivo: ricarica la pagina.",
 } as const;

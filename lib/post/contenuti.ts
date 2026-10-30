@@ -78,9 +78,11 @@ export function percorsoAllegato(istituzioneId: string, adesso: number): string 
   return `${istituzioneId}/post/allegato-${adesso}.pdf`;
 }
 
-// ⚠️ Testi miei e provvisori.
+// ⚠️ Testi miei e provvisori, tranne `fuoriDaKireo` (Mario, 30/10): lo
+// studente sa dove va prima di premere, e «in una scheda nuova» risponde
+// all'altra metà della domanda, «perdo quello che stavo guardando?».
 export const TESTI_CONTENUTI = {
-  fuoriDaKireo: "Si apre fuori da KIREO.",
+  fuoriDaKireo: "Si apre fuori da KIREO, in una scheda nuova.",
   scaricaFile: "Scarica il file",
   salva: "Salva",
   salvato: "Salvato ✓ — Togli",

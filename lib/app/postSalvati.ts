@@ -8,9 +8,13 @@
 // ⚠️ UNA SCELTA MIA, DA CONFERMARE: di un post che non è più nel flusso resta
 // il testo, e NON l'immagine, il link né il file. KIREO toglie un post perché
 // qualcosa non va, e quel qualcosa può essere proprio l'immagine o il link:
-// mostrarli dall'archivio annullerebbe la rimozione per chi l'aveva salvato. E
-// il perché di una rimozione resta quello che KIREO ha scritto all'ente: qui
-// si dice che è stato tolto e quando, non il motivo.
+// mostrarli dall'archivio annullerebbe la rimozione per chi l'aveva salvato.
+// ⚠️ REGOLA (Mario, 30/10): allo studente si dice PERCHÉ un post non è più nel
+// flusso («tolto da KIREO», «cancellato», «ente non più attivo») e QUANDO, mai
+// il testo della motivazione che KIREO ha scritto all'ente. Quella è un
+// giudizio di KIREO su un ente scritto a quell'ente: metterla davanti a uno
+// studente è consegnargli una cosa che riguarda un terzo, la stessa famiglia
+// dei dati altrui tolti dall'export. Non si legge `motivi_post_enti` da qui.
 
 import { formattaData } from "@/lib/formato";
 
