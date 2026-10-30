@@ -371,6 +371,12 @@
       "commit": "18cf076",
       "stato": "verificata",
       "fonte": "Mario, 29/10: to_regprocedure('public.guide_enti_scaricate()') is not null → true; chiavi esterne su scaricamenti_guide_enti → 1; righe senza titolo_guida → 0. Giro a schermo passato (pubblica, archiviata, export)."
+    },
+    {
+      "file": "20261118100000_avvisi_email_enti.sql",
+      "commit": "093eb0a",
+      "stato": "verificata",
+      "fonte": "Mario 30/10: applicata, avvisi_email_enti esiste e ha registrato l'approvazione delle 10:18 (esito inviata, account 1, inviate 1, messageId <202610301018.65334513973@smtp-relay.mailin.fr>)"
     }
   ]
 }
