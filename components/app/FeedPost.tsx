@@ -6,7 +6,7 @@ import type { PostBacheca } from "@/lib/app/bacheca";
 import { formattaData } from "@/lib/formato";
 import { createClient } from "@/lib/supabase/client";
 import { descriviErrore } from "@/lib/erroreSupabase";
-import { TESTI_CONTENUTI, destinazioneDelLink, etichettaLink, immagineDelPost } from "@/lib/post/contenuti";
+import { TESTI_CONTENUTI, destinazioneDelLink, etichettaLink, immagineDelPost, CLASSE_IMMAGINE_POST } from "@/lib/post/contenuti";
 
 // ⚠️ NIENTE IFRAME, NÉ PRIMA NÉ DOPO UN CLIC, E NIENTE TIPO «LINK SOCIAL» (30/10).
 // Un post è testo, immagine o file, e può avere un link: sotto il post un
@@ -96,10 +96,13 @@ function SalvaPost({ postId, salvatoIniziale }: { postId: string; salvatoInizial
   );
 }
 
-export default function FeedPost({ post, salvato }: { post: PostBacheca; salvato: boolean | null }) {
+// `etichetta` è il segno del post di una notifica sulla riga dove sta già
+// (Mario, 30/10: un post mostrato due volte è una copia di troppo).
+export default function FeedPost({ post, salvato, etichetta = null }: { post: PostBacheca; salvato: boolean | null; etichetta?: string | null }) {
   const immagine = immagineDelPost(post.immagine_url, BASE_SUPABASE);
   return (
-    <li className="rounded-2xl border border-white/5 bg-kireo-card p-6">
+    <li id={`post-${post.id}`} className={`scroll-mt-24 rounded-2xl border bg-kireo-card p-6 ${etichetta ? "border-kireo-orange/60" : "border-white/5"}`}>
+      {etichetta && <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-kireo-orange">{etichetta}</p>}
       <div className="flex items-center justify-between gap-3">
         <Link href={`/istituzioni/${post.istituzione_slug}`} className="font-heading text-sm font-semibold text-kireo-light hover:underline">
           {post.istituzione_nome}
@@ -109,7 +112,7 @@ export default function FeedPost({ post, salvato }: { post: PostBacheca; salvato
       <p className="mt-3 whitespace-pre-wrap text-sm text-kireo-light/90">{post.corpo}</p>
       {post.tipo === "immagine" && immagine && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={immagine} alt="" className="mt-3 max-h-96 w-full rounded-xl object-cover" />
+        <img src={immagine} alt="" className={CLASSE_IMMAGINE_POST} />
       )}
       {post.tipo === "file" && <FileAllegato post={post} />}
       <LinkEsterno url={post.link_esterno} />

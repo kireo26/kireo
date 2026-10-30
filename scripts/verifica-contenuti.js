@@ -179,9 +179,9 @@ ok(feedForm >= 0 && /method="post"/.test(feed), "il feed scarica con una POST na
 console.log("\n§5 il link è di tutti i piani, e il tipo link_social è uscito");
 const form = senzaCommenti(leggi("components/ente/CreaPostForm.tsx"));
 ok(!/disabled=\{t/.test(form) && !/pianoAPagamento \|\| t/.test(form), "il form non spegne un tipo per il piano");
-ok(/linkEsternoValido\(link\)/.test(form) && !/new RegExp|\/\^https/.test(form), "il form usa la regola condivisa, non una sua");
+ok(/normalizzaLinkEsterno\(link\)/.test(form) && !/new RegExp|\/\^https/.test(form), "il form usa la regola condivisa, non una sua");
 ok(!/link_social/.test(form) && !/link_titolo|link_riga|Immagine della scheda/.test(form), "il form non offre più il tipo link social né la scheda");
-ok(/link_esterno: link\.trim\(\) \|\| null/.test(form) && !/tipo === "[a-z]+" \? link/.test(form), "il link si scrive su qualunque tipo, vuoto vuol dire nessun link");
+ok(/link_esterno: linkDaSalvare,/.test(form) && !/tipo === "[a-z]+" \? link/.test(form) && C.normalizzaLinkEsterno(" ").url === null, "il link si scrive su qualunque tipo, vuoto vuol dire nessun link");
 ok(!/etichett[ae].*useState|setEtichetta/.test(form), "l'ente non scrive l'etichetta del bottone");
 ok(/<LinkEsterno url=\{post\.link_esterno\} \/>/.test(feed), "il feed mette il link sotto ogni post");
 const ultimaLink = leggi("supabase/migrations/20261120100000_post_link_esterno.sql");
@@ -256,6 +256,79 @@ const riga = (stato, extra = {}) => ({
     const colpevoli = files.filter((f) => vietati.test(senzaCommenti(fs.readFileSync(f, "utf8"))));
     ok(colpevoli.length === 0, "nessuna superficie dello studente legge il motivo di una rimozione", colpevoli.join(", "));
     ok(vietati.test("x.rpc('motivi_post_enti')") && !vietati.test("// motivo"), "taratura: la forma vietata si riconosce");
+  }
+
+  // §8 — Lo https lo mettiamo noi (Mario, 30/10). Attesi scritti a mano.
+  console.log("\n§8 il link si sistema, e quello che si salva è quello che si vede");
+  {
+    const n = C.normalizzaLinkEsterno;
+    const casi = [
+      ["www.davante.it", "https://www.davante.it", false],
+      ["davante.it", "https://davante.it", false],
+      ["instagram.com/p/xxxx/", "https://instagram.com/p/xxxx/", false],
+      ["http://www.davante.it", "https://www.davante.it", true],
+      ["HTTP://davante.it/a?b=1", "https://davante.it/a?b=1", true],
+      ["https://www.davante.it/x", "https://www.davante.it/x", false],
+      ["  davante.it  ", "https://davante.it", false],
+      ["davante.it:8080/p", "https://davante.it:8080/p", false],
+    ];
+    for (const [dentro, fuori, alzato] of casi) {
+      const e = n(dentro);
+      ok(e.ok && e.url === fuori && e.alzatoAHttps === alzato, `«${dentro}» → ${fuori}${alzato ? ", e si dice" : ""}`, JSON.stringify(e));
+      ok(e.ok && C.linkEsternoValido(e.url), `«${dentro}»: il risultato passa la regola del vincolo`);
+    }
+    const rossi = [
+      ["www.dav ante.it", "spazio"],
+      ["https://davante.it/a b", "spazio"],
+      ["davante", "nonIndirizzo"],
+      ["https://", "nonIndirizzo"],
+      ["localhost:3000", "nonIndirizzo"],
+      ["javascript:alert(1)", "schemaVietato"],
+      ["data:text/html,ciao", "schemaVietato"],
+      ["file:///etc/passwd", "schemaVietato"],
+      ["mailto:a@b.it", "schemaVietato"],
+      ["ftp://davante.it", "schemaVietato"],
+    ];
+    for (const [dentro, errore] of rossi) {
+      const e = n(dentro);
+      ok(!e.ok && e.errore === errore, `«${dentro}» resta rosso: ${errore}`, JSON.stringify(e));
+    }
+    ok(n("").ok && n("   ").url === null, "un campo vuoto è nessun link");
+    const P = require("@/lib/ente/post");
+    ok(P.TESTI_POST.erroreLink.spazio === "L'indirizzo contiene uno spazio." &&
+      P.TESTI_POST.erroreLink.nonIndirizzo === "Non sembra un indirizzo: ci vuole un dominio, come davante.it" &&
+      P.TESTI_POST.erroreLink.schemaVietato === "Si possono mettere solo indirizzi di pagine web.", "un messaggio per causa, i testi di Mario");
+    ok(/sistemaLink\(\)/.test(form) && /onBlur=\{/.test(form) && /link_esterno: linkDaSalvare/.test(form), "il form sistema all'uscita dal campo e alla pubblicazione, e salva il valore sistemato");
+    const cambio = form.slice(ancora(form, "onChange={(e) => {\n            setLink"), ancora(form, "onBlur={"));
+    ok(cambio.length > 0 && !/normalizzaLinkEsterno|sistemaLink/.test(cambio), "mentre si scrive non si sistema niente");
+    ok(/alzatoAHttps && <p/.test(form), "un http alzato a https si dice sotto il campo");
+    // c) si alza e si dice, non si verifica: il form non fa nessuna richiesta all'indirizzo.
+    ok(!/fetch\(/.test(form), "il form non fa nessuna richiesta all'indirizzo scritto");
+  }
+
+  // §9 — L'immagine di un post non si taglia (Mario, 30/10).
+  console.log("\n§9 l'immagine di un post mantiene le proporzioni, ovunque");
+  {
+    ok(!/object-cover|object-fill|aspect-/.test(C.CLASSE_IMMAGINE_POST) && /max-h-/.test(C.CLASSE_IMMAGINE_POST) && /max-w-full/.test(C.CLASSE_IMMAGINE_POST) && /h-auto/.test(C.CLASSE_IMMAGINE_POST) && /w-auto/.test(C.CLASSE_IMMAGINE_POST),
+      "la classe: proporzioni sue, un tetto all'altezza, mai più larga del post, niente riempimento", C.CLASSE_IMMAGINE_POST);
+    const superfici = ["components/app/FeedPost.tsx", "app/app/guide/page.tsx", "app/admin/page.tsx"];
+    for (const f of superfici) {
+      const src = senzaCommenti(leggi(f));
+      const img = [...src.matchAll(/<img\b[^>]*>/g)].map((m) => m[0]);
+      const delPost = img.filter((t) => /immagine/.test(t));
+      ok(delPost.length > 0 && delPost.every((t) => /className=\{CLASSE_IMMAGINE_POST\}/.test(t)), `${f}: l'immagine del post usa la classe comune`, delPost.join(" | "));
+    }
+  }
+
+  // §10 — Il post della notifica compare una volta sola (Mario, 30/10: misurato,
+  // un post solo mostrato due volte).
+  console.log("\n§10 il post di una notifica non si mostra due volte");
+  {
+    const pg = senzaCommenti(leggi("app/app/bacheca/page.tsx"));
+    ok(/notificaNelFlusso\s*=/.test(pg) && /notificaNelFlusso \? null :/.test(pg), "se il post è già nel flusso, il blocco in cima non c'è");
+    ok(/etichetta=\{notificaNelFlusso && /.test(pg), "e il segno sta sulla sua riga");
+    const fp = senzaCommenti(leggi("components/app/FeedPost.tsx"));
+    ok(/id=\{`post-\$\{post\.id\}`\}/.test(fp), "ogni post del flusso ha un'àncora, dove porta la notifica");
   }
 
   console.log(`\n${falliti ? "✗" : "✓"} ${fatte - falliti}/${fatte} proprietà (npm run test:contenuti)`);

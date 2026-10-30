@@ -6,7 +6,7 @@ import { guideDiArea, statoSblocco, GATE_GUIDE_ATTIVO, guidaPronta, TESTO_SBLOCC
 import { caricaContestoGuide } from "@/lib/guide/statoStudente";
 import { leggiGuideScaricate, TESTI_GUIDE_SCARICATE as TS } from "@/lib/app/guideScaricate";
 import { leggiPostSalvatiMiei, TESTI_POST_SALVATI as TP } from "@/lib/app/postSalvati";
-import { TESTI_CONTENUTI, immagineDelPost } from "@/lib/post/contenuti";
+import { TESTI_CONTENUTI, immagineDelPost, CLASSE_IMMAGINE_POST } from "@/lib/post/contenuti";
 import { LinkEsterno } from "@/components/app/FeedPost";
 import TogliPostSalvato from "@/components/app/TogliPostSalvato";
 
@@ -126,7 +126,7 @@ export default async function GuideHome({ searchParams }: { searchParams: Promis
                   <p className="mt-2 whitespace-pre-wrap text-sm text-kireo-light/90">{p.corpo}</p>
                   {TP.stato(p) && <p className="mt-2 text-xs text-kireo-muted">{TP.stato(p)}</p>}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  {immagine && <img src={immagine} alt="" className="mt-3 max-h-72 w-full rounded-xl object-cover" />}
+                  {immagine && <img src={immagine} alt="" className={CLASSE_IMMAGINE_POST} />}
                   <LinkEsterno url={p.linkEsterno} />
                   {p.tipo === "file" && p.stato === "visibile" && p.postId && p.allegatoNome && (
                     <form method="post" action={`/api/scarica-allegato/${p.postId}`} className="mt-3 flex flex-wrap items-center gap-3">

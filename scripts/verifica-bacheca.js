@@ -90,7 +90,7 @@ function clientFinto(risposte) {
     // Nessuno manda una data dal browser: l'unica scrittura del client sui post
     // è l'insert dell'ente, e non nomina date.
     const form = leggi("components/ente/CreaPostForm.tsx");
-    const insert = (form.match(/\.from\("post_enti"\)\.insert\(\{[\s\S]*?\}\);/) ?? [""])[0];
+    const insert = (form.match(/\.from\("post_enti"\)\.insert\(\{[\s\S]*?\}\)/) ?? [""])[0];
     ok(insert.includes("corpo"), "l'insert dell'ente si trova (una prova su un insert vuoto non prova niente)");
     ok(!/created_at|visibile_dal|approvato_il|stato/.test(insert), "l'insert dell'ente non manda date né uno stato", insert.replace(/\s+/g, " ").slice(0, 120));
     ok(!fs.existsSync(path.join(ROOT, "components/admin/AzioneApprovazionePost.tsx")), "l'approvazione dei post non c'è più");
@@ -160,7 +160,7 @@ function clientFinto(risposte) {
   {
     const { linkNotifica } = require("@/lib/notifiche/etichette");
     const id = "90000000-0000-0000-0000-000000000007";
-    ok(linkNotifica("nuovo_post", id) === `/app/bacheca?post=${id}`, "la notifica di un post porta al post, non alla Bacheca e basta", linkNotifica("nuovo_post", id));
+    ok(linkNotifica("nuovo_post", id) === `/app/bacheca?post=${id}#post-${id}`, "la notifica di un post porta al post, non alla Bacheca e basta, e la pagina scorre fino alla sua riga", linkNotifica("nuovo_post", id));
     ok(linkNotifica("post_tolto", id) === `/ente/bacheca#post-${id}` && linkNotifica("post_pubblicato", id) === `/admin#post-${id}`, "l'ente arriva al suo post tolto, l'admin al post nuovo");
     ok(B.leggiIdPost(id) === id && B.leggiIdPost("x),or(1") === null && B.leggiIdPost(undefined) === null, "solo un id finisce nel filtro");
     const c = clientFinto({ post_enti: { data: null, error: null } });
@@ -195,17 +195,35 @@ function clientFinto(risposte) {
     ok(P.prossimoPostDalle([ore(1), ore(2), ore(30)], adesso) === null, "un post di 30 ore fa non conta");
     const d = P.prossimoPostDalle([ore(1), ore(5), ore(20), ore(23)], adesso);
     ok(d && d.toISOString() === "2026-10-29T16:00:00.000Z", "quattro in finestra (dal SQL Editor): devono uscirne due, cioè il terzo più recente, di 20 ore fa, alle 16:00", d && d.toISOString());
-    const m = P.testoTettoRaggiunto(new Date("2026-10-30T07:00:00Z"));
-    ok(/30 ottobre 2026/.test(m) && /08:00/.test(m), "il rifiuto dice quando tornare, in ora italiana", m);
+    // Dentro 24 ore il giorno è oggi o domani, in ora italiana (Mario, 30/10:
+    // «un limite senza una data è un guasto»). Attesi scritti a mano.
+    const m = P.testoTettoRaggiunto(new Date("2026-10-31T15:04:00Z"), new Date("2026-10-30T16:00:00Z"));
+    ok(m === "Hai pubblicato 3 post nelle ultime 24 ore. Potrai pubblicarne un altro dalle 16:04 di domani.", "a tetto pieno il modulo dice quando si riapre: dalle 16:04 di domani", m);
+    const oggi = P.testoTettoRaggiunto(new Date("2026-10-30T20:30:00Z"), new Date("2026-10-30T08:00:00Z"));
+    ok(/dalle 21:30 di oggi\.$/.test(oggi), "e lo stesso giorno dice «di oggi»", oggi);
+    const mezzanotte = P.testoTettoRaggiunto(new Date("2026-10-30T23:10:00Z"), new Date("2026-10-30T22:50:00Z"));
+    ok(/dalle 00:10 di domani\.$/.test(mezzanotte), "a cavallo della mezzanotte di Roma è domani, anche se a Greenwich è lo stesso giorno", mezzanotte);
+    const ad = new Date("2026-10-30T12:00:00Z");
+    const fa = (h) => new Date(ad.getTime() - h * 3600e3).toISOString();
+    ok(P.testoQuotaPost([fa(1), fa(30)], ad) === "Post pubblicati nelle ultime 24 ore: 1 di 3.", "la riga della quota è lo stato dell'ente: conta solo le 24 ore", P.testoQuotaPost([fa(1), fa(30)], ad));
+    ok(P.testoQuotaPost([], ad) === "Post pubblicati nelle ultime 24 ore: 0 di 3.", "nessun post: zero di tre");
+    ok(/Non siamo riusciti a contare/.test(P.testoQuotaPost(null, ad)), "post non letti: lo dice, non scrive zero");
     const pg = leggi("app/ente/(dashboard)/bacheca/page.tsx");
-    ok(/prossimoPostDalle\(/.test(pg) && /avvisoTetto=\{dalle \? testoTettoRaggiunto\(dalle\) : null\}/.test(pg), "la pagina dell'ente calcola il tetto e lo passa al form");
+    ok(/prossimoPostDalle\(/.test(pg) && /avvisoTetto=\{dalle \? testoTettoRaggiunto\(dalle, adesso\) : null\}/.test(pg), "la pagina dell'ente calcola il tetto e lo passa al form");
+    ok(/testoQuotaPost\(creatiIl, adesso\)/.test(pg) && /creatiIl = error \? null/.test(pg), "la riga della quota viene dai post letti, e a lettura fallita non conta");
+    // Dopo «Pubblica» il modulo torna vuoto e la conferma sta accanto (Mario, 30/10).
+    const fo = senzaCommenti(leggi("components/ente/CreaPostForm.tsx"));
+    ok(!/useState\(false\);[\s\S]*inviato/.test(fo) && !/if \(inviato\)/.test(fo), "il form non sostituisce più sé stesso con una conferma");
+    ok(/\.select\("id"\)\.single\(\)/.test(fo) && /router\.replace\(id \? `\/ente\/bacheca\?pubblicato=\$\{id\}`/.test(fo), "dopo la pubblicazione la pagina va al post nuovo, che ha letto dal database");
+    ok(/key=\{`nuovo-\$\{appenaPubblicato/.test(pg) && /appenaPubblicato && \(/.test(pg), "la pagina rimonta il modulo vuoto e mostra la conferma accanto");
+    ok(/some\(\(p\) => p\.id === pubblicato\)/.test(pg), "la conferma si dice solo se il post è nella lista riletta");
     ok(/troppi_post_nelle_24_ore/.test(leggi("components/ente/CreaPostForm.tsx")) && !/troppi_post_in_revisione/.test(leggi("components/ente/CreaPostForm.tsx")), "il form conosce il rifiuto nuovo, non quello della coda");
     ok(P.etichettaStatoPost("sconosciuto").label === "sconosciuto" && P.etichettaStatoPost("tolto").label === "Tolto da KIREO", "uno stato sconosciuto si mostra col suo nome, non come «in approvazione»");
     ok(P.rigaMotivo("tolto", null, "x", null) === P.TESTI_POST.motivoNonLetto && P.rigaMotivo("pubblicato", null, "x", null) === null,
       "un motivo non letto lo dice; un post pubblicato non ha una riga di motivo");
     const mm = new Map([["x", { motivo_rifiuto: null, motivo_rimozione: "Promozione a tempo" }]]);
     ok(/Motivo: Promozione a tempo/.test(P.rigaMotivo("tolto", mm, "x", "2026-10-29T08:00:00Z")), "l'ente legge il motivo della rimozione");
-    ok(Object.values(P.TESTI_POST).every((t) => trovaAccordi(t).length === 0), "nessun accordo di genere nei testi dei post");
+    ok(Object.values(P.TESTI_POST).flatMap((t) => (typeof t === "string" ? [t] : Object.values(t))).every((t) => trovaAccordi(t).length === 0), "nessun accordo di genere nei testi dei post");
   }
 
   console.log("§6 togliere un post: la motivazione prima, la conferma con le notifiche");

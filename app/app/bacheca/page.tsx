@@ -9,7 +9,10 @@ import FeedPost from "@/components/app/FeedPost";
 // La Bacheca: i post visibili degli enti che segui, dal più recentemente
 // pubblicato. Si scorre con un cursore (`?dopo=`), non con un numero di
 // pagina: vedi `lib/app/bacheca.ts`. Una notifica porta `?post=`, e il post
-// di quella notifica sta in cima, o la pagina dice che non c'è più.
+// di quella notifica compare UNA VOLTA SOLA (Mario, 30/10: misurato, era un
+// post solo mostrato due volte): se è già in questa pagina del flusso, il
+// segno sta sulla sua riga; se non c'è (più vecchio, o di un ente che non
+// segui più) sta in cima, da solo. Se non è più visibile, la pagina lo dice.
 export default async function BachecaPage({ searchParams }: { searchParams: Promise<{ dopo?: string; post?: string; allegato?: string }> }) {
   const { dopo, post: idPost, allegato } = await searchParams;
   const cursore = leggiCursore(dopo);
@@ -23,6 +26,8 @@ export default async function BachecaPage({ searchParams }: { searchParams: Prom
     ...(esito.stato === "post" ? esito.post.map((p) => p.id) : []),
     ...(dallaNotifica?.stato === "post" ? [dallaNotifica.post.id] : []),
   ];
+  const notificaNelFlusso =
+    dallaNotifica?.stato === "post" && esito.stato === "post" && esito.post.some((p) => p.id === dallaNotifica.post.id);
   const salvati = await leggiPostSalvati(supabase, idMostrati);
   const salvatoDi = (id: string) => (salvati === null ? null : salvati.has(id));
   // L'esito di uno scaricamento non riuscito (la route torna qui con ?allegato=).
@@ -48,12 +53,14 @@ export default async function BachecaPage({ searchParams }: { searchParams: Prom
       )}
 
       {dallaNotifica?.stato === "post" ? (
+        notificaNelFlusso ? null : (
         <div>
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-kireo-orange">{TESTI_BACHECA.dallaNotifica}</p>
           <ul>
             <FeedPost post={dallaNotifica.post} salvato={salvatoDi(dallaNotifica.post.id)} />
           </ul>
         </div>
+        )
       ) : dallaNotifica ? (
         <div className="rounded-2xl border border-amber-400/30 bg-amber-400/10 p-4 text-center">
           <p className="text-sm text-amber-200">{dallaNotifica.stato === "non_piu_visibile" ? TESTI_BACHECA.postNonPiu : TESTI_BACHECA.postNonLetto}</p>
@@ -86,7 +93,12 @@ export default async function BachecaPage({ searchParams }: { searchParams: Prom
         <>
           <ul className="space-y-4">
             {esito.post.map((p) => (
-              <FeedPost key={p.id} post={p} salvato={salvatoDi(p.id)} />
+              <FeedPost
+                key={p.id}
+                post={p}
+                salvato={salvatoDi(p.id)}
+                etichetta={notificaNelFlusso && dallaNotifica?.stato === "post" && dallaNotifica.post.id === p.id ? TESTI_BACHECA.dallaNotifica : null}
+              />
             ))}
           </ul>
           <div className="flex items-center justify-center gap-6">

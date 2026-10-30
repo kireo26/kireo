@@ -31,6 +31,45 @@ export function linkEsternoValido(url: string): boolean {
   return u.length <= MAX_LINK_ESTERNO && REGEX_LINK_ESTERNO.test(u);
 }
 
+// ⚠️ LO `https://` LO METTIAMO NOI (Mario, 30/10). La regola resta «solo
+// https», intatta: cambia QUANDO si applica. Un ente scrive «www.davante.it»
+// e lo trova scritto «https://www.davante.it»: quello che sistemiamo si vede,
+// e quello che si salva è esattamente quello che l'ente legge nel campo.
+// Un `http://` si alza a `https://` E SI DICE (`alzatoAHttps`), e non si
+// verifica: nessuna richiesta parte verso l'indirizzo, da nessun punto. Si
+// sistema quando si lascia il campo o si preme «Pubblica», mai mentre si
+// scrive. Restano rossi, e non si sistema niente: uno spazio dentro, un
+// indirizzo senza dominio, uno schema che non è una pagina web
+// (javascript:, data:, file:, mailto:…). Un rosso per causa.
+export type ErroreLink = "spazio" | "nonIndirizzo" | "schemaVietato";
+export type EsitoLink =
+  | { ok: true; url: string | null; alzatoAHttps: boolean }
+  | { ok: false; errore: ErroreLink };
+
+export function normalizzaLinkEsterno(testo: string): EsitoLink {
+  const t = testo.trim();
+  if (!t) return { ok: true, url: null, alzatoAHttps: false };
+  if (/\s/.test(t)) return { ok: false, errore: "spazio" };
+  let url: string;
+  let alzatoAHttps = false;
+  if (/^https:\/\//i.test(t)) url = t;
+  else if (/^http:\/\//i.test(t)) {
+    url = `https://${t.slice("http://".length)}`;
+    alzatoAHttps = true;
+  } else if (t.startsWith("//")) url = `https:${t}`;
+  else {
+    // Uno schema è una parola senza punti seguita da «:» e da qualcosa che non
+    // è un numero di porta: «javascript:», «data:», «mailto:», «ftp://».
+    // «davante.it:8080» e «localhost:3000» non lo sono (il primo ha un punto,
+    // il secondo una porta), e cadono più sotto sulla regola dell'indirizzo.
+    const schema = t.match(/^([a-z][a-z0-9+-]*):(?!\d)/i);
+    if (schema) return { ok: false, errore: "schemaVietato" };
+    url = `https://${t}`;
+  }
+  if (!linkEsternoValido(url)) return { ok: false, errore: "nonIndirizzo" };
+  return { ok: true, url, alzatoAHttps };
+}
+
 export type Destinazione = "Instagram" | "Facebook" | "TikTok" | "sito";
 
 /**
@@ -66,6 +105,16 @@ export function immagineDelPost(url: string | null | undefined, baseSupabase: st
   const prefisso = `${baseSupabase.replace(/\/$/, "")}/storage/v1/object/public/post-enti-media/`;
   return url.startsWith(prefisso) ? url : null;
 }
+
+// ⚠️ L'IMMAGINE DI UN POST NON SI TAGLIA (Mario, 30/10: «un'immagine
+// tagliata da noi è un contenuto che abbiamo riscritto senza dirlo»: la
+// locandina perde la data in basso, il manifesto il logo in alto). Mantiene le
+// sue proporzioni, sempre; l'altezza ha un tetto, la larghezza non supera il
+// post, e lo spazio che avanza resta vuoto. Mai `object-cover`, mai una
+// larghezza e un'altezza fisse insieme. Una classe sola per il feed,
+// l'archivio dello studente e la coda dell'admin: `npm run test:contenuti` §8
+// pretende che tutte e tre la usino e che nessuna immagine di un post tagli.
+export const CLASSE_IMMAGINE_POST = "mt-3 block h-auto max-h-[28rem] w-auto max-w-full rounded-xl";
 
 /** Il nome del file come lo vede lo studente: quello che ha caricato l'ente, ripulito. */
 export function nomeAllegato(nomeFile: string): string {

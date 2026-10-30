@@ -7,7 +7,7 @@ import { inputClass, fieldBorder } from "@/lib/formStyles";
 import { createClient } from "@/lib/supabase/client";
 import { TESTI_POST } from "@/lib/ente/post";
 import { MAX_GUIDA_MB, TIPO_GUIDA } from "@/lib/ente/media";
-import { MAX_LINK_ESTERNO, linkEsternoValido, nomeAllegato, percorsoAllegato } from "@/lib/post/contenuti";
+import { MAX_LINK_ESTERNO, normalizzaLinkEsterno, nomeAllegato, percorsoAllegato } from "@/lib/post/contenuti";
 import { descriviErrore } from "@/lib/erroreSupabase";
 
 const MAX_CORPO = 2000;
@@ -29,14 +29,17 @@ const TIPI: { tipo: TipoPost; etichetta: string }[] = [
 // studente lo scarica da una route che scrive la traccia prima.
 // Il post si pubblica subito (29/10): il tetto è di 3 nelle ultime 24 ore, e
 // la pagina passa `avvisoTetto` con l'ora da cui si potrà di nuovo.
+// ⚠️ Dopo «Pubblica» il modulo NON lascia il posto a una conferma (Mario,
+// 30/10: «una conferma che occupa il posto del modulo è una porta che si
+// chiude»). La pagina va a `?pubblicato=<id>`: il post nuovo è in cima alla
+// lista con il bordo verde, la conferma sta sopra il modulo, e il modulo si
+// rimonta vuoto perché la pagina gli dà una chiave nuova.
 export default function CreaPostForm({
   istituzioneId,
   avvisoTetto,
-  pianoAPagamento,
 }: {
   istituzioneId: string;
   avvisoTetto: string | null;
-  pianoAPagamento: boolean;
 }) {
   const router = useRouter();
   const fairUseRaggiunto = avvisoTetto !== null;
@@ -48,7 +51,26 @@ export default function CreaPostForm({
   const [errori, setErrori] = useState<Record<string, string>>({});
   const [inviando, setInviando] = useState(false);
   const [erroreGenerale, setErroreGenerale] = useState<string | null>(null);
-  const [inviato, setInviato] = useState(false);
+  const [alzatoAHttps, setAlzatoAHttps] = useState(false);
+
+  // Il link si sistema quando si lascia il campo o si preme «Pubblica», mai
+  // mentre si scrive: il campo mostra l'indirizzo che si salverà.
+  function sistemaLink(): string | null | false {
+    const esito = normalizzaLinkEsterno(link);
+    if (!esito.ok) {
+      setAlzatoAHttps(false);
+      setErrori((e) => ({ ...e, link: TESTI_POST.erroreLink[esito.errore] }));
+      return false;
+    }
+    if (esito.url !== null && esito.url !== link) setLink(esito.url);
+    setAlzatoAHttps(esito.alzatoAHttps);
+    setErrori((e) => {
+      const resto = { ...e };
+      delete resto.link;
+      return resto;
+    });
+    return esito.url;
+  }
 
   function validate() {
     const next: Record<string, string> = {};
@@ -56,7 +78,8 @@ export default function CreaPostForm({
     else if (corpo.length > MAX_CORPO) next.corpo = `Massimo ${MAX_CORPO} caratteri.`;
     if (tipo === "immagine" && !file) next.file = "Carica un'immagine.";
     else if (tipo === "immagine" && file && file.size > MAX_IMMAGINE_MB * 1024 * 1024) next.file = `L'immagine supera i ${MAX_IMMAGINE_MB} MB.`;
-    if (link.trim() && !linkEsternoValido(link)) next.link = TESTI_POST.linkNonValido;
+    const esitoLink = normalizzaLinkEsterno(link);
+    if (!esitoLink.ok) next.link = TESTI_POST.erroreLink[esitoLink.errore];
     if (tipo === "file") {
       if (!allegato) next.allegato = "Carica il PDF.";
       else if (allegato.type !== TIPO_GUIDA) next.allegato = "Il file deve essere un PDF.";
@@ -75,6 +98,8 @@ export default function CreaPostForm({
     const validazione = validate();
     setErrori(validazione);
     if (Object.keys(validazione).length > 0) return;
+    const linkDaSalvare = sistemaLink();
+    if (linkDaSalvare === false) return;
 
     setInviando(true);
     try {
@@ -106,22 +131,22 @@ export default function CreaPostForm({
         }
       }
 
-      const { error } = await supabase.from("post_enti").insert({
+      const { data: nuovo, error } = await supabase.from("post_enti").insert({
         istituzione_id: istituzioneId,
         tipo,
         corpo: corpo.trim(),
         immagine_url: tipo === "immagine" ? immagineUrl : null,
-        link_esterno: link.trim() || null,
+        link_esterno: linkDaSalvare,
         allegato_percorso: tipo === "file" ? allegatoPercorso : null,
         allegato_nome: tipo === "file" && allegato ? nomeAllegato(allegato.name) : null,
-      });
+      }).select("id").single();
 
       if (error) {
         if (error.message?.includes("troppi_post_nelle_24_ore")) {
           setErroreGenerale(TESTI_POST.tettoDalDatabase);
           router.refresh();
         } else if (error.message?.includes("post_enti_link_esterno_https")) {
-          setErrori({ link: TESTI_POST.linkNonValido });
+          setErrori({ link: TESTI_POST.erroreLink.nonIndirizzo });
         } else {
           console.error("[ente] pubblicazione di un post:", descriviErrore(error));
           setErroreGenerale("Non è stato possibile pubblicare il post. Riprova più tardi.");
@@ -129,22 +154,14 @@ export default function CreaPostForm({
         return;
       }
 
-      setInviato(true);
+      const id = (nuovo as { id?: string } | null)?.id;
+      router.replace(id ? `/ente/bacheca?pubblicato=${id}` : "/ente/bacheca", { scroll: false });
       router.refresh();
     } catch {
       setErroreGenerale("Qualcosa è andato storto. Riprova tra qualche istante.");
     } finally {
       setInviando(false);
     }
-  }
-
-  if (inviato) {
-    return (
-      <div className="rounded-2xl border border-kireo-green/40 bg-kireo-card p-8 text-center">
-        <h3 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">{TESTI_POST.pubblicato}</h3>
-        <p className="mt-2 text-sm text-kireo-muted">{pianoAPagamento ? TESTI_POST.pubblicatoConNotifica : TESTI_POST.pubblicatoDettaglio}</p>
-      </div>
-    );
   }
 
   return (
@@ -233,13 +250,20 @@ export default function CreaPostForm({
           type="text"
           inputMode="url"
           value={link}
-          onChange={(e) => setLink(e.target.value)}
+          onChange={(e) => {
+            setLink(e.target.value);
+            setAlzatoAHttps(false);
+          }}
+          onBlur={() => {
+            if (link.trim()) sistemaLink();
+          }}
           maxLength={MAX_LINK_ESTERNO}
           placeholder="https://"
           aria-invalid={Boolean(errori.link)}
           className={`${inputClass} ${fieldBorder(Boolean(errori.link))}`}
         />
         {errori.link && <p className="mt-1.5 text-sm text-red-400">{errori.link}</p>}
+        {!errori.link && alzatoAHttps && <p className="mt-1.5 text-xs text-kireo-green-light">{TESTI_POST.linkAlzatoAHttps}</p>}
         <p className="mt-1.5 text-xs text-kireo-muted">{TESTI_POST.notaLink}</p>
       </div>
 

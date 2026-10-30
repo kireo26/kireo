@@ -95,7 +95,7 @@ export const LINK_TIPO: Record<TipoNotifica, string> = {
 const LINK_AL_RIFERIMENTO: Partial<Record<TipoNotifica, (id: string) => string>> = {
   chiave_trasmissione_pronta: (id) => `/diretta/${id}`,
   chiave_trasmissione_cambiata: (id) => `/diretta/${id}`,
-  nuovo_post: (id) => `/app/bacheca?post=${id}`,
+  nuovo_post: (id) => `/app/bacheca?post=${id}#post-${id}`,
   post_pubblicato: (id) => `/admin#post-${id}`,
   post_tolto: (id) => `/ente/bacheca#post-${id}`,
   evento_approvato: (id) => `/diretta/${id}`,

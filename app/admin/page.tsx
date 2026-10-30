@@ -17,7 +17,7 @@ import { contaDaApprovare } from "@/lib/admin/caricaEventiAdmin";
 import { etichettaDaApprovare } from "@/lib/admin/eventiAdmin";
 import { descriviErrore } from "@/lib/erroreSupabase";
 import { etichettaStatoPost, leggiMotiviPost, rigaMotivo } from "@/lib/ente/post";
-import { immagineDelPost } from "@/lib/post/contenuti";
+import { immagineDelPost, CLASSE_IMMAGINE_POST } from "@/lib/post/contenuti";
 
 export default async function AdminPage() {
   const { supabase, nome, userId } = await requireAdmin();
@@ -239,7 +239,7 @@ export default async function AdminPage() {
                   {p.immagine_url &&
                     (immagineDelPost(p.immagine_url as string, process.env.NEXT_PUBLIC_SUPABASE_URL) ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={p.immagine_url as string} alt="" className="mt-3 max-h-64 rounded-lg object-cover" />
+                      <img src={p.immagine_url as string} alt="" className={CLASSE_IMMAGINE_POST} />
                     ) : (
                       <p className="mt-2 text-xs text-red-300">Immagine fuori dallo spazio dei file di KIREO, non mostrata: {p.immagine_url as string}</p>
                     ))}

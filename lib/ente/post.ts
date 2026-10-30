@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { formattaDataOra } from "@/lib/formato";
+import { formattaDataOra, formattaOra, giorniDiCalendarioItaliani } from "@/lib/formato";
 import { descriviErrore } from "@/lib/erroreSupabase";
 
 // I POST DEGLI ENTI SI PUBBLICANO SUBITO, E KIREO PUÒ TOGLIERLI (Mario, 29/10;
@@ -34,7 +34,9 @@ export function prossimoPostDalle(creatiIl: string[], adesso: Date): Date | null
 // ⚠️ Testi miei e provvisori.
 export const TESTI_POST = {
   intestazione: "Compaiono subito nel feed degli studenti che ti seguono. KIREO può toglierne uno che non rispetta il regolamento, e ti scrive perché.",
-  tetto: `Puoi pubblicare al massimo ${MAX_POST_NELLE_24_ORE} post ogni 24 ore.`,
+
+  // La conferma resta ACCANTO al modulo, che torna vuoto (Mario, 30/10: una
+  // conferma al posto del modulo è una porta che si chiude).
   pubblicato: "Post pubblicato",
   pubblicatoDettaglio: "È già nel feed degli studenti che ti seguono.",
   pubblicatoConNotifica: "È già nel feed degli studenti che ti seguono, e ognuno di loro riceve una notifica.",
@@ -49,13 +51,37 @@ export const TESTI_POST = {
   // un campo lo lascia vuoto.
   etichettaLink: "Link (facoltativo)",
   notaLink: "Se lo metti, sotto il post compare un bottone che porta lì. Solo indirizzi che iniziano con https://.",
-  linkNonValido: "Il link deve iniziare con https://.",
+  // I tre rossi del link, uno per causa, e la riga dell'https alzato: di Mario
+  // (30/10, «lo https lo mettiamo noi»).
+  erroreLink: {
+    spazio: "L'indirizzo contiene uno spazio.",
+    nonIndirizzo: "Non sembra un indirizzo: ci vuole un dominio, come davante.it",
+    schemaVietato: "Si possono mettere solo indirizzi di pagine web.",
+  },
+  linkAlzatoAHttps: "L'abbiamo messo in https.",
   notaFile: "Lo studente lo scarica con un clic. Chi ha il link al file può aprirlo anche fuori da KIREO.",
   motivoNonLetto: "Non siamo riusciti a leggere il motivo: ricarica la pagina.",
 } as const;
 
-export function testoTettoRaggiunto(dalle: Date): string {
-  return `Hai pubblicato ${MAX_POST_NELLE_24_ORE} post nelle ultime 24 ore: il prossimo potrai pubblicarlo dal ${formattaDataOra(dalle)}.`;
+// ⚠️ LA RIGA DELLA QUOTA È LO STATO DELL'ENTE, NON LA REGOLA (Mario, 30/10:
+// «quella riga oggi è una regola; deve diventare lo stato dell'ente», come la
+// riga della newsletter). «Etichetta: numero» invece di «Ne hai pubblicati 1»,
+// per il plurale con uno: lo stesso motivo delle statistiche. Contano tutti i
+// post nati nelle 24 ore, anche quelli tolti, come nel database. `null` vuol
+// dire che i post non si sono letti: la pagina lo dice, non scrive zero.
+export function testoQuotaPost(creatiIl: string[] | null, adesso: Date): string {
+  if (creatiIl === null) return "Non siamo riusciti a contare i post delle ultime 24 ore: ricarica la pagina.";
+  const n = creatiIl.filter((c) => adesso.getTime() - new Date(c).getTime() < FINESTRA_MS).length;
+  return `Post pubblicati nelle ultime 24 ore: ${Math.min(n, MAX_POST_NELLE_24_ORE)} di ${MAX_POST_NELLE_24_ORE}.`;
+}
+
+// A tetto pieno il modulo non sparisce: dice quando si riapre (Mario: «un
+// limite senza una data è un guasto; un limite con una data è una regola»).
+// Dentro 24 ore il giorno è oggi o domani, in ora italiana.
+export function testoTettoRaggiunto(dalle: Date, adesso: Date): string {
+  const giorni = giorniDiCalendarioItaliani(adesso, dalle);
+  const quando = giorni === 0 ? `dalle ${formattaOra(dalle)} di oggi` : giorni === 1 ? `dalle ${formattaOra(dalle)} di domani` : `dal ${formattaDataOra(dalle)}`;
+  return `Hai pubblicato ${MAX_POST_NELLE_24_ORE} post nelle ultime 24 ore. Potrai pubblicarne un altro ${quando}.`;
 }
 
 // Gli stati come li legge l'ente. `approvato` e `rifiutato` sono la storia di

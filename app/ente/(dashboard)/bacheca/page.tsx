@@ -4,7 +4,7 @@ import { pianoAPagamento } from "@/lib/ente/pianoSuccessivo";
 import CreaPostForm from "@/components/ente/CreaPostForm";
 import { formattaData } from "@/lib/formato";
 import { descriviErrore } from "@/lib/erroreSupabase";
-import { TESTI_POST, etichettaStatoPost, leggiMotiviPost, prossimoPostDalle, rigaMotivo, testoTettoRaggiunto } from "@/lib/ente/post";
+import { TESTI_POST, etichettaStatoPost, leggiMotiviPost, prossimoPostDalle, rigaMotivo, testoQuotaPost, testoTettoRaggiunto } from "@/lib/ente/post";
 
 const ETICHETTA_TIPO: Record<string, string> = {
   testo: "Testo",
@@ -12,7 +12,8 @@ const ETICHETTA_TIPO: Record<string, string> = {
   file: "File",
 };
 
-export default async function EnteBachecaPage() {
+export default async function EnteBachecaPage({ searchParams }: { searchParams: Promise<{ pubblicato?: string }> }) {
+  const { pubblicato } = await searchParams;
   const contesto = await getEnteContext();
   const supabase = await createClient();
 
@@ -29,7 +30,12 @@ export default async function EnteBachecaPage() {
     (post ?? []).filter((p) => p.stato === "tolto" || p.stato === "rifiutato").map((p) => p.id as string),
   );
 
-  const dalle = prossimoPostDalle((post ?? []).map((p) => p.created_at as string), new Date());
+  const adesso = new Date();
+  const creatiIl = error ? null : (post ?? []).map((p) => p.created_at as string);
+  const dalle = creatiIl ? prossimoPostDalle(creatiIl, adesso) : null;
+  // La conferma si dice solo se il post appena pubblicato è nella lista riletta:
+  // è la prova che esiste, e la lista è dove l'ente lo cerca.
+  const appenaPubblicato = pubblicato && (post ?? []).some((p) => p.id === pubblicato) ? pubblicato : null;
   const aPagamento = pianoAPagamento(contesto.pianoNome);
 
   return (
@@ -54,7 +60,11 @@ export default async function EnteBachecaPage() {
             const stato = etichettaStatoPost(p.stato as string);
             const motivo = rigaMotivo(p.stato as string, motivi, p.id as string, (p.tolto_il as string | null) ?? null);
             return (
-              <li key={p.id} id={`post-${p.id}`} className="rounded-xl border border-white/5 bg-kireo-card p-4">
+              <li
+                key={p.id}
+                id={`post-${p.id}`}
+                className={`rounded-xl border bg-kireo-card p-4 ${p.id === appenaPubblicato ? "border-kireo-green" : "border-white/5"}`}
+              >
                 <div className="flex flex-wrap items-center gap-2">
                   <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${stato.classe}`}>
                     {stato.label}
@@ -74,12 +84,18 @@ export default async function EnteBachecaPage() {
 
       <div>
         <h2 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">Nuovo post</h2>
-        <p className="mt-1 text-sm text-kireo-muted">{TESTI_POST.tetto}</p>
+        <p className="mt-1 text-sm text-kireo-muted">{testoQuotaPost(creatiIl, adesso)}</p>
+        {appenaPubblicato && (
+          <div className="mt-4 rounded-xl border border-kireo-green/40 bg-kireo-green/10 px-4 py-3">
+            <p className="text-sm font-semibold text-kireo-light">{TESTI_POST.pubblicato}</p>
+            <p className="mt-1 text-sm text-kireo-muted">{aPagamento ? TESTI_POST.pubblicatoConNotifica : TESTI_POST.pubblicatoDettaglio}</p>
+          </div>
+        )}
         <div className="mt-4">
           <CreaPostForm
+            key={`nuovo-${appenaPubblicato ?? ""}`}
             istituzioneId={contesto.istituzioneId}
-            avvisoTetto={dalle ? testoTettoRaggiunto(dalle) : null}
-            pianoAPagamento={aPagamento}
+            avvisoTetto={dalle ? testoTettoRaggiunto(dalle, adesso) : null}
           />
         </div>
       </div>
