@@ -6,41 +6,29 @@ import type { PostBacheca } from "@/lib/app/bacheca";
 import { formattaData } from "@/lib/formato";
 import { createClient } from "@/lib/supabase/client";
 import { descriviErrore } from "@/lib/erroreSupabase";
-import { TESTI_CONTENUTI, immagineDelPost, piattaformaDelLink } from "@/lib/post/contenuti";
+import { TESTI_CONTENUTI, destinazioneDelLink, etichettaLink, immagineDelPost } from "@/lib/post/contenuti";
 
-// ⚠️ NIENTE IFRAME, NÉ PRIMA NÉ DOPO UN CLIC (30/10). Fino a oggi un link social
-// caricava la pagina di Instagram o TikTok al primo clic, cioè si faceva
-// vedere a Meta con un gesto che nessuno aveva detto essere un consenso. Ora è
-// una scheda scritta dall'ente e un link che apre il post sulla piattaforma, in
-// un'altra scheda, quando lo studente lo sceglie. Il perché per intero sta in
-// `lib/post/contenuti.ts`: se torna la tentazione di «un'anteprima vera», è lì
-// che va letta.
+// ⚠️ NIENTE IFRAME, NÉ PRIMA NÉ DOPO UN CLIC, E NIENTE TIPO «LINK SOCIAL» (30/10).
+// Un post è testo, immagine o file, e può avere un link: sotto il post un
+// bottone che lo apre in una finestra nuova, quando lo studente lo sceglie. Il
+// perché per intero sta in `lib/post/contenuti.ts`: se torna la tentazione di
+// «un'anteprima vera», è lì che va letta.
 
 const BASE_SUPABASE = process.env.NEXT_PUBLIC_SUPABASE_URL;
 
-function SchedaLink({ post }: { post: PostBacheca }) {
-  const piattaforma = piattaformaDelLink(post.embed_url);
-  const immagine = immagineDelPost(post.immagine_url, BASE_SUPABASE);
-  if (!post.embed_url || !piattaforma) return null;
+// L'etichetta la decide l'indirizzo, non l'ente (`destinazioneDelLink`), e
+// `noreferrer` perché la pagina di destinazione non ha bisogno di sapere da
+// quale pagina di KIREO arriva lo studente.
+export function LinkEsterno({ url }: { url: string | null }) {
+  const destinazione = destinazioneDelLink(url);
+  if (!url || !destinazione) return null;
   return (
-    <div className="mt-3 overflow-hidden rounded-xl border border-white/10 bg-kireo-dark/60">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      {immagine && <img src={immagine} alt="" className="max-h-72 w-full object-cover" />}
-      <div className="space-y-1 p-4">
-        <p className="text-xs uppercase tracking-wide text-kireo-muted">{piattaforma}</p>
-        <p className="font-heading text-sm font-semibold text-kireo-light">{post.link_titolo ?? TESTI_CONTENUTI.linkSenzaScheda(piattaforma)}</p>
-        {post.link_riga && <p className="text-sm text-kireo-light/80">{post.link_riga}</p>}
-        <a
-          href={post.embed_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-2 inline-block text-sm font-medium text-kireo-orange underline underline-offset-2"
-        >
-          {TESTI_CONTENUTI.apriSu(piattaforma)}
-        </a>
-        <p className="text-xs text-kireo-muted">{TESTI_CONTENUTI.fuoriDaKireo}</p>
-      </div>
-    </div>
+    <p className="mt-3 text-sm">
+      <a href={url.trim()} target="_blank" rel="noopener noreferrer" className="font-medium text-kireo-orange underline underline-offset-2">
+        {etichettaLink(destinazione)}
+      </a>
+      <span className="ml-2 text-xs text-kireo-muted">{TESTI_CONTENUTI.fuoriDaKireo}</span>
+    </p>
   );
 }
 
@@ -123,8 +111,8 @@ export default function FeedPost({ post, salvato }: { post: PostBacheca; salvato
         // eslint-disable-next-line @next/next/no-img-element
         <img src={immagine} alt="" className="mt-3 max-h-96 w-full rounded-xl object-cover" />
       )}
-      {post.tipo === "link_social" && <SchedaLink post={post} />}
       {post.tipo === "file" && <FileAllegato post={post} />}
+      <LinkEsterno url={post.link_esterno} />
       <SalvaPost postId={post.id} salvatoIniziale={salvato} />
     </li>
   );

@@ -20,13 +20,14 @@
 --   - su una replica nata senza la sola 20261113120000: 13, 14 (i motivi si
 --     leggono dal client), 22 (l'admin aggiorna lo stato dal client).
 -- Verdi nei due mondi: 3, 4, 5, 6, 7, 8, 10, 18.
--- ⚠️ DAL 20261119110000 LA 2 DICE IL CONTRARIO (Mario, 30/10: il link social è
--- di tutti i piani). Fino a lì provava che l'ente free NON pubblicava un
--- link_social; riscritta, prova che lo pubblica, con la scheda che da lì è
--- obbligatoria. La versione di prima, lasciata com'era, restava verde per la
--- ragione sbagliata: il suo post senza scheda lo respingeva il trigger della
--- scheda, non il piano. Su una replica nata senza il 20261119110000 la 2 e la
--- 3 sono rosse (le colonne della scheda non esistono).
+-- ⚠️ DAL 20261120100000 LA 2 E LA 3 NON PARLANO PIÙ DI LINK_SOCIAL: il tipo è
+-- uscito (Mario, 30/10), e resta un link facoltativo su qualsiasi post, di
+-- tutti i piani. La 2 prova che un ente free pubblica un post con un link, la
+-- 3 che un ente a pagamento pubblica un'immagine con un link (la 3 resta in
+-- tabella: è il post che le proprietà sulle notifiche e sulla rimozione usano).
+-- Che un post nuovo link_social sia respinto lo prova verifica-post-contenuti
+-- (la 2). Su una replica nata senza il 20261120100000 la 2 e la 3 sono rosse
+-- (la colonna link_esterno non esiste).
 
 begin;
 
@@ -68,13 +69,12 @@ exception when others then
 end $$;
 
 do $$ begin
-  insert into public.post_enti(istituzione_id, tipo, corpo, embed_url, link_titolo, link_riga, immagine_url)
-    values ('e1000000-0000-0000-0000-0000000000e1', 'link_social', 'Social', 'https://www.instagram.com/p/x',
-            'Titolo', 'Una riga', 'https://x.supabase.co/storage/v1/object/public/post-enti-media/e1/a.png');
+  insert into public.post_enti(istituzione_id, tipo, corpo, link_esterno)
+    values ('e1000000-0000-0000-0000-0000000000e1', 'testo', 'Con un link', 'https://www.instagram.com/p/x');
   -- Se passa, si annulla: un post in più farebbe scattare il tetto più avanti (il modo 9).
   raise exception 'passa_e_si_annulla';
 exception when others then
-  insert into esiti values (2, 'l''ente free pubblica un link_social con la scheda (dal 20261119110000 il piano non conta)', 'riuscito',
+  insert into esiti values (2, 'l''ente free pubblica un post con un link (dal 20261120100000 un campo di tutti i piani)', 'riuscito',
     sqlerrm = 'passa_e_si_annulla', case when sqlerrm = 'passa_e_si_annulla' then 'riuscito (e annullato)' else 'respinto: ' || sqlerrm end);
 end $$;
 
@@ -104,12 +104,12 @@ end $$;
 
 set local request.jwt.claim.sub = 'f2000000-0000-0000-0000-0000000000f2';
 do $$ begin
-  insert into public.post_enti(istituzione_id, tipo, corpo, embed_url, link_titolo, link_riga, immagine_url)
-    values ('e2000000-0000-0000-0000-0000000000e2', 'link_social', 'Social', 'https://www.instagram.com/p/x',
-            'Titolo', 'Una riga', 'https://x.supabase.co/storage/v1/object/public/post-enti-media/e2/a.png');
-  insert into esiti values (3, 'l''ente a pagamento pubblica un link_social', 'riuscito', true, 'riuscito');
+  insert into public.post_enti(istituzione_id, tipo, corpo, immagine_url, link_esterno)
+    values ('e2000000-0000-0000-0000-0000000000e2', 'immagine', 'Con immagine e link', 'https://x.supabase.co/storage/v1/object/public/post-enti-media/e2/a.png',
+            'https://www.ente-premium.it');
+  insert into esiti values (3, 'l''ente a pagamento pubblica un''immagine con un link', 'riuscito', true, 'riuscito');
 exception when others then
-  insert into esiti values (3, 'l''ente a pagamento pubblica un link_social', 'riuscito', false, 'respinto: ' || sqlerrm);
+  insert into esiti values (3, 'l''ente a pagamento pubblica un''immagine con un link', 'riuscito', false, 'respinto: ' || sqlerrm);
 end $$;
 
 set local request.jwt.claim.sub = '5a000000-0000-0000-0000-00000000005a';
@@ -142,7 +142,7 @@ reset role;
 -- qui, per nome.
 create temp table ids as
   select 1 as n, id from public.post_enti where corpo = 'Uno'
-  union all select 2, id from public.post_enti where corpo = 'Social' and istituzione_id = 'e2000000-0000-0000-0000-0000000000e2';
+  union all select 2, id from public.post_enti where corpo = 'Con immagine e link' and istituzione_id = 'e2000000-0000-0000-0000-0000000000e2';
 grant select, insert on ids to anon, authenticated;
 
 -- La 1 vista da fuori: stato, visibile e la data scritta dal database.

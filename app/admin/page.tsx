@@ -58,7 +58,7 @@ export default async function AdminPage() {
       .order("created_at", { ascending: true }),
     supabase
       .from("post_enti")
-      .select("id, tipo, corpo, immagine_url, embed_url, link_titolo, allegato_nome, stato, visibile, visibile_dal, tolto_il, created_at, istituzioni(nome)")
+      .select("id, tipo, corpo, immagine_url, link_esterno, allegato_nome, stato, visibile, visibile_dal, tolto_il, created_at, istituzioni(nome)")
       .in("stato", ["pubblicato", "approvato", "tolto"])
       .order("created_at", { ascending: false })
       .limit(40),
@@ -243,11 +243,12 @@ export default async function AdminPage() {
                     ) : (
                       <p className="mt-2 text-xs text-red-300">Immagine fuori dallo spazio dei file di KIREO, non mostrata: {p.immagine_url as string}</p>
                     ))}
-                  {p.link_titolo && <p className="mt-2 text-xs text-kireo-light">Scheda: {p.link_titolo as string}</p>}
                   {p.allegato_nome && <p className="mt-2 text-xs text-kireo-light">File: {p.allegato_nome as string}</p>}
-                  {p.embed_url && (
-                    <a href={p.embed_url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-xs text-kireo-orange underline underline-offset-2">
-                      {p.embed_url}
+                  {/* L'indirizzo per intero, e non l'etichetta che vede lo studente:
+                      chi decide se togliere un post deve leggere dove porta. */}
+                  {p.link_esterno && (
+                    <a href={p.link_esterno as string} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block break-all text-xs text-kireo-orange underline underline-offset-2">
+                      Link: {p.link_esterno as string}
                     </a>
                   )}
                   {motivo && <p className="mt-2 text-xs text-red-300">{motivo}</p>}

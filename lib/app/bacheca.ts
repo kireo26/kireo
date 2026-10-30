@@ -6,14 +6,13 @@ export type PostBacheca = {
   istituzione_id: string;
   istituzione_nome: string;
   istituzione_slug: string;
-  tipo: "testo" | "immagine" | "file" | "link_social";
+  // `link_social` è uscito dal 20261120100000 (nessun post l'ha mai avuto).
+  tipo: "testo" | "immagine" | "file";
   corpo: string;
   immagine_url: string | null;
-  embed_url: string | null;
-  // La scheda di un link social e il nome del file (20261119110000). Il
-  // percorso del file non si legge qui: lo dà la route che scrive la traccia.
-  link_titolo: string | null;
-  link_riga: string | null;
+  // Il link facoltativo di qualsiasi post (20261120100000), e il nome del file.
+  // Il percorso del file non si legge qui: lo dà la route che scrive la traccia.
+  link_esterno: string | null;
   allegato_nome: string | null;
   // Quando il post è diventato visibile agli studenti: `visibile_dal`, scritto
   // dal database (20261113110000). Per i post di prima del 29/10 è la data di
@@ -64,7 +63,7 @@ export function leggiCursore(valore: string | undefined): { quando: string; id: 
   return { quando, id };
 }
 
-const COLONNE = "id, istituzione_id, tipo, corpo, immagine_url, embed_url, link_titolo, link_riga, allegato_nome, visibile_dal, istituzioni(nome, slug)";
+const COLONNE = "id, istituzione_id, tipo, corpo, immagine_url, link_esterno, allegato_nome, visibile_dal, istituzioni(nome, slug)";
 
 function daRiga(riga: Record<string, unknown>): PostBacheca {
   const org = riga.istituzioni as { nome: string; slug: string } | { nome: string; slug: string }[] | null;
@@ -77,9 +76,7 @@ function daRiga(riga: Record<string, unknown>): PostBacheca {
     tipo: riga.tipo as PostBacheca["tipo"],
     corpo: riga.corpo as string,
     immagine_url: (riga.immagine_url as string | null) ?? null,
-    embed_url: (riga.embed_url as string | null) ?? null,
-    link_titolo: (riga.link_titolo as string | null) ?? null,
-    link_riga: (riga.link_riga as string | null) ?? null,
+    link_esterno: (riga.link_esterno as string | null) ?? null,
     allegato_nome: (riga.allegato_nome as string | null) ?? null,
     pubblicato_il: riga.visibile_dal as string,
   };

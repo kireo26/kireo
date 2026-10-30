@@ -10,7 +10,6 @@ const ETICHETTA_TIPO: Record<string, string> = {
   testo: "Testo",
   immagine: "Immagine",
   file: "File",
-  link_social: "Link social",
 };
 
 export default async function EnteBachecaPage() {

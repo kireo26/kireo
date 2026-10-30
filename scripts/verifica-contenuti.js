@@ -1,14 +1,17 @@
 #!/usr/bin/env node
 /* eslint-disable @typescript-eslint/no-require-imports -- script Node CommonJS di utilità */
 // `npm run test:contenuti` — i contenuti dei post degli enti (30/10/2026,
-// 20261119110000): la scheda del link, il file allegato, «salva», l'archivio.
-// Le proprietà sul database stanno in scripts/verifica-post-contenuti.sql; qui:
-//   §1 l'espressione dei link è la stessa del vincolo, e riconosce le tre
-//      piattaforme e nient'altro;
-//   §2 nessun iframe di Instagram, Facebook o TikTok, da nessuna parte;
+// 20261119110000 e 20261120100000): il link su qualsiasi post, il file
+// allegato, «salva», l'archivio. Le proprietà sul database stanno in
+// scripts/verifica-post-contenuti.sql; qui:
+//   §1 l'espressione dei link è la stessa del vincolo (solo https), e
+//      l'etichetta del bottone la decide l'indirizzo;
+//   §2 nessun iframe, e NESSUNA RICHIESTA verso Instagram, Facebook o TikTok da
+//      nessun punto del progetto: un link e un nome sono verdi, una richiesta
+//      è rossa;
 //   §3 le immagini dei post si mostrano solo dal nostro spazio dei file;
 //   §4 il file si scarica dal server, con la traccia prima;
-//   §5 il link social è di tutti i piani;
+//   §5 il link è di tutti i piani, e il tipo link_social è uscito;
 //   §6 l'archivio dei post salvati: «non letto» non è «niente», e di un post
 //      che non è più nel flusso resta il testo;
 //   §7 gli Interessati: un consenso di prima non si allarga ai salvataggi.
@@ -34,14 +37,15 @@ function ok(cond, testo, dettaglio = "") {
 }
 const leggi = (rel) => fs.readFileSync(path.join(ROOT, rel), "utf8");
 
-console.log("§1 i link delle tre piattaforme");
+console.log("§1 il link: solo https, e l'etichetta dall'indirizzo");
 const migrazioni = fs.readdirSync(path.join(ROOT, "supabase/migrations")).filter((f) => f.endsWith(".sql")).sort();
-// L'ULTIMA migrazione che riscrive il vincolo di coerenza è quella che vale.
-const conVincolo = migrazioni.filter((f) => /add constraint post_enti_coerenza_tipo/.test(leggi(`supabase/migrations/${f}`)));
-ok(conVincolo.length >= 1, `le migrazioni che riscrivono il vincolo dei post: ${conVincolo.length} (la prima lo scriveva dentro create table)`);
+// L'ULTIMA migrazione che scrive il vincolo del link è quella che vale.
+const conVincolo = migrazioni.filter((f) => /add constraint post_enti_link_esterno_https/.test(leggi(`supabase/migrations/${f}`)));
+ok(conVincolo.length >= 1, `le migrazioni che scrivono il vincolo del link: ${conVincolo.length}`);
 const ultima = leggi(`supabase/migrations/${conVincolo[conVincolo.length - 1]}`);
-const sorgenteSql = (ultima.match(/embed_url ~\* '([^']+)'/) || [])[1];
-ok(sorgenteSql === C.SORGENTE_REGEX_LINK_SOCIALE, "il TypeScript usa la stessa espressione del vincolo", `${sorgenteSql} ≠ ${C.SORGENTE_REGEX_LINK_SOCIALE}`);
+const sorgenteSql = (ultima.match(/link_esterno ~\* '([^']+)'/) || [])[1];
+ok(sorgenteSql === C.SORGENTE_REGEX_LINK_ESTERNO, "il TypeScript usa la stessa espressione del vincolo", `${sorgenteSql} ≠ ${C.SORGENTE_REGEX_LINK_ESTERNO}`);
+// Gli attesi sono scritti a mano: nessuno viene da lib/post/contenuti.ts.
 const casi = [
   ["https://www.instagram.com/p/abc/", "Instagram"],
   ["https://instagram.com/reel/abc", "Instagram"],
@@ -49,15 +53,24 @@ const casi = [
   ["https://fb.watch/abc/", "Facebook"],
   ["https://www.tiktok.com/@ente/video/1", "TikTok"],
   ["https://vm.tiktok.com/ZM123/", "TikTok"],
-  ["https://instagram.com.altrove.net/p/x", null],
-  ["https://evil-instagram.com/p/x", null],
+  ["https://www.ente.it/open-day", "sito"],
+  ["https://ente.it", "sito"],
+  // Un nome che somiglia a una piattaforma non lo è: si apre «il sito».
+  ["https://instagram.com.altrove.net/p/x", "sito"],
+  ["https://evil-instagram.com/p/x", "sito"],
   ["http://www.instagram.com/p/x", null],
-  ["https://www.youtube.com/watch?v=x", null],
+  ["http://www.ente.it", null],
+  ["javascript:alert(1)", null],
+  ["data:text/html,<b>x</b>", null],
+  ["https://ente", null],
+  ["https://www.ente.it/con spazio", null],
   ["", null],
 ];
-for (const [url, atteso] of casi) ok(C.piattaformaDelLink(url) === atteso, `${url || "(vuoto)"} → ${atteso ?? "nessuna"}`, String(C.piattaformaDelLink(url)));
+for (const [url, atteso] of casi) ok(C.destinazioneDelLink(url) === atteso, `${url || "(vuoto)"} → ${atteso ?? "non valido"}`, String(C.destinazioneDelLink(url)));
+ok(C.etichettaLink("sito") === "Apri il sito" && C.etichettaLink("Instagram") === "Apri su Instagram", "le etichette: «Apri il sito», «Apri su Instagram»");
+ok(!C.linkEsternoValido("https://ente.it/" + "a".repeat(2000)), "un link oltre i 2000 caratteri non passa, come nel database");
 
-console.log("\n§2 nessun iframe di una piattaforma");
+console.log("\n§2 nessun iframe, e nessuna richiesta verso le piattaforme");
 const daGuardare = [];
 for (const dir of ["components", "app", "lib"]) {
   const giro = (d) => {
@@ -78,7 +91,65 @@ ok(conIframeSocial.length === 0, "nessun file mette un iframe accanto a una piat
 const feed = senzaCommenti(leggi("components/app/FeedPost.tsx"));
 ok(!/tiktok\.com\/embed|\/embed`|embed\/v2/.test(feed), "il feed non costruisce più l'indirizzo «embed» di una piattaforma");
 ok(!/<iframe/i.test(feed), "il feed non ha nessun iframe, di nessun tipo");
-ok(/target="_blank"/.test(feed) && /rel="noopener noreferrer"/.test(feed), "il link della scheda si apre fuori, senza portarsi dietro la pagina");
+ok(!/<iframe/i.test(feed), "il feed non ha nessun iframe, di nessun tipo");
+ok(/target="_blank"/.test(feed) && /rel="noopener noreferrer"/.test(feed), "il link si apre in una finestra nuova, senza portarsi dietro la pagina");
+
+// LA GUARDIA SULLE RICHIESTE (Mario, 30/10: «chiamare Meta fa fallire la
+// prova»). Tre casi da distinguere, e la guardia li distingue riga per riga:
+//   un LINK verso instagram.com (href)              → la funzione, verde;
+//   il NOME della piattaforma nel codice            → l'etichetta, verde;
+//   una RICHIESTA verso quegli host                 → ciò che vietiamo, rossa.
+// Una richiesta è un indirizzo di quegli host su una riga che lo carica
+// (fetch, src di un'immagine, di uno script o di un iframe, un import, un
+// preconnect, url() in un foglio di stile), oppure un fetch del link di un
+// post (che porterebbe dove vuole l'ente, social compresi). ⚠️ È lessicale e
+// sbaglia per difetto: una richiesta costruita in tre righe non la vede. Il
+// pavimento sta sui file letti e sulle occorrenze trovate in tutto, buone e
+// cattive insieme, che non scendono quando il progetto migliora.
+const HOST_SOCIAL = /\b(?:[a-z0-9-]+\.)*(?:instagram\.com|facebook\.com|facebook\.net|fb\.watch|fbcdn\.net|cdninstagram\.com|tiktok\.com|tiktokcdn\.com)\b/i;
+const CARICA = /\bfetch\s*\(|\baxios\b|XMLHttpRequest|sendBeacon|\bsrc\s*=|<script|<iframe|<img|\bimport\s*\(|preconnect|dns-prefetch|\burl\s*\(|@import/i;
+function richiesteVersoSocial(sorgente) {
+  const righe = senzaCommenti(sorgente).split("\n");
+  const rosse = [];
+  let occorrenze = 0;
+  righe.forEach((r, i) => {
+    if (HOST_SOCIAL.test(r)) {
+      occorrenze++;
+      if (CARICA.test(r)) rosse.push(i + 1);
+    }
+    if (/\bfetch\s*\([^)]*link_?[eE]sterno/.test(r)) rosse.push(i + 1);
+  });
+  return { rosse, occorrenze };
+}
+// Taratura, prima dei file veri: i tre casi, scritti a mano.
+ok(richiesteVersoSocial('<a href="https://www.instagram.com/p/x" target="_blank">').rosse.length === 0, "taratura: un link verso instagram.com è verde");
+ok(richiesteVersoSocial('if (di("instagram.com")) return "Instagram";').rosse.length === 0, "taratura: il nome della piattaforma è verde");
+ok(richiesteVersoSocial('await fetch("https://graph.instagram.com/me/media")').rosse.length === 1, "taratura: una richiesta verso quell'host è rossa");
+ok(richiesteVersoSocial('<img src="https://scontent.cdninstagram.com/x.jpg" />').rosse.length === 1, "taratura: un'immagine caricata da lì è rossa");
+ok(richiesteVersoSocial("const r = await fetch(post.link_esterno);").rosse.length === 1, "taratura: un fetch del link di un post è rosso");
+// Anche gli script (il banco gioca dalla porta, e uno strumento che chiama Meta è
+// una chiamata come le altre), tranne questo file: le sue tarature sono
+// richieste scritte apposta.
+const script = [];
+const giroScript = (d) => {
+  for (const e of fs.readdirSync(path.join(ROOT, d), { withFileTypes: true })) {
+    const rel = `${d}/${e.name}`;
+    if (e.isDirectory()) giroScript(rel);
+    else if (/\.(js|ts|mjs|sh)$/.test(e.name) && rel !== "scripts/verifica-contenuti.js") script.push(rel);
+  }
+};
+giroScript("scripts");
+const daGuardareRichieste = [...daGuardare, ...script, "next.config.ts", "middleware.ts"].filter((f) => fs.existsSync(path.join(ROOT, f)));
+ok(daGuardareRichieste.length >= 500, `i file guardati per le richieste: ${daGuardareRichieste.length} (pavimento 500)`);
+let occorrenzeTotali = 0;
+const conRichieste = [];
+for (const f of daGuardareRichieste) {
+  const { rosse, occorrenze } = richiesteVersoSocial(leggi(f));
+  occorrenzeTotali += occorrenze;
+  if (rosse.length) conRichieste.push(`${f}:${rosse.join(",")}`);
+}
+ok(occorrenzeTotali >= 3, `le occorrenze dei nomi delle piattaforme che il lettore trova: ${occorrenzeTotali} (pavimento 3: lib/post/contenuti.ts vive di nomi)`);
+ok(conRichieste.length === 0, "nessuna richiesta verso Instagram, Facebook o TikTok da nessun file del progetto", conRichieste.join(" "));
 
 console.log("\n§3 le immagini solo dal nostro spazio");
 const base = "https://abc.supabase.co";
@@ -105,18 +176,24 @@ ok(C.nomeAllegato("  \u0007") === "Documento.pdf" && C.nomeAllegato("a".repeat(3
 const feedForm = ancora(feed, "/api/scarica-allegato/");
 ok(feedForm >= 0 && /method="post"/.test(feed), "il feed scarica con una POST nativa");
 
-console.log("\n§5 il link social è di tutti i piani");
+console.log("\n§5 il link è di tutti i piani, e il tipo link_social è uscito");
 const form = senzaCommenti(leggi("components/ente/CreaPostForm.tsx"));
 ok(!/disabled=\{t/.test(form) && !/pianoAPagamento \|\| t/.test(form), "il form non spegne un tipo per il piano");
-ok(/REGEX_LINK_SOCIALE/.test(form) && !/new RegExp|\/\^https/.test(form), "il form usa l'espressione condivisa, non una sua");
+ok(/linkEsternoValido\(link\)/.test(form) && !/new RegExp|\/\^https/.test(form), "il form usa la regola condivisa, non una sua");
+ok(!/link_social/.test(form) && !/link_titolo|link_riga|Immagine della scheda/.test(form), "il form non offre più il tipo link social né la scheda");
+ok(/link_esterno: link\.trim\(\) \|\| null/.test(form) && !/tipo === "[a-z]+" \? link/.test(form), "il link si scrive su qualunque tipo, vuoto vuol dire nessun link");
+ok(!/etichett[ae].*useState|setEtichetta/.test(form), "l'ente non scrive l'etichetta del bottone");
+ok(/<LinkEsterno url=\{post\.link_esterno\} \/>/.test(feed), "il feed mette il link sotto ogni post");
+const ultimaLink = leggi("supabase/migrations/20261120100000_post_link_esterno.sql");
+ok(/tipo <> 'link_social'/.test(ultimaLink), "il database rifiuta un post nuovo di tipo link_social, non solo il form");
 ok(!/Post con embed/.test(leggi("app/istituzioni/page.tsx")) && !/Post con embed/.test(leggi("app/ente/(dashboard)/piano/page.tsx")), "il listino e la pagina del piano non lo vendono più a parte");
 ok(!/post_enti_tipo_dal_piano/.test(form) && !/link_social_solo_piani_a_pagamento/.test(form), "il form non aspetta più il rifiuto del piano");
 
 console.log("\n§6 l'archivio dei post salvati");
 const finto = (risposta) => ({ rpc: async (fn) => (fn === "post_salvati_miei" ? risposta : { data: null, error: { message: "funzione sbagliata" } }) });
 const riga = (stato, extra = {}) => ({
-  salvataggio_id: "s1", post_id: "p1", ente_nome: "Ente", istituzione_slug: "ente", tipo: "link_social", corpo: "Testo",
-  immagine_url: "https://x/i.png", link_url: "https://www.instagram.com/p/x", link_titolo: "Titolo", link_riga: "Riga",
+  salvataggio_id: "s1", post_id: "p1", ente_nome: "Ente", istituzione_slug: "ente", tipo: "immagine", corpo: "Testo",
+  immagine_url: "https://x/i.png", link_esterno: "https://www.instagram.com/p/x",
   allegato_nome: null, pubblicato_il: "2026-10-30T10:00:00Z", salvato_il: "2026-10-30T11:00:00Z", stato, tolto_il: null, ...extra,
 });
 (async () => {
@@ -125,10 +202,11 @@ const riga = (stato, extra = {}) => ({
   ok(Array.isArray(vuoto) && vuoto.length === 0, "nessun salvataggio è una lista vuota, e si distingue dal non letto");
   ok((await S.leggiPostSalvatiMiei(finto({ data: [riga("inventato")], error: null }))) === null, "uno stato che non conosciamo non si indovina");
   const [visibile] = await S.leggiPostSalvatiMiei(finto({ data: [riga("visibile")], error: null }));
-  ok(visibile.immagineUrl && visibile.linkUrl && visibile.linkRiga, "un post ancora nel flusso porta immagine, link e riga");
+  ok(visibile.immagineUrl && visibile.linkEsterno, "un post ancora nel flusso porta immagine e link");
+  ok((await S.leggiPostSalvatiMiei(finto({ data: [riga("visibile", { tipo: "link_social" })], error: null }))) === null, "un tipo uscito non si indovina: la riga è «non letta»");
   for (const st of ["tolto", "cancellato", "ente_non_attivo", "non_visibile"]) {
     const [r] = await S.leggiPostSalvatiMiei(finto({ data: [riga(st, { tolto_il: "2026-10-30T12:00:00Z" })], error: null }));
-    ok(r.corpo === "Testo" && r.immagineUrl === null && r.linkUrl === null && r.linkRiga === null && S.TESTI_POST_SALVATI.stato(r),
+    ok(r.corpo === "Testo" && r.immagineUrl === null && r.linkEsterno === null && S.TESTI_POST_SALVATI.stato(r),
       `«${st}»: resta il testo, e la riga dice perché; niente immagine né link`);
   }
   const [tolto] = await S.leggiPostSalvatiMiei(finto({ data: [riga("tolto", { tolto_il: "2026-10-30T12:00:00Z" })], error: null }));

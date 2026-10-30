@@ -21,12 +21,10 @@ export type PostSalvato = {
   postId: string | null;
   enteNome: string;
   istituzioneSlug: string | null;
-  tipo: "testo" | "immagine" | "file" | "link_social";
+  tipo: "testo" | "immagine" | "file";
   corpo: string;
   immagineUrl: string | null;
-  linkUrl: string | null;
-  linkTitolo: string | null;
-  linkRiga: string | null;
+  linkEsterno: string | null;
   allegatoNome: string | null;
   pubblicatoIl: string | null;
   salvatoIl: string;
@@ -39,7 +37,7 @@ type Rpc = {
 };
 
 const STATI: readonly string[] = ["visibile", "tolto", "non_visibile", "ente_non_attivo", "cancellato"];
-const TIPI: readonly string[] = ["testo", "immagine", "file", "link_social"];
+const TIPI: readonly string[] = ["testo", "immagine", "file"];
 const testo = (v: unknown): string | null => (typeof v === "string" && v ? v : null);
 
 /**
@@ -70,9 +68,7 @@ export async function leggiPostSalvatiMiei(supabase: Rpc): Promise<PostSalvato[]
         corpo: r.corpo,
         // Di un post che non è più nel flusso resta il testo: vedi la testa.
         immagineUrl: visibile ? testo(r.immagine_url) : null,
-        linkUrl: visibile ? testo(r.link_url) : null,
-        linkTitolo: testo(r.link_titolo),
-        linkRiga: visibile ? testo(r.link_riga) : null,
+        linkEsterno: visibile ? testo(r.link_esterno) : null,
         allegatoNome: testo(r.allegato_nome),
         pubblicatoIl: testo(r.pubblicato_il),
         salvatoIl: r.salvato_il,

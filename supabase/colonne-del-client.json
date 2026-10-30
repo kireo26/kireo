@@ -6,7 +6,7 @@
     "Per aprire una colonna: una migrazione nuova con il grant, e la colonna qui, con chi la scrive. Il totale ha un tetto (`tetto_colonne`) che si abbassa e non si alza senza dirlo: è il cricchetto.",
     "`chi` dice quale codice scrive la tabella: è la ragione per cui la colonna è aperta. Una colonna senza un `chi` vero è una porta che nessuno usa."
   ],
-  "tetto_colonne": 192,
+  "tetto_colonne": 190,
   "anon": {
     "richieste_contatto": {
       "insert": ["origine", "nome", "ruolo", "istituto", "codice_meccanografico", "email", "messaggio"],
@@ -126,7 +126,7 @@
       "chi": "app/api/escape/finalizza/route.ts"
     },
     "post_enti": {
-      "insert": ["istituzione_id", "tipo", "corpo", "immagine_url", "embed_url", "link_titolo", "link_riga", "allegato_percorso", "allegato_nome"],
+      "insert": ["istituzione_id", "tipo", "corpo", "immagine_url", "link_esterno", "allegato_percorso", "allegato_nome"],
       "update": [],
       "chi": "components/ente/CreaPostForm.tsx (insert). Dal 20261113120000 nessuno lo aggiorna dal client: l'admin toglie un post con togli_post (definer), e approvare non esiste più"
     },

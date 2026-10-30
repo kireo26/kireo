@@ -44,11 +44,9 @@ export const TESTI_POST = {
   // altro post pubblicato da un'altra finestra): l'ora la dice la pagina, che
   // si rilegge.
   tettoDalDatabase: `Hai già pubblicato ${MAX_POST_NELLE_24_ORE} post nelle ultime 24 ore: qui sopra c'è da quando potrai pubblicare il prossimo.`,
-  // Il rifiuto del database per una scheda senza titolo, riga o immagine
-  // (`contenuto_post_completo`, 20261119110000): il form lo dice prima, questo
-  // è per chi ci arriva da un'altra strada.
-  schedaIncompleta: "La scheda del link vuole un titolo, una riga e un'immagine.",
-  notaScheda: "Nel feed lo studente vede questa scheda, non la pagina della piattaforma: il post si apre su Instagram, Facebook o TikTok solo se lo studente preme il bottone.",
+  etichettaLink: "Link (facoltativo)",
+  notaLink: "Il tuo sito, o un tuo post su Instagram, Facebook o TikTok: sotto il post lo studente trova un bottone che lo apre fuori da KIREO. Il nome del bottone lo scegliamo noi dall'indirizzo.",
+  linkNonValido: "Il link deve cominciare con https:// ed essere un indirizzo completo, senza spazi.",
   notaFile: "Lo studente lo scarica con un clic. Chi ha il link al file può aprirlo anche fuori da KIREO.",
   motivoNonLetto: "Non siamo riusciti a leggere il motivo: ricarica la pagina.",
 } as const;

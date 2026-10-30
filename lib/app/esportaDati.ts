@@ -180,7 +180,7 @@ export const SEZIONI_EXPORT: SezioneExport[] = [
     chiave: "postSalvati",
     tabella: "post_salvati",
     colonna: "student_id",
-    select: "ente_nome, tipo, corpo, immagine_url, link_url, link_titolo, link_riga, allegato_nome, pubblicato_il, salvato_il",
+    select: "ente_nome, tipo, corpo, immagine_url, link_esterno, allegato_nome, pubblicato_il, salvato_il",
     singola: false,
     voce: "I post degli enti che hai salvato: il testo, l'ente e quando",
   },

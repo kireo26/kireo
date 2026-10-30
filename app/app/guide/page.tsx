@@ -6,7 +6,8 @@ import { guideDiArea, statoSblocco, GATE_GUIDE_ATTIVO, guidaPronta, TESTO_SBLOCC
 import { caricaContestoGuide } from "@/lib/guide/statoStudente";
 import { leggiGuideScaricate, TESTI_GUIDE_SCARICATE as TS } from "@/lib/app/guideScaricate";
 import { leggiPostSalvatiMiei, TESTI_POST_SALVATI as TP } from "@/lib/app/postSalvati";
-import { TESTI_CONTENUTI, immagineDelPost, piattaformaDelLink } from "@/lib/post/contenuti";
+import { TESTI_CONTENUTI, immagineDelPost } from "@/lib/post/contenuti";
+import { LinkEsterno } from "@/components/app/FeedPost";
 import TogliPostSalvato from "@/components/app/TogliPostSalvato";
 
 export const metadata = { title: "Guide di orientamento — KIREO" };
@@ -116,27 +117,17 @@ export default async function GuideHome({ searchParams }: { searchParams: Promis
           <ul className="space-y-3">
             {salvati.map((p) => {
               const immagine = immagineDelPost(p.immagineUrl, process.env.NEXT_PUBLIC_SUPABASE_URL);
-              const piattaforma = piattaformaDelLink(p.linkUrl);
               return (
                 <li key={p.salvataggioId} className="rounded-2xl border border-white/5 bg-kireo-card p-5">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <p className="min-w-0 flex-1 text-xs text-kireo-muted">{TP.riga(p)}</p>
                     <TogliPostSalvato salvataggioId={p.salvataggioId} />
                   </div>
-                  {p.linkTitolo && <p className="mt-2 font-heading text-sm font-semibold text-kireo-light">{p.linkTitolo}</p>}
                   <p className="mt-2 whitespace-pre-wrap text-sm text-kireo-light/90">{p.corpo}</p>
                   {TP.stato(p) && <p className="mt-2 text-xs text-kireo-muted">{TP.stato(p)}</p>}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   {immagine && <img src={immagine} alt="" className="mt-3 max-h-72 w-full rounded-xl object-cover" />}
-                  {p.linkRiga && <p className="mt-2 text-sm text-kireo-light/80">{p.linkRiga}</p>}
-                  {p.linkUrl && piattaforma && (
-                    <p className="mt-2 text-sm">
-                      <a href={p.linkUrl} target="_blank" rel="noopener noreferrer" className="font-medium text-kireo-orange underline underline-offset-2">
-                        {TESTI_CONTENUTI.apriSu(piattaforma)}
-                      </a>{" "}
-                      <span className="text-xs text-kireo-muted">{TESTI_CONTENUTI.fuoriDaKireo}</span>
-                    </p>
-                  )}
+                  <LinkEsterno url={p.linkEsterno} />
                   {p.tipo === "file" && p.stato === "visibile" && p.postId && p.allegatoNome && (
                     <form method="post" action={`/api/scarica-allegato/${p.postId}`} className="mt-3 flex flex-wrap items-center gap-3">
                       <input type="hidden" name="ritorno" value="/app/guide" />

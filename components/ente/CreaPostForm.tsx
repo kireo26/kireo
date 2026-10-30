@@ -7,31 +7,26 @@ import { inputClass, fieldBorder } from "@/lib/formStyles";
 import { createClient } from "@/lib/supabase/client";
 import { TESTI_POST } from "@/lib/ente/post";
 import { MAX_GUIDA_MB, TIPO_GUIDA } from "@/lib/ente/media";
-import {
-  MAX_RIGA_LINK,
-  MAX_TITOLO_LINK,
-  REGEX_LINK_SOCIALE,
-  nomeAllegato,
-  percorsoAllegato,
-} from "@/lib/post/contenuti";
+import { MAX_LINK_ESTERNO, linkEsternoValido, nomeAllegato, percorsoAllegato } from "@/lib/post/contenuti";
 import { descriviErrore } from "@/lib/erroreSupabase";
 
 const MAX_CORPO = 2000;
 const MAX_IMMAGINE_MB = 5;
 
-type TipoPost = "testo" | "immagine" | "file" | "link_social";
+type TipoPost = "testo" | "immagine" | "file";
 const TIPI: { tipo: TipoPost; etichetta: string }[] = [
   { tipo: "testo", etichetta: "Testo" },
   { tipo: "immagine", etichetta: "Immagine" },
   { tipo: "file", etichetta: "File" },
-  { tipo: "link_social", etichetta: "Link social" },
 ];
 
-// Dal 30/10 (20261119110000) i quattro tipi sono di tutti i piani (Mario: «perché
-// solo chi paga?»). Il link social è una SCHEDA che compila l'ente — titolo,
-// una riga, un'immagine, il link — e nel feed non si carica mai la pagina della
-// piattaforma: vedi `lib/post/contenuti.ts`. Il file è un PDF nello spazio
-// dell'ente; lo studente lo scarica da una route che scrive la traccia prima.
+// Dal 30/10 i tipi sono di tutti i piani, e il tipo «link social» è uscito
+// (20261120100000): ogni post può avere un LINK facoltativo — il sito, un post
+// su Instagram, quello che l'ente vuole — e sotto il post lo studente trova un
+// bottone che lo apre fuori da KIREO. L'etichetta del bottone la decide
+// l'indirizzo, non l'ente: qui non c'è un campo per scriverla, apposta (vedi
+// `lib/post/contenuti.ts`). Il file è un PDF nello spazio dell'ente; lo
+// studente lo scarica da una route che scrive la traccia prima.
 // Il post si pubblica subito (29/10): il tetto è di 3 nelle ultime 24 ore, e
 // la pagina passa `avvisoTetto` con l'ora da cui si potrà di nuovo.
 export default function CreaPostForm({
@@ -49,9 +44,7 @@ export default function CreaPostForm({
   const [corpo, setCorpo] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [allegato, setAllegato] = useState<File | null>(null);
-  const [embedUrl, setEmbedUrl] = useState("");
-  const [linkTitolo, setLinkTitolo] = useState("");
-  const [linkRiga, setLinkRiga] = useState("");
+  const [link, setLink] = useState("");
   const [errori, setErrori] = useState<Record<string, string>>({});
   const [inviando, setInviando] = useState(false);
   const [erroreGenerale, setErroreGenerale] = useState<string | null>(null);
@@ -61,14 +54,9 @@ export default function CreaPostForm({
     const next: Record<string, string> = {};
     if (!corpo.trim()) next.corpo = "Scrivi il testo del post.";
     else if (corpo.length > MAX_CORPO) next.corpo = `Massimo ${MAX_CORPO} caratteri.`;
-    if ((tipo === "immagine" || tipo === "link_social") && !file) next.file = "Carica un'immagine.";
-    else if (file && file.size > MAX_IMMAGINE_MB * 1024 * 1024) next.file = `L'immagine supera i ${MAX_IMMAGINE_MB} MB.`;
-    if (tipo === "link_social") {
-      if (!embedUrl.trim()) next.embedUrl = "Incolla il link del post su Instagram, Facebook o TikTok.";
-      else if (!REGEX_LINK_SOCIALE.test(embedUrl.trim())) next.embedUrl = "Deve essere un link di Instagram, Facebook o TikTok, che comincia con https://.";
-      if (!linkTitolo.trim()) next.linkTitolo = "Scrivi il titolo della scheda.";
-      if (!linkRiga.trim()) next.linkRiga = "Scrivi una riga che dica cosa c'è nel post.";
-    }
+    if (tipo === "immagine" && !file) next.file = "Carica un'immagine.";
+    else if (tipo === "immagine" && file && file.size > MAX_IMMAGINE_MB * 1024 * 1024) next.file = `L'immagine supera i ${MAX_IMMAGINE_MB} MB.`;
+    if (link.trim() && !linkEsternoValido(link)) next.link = TESTI_POST.linkNonValido;
     if (tipo === "file") {
       if (!allegato) next.allegato = "Carica il PDF.";
       else if (allegato.type !== TIPO_GUIDA) next.allegato = "Il file deve essere un PDF.";
@@ -93,7 +81,7 @@ export default function CreaPostForm({
       const supabase = createClient();
       let immagineUrl: string | null = null;
 
-      if ((tipo === "immagine" || tipo === "link_social") && file) {
+      if (tipo === "immagine" && file) {
         const estensione = file.name.split(".").pop() ?? "jpg";
         const percorso = `${istituzioneId}/post-${Date.now()}.${estensione}`;
         const { error: erroreUpload } = await supabase.storage.from("post-enti-media").upload(percorso, file);
@@ -122,10 +110,8 @@ export default function CreaPostForm({
         istituzione_id: istituzioneId,
         tipo,
         corpo: corpo.trim(),
-        immagine_url: tipo === "immagine" || tipo === "link_social" ? immagineUrl : null,
-        embed_url: tipo === "link_social" ? embedUrl.trim() : null,
-        link_titolo: tipo === "link_social" ? linkTitolo.trim() : null,
-        link_riga: tipo === "link_social" ? linkRiga.trim() : null,
+        immagine_url: tipo === "immagine" ? immagineUrl : null,
+        link_esterno: link.trim() || null,
         allegato_percorso: tipo === "file" ? allegatoPercorso : null,
         allegato_nome: tipo === "file" && allegato ? nomeAllegato(allegato.name) : null,
       });
@@ -134,8 +120,8 @@ export default function CreaPostForm({
         if (error.message?.includes("troppi_post_nelle_24_ore")) {
           setErroreGenerale(TESTI_POST.tettoDalDatabase);
           router.refresh();
-        } else if (error.message?.includes("scheda_link_incompleta")) {
-          setErroreGenerale(TESTI_POST.schedaIncompleta);
+        } else if (error.message?.includes("post_enti_link_esterno_https")) {
+          setErrori({ link: TESTI_POST.linkNonValido });
         } else {
           console.error("[ente] pubblicazione di un post:", descriviErrore(error));
           setErroreGenerale("Non è stato possibile pubblicare il post. Riprova più tardi.");
@@ -172,7 +158,7 @@ export default function CreaPostForm({
 
       <div>
         <p className="mb-2 text-sm font-medium text-kireo-light">Tipo di post</p>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <div className="grid grid-cols-3 gap-2">
           {TIPI.map((t) => (
             <button
               key={t.tipo}
@@ -205,61 +191,10 @@ export default function CreaPostForm({
         {errori.corpo && <p className="mt-1.5 text-sm text-red-400">{errori.corpo}</p>}
       </div>
 
-      {tipo === "link_social" && (
-        <>
-          <div>
-            <label htmlFor="embedUrl" className="mb-1.5 block text-sm font-medium text-kireo-light">
-              Link del post su Instagram, Facebook o TikTok
-            </label>
-            <input
-              id="embedUrl"
-              type="text"
-              inputMode="url"
-              value={embedUrl}
-              onChange={(e) => setEmbedUrl(e.target.value)}
-              placeholder="https://www.instagram.com/p/..."
-              aria-invalid={Boolean(errori.embedUrl)}
-              className={`${inputClass} ${fieldBorder(Boolean(errori.embedUrl))}`}
-            />
-            {errori.embedUrl && <p className="mt-1.5 text-sm text-red-400">{errori.embedUrl}</p>}
-          </div>
-          <div>
-            <label htmlFor="linkTitolo" className="mb-1.5 block text-sm font-medium text-kireo-light">
-              Titolo della scheda
-            </label>
-            <input
-              id="linkTitolo"
-              type="text"
-              value={linkTitolo}
-              onChange={(e) => setLinkTitolo(e.target.value)}
-              maxLength={MAX_TITOLO_LINK}
-              aria-invalid={Boolean(errori.linkTitolo)}
-              className={`${inputClass} ${fieldBorder(Boolean(errori.linkTitolo))}`}
-            />
-            {errori.linkTitolo && <p className="mt-1.5 text-sm text-red-400">{errori.linkTitolo}</p>}
-          </div>
-          <div>
-            <label htmlFor="linkRiga" className="mb-1.5 block text-sm font-medium text-kireo-light">
-              Una riga su cosa c&apos;è nel post
-            </label>
-            <input
-              id="linkRiga"
-              type="text"
-              value={linkRiga}
-              onChange={(e) => setLinkRiga(e.target.value)}
-              maxLength={MAX_RIGA_LINK}
-              aria-invalid={Boolean(errori.linkRiga)}
-              className={`${inputClass} ${fieldBorder(Boolean(errori.linkRiga))}`}
-            />
-            {errori.linkRiga && <p className="mt-1.5 text-sm text-red-400">{errori.linkRiga}</p>}
-          </div>
-        </>
-      )}
-
-      {(tipo === "immagine" || tipo === "link_social") && (
+      {tipo === "immagine" && (
         <div>
           <label htmlFor="immagine" className="mb-1.5 block text-sm font-medium text-kireo-light">
-            {tipo === "link_social" ? "Immagine della scheda" : "Immagine"} (max {MAX_IMMAGINE_MB} MB)
+            Immagine (max {MAX_IMMAGINE_MB} MB)
           </label>
           <input
             id="immagine"
@@ -271,8 +206,6 @@ export default function CreaPostForm({
           {errori.file && <p className="mt-1.5 text-sm text-red-400">{errori.file}</p>}
         </div>
       )}
-
-      {tipo === "link_social" && <p className="text-xs text-kireo-muted">{TESTI_POST.notaScheda}</p>}
 
       {tipo === "file" && (
         <div>
@@ -290,6 +223,25 @@ export default function CreaPostForm({
           <p className="mt-1.5 text-xs text-kireo-muted">{TESTI_POST.notaFile}</p>
         </div>
       )}
+
+      <div>
+        <label htmlFor="link" className="mb-1.5 block text-sm font-medium text-kireo-light">
+          {TESTI_POST.etichettaLink}
+        </label>
+        <input
+          id="link"
+          type="text"
+          inputMode="url"
+          value={link}
+          onChange={(e) => setLink(e.target.value)}
+          maxLength={MAX_LINK_ESTERNO}
+          placeholder="https://"
+          aria-invalid={Boolean(errori.link)}
+          className={`${inputClass} ${fieldBorder(Boolean(errori.link))}`}
+        />
+        {errori.link && <p className="mt-1.5 text-sm text-red-400">{errori.link}</p>}
+        <p className="mt-1.5 text-xs text-kireo-muted">{TESTI_POST.notaLink}</p>
+      </div>
 
       <Button type="submit" variant="primary" className="w-full" disabled={inviando || fairUseRaggiunto}>
         {fairUseRaggiunto ? TESTI_POST.bottoneTetto : inviando ? "Pubblicazione…" : TESTI_POST.bottone}

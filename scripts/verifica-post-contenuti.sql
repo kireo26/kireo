@@ -1,4 +1,5 @@
--- LA SCHEDA DEL LINK, IL FILE ALLEGATO, «SALVA» (20261119100000, 20261119110000).
+-- IL LINK SU QUALSIASI POST, IL FILE ALLEGATO, «SALVA» (20261119100000,
+-- 20261119110000, 20261120100000: la scheda del link è uscita il 30/10).
 --
 -- Gira in una transazione con ROLLBACK, nel SQL Editor così com'è.
 --
@@ -45,45 +46,53 @@ insert into public.institution_profiles(user_id, istituzione_id) values
 
 set local role authenticated;
 
--- ============ la scheda del link, da un ente free ============
+-- ============ il link, da un ente free (20261120100000) ============
+-- Il tipo link_social è uscito: resta un link facoltativo su qualsiasi post.
 set local request.jwt.claim.sub = 'f1000000-0000-0000-0000-0000000000f1';
 do $$ declare v uuid; begin
-  insert into public.post_enti(istituzione_id, tipo, corpo, embed_url, link_titolo, link_riga, immagine_url)
-    values ('e1000000-0000-0000-0000-0000000000e1', 'link_social', 'Il nostro open day', 'https://www.instagram.com/p/abc/',
-            'Open day', 'Due minuti di laboratorio', 'https://x.supabase.co/storage/v1/object/public/post-enti-media/e1/a.png')
+  insert into public.post_enti(istituzione_id, tipo, corpo, link_esterno)
+    values ('e1000000-0000-0000-0000-0000000000e1', 'testo', 'Il nostro open day', 'https://www.ente-free.it/open-day')
     returning id into v;
   insert into ids values (1, v);
-  insert into esiti values (1, 'un ente FREE pubblica un link social con la scheda completa (il piano non conta più)', 'riuscito', true, 'riuscito');
+  insert into esiti values (1, 'un ente FREE pubblica un testo con il link al suo sito (il piano non conta)', 'riuscito', true, 'riuscito');
 exception when others then
-  insert into esiti values (1, 'un ente FREE pubblica un link social con la scheda completa (il piano non conta più)', 'riuscito', false, 'respinto: ' || sqlerrm);
+  insert into esiti values (1, 'un ente FREE pubblica un testo con il link al suo sito (il piano non conta)', 'riuscito', false, 'respinto: ' || sqlerrm);
 end $$;
 
 do $$ begin
-  insert into public.post_enti(istituzione_id, tipo, corpo, embed_url)
-    values ('e1000000-0000-0000-0000-0000000000e1', 'link_social', 'Senza scheda', 'https://www.tiktok.com/@ente');
+  insert into public.post_enti(istituzione_id, tipo, corpo, link_esterno)
+    values ('e1000000-0000-0000-0000-0000000000e1', 'link_social', 'Il tipo uscito', 'https://www.tiktok.com/@ente');
   -- Se passa, si annulla: un post in più farebbe scattare il tetto (il modo 9).
   raise exception 'passa_e_si_annulla';
 exception when others then
-  insert into esiti values (2, 'un link social senza titolo, riga e immagine è respinto', 'scheda_link_incompleta', sqlerrm = 'scheda_link_incompleta',
+  insert into esiti values (2, 'un post NUOVO di tipo link_social è respinto dal database, non solo dal form', 'RESPINTO (23514)', sqlstate = '23514',
     case when sqlerrm = 'passa_e_si_annulla' then '*** PASSA ***' else 'respinto: ' || sqlerrm end);
 end $$;
 
 do $$ begin
-  insert into public.post_enti(istituzione_id, tipo, corpo, embed_url, link_titolo, link_riga, immagine_url)
-    values ('e1000000-0000-0000-0000-0000000000e1', 'link_social', 'Su Facebook', 'https://www.facebook.com/ente/posts/1',
-            'Facebook', 'Una riga', 'https://x.supabase.co/storage/v1/object/public/post-enti-media/e1/b.png');
-  insert into esiti values (3, 'un link Facebook si pubblica', 'riuscito', true, 'riuscito');
+  insert into public.post_enti(istituzione_id, tipo, corpo, immagine_url, link_esterno)
+    values ('e1000000-0000-0000-0000-0000000000e1', 'immagine', 'Su Instagram', 'https://x.supabase.co/storage/v1/object/public/post-enti-media/e1/b.png',
+            'https://www.instagram.com/p/abc/');
+  insert into esiti values (3, 'un''immagine con il link a un post di Instagram si pubblica', 'riuscito', true, 'riuscito');
 exception when others then
-  insert into esiti values (3, 'un link Facebook si pubblica', 'riuscito', false, 'respinto: ' || sqlerrm);
+  insert into esiti values (3, 'un''immagine con il link a un post di Instagram si pubblica', 'riuscito', false, 'respinto: ' || sqlerrm);
 end $$;
 
-do $$ begin
-  insert into public.post_enti(istituzione_id, tipo, corpo, embed_url, link_titolo, link_riga, immagine_url)
-    values ('e1000000-0000-0000-0000-0000000000e1', 'link_social', 'Fuori', 'https://instagram.com.altrove.net/p/x',
-            'Fuori', 'Una riga', 'https://x.supabase.co/storage/v1/object/public/post-enti-media/e1/c.png');
-  insert into esiti values (4, 'un link che non è di Instagram, Facebook o TikTok è respinto', 'RESPINTO', false, '*** PASSA ***');
-exception when others then
-  insert into esiti values (4, 'un link che non è di Instagram, Facebook o TikTok è respinto', 'RESPINTO', sqlstate = '23514', 'respinto: ' || sqlerrm);
+-- Tre link che non sono https: ognuno deve essere respinto dal vincolo (23514).
+do $$ declare v_url text; v_passati text := ''; v_altro text := ''; begin
+  foreach v_url in array array['http://www.ente-free.it', 'javascript:alert(1)', 'data:text/html,x', 'https://ente', 'https://ente.it/con spazio'] loop
+    begin
+      insert into public.post_enti(istituzione_id, tipo, corpo, link_esterno)
+        values ('e1000000-0000-0000-0000-0000000000e1', 'testo', 'Fuori', v_url);
+      v_passati := v_passati || ' ' || v_url;
+      raise exception 'passa_e_si_annulla';
+    exception when others then
+      if sqlerrm <> 'passa_e_si_annulla' and sqlstate <> '23514' then v_altro := v_altro || ' ' || sqlstate; end if;
+    end;
+  end loop;
+  insert into esiti values (4, 'un link non https (http, javascript:, data:), senza un host vero o con uno spazio è respinto', 'tutti respinti (23514)',
+    v_passati = '' and v_altro = '',
+    case when v_passati = '' and v_altro = '' then 'tutti respinti' else 'passati:' || v_passati || ' · altro:' || v_altro end);
 end $$;
 
 -- ============ il file ============
@@ -127,11 +136,11 @@ end $$;
 set local request.jwt.claim.sub = '5a000000-0000-0000-0000-00000000005a';
 do $$ declare r jsonb; v int; c text; begin
   r := public.salva_post((select id from ids where n = 1));
-  select count(*), max(corpo || ' · ' || ente_nome) into v, c from public.post_salvati;
-  insert into esiti values (8, 'lo studente salva un post, e la copia la fa il database', 'salvato, una riga con testo ed ente',
-    r ->> 'stato' = 'salvato' and v = 1 and c = 'Il nostro open day · Ente Free', r::text || ' · righe ' || v || ' · ' || coalesce(c, '-'));
+  select count(*), max(corpo || ' · ' || ente_nome || ' · ' || coalesce(link_esterno, '-')) into v, c from public.post_salvati;
+  insert into esiti values (8, 'lo studente salva un post, e la copia la fa il database, link compreso', 'salvato, una riga con testo, ente e link',
+    r ->> 'stato' = 'salvato' and v = 1 and c = 'Il nostro open day · Ente Free · https://www.ente-free.it/open-day', r::text || ' · righe ' || v || ' · ' || coalesce(c, '-'));
 exception when others then
-  insert into esiti values (8, 'lo studente salva un post, e la copia la fa il database', 'salvato, una riga con testo ed ente', false, 'errore: ' || sqlerrm);
+  insert into esiti values (8, 'lo studente salva un post, e la copia la fa il database, link compreso', 'salvato, una riga con testo, ente e link', false, 'errore: ' || sqlerrm);
 end $$;
 
 do $$ declare r jsonb; v int; begin
