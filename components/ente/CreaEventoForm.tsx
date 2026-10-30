@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { descriviErrore } from "@/lib/erroreSupabase";
 import { Button } from "@/components/Button";
 import { inputClass, fieldBorder } from "@/lib/formStyles";
 import { createClient } from "@/lib/supabase/client";
@@ -104,8 +105,6 @@ export default function CreaEventoForm({
   const [errori, setErrori] = useState<Record<string, string>>({});
   const [inviando, setInviando] = useState(false);
   const [erroreGenerale, setErroreGenerale] = useState<string | null>(null);
-  const [inviato, setInviato] = useState(false);
-  const [areeNonSalvate, setAreeNonSalvate] = useState(false);
 
   function toggleArea(slug: string) {
     setAree((prev) => {
@@ -301,39 +300,19 @@ export default function CreaEventoForm({
         const { error: erroreAree } = await supabase
           .from("eventi_aree")
           .insert(aree.map((area_slug) => ({ evento_id: evento.id, area_slug })));
-        if (erroreAree) setAreeNonSalvate(true);
+        if (erroreAree) console.error("[ente] aree di un evento nuovo:", descriviErrore(erroreAree));
       }
 
-      setInviato(true);
+      // Il modulo non lascia il posto alla conferma (Mario, 30/10): la pagina
+      // va a `?creato=`, rilegge l'evento e le sue aree dal database, dice lì
+      // se le aree mancano, e rimonta questo modulo vuoto.
+      router.replace(`/ente/eventi/nuovo?creato=${evento.id}`, { scroll: false });
       router.refresh();
     } catch {
       setErroreGenerale("Qualcosa è andato storto. Riprova tra qualche istante.");
     } finally {
       setInviando(false);
     }
-  }
-
-  if (inviato) {
-    return (
-      <div className="rounded-2xl border border-kireo-green/40 bg-kireo-card p-8 text-center">
-        <h3 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">
-          Evento inviato in approvazione
-        </h3>
-        <p className="mt-2 text-sm text-kireo-muted">
-          KIREO lo revisiona prima che compaia pubblicamente. Puoi seguirne lo stato qui sotto.
-        </p>
-        {areeNonSalvate && (
-          <p className="mt-3 rounded-lg border border-kireo-orange/40 bg-kireo-orange/10 px-4 py-3 text-left text-sm text-kireo-orange">
-            Le aree tematiche però non si sono salvate, e senza un&apos;area l&apos;incontro non lascia niente nel
-            profilo di chi partecipa. Non rimandarlo: scrivici da{" "}
-            <a href="/contatti" target="_blank" className="underline underline-offset-2">
-              contatti
-            </a>{" "}
-            e le sistemiamo prima della revisione.
-          </p>
-        )}
-      </div>
-    );
   }
 
   return (

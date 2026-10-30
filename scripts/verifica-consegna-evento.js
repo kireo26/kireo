@@ -288,9 +288,13 @@ ok(
 );
 ok(/next\.aree\s*=/.test(form) && /errori\.aree/.test(form), "…e il no si vede accanto alle aree, non solo dentro validate()");
 ok(/almeno una/.test(form), "…ed è annunciato nell'etichetta, prima che qualcuno ci sbatta contro");
+// Dal 30/10 le aree mancanti non le ricorda il browser: la pagina, dopo la
+// creazione, rilegge l'evento e conta le sue aree nel database.
+const nuovoEvento = senzaCommenti(leggi("app/ente/(dashboard)/eventi/nuovo/page.tsx"));
 ok(
-  /error:\s*erroreAree/.test(form) && /setAreeNonSalvate/.test(form),
-  "l'insert delle aree non ingoia più il proprio errore: l'evento c'è, e chi l'ha creato lo viene a sapere",
+  /error:\s*erroreAree/.test(form) && /console\.error\([^)]*erroreAree/.test(form) &&
+    /from\("eventi_aree"\)\.select\("evento_id", \{ count: "exact", head: true \}\)/.test(nuovoEvento) && /creatoRiletto\.aree === 0/.test(nuovoEvento),
+  "l'insert delle aree non ingoia più il proprio errore: l'evento c'è, e chi l'ha creato lo viene a sapere dal database",
 );
 
 const ALLARME = "supabase/migrations/20260927130000_allarme_evento_senza_aree.sql";

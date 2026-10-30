@@ -50,7 +50,10 @@ export const TESTI_POST = {
   // campo, non solo quale indirizzo è ammesso: un ente che non sa cosa produce
   // un campo lo lascia vuoto.
   etichettaLink: "Link (facoltativo)",
-  notaLink: "Se lo metti, sotto il post compare un bottone che porta lì. Solo indirizzi che iniziano con https://.",
+  // ⚠️ «Solo indirizzi che iniziano con https://» è uscita (Mario, 30/10):
+  // l'https lo mettiamo noi, e una regola che non si può più infrangere non va
+  // scritta, insegna solo che il prodotto è più difficile di com'è.
+  notaLink: "Il tuo sito, o un tuo post su Instagram, Facebook o TikTok: sotto il post lo studente trova un bottone che lo apre fuori da KIREO. Il nome del bottone lo scegliamo noi dall'indirizzo.",
   // I tre rossi del link, uno per causa, e la riga dell'https alzato: di Mario
   // (30/10, «lo https lo mettiamo noi»).
   erroreLink: {
@@ -65,14 +68,14 @@ export const TESTI_POST = {
 
 // ⚠️ LA RIGA DELLA QUOTA È LO STATO DELL'ENTE, NON LA REGOLA (Mario, 30/10:
 // «quella riga oggi è una regola; deve diventare lo stato dell'ente», come la
-// riga della newsletter). «Etichetta: numero» invece di «Ne hai pubblicati 1»,
-// per il plurale con uno: lo stesso motivo delle statistiche. Contano tutti i
+// riga della newsletter). La frase è di Mario: «post» non cambia al plurale e
+// «hai pubblicato» non concorda con niente, quindi vale con qualunque numero. Contano tutti i
 // post nati nelle 24 ore, anche quelli tolti, come nel database. `null` vuol
 // dire che i post non si sono letti: la pagina lo dice, non scrive zero.
 export function testoQuotaPost(creatiIl: string[] | null, adesso: Date): string {
   if (creatiIl === null) return "Non siamo riusciti a contare i post delle ultime 24 ore: ricarica la pagina.";
   const n = creatiIl.filter((c) => adesso.getTime() - new Date(c).getTime() < FINESTRA_MS).length;
-  return `Post pubblicati nelle ultime 24 ore: ${Math.min(n, MAX_POST_NELLE_24_ORE)} di ${MAX_POST_NELLE_24_ORE}.`;
+  return `Hai pubblicato ${Math.min(n, MAX_POST_NELLE_24_ORE)} post su ${MAX_POST_NELLE_24_ORE} nelle ultime 24 ore.`;
 }
 
 // A tetto pieno il modulo non sparisce: dice quando si riapre (Mario: «un

@@ -19,3 +19,9 @@ export const MAX_GUIDA_MB = 20;
 export function tipoCopertinaAmmesso(tipo: string): boolean {
   return (TIPI_COPERTINA as readonly string[]).includes(tipo);
 }
+
+// La copertina si vede come una fascia, e si taglia apposta: è la forma della
+// pagina, non un contenuto scritto per essere letto (a differenza
+// dell'immagine di un post, vedi `CLASSE_IMMAGINE_POST`). Si dice a chi carica.
+// Testo di Mario (30/10).
+export const TESTO_COPERTINA_TAGLIATA = "Si vede come una fascia larga: la parte alta e bassa dell'immagine può non comparire.";

@@ -27,7 +27,7 @@ export default function RigaEventoEnte({
 }) {
   const stato = ETICHETTA_STATO[evento.stato] ?? { label: evento.stato, classe: "bg-white/10 text-kireo-light" };
   return (
-    <li className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/5 bg-kireo-card p-4">
+    <li id={`evento-${evento.id}`} className="scroll-mt-24 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/5 bg-kireo-card p-4">
       <div className="min-w-0">
         <span className={`mr-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${stato.classe}`}>{stato.label}</span>
         <span className="font-heading text-sm font-semibold text-kireo-light">{evento.titolo}</span>

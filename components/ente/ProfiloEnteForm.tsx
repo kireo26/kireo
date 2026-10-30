@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { descriviErrore } from "@/lib/erroreSupabase";
 import Combobox from "@/components/Combobox";
 import { PROVINCE_ITALIANE } from "@/lib/province";
-import { MAX_COPERTINA_MB, MAX_GUIDA_MB, TIPO_GUIDA, tipoCopertinaAmmesso } from "@/lib/ente/media";
+import { MAX_COPERTINA_MB, MAX_GUIDA_MB, TIPO_GUIDA, tipoCopertinaAmmesso, TESTO_COPERTINA_TAGLIATA } from "@/lib/ente/media";
 
 const OPZIONI_PROVINCIA = PROVINCE_ITALIANE.map((p) => ({ value: p, label: p }));
 import AreeInteresseGrid from "@/components/app/AreeInteresseGrid";
@@ -74,6 +74,10 @@ function SezioneCopertina({ istituzioneId, copertinaIniziale }: { istituzioneId:
   return (
     <div className="rounded-2xl border border-white/5 bg-kireo-card p-6">
       <h2 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">Copertina</h2>
+      {/* La copertina È una fascia, e la si taglia apposta (Mario, 30/10): a
+          differenza dell'immagine di un post, qui il taglio è la forma. Il
+          difetto era non dirlo a chi carica. Niente anteprima: la riga basta. */}
+      <p className="mt-1 text-sm text-kireo-muted">{TESTO_COPERTINA_TAGLIATA}</p>
       <div className="mt-4 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
         {anteprima ? (
           // eslint-disable-next-line @next/next/no-img-element

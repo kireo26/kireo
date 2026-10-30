@@ -196,7 +196,16 @@ function clientFinto(risposte) {
     const d = P.prossimoPostDalle([ore(1), ore(5), ore(20), ore(23)], adesso);
     ok(d && d.toISOString() === "2026-10-29T16:00:00.000Z", "quattro in finestra (dal SQL Editor): devono uscirne due, cioè il terzo più recente, di 20 ore fa, alle 16:00", d && d.toISOString());
     // Dentro 24 ore il giorno è oggi o domani, in ora italiana (Mario, 30/10:
-    // «un limite senza una data è un guasto»). Attesi scritti a mano.
+    // «un limite senza una data è un guasto»).
+    // ⚠️ GLI ATTESI SONO SCRITTI A MANO, E UNA PROVA SU UN TESTO NASCE COSÌ
+    // (Mario, 30/10). La prova di prima era verde per la ragione sbagliata:
+    // chiamata senza l'ora attuale, il conto dei giorni dava NaN e il ripiego
+    // stampava la data intera che la prova cercava. È la terza volta questo
+    // mese (il §16 della newsletter, verde perché due righe condividevano
+    // un'ora; la seconda rete, verde perché un'altra difesa arrivava prima):
+    // una prova che calcola l'atteso con lo stesso codice che prova sta solo
+    // confermando che il codice è uguale a sé stesso. L'atteso è una stringa
+    // intera, scritta qui, con i dati che la producono accanto.
     const m = P.testoTettoRaggiunto(new Date("2026-10-31T15:04:00Z"), new Date("2026-10-30T16:00:00Z"));
     ok(m === "Hai pubblicato 3 post nelle ultime 24 ore. Potrai pubblicarne un altro dalle 16:04 di domani.", "a tetto pieno il modulo dice quando si riapre: dalle 16:04 di domani", m);
     const oggi = P.testoTettoRaggiunto(new Date("2026-10-30T20:30:00Z"), new Date("2026-10-30T08:00:00Z"));
@@ -205,8 +214,10 @@ function clientFinto(risposte) {
     ok(/dalle 00:10 di domani\.$/.test(mezzanotte), "a cavallo della mezzanotte di Roma è domani, anche se a Greenwich è lo stesso giorno", mezzanotte);
     const ad = new Date("2026-10-30T12:00:00Z");
     const fa = (h) => new Date(ad.getTime() - h * 3600e3).toISOString();
-    ok(P.testoQuotaPost([fa(1), fa(30)], ad) === "Post pubblicati nelle ultime 24 ore: 1 di 3.", "la riga della quota è lo stato dell'ente: conta solo le 24 ore", P.testoQuotaPost([fa(1), fa(30)], ad));
-    ok(P.testoQuotaPost([], ad) === "Post pubblicati nelle ultime 24 ore: 0 di 3.", "nessun post: zero di tre");
+    ok(P.testoQuotaPost([fa(1), fa(30)], ad) === "Hai pubblicato 1 post su 3 nelle ultime 24 ore.", "la riga della quota è lo stato dell'ente: conta solo le 24 ore", P.testoQuotaPost([fa(1), fa(30)], ad));
+    ok(P.testoQuotaPost([], ad) === "Hai pubblicato 0 post su 3 nelle ultime 24 ore.", "nessun post: zero su tre");
+    ok(P.TESTI_POST.notaLink === "Il tuo sito, o un tuo post su Instagram, Facebook o TikTok: sotto il post lo studente trova un bottone che lo apre fuori da KIREO. Il nome del bottone lo scegliamo noi dall'indirizzo." && !/https:\/\//.test(P.TESTI_POST.notaLink),
+      "la nota sotto il link non chiede più una cosa che facciamo noi");
     ok(/Non siamo riusciti a contare/.test(P.testoQuotaPost(null, ad)), "post non letti: lo dice, non scrive zero");
     const pg = leggi("app/ente/(dashboard)/bacheca/page.tsx");
     ok(/prossimoPostDalle\(/.test(pg) && /avvisoTetto=\{dalle \? testoTettoRaggiunto\(dalle, adesso\) : null\}/.test(pg), "la pagina dell'ente calcola il tetto e lo passa al form");

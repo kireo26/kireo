@@ -168,3 +168,15 @@ export function notaRevisione(e: Pick<EventoEnte, "note_revisione">): string | n
   return nota ? `Nota di revisione: ${nota}` : null;
 }
 
+
+// ⚠️ DOPO LA CREAZIONE IL MODULO TORNA, E LA CONFERMA DICE DOVE GUARDARE
+// (Mario, 30/10). Fino a oggi la conferma prendeva il posto del modulo e
+// diceva «Puoi seguirne lo stato qui sotto» su una pagina dove sotto non c'è
+// niente dal 27/10: una frase che indica un posto vuoto fa dubitare di una cosa
+// andata bene. Ora la conferma nomina il posto vero e ci porta. Si dice solo se
+// l'evento si è riletto dal database. Testi miei e provvisori.
+export const TESTI_EVENTO_CREATO = {
+  titolo: "Evento inviato in approvazione",
+  dettaglio: "KIREO lo revisiona prima che compaia pubblicamente. Lo trovi in «In programmazione», fra quelli in attesa di revisione:",
+  link: "vai all'evento",
+} as const;

@@ -127,5 +127,20 @@ console.log("\n§4 — le tre voci, e dove sta la plancia\n");
 }
 
 console.log("");
+// Dopo «Crea» il modulo torna e la conferma dice dove guardare (Mario, 30/10:
+// «una frase che indica un posto vuoto fa dubitare di una cosa andata bene»).
+{
+  const form = require("fs").readFileSync(require("path").join(ROOT, "components/ente/CreaEventoForm.tsx"), "utf8");
+  const pagina = require("fs").readFileSync(require("path").join(ROOT, "app/ente/(dashboard)/eventi/nuovo/page.tsx"), "utf8");
+  const riga = require("fs").readFileSync(require("path").join(ROOT, "components/ente/RigaEventoEnte.tsx"), "utf8");
+  const E = require("@/lib/ente/eventiEnte");
+  ok(!/if \(inviato\)/.test(form) && !/setInviato/.test(form), "il form dell'evento non si sostituisce più con una conferma");
+  ok(/router\.replace\(`\/ente\/eventi\/nuovo\?creato=\$\{evento\.id\}`/.test(form), "dopo la creazione la pagina va all'evento letto dall'insert");
+  ok(/key=\{`nuovo-\$\{creatoRiletto\?\.id/.test(pagina) && /\.eq\("organizzatore_id", contesto\.istituzioneId\)\s*\.maybeSingle\(\)/.test(pagina) && /creatoRiletto && \(/.test(pagina),
+    "la pagina rilegge l'evento creato, mostra la conferma solo se c'è, e rimonta il modulo vuoto");
+  ok(!/qui sotto/.test(E.TESTI_EVENTO_CREATO.dettaglio) && /In programmazione/.test(E.TESTI_EVENTO_CREATO.dettaglio), "la conferma non indica un posto vuoto: nomina «In programmazione»");
+  ok(/href=\{`\/ente\/eventi#evento-\$\{creatoRiletto\.id\}`\}/.test(pagina) && /id=\{`evento-\$\{evento\.id\}`\}/.test(riga), "e ci porta, sulla riga dell'evento");
+}
+
 console.log(`${falliti === 0 ? "✅" : "❌"} ${fatte - falliti}/${fatte} proprietà (npm run test:eventiente)`);
 process.exit(falliti === 0 ? 0 : 1);
