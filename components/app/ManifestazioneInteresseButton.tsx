@@ -75,7 +75,8 @@ export default function ManifestazioneInteresseButton({
       }
       setId(data.id);
       // Una condivisione nuova nasce con il pannello di oggi, che nomina
-      // l'attività (il valore di partenza della colonna).
+      // l'attività e, dal 30/10, i post salvati e i file scaricati (i valori di
+      // partenza di copre_attivita e copre_contenuti).
       setCopre(true);
       setMostraInfo(false);
     } finally {
@@ -134,8 +135,8 @@ export default function ManifestazioneInteresseButton({
         <div className="max-w-sm space-y-3 rounded-xl border border-white/10 bg-kireo-dark/60 p-4 text-left">
           <p className="text-xs text-kireo-muted">
             L&apos;ente vedrà nome, cognome, la tua scuola e le aree di orientamento che hai scelto, e cosa hai fatto
-            verso di lui su KIREO: a quali suoi eventi hai partecipato e quanto tempo ci hai passato, e se hai scaricato
-            la sua guida. Non vedrà i tuoi test, le missioni né i workshop. KIREO non gli dà mai la tua email o il tuo
+            verso di lui su KIREO: a quali suoi eventi hai partecipato e quanto tempo ci hai passato, se hai scaricato
+            la sua guida, quali suoi post hai salvato e quali suoi file hai scaricato. Non vedrà i tuoi test, le missioni né i workshop. KIREO non gli dà mai la tua email o il tuo
             telefono: vi scriverete solo tramite i messaggi di KIREO, e la conversazione la apri tu. Puoi revocare la
             condivisione quando vuoi.
           </p>

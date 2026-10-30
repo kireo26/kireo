@@ -5,6 +5,9 @@ import { AREE } from "@/data/aree";
 import { guideDiArea, statoSblocco, GATE_GUIDE_ATTIVO, guidaPronta, TESTO_SBLOCCO_GUIDE } from "@/lib/guide/config";
 import { caricaContestoGuide } from "@/lib/guide/statoStudente";
 import { leggiGuideScaricate, TESTI_GUIDE_SCARICATE as TS } from "@/lib/app/guideScaricate";
+import { leggiPostSalvatiMiei, TESTI_POST_SALVATI as TP } from "@/lib/app/postSalvati";
+import { TESTI_CONTENUTI, immagineDelPost, piattaformaDelLink } from "@/lib/post/contenuti";
+import TogliPostSalvato from "@/components/app/TogliPostSalvato";
 
 export const metadata = { title: "Guide di orientamento — KIREO" };
 
@@ -13,10 +16,18 @@ export const metadata = { title: "Guide di orientamento — KIREO" };
 // /app/guide/[areaSlug]. Dal 2026-09-26 il cancello è ACCESO: le tre guide di
 // ogni area restano tutte VISIBILI — una guida che non si sa di avere davanti
 // non invoglia nessuno — ma solo quelle sbloccate si aprono.
-export default async function GuideHome() {
+export default async function GuideHome({ searchParams }: { searchParams: Promise<{ allegato?: string }> }) {
+  const { allegato } = await searchParams;
+  // L'esito di uno scaricamento non riuscito dall'archivio (la route torna qui con ?allegato=).
+  const avvisoAllegato =
+    allegato === "non_disponibile" ? TESTI_CONTENUTI.allegatoNonDisponibile : allegato === "errore" ? TESTI_CONTENUTI.allegatoErrore : null;
   const contesto = await getAppContext();
   const supabase = await createClient();
-  const [ctx, scaricate] = await Promise.all([caricaContestoGuide(supabase, contesto.userId), leggiGuideScaricate(supabase)]);
+  const [ctx, scaricate, salvati] = await Promise.all([
+    caricaContestoGuide(supabase, contesto.userId),
+    leggiGuideScaricate(supabase),
+    leggiPostSalvatiMiei(supabase),
+  ]);
 
   const righe = AREE.map((a) => {
     const guide = guideDiArea(a.slug);
@@ -58,8 +69,8 @@ export default async function GuideHome() {
 
       {/* La seconda sezione (Mario, 29/10): il gesto dello studente verso un
           ente, che resta anche quando l'ente sostituisce o cancella la guida.
-          Mai un link a un file che non c'è più. I contenuti salvabili che
-          verranno vanno in «Salvati», non qui. */}
+          Mai un link a un file che non c'è più. Dal 30/10 qui sotto ci sono
+          anche i post salvati: un archivio solo dello studente (Mario). */}
       <section className="space-y-4">
         <h2 className="font-heading text-xl font-semibold text-kireo-light">{TS.titoloEnti}</h2>
         {scaricate === null ? (
@@ -82,6 +93,62 @@ export default async function GuideHome() {
                 )}
               </li>
             ))}
+          </ul>
+                )}
+      </section>
+
+      {/* I post salvati (30/10, 20261119110000): la copia del momento del
+          salvataggio, con lo stato di oggi. Di un post che non è più nel
+          flusso resta il testo, non l'immagine, il link o il file: vedi
+          `lib/app/postSalvati.ts`. */}
+      <section id="salvati" className="space-y-4">
+        <h2 className="font-heading text-xl font-semibold text-kireo-light">{TP.titolo}</h2>
+        {avvisoAllegato && (
+          <p id="allegato" className="rounded-xl border border-amber-400/30 bg-amber-400/10 p-3 text-sm text-amber-200">
+            {avvisoAllegato}
+          </p>
+        )}
+        {salvati === null ? (
+          <p className="text-sm text-kireo-muted">{TP.nonLetto}</p>
+        ) : salvati.length === 0 ? (
+          <p className="text-sm text-kireo-muted">{TP.nessuno}</p>
+        ) : (
+          <ul className="space-y-3">
+            {salvati.map((p) => {
+              const immagine = immagineDelPost(p.immagineUrl, process.env.NEXT_PUBLIC_SUPABASE_URL);
+              const piattaforma = piattaformaDelLink(p.linkUrl);
+              return (
+                <li key={p.salvataggioId} className="rounded-2xl border border-white/5 bg-kireo-card p-5">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <p className="min-w-0 flex-1 text-xs text-kireo-muted">{TP.riga(p)}</p>
+                    <TogliPostSalvato salvataggioId={p.salvataggioId} />
+                  </div>
+                  {p.linkTitolo && <p className="mt-2 font-heading text-sm font-semibold text-kireo-light">{p.linkTitolo}</p>}
+                  <p className="mt-2 whitespace-pre-wrap text-sm text-kireo-light/90">{p.corpo}</p>
+                  {TP.stato(p) && <p className="mt-2 text-xs text-kireo-muted">{TP.stato(p)}</p>}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  {immagine && <img src={immagine} alt="" className="mt-3 max-h-72 w-full rounded-xl object-cover" />}
+                  {p.linkRiga && <p className="mt-2 text-sm text-kireo-light/80">{p.linkRiga}</p>}
+                  {p.linkUrl && piattaforma && (
+                    <p className="mt-2 text-sm">
+                      <a href={p.linkUrl} target="_blank" rel="noopener noreferrer" className="font-medium text-kireo-orange underline underline-offset-2">
+                        {TESTI_CONTENUTI.apriSu(piattaforma)}
+                      </a>{" "}
+                      <span className="text-xs text-kireo-muted">{TESTI_CONTENUTI.fuoriDaKireo}</span>
+                    </p>
+                  )}
+                  {p.tipo === "file" && p.stato === "visibile" && p.postId && p.allegatoNome && (
+                    <form method="post" action={`/api/scarica-allegato/${p.postId}`} className="mt-3 flex flex-wrap items-center gap-3">
+                      <input type="hidden" name="ritorno" value="/app/guide" />
+                      <span className="text-sm text-kireo-light">📄 {p.allegatoNome}</span>
+                      <button type="submit" className="text-sm font-medium text-kireo-orange underline underline-offset-2">
+                        {TESTI_CONTENUTI.scaricaFile}
+                      </button>
+                    </form>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>

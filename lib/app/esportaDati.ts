@@ -173,6 +173,25 @@ export const SEZIONI_EXPORT: SezioneExport[] = [
     singola: false,
     voce: "Le newsletter degli enti che ti abbiamo mandato: quando e se sono arrivate per email",
   },
+  // Dal 30/10 (20261119110000), nello stesso lotto di «salva»: la copia che il
+  // database ha fatto al momento del gesto, quindi anche dei post che non sono
+  // più nel flusso.
+  {
+    chiave: "postSalvati",
+    tabella: "post_salvati",
+    colonna: "student_id",
+    select: "ente_nome, tipo, corpo, immagine_url, link_url, link_titolo, link_riga, allegato_nome, pubblicato_il, salvato_il",
+    singola: false,
+    voce: "I post degli enti che hai salvato: il testo, l'ente e quando",
+  },
+  {
+    chiave: "fileScaricati",
+    tabella: "scaricamenti_allegati_post",
+    colonna: "student_id",
+    select: "ente_nome, allegato_nome, pubblicato_il, created_at",
+    singola: false,
+    voce: "I file dei post degli enti che hai scaricato: il nome, l'ente e quando",
+  },
 ];
 
 /**
@@ -215,6 +234,16 @@ export const COLONNE_ESCLUSE: Record<string, Record<string, string>> = {
     tentata_il: "tecnica: quando il motore l'ha presa in un giro",
     tentata_giorno: "tecnica: il giorno del giro che l'ha presa",
     ultimo_errore: "tecnica: il messaggio d'errore del fornitore delle email, se l'invio è fallito",
+  },
+  post_salvati: {
+    id: "tecnica: l'identificativo interno della riga",
+    post_id: "tecnica: l'identificativo interno del post, che dopo una cancellazione non porta a niente; il testo copiato sta nel file",
+    istituzione_id: "tecnica: l'identificativo interno dell'ente; il nome copiato sta nel file",
+  },
+  scaricamenti_allegati_post: {
+    id: "tecnica: l'identificativo interno della riga",
+    post_id: "tecnica: l'identificativo interno del post; il nome del file copiato sta nel file",
+    istituzione_id: "tecnica: l'identificativo interno dell'ente; il nome copiato sta nel file",
   },
   scaricamenti_guide_enti: {
     guida_id: "tecnica: l'identificativo interno della guida, che dopo una cancellazione non porta a niente; il titolo copiato sta nel file",

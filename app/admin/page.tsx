@@ -17,6 +17,7 @@ import { contaDaApprovare } from "@/lib/admin/caricaEventiAdmin";
 import { etichettaDaApprovare } from "@/lib/admin/eventiAdmin";
 import { descriviErrore } from "@/lib/erroreSupabase";
 import { etichettaStatoPost, leggiMotiviPost, rigaMotivo } from "@/lib/ente/post";
+import { immagineDelPost } from "@/lib/post/contenuti";
 
 export default async function AdminPage() {
   const { supabase, nome, userId } = await requireAdmin();
@@ -57,7 +58,7 @@ export default async function AdminPage() {
       .order("created_at", { ascending: true }),
     supabase
       .from("post_enti")
-      .select("id, tipo, corpo, immagine_url, embed_url, stato, visibile, visibile_dal, tolto_il, created_at, istituzioni(nome)")
+      .select("id, tipo, corpo, immagine_url, embed_url, link_titolo, allegato_nome, stato, visibile, visibile_dal, tolto_il, created_at, istituzioni(nome)")
       .in("stato", ["pubblicato", "approvato", "tolto"])
       .order("created_at", { ascending: false })
       .limit(40),
@@ -232,10 +233,18 @@ export default async function AdminPage() {
                   </p>
                   <p className="mt-1 text-xs text-kireo-muted">{formattaDataOra(p.created_at, "long")}</p>
                   <p className="mt-2 whitespace-pre-wrap text-sm text-kireo-light/90">{p.corpo}</p>
-                  {p.immagine_url && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={p.immagine_url} alt="" className="mt-3 max-h-64 rounded-lg object-cover" />
-                  )}
+                  {/* Un'immagine fuori dal nostro spazio dei file non si carica
+                      nemmeno qui: si mostra l'indirizzo, che è il motivo per
+                      cui toglierla (lib/post/contenuti.ts). */}
+                  {p.immagine_url &&
+                    (immagineDelPost(p.immagine_url as string, process.env.NEXT_PUBLIC_SUPABASE_URL) ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={p.immagine_url as string} alt="" className="mt-3 max-h-64 rounded-lg object-cover" />
+                    ) : (
+                      <p className="mt-2 text-xs text-red-300">Immagine fuori dallo spazio dei file di KIREO, non mostrata: {p.immagine_url as string}</p>
+                    ))}
+                  {p.link_titolo && <p className="mt-2 text-xs text-kireo-light">Scheda: {p.link_titolo as string}</p>}
+                  {p.allegato_nome && <p className="mt-2 text-xs text-kireo-light">File: {p.allegato_nome as string}</p>}
                   {p.embed_url && (
                     <a href={p.embed_url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-xs text-kireo-orange underline underline-offset-2">
                       {p.embed_url}

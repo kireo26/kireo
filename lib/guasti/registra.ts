@@ -54,6 +54,7 @@ export type SpecieGuasto =
   | "guida_riservata" // il PDF di una guida 2/3 non è stato consegnato
   | "email_guida" // il follow-up via email dopo il download non è partito
   | "traccia_guida" // lo scaricamento di una guida non è stato registrato (o il file non è partito)
+  | "traccia_allegato" // lo scaricamento del file di un post non è stato registrato, e il file non è partito (30/10)
   // — la newsletter degli enti e l'avviso all'ente (30/10)
   | "email_newsletter" // l'email di una newsletter a uno studente non è partita (resta da riprovare)
   | "invio_newsletter" // un passo del motore della newsletter (preparazione, coda, segno) non è riuscito

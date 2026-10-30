@@ -6,10 +6,15 @@ export type PostBacheca = {
   istituzione_id: string;
   istituzione_nome: string;
   istituzione_slug: string;
-  tipo: "testo" | "immagine" | "link_social";
+  tipo: "testo" | "immagine" | "file" | "link_social";
   corpo: string;
   immagine_url: string | null;
   embed_url: string | null;
+  // La scheda di un link social e il nome del file (20261119110000). Il
+  // percorso del file non si legge qui: lo dà la route che scrive la traccia.
+  link_titolo: string | null;
+  link_riga: string | null;
+  allegato_nome: string | null;
   // Quando il post è diventato visibile agli studenti: `visibile_dal`, scritto
   // dal database (20261113110000). Per i post di prima del 29/10 è la data di
   // approvazione (un post scritto lunedì e approvato mercoledì, per chi legge,
@@ -59,7 +64,7 @@ export function leggiCursore(valore: string | undefined): { quando: string; id: 
   return { quando, id };
 }
 
-const COLONNE = "id, istituzione_id, tipo, corpo, immagine_url, embed_url, visibile_dal, istituzioni(nome, slug)";
+const COLONNE = "id, istituzione_id, tipo, corpo, immagine_url, embed_url, link_titolo, link_riga, allegato_nome, visibile_dal, istituzioni(nome, slug)";
 
 function daRiga(riga: Record<string, unknown>): PostBacheca {
   const org = riga.istituzioni as { nome: string; slug: string } | { nome: string; slug: string }[] | null;
@@ -73,6 +78,9 @@ function daRiga(riga: Record<string, unknown>): PostBacheca {
     corpo: riga.corpo as string,
     immagine_url: (riga.immagine_url as string | null) ?? null,
     embed_url: (riga.embed_url as string | null) ?? null,
+    link_titolo: (riga.link_titolo as string | null) ?? null,
+    link_riga: (riga.link_riga as string | null) ?? null,
+    allegato_nome: (riga.allegato_nome as string | null) ?? null,
     pubblicato_il: riga.visibile_dal as string,
   };
 }
@@ -150,5 +158,25 @@ export async function getPostDellaNotifica(supabase: SupabaseClient, id: string)
   } catch (errore) {
     console.error("Bacheca, post della notifica:", errore);
     return { stato: "non_letto" };
+  }
+}
+
+/**
+ * Quali dei post chiesti lo studente ha salvato. `null` se la lettura non è
+ * riuscita: «non letto», e il bottone «Salva» non afferma niente invece di
+ * dire «non salvato» a chi l'ha salvato.
+ */
+export async function leggiPostSalvati(supabase: SupabaseClient, ids: string[]): Promise<Set<string> | null> {
+  if (ids.length === 0) return new Set();
+  try {
+    const { data, error } = await supabase.from("post_salvati").select("post_id").in("post_id", ids);
+    if (error || !data) {
+      if (error) console.error("Bacheca, post salvati:", descriviErrore(error));
+      return null;
+    }
+    return new Set(data.map((r) => r.post_id as string));
+  } catch (errore) {
+    console.error("Bacheca, post salvati:", errore);
+    return null;
   }
 }

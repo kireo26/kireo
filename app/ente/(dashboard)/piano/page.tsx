@@ -116,7 +116,6 @@ export default async function EntePianoPage() {
           <table className="w-full min-w-[640px] border-collapse text-left text-sm">
             <tbody>
               {[
-                "Post con embed Instagram/TikTok",
                 "Notifiche ai follower su nuovi contenuti",
                 "Studenti interessati (dettaglio nominativo)",
                 "Messaggi con gli studenti",

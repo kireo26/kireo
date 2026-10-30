@@ -97,7 +97,8 @@
     "test:bacheca": "node scripts/verifica-bacheca.js",
     "test:interessati": "node scripts/verifica-interessati.js",
     "test:newsletter": "node scripts/verifica-newsletter.js",
-    "test:parolerosse": "node scripts/verifica-parole-rosse.js"
+    "test:parolerosse": "node scripts/verifica-parole-rosse.js",
+    "test:contenuti": "node scripts/verifica-contenuti.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.112.5",

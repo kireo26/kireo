@@ -26,6 +26,12 @@ export type Interessato = {
   eventi_seguiti: number | null;
   guida_scaricata: boolean | null;
   conversazione_id: string | null;
+  // Dal 20261119110000: false per chi ha condiviso col pannello di prima, che
+  // non nominava i post salvati né i file scaricati; per lui le due colonne
+  // sotto sono null. Un consenso non si allarga da sé.
+  copre_contenuti: boolean;
+  post_salvati: number | null;
+  allegati_scaricati: number | null;
 };
 
 // L'anno di corso si RICAVA dall'anno di diploma: la `classe` scritta in
@@ -60,12 +66,15 @@ export function etichettaAnno(a: AnnoDiCorso): string {
 // «Ha fatto qualcosa verso di noi»: tre stati, non due. `null` è il consenso
 // che non copre l'attività, e non si conta né fra chi ha fatto né fra chi ha
 // solo alzato la mano: non lo sappiamo, e dirlo «no» sarebbe falso.
-// ⚠️ «Ha salvato un suo contenuto» qui non c'è perché il salvataggio non
-// esiste ancora: il giorno in cui nasce, entra in questa funzione e nella
-// scheda, nello stesso commit.
+// Dal 30/10 conta anche «ha salvato un suo post o scaricato un suo file», ma
+// solo dove il consenso lo copre (`copre_contenuti`). ⚠️ Per chi ha condiviso
+// prima, «ha solo condiviso il profilo» vuol dire «niente di quello che il suo
+// consenso ti lascia vedere», non «niente in assoluto»: i suoi salvataggi non
+// li vediamo, e non li contiamo.
 export function haFattoQualcosa(r: Interessato): boolean | null {
   if (!r.copre_attivita || r.eventi_seguiti === null || r.guida_scaricata === null) return null;
-  return r.eventi_seguiti > 0 || r.guida_scaricata;
+  const contenuti = r.copre_contenuti && ((r.post_salvati ?? 0) > 0 || (r.allegati_scaricati ?? 0) > 0);
+  return r.eventi_seguiti > 0 || r.guida_scaricata || contenuti;
 }
 
 export type Filtri = {
@@ -193,7 +202,8 @@ export const TESTI_INTERESSATI = {
   nonLetti: "Non siamo riusciti a leggere gli studenti interessati: ricarica la pagina.",
   nessuno: "Nessuno studente ha ancora condiviso il proprio profilo con te.",
   nessunoConFiltri: "Nessuno studente corrisponde a questi filtri.",
-  hannoFatto: "hanno anche fatto qualcosa verso di te: sono stati a un tuo evento o hanno scaricato la tua guida",
+  hannoFatto:
+    "hanno anche fatto qualcosa verso di te: sono stati a un tuo evento, hanno scaricato la tua guida, salvato un tuo post o scaricato un tuo file",
   soloLaMano: "hanno solo condiviso il profilo",
   senzaAttivita:
     "hanno condiviso il profilo prima che il consenso includesse l'attività verso di te: di loro vedi solo quello che hanno dichiarato",
@@ -205,6 +215,10 @@ export const TESTI_INTERESSATI = {
   // ripartizioni hanno una voce per studente.
   notaAree: "Ogni studente può aver scelto più aree.",
   nessunaAttivita: "Non è ancora stato a un tuo evento e non ha scaricato la tua guida.",
+  // Dal 30/10: i post salvati e i file scaricati, solo con il consenso nuovo.
+  nessunContenuto: "Non ha salvato un tuo post e non ha scaricato un tuo file.",
+  schedaSenzaContenuti:
+    "Ha condiviso il profilo prima che il consenso includesse i post salvati e i file scaricati: questi non li vedi.",
   // ⚠️ L'ENTE NON SCRIVE PER PRIMO, ed è una REGOLA, non un limite tecnico
   // (Mario, 28/10): una conversazione fra un adulto che paga e un minorenne
   // parte dal minorenne. Condividere il profilo vuol dire «mi sono fatto

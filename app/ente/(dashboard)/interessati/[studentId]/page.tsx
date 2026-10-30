@@ -22,6 +22,10 @@ type Scheda = {
   conversazione_id: string | null;
   eventi?: EventoScheda[];
   guida_scaricata_il?: string | null;
+  // Dal 20261119110000, solo con `copre_contenuti`.
+  copre_contenuti?: boolean;
+  post_salvati?: { corpo: string; salvato_il: string }[];
+  allegati_scaricati?: { allegato_nome: string; scaricato_il: string }[];
 };
 
 // La scheda di uno studente che ha condiviso il profilo con questo ente.
@@ -115,6 +119,28 @@ export default async function SchedaInteressatoPage({ params }: { params: Promis
               </li>
             ))}
             {s.guida_scaricata_il && <li>Ha scaricato la tua guida il {formattaData(s.guida_scaricata_il, "long")}.</li>}
+          </ul>
+        )}
+      </section>
+
+      <section className="rounded-2xl border border-white/5 bg-kireo-card p-5">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-kireo-muted">I tuoi post salvati e i tuoi file scaricati</p>
+        {!s.copre_contenuti ? (
+          <p className="text-sm text-kireo-muted">{TESTI_INTERESSATI.schedaSenzaContenuti}</p>
+        ) : (s.post_salvati ?? []).length === 0 && (s.allegati_scaricati ?? []).length === 0 ? (
+          <p className="text-sm text-kireo-muted">{TESTI_INTERESSATI.nessunContenuto}</p>
+        ) : (
+          <ul className="space-y-2 text-sm text-kireo-light">
+            {(s.post_salvati ?? []).map((p, i) => (
+              <li key={`p${i}`}>
+                Ha salvato il tuo post «{p.corpo}» il {formattaData(p.salvato_il, "long")}.
+              </li>
+            ))}
+            {(s.allegati_scaricati ?? []).map((a, i) => (
+              <li key={`a${i}`}>
+                Ha scaricato il tuo file «{a.allegato_nome}» il {formattaData(a.scaricato_il, "long")}.
+              </li>
+            ))}
           </ul>
         )}
       </section>

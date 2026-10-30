@@ -19,8 +19,14 @@
 --     lo studente non lo vede;
 --   - su una replica nata senza la sola 20261113120000: 13, 14 (i motivi si
 --     leggono dal client), 22 (l'admin aggiorna lo stato dal client).
--- Verdi nei due mondi: 2 (link_social da free: prima lo fermava la policy, ora
--- il trigger), 3, 4, 5, 6, 7, 8, 10, 18.
+-- Verdi nei due mondi: 3, 4, 5, 6, 7, 8, 10, 18.
+-- ⚠️ DAL 20261119110000 LA 2 DICE IL CONTRARIO (Mario, 30/10: il link social è
+-- di tutti i piani). Fino a lì provava che l'ente free NON pubblicava un
+-- link_social; riscritta, prova che lo pubblica, con la scheda che da lì è
+-- obbligatoria. La versione di prima, lasciata com'era, restava verde per la
+-- ragione sbagliata: il suo post senza scheda lo respingeva il trigger della
+-- scheda, non il piano. Su una replica nata senza il 20261119110000 la 2 e la
+-- 3 sono rosse (le colonne della scheda non esistono).
 
 begin;
 
@@ -62,13 +68,14 @@ exception when others then
 end $$;
 
 do $$ begin
-  insert into public.post_enti(istituzione_id, tipo, corpo, embed_url)
-    values ('e1000000-0000-0000-0000-0000000000e1', 'link_social', 'Social', 'https://www.instagram.com/p/x');
+  insert into public.post_enti(istituzione_id, tipo, corpo, embed_url, link_titolo, link_riga, immagine_url)
+    values ('e1000000-0000-0000-0000-0000000000e1', 'link_social', 'Social', 'https://www.instagram.com/p/x',
+            'Titolo', 'Una riga', 'https://x.supabase.co/storage/v1/object/public/post-enti-media/e1/a.png');
   -- Se passa, si annulla: un post in più farebbe scattare il tetto più avanti (il modo 9).
   raise exception 'passa_e_si_annulla';
 exception when others then
-  insert into esiti values (2, 'l''ente free NON pubblica un link_social (il secondo lavoro della policy di prima)', 'RESPINTO',
-    sqlerrm <> 'passa_e_si_annulla', case when sqlerrm = 'passa_e_si_annulla' then '*** PASSA ***' else 'respinto: ' || sqlerrm end);
+  insert into esiti values (2, 'l''ente free pubblica un link_social con la scheda (dal 20261119110000 il piano non conta)', 'riuscito',
+    sqlerrm = 'passa_e_si_annulla', case when sqlerrm = 'passa_e_si_annulla' then 'riuscito (e annullato)' else 'respinto: ' || sqlerrm end);
 end $$;
 
 do $$ begin
@@ -97,8 +104,9 @@ end $$;
 
 set local request.jwt.claim.sub = 'f2000000-0000-0000-0000-0000000000f2';
 do $$ begin
-  insert into public.post_enti(istituzione_id, tipo, corpo, embed_url)
-    values ('e2000000-0000-0000-0000-0000000000e2', 'link_social', 'Social', 'https://www.instagram.com/p/x');
+  insert into public.post_enti(istituzione_id, tipo, corpo, embed_url, link_titolo, link_riga, immagine_url)
+    values ('e2000000-0000-0000-0000-0000000000e2', 'link_social', 'Social', 'https://www.instagram.com/p/x',
+            'Titolo', 'Una riga', 'https://x.supabase.co/storage/v1/object/public/post-enti-media/e2/a.png');
   insert into esiti values (3, 'l''ente a pagamento pubblica un link_social', 'riuscito', true, 'riuscito');
 exception when others then
   insert into esiti values (3, 'l''ente a pagamento pubblica un link_social', 'riuscito', false, 'respinto: ' || sqlerrm);
