@@ -63,8 +63,16 @@ const P = require("@/lib/ente/pianoSuccessivo");
     const cron = JSON.parse(leggi("vercel.json")).crons.filter((c) => c.path === "/api/cron/newsletter").map((c) => c.schedule).sort();
     ok(JSON.stringify(cron) === JSON.stringify(["30 5 * * *", "30 6 * * *"]), "vercel.json chiama la newsletter alle 5:30 e alle 6:30 UTC", cron);
     const route = senzaCommenti(leggi("app/api/cron/newsletter/route.ts"));
-    const guardia = ancora(route, "eOraDiInvio(", { dove: "la guardia dell'ora" });
-    ok(guardia < ancora(route, "giroInvio(", { dove: "il giro" }), "la route guarda l'ora italiana PRIMA di lavorare");
+    // Un'àncora che manca è un «✗» con il suo motivo, non un crash.
+    const pos = (nome, dove) => {
+      try {
+        return ancora(route, nome, { dove });
+      } catch {
+        return -1;
+      }
+    };
+    const guardia = pos("if (!eOraDiInvio(adesso))", "la guardia dell'ora");
+    ok(guardia >= 0 && guardia < pos("giroInvio(", "il giro"), "la route guarda l'ora italiana PRIMA di lavorare", { guardia });
     ok(/Europe\/Rome|ora italiana/.test(leggi("app/api/cron/newsletter/route.ts")), "accanto al cron è scritto che l'ora è italiana, e perché");
   }
 

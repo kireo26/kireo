@@ -36,7 +36,7 @@ if [ -z "$stampate" ]; then
   grep -m1 ERROR "$OUT" | sed 's/^/    /'
   exit 2
 fi
-rosse=$(grep -E '^[[:space:]]*[0-9]+[[:space:]]*\|' "$OUT" | grep -E '\bROTT[AOE]\b|\|[[:space:]]+f[[:space:]]*$' | grep -oE '^[[:space:]]*[0-9]+' | tr -dc '0-9\n' | sort -u)
+rosse=$(grep -E '^[[:space:]]*[0-9]+[[:space:]]*\|' "$OUT" | grep -E '\bROTT[AOE]\b|\bROSS[AOE]\b|\|[[:space:]]+f[[:space:]]*$' | grep -oE '^[[:space:]]*[0-9]+' | tr -dc '0-9\n' | sort -u)
 mancanti=$(comm -23 <(echo "$scritte") <(echo "$stampate") | tr '\n' ' ')
 inattese=$(comm -13 <(echo "$attese_rosse") <(echo "$rosse") | tr '\n' ' ')
 non_arrivate=$(comm -23 <(echo "$attese_rosse") <(echo "$rosse") | tr '\n' ' ')

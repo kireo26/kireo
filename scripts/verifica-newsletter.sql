@@ -277,7 +277,8 @@ end $$;
 do $$
 declare v_n int; v_es jsonb;
 begin
-  perform public.segna_consegna_newsletter((select c.id from public.newsletter_consegne c where c.newsletter_id = (select id from nl where chiave = 'n1')), true, null);
+  perform public.segna_consegna_newsletter((select c.id from public.newsletter_consegne c
+    where c.newsletter_id = (select id from nl where chiave = 'n1') and c.student_id = '55555555-0000-0000-0000-0000000000c1'), true, null);
   select count(*) into v_n from public.newsletter_da_inviare((select giorno from g where chiave = 'ott') + 3, 100);
   -- Com'è andata la legge l'ente (qui come l'ente 2, poi l'1).
   set local role authenticated;
@@ -330,7 +331,8 @@ begin
   insert into esiti values (23, 'un altro ente non legge com''è andata', 'null', coalesce(v::text, 'null'), v is null);
 end $$;
 
-select n, case when coalesce(ok, false) then 'ok' else 'ROSSA' end as esito, cosa, atteso, trovato from esiti order by n;
-select count(*) filter (where coalesce(ok, false)) || '/' || count(*) || ' verificate' as riepilogo from esiti;
+select n, case when coalesce(ok, false) then 'ok' else 'ROTTA' end as esito, cosa, atteso, trovato from esiti order by n;
+select count(*) filter (where coalesce(ok, false)) || '/' || count(*) || ' verificate' as riepilogo,
+       count(*) filter (where not coalesce(ok, false)) || ' ROTTE' as rotte from esiti;
 
 rollback;
