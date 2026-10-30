@@ -49,6 +49,7 @@
     "test:tetto": "node scripts/verifica-tetto.js",
     "test:revisore": "node scripts/verifica-revisore-aree.js",
     "test:barra": "node scripts/verifica-barra-percorso.js",
+    "test:lemiecose": "node scripts/verifica-le-mie-cose.js",
     "test:vincoli": "node scripts/verifica-vincoli-mandato.js",
     "test:date": "node scripts/verifica-date.js",
     "test:chiusura": "node scripts/verifica-chiusura-diretta.js",

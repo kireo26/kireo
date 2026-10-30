@@ -546,9 +546,18 @@ const supabaseSpia = () => {
   ok(!/leggiGuideScaricate|leggiPostSalvatiMiei/.test(soloGuide) && /TS\.titoloKireo/.test(soloGuide), "/app/guide non legge più l'archivio, e tiene le guide di KIREO");
   ok(/id="salvati"/.test(soloGuide) && /TLC\.spostate/.test(soloGuide) && /href=\{HREF_LE_MIE_COSE\}/.test(soloGuide),
     "dove stava l'archivio resta una riga, con l'àncora di prima, che porta a «Le mie cose»");
-  ok(/scaricate === null \?[\s\S]*TS\.nonLetto[\s\S]*scaricate\.length === 0 \?[\s\S]*TS\.nessuna/.test(indiceGuide), "«non letto» e «nessuna» hanno due testi diversi");
+  // Dal 30/10 «Le mie cose» è una lista sola: «non letto» e «vuoto» li decide
+  // `listaLeMieCose`, e due testi diversi li dicono (la lista è provata per
+  // intero da `npm run test:lemiecose`).
+  {
+    const { listaLeMieCose } = require("@/lib/app/leMieCose");
+    const nonLette = listaLeMieCose(null, [], "guide");
+    const vuote = listaLeMieCose([], [], "guide");
+    ok(nonLette.vuoto === null && nonLette.nonLette.join() === "guide" && typeof vuote.vuoto === "string" && vuote.nonLette.length === 0 && /lista\.nonLette\.map/.test(indiceGuide),
+      "«non letto» e «nessuna» hanno due testi diversi");
+  }
   ok(/\{g\.pdfUrl && \(\s*<a href=\{g\.pdfUrl\}/.test(indiceGuide), "il link al file c'è solo con un pdfUrl");
-  ok(/TS\.titoloEnti/.test(indiceGuide) && /TP\.titolo/.test(indiceGuide) && !/TS\.titoloKireo/.test(indiceGuide), "le due sezioni di «Le mie cose»: le guide degli enti e i post salvati, e non le guide di KIREO");
+  ok(/TL\.segno\.guida/.test(indiceGuide) && /TL\.segno\.post/.test(indiceGuide) && !/TS\.titoloKireo/.test(indiceGuide), "«Le mie cose» mescola le guide degli enti e i post salvati, ognuno col suo segno, e non le guide di KIREO");
 
   console.log("");
   if (falliti > 0) { console.error(`✗ ${falliti} verifiche fallite`); process.exit(1); }

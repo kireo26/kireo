@@ -213,7 +213,9 @@ const riga = (stato, extra = {}) => ({
   ok(/30 ottobre 2026/.test(S.TESTI_POST_SALVATI.stato(tolto)) && !/motivo/i.test(S.TESTI_POST_SALVATI.stato(tolto)), "un post tolto dice quando, e non il motivo (quello è dell'ente)");
   ok(S.TESTI_POST_SALVATI.stato(visibile) === null, "a un post ancora nel flusso non si aggiunge nessuna nota");
   const pagina = senzaCommenti(leggi("app/app/le-mie-cose/page.tsx"));
-  ok(/leggiPostSalvatiMiei\(supabase\)/.test(pagina) && /TP\.nonLetto/.test(pagina) && /TP\.nessuno/.test(pagina), "l'archivio in Le mie cose legge i salvataggi e distingue non letto da vuoto");
+  // Dal 30/10 la pagina è una lista sola (`listaLeMieCose`): «non letto» e
+  // «vuoto» li decide la lista, e qui si guarda che la pagina li dica.
+  ok(/leggiPostSalvatiMiei\(supabase\)/.test(pagina) && /lista\.nonLette\.map/.test(pagina) && /lista\.vuoto &&/.test(pagina), "l'archivio in Le mie cose legge i salvataggi e distingue non letto da vuoto");
   ok(/p\.stato === "visibile" && p\.postId/.test(pagina), "il file si offre dall'archivio solo se il post è ancora nel flusso");
 
   console.log("\n§7 gli Interessati e il consenso");
