@@ -77,6 +77,7 @@ const conIframeSocial = daGuardare.filter((f) => {
 ok(conIframeSocial.length === 0, "nessun file mette un iframe accanto a una piattaforma social", conIframeSocial.join(", "));
 const feed = senzaCommenti(leggi("components/app/FeedPost.tsx"));
 ok(!/tiktok\.com\/embed|\/embed`|embed\/v2/.test(feed), "il feed non costruisce più l'indirizzo «embed» di una piattaforma");
+ok(!/<iframe/i.test(feed), "il feed non ha nessun iframe, di nessun tipo");
 ok(/target="_blank"/.test(feed) && /rel="noopener noreferrer"/.test(feed), "il link della scheda si apre fuori, senza portarsi dietro la pagina");
 
 console.log("\n§3 le immagini solo dal nostro spazio");
@@ -143,6 +144,10 @@ const riga = (stato, extra = {}) => ({
     "con il consenso nuovo, un post salvato è «ha fatto qualcosa»");
   ok(I.haFattoQualcosa({ ...base7, copre_attivita: true, eventi_seguiti: 0, guida_scaricata: false, copre_contenuti: false, post_salvati: null, allegati_scaricati: null }) === false,
     "con il consenso di prima i salvataggi non si contano (non li vediamo)");
+  // Il caso che decide: righe di salvataggi PRESENTI con il consenso di prima.
+  // Con post_salvati null il controllo sul consenso non si eserciterebbe.
+  ok(I.haFattoQualcosa({ ...base7, copre_attivita: true, eventi_seguiti: 0, guida_scaricata: false, copre_contenuti: false, post_salvati: 2, allegati_scaricati: 1 }) === false,
+    "con il consenso di prima, anche dei salvataggi contati non accendono «ha fatto qualcosa»");
   ok(I.haFattoQualcosa({ ...base7, copre_attivita: false, eventi_seguiti: null, guida_scaricata: null, copre_contenuti: false, post_salvati: null, allegati_scaricati: null }) === null,
     "un consenso che non copre l'attività resta «non lo sappiamo»");
   const btn = leggi("components/app/ManifestazioneInteresseButton.tsx").replace(/\s+/g, " ");
