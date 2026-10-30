@@ -377,6 +377,18 @@
       "commit": "093eb0a",
       "stato": "verificata",
       "fonte": "Mario 30/10: applicata, avvisi_email_enti esiste e ha registrato l'approvazione delle 10:18 (esito inviata, account 1, inviate 1, messageId <202610301018.65334513973@smtp-relay.mailin.fr>)"
+    },
+    {
+      "file": "20261119100000_post_contenuti_parole.sql",
+      "commit": "bca7015",
+      "stato": "verificata",
+      "fonte": "Mario 30/10, dallo schema: il tipo post_ente_tipo contiene 'file' (a_file true)"
+    },
+    {
+      "file": "20261119110000_post_contenuti_salva.sql",
+      "commit": "bca7015",
+      "stato": "verificata",
+      "fonte": "Mario 30/10, dallo schema: la colonna post_enti.link_titolo esiste (b_scheda true), il trigger post_enti_tipo_dal_piano non esiste (trigger_piano false); 0 post link_social"
     }
   ]
 }
