@@ -89,6 +89,11 @@ grant select (link_esterno) on public.post_enti to anon, authenticated;
 -- ============ i vincoli nuovi ============
 -- Le righe di oggi li rispettano già (nessun link_social, e i link di testo,
 -- immagine e file erano vietati fino a oggi): nascono validati.
+-- Un link_social lo rifiutano già i tre rami (nessuno lo ammette): la clausola
+-- `tipo <> 'link_social'` è la seconda rete, per il giorno in cui qualcuno
+-- aggiunge un ramo. Misurato il 30/10: con un ramo che lo riammette la
+-- clausola lo ferma ancora; tolte tutte e due, la 2 di
+-- verifica-post-contenuti diventa rossa.
 alter table public.post_enti
   add constraint post_enti_coerenza_tipo check (
     tipo <> 'link_social'
