@@ -5,7 +5,8 @@ import type { Evento } from "@/lib/app/eventi";
 import { formattaDataOra } from "@/lib/formato";
 import { numeroOre } from "@/lib/eventi/orePcto";
 import { faseIscrizione, fineEffettiva } from "@/lib/live";
-import { hrefRivedi, registrazioneRivedibile, TESTI_RIVEDI } from "@/lib/eventi/registrazione";
+import { doveSiRivede, hrefRivedi, TESTI_RIVEDI, urlYoutube } from "@/lib/eventi/registrazione";
+import { TESTI_CONTENUTI } from "@/lib/post/contenuti";
 import Link from "next/link";
 
 const ETICHETTA_TIPO: Record<Evento["tipo"], string> = {
@@ -50,6 +51,8 @@ export default function CardEvento({
   const fine = fineEffettiva(evento.data_inizio, evento.data_fine, evento.diretta_chiusa_il);
   const fase = faseIscrizione(evento.data_inizio, fine);
   const hrefDiretta = `/app/eventi/${evento.id}/live`;
+  // Dove si rivede (31/10): per tutti, iscritti o no.
+  const dove = doveSiRivede(evento);
   const iscrizione =
     fase === "prima" ? (
       <IscrivitiEventoButton
@@ -130,7 +133,7 @@ export default function CardEvento({
               ha visto la registrazione partire. E accanto, sempre, che non è
               una partecipazione: chi guarda due ore e poi non trova niente in
               «Le mie attività» deve averlo saputo prima. */}
-          {registrazioneRivedibile(evento) && (
+          {dove === "kireo" && (
             <div className="mt-3">
               <Link
                 href={hrefRivedi(evento.id)}
@@ -139,6 +142,23 @@ export default function CardEvento({
                 {TESTI_RIVEDI.bottone}
               </Link>
               <p className="mt-1.5 text-xs text-kireo-muted">{TESTI_RIVEDI.nonConta}</p>
+            </div>
+          )}
+          {/* L'incorporamento è spento: il video c'è e si guarda fuori da KIREO,
+              come i link degli enti. Lo studente sa dove va prima di premere, e
+              la regola non cambia a seconda di dove si guarda. */}
+          {dove === "youtube" && evento.youtube_video_id && (
+            <div className="mt-3">
+              <a
+                href={urlYoutube(evento.youtube_video_id)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center rounded-full border border-kireo-orange/60 px-4 py-2 text-xs font-semibold text-kireo-orange transition-colors hover:bg-kireo-orange/10"
+              >
+                {TESTI_RIVEDI.bottoneYoutube} ↗
+              </a>
+              <p className="mt-1.5 text-xs text-kireo-muted">{TESTI_CONTENUTI.fuoriDaKireo}</p>
+              <p className="mt-0.5 text-xs text-kireo-muted">{TESTI_RIVEDI.nonConta}</p>
             </div>
           )}
         </div>

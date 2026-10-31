@@ -14,14 +14,13 @@ import { fineEffettiva } from "@/lib/live";
 // questo non è la cosa che `npm run test:contenuti` §2 vieta (far vedere uno
 // studente a Meta), e la guardia ha una taratura che lo dice.
 //
-// ⚠️ NON MISURATO, DOCUMENTATO: dal sandbox la rete verso YouTube è chiusa. Che
-// oEmbed risponda 200 a un video pubblico o non in elenco e incorporabile, 401
-// a un video con l'incorporamento spento, e 403/404 a uno privato o cancellato
-// viene dalla documentazione e dall'uso comune, non da una nostra misura. La
-// misura che c'è è un'altra (31/10): il player del prodotto riproduce la
-// registrazione di `5doxLWDlAJU`. Il giorno della prima sonda vera, il suo
-// esito su quell'id deve dire `disponibile`: se dice altro, la mappa qui sotto è
-// sbagliata, e il bottone non compare (il verso giusto dell'errore).
+// ✅ MISURATO NEI DUE VERSI (Mario, 31/10, primo giro vero del cron: 13 letti,
+// 0 guasti, 12 disponibile e 1 non_incorporabile), e verificato a schermo col
+// banco del player: `5doxLWDlAJU` sonda «disponibile» e il player «in
+// riproduzione»; `nyeZXqVZcWA` sonda «non_incorporabile» e il player
+// «incorporamento_disattivato». Un sì e un no verificati: la mappa qui sotto
+// (presa dalla documentazione) misura, non dice sempre la stessa cosa. Il ramo
+// 403/404 → non_trovata resta non osservato: nessun video sparito, finora.
 //
 // «UNA VOLTA», E POI SI RIPARA DOVE SI ROMPE (Mario, 31/10): un video che
 // sparisce DOPO la sonda lascerebbe il bottone acceso. La pagina «rivedi» sa
@@ -69,6 +68,8 @@ export function daSondare(e: Candidato, adesso: Date): boolean {
 
 export type EsitoGiroSonda = {
   letti: number | null;
+  // Quante richieste a YouTube: una per video distinto, non per evento.
+  richieste: number;
   sondati: { id: string; esito: EsitoRegistrazione }[];
   guasti: { passo: "lettura" | "scrittura"; dettaglio: string }[];
 };
@@ -83,7 +84,7 @@ export async function giroSondaRegistrazioni(
   chiedi: (url: string, init: { signal: AbortSignal }) => Promise<{ status: number }>,
   adesso: Date,
 ): Promise<EsitoGiroSonda> {
-  const esito: EsitoGiroSonda = { letti: null, sondati: [], guasti: [] };
+  const esito: EsitoGiroSonda = { letti: null, richieste: 0, sondati: [], guasti: [] };
   const { data, error } = await supabase
     .from("eventi")
     .select("id, data_inizio, data_fine, diretta_chiusa_il, youtube_video_id")
@@ -101,17 +102,26 @@ export async function giroSondaRegistrazioni(
   esito.letti = data.length;
   const candidati = (data as Candidato[]).filter((e) => daSondare(e, adesso)).slice(0, SONDE_PER_GIRO);
 
+  // UNA RICHIESTA PER VIDEO, NON PER EVENTO (31/10): il primo giro vero ne ha
+  // fatte 13 per 6 video distinti (eventi di prova che riusano lo stesso
+  // video). La risposta di YouTube è sul video, quindi vale per ogni evento che
+  // lo usa; la scrittura resta una per evento, ognuna contata.
+  const perVideo = new Map<string, EsitoRegistrazione>();
   for (const e of candidati) {
-    let risposta: EsitoRegistrazione = "non_controllato";
-    const controllo = new AbortController();
-    const timer = setTimeout(() => controllo.abort(), MS_ATTESA);
-    try {
-      const r = await chiedi(urlOembed(e.youtube_video_id), { signal: controllo.signal });
-      risposta = esitoDaRispostaOembed(r.status);
-    } catch {
+    let risposta = perVideo.get(e.youtube_video_id);
+    if (risposta === undefined) {
       risposta = "non_controllato";
-    } finally {
-      clearTimeout(timer);
+      const controllo = new AbortController();
+      const timer = setTimeout(() => controllo.abort(), MS_ATTESA);
+      try {
+        const r = await chiedi(urlOembed(e.youtube_video_id), { signal: controllo.signal });
+        risposta = esitoDaRispostaOembed(r.status);
+      } catch {
+        risposta = "non_controllato";
+      } finally {
+        clearTimeout(timer);
+      }
+      perVideo.set(e.youtube_video_id, risposta);
     }
     const { data: scritte, error: erroreScrittura } = await supabase
       .from("eventi")
@@ -124,6 +134,7 @@ export async function giroSondaRegistrazioni(
     }
     esito.sondati.push({ id: e.id, esito: risposta });
   }
+  esito.richieste = perVideo.size;
   return esito;
 }
 

@@ -41,5 +41,5 @@ export async function GET(request: NextRequest) {
     console.error(`[${PROCESSO}] gli eventi da sondare non si sono letti: nessuna sonda in questo giro`);
     return NextResponse.json({ errore: "Non sono riuscito a leggere gli eventi da sondare." }, { status: 500 });
   }
-  return NextResponse.json({ letti: esito.letti, sondati: esito.sondati, guasti: esito.guasti.length });
+  return NextResponse.json({ letti: esito.letti, richieste: esito.richieste, sondati: esito.sondati, guasti: esito.guasti.length });
 }

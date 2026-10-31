@@ -55,6 +55,14 @@ const a = (t) => new Date(t);
   ok(R.registrazioneRivedibile(ev({ tipo: "altro" }), a("2026-10-31T10:00:00Z")) === false, "un incontro in presenza no");
   ok(R.registrazioneRivedibile(ev(), a("2026-10-05T15:30:00Z")) === false, "a diretta in corso no");
   ok(R.registrazioneRivedibile(ev({ diretta_chiusa_il: "2026-10-05T15:20:00Z" }), a("2026-10-05T15:30:00Z")) === true, "una diretta chiusa prima è finita prima (la fine effettiva)");
+  ok(R.doveSiRivede(ev(), a("2026-10-31T10:00:00Z")) === "kireo", "disponibile: si rivede dentro KIREO");
+  ok(R.doveSiRivede(ev({ registrazione_esito: "non_incorporabile" }), a("2026-10-31T10:00:00Z")) === "youtube", "incorporamento spento: si rivede su YouTube (il video c'è, manca il permesso di mostrarlo qui)");
+  for (const e of [null, "non_trovata", "non_controllato"]) {
+    ok(R.doveSiRivede(ev({ registrazione_esito: e }), a("2026-10-31T10:00:00Z")) === null, `con «${e}» nessun bottone`);
+  }
+  ok(R.doveSiRivede(ev({ registrazione_esito: "non_incorporabile" }), a("2026-10-05T15:30:00Z")) === null, "nemmeno YouTube prima della fine");
+  ok(R.urlYoutube("nyeZXqVZcWA") === "https://www.youtube.com/watch?v=nyeZXqVZcWA", "il link esterno è la pagina del video su youtube.com");
+  ok(R.TESTI_RIVEDI.bottoneYoutube === "Guarda la registrazione su YouTube", "il bottone esterno è quello di Mario");
   ok(R.TESTI_RIVEDI.nonConta === "Rivedere la registrazione non conta come partecipazione.", "la riga accanto al bottone è quella di Mario, parola per parola");
 
   console.log("§2 la sonda");
@@ -111,6 +119,16 @@ const a = (t) => new Date(t);
     const g = await S.giroSondaRegistrazioni(finto({ righe: [ev({ id: "e1" })], righeScritte: [] }), async () => ({ status: 200 }), adesso);
     ok(g.sondati.length === 0 && g.guasti[0]?.passo === "scrittura", "un update che non tocca righe è un guasto, non un esito scritto");
   }
+  {
+    // Una richiesta per video: tre eventi, due con lo stesso video.
+    const tre = finto({ righe: [ev({ id: "e1" }), ev({ id: "e2" }), ev({ id: "e3", youtube_video_id: "nyeZXqVZcWA" })] });
+    const viste = [];
+    const g = await S.giroSondaRegistrazioni(tre, async (url) => { viste.push(url); return { status: url.includes("nyeZXqVZcWA") ? 401 : 200 }; }, adesso);
+    ok(viste.length === 2 && g.richieste === 2, "una richiesta a YouTube per video distinto, non una per evento", `${viste.length} richieste`);
+    ok(g.sondati.length === 3 && tre.update.length === 3, "e una scrittura per ogni evento, ognuna contata");
+    ok(g.sondati.find((x) => x.id === "e2")?.esito === "disponibile" && g.sondati.find((x) => x.id === "e3")?.esito === "non_incorporabile",
+      "l'esito del video vale per ogni evento che lo usa");
+  }
   const src = leggi("lib/eventi/sondaRegistrazione.ts");
   ok(/\.or\("registrazione_esito\.is\.null,registrazione_esito\.eq\.non_controllato"\)/.test(src), "si sonda una volta: solo gli eventi mai sondati o non controllati");
   ok(/\.limit\(SONDE_PER_GIRO \* 5\)/.test(src) && /\.slice\(0, SONDE_PER_GIRO\)/.test(src), "un tetto di sonde per giro");
@@ -121,17 +139,26 @@ const a = (t) => new Date(t);
     ok(!/useHeartbeatDiretta|\/api\/live|ping_presenza|presenze_live|iscrizioni_eventi/.test(s), `${f}: nessun battito, nessuna presenza, nessuna iscrizione`);
   }
   const pagina = leggi("app/eventi/[id]/rivedi/page.tsx");
-  ok(/registrazioneRivedibile\(evento\)/.test(pagina) && /TESTI_RIVEDI\.nonDisponibile/.test(pagina), "la pagina si apre solo se la registrazione è rivedibile, altrimenti lo dice");
+  ok(/const dove = doveSiRivede\(evento\)/.test(pagina) && /dove === "kireo" && evento\.youtube_video_id \? \(/.test(pagina)
+    && /dove === "youtube" && evento\.youtube_video_id \? \(/.test(pagina) && /TESTI_RIVEDI\.nonDisponibile/.test(pagina),
+    "la pagina: il player se si incorpora, YouTube se no, e lo dice se non c'è");
   ok(/\{TESTI_RIVEDI\.nonConta\}[\s\S]*?<PlayerRegistrazione/.test(pagina), "sopra il video, che non conta come partecipazione");
   const proxy = fs.readFileSync(path.join(ROOT, "lib/supabase/proxy.ts"), "utf8");
   ok(!/"\/eventi"/.test(proxy), "la pagina è aperta anche a chi non ha fatto l'accesso (non sta fra le aree protette)");
   const card = leggi("components/app/CardEvento.tsx");
-  ok(/\{registrazioneRivedibile\(evento\) && \([\s\S]*?hrefRivedi\(evento\.id\)[\s\S]*?TESTI_RIVEDI\.nonConta/.test(card), "la card: il bottone solo se rivedibile, e la riga accanto");
-  ok(!/registrazioneRivedibile\(evento\) && iscritto/.test(card), "il bottone è per tutti, iscritti o no");
+  ok(/const dove = doveSiRivede\(evento\);/.test(card) && /\{dove === "kireo" && \([\s\S]*?hrefRivedi\(evento\.id\)[\s\S]*?TESTI_RIVEDI\.nonConta/.test(card),
+    "la card: «Rivedi» solo se si incorpora, e la riga accanto");
+  {
+    const ramoYt = (card.match(/\{dove === "youtube" && evento\.youtube_video_id && \([\s\S]*?\n {10}\)\}/) ?? [""])[0];
+    ok(/href=\{urlYoutube\(evento\.youtube_video_id\)\}/.test(ramoYt) && /target="_blank"/.test(ramoYt) && /rel="noopener noreferrer"/.test(ramoYt),
+      "con l'incorporamento spento, un link a YouTube in una scheda nuova", ramoYt.slice(0, 80));
+    ok(/TESTI_CONTENUTI\.fuoriDaKireo/.test(ramoYt) && /TESTI_RIVEDI\.nonConta/.test(ramoYt), "con «Si apre fuori da KIREO» e la stessa riga: la regola non cambia con il posto");
+  }
+  ok(!/dove === "(kireo|youtube)" && iscritto/.test(card) && !/iscritto && dove/.test(card), "i bottoni sono per tutti, iscritti o no");
 
   console.log("§4 la pagina dell'area elenca solo quello che si riapre");
   const area = leggi("app/aree/[slug]/page.tsx");
-  ok(/tuttiEventi\s*\.filter\(\(e\) => registrazioneRivedibile\(e\)\)/.test(area), "i già trasmessi sono solo i rivedibili");
+  ok(/tuttiEventi\s*\.filter\(\(e\) => doveSiRivede\(e\) !== null\)/.test(area), "i già trasmessi sono quelli che si rivedono, dentro KIREO o su YouTube");
   ok(/\.slice\(0, RIVEDIBILI_AREA_MASSIMO\)/.test(area) && /b\.data_inizio\.localeCompare\(a\.data_inizio\)/.test(area), "i più recenti, con un tetto");
   ok(/rivedibili\.length > 0 && \(/.test(area), "senza registrazioni la sezione non c'è");
   ok(/rivedibili\.map\([\s\S]*?mostraOre=\{false\}/.test(area), "senza le ore: rivedere non le dà");

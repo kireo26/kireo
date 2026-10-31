@@ -17,7 +17,7 @@ import { getEventiPerArea, getAreeDegliEventi, getIscrizioniStudente, eventoNonF
 import { cercaEnti } from "@/lib/app/esplora";
 import { createClient } from "@/lib/supabase/server";
 import { getPostDellArea, TESTI_SEZIONE_POST_AREA } from "@/lib/app/postArea";
-import { registrazioneRivedibile, RIVEDIBILI_AREA_MASSIMO, TESTI_RIVEDI, testoNessunEventoInProgramma } from "@/lib/eventi/registrazione";
+import { doveSiRivede, RIVEDIBILI_AREA_MASSIMO, TESTI_RIVEDI, testoNessunEventoInProgramma } from "@/lib/eventi/registrazione";
 import { leggiPostSalvati } from "@/lib/app/bacheca";
 
 export function generateStaticParams() {
@@ -53,11 +53,12 @@ export default async function AreaPage({ params }: { params: Promise<{ slug: str
   const tuttiEventi = await getEventiPerArea(supabase, area.slug);
   const eventiFuturi = tuttiEventi.filter((e) => eventoNonFinito(e));
   // Le dirette già trasmesse (31/10): SOLO quelle che si possono davvero
-  // riaprire — un webinar finito la cui registrazione la sonda ha visto
-  // partire. Un evento passato senza registrazione resta nella pagina del suo
+  // rivedere — dentro KIREO o, con l'incorporamento spento, su YouTube (la
+  // sezione promette eventi che si possono rivedere, e questi si possono
+  // rivedere: solo, non qui). Un evento passato senza registrazione resta nella pagina del suo
   // ente come storia, e qui non c'è.
   const rivedibili = tuttiEventi
-    .filter((e) => registrazioneRivedibile(e))
+    .filter((e) => doveSiRivede(e) !== null)
     .sort((a, b) => b.data_inizio.localeCompare(a.data_inizio))
     .slice(0, RIVEDIBILI_AREA_MASSIMO);
   const areeEventi = await getAreeDegliEventi(
