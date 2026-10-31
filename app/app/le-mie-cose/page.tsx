@@ -14,6 +14,9 @@ import {
 import { TESTI_CONTENUTI, immagineDelPost, CLASSE_IMMAGINE_POST } from "@/lib/post/contenuti";
 import { LinkEsterno } from "@/components/app/FeedPost";
 import TogliPostSalvato from "@/components/app/TogliPostSalvato";
+import TogliRegistrazioneSalvata from "@/components/app/TogliRegistrazioneSalvata";
+import { leggiRegistrazioniSalvate, TESTI_REGISTRAZIONI_SALVATE as TR } from "@/lib/app/registrazioniSalvate";
+import { hrefRivedi, TESTI_RIVEDI, urlYoutube } from "@/lib/eventi/registrazione";
 
 export const metadata = { title: "Le mie cose — KIREO" };
 
@@ -28,8 +31,12 @@ export default async function LeMieCose({ searchParams }: { searchParams: Promis
     allegato === "non_disponibile" ? TESTI_CONTENUTI.allegatoNonDisponibile : allegato === "errore" ? TESTI_CONTENUTI.allegatoErrore : null;
   await getAppContext();
   const supabase = await createClient();
-  const [scaricate, salvati] = await Promise.all([leggiGuideScaricate(supabase), leggiPostSalvatiMiei(supabase)]);
-  const lista = listaLeMieCose(scaricate, salvati, filtro);
+  const [scaricate, salvati, registrazioni] = await Promise.all([
+    leggiGuideScaricate(supabase),
+    leggiPostSalvatiMiei(supabase),
+    leggiRegistrazioniSalvate(supabase),
+  ]);
+  const lista = listaLeMieCose(scaricate, salvati, registrazioni, filtro);
 
   return (
     <div className="space-y-8">
@@ -88,6 +95,42 @@ export default async function LeMieCose({ searchParams }: { searchParams: Promis
                         {TS.apri} →
                       </a>
                     )}
+                  </li>
+                );
+              }
+              if (v.tipo === "registrazione") {
+                // L'identità è quella copiata al gesto; il bottone lo decide
+                // lo stato di adesso (`dove`), e senza bottone una riga dice
+                // perché. Rivedere non conta come partecipazione, anche da qui.
+                const reg = v.registrazione;
+                return (
+                  <li key={`registrazione-${v.chiave}`} className="rounded-2xl border border-white/5 bg-kireo-card p-5">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <Segno testo={TL.segno.registrazione} />
+                        <p className="font-heading text-base font-semibold text-kireo-light">{reg.titolo}</p>
+                        <p className="mt-0.5 text-xs text-kireo-muted">{TR.riga(reg)}</p>
+                      </div>
+                      <TogliRegistrazioneSalvata salvataggioId={reg.salvataggioId} />
+                    </div>
+                    {reg.dove === "kireo" && reg.eventoId && (
+                      <div className="mt-3">
+                        <Link href={hrefRivedi(reg.eventoId)} className="text-sm font-medium text-kireo-orange underline underline-offset-2">
+                          {TESTI_RIVEDI.bottone}
+                        </Link>
+                        <p className="mt-1 text-xs text-kireo-muted">{TESTI_RIVEDI.nonConta}</p>
+                      </div>
+                    )}
+                    {reg.dove === "youtube" && reg.videoAdesso && (
+                      <div className="mt-3">
+                        <a href={urlYoutube(reg.videoAdesso)} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-kireo-orange underline underline-offset-2">
+                          {TESTI_RIVEDI.bottoneYoutube} ↗
+                        </a>
+                        <p className="mt-1 text-xs text-kireo-muted">{TESTI_CONTENUTI.fuoriDaKireo}</p>
+                        <p className="mt-0.5 text-xs text-kireo-muted">{TESTI_RIVEDI.nonConta}</p>
+                      </div>
+                    )}
+                    {reg.perche && <p className="mt-2 text-xs text-kireo-muted">{TR.perche[reg.perche]}</p>}
                   </li>
                 );
               }

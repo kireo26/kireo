@@ -59,6 +59,7 @@ const CLASSI = {
   "components/app/CardEvento.tsx": ["effettiva", "iscrizione ed «Entra» sulla fine effettiva"],
   "lib/eventi/registrazione.ts": ["effettiva", "una registrazione si rivede a diretta finita: una diretta chiusa prima è finita prima (31/10)"],
   "lib/eventi/sondaRegistrazione.ts": ["effettiva", "la sonda chiede del video a diretta finita da un po', contando dalla fine effettiva (31/10)"],
+  "lib/app/registrazioniSalvate.ts": ["riceve", "passa le colonne vive a `doveSiRivede` (lib/eventi/registrazione.ts), che usa la fine effettiva (31/10)"],
   "app/eventi/[id]/rivedi/page.tsx": ["riceve", "legge le colonne e decide con `doveSiRivede` (lib/eventi/registrazione.ts), che usa la fine effettiva"],
   "components/docente/CardWebinarDocente.tsx": ["effettiva", "come sopra, nell'area docente"],
   "components/live/PannelloLive.tsx": ["effettiva", "la pagina dello studente passa tutta allo stato «conclusa» alla chiusura"],

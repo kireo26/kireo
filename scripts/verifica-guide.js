@@ -551,8 +551,8 @@ const supabaseSpia = () => {
   // intero da `npm run test:lemiecose`).
   {
     const { listaLeMieCose } = require("@/lib/app/leMieCose");
-    const nonLette = listaLeMieCose(null, [], "guide");
-    const vuote = listaLeMieCose([], [], "guide");
+    const nonLette = listaLeMieCose(null, [], [], "guide");
+    const vuote = listaLeMieCose([], [], [], "guide");
     ok(nonLette.vuoto === null && nonLette.nonLette.join() === "guide" && typeof vuote.vuoto === "string" && vuote.nonLette.length === 0 && /lista\.nonLette\.map/.test(indiceGuide),
       "«non letto» e «nessuna» hanno due testi diversi");
   }

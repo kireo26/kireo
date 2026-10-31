@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { salvataggiDi } from "@/lib/app/registrazioniSalvate";
 import { getIstituzionePubblicaBySlug, getGuideEnte, isIscrittoNewsletter, getConteggioFollower, isSeguito, etichettaTipoIstituzione, getAreeApprovateIstituzione } from "@/lib/app/istituzioni";
 import { getEventiIstituzione, getAreeDegliEventi, getIscrizioniStudente, eventoNonFinito } from "@/lib/app/eventi";
 import { statoEta, type StatoEta } from "@/lib/eta";
@@ -44,6 +45,8 @@ export default async function IstituzionePubblicaPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  // «Salva la registrazione» sulle dirette passate (31/10).
+  const salvataggi = await salvataggiDi(supabase, user?.id ?? null);
 
   const [guide, eventi, areeDichiarate] = await Promise.all([
     getGuideEnte(supabase, istituzione.id),
@@ -218,6 +221,7 @@ export default async function IstituzionePubblicaPage({
               {eventiInProgramma.map((evento) => (
                 <CardEvento
                   key={evento.id}
+                  salvataggi={salvataggi}
                   evento={evento}
                   areeSlugs={areeEventi[evento.id] ?? []}
                   userId={user?.id ?? null}
@@ -255,6 +259,7 @@ export default async function IstituzionePubblicaPage({
               {eventiPassati.map((evento) => (
                 <CardEvento
                   key={evento.id}
+                  salvataggi={salvataggi}
                   evento={evento}
                   areeSlugs={areeEventi[evento.id] ?? []}
                   userId={user?.id ?? null}

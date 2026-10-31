@@ -8,6 +8,8 @@ import { faseIscrizione, fineEffettiva } from "@/lib/live";
 import { doveSiRivede, hrefRivedi, TESTI_RIVEDI, urlYoutube } from "@/lib/eventi/registrazione";
 import { TESTI_CONTENUTI } from "@/lib/post/contenuti";
 import Link from "next/link";
+import SalvaRegistrazione from "./SalvaRegistrazione";
+import { statoSalva, type SalvataggiRegistrazioni } from "@/lib/app/registrazioniSalvate";
 
 const ETICHETTA_TIPO: Record<Evento["tipo"], string> = {
   webinar: "Webinar",
@@ -22,6 +24,7 @@ export default function CardEvento({
   iscritto,
   origineIscrizione = null,
   mostraOre = true,
+  salvataggi,
 }: {
   evento: Evento;
   areeSlugs: string[];
@@ -35,6 +38,10 @@ export default function CardEvento({
   // mentre quelle di chi c'era sono quelle certificate allora. Una variante
   // della stessa card, non una seconda card: due card divergono.
   mostraOre?: boolean;
+  // «Salva la registrazione» (31/10): obbligatorio, perché un default
+  // nasconderebbe la pagina che non l'ha letto. Conta solo dove c'è un bottone
+  // per rivedere; sugli eventi futuri non compare niente.
+  salvataggi: SalvataggiRegistrazioni;
 }) {
   // TRE STATI, NON DUE (decisione di Mario, 18/10 — vedi `faseIscrizione` in
   // lib/live.ts). Prima dell'inizio «Iscriviti»; a diretta IN CORSO «Iscriviti
@@ -142,6 +149,7 @@ export default function CardEvento({
                 {TESTI_RIVEDI.bottone}
               </Link>
               <p className="mt-1.5 text-xs text-kireo-muted">{TESTI_RIVEDI.nonConta}</p>
+              <SalvaRegistrazione eventoId={evento.id} stato={statoSalva(salvataggi, evento.id)} />
             </div>
           )}
           {/* L'incorporamento è spento: il video c'è e si guarda fuori da KIREO,
@@ -159,6 +167,7 @@ export default function CardEvento({
               </a>
               <p className="mt-1.5 text-xs text-kireo-muted">{TESTI_CONTENUTI.fuoriDaKireo}</p>
               <p className="mt-0.5 text-xs text-kireo-muted">{TESTI_RIVEDI.nonConta}</p>
+              <SalvaRegistrazione eventoId={evento.id} stato={statoSalva(salvataggi, evento.id)} />
             </div>
           )}
         </div>

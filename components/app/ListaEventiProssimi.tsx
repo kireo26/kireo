@@ -54,6 +54,9 @@ export default function ListaEventiProssimi({
             userId={userId}
             iscritto={Boolean(iscrizioni[evento.id])}
             origineIscrizione={iscrizioni[evento.id] ?? null}
+            // Eventi in programma: non hanno una registrazione, quindi «Salva»
+            // non compare mai qui. «non_letto» dice che non si afferma niente.
+            salvataggi={{ tipo: "non_letto" }}
           />
         ))}
         {eventiFiltrati.length === 0 && <p className="text-sm text-kireo-muted">Nessun evento per questa area al momento.</p>}

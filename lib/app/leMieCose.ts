@@ -15,6 +15,7 @@
 
 import type { GuidaScaricata } from "@/lib/app/guideScaricate";
 import type { PostSalvato } from "@/lib/app/postSalvati";
+import type { RegistrazioneSalvata } from "@/lib/app/registrazioniSalvate";
 
 export const HREF_LE_MIE_COSE = "/app/le-mie-cose";
 
@@ -22,7 +23,7 @@ export const HREF_LE_MIE_COSE = "/app/le-mie-cose";
 export const TESTI_LE_MIE_COSE = {
   etichetta: "Le mie cose",
   titolo: "Le mie cose",
-  intestazione: "Quello che hai tenuto, dal più recente: le guide degli enti che hai scaricato e i post che hai salvato.",
+  intestazione: "Quello che hai tenuto, dal più recente: le guide degli enti che hai scaricato, i post e le registrazioni che hai salvato.",
   // Per chi arriva a /app/guide con un preferito o un link di prima: la
   // sezione non c'è più lì, e la riga dice dove è andata invece di saltare
   // altrove senza spiegazione.
@@ -49,12 +50,15 @@ export const TESTI_LE_MIE_COSE = {
 // di arrivo non è un ordine.
 
 
-export type FiltroLeMieCose = "tutto" | "guide" | "post";
-export const FILTRI_LE_MIE_COSE: readonly FiltroLeMieCose[] = ["tutto", "guide", "post"];
+// Dal 31/10 i filtri sono quattro (Mario): le registrazioni salvate sono la
+// terza sorgente, con il loro segno.
+export type FiltroLeMieCose = "tutto" | "guide" | "post" | "registrazioni";
+export const FILTRI_LE_MIE_COSE: readonly FiltroLeMieCose[] = ["tutto", "guide", "post", "registrazioni"];
+type Sorgente = "guide" | "post" | "registrazioni";
 
 /** Il filtro sta nell'indirizzo (`?tipo=`): un valore sconosciuto è «Tutto». */
 export function filtroDaIndirizzo(tipo: string | undefined): FiltroLeMieCose {
-  return tipo === "guide" || tipo === "post" ? tipo : "tutto";
+  return tipo === "guide" || tipo === "post" || tipo === "registrazioni" ? tipo : "tutto";
 }
 
 export function hrefFiltro(f: FiltroLeMieCose): string {
@@ -63,12 +67,13 @@ export function hrefFiltro(f: FiltroLeMieCose): string {
 
 export type VoceLeMieCose =
   | { tipo: "guida"; quando: string; chiave: string; guida: GuidaScaricata }
-  | { tipo: "post"; quando: string; chiave: string; post: PostSalvato };
+  | { tipo: "post"; quando: string; chiave: string; post: PostSalvato }
+  | { tipo: "registrazione"; quando: string; chiave: string; registrazione: RegistrazioneSalvata };
 
 export type ListaLeMieCose = {
   voci: VoceLeMieCose[];
   /** Le sorgenti che il filtro chiede e che non si sono lette: la pagina le nomina. */
-  nonLette: ("guide" | "post")[];
+  nonLette: Sorgente[];
   /** Il testo del vuoto, solo se tutto quello che il filtro chiede si è letto e non c'è niente. */
   vuoto: string | null;
 };
@@ -78,37 +83,50 @@ const ms = (iso: string) => {
   return Number.isNaN(t) ? 0 : t;
 };
 
+// Le tre sorgenti sono obbligatorie, anche `null` (non letta): un argomento
+// facoltativo è il posto in cui un chiamante che si è dimenticato di leggere
+// una sorgente la fa passare per vuota.
 export function listaLeMieCose(
   guide: GuidaScaricata[] | null,
   post: PostSalvato[] | null,
+  registrazioni: RegistrazioneSalvata[] | null,
   filtro: FiltroLeMieCose,
 ): ListaLeMieCose {
-  const vuoleGuide = filtro !== "post";
-  const vuolePost = filtro !== "guide";
+  const vuole = (s: Sorgente) => filtro === "tutto" || filtro === s;
+  const vuoleGuide = vuole("guide");
+  const vuolePost = vuole("post");
+  const vuoleRegistrazioni = vuole("registrazioni");
   const voci: VoceLeMieCose[] = [];
   if (vuoleGuide && guide) for (const g of guide) voci.push({ tipo: "guida", quando: g.scaricataIl, chiave: g.guidaId, guida: g });
   if (vuolePost && post) for (const p of post) voci.push({ tipo: "post", quando: p.salvatoIl, chiave: p.salvataggioId, post: p });
+  if (vuoleRegistrazioni && registrazioni)
+    for (const r of registrazioni) voci.push({ tipo: "registrazione", quando: r.salvataIl, chiave: r.salvataggioId, registrazione: r });
   // Dal gesto più recente; a parità di istante il tipo, poi l'id.
   voci.sort((a, b) => ms(b.quando) - ms(a.quando) || a.tipo.localeCompare(b.tipo) || a.chiave.localeCompare(b.chiave));
-  const nonLette: ("guide" | "post")[] = [];
+  const nonLette: Sorgente[] = [];
   if (vuoleGuide && guide === null) nonLette.push("guide");
   if (vuolePost && post === null) nonLette.push("post");
+  if (vuoleRegistrazioni && registrazioni === null) nonLette.push("registrazioni");
   const vuoto = voci.length === 0 && nonLette.length === 0 ? TESTI_LISTA.vuoto[filtro] : null;
   return { voci, nonLette, vuoto };
 }
 
-// Testi miei e provvisori (30/10), tranne i tre del vuoto, proposti da Mario.
+// Testi miei e provvisori (30/10), tranne i tre del vuoto di guide e post,
+// proposti da Mario. Quelli delle registrazioni sono miei (31/10), tranne il
+// segno «Registrazione» (Mario).
 export const TESTI_LISTA = {
-  filtri: { tutto: "Tutto", guide: "Guide", post: "Post" } as Record<FiltroLeMieCose, string>,
+  filtri: { tutto: "Tutto", guide: "Guide", post: "Post", registrazioni: "Registrazioni" } as Record<FiltroLeMieCose, string>,
   /** Il segno su ogni riga: in una lista che mescola due cose, la riga dice quale delle due è. */
-  segno: { guida: "Guida", post: "Post" } as const,
+  segno: { guida: "Guida", post: "Post", registrazione: "Registrazione" } as const,
   vuoto: {
-    tutto: "Qui finisce quello che tieni: le guide che scarichi e i post che salvi.",
+    tutto: "Qui finisce quello che tieni: le guide che scarichi, i post e le registrazioni che salvi.",
     guide: "Non hai ancora scaricato nessuna guida.",
     post: "Non hai ancora salvato nessun post.",
+    registrazioni: "Non hai ancora salvato nessuna registrazione.",
   } as Record<FiltroLeMieCose, string>,
   nonLette: {
     guide: "Non siamo riusciti a leggere le guide che hai scaricato: qui mancano. Ricarica la pagina.",
     post: "Non siamo riusciti a leggere i post che hai salvato: qui mancano. Ricarica la pagina.",
+    registrazioni: "Non siamo riusciti a leggere le registrazioni che hai salvato: qui mancano. Ricarica la pagina.",
   } as const,
 };

@@ -16,6 +16,7 @@ import { getArticoliPerArea } from "@/lib/news";
 import { getEventiPerArea, getAreeDegliEventi, getIscrizioniStudente, eventoNonFinito } from "@/lib/app/eventi";
 import { cercaEnti } from "@/lib/app/esplora";
 import { createClient } from "@/lib/supabase/server";
+import { salvataggiDi } from "@/lib/app/registrazioniSalvate";
 import { getPostDellArea, TESTI_SEZIONE_POST_AREA } from "@/lib/app/postArea";
 import { doveSiRivede, RIVEDIBILI_AREA_MASSIMO, TESTI_RIVEDI, testoNessunEventoInProgramma } from "@/lib/eventi/registrazione";
 import { leggiPostSalvati } from "@/lib/app/bacheca";
@@ -50,6 +51,8 @@ export default async function AreaPage({ params }: { params: Promise<{ slug: str
     data: { user },
   } = await supabase.auth.getUser();
 
+  // «Salva la registrazione» sui già trasmessi (31/10): chi ha fatto l'accesso e chi no.
+  const salvataggi = await salvataggiDi(supabase, user?.id ?? null);
   const tuttiEventi = await getEventiPerArea(supabase, area.slug);
   const eventiFuturi = tuttiEventi.filter((e) => eventoNonFinito(e));
   // Le dirette già trasmesse (31/10): SOLO quelle che si possono davvero
@@ -159,6 +162,7 @@ export default async function AreaPage({ params }: { params: Promise<{ slug: str
               {eventiFuturi.map((evento) => (
                 <CardEvento
                   key={evento.id}
+                  salvataggi={salvataggi}
                   evento={evento}
                   areeSlugs={areeEventi[evento.id] ?? [area.slug]}
                   userId={user?.id ?? null}
@@ -174,6 +178,7 @@ export default async function AreaPage({ params }: { params: Promise<{ slug: str
                 {rivedibili.map((evento) => (
                   <CardEvento
                     key={evento.id}
+                    salvataggi={salvataggi}
                     evento={evento}
                     areeSlugs={areeEventi[evento.id] ?? [area.slug]}
                     userId={user?.id ?? null}

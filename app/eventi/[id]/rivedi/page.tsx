@@ -6,6 +6,8 @@ import PlayerRegistrazione from "@/components/eventi/PlayerRegistrazione";
 import { formattaData } from "@/lib/formato";
 import { doveSiRivede, TESTI_RIVEDI, urlYoutube } from "@/lib/eventi/registrazione";
 import { TESTI_CONTENUTI } from "@/lib/post/contenuti";
+import SalvaRegistrazione from "@/components/app/SalvaRegistrazione";
+import { salvataggiDi, statoSalva } from "@/lib/app/registrazioniSalvate";
 
 // RIVEDERE UNA DIRETTA (Mario, 31/10). Aperta a tutti — iscritti o no, anche
 // senza aver fatto l'accesso — perché il video è pubblicato dall'ente e la
@@ -29,6 +31,12 @@ export default async function RivediPage({ params }: { params: Promise<{ id: str
 
   const ente = (Array.isArray(evento.istituzioni) ? evento.istituzioni[0] : evento.istituzioni) as { nome?: string; slug?: string } | null;
   const dove = doveSiRivede(evento);
+  // «Salva» (31/10): solo dove si guarda qualcosa. Chi non ha fatto l'accesso
+  // legge che serve l'accesso; salvare non conta come partecipazione.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const salva = dove ? statoSalva(await salvataggiDi(supabase, user?.id ?? null), evento.id) : null;
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-6 py-10 sm:py-16">
@@ -41,6 +49,7 @@ export default async function RivediPage({ params }: { params: Promise<{ id: str
         <>
           <p className="rounded-lg border border-white/10 bg-kireo-card px-4 py-3 text-sm text-kireo-light/90">{TESTI_RIVEDI.nonConta}</p>
           <PlayerRegistrazione eventoId={evento.id} videoId={evento.youtube_video_id} titolo={evento.titolo} />
+          <SalvaRegistrazione eventoId={evento.id} stato={salva} />
         </>
       ) : dove === "youtube" && evento.youtube_video_id ? (
         <div className="rounded-2xl border border-white/5 bg-kireo-card p-6 text-center">
@@ -54,6 +63,7 @@ export default async function RivediPage({ params }: { params: Promise<{ id: str
           </a>
           <p className="mt-3 text-xs text-kireo-muted">{TESTI_CONTENUTI.fuoriDaKireo}</p>
           <p className="mt-1 text-xs text-kireo-muted">{TESTI_RIVEDI.nonConta}</p>
+          <SalvaRegistrazione eventoId={evento.id} stato={salva} />
         </div>
       ) : (
         <p className="rounded-2xl border border-white/5 bg-kireo-card p-6 text-center text-kireo-muted">{TESTI_RIVEDI.nonDisponibile}</p>

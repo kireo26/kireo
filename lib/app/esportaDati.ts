@@ -184,6 +184,17 @@ export const SEZIONI_EXPORT: SezioneExport[] = [
     singola: false,
     voce: "I post degli enti che hai salvato: il testo, l'ente e quando",
   },
+  // Dal 31/10 (20261124100000), nello stesso lotto di «salva»: l'identità
+  // copiata al gesto. Dove si guarda oggi non sta nel file: è uno stato di
+  // adesso, non una cosa sua.
+  {
+    chiave: "registrazioniSalvate",
+    tabella: "registrazioni_salvate",
+    colonna: "student_id",
+    select: "titolo_evento, ente_nome, data_evento, video_id, salvata_il",
+    singola: false,
+    voce: "Le registrazioni delle dirette che hai salvato: il titolo, l'ente, la data e quando le hai salvate",
+  },
   {
     chiave: "fileScaricati",
     tabella: "scaricamenti_allegati_post",
@@ -238,6 +249,11 @@ export const COLONNE_ESCLUSE: Record<string, Record<string, string>> = {
   post_salvati: {
     id: "tecnica: l'identificativo interno della riga",
     post_id: "tecnica: l'identificativo interno del post, che dopo una cancellazione non porta a niente; il testo copiato sta nel file",
+    istituzione_id: "tecnica: l'identificativo interno dell'ente; il nome copiato sta nel file",
+  },
+  registrazioni_salvate: {
+    id: "tecnica: l'identificativo interno della riga",
+    evento_id: "tecnica: l'identificativo interno dell'evento, che dopo una cancellazione non porta a niente; il titolo copiato sta nel file",
     istituzione_id: "tecnica: l'identificativo interno dell'ente; il nome copiato sta nel file",
   },
   scaricamenti_allegati_post: {
