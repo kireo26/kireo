@@ -39,3 +39,16 @@ export const TESTI_RIVEDI = {
 
 // Quante dirette già trasmesse mostra la pagina di un'area: le più recenti.
 export const RIVEDIBILI_AREA_MASSIMO = 6;
+
+// LA SEZIONE DEGLI EVENTI DI UN'AREA SENZA EVENTI IN PROGRAMMA (Mario, 31/10).
+// Prima diceva «I prossimi eventi arrivano a settembre», e il 31 ottobre: una
+// frase che sapeva una cosa che nessuno le aveva detto, e mentiva da sola senza
+// rompersi. Questa dice solo quello che è vero adesso, dalla pagina stessa.
+// ⚠️ NIENTE DATE PROMESSE, MAI: nessuno sa quando un ente di quell'area
+// organizzerà qualcosa, e una pagina che promette settembre a un ragazzo di
+// quinta gli sta dicendo di tornare dopo il diploma. I due testi sono di Mario.
+export function testoNessunEventoInProgramma(ciSonoGiaTrasmessi: boolean): string {
+  return ciSonoGiaTrasmessi
+    ? "Non ci sono eventi in programma in quest'area. Qui sotto trovi quelli già trasmessi."
+    : "Non ci sono ancora eventi in quest'area.";
+}

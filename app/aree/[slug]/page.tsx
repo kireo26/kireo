@@ -17,7 +17,7 @@ import { getEventiPerArea, getAreeDegliEventi, getIscrizioniStudente, eventoNonF
 import { cercaEnti } from "@/lib/app/esplora";
 import { createClient } from "@/lib/supabase/server";
 import { getPostDellArea, TESTI_SEZIONE_POST_AREA } from "@/lib/app/postArea";
-import { registrazioneRivedibile, RIVEDIBILI_AREA_MASSIMO, TESTI_RIVEDI } from "@/lib/eventi/registrazione";
+import { registrazioneRivedibile, RIVEDIBILI_AREA_MASSIMO, TESTI_RIVEDI, testoNessunEventoInProgramma } from "@/lib/eventi/registrazione";
 import { leggiPostSalvati } from "@/lib/app/bacheca";
 
 export function generateStaticParams() {
@@ -151,7 +151,7 @@ export default async function AreaPage({ params }: { params: Promise<{ slug: str
           <SectionHeading eyebrow="Partecipa" title="Eventi e webinar" />
           {eventiFuturi.length === 0 ? (
             <p className="mt-8 rounded-2xl border border-white/5 bg-kireo-card p-6 text-center text-kireo-muted">
-              I prossimi eventi arrivano a settembre — intanto scarica la guida.
+              {testoNessunEventoInProgramma(rivedibili.length > 0)}
             </p>
           ) : (
             <ul className="mt-8 space-y-4">

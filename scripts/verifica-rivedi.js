@@ -136,10 +136,73 @@ const a = (t) => new Date(t);
   ok(/rivedibili\.length > 0 && \(/.test(area), "senza registrazioni la sezione non c'è");
   ok(/rivedibili\.map\([\s\S]*?mostraOre=\{false\}/.test(area), "senza le ore: rivedere non le dà");
 
-  console.log("§5 il cron e la lingua");
+
+  console.log("§6 la sonda si ripara dove si rompe");
+  {
+    // Un client finto per un evento solo: legge la riga, registra gli update.
+    const unoFinto = (riga, { errore = null, scritte = [{ id: "e1" }] } = {}) => {
+      const update = [];
+      const from = () => {
+        const q = { aggiornamento: null };
+        const catena = new Proxy({}, {
+          get(_, nome) {
+            if (nome === "then") {
+              const r = q.aggiornamento ? { data: scritte, error: null } : { data: errore ? null : riga, error: errore };
+              return (k) => Promise.resolve(r).then(k);
+            }
+            return (...args) => { if (nome === "update") { q.aggiornamento = args[0]; update.push(args[0]); } return catena; };
+          },
+        });
+        return catena;
+      };
+      return { from, update };
+    };
+    const adesso = a("2026-10-31T18:00:00Z");
+    const riga = (x = {}) => ({ id: "e1", tipo: "webinar", stato: "approvato", youtube_video_id: "5doxLWDlAJU", registrazione_esito: "disponibile", registrazione_sondata_il: "2026-10-31T04:17:00Z", ...x });
+    const chiamate = [];
+    const chiedi = (status) => async (url) => { chiamate.push(url); return { status }; };
+
+    let c = unoFinto(riga());
+    let r = await S.risondaUnEvento(c, chiedi(404), "e1", adesso);
+    ok(r.stato === "scritto" && r.esito === "non_trovata" && c.update[0]?.registrazione_esito === "non_trovata", "un video sparito: la risonda lo scrive, e il bottone si spegne per tutti");
+    c = unoFinto(riga());
+    r = await S.risondaUnEvento(c, chiedi(200), "e1", adesso);
+    ok(r.stato === "scritto" && r.esito === "disponibile", "se il video c'è (il problema era del browser), resta disponibile");
+    c = unoFinto(riga());
+    r = await S.risondaUnEvento(c, async () => { throw new Error("rete"); }, "e1", adesso);
+    ok(r.stato === "non_controllato" && c.update.length === 0, "un nostro guasto di rete non spegne il bottone di tutti: non si scrive niente");
+    chiamate.length = 0;
+    c = unoFinto(riga({ registrazione_sondata_il: "2026-10-31T17:55:00Z" }));
+    r = await S.risondaUnEvento(c, chiedi(404), "e1", adesso);
+    ok(r.stato === "non_serve" && chiamate.length === 0 && c.update.length === 0, "non più spesso di una volta ogni 10 minuti per evento: nessuna richiesta a YouTube");
+    c = unoFinto(riga({ registrazione_esito: "non_trovata" }));
+    r = await S.risondaUnEvento(c, chiedi(200), "e1", adesso);
+    ok(r.stato === "non_serve" && c.update.length === 0, "si risonda solo un bottone acceso: un evento già spento non si riaccende da una pagina");
+    c = unoFinto(null, { errore: { message: "giù" } });
+    ok((await S.risondaUnEvento(c, chiedi(200), "e1", adesso)).stato === "guasto", "una lettura fallita è un guasto");
+    ok((await S.risondaUnEvento(unoFinto(riga(), { scritte: [] }), chiedi(404), "e1", adesso)).stato === "guasto", "un update che non tocca righe è un guasto");
+    ok(S.MINUTI_TRA_RISONDE === 10, "la pausa fra due risonde è di 10 minuti");
+  }
+  const route = leggi("app/api/eventi/[id]/risonda/route.ts");
+  ok(!/request\.(json|text|formData)\(/.test(route) && /_request/.test(route), "la route non legge il corpo: il browser chiede, non dichiara");
+  ok(/risondaUnEvento\(supabase, \(url, init\) => fetch\(url, init\), id, new Date\(\)\)/.test(route), "decide il server, con la sonda vera");
+  const player = leggi("components/eventi/PlayerRegistrazione.tsx");
+  ok(/onErrore=\{quandoNonParte\}/.test(player) && /fetch\(`\/api\/eventi\/\$\{eventoId\}\/risonda`, \{ method: "POST", keepalive: true \}\)/.test(player), "quando il video non parte, la pagina chiede di ricontrollare");
+  ok(!/body:/.test(player) && /if \(chiesto\.current\) return;/.test(player), "senza corpo, e una volta per caricamento");
+  ok(/eventoId=\{evento\.id\}/.test(leggi("app/eventi/[id]/rivedi/page.tsx")), "la pagina passa l'evento al player");
+
+  console.log("§7 la frase di settembre");
+  ok(R.testoNessunEventoInProgramma(true) === "Non ci sono eventi in programma in quest'area. Qui sotto trovi quelli già trasmessi."
+    && R.testoNessunEventoInProgramma(false) === "Non ci sono ancora eventi in quest'area.", "i due testi di Mario, parola per parola, secondo cosa c'è nella pagina");
+  const mesi = /gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre|\d/i;
+  ok(!mesi.test(R.testoNessunEventoInProgramma(true)) && !mesi.test(R.testoNessunEventoInProgramma(false)), "niente date promesse, mai");
+  const pagArea = leggi("app/aree/[slug]/page.tsx");
+  ok(/testoNessunEventoInProgramma\(rivedibili\.length > 0\)/.test(pagArea) && !/settembre/i.test(pagArea), "la pagina dell'area usa la frase vera, e «settembre» non c'è più");
+
+  console.log("§8 il cron e la lingua");
   const vercel = JSON.parse(fs.readFileSync(path.join(ROOT, "vercel.json"), "utf8"));
   ok(vercel.crons.some((c) => c.path === "/api/cron/registrazioni"), "il cron della sonda è in vercel.json");
-  for (const t of Object.values(R.TESTI_RIVEDI)) {
+  for (const t of [...Object.values(R.TESTI_RIVEDI), R.testoNessunEventoInProgramma(true), R.testoNessunEventoInProgramma(false)]) {
     if (typeof t === "string") ok(trovaAccordi(t).length === 0, "nessun accordo di genere", t);
   }
 

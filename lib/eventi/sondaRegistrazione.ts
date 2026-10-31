@@ -23,10 +23,17 @@ import { fineEffettiva } from "@/lib/live";
 // esito su quell'id deve dire `disponibile`: se dice altro, la mappa qui sotto è
 // sbagliata, e il bottone non compare (il verso giusto dell'errore).
 //
-// ⚠️ «UNA VOLTA» HA UN RESIDUO, scritto perché non sia un silenzio: un video
-// che sparisce DOPO la sonda lascia il bottone acceso. La condizione che fa
-// costruire un controllo periodico: il primo studente che trova una
-// registrazione segnata disponibile e non la vede.
+// «UNA VOLTA», E POI SI RIPARA DOVE SI ROMPE (Mario, 31/10): un video che
+// sparisce DOPO la sonda lascerebbe il bottone acceso. La pagina «rivedi» sa
+// quando il video non parte, e in quel momento CHIEDE al server di risondare
+// quell'evento (`risondaUnEvento`, route /api/eventi/[id]/risonda). ⚠️ Il verso
+// conta: il browser non scrive «non disponibile», chiede; decide il server,
+// rifacendo la sonda vera. Un browser che dichiara lo stato di una cosa si può
+// ingannare: basterebbe un indirizzo costruito a mano per spegnere i bottoni di
+// tutti. Così il primo studente che ci sbatte non è un danno: è la riparazione.
+// Il controllo periodico resta una cosa da fare se servirà: il fatto che lo
+// farebbe costruire è un bottone acceso su un video che nessuno ha provato ad
+// aprire, e quello non danneggia nessuno finché nessuno lo apre.
 
 export type EsitoRegistrazione = "disponibile" | "non_incorporabile" | "non_trovata" | "non_controllato";
 
@@ -118,4 +125,61 @@ export async function giroSondaRegistrazioni(
     esito.sondati.push({ id: e.id, esito: risposta });
   }
   return esito;
+}
+
+// Fra due risonde dello stesso evento: la route è aperta (la pagina è aperta),
+// quindi senza una pausa chiunque potrebbe farci interrogare YouTube a raffica.
+// Scelto, non misurato.
+export const MINUTI_TRA_RISONDE = 10;
+
+export type EsitoRisonda =
+  | { stato: "non_serve" } // non è un evento rivedibile, o è stato risondato da poco
+  | { stato: "non_controllato" } // YouTube non ha risposto: l'esito di prima resta
+  | { stato: "scritto"; esito: EsitoRegistrazione }
+  | { stato: "guasto"; dettaglio: string };
+
+// Una risonda su richiesta della pagina, per UN evento. Solo su un evento
+// segnato disponibile (è il bottone acceso che può mentire), e mai più spesso
+// di MINUTI_TRA_RISONDE. Un «non controllato» NON si scrive: un nostro guasto di
+// rete non deve spegnere il bottone di tutti; resta l'esito di prima.
+export async function risondaUnEvento(
+  supabase: ClientServiceRole,
+  chiedi: (url: string, init: { signal: AbortSignal }) => Promise<{ status: number }>,
+  eventoId: string,
+  adesso: Date,
+): Promise<EsitoRisonda> {
+  const { data: e, error } = await supabase
+    .from("eventi")
+    .select("id, tipo, stato, youtube_video_id, registrazione_esito, registrazione_sondata_il")
+    .eq("id", eventoId)
+    .maybeSingle();
+  if (error) return { stato: "guasto", dettaglio: descriviErrore(error) };
+  if (!e || e.tipo !== "webinar" || e.stato !== "approvato" || !e.youtube_video_id || e.registrazione_esito !== "disponibile") {
+    return { stato: "non_serve" };
+  }
+  const ultima = e.registrazione_sondata_il ? new Date(e.registrazione_sondata_il as string).getTime() : 0;
+  if (adesso.getTime() - ultima < MINUTI_TRA_RISONDE * 60_000) return { stato: "non_serve" };
+
+  let risposta: EsitoRegistrazione = "non_controllato";
+  const controllo = new AbortController();
+  const timer = setTimeout(() => controllo.abort(), MS_ATTESA);
+  try {
+    const r = await chiedi(urlOembed(e.youtube_video_id as string), { signal: controllo.signal });
+    risposta = esitoDaRispostaOembed(r.status);
+  } catch {
+    risposta = "non_controllato";
+  } finally {
+    clearTimeout(timer);
+  }
+  if (risposta === "non_controllato") return { stato: "non_controllato" };
+
+  const { data: scritte, error: erroreScrittura } = await supabase
+    .from("eventi")
+    .update({ registrazione_esito: risposta, registrazione_sondata_il: adesso.toISOString() })
+    .eq("id", eventoId)
+    .select("id");
+  if (erroreScrittura || !scritte || scritte.length === 0) {
+    return { stato: "guasto", dettaglio: erroreScrittura ? descriviErrore(erroreScrittura) : `nessuna riga per ${eventoId}` };
+  }
+  return { stato: "scritto", esito: risposta };
 }

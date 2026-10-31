@@ -38,7 +38,7 @@ export default async function RivediPage({ params }: { params: Promise<{ id: str
       {rivedibile && evento.youtube_video_id ? (
         <>
           <p className="rounded-lg border border-white/10 bg-kireo-card px-4 py-3 text-sm text-kireo-light/90">{TESTI_RIVEDI.nonConta}</p>
-          <PlayerRegistrazione videoId={evento.youtube_video_id} titolo={evento.titolo} />
+          <PlayerRegistrazione eventoId={evento.id} videoId={evento.youtube_video_id} titolo={evento.titolo} />
         </>
       ) : (
         <p className="rounded-2xl border border-white/5 bg-kireo-card p-6 text-center text-kireo-muted">{TESTI_RIVEDI.nonDisponibile}</p>

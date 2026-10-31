@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import PlayerDiretta from "@/components/live/PlayerDiretta";
 import type { EsitoSonda } from "@/lib/sondaYoutube";
 
@@ -10,8 +10,20 @@ import type { EsitoSonda } from "@/lib/sondaYoutube";
 // `npm run test:rivedi` vieta che qui entri `useHeartbeatDiretta` o una
 // chiamata a /api/live. Se il video non parte lo diciamo, invece di lasciare
 // un riquadro nero: la sonda lo aveva visto, ma un video può sparire dopo.
-export default function PlayerRegistrazione({ videoId, titolo }: { videoId: string; titolo: string }) {
+// E IN QUEL MOMENTO CHIEDIAMO AL SERVER DI RICONTROLLARE (Mario, 31/10): una
+// richiesta senza corpo, una volta per caricamento. Non diciamo noi «non c'è
+// più»: lo decide il server rifacendo la sonda, e se il video è sparito il
+// bottone si spegne per tutti gli altri.
+export default function PlayerRegistrazione({ eventoId, videoId, titolo }: { eventoId: string; videoId: string; titolo: string }) {
   const [rotto, setRotto] = useState<EsitoSonda | null>(null);
+  const chiesto = useRef(false);
+
+  function quandoNonParte(esito: EsitoSonda) {
+    setRotto(esito);
+    if (chiesto.current) return;
+    chiesto.current = true;
+    fetch(`/api/eventi/${eventoId}/risonda`, { method: "POST", keepalive: true }).catch(() => {});
+  }
   return (
     <div className="relative aspect-video overflow-hidden rounded-2xl border border-white/5 bg-black">
       {rotto ? (
@@ -22,7 +34,7 @@ export default function PlayerRegistrazione({ videoId, titolo }: { videoId: stri
           </p>
         </div>
       ) : (
-        <PlayerDiretta videoId={videoId} titolo={titolo} onErrore={setRotto} />
+        <PlayerDiretta videoId={videoId} titolo={titolo} onErrore={quandoNonParte} />
       )}
     </div>
   );
