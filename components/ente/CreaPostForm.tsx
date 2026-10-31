@@ -9,6 +9,8 @@ import { TESTI_POST } from "@/lib/ente/post";
 import { MAX_GUIDA_MB, TIPO_GUIDA } from "@/lib/ente/media";
 import { MAX_LINK_ESTERNO, normalizzaLinkEsterno, nomeAllegato, percorsoAllegato } from "@/lib/post/contenuti";
 import { descriviErrore } from "@/lib/erroreSupabase";
+import { getAreaBySlug } from "@/data/aree";
+import { MAX_AREE_POST, TESTI_AREE_POST } from "@/lib/app/postArea";
 
 const MAX_CORPO = 2000;
 const MAX_IMMAGINE_MB = 5;
@@ -37,9 +39,13 @@ const TIPI: { tipo: TipoPost; etichetta: string }[] = [
 export default function CreaPostForm({
   istituzioneId,
   avvisoTetto,
+  areeApprovate,
 }: {
   istituzioneId: string;
   avvisoTetto: string | null;
+  // Le aree che KIREO ha approvato per l'ente (31/10): le sole che un post può
+  // portare. null = non lette, e il post si pubblica senza aree.
+  areeApprovate: string[] | null;
 }) {
   const router = useRouter();
   const fairUseRaggiunto = avvisoTetto !== null;
@@ -52,6 +58,24 @@ export default function CreaPostForm({
   const [inviando, setInviando] = useState(false);
   const [erroreGenerale, setErroreGenerale] = useState<string | null>(null);
   const [alzatoAHttps, setAlzatoAHttps] = useState(false);
+  const [aree, setAree] = useState<string[]>([]);
+
+  function cambiaArea(slug: string) {
+    setErrori((e) => {
+      const resto = { ...e };
+      delete resto.aree;
+      return resto;
+    });
+    if (aree.includes(slug)) {
+      setAree(aree.filter((a) => a !== slug));
+      return;
+    }
+    if (aree.length >= MAX_AREE_POST) {
+      setErrori((e) => ({ ...e, aree: TESTI_AREE_POST.troppe }));
+      return;
+    }
+    setAree([...aree, slug]);
+  }
 
   // Il link si sistema quando si lascia il campo o si preme «Pubblica», mai
   // mentre si scrive: il campo mostra l'indirizzo che si salverà.
@@ -139,12 +163,17 @@ export default function CreaPostForm({
         link_esterno: linkDaSalvare,
         allegato_percorso: tipo === "file" ? allegatoPercorso : null,
         allegato_nome: tipo === "file" && allegato ? nomeAllegato(allegato.name) : null,
+        aree,
       }).select("id").single();
 
       if (error) {
         if (error.message?.includes("troppi_post_nelle_24_ore")) {
           setErroreGenerale(TESTI_POST.tettoDalDatabase);
           router.refresh();
+        } else if (error.message?.includes("area_post_non_approvata")) {
+          setErrori({ aree: TESTI_AREE_POST.nonApprovata });
+        } else if (error.message?.includes("troppe_aree_post") || error.message?.includes("post_enti_al_massimo_due_aree")) {
+          setErrori({ aree: TESTI_AREE_POST.troppe });
         } else if (error.message?.includes("post_enti_link_esterno_https")) {
           setErrori({ link: TESTI_POST.erroreLink.nonIndirizzo });
         } else {
@@ -265,6 +294,36 @@ export default function CreaPostForm({
         {errori.link && <p className="mt-1.5 text-sm text-red-400">{errori.link}</p>}
         {!errori.link && alzatoAHttps && <p className="mt-1.5 text-xs text-kireo-green-light">{TESTI_POST.linkAlzatoAHttps}</p>}
         <p className="mt-1.5 text-xs text-kireo-muted">{TESTI_POST.notaLink}</p>
+      </div>
+
+      {/* Le aree: solo le approvate (Mario, 31/10). Se l'ente non ne ha
+          nessuna il campo non c'è e la riga dice perché: un elenco vuoto
+          sembrerebbe un guasto. */}
+      <div>
+        {areeApprovate === null ? (
+          <p className="text-xs text-kireo-muted">{TESTI_AREE_POST.nonLette}</p>
+        ) : areeApprovate.length === 0 ? (
+          <p className="text-xs text-kireo-muted">{TESTI_AREE_POST.nessuna}</p>
+        ) : (
+          <fieldset>
+            <legend className="mb-2 text-sm font-medium text-kireo-light">{TESTI_AREE_POST.etichetta}</legend>
+            <div className="flex flex-wrap gap-2">
+              {areeApprovate.map((slug) => (
+                <label
+                  key={slug}
+                  className={`cursor-pointer rounded-full border px-3 py-1.5 text-xs font-medium ${
+                    aree.includes(slug) ? "border-kireo-green bg-kireo-green/10 text-kireo-light" : "border-white/10 text-kireo-light/80"
+                  }`}
+                >
+                  <input type="checkbox" className="sr-only" checked={aree.includes(slug)} onChange={() => cambiaArea(slug)} />
+                  {getAreaBySlug(slug)?.nome ?? slug}
+                </label>
+              ))}
+            </div>
+            {errori.aree && <p className="mt-1.5 text-sm text-red-400">{errori.aree}</p>}
+            <p className="mt-1.5 text-xs text-kireo-muted">{TESTI_AREE_POST.riga}</p>
+          </fieldset>
+        )}
       </div>
 
       <Button type="submit" variant="primary" className="w-full" disabled={inviando || fairUseRaggiunto}>

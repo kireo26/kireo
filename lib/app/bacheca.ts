@@ -63,9 +63,11 @@ export function leggiCursore(valore: string | undefined): { quando: string; id: 
   return { quando, id };
 }
 
-const COLONNE = "id, istituzione_id, tipo, corpo, immagine_url, link_esterno, allegato_nome, visibile_dal, istituzioni(nome, slug)";
+// Esportate per la pagina di un'area (lib/app/postArea.ts): una lettura del
+// post, una sola forma — due copie divergono.
+export const COLONNE = "id, istituzione_id, tipo, corpo, immagine_url, link_esterno, allegato_nome, visibile_dal, istituzioni(nome, slug)";
 
-function daRiga(riga: Record<string, unknown>): PostBacheca {
+export function daRiga(riga: Record<string, unknown>): PostBacheca {
   const org = riga.istituzioni as { nome: string; slug: string } | { nome: string; slug: string }[] | null;
   const istituzione = Array.isArray(org) ? org[0] : org;
   return {

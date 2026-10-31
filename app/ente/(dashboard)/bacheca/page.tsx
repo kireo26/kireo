@@ -2,6 +2,7 @@ import { getEnteContext } from "@/lib/ente/context";
 import { createClient } from "@/lib/supabase/server";
 import { pianoAPagamento } from "@/lib/ente/pianoSuccessivo";
 import CreaPostForm from "@/components/ente/CreaPostForm";
+import { leggiAreeApprovateEnte } from "@/lib/app/postArea";
 import { formattaData } from "@/lib/formato";
 import { descriviErrore } from "@/lib/erroreSupabase";
 import { TESTI_POST, etichettaStatoPost, leggiMotiviPost, prossimoPostDalle, rigaMotivo, testoQuotaPost, testoTettoRaggiunto } from "@/lib/ente/post";
@@ -30,6 +31,7 @@ export default async function EnteBachecaPage({ searchParams }: { searchParams: 
     (post ?? []).filter((p) => p.stato === "tolto" || p.stato === "rifiutato").map((p) => p.id as string),
   );
 
+  const areeApprovate = await leggiAreeApprovateEnte(supabase, contesto.istituzioneId);
   const adesso = new Date();
   const creatiIl = error ? null : (post ?? []).map((p) => p.created_at as string);
   const dalle = creatiIl ? prossimoPostDalle(creatiIl, adesso) : null;
@@ -96,6 +98,7 @@ export default async function EnteBachecaPage({ searchParams }: { searchParams: 
             key={`nuovo-${appenaPubblicato ?? ""}`}
             istituzioneId={contesto.istituzioneId}
             avvisoTetto={dalle ? testoTettoRaggiunto(dalle, adesso) : null}
+            areeApprovate={areeApprovate}
           />
         </div>
       </div>

@@ -10,11 +10,14 @@ import CardEnte from "@/components/app/CardEnte";
 import SeguiButton from "@/components/app/SeguiButton";
 import CtaAssistenteDigitale from "@/components/app/CtaAssistenteDigitale";
 import TracciaVisita from "@/components/app/TracciaVisita";
+import FeedPost from "@/components/app/FeedPost";
 import { AREE, getAreaBySlug } from "@/data/aree";
 import { getArticoliPerArea } from "@/lib/news";
 import { getEventiPerArea, getAreeDegliEventi, getIscrizioniStudente, eventoNonFinito } from "@/lib/app/eventi";
 import { cercaEnti } from "@/lib/app/esplora";
 import { createClient } from "@/lib/supabase/server";
+import { getPostDellArea, TESTI_SEZIONE_POST_AREA } from "@/lib/app/postArea";
+import { leggiPostSalvati } from "@/lib/app/bacheca";
 
 export function generateStaticParams() {
   return AREE.map((area) => ({ slug: area.slug }));
@@ -57,6 +60,11 @@ export default async function AreaPage({ params }: { params: Promise<{ slug: str
   const enti = await cercaEnti(supabase, { areaSlug: area.slug });
   const { data: seguitiRighe } = user ? await supabase.from("seguiti").select("istituzione_id").eq("student_id", user.id) : { data: [] };
   const seguiti = new Set((seguitiRighe ?? []).map((s) => s.istituzione_id));
+
+  const postArea = await getPostDellArea(supabase, area.slug);
+  // «Salva» solo per chi ha fatto l'accesso; senza, il bottone non c'è (null).
+  const salvati = user && postArea.stato === "post" ? await leggiPostSalvati(supabase, postArea.post.map((p) => p.id)) : null;
+  const salvatoDi = (id: string) => (salvati === null ? null : salvati.has(id));
 
   return (
     <>
@@ -114,6 +122,21 @@ export default async function AreaPage({ params }: { params: Promise<{ slug: str
         )}
       </section>
 
+      <section id="guida" className="mx-auto max-w-2xl px-6 py-20">
+        <div className="text-center">
+          <h2 className="py-1 font-heading text-2xl font-bold leading-[1.25] text-kireo-light sm:text-3xl">
+            Scarica la guida di orientamento
+          </h2>
+          <p className="mx-auto mt-4 max-w-xl text-kireo-muted">
+            Una guida gratuita su {area.nome.toLowerCase()}: percorsi, competenze richieste e
+            domande utili per capire se fa per te.
+          </p>
+        </div>
+        <div className="mt-10">
+          <GuidaAreaForm areaNome={area.nome} areaSlug={area.slug} />
+        </div>
+      </section>
+
       <section id="eventi" className="border-t border-white/5 bg-kireo-card/40">
         <div className="mx-auto max-w-4xl px-6 py-16">
           <SectionHeading eyebrow="Partecipa" title="Eventi e webinar" />
@@ -152,23 +175,33 @@ export default async function AreaPage({ params }: { params: Promise<{ slug: str
         </section>
       )}
 
+      {/* I POST DEGLI ENTI (Mario, 31/10): dopo «Enti di quest'area», perché la
+          pagina è di KIREO e gli enti ci stanno dentro, non sopra. Solo i più
+          recenti (POST_AREA_MASSIMO), e solo di enti per cui l'area è
+          approvata ADESSO: un'area revocata toglie il post da qui, non dalla
+          bacheca dell'ente. Senza post la sezione non c'è; una lettura fallita
+          lo dice. */}
+      {(postArea.stato === "non_letto" || postArea.post.length > 0) && (
+        <section id="post-enti" className="border-t border-white/5 bg-kireo-card/40">
+          <div className="mx-auto max-w-4xl px-6 py-16">
+            <SectionHeading eyebrow={TESTI_SEZIONE_POST_AREA.eyebrow} title={TESTI_SEZIONE_POST_AREA.titolo} />
+            {postArea.stato === "non_letto" ? (
+              <p className="mt-8 rounded-2xl border border-amber-400/30 bg-amber-400/10 p-6 text-center text-amber-200">
+                {TESTI_SEZIONE_POST_AREA.nonLetti}
+              </p>
+            ) : (
+              <ul className="mt-8 space-y-4">
+                {postArea.post.map((p) => (
+                  <FeedPost key={p.id} post={p} salvato={salvatoDi(p.id)} />
+                ))}
+              </ul>
+            )}
+          </div>
+        </section>
+      )}
+
       <section id="assistente-digitale" className="mx-auto max-w-2xl px-6 py-16">
         <CtaAssistenteDigitale areaSlug={area.slug} areaNome={area.nome} />
-      </section>
-
-      <section id="guida" className="mx-auto max-w-2xl px-6 py-20">
-        <div className="text-center">
-          <h2 className="py-1 font-heading text-2xl font-bold leading-[1.25] text-kireo-light sm:text-3xl">
-            Scarica la guida di orientamento
-          </h2>
-          <p className="mx-auto mt-4 max-w-xl text-kireo-muted">
-            Una guida gratuita su {area.nome.toLowerCase()}: percorsi, competenze richieste e
-            domande utili per capire se fa per te.
-          </p>
-        </div>
-        <div className="mt-10">
-          <GuidaAreaForm areaNome={area.nome} areaSlug={area.slug} />
-        </div>
       </section>
 
       <section className="bg-kireo-green">
