@@ -140,8 +140,37 @@ function finto(risposte) {
   ok(/getPostDellArea\(supabase, area\.slug\)/.test(pa) && /postArea\.stato === "non_letto"/.test(pa), "la pagina legge i post dell'area e dice quando non li ha letti");
   ok(/postArea\.post\.length > 0/.test(pa), "senza post la sezione non c'è");
 
+
+  console.log("§6 le aree le sceglie l'ente, KIREO le toglie (31/10)");
+  ok(A.TESTI_AREE_POST.nessuna === "Non hai ancora scelto nessuna area. Le aree si scelgono nel profilo.", "la riga grigia è quella di Mario, parola per parola");
+  {
+    const ramo = (form.match(/areeApprovate\.length === 0 \? \([\s\S]*?\) : \(/) ?? [""])[0];
+    ok(/href=\{TESTI_AREE_POST\.hrefProfilo\}/.test(ramo) && A.TESTI_AREE_POST.hrefProfilo === "/ente#aree",
+      "e porta al profilo, dove il passo si fa: il link sta nella riga, non altrove", ramo.slice(0, 80));
+    const fs2 = (form.match(/<fieldset>[\s\S]*?<\/fieldset>/) ?? [""])[0];
+    ok(/<legend[^>]*>\{TESTI_AREE_POST\.etichetta\}<\/legend>/.test(fs2) && fs2.includes("TESTI_AREE_POST.nessuna"),
+      "la riga sta dove sarebbe l'elenco, sotto il nome del campo");
+  }
+  const profilo = leggi("components/ente/ProfiloEnteForm.tsx");
+  ok(!/in revisione KIREO|in attesa di revisione/.test(profilo) && /stato: "approvata"/.test(profilo), "il profilo non promette più una revisione: un'area scelta vale subito");
+  ok(/tolte\.some\(\(r\) => r\.area_slug === slug\)/.test(profilo) && /TESTI_AREE_ENTE\.rigaTolta\(/.test(profilo), "un'area tolta non si riprende dalla griglia, e resta scritta con il motivo");
+  const E = require("@/lib/ente/avvisoDecisione");
+  const t = E.testoAvvisoDecisione({ cosa: "area", id: "a1", titolo: "Informatica & Digitale", approvata: false, nota: "Non formate in quest'area" });
+  ok(/ha tolto l'area «Informatica & Digitale»/.test(t.righe[0]) && t.righe[1] === "Il motivo: Non formate in quest'area" && /#aree$/.test(t.link),
+    "l'email all'ente dice quale area, perché, e porta al profilo");
+  const avviso = leggi("lib/ente/avvisoDecisione.ts");
+  ok(/const revocata = cosa === "area" && statoDecisione === "rifiutata" && r\.revocata_il != null;/.test(avviso), "per un'area l'email parte solo se è stata revocata (approvarla non è più una decisione)");
+  const rotta = leggi("app/api/admin/revoca-area/route.ts");
+  ok(/rpc\("revoca_area_ente"/.test(rotta) && /avvisaEnteDellaDecisione\("area", id\)/.test(rotta) && /erroreRevoca\(motivo\)/.test(rotta),
+    "la revoca passa dalla funzione del database, con il motivo, e poi avvisa l'ente per email");
+  const R = require("@/lib/admin/revocaArea");
+  ok(R.erroreRevoca("   ") !== null && R.erroreRevoca("motivo") === null, "senza motivo non si toglie un'area");
+  const reg = leggi("app/ente/regolamento/page.tsx");
+  ok(/Le aree di competenza le scegli tu e valgono subito: scegliere un'area in cui non si lavora è una violazione, e KIREO può togliere l'area e i post che ci stanno dentro\./.test(reg)
+    && !/aree di competenza proposte passano da una revisione/.test(reg), "il regolamento dice la regola nuova, e non più quella vecchia");
+
   console.log("§5 la lingua");
-  for (const t of [...Object.values(A.TESTI_AREE_POST), ...Object.values(A.TESTI_SEZIONE_POST_AREA)]) {
+  for (const t of [...Object.values(A.TESTI_AREE_POST), ...Object.values(A.TESTI_SEZIONE_POST_AREA)].filter((x) => typeof x === "string" && !x.startsWith("/"))) {
     ok(trovaAccordi(t).length === 0, "nessun accordo di genere", t);
   }
 
