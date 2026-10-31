@@ -126,6 +126,11 @@ ok(richiesteVersoSocial('<a href="https://www.instagram.com/p/x" target="_blank"
 ok(richiesteVersoSocial('if (di("instagram.com")) return "Instagram";').rosse.length === 0, "taratura: il nome della piattaforma è verde");
 ok(richiesteVersoSocial('await fetch("https://graph.instagram.com/me/media")').rosse.length === 1, "taratura: una richiesta verso quell'host è rossa");
 ok(richiesteVersoSocial('<img src="https://scontent.cdninstagram.com/x.jpg" />').rosse.length === 1, "taratura: un'immagine caricata da lì è rossa");
+// La sonda delle registrazioni (31/10) chiede a YouTube, DAL SERVER, se il video
+// di una diretta c'è ancora: è una richiesta nostra, non un'anteprima che fa
+// vedere lo studente a una piattaforma. Il divieto riguarda Meta e TikTok, e la
+// taratura lo fissa perché una regex allargata domani non lo confonda.
+ok(richiesteVersoSocial('const r = await fetch("https://www.youtube.com/oembed?url=x&format=json")').rosse.length === 0, "taratura: la sonda della registrazione verso youtube.com è verde (non è un social vietato)");
 ok(richiesteVersoSocial("const r = await fetch(post.link_esterno);").rosse.length === 1, "taratura: un fetch del link di un post è rosso");
 // Anche gli script (il banco gioca dalla porta, e uno strumento che chiama Meta è
 // una chiamata come le altre), tranne questo file: le sue tarature sono

@@ -17,6 +17,7 @@ import { getEventiPerArea, getAreeDegliEventi, getIscrizioniStudente, eventoNonF
 import { cercaEnti } from "@/lib/app/esplora";
 import { createClient } from "@/lib/supabase/server";
 import { getPostDellArea, TESTI_SEZIONE_POST_AREA } from "@/lib/app/postArea";
+import { registrazioneRivedibile, RIVEDIBILI_AREA_MASSIMO, TESTI_RIVEDI } from "@/lib/eventi/registrazione";
 import { leggiPostSalvati } from "@/lib/app/bacheca";
 
 export function generateStaticParams() {
@@ -51,9 +52,17 @@ export default async function AreaPage({ params }: { params: Promise<{ slug: str
 
   const tuttiEventi = await getEventiPerArea(supabase, area.slug);
   const eventiFuturi = tuttiEventi.filter((e) => eventoNonFinito(e));
+  // Le dirette già trasmesse (31/10): SOLO quelle che si possono davvero
+  // riaprire — un webinar finito la cui registrazione la sonda ha visto
+  // partire. Un evento passato senza registrazione resta nella pagina del suo
+  // ente come storia, e qui non c'è.
+  const rivedibili = tuttiEventi
+    .filter((e) => registrazioneRivedibile(e))
+    .sort((a, b) => b.data_inizio.localeCompare(a.data_inizio))
+    .slice(0, RIVEDIBILI_AREA_MASSIMO);
   const areeEventi = await getAreeDegliEventi(
     supabase,
-    eventiFuturi.map((e) => e.id),
+    [...eventiFuturi, ...rivedibili].map((e) => e.id),
   );
   const iscrizioni = user ? new Set(await getIscrizioniStudente(supabase, user.id)) : new Set<string>();
 
@@ -156,6 +165,23 @@ export default async function AreaPage({ params }: { params: Promise<{ slug: str
                 />
               ))}
             </ul>
+          )}
+          {rivedibili.length > 0 && (
+            <div id="rivedibili" className="mt-12">
+              <SectionHeading eyebrow={TESTI_RIVEDI.sezioneEyebrow} title={TESTI_RIVEDI.sezioneTitolo} />
+              <ul className="mt-8 space-y-4">
+                {rivedibili.map((evento) => (
+                  <CardEvento
+                    key={evento.id}
+                    evento={evento}
+                    areeSlugs={areeEventi[evento.id] ?? [area.slug]}
+                    userId={user?.id ?? null}
+                    iscritto={iscrizioni.has(evento.id)}
+                    mostraOre={false}
+                  />
+                ))}
+              </ul>
+            </div>
           )}
         </div>
       </section>

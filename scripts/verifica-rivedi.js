@@ -1,0 +1,148 @@
+// Rivedere una diretta (Mario, 31/10): il bottone c'è solo se la sonda del
+// server ha visto la registrazione partire; rivedere non dà presenza né ore, e
+// lo schermo lo dice; la pagina dell'area elenca solo quello che si riapre.
+// Gli attesi sono scritti a mano.
+//
+// Esecuzione: `npm run test:rivedi`.
+/* eslint-disable @typescript-eslint/no-require-imports -- script Node CommonJS di utilità */
+
+const path = require("path");
+const fs = require("fs");
+const ts = require("typescript");
+const Module = require("module");
+const { senzaCommenti } = require("./lib/senza-commenti");
+
+const ROOT = path.join(__dirname, "..");
+const origResolve = Module._resolveFilename;
+Module._resolveFilename = function (request, parent, ...rest) {
+  if (request.startsWith("@/")) {
+    const p = path.join(ROOT, request.slice(2));
+    for (const ext of [".ts", ".tsx", ".js"]) if (fs.existsSync(p + ext)) return origResolve.call(this, p + ext, parent, ...rest);
+  }
+  return origResolve.call(this, request, parent, ...rest);
+};
+require.extensions[".ts"] = require.extensions[".tsx"] = function (mod, filename) {
+  const out = ts.transpileModule(fs.readFileSync(filename, "utf8"), {
+    compilerOptions: { module: "commonjs", target: "es2019", esModuleInterop: true },
+    fileName: filename,
+  });
+  return mod._compile(out.outputText, filename);
+};
+
+const R = require("@/lib/eventi/registrazione");
+const S = require("@/lib/eventi/sondaRegistrazione");
+const { trovaAccordi } = require("@/lib/lingua/accordoGenere");
+
+let fatte = 0;
+let falliti = 0;
+function ok(cond, msg, dettaglio) {
+  fatte++;
+  if (cond) console.log(`  ✓ ${msg}`);
+  else { falliti++; console.log(`  ✗ ${msg}${dettaglio ? ` [${dettaglio}]` : ""}`); }
+}
+const leggi = (f) => senzaCommenti(fs.readFileSync(path.join(ROOT, f), "utf8"));
+const a = (t) => new Date(t);
+
+(async () => {
+  console.log("§1 quando un evento si riapre");
+  const ev = (x = {}) => ({ tipo: "webinar", data_inizio: "2026-10-05T15:00:00Z", data_fine: "2026-10-05T16:00:00Z", diretta_chiusa_il: null, youtube_video_id: "5doxLWDlAJU", registrazione_esito: "disponibile", ...x });
+  ok(R.registrazioneRivedibile(ev(), a("2026-10-31T10:00:00Z")) === true, "un webinar finito, con la registrazione vista dalla sonda, si riapre");
+  ok(R.registrazioneRivedibile(ev({ registrazione_esito: null }), a("2026-10-31T10:00:00Z")) === false, "con l'id ma senza sonda no: un indirizzo non è una registrazione");
+  for (const e of ["non_incorporabile", "non_trovata", "non_controllato"]) {
+    ok(R.registrazioneRivedibile(ev({ registrazione_esito: e }), a("2026-10-31T10:00:00Z")) === false, `con l'esito «${e}» no`);
+  }
+  ok(R.registrazioneRivedibile(ev({ youtube_video_id: null }), a("2026-10-31T10:00:00Z")) === false, "senza video no");
+  ok(R.registrazioneRivedibile(ev({ tipo: "altro" }), a("2026-10-31T10:00:00Z")) === false, "un incontro in presenza no");
+  ok(R.registrazioneRivedibile(ev(), a("2026-10-05T15:30:00Z")) === false, "a diretta in corso no");
+  ok(R.registrazioneRivedibile(ev({ diretta_chiusa_il: "2026-10-05T15:20:00Z" }), a("2026-10-05T15:30:00Z")) === true, "una diretta chiusa prima è finita prima (la fine effettiva)");
+  ok(R.TESTI_RIVEDI.nonConta === "Rivedere la registrazione non conta come partecipazione.", "la riga accanto al bottone è quella di Mario, parola per parola");
+
+  console.log("§2 la sonda");
+  ok(S.esitoDaRispostaOembed(200) === "disponibile" && S.esitoDaRispostaOembed(401) === "non_incorporabile"
+    && S.esitoDaRispostaOembed(403) === "non_trovata" && S.esitoDaRispostaOembed(404) === "non_trovata"
+    && S.esitoDaRispostaOembed(500) === "non_controllato" && S.esitoDaRispostaOembed(429) === "non_controllato",
+    "200 disponibile, 401 non incorporabile, 403/404 non trovata, il resto non controllato");
+  ok(S.urlOembed("5doxLWDlAJU") === "https://www.youtube.com/oembed?url=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3D5doxLWDlAJU&format=json", "chiede l'oEmbed di youtube.com per quell'id");
+  ok(S.daSondare(ev(), a("2026-10-05T17:59:00Z")) === false && S.daSondare(ev(), a("2026-10-05T18:00:00Z")) === true, "si chiede a diretta finita da due ore, non prima");
+
+  // Un client finto: legge i candidati, registra gli update.
+  function finto({ righe, erroreLettura = null, righeScritte = [{ id: "x" }] }) {
+    const update = [];
+    const from = () => {
+      const q = { filtri: [], aggiornamento: null };
+      const catena = new Proxy({}, {
+        get(_, nome) {
+          if (nome === "then") {
+            const r = q.aggiornamento ? { data: righeScritte, error: null } : { data: erroreLettura ? null : righe, error: erroreLettura };
+            return (ok2) => Promise.resolve(r).then(ok2);
+          }
+          return (...args) => {
+            if (nome === "update") { q.aggiornamento = args[0]; update.push(q); }
+            q.filtri.push([nome, ...args]);
+            return catena;
+          };
+        },
+      });
+      return catena;
+    };
+    return { from, update };
+  }
+  const adesso = a("2026-10-31T04:17:00Z");
+  {
+    const c = finto({ righe: [ev({ id: "e1" }), ev({ id: "e2", data_inizio: "2026-10-31T02:00:00Z", data_fine: "2026-10-31T03:00:00Z" })] });
+    const visti = [];
+    const g = await S.giroSondaRegistrazioni(c, async (url) => { visti.push(url); return { status: 200 }; }, adesso);
+    ok(g.sondati.length === 1 && g.sondati[0].id === "e1" && g.sondati[0].esito === "disponibile", "sonda solo la diretta finita da più di due ore, e scrive l'esito");
+    ok(visti.length === 1, "una richiesta per evento sondato, nessuna per quello appena finito");
+    const u = c.update[0];
+    ok(u && u.aggiornamento.registrazione_esito === "disponibile" && u.aggiornamento.registrazione_sondata_il === adesso.toISOString()
+      && u.filtri.some((f) => f[0] === "select"), "l'update scrive esito e ora, e conta le righe toccate");
+  }
+  {
+    const c = finto({ righe: [ev({ id: "e1" })] });
+    const g = await S.giroSondaRegistrazioni(c, async () => { throw new Error("rete"); }, adesso);
+    ok(g.sondati[0]?.esito === "non_controllato", "una richiesta che non torna è «non controllato» (si riprova al giro dopo), mai «disponibile»");
+  }
+  {
+    const g = await S.giroSondaRegistrazioni(finto({ righe: null, erroreLettura: { message: "giù" } }), async () => ({ status: 200 }), adesso);
+    ok(g.letti === null && g.guasti[0]?.passo === "lettura", "una lettura fallita è un guasto, non «niente da sondare»");
+  }
+  {
+    const g = await S.giroSondaRegistrazioni(finto({ righe: [ev({ id: "e1" })], righeScritte: [] }), async () => ({ status: 200 }), adesso);
+    ok(g.sondati.length === 0 && g.guasti[0]?.passo === "scrittura", "un update che non tocca righe è un guasto, non un esito scritto");
+  }
+  const src = leggi("lib/eventi/sondaRegistrazione.ts");
+  ok(/\.or\("registrazione_esito\.is\.null,registrazione_esito\.eq\.non_controllato"\)/.test(src), "si sonda una volta: solo gli eventi mai sondati o non controllati");
+  ok(/\.limit\(SONDE_PER_GIRO \* 5\)/.test(src) && /\.slice\(0, SONDE_PER_GIRO\)/.test(src), "un tetto di sonde per giro");
+
+  console.log("§3 rivedere non è esserci");
+  for (const f of ["app/eventi/[id]/rivedi/page.tsx", "components/eventi/PlayerRegistrazione.tsx"]) {
+    const s = leggi(f);
+    ok(!/useHeartbeatDiretta|\/api\/live|ping_presenza|presenze_live|iscrizioni_eventi/.test(s), `${f}: nessun battito, nessuna presenza, nessuna iscrizione`);
+  }
+  const pagina = leggi("app/eventi/[id]/rivedi/page.tsx");
+  ok(/registrazioneRivedibile\(evento\)/.test(pagina) && /TESTI_RIVEDI\.nonDisponibile/.test(pagina), "la pagina si apre solo se la registrazione è rivedibile, altrimenti lo dice");
+  ok(/\{TESTI_RIVEDI\.nonConta\}[\s\S]*?<PlayerRegistrazione/.test(pagina), "sopra il video, che non conta come partecipazione");
+  const proxy = fs.readFileSync(path.join(ROOT, "lib/supabase/proxy.ts"), "utf8");
+  ok(!/"\/eventi"/.test(proxy), "la pagina è aperta anche a chi non ha fatto l'accesso (non sta fra le aree protette)");
+  const card = leggi("components/app/CardEvento.tsx");
+  ok(/\{registrazioneRivedibile\(evento\) && \([\s\S]*?hrefRivedi\(evento\.id\)[\s\S]*?TESTI_RIVEDI\.nonConta/.test(card), "la card: il bottone solo se rivedibile, e la riga accanto");
+  ok(!/registrazioneRivedibile\(evento\) && iscritto/.test(card), "il bottone è per tutti, iscritti o no");
+
+  console.log("§4 la pagina dell'area elenca solo quello che si riapre");
+  const area = leggi("app/aree/[slug]/page.tsx");
+  ok(/tuttiEventi\s*\.filter\(\(e\) => registrazioneRivedibile\(e\)\)/.test(area), "i già trasmessi sono solo i rivedibili");
+  ok(/\.slice\(0, RIVEDIBILI_AREA_MASSIMO\)/.test(area) && /b\.data_inizio\.localeCompare\(a\.data_inizio\)/.test(area), "i più recenti, con un tetto");
+  ok(/rivedibili\.length > 0 && \(/.test(area), "senza registrazioni la sezione non c'è");
+  ok(/rivedibili\.map\([\s\S]*?mostraOre=\{false\}/.test(area), "senza le ore: rivedere non le dà");
+
+  console.log("§5 il cron e la lingua");
+  const vercel = JSON.parse(fs.readFileSync(path.join(ROOT, "vercel.json"), "utf8"));
+  ok(vercel.crons.some((c) => c.path === "/api/cron/registrazioni"), "il cron della sonda è in vercel.json");
+  for (const t of Object.values(R.TESTI_RIVEDI)) {
+    if (typeof t === "string") ok(trovaAccordi(t).length === 0, "nessun accordo di genere", t);
+  }
+
+  console.log(`\n${falliti === 0 ? "✓" : "✗"} ${fatte - falliti}/${fatte} proprietà`);
+  process.exit(falliti === 0 ? 0 : 1);
+})();

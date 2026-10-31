@@ -100,7 +100,8 @@
     "test:newsletter": "node scripts/verifica-newsletter.js",
     "test:parolerosse": "node scripts/verifica-parole-rosse.js",
     "test:contenuti": "node scripts/verifica-contenuti.js",
-    "test:postarea": "node scripts/verifica-post-area.js"
+    "test:postarea": "node scripts/verifica-post-area.js",
+    "test:rivedi": "node scripts/verifica-rivedi.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.112.5",

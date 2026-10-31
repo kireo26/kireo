@@ -1,0 +1,121 @@
+import type { createServiceRoleClient } from "@/lib/supabase/serviceRole";
+import { descriviErrore } from "@/lib/erroreSupabase";
+import { fineEffettiva } from "@/lib/live";
+
+// LA SONDA DELLA REGISTRAZIONE (Mario, 31/10). Una volta per evento, a diretta
+// finita da un po', chiede a YouTube se il video della diretta esiste ancora ed
+// è incorporabile, e scrive la risposta su `eventi.registrazione_esito`. Il
+// bottone «Rivedi» compare SOLO con `disponibile`: *senza la sonda abbiamo un
+// indirizzo; con la sonda abbiamo una registrazione.*
+//
+// COME CHIEDE: l'endpoint oEmbed di YouTube, dal nostro server. È una richiesta
+// NOSTRA su un video che l'ente ha pubblicato, non un'anteprima caricata nel
+// browser di uno studente: lo studente non la vede e YouTube non vede lui. Per
+// questo non è la cosa che `npm run test:contenuti` §2 vieta (far vedere uno
+// studente a Meta), e la guardia ha una taratura che lo dice.
+//
+// ⚠️ NON MISURATO, DOCUMENTATO: dal sandbox la rete verso YouTube è chiusa. Che
+// oEmbed risponda 200 a un video pubblico o non in elenco e incorporabile, 401
+// a un video con l'incorporamento spento, e 403/404 a uno privato o cancellato
+// viene dalla documentazione e dall'uso comune, non da una nostra misura. La
+// misura che c'è è un'altra (31/10): il player del prodotto riproduce la
+// registrazione di `5doxLWDlAJU`. Il giorno della prima sonda vera, il suo
+// esito su quell'id deve dire `disponibile`: se dice altro, la mappa qui sotto è
+// sbagliata, e il bottone non compare (il verso giusto dell'errore).
+//
+// ⚠️ «UNA VOLTA» HA UN RESIDUO, scritto perché non sia un silenzio: un video
+// che sparisce DOPO la sonda lascia il bottone acceso. La condizione che fa
+// costruire un controllo periodico: il primo studente che trova una
+// registrazione segnata disponibile e non la vede.
+
+export type EsitoRegistrazione = "disponibile" | "non_incorporabile" | "non_trovata" | "non_controllato";
+
+// Quanto aspettare dopo la fine prima di chiedere: YouTube impiega un po' a
+// trasformare una diretta in un video. Scelto, non misurato.
+export const ORE_DOPO_LA_FINE = 2;
+
+// Quante sonde per giro: un tetto perché un giro non diventi una raffica.
+export const SONDE_PER_GIRO = 20;
+
+const MS_ATTESA = 8000;
+
+export function esitoDaRispostaOembed(stato: number): EsitoRegistrazione {
+  if (stato === 200) return "disponibile";
+  if (stato === 401) return "non_incorporabile";
+  if (stato === 403 || stato === 404) return "non_trovata";
+  return "non_controllato";
+}
+
+export function urlOembed(idVideo: string): string {
+  const video = `https://www.youtube.com/watch?v=${idVideo}`;
+  return `https://www.youtube.com/oembed?url=${encodeURIComponent(video)}&format=json`;
+}
+
+type Candidato = { id: string; data_inizio: string; data_fine: string | null; diretta_chiusa_il: string | null; youtube_video_id: string };
+
+// Un evento va sondato quando la diretta è finita da almeno ORE_DOPO_LA_FINE
+// (la fine EFFETTIVA: una diretta chiusa in anticipo è finita prima).
+export function daSondare(e: Candidato, adesso: Date): boolean {
+  const fine = new Date(fineEffettiva(e.data_inizio, e.data_fine, e.diretta_chiusa_il)).getTime();
+  return adesso.getTime() - fine >= ORE_DOPO_LA_FINE * 3600_000;
+}
+
+export type EsitoGiroSonda = {
+  letti: number | null;
+  sondati: { id: string; esito: EsitoRegistrazione }[];
+  guasti: { passo: "lettura" | "scrittura"; dettaglio: string }[];
+};
+
+// SOLO CON LA SERVICE ROLE: l'esito non lo scrive il client (20261122100000 non
+// lo concede), quindi il tipo del parametro è il client della service role, e la
+// guardia del registro delle colonne lo riconosce da qui.
+type ClientServiceRole = ReturnType<typeof createServiceRoleClient>;
+
+export async function giroSondaRegistrazioni(
+  supabase: ClientServiceRole,
+  chiedi: (url: string, init: { signal: AbortSignal }) => Promise<{ status: number }>,
+  adesso: Date,
+): Promise<EsitoGiroSonda> {
+  const esito: EsitoGiroSonda = { letti: null, sondati: [], guasti: [] };
+  const { data, error } = await supabase
+    .from("eventi")
+    .select("id, data_inizio, data_fine, diretta_chiusa_il, youtube_video_id")
+    .eq("tipo", "webinar")
+    .eq("stato", "approvato")
+    .not("youtube_video_id", "is", null)
+    .or("registrazione_esito.is.null,registrazione_esito.eq.non_controllato")
+    .lt("data_inizio", adesso.toISOString())
+    .order("data_inizio", { ascending: false })
+    .limit(SONDE_PER_GIRO * 5);
+  if (error || !data) {
+    esito.guasti.push({ passo: "lettura", dettaglio: error ? descriviErrore(error) : "nessun dato" });
+    return esito;
+  }
+  esito.letti = data.length;
+  const candidati = (data as Candidato[]).filter((e) => daSondare(e, adesso)).slice(0, SONDE_PER_GIRO);
+
+  for (const e of candidati) {
+    let risposta: EsitoRegistrazione = "non_controllato";
+    const controllo = new AbortController();
+    const timer = setTimeout(() => controllo.abort(), MS_ATTESA);
+    try {
+      const r = await chiedi(urlOembed(e.youtube_video_id), { signal: controllo.signal });
+      risposta = esitoDaRispostaOembed(r.status);
+    } catch {
+      risposta = "non_controllato";
+    } finally {
+      clearTimeout(timer);
+    }
+    const { data: scritte, error: erroreScrittura } = await supabase
+      .from("eventi")
+      .update({ registrazione_esito: risposta, registrazione_sondata_il: adesso.toISOString() })
+      .eq("id", e.id)
+      .select("id");
+    if (erroreScrittura || !scritte || scritte.length === 0) {
+      esito.guasti.push({ passo: "scrittura", dettaglio: erroreScrittura ? descriviErrore(erroreScrittura) : `nessuna riga per ${e.id}` });
+      continue;
+    }
+    esito.sondati.push({ id: e.id, esito: risposta });
+  }
+  return esito;
+}

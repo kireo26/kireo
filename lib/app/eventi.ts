@@ -20,10 +20,13 @@ export type Evento = {
   in_evidenza: boolean;
   hosting_diretta: "kireo" | "proprio";
   youtube_video_id: string | null;
+  // Cosa ha visto la sonda della registrazione (20261122100000): il bottone
+  // «Rivedi» compare solo con 'disponibile' (lib/eventi/registrazione.ts).
+  registrazione_esito: string | null;
 };
 
 const COLONNE_EVENTO =
-  "id, titolo, descrizione, tipo, data_inizio, data_fine, diretta_chiusa_il, sede, link, posti, ore_pcto, organizzatore_id, cta_esterna_url, cta_esterna_approvata, in_evidenza, hosting_diretta, youtube_video_id";
+  "id, titolo, descrizione, tipo, data_inizio, data_fine, diretta_chiusa_il, sede, link, posti, ore_pcto, organizzatore_id, cta_esterna_url, cta_esterna_approvata, in_evidenza, hosting_diretta, youtube_video_id, registrazione_esito";
 
 // Eventi in evidenza prima, poi per data crescente — stesso criterio usato
 // ovunque prima (solo data) con la priorità di promozione anteposta.
