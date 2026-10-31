@@ -93,6 +93,10 @@ const sa = (testo) => USI.some((re) => re.test(testo));
 // elenco di eccezioni senza motivi è un elenco che cresce.
 const ESENTI = new Map([
   [
+    "scripts/verifica-admin-non-legge-i-workshop.sql",
+    "Non è una misura: prova che l'admin collegato non legge i contenuti dei workshop (31/10). Crea il proprio studente finto e una riga in ognuna delle sei tabelle dentro una transazione, conta quante ne vede chi è collegato, poi ROLLBACK. Conta per provare un permesso, non una popolazione.",
+  ],
+  [
     "scripts/verifica-registrazioni-salvate.sql",
     "Non è una misura: è la prova delle registrazioni salvate (31/10). Crea i propri studenti finti dentro una transazione e conta activity_log PRIMA e DOPO un salvataggio, per dimostrare che salvare non scrive attività; poi ROLLBACK. Nomina la tabella perché prova che resta invariata, non perché conti una popolazione.",
   ],
