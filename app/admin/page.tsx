@@ -6,6 +6,9 @@ import AttivaIstituzioneButton from "@/components/admin/AttivaIstituzioneButton"
 import AttivaScuolaControlli from "@/components/admin/AttivaScuolaControlli";
 import ToggleGestitaRichiesta from "@/components/admin/ToggleGestitaRichiesta";
 import TogliPost from "@/components/admin/TogliPost";
+import RevocaArea from "@/components/admin/RevocaArea";
+import { TESTI_AREE_ADMIN } from "@/lib/admin/revocaArea";
+import { getAreaBySlug } from "@/data/aree";
 import RiprovaAvvisoEnte from "@/components/admin/RiprovaAvvisoEnte";
 import { TESTI_AVVISI, avvisiDaRiprovare, type RigaAvviso } from "@/lib/admin/avvisiEnte";
 import NotificheBell from "@/components/app/NotificheBell";
@@ -33,6 +36,7 @@ export default async function AdminPage() {
     { data: conversazioniEnti },
     daApprovare,
     { data: righeAvvisi, error: erroreAvvisi },
+    { data: areeEnti, error: erroreAreeEnti },
   ] = await Promise.all([
     supabase.from("istituzioni").select("id, nome, tipo, created_at").eq("stato", "in_attesa").order("created_at", { ascending: true }),
     supabase
@@ -73,7 +77,14 @@ export default async function AdminPage() {
       .select("cosa, riferimento_id, esito, motivo, created_at")
       .order("created_at", { ascending: false })
       .limit(200),
+    supabase
+      .from("istituzioni_aree")
+      .select("id, istituzione_id, area_slug, stato, revocata_il, motivo_revoca, istituzioni(nome)")
+      .order("istituzione_id", { ascending: true })
+      .order("area_slug", { ascending: true })
+      .limit(500),
   ]);
+  if (erroreAreeEnti) console.error("[admin] aree degli enti:", descriviErrore(erroreAreeEnti));
 
   // Le email all'ente non partite (30/10, `avvisi_email_enti`): la decisione è
   // presa e la sua riga è uscita dalla coda, quindi l'esito si legge qui e non
@@ -93,6 +104,7 @@ export default async function AdminPage() {
   const titoloAvviso = new Map<string, string>([
     ...(titoliEventi ?? []).map((e) => [e.id, e.titolo] as [string, string]),
     ...(titoliNewsletter ?? []).map((n) => [n.id, n.oggetto] as [string, string]),
+    ...(areeEnti ?? []).map((a) => [a.id as string, getAreaBySlug(a.area_slug as string)?.nome ?? (a.area_slug as string)] as [string, string]),
   ]);
 
 
@@ -150,7 +162,7 @@ export default async function AdminPage() {
                 {avvisiFalliti.map((a) => (
                   <li key={`${a.cosa}:${a.riferimento_id}`} className="rounded-xl border border-kireo-orange/30 bg-kireo-card p-4">
                     <p className="text-sm text-kireo-light">
-                      {a.cosa === "evento" ? "Evento" : "Newsletter"} «{titoloAvviso.get(a.riferimento_id) ?? a.riferimento_id}» ·{" "}
+                      {a.cosa === "evento" ? "Evento" : a.cosa === "newsletter" ? "Newsletter" : "Area"} «{titoloAvviso.get(a.riferimento_id) ?? a.riferimento_id}» ·{" "}
                       {formattaDataOra(a.created_at)}
                     </p>
                     <p className="mt-1 text-xs text-kireo-muted">
@@ -254,6 +266,40 @@ export default async function AdminPage() {
                   {motivo && <p className="mt-2 text-xs text-red-300">{motivo}</p>}
                   {p.visibile && (
                     <TogliPost id={p.id as string} notifiche={erroreNotifichePost ? null : (notifichePerPost.get(p.id as string) ?? 0)} />
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+
+      {/* LE AREE DEGLI ENTI (31/10): non si approvano più, si tolgono. L'ente
+          le sceglie e valgono subito; qui KIREO toglie quella scelta a torto,
+          con un motivo che arriva all'ente (lib/admin/revocaArea.ts). */}
+      <section className="mb-12" id="aree-enti">
+        <h2 className="py-0.5 font-heading text-xl font-semibold leading-[1.25] text-kireo-light">{TESTI_AREE_ADMIN.titolo}</h2>
+        <p className="mt-1 text-xs text-kireo-muted">{TESTI_AREE_ADMIN.spiegazione}</p>
+        {erroreAreeEnti ? (
+          <p className="mt-4 text-sm text-amber-200">{TESTI_AREE_ADMIN.nonLette}</p>
+        ) : !areeEnti || areeEnti.length === 0 ? (
+          <p className="mt-4 text-sm text-kireo-muted">{TESTI_AREE_ADMIN.nessuna}</p>
+        ) : (
+          <ul className="mt-4 space-y-3">
+            {areeEnti.map((a) => {
+              const ente = Array.isArray(a.istituzioni) ? a.istituzioni[0] : a.istituzioni;
+              return (
+                <li key={a.id} className="rounded-xl border border-white/5 bg-kireo-card p-4">
+                  <p className="font-heading text-sm font-semibold text-kireo-light">
+                    {ente?.nome ?? "—"} · <span className="font-normal">{getAreaBySlug(a.area_slug as string)?.nome ?? a.area_slug}</span>
+                  </p>
+                  {a.stato === "rifiutata" ? (
+                    <p className="mt-1 text-xs text-red-300">
+                      Tolta{a.revocata_il ? ` il ${formattaData(a.revocata_il as string, "long")}` : ""}
+                      {a.motivo_revoca ? `: ${a.motivo_revoca}` : ""}
+                    </p>
+                  ) : (
+                    <RevocaArea istituzioneId={a.istituzione_id as string} areaSlug={a.area_slug as string} />
                   )}
                 </li>
               );

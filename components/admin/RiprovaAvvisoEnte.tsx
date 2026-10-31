@@ -6,7 +6,7 @@ import { Button } from "@/components/Button";
 
 // Rimanda l'email all'ente su una decisione già presa (30/10). L'esito nuovo
 // si scrive in `avvisi_email_enti`: se parte, la riga esce dall'elenco.
-export default function RiprovaAvvisoEnte({ cosa, id }: { cosa: "evento" | "newsletter"; id: string }) {
+export default function RiprovaAvvisoEnte({ cosa, id }: { cosa: "evento" | "newsletter" | "area"; id: string }) {
   const router = useRouter();
   const [inCorso, setInCorso] = useState(false);
   const [esito, setEsito] = useState<string | null>(null);

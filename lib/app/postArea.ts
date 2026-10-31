@@ -84,11 +84,14 @@ export async function leggiAreeApprovateEnte(supabase: SupabaseClient, istituzio
 export const TESTI_AREE_POST = {
   etichetta: "In quale area mostrarlo (facoltativo, al massimo 2)",
   riga: "Il post comparirà nella pagina di quest'area, anche agli studenti che non ti seguono.",
-  nessuna:
-    "Un post si può mostrare nella pagina di un'area solo fra le aree che KIREO ha approvato per te, e per ora non ce n'è nessuna. Le aree si scelgono nel profilo.",
+  // Dal 31/10 le aree le sceglie l'ente (20261123110000): manca un passo suo,
+  // e il link lo porta dove si fa. Testo di Mario.
+  nessuna: "Non hai ancora scelto nessuna area. Le aree si scelgono nel profilo.",
+  vaiAlProfilo: "Scegli le tue aree",
+  hrefProfilo: "/ente#aree",
   nonLette: "Non siamo riusciti a leggere le tue aree approvate: puoi pubblicare il post, ma per ora senza un'area.",
   troppe: `Puoi scegliere al massimo ${MAX_AREE_POST} aree.`,
-  nonApprovata: "Una delle aree scelte non è più approvata per te: ricarica la pagina e scegli di nuovo.",
+  nonApprovata: "Una delle aree scelte non è più fra le tue: ricarica la pagina e scegli di nuovo.",
 } as const;
 
 // Testi della sezione nella pagina dell'area (miei e provvisori).

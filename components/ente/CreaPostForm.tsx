@@ -296,17 +296,23 @@ export default function CreaPostForm({
         <p className="mt-1.5 text-xs text-kireo-muted">{TESTI_POST.notaLink}</p>
       </div>
 
-      {/* Le aree: solo le approvate (Mario, 31/10). Se l'ente non ne ha
-          nessuna il campo non c'è e la riga dice perché: un elenco vuoto
-          sembrerebbe un guasto. */}
-      <div>
+      {/* Le aree (31/10): le sceglie l'ente nel profilo, e qui compaiono solo
+          quelle che ha. La riga grigia sta DOVE sarebbe l'elenco, sotto il nome
+          del campo, e non in coda alla nota del link: un ente a cui manca un
+          passo deve poterlo fare da dove ha scoperto che gli manca. */}
+      <fieldset>
+        <legend className="mb-2 text-sm font-medium text-kireo-light">{TESTI_AREE_POST.etichetta}</legend>
         {areeApprovate === null ? (
           <p className="text-xs text-kireo-muted">{TESTI_AREE_POST.nonLette}</p>
         ) : areeApprovate.length === 0 ? (
-          <p className="text-xs text-kireo-muted">{TESTI_AREE_POST.nessuna}</p>
+          <p className="text-xs text-kireo-muted">
+            {TESTI_AREE_POST.nessuna}{" "}
+            <a href={TESTI_AREE_POST.hrefProfilo} className="text-kireo-orange underline underline-offset-2">
+              {TESTI_AREE_POST.vaiAlProfilo}
+            </a>
+          </p>
         ) : (
-          <fieldset>
-            <legend className="mb-2 text-sm font-medium text-kireo-light">{TESTI_AREE_POST.etichetta}</legend>
+          <>
             <div className="flex flex-wrap gap-2">
               {areeApprovate.map((slug) => (
                 <label
@@ -322,9 +328,9 @@ export default function CreaPostForm({
             </div>
             {errori.aree && <p className="mt-1.5 text-sm text-red-400">{errori.aree}</p>}
             <p className="mt-1.5 text-xs text-kireo-muted">{TESTI_AREE_POST.riga}</p>
-          </fieldset>
+          </>
         )}
-      </div>
+      </fieldset>
 
       <Button type="submit" variant="primary" className="w-full" disabled={inviando || fairUseRaggiunto}>
         {fairUseRaggiunto ? TESTI_POST.bottoneTetto : inviando ? "Pubblicazione…" : TESTI_POST.bottone}

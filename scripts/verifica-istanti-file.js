@@ -132,6 +132,9 @@ function chiamataAperta(prima) {
 // Le esclusioni, una per (file, campo), ciascuna con la ragione. Una voce che
 // non trova più niente è OBSOLETA e va tolta (si controlla sotto).
 const ESCLUSIONI = {
+  "lib/ente/avvisoDecisione.ts": {
+    revocata_il: "decide se un'area è stata tolta da KIREO (l'email parte solo allora), non si stampa (31/10)",
+  },
   "app/api/admin/presenze/[id]/route.ts": {
     diretta_chiusa_il: "decide l'esito di una presenza («Sotto la soglia» solo a diretta chiusa), non si stampa",
   },

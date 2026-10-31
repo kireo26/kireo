@@ -37,7 +37,8 @@ export type TipoNotifica =
   | "evento_rifiutato"
   | "newsletter_approvata"
   | "newsletter_rifiutata"
-  | "newsletter_ente";
+  | "newsletter_ente"
+  | "area_revocata";
 
 export const ETICHETTA_TIPO: Record<TipoNotifica, string> = {
   nuovo_post: "Nuovo post di un ente che segui",
@@ -58,6 +59,8 @@ export const ETICHETTA_TIPO: Record<TipoNotifica, string> = {
   newsletter_approvata: "KIREO ha approvato una tua newsletter",
   newsletter_rifiutata: "KIREO non ha approvato una tua newsletter",
   newsletter_ente: "Una newsletter di un ente a cui sei iscritto",
+  // ⚠️ Mio e provvisorio (31/10): la revoca di un'area, che sostituisce l'approvazione.
+  area_revocata: "KIREO ha tolto una tua area di competenza",
 };
 
 export const LINK_TIPO: Record<TipoNotifica, string> = {
@@ -76,6 +79,7 @@ export const LINK_TIPO: Record<TipoNotifica, string> = {
   newsletter_approvata: "/ente/comunicazioni",
   newsletter_rifiutata: "/ente/comunicazioni",
   newsletter_ente: "/app",
+  area_revocata: "/ente#aree",
 };
 
 // ⚠️ UN LINK CHE ARRIVA NEL POSTO SBAGLIATO SI CREDE (Mario, 27/10). Fino al
@@ -103,6 +107,7 @@ const LINK_AL_RIFERIMENTO: Partial<Record<TipoNotifica, (id: string) => string>>
   newsletter_approvata: (id) => `/ente/comunicazioni#newsletter-${id}`,
   newsletter_rifiutata: (id) => `/ente/comunicazioni#newsletter-${id}`,
   newsletter_ente: (id) => `/app/newsletter/${id}`,
+  area_revocata: () => "/ente#aree",
 };
 
 export function linkNotifica(tipo: TipoNotifica, riferimentoId: string | null | undefined): string {

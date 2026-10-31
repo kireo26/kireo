@@ -11,6 +11,8 @@ import { MAX_COPERTINA_MB, MAX_GUIDA_MB, TIPO_GUIDA, tipoCopertinaAmmesso, TESTO
 
 const OPZIONI_PROVINCIA = PROVINCE_ITALIANE.map((p) => ({ value: p, label: p }));
 import AreeInteresseGrid from "@/components/app/AreeInteresseGrid";
+import { getAreaBySlug } from "@/data/aree";
+import { TESTI_AREE_ENTE, testoAreeEnte } from "@/lib/ente/aree";
 import {
   COLONNE_GUIDA_PANNELLO,
   archiviate,
@@ -408,16 +410,17 @@ function SezioneGuida({ istituzioneId, guideIniziali }: { istituzioneId: string;
   );
 }
 
-// Fino a N aree di competenza, in revisione KIREO (a differenza degli
-// altri campi di questa pagina, self-service senza revisione — vedi
-// migration istituzioni_aree). N dipende dal TIPO dell'ente, non dal piano, e
+// Fino a N aree di competenza, che l'ente SCEGLIE e valgono subito (Mario,
+// 31/10, 20261123110000: l'approvazione è uscita, la revoca è entrata). Un'area
+// che KIREO ha tolto resta visibile con il suo motivo, e non si riprende da qui:
+// il database non lascia né cancellarla né reinserirla. N dipende dal TIPO dell'ente, non dal piano, e
 // sta in un posto solo: `max_aree_istituzione` (20261103110000), che usa anche
 // il trigger. Qui non c'è più una costante: due copie dello stesso limite
 // divergono. Solo le 18 aree di orientamento: la selezione filoni per gli enti
 // formazione_docenti resta fuori da questa UI (loro categorizzazione interna,
 // non serve a /app/esplora).
 function SezioneAreeCompetenza({ istituzioneId }: { istituzioneId: string }) {
-  const [righe, setRighe] = useState<{ area_slug: string; stato: string }[]>([]);
+  const [righe, setRighe] = useState<{ area_slug: string; stato: string; motivo_revoca?: string | null }[]>([]);
   const [caricato, setCaricato] = useState(false);
   const [errore, setErrore] = useState<string | null>(null);
   // null = limite non letto: la griglia non ferma, e se si supera lo dice il
@@ -428,7 +431,7 @@ function SezioneAreeCompetenza({ istituzioneId }: { istituzioneId: string }) {
     async function carica() {
       const supabase = createClient();
       const [{ data }, { data: limite, error: erroreLimite }] = await Promise.all([
-        supabase.from("istituzioni_aree").select("area_slug, stato").eq("istituzione_id", istituzioneId),
+        supabase.from("istituzioni_aree").select("area_slug, stato, motivo_revoca").eq("istituzione_id", istituzioneId),
         supabase.rpc("max_aree_istituzione", { p_istituzione_id: istituzioneId }),
       ]);
       if (erroreLimite) console.error("[profilo ente] max_aree_istituzione:", descriviErrore(erroreLimite));
@@ -440,13 +443,24 @@ function SezioneAreeCompetenza({ istituzioneId }: { istituzioneId: string }) {
   }, [istituzioneId]);
 
   const attive = righe.filter((r) => r.stato !== "rifiutata").map((r) => r.area_slug);
+  const tolte = righe.filter((r) => r.stato === "rifiutata");
 
   async function toggle(slug: string) {
     setErrore(null);
+    if (tolte.some((r) => r.area_slug === slug)) {
+      setErrore(TESTI_AREE_ENTE.tolta);
+      return;
+    }
     const supabase = createClient();
     if (attive.includes(slug)) {
-      const { error } = await supabase.from("istituzioni_aree").delete().eq("istituzione_id", istituzioneId).eq("area_slug", slug);
-      if (!error) setRighe((prev) => prev.filter((r) => r.area_slug !== slug));
+      // Zero righe è un rifiuto, non un «fatto» (il modo 11).
+      const { data, error } = await supabase.from("istituzioni_aree").delete().eq("istituzione_id", istituzioneId).eq("area_slug", slug).select("area_slug");
+      if (error || !data || data.length === 0) {
+        if (error) console.error("[profilo ente] togliere un'area:", descriviErrore(error));
+        setErrore("Non è stato possibile togliere l'area. Riprova.");
+        return;
+      }
+      setRighe((prev) => prev.filter((r) => r.area_slug !== slug));
       return;
     }
     if (massimo !== null && attive.length >= massimo) return;
@@ -459,24 +473,27 @@ function SezioneAreeCompetenza({ istituzioneId }: { istituzioneId: string }) {
       );
       return;
     }
-    setRighe((prev) => [...prev, { area_slug: slug, stato: "in_approvazione" }]);
+    setRighe((prev) => [...prev, { area_slug: slug, stato: "approvata" }]);
   }
 
   if (!caricato) return null;
 
   return (
-    <div className="rounded-2xl border border-white/5 bg-kireo-card p-6">
+    <div id="aree" className="scroll-mt-24 rounded-2xl border border-white/5 bg-kireo-card p-6">
       <h2 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">Aree di competenza</h2>
-      <p className="mt-1 text-sm text-kireo-muted">
-        {massimo !== null ? `Fino a ${massimo} aree, in revisione KIREO.` : "Aree in revisione KIREO."} Alimentano Esplora e la sezione dedicata sulle pagine
-        area di orientamento.
-      </p>
+      <p className="mt-1 text-sm text-kireo-muted">{testoAreeEnte(massimo)}</p>
       {errore && <p className="mt-2 text-sm text-red-400">{errore}</p>}
       <div className="mt-4">
         <AreeInteresseGrid selezionate={attive} onToggle={toggle} max={massimo ?? Number.POSITIVE_INFINITY} />
       </div>
-      {righe.some((r) => r.stato === "in_approvazione") && (
-        <p className="mt-3 text-xs text-kireo-orange">Alcune aree sono in attesa di revisione da parte di KIREO.</p>
+      {tolte.length > 0 && (
+        <ul className="mt-4 space-y-1">
+          {tolte.map((r) => (
+            <li key={r.area_slug} className="text-xs text-red-300">
+              {TESTI_AREE_ENTE.rigaTolta(getAreaBySlug(r.area_slug)?.nome ?? r.area_slug, r.motivo_revoca ?? null)}
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );

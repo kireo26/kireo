@@ -4,7 +4,7 @@
 // provvisori.
 
 export type RigaAvviso = {
-  cosa: "evento" | "newsletter";
+  cosa: "evento" | "newsletter" | "area";
   riferimento_id: string;
   esito: "inviata" | "non_partita" | "nessun_destinatario" | "non_dovuta";
   motivo: string | null;

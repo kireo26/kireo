@@ -19,8 +19,11 @@ import { registraGuasto } from "@/lib/guasti/registra";
 import { SITE_URL } from "@/lib/site";
 import { formattaData } from "@/lib/formato";
 import { descriviErrore } from "@/lib/erroreSupabase";
+import { getAreaBySlug } from "@/data/aree";
 
-export type CosaDecisa = "evento" | "newsletter";
+// "area" (31/10): la revoca di un'area di competenza, l'unica decisione di KIREO
+// sulle aree da quando l'ente le sceglie da sé (20261123110000).
+export type CosaDecisa = "evento" | "newsletter" | "area";
 
 export type Decisione = {
   cosa: CosaDecisa;
@@ -34,6 +37,20 @@ export type Decisione = {
 
 // Testi miei e provvisori (30/10), da rileggere.
 export function testoAvvisoDecisione(d: Decisione): { oggetto: string; righe: string[]; link: string; bottone: string } {
+  // La revoca di un'area (31/10, testi miei e provvisori): non c'è un «approvato»,
+  // c'è solo il tolto, con il suo motivo e cosa succede ai post.
+  if (d.cosa === "area") {
+    return {
+      oggetto: `Area tolta: ${d.titolo}`,
+      righe: [
+        `KIREO ha tolto l'area «${d.titolo}» dal tuo profilo.`,
+        `Il motivo: ${d.nota ?? "—"}`,
+        "I tuoi post non compaiono più nella pagina di quell'area; nella tua bacheca restano. Se pensi che sia un errore, scrivici.",
+      ],
+      link: `${SITE_URL}/ente#aree`,
+      bottone: "Apri il profilo",
+    };
+  }
   const nome = d.cosa === "evento" ? "il tuo evento" : "la tua newsletter";
   const link =
     d.cosa === "evento" ? `${SITE_URL}/diretta/${d.id}` : `${SITE_URL}/ente/comunicazioni#newsletter-${d.id}`;
@@ -92,21 +109,25 @@ export async function avvisaEnteDellaDecisione(
     const riga =
       cosa === "evento"
         ? await supabase.from("eventi").select("titolo, stato, note_revisione, organizzatore_id").eq("id", id).maybeSingle()
-        : await supabase.from("newsletter_enti").select("oggetto, stato, nota_revisione, istituzione_id, giorno").eq("id", id).maybeSingle();
+        : cosa === "newsletter"
+          ? await supabase.from("newsletter_enti").select("oggetto, stato, nota_revisione, istituzione_id, giorno").eq("id", id).maybeSingle()
+          : await supabase.from("istituzioni_aree").select("area_slug, stato, motivo_revoca, revocata_il, istituzione_id").eq("id", id).maybeSingle();
     if (riga.error || !riga.data) throw riga.error ?? new Error("riga non trovata");
     const r = riga.data as Record<string, unknown>;
     statoDecisione = String(r.stato);
     istituzioneId = String(cosa === "evento" ? r.organizzatore_id : r.istituzione_id);
-    const approvata = statoDecisione === "approvato" || statoDecisione === "approvata";
-    if (!approvata && statoDecisione !== "rifiutato" && statoDecisione !== "rifiutata") {
+    // Un'area si avvisa solo se è stata REVOCATA: approvarla non è più una decisione.
+    const approvata = cosa !== "area" && (statoDecisione === "approvato" || statoDecisione === "approvata");
+    const revocata = cosa === "area" && statoDecisione === "rifiutata" && r.revocata_il != null;
+    if (cosa === "area" ? !revocata : !approvata && statoDecisione !== "rifiutato" && statoDecisione !== "rifiutata") {
       esito = "non_dovuta";
     } else {
       const d: Decisione = {
         cosa,
         id,
-        titolo: String(cosa === "evento" ? r.titolo : r.oggetto),
+        titolo: cosa === "area" ? (getAreaBySlug(String(r.area_slug))?.nome ?? String(r.area_slug)) : String(cosa === "evento" ? r.titolo : r.oggetto),
         approvata,
-        nota: (cosa === "evento" ? r.note_revisione : r.nota_revisione) as string | null,
+        nota: (cosa === "evento" ? r.note_revisione : cosa === "newsletter" ? r.nota_revisione : r.motivo_revoca) as string | null,
         giorno: cosa === "newsletter" ? (r.giorno as string) : null,
       };
       const utenti = await supabase.from("institution_profiles").select("user_id").eq("istituzione_id", istituzioneId);

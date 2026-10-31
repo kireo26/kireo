@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
   } catch {
     return NextResponse.json({ errore: "Richiesta non valida." }, { status: 400 });
   }
-  const cosa = corpo.cosa === "evento" || corpo.cosa === "newsletter" ? (corpo.cosa as CosaDecisa) : null;
+  const cosa = corpo.cosa === "evento" || corpo.cosa === "newsletter" || corpo.cosa === "area" ? (corpo.cosa as CosaDecisa) : null;
   const id = typeof corpo.id === "string" ? corpo.id : null;
   if (!cosa || !id) return NextResponse.json({ errore: "Richiesta non valida." }, { status: 400 });
 
