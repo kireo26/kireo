@@ -76,3 +76,15 @@ export function etichettaDaApprovare(n: number | null): string {
 /** Il titolo del gruppo in fondo a «Da approvare», e la riga sotto ognuno. ⚠️ Testi miei, provvisori. */
 export const TITOLO_SCADUTI = "Con la data già passata";
 export const AVVISO_SCADUTO = "La data di questo incontro è già passata: approvarlo non lo fa più accadere.";
+
+// LA RICERCA NEGLI EVENTI DELL'ADMIN (31/10): sul titolo e sul nome dell'ente,
+// senza maiuscole né accenti. Si fa sugli eventi già letti, perché le schede
+// li leggono tutti per dividerli: così il numero di una scheda e il suo elenco
+// filtrato vengono dalla stessa lettura.
+const normale = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+export function cercaEventiAdmin<E extends EventoAdmin>(eventi: E[], q: string | undefined): E[] {
+  const t = q?.trim();
+  if (!t) return eventi;
+  const n = normale(t);
+  return eventi.filter((e) => normale(e.titolo ?? "").includes(n) || normale(e.ente ?? "").includes(n));
+}

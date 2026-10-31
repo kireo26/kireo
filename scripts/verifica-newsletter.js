@@ -238,9 +238,11 @@ const P = require("@/lib/ente/pianoSuccessivo");
     const AZ = leggi("components/admin/AzioneApprovazione.tsx");
     ok(/if \(corpo\.emailInviata\) router\.refresh\(\);\s*else setAvviso\(/.test(AZ),
       "un'email non partita NON fa rileggere la coda: l'avviso resta finché l'admin l'ha letto");
-    const AP = leggi("app/admin/page.tsx");
-    ok(/from\("avvisi_email_enti"\)/.test(AP) && /avvisiDaRiprovare\(/.test(AP) && /<RiprovaAvvisoEnte /.test(AP) && /TESTI_AVVISI\.nonLetto/.test(AP),
-      "/admin mostra le email non partite, con «Riprova», e dice quando non le ha lette");
+    // Dal 31/10 le email non partite stanno in «Sistema», lette da coseDaDecidere (la stessa lettura di «Oggi»).
+    const AP = leggi("app/admin/sistema/page.tsx");
+    const CD = leggi("lib/admin/coseDaDecidere.ts");
+    ok(/from\("avvisi_email_enti"\)/.test(CD) && /avvisiDaRiprovare\(/.test(CD) && /leggiAvvisiDaRiprovare\(supabase\)/.test(AP) && /<RiprovaAvvisoEnte /.test(AP) && /TESTI_AVVISI\.nonLetto/.test(AP),
+      "«Sistema» mostra le email non partite, con «Riprova», e dice quando non le ha lette");
     const M = leggi("supabase/migrations/20261118100000_avvisi_email_enti.sql");
     ok(/revoke all on public\.avvisi_email_enti from anon, authenticated/.test(M) && !/references public\.profiles/.test(M),
       "il client non scrive avvisi_email_enti, e la tabella non ha chiavi verso le persone");

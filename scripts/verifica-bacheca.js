@@ -161,7 +161,7 @@ function clientFinto(risposte) {
     const { linkNotifica } = require("@/lib/notifiche/etichette");
     const id = "90000000-0000-0000-0000-000000000007";
     ok(linkNotifica("nuovo_post", id) === `/app/bacheca?post=${id}#post-${id}`, "la notifica di un post porta al post, non alla Bacheca e basta, e la pagina scorre fino alla sua riga", linkNotifica("nuovo_post", id));
-    ok(linkNotifica("post_tolto", id) === `/ente/bacheca#post-${id}` && linkNotifica("post_pubblicato", id) === `/admin#post-${id}`, "l'ente arriva al suo post tolto, l'admin al post nuovo");
+    ok(linkNotifica("post_tolto", id) === `/ente/bacheca#post-${id}` && linkNotifica("post_pubblicato", id) === `/admin/post#post-${id}`, "l'ente arriva al suo post tolto, l'admin al post nuovo");
     ok(B.leggiIdPost(id) === id && B.leggiIdPost("x),or(1") === null && B.leggiIdPost(undefined) === null, "solo un id finisce nel filtro");
     const c = clientFinto({ post_enti: { data: null, error: null } });
     const e1 = await B.getPostDellaNotifica(c, id);
@@ -247,9 +247,12 @@ function clientFinto(risposte) {
     const daConferma = ancora(t, "function chiediConferma()");
     ok(t.slice(daConferma, ancora(t, "async function togli()")).includes("erroreRimozione("), "la motivazione si controlla prima di chiedere conferma");
     ok(/rpc\("togli_post"/.test(t) && !/\.update\(/.test(t), "si toglie con la funzione, non con un update dal client");
-    const admin = leggi("app/admin/page.tsx");
+    // Dal 31/10 i post hanno una pagina loro (/admin/post): la conta passa da lì,
+    // e il divieto si legge su tutta l'area admin, non su una pagina svuotata.
+    const admin = leggi("app/admin/post/ElencoPost.tsx");
     ok(/notifiche=\{erroreNotifichePost \? null :/.test(admin), "una conta fallita arriva alla conferma come «non contate»");
-    ok(!/AzioneApprovazionePost|Post in approvazione/.test(admin), "la coda dei post è uscita da /admin");
+    const area = require("./lib/area-admin").sorgentiAreaAdmin();
+    ok(area.file.length > 15 && !/AzioneApprovazionePost|Post in approvazione/.test(area.testo), `la coda dei post è uscita da tutta l'area admin (${area.file.length} file letti)`);
     ok([R.erroreRimozione(""), R.testoConfermaRimozione(1), R.testoConfermaRimozione(4)].every((x) => trovaAccordi(x).length === 0), "nessun accordo di genere");
   }
 

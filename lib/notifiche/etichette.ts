@@ -72,7 +72,7 @@ export const LINK_TIPO: Record<TipoNotifica, string> = {
   proposta_incontro_risposta: "/scuola/esplora",
   chiave_trasmissione_pronta: "/ente/eventi",
   chiave_trasmissione_cambiata: "/ente/eventi",
-  post_pubblicato: "/admin",
+  post_pubblicato: "/admin/post",
   post_tolto: "/ente/bacheca",
   evento_approvato: "/ente/eventi",
   evento_rifiutato: "/ente/eventi",
@@ -100,7 +100,8 @@ const LINK_AL_RIFERIMENTO: Partial<Record<TipoNotifica, (id: string) => string>>
   chiave_trasmissione_pronta: (id) => `/diretta/${id}`,
   chiave_trasmissione_cambiata: (id) => `/diretta/${id}`,
   nuovo_post: (id) => `/app/bacheca?post=${id}#post-${id}`,
-  post_pubblicato: (id) => `/admin#post-${id}`,
+  // Dal 31/10 i post hanno una pagina loro nell'area admin (`/admin/post`).
+  post_pubblicato: (id) => `/admin/post#post-${id}`,
   post_tolto: (id) => `/ente/bacheca#post-${id}`,
   evento_approvato: (id) => `/diretta/${id}`,
   evento_rifiutato: (id) => `/diretta/${id}`,

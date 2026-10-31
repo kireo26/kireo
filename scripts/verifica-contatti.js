@@ -421,7 +421,8 @@ ok(/confermaInviata: esitoConferma\.ok/.test(route),
 // ── 7) la coda: quando, e l'indirizzo di chi ha scritto ────────────────────
 console.log("\n7) La coda dice a che ora, e porta l'indirizzo di chi ha scritto");
 
-const admin = leggi("app/admin/page.tsx");
+// Dal 31/10 la coda dei contatti sta in «Notifiche».
+const admin = leggi("app/admin/notifiche/page.tsx");
 // La fetta della coda: dalla sua query al riquadro. L'àncora dichiara il
 // proprio conto, perché `created_at` nella pagina compare dappertutto.
 let coda = null;
@@ -473,7 +474,9 @@ ok(coda !== null && /select-all[^}]*\{r\.email\}/.test(coda),
 // forma vietata — modo 1, la classe curata il 28/09 al lettore e non alla
 // singola asserzione. Senza lo spoglio, questa guardia sarebbe rossa proprio
 // sul file che ha fatto la cosa giusta e l'ha scritta.
-const adminIntero = leggi("app/admin/page.tsx");
+// Dal 31/10 il divieto si legge su tutta l'area admin (dieci pagine), non su un file solo.
+const { file: fileAdmin, testo: adminIntero } = require("./lib/area-admin").sorgentiAreaAdmin();
+ok(fileAdmin.length > 15, `l'area admin letta per il divieto: ${fileAdmin.length} file`);
 const mailtoInAdmin = [...adminIntero.matchAll(/mailto:?[^\s"'`}]*/g)].map((m) => m[0]);
 ok(mailtoInAdmin.length === 0,
   "nessun `mailto:` in /admin: da qui non parte niente dall'identità sbagliata",

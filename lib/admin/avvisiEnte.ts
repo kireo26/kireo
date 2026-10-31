@@ -35,5 +35,5 @@ export const TESTI_AVVISI = {
   dopoDecisione: (esito: string | undefined) =>
     esito === "nessun_destinatario"
       ? "Fatto. L'ente non ha un account collegato: l'email non è partita, l'avviso dentro KIREO sì."
-      : "Fatto. L'email all'ente non è partita: l'avviso dentro KIREO sì. La trovi in «Email all'ente non partite», in cima a questa pagina.",
+      : "Fatto. L'email all'ente non è partita: l'avviso dentro KIREO sì. La trovi in Sistema, sotto «Email all'ente non partite».",
 };

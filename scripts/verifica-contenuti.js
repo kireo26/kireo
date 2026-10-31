@@ -164,7 +164,7 @@ ok(C.immagineDelPost("https://ente.example/pixel.png", base) === null, "un'immag
 ok(C.immagineDelPost(`${base}.evil.net/storage/v1/object/public/post-enti-media/a.png`, base) === null, "nemmeno con il nostro dominio come prefisso di un altro");
 ok(C.immagineDelPost(`${base}/storage/v1/object/public/istituzioni-media/e1/a.png`, base) === null, "né da un altro bucket");
 ok(C.immagineDelPost(nostra, undefined) === null, "senza sapere qual è il nostro dominio, nessuna immagine");
-const usaGuardia = ["components/app/FeedPost.tsx", "app/app/le-mie-cose/page.tsx", "app/admin/page.tsx"].filter((f) => /immagineDelPost\(/.test(leggi(f)));
+const usaGuardia = ["components/app/FeedPost.tsx", "app/app/le-mie-cose/page.tsx", "app/admin/post/ElencoPost.tsx"].filter((f) => /immagineDelPost\(/.test(leggi(f)));
 ok(usaGuardia.length === 3, `il feed, l'archivio e la coda dell'admin passano dalla guardia: ${usaGuardia.length}/3`);
 ok(!/src=\{post\.immagine_url\}/.test(feed), "il feed non mostra immagine_url così com'è");
 
@@ -318,7 +318,7 @@ const riga = (stato, extra = {}) => ({
   {
     ok(!/object-cover|object-fill|aspect-/.test(C.CLASSE_IMMAGINE_POST) && /max-h-/.test(C.CLASSE_IMMAGINE_POST) && /max-w-full/.test(C.CLASSE_IMMAGINE_POST) && /h-auto/.test(C.CLASSE_IMMAGINE_POST) && /w-auto/.test(C.CLASSE_IMMAGINE_POST),
       "la classe: proporzioni sue, un tetto all'altezza, mai più larga del post, niente riempimento", C.CLASSE_IMMAGINE_POST);
-    const superfici = ["components/app/FeedPost.tsx", "app/app/le-mie-cose/page.tsx", "app/admin/page.tsx"];
+    const superfici = ["components/app/FeedPost.tsx", "app/app/le-mie-cose/page.tsx", "app/admin/post/ElencoPost.tsx"];
     for (const f of superfici) {
       const src = senzaCommenti(leggi(f));
       const img = [...src.matchAll(/<img\b[^>]*>/g)].map((m) => m[0]);

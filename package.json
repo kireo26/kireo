@@ -102,7 +102,8 @@
     "test:contenuti": "node scripts/verifica-contenuti.js",
     "test:postarea": "node scripts/verifica-post-area.js",
     "test:rivedi": "node scripts/verifica-rivedi.js",
-    "test:admin": "node scripts/verifica-admin-niente-sparisce.js"
+    "test:admin": "node scripts/verifica-admin-niente-sparisce.js",
+    "test:riordino": "node scripts/verifica-admin-riordino.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.112.5",

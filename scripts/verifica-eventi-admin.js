@@ -135,8 +135,9 @@ console.log("\n§2bis — un rifiuto porta la sua ragione\n");
 console.log("\n§3 — i posti\n");
 {
   const layout = leggi("app/admin/eventi/layout.tsx");
-  const ordine = ["/admin/eventi\"", "/admin/eventi/in-programmazione", "/admin/eventi/passati", "/admin/eventi/rifiutati"].map((h) => layout.indexOf(h));
-  ok(ordine.every((i) => i >= 0) && ordine.every((i, k) => k === 0 || i > ordine[k - 1]), "le schede nell'ordine del mestiere: da approvare, in programmazione, passati, rifiutati", ordine);
+  // Dal 31/10 le schede sono quelle di Mario: Tutti · Da approvare · Approvati · Rifiutati.
+  const ordine = ["/admin/eventi\"", "/admin/eventi/da-approvare\"", "/admin/eventi/approvati\"", "/admin/eventi/rifiutati\""].map((h) => layout.indexOf(h));
+  ok(ordine.every((i) => i >= 0) && ordine.every((i, k) => k === 0 || i > ordine[k - 1]), "le schede nell'ordine di Mario: tutti, da approvare, approvati, rifiutati", ordine);
   ok(/etichettaDaApprovare\(daApprovare\)/.test(layout), "…e «Da approvare» porta il numero");
   ok(/dividiEventiAdmin\(eventi\)\.daApprovare\.length/.test(leggi("lib/admin/caricaEventiAdmin.ts")), "…e il numero esce dalla stessa divisione della scheda, non da un conto a parte");
   ok(/\.neq\("stato", "bozza"\)/.test(leggi("lib/admin/caricaEventiAdmin.ts")), "la lettura esclude le bozze nel database, non solo a schermo");
@@ -144,8 +145,10 @@ console.log("\n§3 — i posti\n");
   ok(/ente=\{e\.ente\}/.test(elenco), "ogni riga porta il nome dell'ente");
   const riga = leggi("components/ente/RigaEventoEnte.tsx");
   ok(!/\?\? ETICHETTA_STATO\.bozza/.test(riga), "uno stato sconosciuto non si mostra come «Bozza»");
-  const admin = leggi("app/admin/page.tsx");
-  ok(!/<AzioneApprovazione cosa="evento"/.test(admin) && !/<ControlloDirettaEvento/.test(admin), "la coda di /admin non ha più plance di eventi: approvazione e console stanno nella pagina dell'evento");
+  // Il divieto su tutta l'area admin (31/10), dove la plancia dell'evento non c'è: sta in /diretta/[id].
+  const { file: fileAdmin, testo: admin } = require("./lib/area-admin").sorgentiAreaAdmin();
+  const fuoriPlancia = admin.replace(leggi("components/admin/PlanciaAdminEvento.tsx"), "");
+  ok(fileAdmin.length > 15 && !/<AzioneApprovazione cosa="evento"/.test(fuoriPlancia) && !/<ControlloDirettaEvento/.test(admin), "l'area admin non ha plance di eventi fuori dalla pagina dell'evento: approvazione e console stanno lì");
   const plancia = leggi("components/admin/PlanciaAdminEvento.tsx");
   ok(/evento\.stato === "in_approvazione"/.test(plancia) && /<AzioneApprovazione cosa="evento"/.test(plancia), "la pagina dell'evento ha approva/rifiuta, solo per un evento in approvazione");
   ok(/evento\.descrizione/.test(plancia), "…con la descrizione intera, su cui si decide");

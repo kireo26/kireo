@@ -399,7 +399,8 @@ console.log("\n§5 — la pagina si raggiunge\n");
   // Dal 27/10 anche la coda dell'admin passa dalla stessa riga
   // (`app/admin/eventi/ElencoAdmin.tsx` → `RigaEventoEnte`): il link è uno.
   ok(leggi("app/admin/eventi/ElencoAdmin.tsx").includes("<RigaEventoEnte"), "le schede dell'admin usano la stessa riga, con il suo «Apri»");
-  ok(leggi("app/admin/page.tsx").includes('href="/admin/eventi"'), "la coda di /admin porta alla pagina degli eventi");
+  // Dal 31/10 «Oggi» porta agli eventi da approvare passando da coseDaDecidere.
+  ok(leggi("lib/admin/coseDaDecidere.ts").includes('href: "/admin/eventi/da-approvare"') && leggi("app/admin/page.tsx").includes("<CoseDaDecidere"), "«Oggi» porta alla scheda degli eventi da approvare");
   for (const [pagina, link] of [["components/ente/RigaEventoEnte.tsx", "/diretta/${evento.id}"]]) {
     const src = leggi(pagina);
     ok(src.includes(link), `${pagina} linka la pagina della diretta`);

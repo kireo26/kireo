@@ -326,7 +326,11 @@ for (const [pagina, dopo, v, fileSelect] of [
 }
 // E la coda di `/admin` non monta più la console: una seconda copia della
 // plancia è la cosa che il 27/10 è uscita, e non deve tornare per abitudine.
-ok(!leggi("app/admin/page.tsx").includes("<ControlloDirettaEvento"), "la coda di /admin non monta la console (sta nella pagina dell'evento)");
+// Dal 31/10 l'area admin è di dieci pagine: il divieto si legge su tutte.
+{
+  const area = require("./lib/area-admin").sorgentiAreaAdmin();
+  ok(area.file.length > 15 && !area.testo.includes("<ControlloDirettaEvento"), `l'area admin non monta la console (sta nella pagina dell'evento): ${area.file.length} file letti`);
+}
 
 console.log("\n§5 — lo stato non si indovina\n");
 

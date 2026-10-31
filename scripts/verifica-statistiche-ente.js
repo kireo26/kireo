@@ -281,8 +281,10 @@ console.log("\n§8 — chi revisiona vede la quota\n");
   // Dal 30/10 la coda delle newsletter non mostra la quota: la quota la fa
   // rispettare il database quando l'ente manda in approvazione, e approvare non
   // può superarla. La coda legge `newsletter_enti`, mai `comunicazioni`.
-  const admin = senzaCommenti(leggi("app/admin/page.tsx"));
-  ok(/\.from\("newsletter_enti"\)/.test(admin) && !/\.from\("comunicazioni"\)/.test(admin),
+  // Dal 31/10 le newsletter hanno una pagina loro nell'area admin; il divieto su tutta l'area.
+  const admin = senzaCommenti(leggi("app/admin/newsletter/ElencoNewsletter.tsx"));
+  const areaAdmin = require("./lib/area-admin").sorgentiAreaAdmin().testo;
+  ok(/\.from\("newsletter_enti"\)/.test(admin) && !/\.from\("comunicazioni"\)/.test(areaAdmin),
     "la coda dell'admin legge le newsletter nuove, non le proposte di prima");
   ok(/testoQuotaRevisione\(await getQuotePerRevisione/.test(leggi("components/admin/PlanciaAdminEvento.tsx")), "la plancia dell'evento la mostra per una CTA");
 }
