@@ -109,7 +109,8 @@
     "test:riordino": "node scripts/verifica-admin-riordino.js",
     "test:rifiuto": "node scripts/verifica-rifiuto-verifica.js",
     "test:scuolapasso4": "node scripts/verifica-scuola-passo4.js",
-    "test:modalita": "node scripts/verifica-modalita-iscrizione.js"
+    "test:modalita": "node scripts/verifica-modalita-iscrizione.js",
+    "test:invito": "node scripts/verifica-codice-invito.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.112.5",

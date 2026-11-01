@@ -49,7 +49,14 @@ export const getScuolaContext = cache(async (): Promise<ScuolaContext> => {
         : await finalizzaRegistrazioneScuolaSeNecessario(supabase, user);
 
     if (!esito.ok) {
-      redirect(`/per-le-scuole?errore=scuola_${esito.motivo}#richiedi-accesso`);
+      // Un tutor che non è riuscito a riscattare l'invito torna alla pagina
+      // dell'invito, che sa dire cosa è successo (anche il tetto dei tentativi):
+      // la pagina della scuola non conosce i suoi motivi (01/11).
+      redirect(
+        meta?.ruolo === "tutor_scuola"
+          ? `/scuola/invito?errore=${esito.motivo}`
+          : `/per-le-scuole?errore=scuola_${esito.motivo}#richiedi-accesso`,
+      );
     }
   } else if (profiloEsistente.ruolo !== "referente_scuola" && profiloEsistente.ruolo !== "tutor_scuola") {
     redirect("/dopo-accesso");

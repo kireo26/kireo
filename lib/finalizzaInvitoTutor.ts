@@ -1,10 +1,12 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 
 // Stesso principio di finalizzaRegistrazioneScuola, per il ruolo tutor
-// invitato via codice (crea_invito_tutor/redeem_invito_staff).
+// invitato via codice (crea_invito_tutor/riscatta_invito_tutor). Dal 01/11 il
+// riscatto conta i codici sbagliati per account e risponde un esito invece di
+// sollevare: un raise annullerebbe anche la riga del tentativo (20261201100000).
 export type EsitoFinalizzazioneTutor =
   | { ok: true }
-  | { ok: false; motivo: "dati_incompleti" | "codice_non_valido" | "sconosciuto" };
+  | { ok: false; motivo: "dati_incompleti" | "codice_non_valido" | "troppi_tentativi" | "sconosciuto" };
 
 export async function finalizzaInvitoTutorSeNecessario(
   supabase: SupabaseClient,
@@ -24,21 +26,23 @@ export async function finalizzaInvitoTutorSeNecessario(
     return { ok: false, motivo: "dati_incompleti" };
   }
 
-  const { error } = await supabase.rpc("redeem_invito_staff", {
+  const { data, error } = await supabase.rpc("riscatta_invito_tutor", {
     p_codice: codiceInvito,
     p_nome: nome,
     p_cognome: cognome,
   });
 
-  if (!error) return { ok: true };
+  if (!error) {
+    const esito = (data as { esito?: unknown } | null)?.esito;
+    if (esito === "riscattato" || esito === "gia_finalizzato") return { ok: true };
+    if (esito === "codice_non_valido") return { ok: false, motivo: "codice_non_valido" };
+    if (esito === "troppi_tentativi") return { ok: false, motivo: "troppi_tentativi" };
+    return { ok: false, motivo: "sconosciuto" };
+  }
 
   if (error.code === "23505") {
     const { data: profiloEsistente } = await supabase.from("profiles").select("id").eq("id", user.id).maybeSingle();
     if (profiloEsistente) return { ok: true };
-  }
-
-  if (error.message.includes("codice_non_valido")) {
-    return { ok: false, motivo: "codice_non_valido" };
   }
 
   return { ok: false, motivo: "sconosciuto" };

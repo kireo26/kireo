@@ -173,7 +173,6 @@ const FUNZIONI_NON_DEFINER = [
   ["finalize_registration", "authenticated", "student_profiles", "insert", ["user_id", "school_code", "classe", "anno_diploma"]],
   ["finalize_registration", "authenticated", "student_area_interests", "insert", ["user_id", "area_slug"]],
   ["finalize_registration", "authenticated", "teacher_profiles", "insert", ["user_id", "school_code", "materia", "is_referente_orientamento"]],
-  ["crea_invito_tutor", "authenticated", "school_staff", "insert", ["scuola_profilo_id", "ruolo_staff", "user_id", "codice_invito", "nome_invitato", "email_invitato", "creato_da"]],
   ["approva_richiesta_upgrade", "authenticated", "istituzioni", "update", ["piano_id", "piano_attivato_il", "piano_scade_il"]],
   ["approva_richiesta_upgrade", "authenticated", "richieste_upgrade", "update", ["stato", "note_kireo"]],
 ];

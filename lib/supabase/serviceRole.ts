@@ -13,7 +13,9 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 // `lib/guide/contatoreScaricamenti.ts`, il cron della newsletter, l'uscita dalla
 // newsletter dalla posta (`/api/newsletter/uscita/[codice]` e la sua pagina:
 // dalla richiesta arriva solo il codice) e l'avviso all'ente
-// (`lib/ente/avvisoDecisione.ts`, che rilegge la decisione). Mai importato da codice che gira nel
+// (`lib/ente/avvisoDecisione.ts`, che rilegge la decisione), la verifica del codice
+// d'invito del tutor (`/api/scuola/invito/verifica`: dalla richiesta arriva solo il
+// codice, e la route aggiunge un'impronta della rete). Mai importato da codice che gira nel
 // browser. SUPABASE_SERVICE_ROLE_KEY sta su Vercel (Supabase → Project
 // Settings → API → service_role secret), mai con prefisso NEXT_PUBLIC_.
 export function createServiceRoleClient() {

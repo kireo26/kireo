@@ -6,10 +6,12 @@ import { Button } from "@/components/Button";
 import { inputClass, fieldBorder } from "@/lib/formStyles";
 import { createClient } from "@/lib/supabase/client";
 import { messaggioErroreAuth } from "@/lib/authErrors";
+import { codiceInvitoCompleto, leggiEsitoVerifica, normalizzaCodiceInvito, TESTI_CODICE_INVITO } from "@/lib/scuola/codiceInvito";
 
 const MESSAGGI_ERRORE_CONFERMA: Record<string, string> = {
   dati_incompleti: "Mancano alcuni dati per completare la registrazione: prova di nuovo, oppure contattaci da /contatti.",
   codice_non_valido: "Il codice invito non è più valido: chiedine uno nuovo al referente della tua scuola.",
+  troppi_tentativi: "Troppi codici sbagliati provati con questo account nell'ultima ora: riprova fra un'ora, con il link dell'invito che ti ha mandato il referente.",
   sconosciuto: "Qualcosa è andato storto. Prova ad accedere di nuovo tra qualche istante: se il problema persiste, contattaci da /contatti.",
 };
 
@@ -17,7 +19,7 @@ export default function RiscattaInvitoTutorForm({ codiceIniziale }: { codiceIniz
   const searchParams = useSearchParams();
   const erroreParam = searchParams.get("errore");
   const [codice, setCodice] = useState(codiceIniziale);
-  const [statoCodice, setStatoCodice] = useState<"idle" | "verificando" | "valido" | "non_valido">("idle");
+  const [statoCodice, setStatoCodice] = useState<"idle" | "incompleto" | "verificando" | "valido" | "non_valido" | "troppi_tentativi" | "non_controllato">("idle");
   const [nomeScuola, setNomeScuola] = useState<string | null>(null);
 
   const [nome, setNome] = useState("");
@@ -35,9 +37,16 @@ export default function RiscattaInvitoTutorForm({ codiceIniziale }: { codiceIniz
   const [inviato, setInviato] = useState(false);
 
   useEffect(() => {
-    const codiceNormalizzato = codice.trim().toUpperCase();
+    const codiceNormalizzato = normalizzaCodiceInvito(codice);
     if (!codiceNormalizzato) {
       setStatoCodice("idle");
+      setNomeScuola(null);
+      return;
+    }
+    // Un codice a metà non si verifica: la verifica conta i tentativi sbagliati,
+    // e ogni lettera battuta sarebbe un tentativo.
+    if (!codiceInvitoCompleto(codiceNormalizzato)) {
+      setStatoCodice("incompleto");
       setNomeScuola(null);
       return;
     }
@@ -46,19 +55,17 @@ export default function RiscattaInvitoTutorForm({ codiceIniziale }: { codiceIniz
     setStatoCodice("verificando");
     const timeout = setTimeout(async () => {
       try {
-        const supabase = createClient();
-        const { data, error } = await supabase.rpc("verifica_invito_tutor", { p_codice: codiceNormalizzato });
-        const risultato = Array.isArray(data) ? data[0] : data;
+        const risposta = await fetch("/api/scuola/invito/verifica", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ codice: codiceNormalizzato }),
+        });
+        const esito = leggiEsitoVerifica(await risposta.json().catch(() => null));
         if (annullato) return;
-        if (error || !risultato?.valido) {
-          setStatoCodice("non_valido");
-          setNomeScuola(null);
-        } else {
-          setStatoCodice("valido");
-          setNomeScuola(risultato.nome_scuola ?? null);
-        }
+        setStatoCodice(esito.esito);
+        setNomeScuola(esito.esito === "valido" ? esito.nomeScuola : null);
       } catch {
-        if (!annullato) setStatoCodice("non_valido");
+        if (!annullato) setStatoCodice("non_controllato");
       }
     }, 400);
 
@@ -114,7 +121,7 @@ export default function RiscattaInvitoTutorForm({ codiceIniziale }: { codiceIniz
           emailRedirectTo: `${window.location.origin}/dopo-accesso`,
           data: {
             ruolo: "tutor_scuola",
-            codice_invito: codice.trim().toUpperCase(),
+            codice_invito: normalizzaCodiceInvito(codice),
             nome: nome.trim(),
             cognome: cognome.trim(),
           },
@@ -159,13 +166,16 @@ export default function RiscattaInvitoTutorForm({ codiceIniziale }: { codiceIniz
           onChange={(e) => setCodice(e.target.value.toUpperCase())}
           aria-invalid={Boolean(errors.codice)}
           className={`${inputClass} ${fieldBorder(Boolean(errors.codice))}`}
-          placeholder="TUTOR-XXXXXXXX"
+          placeholder="TUTOR-XXXX-XXXX-XXXX-XXXX"
         />
         {statoCodice === "verificando" && <p className="mt-1.5 text-sm text-kireo-muted">Verifica in corso…</p>}
         {statoCodice === "valido" && (
           <p className="mt-1.5 text-sm text-kireo-green-light">Codice valido — {nomeScuola ?? "scuola trovata"}.</p>
         )}
-        {statoCodice === "non_valido" && <p className="mt-1.5 text-sm text-red-400">Codice non valido o già usato.</p>}
+        {statoCodice === "incompleto" && <p className="mt-1.5 text-sm text-kireo-muted">{TESTI_CODICE_INVITO.forma}</p>}
+        {statoCodice === "non_valido" && <p className="mt-1.5 text-sm text-red-400">{TESTI_CODICE_INVITO.nonValido}</p>}
+        {statoCodice === "troppi_tentativi" && <p className="mt-1.5 text-sm text-red-400">{TESTI_CODICE_INVITO.troppiTentativi}</p>}
+        {statoCodice === "non_controllato" && <p className="mt-1.5 text-sm text-kireo-orange">{TESTI_CODICE_INVITO.nonControllato}</p>}
         {errors.codice && <p className="mt-1.5 text-sm text-red-400">{errors.codice}</p>}
       </div>
 
