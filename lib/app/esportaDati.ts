@@ -15,8 +15,8 @@
 // che si legge «zero prenotazioni», non «non lo so» — `zero ≠ non ho
 // guardato`, la regola di casa, scritta dentro un file che uno studente si
 // porta via, nel punto esatto in cui ci chiede cosa abbiamo su di lui. E
-// accanto c'era `"attivita": []`, che è un vuoto VERO: nel file i due erano
-// indistinguibili.
+// accanto c'era `"attivita": []` (le ore registrate dalla scuola, uscite il
+// 01/11), che era un vuoto VERO: nel file i due erano indistinguibili.
 //
 // E il fatto che quella query fosse morta da tre mesi senza che nessuno se ne
 // accorgesse vuol dire che quel bottone non l'ha mai premuto nessuno. Non
@@ -127,28 +127,6 @@ export const SEZIONI_EXPORT: SezioneExport[] = [
     voce: "Le aree di orientamento che hai scelto",
   },
   {
-    chiave: "attivita",
-    tabella: "student_activities",
-    colonna: "student_id",
-    select: "activity_id, stato, ore_certificate, completed_at, created_at",
-    singola: false,
-    // ⚠️ LA VOCE DICHIARA DI ESSERE VUOTA, E DEVE. Nessun codice scrive
-    // `student_activities` — solo `select`, verificato — quindi questa sezione
-    // è `[]` per tutti. Una sezione sempre vuota non va TOLTA (è una tabella
-    // vera, e il giorno che la scuola comincerà a scriverla si riempie da sé),
-    // ma non può comparire in un elenco di «cosa contiene» senza dirlo: un
-    // ragazzo leggerebbe «le tue attività», aprirebbe, troverebbe `[]` e
-    // concluderebbe di non aver fatto niente — mentre nella sua pagina «Le mie
-    // attività» quelle attività le vede, perché quella pagina legge
-    // `activity_log`, che in questo file non c'è. È `zero ≠ non ho guardato`
-    // con l'aggravante del nome preso in prestito.
-    //
-    // `npm run test:export` tiene insieme le due metà: che la voce lo dica, e
-    // che nessuno scriva quella tabella. Il giorno che qualcuno la scrive, il
-    // controllo dice che questa frase è diventata falsa.
-    voce: "Le attività con ore certificate registrate dalla scuola (oggi questa parte è vuota per tutti: quella strada non è ancora in uso)",
-  },
-  {
     // Dal 29/10 (Mario: «Includila»). Il titolo e l'ente sono quelli del
     // momento in cui l'ha scaricata (20261116100000): la riga resta anche se
     // l'ente ha cancellato o sostituito la guida.
@@ -232,10 +210,6 @@ export const COLONNE_ESCLUSE: Record<string, Record<string, string>> = {
     // ⚠️ Lo stato e la data della verifica ci sono («verificata dalla tua
     // scuola il …»): quello che esce è CHI, perché è un'altra persona.
     verificato_da: "di un'altra persona: l'identificativo del referente della scuola che ha verificato",
-  },
-  student_activities: {
-    id: "tecnica: l'identificativo interno della riga",
-    updated_at: "tecnica: quando la riga è stata toccata l'ultima volta",
   },
   student_area_interests: {},
   newsletter_consegne: {

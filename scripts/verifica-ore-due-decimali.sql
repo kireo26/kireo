@@ -4,7 +4,7 @@
 begin;
 create temp table esiti (n int, proprieta text, ok boolean, visto text);
 
--- Un evento e una riga di attività, scritti come service-role.
+-- Un evento, scritto come service-role.
 insert into public.istituzioni (id, nome, slug, stato)
   values ('00000000-0000-0000-0000-00000000a001', 'Ente prova ore', 'ente-prova-ore', 'attiva');
 -- ⚠️ LA FINESTRA DURA UN'ORA, NON 45 MINUTI, ED È APPOSTA (26/10). Fino al
@@ -28,9 +28,8 @@ update public.eventi set ore_pcto = 0.75 where id = '00000000-0000-0000-0000-000
 insert into esiti select 1, '0,75 si salva come 0,75 (era 0,8)', ore_pcto = 0.75, ore_pcto::text
   from public.eventi where id = '00000000-0000-0000-0000-00000000e001';
 
--- 2. Anche dall'altra fonte delle ore.
-insert into esiti select 2, 'ore_certificate tiene due decimali', numeric_scale = 2, numeric_scale::text
-  from information_schema.columns where table_schema = 'public' and table_name = 'student_activities' and column_name = 'ore_certificate';
+-- 2. (Tolta il 01/11: guardava `student_activities.ore_certificate`, e la
+-- tabella è uscita con 20261129100000. Le ore vengono solo dagli eventi.)
 
 -- 3. Il TRONCAMENTO SI SPOSTA al terzo decimale, e la migrazione lo dichiara:
 -- per questo il form rifiuta più di due decimali.
@@ -43,9 +42,7 @@ insert into esiti select 4, 'stats_scuola esiste ancora, e ore_pcto_totali è nu
 -- 5. I permessi della vista ricreata: authenticated legge come prima.
 insert into esiti select 5, 'authenticated legge ancora stats_scuola', has_table_privilege('authenticated', 'public.stats_scuola', 'select'), '';
 
--- 6. ESCLUSIONE SCRITTA: activities.ore_pcto non è toccata.
-insert into esiti select 6, 'activities.ore_pcto resta com''era (esclusione dichiarata)', numeric_scale = 1, numeric_scale::text
-  from information_schema.columns where table_schema = 'public' and table_name = 'activities' and column_name = 'ore_pcto';
+-- 6. (Tolta il 01/11: `activities` è uscita con 20261129100000.)
 
 select n, case when coalesce(ok, false) then 'ok' else 'ROTTA' end as esito, proprieta, visto from esiti order by n;
 select count(*) filter (where coalesce(ok, false)) || '/' || count(*) as verificate from esiti;

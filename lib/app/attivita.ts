@@ -10,20 +10,12 @@ import { descriviErrore } from "@/lib/erroreSupabase";
 
 export type VoceStorico = {
   id: string;
-  tipo: "attivita" | "evento" | "guida";
+  tipo: "evento" | "guida";
   titolo: string;
   data: string;
   oreCertificate: number | null;
   /** Com'è andata, per un evento finito (vedi `testoEsitoStorico`). `null` = niente da dire. */
   esito?: string | null;
-};
-
-type RigaStudentActivity = {
-  id: string;
-  ore_certificate: number | null;
-  completed_at: string | null;
-  created_at: string;
-  activities: { titolo: string } | { titolo: string }[] | null;
 };
 
 type EventoStorico = {
@@ -43,26 +35,11 @@ type RigaIscrizioneEvento = {
   eventi: EventoStorico | EventoStorico[] | null;
 };
 
-// Storico unico per "Le mie attività": attività scolastiche certificate
-// (student_activities, già in produzione) + eventi a cui ci si è iscritti
-// (iscrizioni_eventi/eventi — se le tabelle non esistono ancora quella
-// parte resta vuota senza far fallire il resto).
+// Storico unico per "Le mie attività": gli eventi a cui ci si è iscritti e le
+// guide degli enti scaricate. Le «attività scolastiche certificate»
+// (`student_activities`) sono uscite il 01/11: nessuno le ha mai scritte, e
+// le ore vengono solo dalle presenze certificate (vedi lib/app/pcto.ts).
 export async function getStoricoAttivita(supabase: SupabaseClient, userId: string): Promise<VoceStorico[]> {
-  const { data: attivita } = await supabase
-    .from("student_activities")
-    .select("id, ore_certificate, completed_at, created_at, activities(titolo)")
-    .eq("student_id", userId);
-
-  const vociAttivita: VoceStorico[] = ((attivita ?? []) as RigaStudentActivity[]).map((riga) => {
-    const rel = Array.isArray(riga.activities) ? riga.activities[0] : riga.activities;
-    return {
-      id: `attivita-${riga.id}`,
-      tipo: "attivita",
-      titolo: rel?.titolo ?? "Attività",
-      data: riga.completed_at ?? riga.created_at,
-      oreCertificate: riga.ore_certificate ?? null,
-    };
-  });
 
   // ⚠️ LO STORICO DICE COM'È ANDATA (26/10). Prima elencava un evento con nome
   // e data, e basta: la diretta, cioè quella che certifica le ore, prendeva il
@@ -171,7 +148,7 @@ export async function getStoricoAttivita(supabase: SupabaseClient, userId: strin
     vociGuide = [];
   }
 
-  return [...vociAttivita, ...vociEventi, ...vociGuide].sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime());
+  return [...vociEventi, ...vociGuide].sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime());
 }
 
 /** La riga di una guida d'ente nello storico. Testo mio e provvisorio (29/10). */
@@ -181,7 +158,6 @@ export function testoGuidaStorico(enteNome: string): string {
 
 /** L'etichetta della pastiglia di una voce dello storico. */
 export const ETICHETTA_VOCE_STORICO: Record<VoceStorico["tipo"], string> = {
-  attivita: "Attività",
   evento: "Evento",
   guida: "Guida",
 };

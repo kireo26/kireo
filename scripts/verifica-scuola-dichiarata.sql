@@ -23,7 +23,7 @@ insert into public.schools(codice_meccanografico, denominazione, provincia, tipo
   values ('ZZ00000009', 'Liceo Altrui', 'Napoli', 'Liceo');
 
 -- una studentessa MINORENNE di quella scuola, con le sue aree di interesse e
--- un'attività certificata
+-- una presenza certificata
 insert into auth.users(id, email) values ('dddddddd-0000-0000-0000-00000000000d', 'giulia@prova.it');
 insert into public.profiles(id, ruolo, nome, cognome, data_nascita)
   values ('dddddddd-0000-0000-0000-00000000000d', 'studente', 'Giulia', 'Rossi', '2010-01-01');
@@ -31,10 +31,16 @@ insert into public.student_profiles(user_id, school_code, classe, anno_diploma)
   values ('dddddddd-0000-0000-0000-00000000000d', 'ZZ00000009', '3ª A', 2029);
 insert into public.student_area_interests(user_id, area_slug)
   values ('dddddddd-0000-0000-0000-00000000000d', 'salute-professioni-sanitarie');
-insert into public.activities(id, titolo, tipo, ore_pcto)
-  values ('ffffffff-0000-0000-0000-00000000000f', 'Attività', 'workshop', 4);
-insert into public.student_activities(student_id, activity_id, stato, ore_certificate)
-  values ('dddddddd-0000-0000-0000-00000000000d', 'ffffffff-0000-0000-0000-00000000000f', 'completata', 4);
+-- Le ore certificate stanno nelle presenze certificate (`ore_riconosciute`):
+-- fino al 01/11 la fixture le scriveva in `student_activities`, uscita con
+-- 20261129100000. La proprietà 6 guarda adesso la fonte vera delle ore.
+insert into public.istituzioni(id, nome, slug, tipo, stato)
+  values ('ffffffff-0000-0000-0000-0000000000e1', 'Ente vr', 'ente-vr', 'its', 'attiva');
+insert into public.eventi(id, titolo, descrizione, tipo, organizzatore_id, data_inizio, data_fine, stato, pubblico)
+  values ('ffffffff-0000-0000-0000-00000000000f', 'Incontro vr', 'x', 'altro', 'ffffffff-0000-0000-0000-0000000000e1',
+          now() - interval '3 hours', now() - interval '1 hour', 'approvato', 'studenti');
+insert into public.iscrizioni_eventi(student_id, evento_id, stato, origine, ore_riconosciute, certificata_da_tipo)
+  values ('dddddddd-0000-0000-0000-00000000000d', 'ffffffff-0000-0000-0000-00000000000f', 'partecipato', 'studente', 2, 'kireo');
 insert into public.conventions(school_code, stato)
   values ('ZZ00000009', 'attiva');
 -- UN CODICE CLASSE CHE ESISTE GIÀ, e non è un dettaglio: la proprietà 8 («i
@@ -99,8 +105,8 @@ begin
   insert into esiti values (5, 'LE AREE DI INTERESSE (dato di profilazione)',
     'NESSUNA', v is null, coalesce('*** LEGGE: ' || v || ' ***', 'nessuna'));
 
-  select count(*) into n from public.student_activities where student_id <> auth.uid();
-  insert into esiti values (6, 'le ore PCTO certificate',
+  select count(*) into n from public.iscrizioni_eventi where student_id <> auth.uid() and ore_riconosciute is not null;
+  insert into esiti values (6, 'le ore PCTO certificate (le presenze certificate)',
     '0 righe', n = 0, n || ' righe');
 
   select count(*) into n from public.conventions;

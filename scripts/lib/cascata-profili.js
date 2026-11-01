@@ -60,7 +60,7 @@ const RIFERIMENTO =
 
 /**
  * Legge tutte le migrazioni e restituisce:
- *   tabelle   — Set dei nomi creati con `create table`
+ *   tabelle   — Set dei nomi creati con `create table` e non tolti con `drop table`
  *   archi     — [{ figlia, madre, cascata }] in ordine di apparizione
  */
 function leggiMigrazioni() {
@@ -87,6 +87,20 @@ function leggiMigrazioni() {
       if (!figlia) continue;
       const azione = (r[2] || "no action").replace(/\s+/g, " ").toLowerCase();
       archi.push({ figlia, madre: r[1].toLowerCase(), cascata: azione === "cascade", file: nome });
+    }
+
+    // ⚠️ UNA TABELLA TOLTA NON È PIÙ NELLA CASCATA (01/11). Fino a
+    // 20261129100000 nessuna migrazione aveva mai tolto una tabella, e il
+    // lettore non sapeva farlo: una tabella uscita restava «di uno studente»
+    // per sempre, e la guardia dell'export avrebbe preteso una sezione per una
+    // cosa che non c'è. Si toglie la tabella e ogni arco che la tocca, nell'ordine
+    // delle migrazioni (un drop vale per quello che è venuto prima).
+    for (const m of sql.matchAll(/\bdrop\s+table(?:\s+if\s+exists)?\s+(?:public\.)?"?([a-z_][a-z0-9_]*)"?/gi)) {
+      const t = m[1].toLowerCase();
+      tabelle.delete(t);
+      for (let i = archi.length - 1; i >= 0; i--) {
+        if (archi[i].figlia === t || archi[i].madre === t) archi.splice(i, 1);
+      }
     }
   }
 

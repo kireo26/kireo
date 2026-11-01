@@ -223,10 +223,8 @@ export async function getProssimiEventiPerAree(supabase: SupabaseClient, areeSlu
   }
 }
 
-// Ore PCTO totali da eventi con iscrizione "partecipato" (si somma alle ore
-// certificate da student_activities, vedi lib/app/pcto.ts: sono due fonti
-// legittimamente distinte — attività scolastiche certificate vs eventi
-// KIREO/istituzioni a cui lo studente ha davvero partecipato).
+// Ore PCTO totali da eventi con iscrizione "partecipato": dal 01/11 l'unica
+// fonte delle ore certificate (vedi lib/app/pcto.ts).
 // ⚠️ DAL 26/10 SI LEGGONO LE ORE EMESSE (`ore_riconosciute`), mai
 // `eventi.ore_pcto`: una certificazione emessa è un fatto, e correggere le ore
 // dichiarate di un evento non deve cambiare quelle già riconosciute

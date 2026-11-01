@@ -27,6 +27,6 @@ select
   (select count(*) from public.iscrizioni_classe_eventi)                                 as iscrizioni_di_classe,
   (select count(*) from public.iscrizioni_eventi where origine = 'scuola')               as iscrizioni_fatte_dalla_scuola,
   (select count(*) from public.iscrizioni_eventi where certificata_da_tipo = 'scuola')   as presenze_certificate_dalla_scuola,
-  (select count(*) from public.proposte_incontro)                                        as proposte_incontro,
-  (select count(*) from public.activities)                                               as attivita_pcto_definite,
-  (select count(*) from public.student_activities)                                       as ore_pcto_registrate;
+  (select count(*) from public.proposte_incontro)                                        as proposte_incontro;
+-- (Le due colonne sulle ore «registrate dalla scuola» sono uscite il 01/11 con
+-- le loro tabelle, 20261129100000.)

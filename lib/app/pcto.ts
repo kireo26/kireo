@@ -15,7 +15,7 @@ export const TRAGUARDO_ORE_PCTO = 90;
 //
 // E LA STESSA FRASE AVEVA ALTRI DUE DIFETTI CHE NESSUNO HA MAI VISTO, perché
 // nessuno studente ha ancora avuto ore frazionarie. Le colonne sono
-// `numeric(5,1)` (`student_activities.ore_certificate`, `eventi.ore_pcto`),
+// `numeric(5,1)` (`eventi.ore_pcto`, oggi a due decimali),
 // quindi un decimale è possibile — e la somma la fa JavaScript:
 //
 //   • il SEPARATORE: `{ore}` grezzo in JSX stampa `0.5` con il punto, in una
@@ -53,16 +53,19 @@ export function testoOreCertificate(ore: number): string {
   return `${numeroOre(mostrate)} ${unita} su ${formattaNumero(TRAGUARDO_ORE_PCTO)}`;
 }
 
-// Ore certificate da due fonti legittimamente distinte, sommate: attività
-// scolastiche certificate (student_activities, pipeline lato scuola/PCTO
-// tradizionale) ed eventi KIREO/istituzioni a cui lo studente ha
-// partecipato (iscrizioni_eventi con stato "partecipato", vedi
-// lib/app/eventi.ts). Condivisa da Home e "Le mie attività".
+// Le ore certificate vengono da UNA cosa sola: le presenze certificate
+// (`iscrizioni_eventi.ore_riconosciute`, vedi lib/app/eventi.ts), comprese
+// quelle che una scuola certifica per una classe in DAD. Condivisa da Home e
+// "Le mie attività".
+//
+// ⚠️ FINO AL 01/11 ERA UNA SOMMA CON `student_activities`, le ore «registrate
+// dalla scuola»: una tabella che nessuno ha mai scritto, sempre a zero. Mario:
+// una somma fra un numero vero e una finzione — il giorno in cui qualcuno ci
+// scrivesse dal SQL Editor, le ore di uno studente cambierebbero senza che si
+// sappia da dove. Le tabelle sono uscite (20261129100000), e una seconda fonte
+// di ore non si rimette qui accanto: il giorno in cui una scuola chiederà di
+// registrare ore fatte fuori da KIREO è un prodotto diverso, con chi certifica
+// cosa.
 export async function getOreCertificate(supabase: SupabaseClient, userId: string): Promise<number> {
-  const [{ data }, oreEventi] = await Promise.all([
-    supabase.from("student_activities").select("ore_certificate").eq("student_id", userId),
-    getOrePctoDaEventi(supabase, userId),
-  ]);
-  const oreAttivita = (data ?? []).reduce((totale, riga) => totale + Number(riga.ore_certificate ?? 0), 0);
-  return oreAttivita + oreEventi;
+  return getOrePctoDaEventi(supabase, userId);
 }

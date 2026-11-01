@@ -16,8 +16,9 @@
 -- è successo.
 --
 -- LE DUE MIGRAZIONI CHE CHIUDE: 20261004170000 (institution_profiles) e
--- 20261004180000 (student_activities). Su una replica NATA SENZA di loro le
--- proprietà 1-4 e 9-11 sono ROTTE — e la controprova va fatta su una replica
+-- 20261004180000 (student_activities, uscita il 01/11: le 9-12 guardano ora
+-- `iscrizioni_eventi`). Su una replica NATA SENZA di loro le proprietà 1-4
+-- sono ROTTE — e la controprova va fatta su una replica
 -- ricostruita da zero, perché `drop policy` non si disfà riapplicando un file.
 
 begin;
@@ -58,8 +59,12 @@ insert into public.eventi(id, titolo, descrizione, tipo, pubblico, stato, data_i
 insert into public.chiavi_trasmissione(evento_id, chiave, aggiornata_da)
   values ('eeeeeeee-0000-0000-0000-00000000000e', 'CHIAVE-SEGRETA-DI-PROVA', 'bbbbbbbb-0000-0000-0000-00000000000b');
 
-insert into public.activities(id, titolo, tipo, ore_pcto)
-  values ('ffffffff-0000-0000-0000-00000000000f', 'Attività', 'workshop', 4);
+-- un incontro finito, per le ore: dal 01/11 le ore certificate stanno solo in
+-- `iscrizioni_eventi.ore_riconosciute` (`student_activities` è uscita con
+-- 20261129100000), quindi le proprietà 9-12 guardano la fonte vera.
+insert into public.eventi(id, titolo, descrizione, tipo, pubblico, stato, data_inizio, data_fine, organizzatore_id)
+  values ('ffffffff-0000-0000-0000-00000000000f', 'Incontro', 'I', 'altro', 'studenti', 'approvato',
+          now() - interval '3 hours', now() - interval '1 hour', 'cccccccc-0000-0000-0000-00000000000c');
 
 -- ═══════════════════════════════════════════════════════════════════════
 -- institution_profiles: la catena che faceva diventare ente uno studente
@@ -159,14 +164,17 @@ end $$;
 reset role;
 
 -- ═══════════════════════════════════════════════════════════════════════
--- student_activities: le ore PCTO per l'altra porta
+-- le ore PCTO per l'altra porta. Fino al 01/11 qui si provava
+-- `student_activities` (chiusa da 20261004180000); la tabella è uscita, e le ore
+-- vengono solo da `iscrizioni_eventi.ore_riconosciute`, che emette chi certifica.
+-- La proprietà resta la stessa: uno studente non si scrive ore da sé.
 -- ═══════════════════════════════════════════════════════════════════════
 set local role authenticated;
 set local request.jwt.claim.sub = 'dddddddd-0000-0000-0000-00000000000d';
 
 do $$ begin
-  insert into public.student_activities(student_id, activity_id, stato, ore_certificate)
-    values ('dddddddd-0000-0000-0000-00000000000d', 'ffffffff-0000-0000-0000-00000000000f', 'completata', 90);
+  insert into public.iscrizioni_eventi(student_id, evento_id, stato, origine, ore_riconosciute)
+    values ('dddddddd-0000-0000-0000-00000000000d', 'ffffffff-0000-0000-0000-00000000000f', 'partecipato', 'studente', 90);
   insert into esiti values (9, 'uno studente NON si scrive 90 ore certificate',
     'respinto', false, '*** RIUSCITO: è il buco ***');
 exception when others then
@@ -175,31 +183,29 @@ exception when others then
 end $$;
 
 do $$ declare o numeric; begin
-  select coalesce(sum(ore_certificate), 0) into o from public.student_activities
-   where student_id = 'dddddddd-0000-0000-0000-00000000000d';
+  select coalesce(sum(ore_riconosciute), 0) into o from public.iscrizioni_eventi
+   where student_id = 'dddddddd-0000-0000-0000-00000000000d' and stato = 'partecipato';
   insert into esiti values (10, '…e il contatore della home resta a zero',
     '0', o = 0, o || ' ore su 90');
 end $$;
 reset role;
 
--- LA RIGA DI SONDA SE NE VA. Nel mondo ROTTO la 9 riesce — è il buco — e senza
--- questa cancellazione la riga vera qui sotto collide con
--- `student_activities_unique`, la transazione muore e la controprova non
--- produce nessuna tabella: cioè non si distingue «rotto» da «lo script non
--- gira». Stessa cura già scritta per 20261004140000.
-delete from public.student_activities where student_id = 'dddddddd-0000-0000-0000-00000000000d';
+-- LA RIGA DI SONDA SE NE VA: nel mondo rotto la 9 riesce, e la riga vera qui
+-- sotto collide con l'unicità (studente, evento).
+delete from public.iscrizioni_eventi where student_id = 'dddddddd-0000-0000-0000-00000000000d'
+  and evento_id = 'ffffffff-0000-0000-0000-00000000000f';
 
--- una riga vera, scritta da una connessione privilegiata, poi il tentativo di
--- gonfiarla dal client
-insert into public.student_activities(student_id, activity_id, stato, ore_certificate)
-  values ('dddddddd-0000-0000-0000-00000000000d', 'ffffffff-0000-0000-0000-00000000000f', 'completata', 4);
+-- una presenza vera, certificata da una connessione privilegiata, poi il
+-- tentativo di gonfiarla dal client
+insert into public.iscrizioni_eventi(student_id, evento_id, stato, origine, ore_riconosciute, certificata_da_tipo)
+  values ('dddddddd-0000-0000-0000-00000000000d', 'ffffffff-0000-0000-0000-00000000000f', 'partecipato', 'studente', 4, 'kireo');
 set local role authenticated;
 set local request.jwt.claim.sub = 'dddddddd-0000-0000-0000-00000000000d';
 do $$ declare o numeric; begin
-  update public.student_activities set ore_certificate = 9999
-   where student_id = 'dddddddd-0000-0000-0000-00000000000d';
-  select coalesce(sum(ore_certificate), 0) into o from public.student_activities
-   where student_id = 'dddddddd-0000-0000-0000-00000000000d';
+  update public.iscrizioni_eventi set ore_riconosciute = 9999
+   where student_id = 'dddddddd-0000-0000-0000-00000000000d' and evento_id = 'ffffffff-0000-0000-0000-00000000000f';
+  select coalesce(sum(ore_riconosciute), 0) into o from public.iscrizioni_eventi
+   where student_id = 'dddddddd-0000-0000-0000-00000000000d' and stato = 'partecipato';
   insert into esiti values (11, 'e non gonfia una riga vera già scritta',
     '4 ore', o = 4, o || ' ore');
 exception when others then
@@ -208,8 +214,8 @@ exception when others then
 end $$;
 
 do $$ declare o numeric; begin
-  select coalesce(sum(ore_certificate), 0) into o from public.student_activities
-   where student_id = 'dddddddd-0000-0000-0000-00000000000d';
+  select coalesce(sum(ore_riconosciute), 0) into o from public.iscrizioni_eventi
+   where student_id = 'dddddddd-0000-0000-0000-00000000000d' and stato = 'partecipato';
   insert into esiti values (12, 'ma la LETTURA resta: il contatore legge le ore vere',
     '4 ore', o = 4, o || ' ore');
 end $$;

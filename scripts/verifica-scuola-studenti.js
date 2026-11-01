@@ -12,6 +12,7 @@ const fs = require("fs");
 const path = require("path");
 const { abilitaTypeScript, ROOT } = require("./banco/ts");
 const { senzaCommenti } = require("./lib/senza-commenti");
+const { ancora } = require("./lib/ancora");
 
 abilitaTypeScript();
 const { emailPerVerifica, emailVerificato } = require("@/lib/scuola/studenti");
@@ -76,7 +77,7 @@ for (const rel of PAGINE) ok(leggi(rel).includes("leggiStudentiDellaScuola(supab
 ok(/rpc\(\s*["']studenti_della_scuola["']\s*\)/.test(leggi("lib/scuola/studenti.ts")), "il caricatore chiama studenti_della_scuola");
 const studenti = leggi("app/scuola/(dashboard)/studenti/page.tsx");
 ok(/soloDichiarati\([^)]*\)[\s\S]{0,300}email: emailPerVerifica\(s\)/.test(studenti), "sulle righe in attesa l'email viene da emailPerVerifica");
-ok(!/emailPerVerifica/.test(studenti.slice(studenti.indexOf("Studenti verificati"))), "l'elenco dei verificati non usa l'email della verifica");
+ok(!/emailPerVerifica/.test(studenti.slice(ancora(studenti, "Studenti verificati", { dove: "la pagina degli studenti" }))), "l'elenco dei verificati non usa l'email della verifica");
 for (const rel of PAGINE.filter((r) => !r.includes("/studenti/page.tsx"))) {
   ok(!leggi(rel).includes("emailPerVerifica"), `${rel} non mostra l'email di un dichiarato`);
 }

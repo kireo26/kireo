@@ -200,27 +200,31 @@ ok(/inQuestoFile:\s*SEZIONI_EXPORT\.map\(/.test(moduloExport) &&
   "una lista a mano accanto a quella vera è la copia che nessuno rilegge: " +
   "il primo elenco nasce dalle `voce` delle sezioni, il secondo dai `testo` delle voci del debito");
 
-// LA QUARTA VOCE DICHIARA DI ESSERE VUOTA, e le due metà vanno insieme: che la
-// voce lo dica, e che nessuno scriva quella tabella. Il giorno in cui qualcuno
-// la scrive, quella frase diventa falsa e questo controllo è l'unica cosa che
-// lo dice — altrimenti un ragazzo legge «è vuota per tutti» su una sezione che
-// ha dei dati dentro.
-const voceAttivita = SEZIONI_EXPORT.find((s) => s.tabella === "student_activities");
-ok(Boolean(voceAttivita) && /vuota per tutti/.test(voceAttivita.voce),
-  "la voce di `student_activities` dichiara di essere vuota",
-  "è `[]` per tutti, e un elenco di «cosa contiene» che la nomina senza dirlo fa concludere a un ragazzo di non aver fatto niente");
-const scritture = [];
+// LE ORE «REGISTRATE DALLA SCUOLA» SONO USCITE (01/11, 20261129100000). Fino a
+// quel giorno qui c'era una voce che dichiarava di essere vuota per tutti, e
+// questo controllo teneva insieme le due metà (la frase e il fatto che nessuno
+// scrivesse la tabella). Ora le tabelle non ci sono: il controllo è che non
+// tornino da nessuna parte — né una sezione del file, né una lettura nel
+// codice, né la cascata, che deve aver letto il `drop table`.
+ok(!SEZIONI_EXPORT.some((s) => s.tabella === "student_activities" || s.tabella === "activities"),
+  "il file dei dati non ha più la sezione delle ore registrate dalla scuola",
+  "le tabelle sono uscite: una sezione su una tabella che non c'è fa fallire l'export intero");
+ok(!cascata.has("student_activities"),
+  "la cascata non contiene più student_activities (il lettore sa leggere `drop table`)",
+  "se c'è ancora, il lettore delle migrazioni non ha visto il drop, e la guardia pretende una sezione per una tabella che non esiste");
+const letture = [];
+let fileLetti = 0;
 for (const dir of ["app", "components", "lib"]) {
   for (const f of tuttiIFileTs(path.join(ROOT, dir))) {
+    fileLetti++;
     const src = senzaCommenti(fs.readFileSync(f, "utf8"));
-    if (/from\("student_activities"\)[\s\S]{0,120}?\.(insert|update|upsert|delete)\(/.test(src)) {
-      scritture.push(path.relative(ROOT, f));
-    }
+    if (/from\(\s*["'](student_activities|activities)["']\s*\)/.test(src)) letture.push(path.relative(ROOT, f));
   }
 }
-ok(scritture.length === 0,
-  "…e nessun codice dell'app scrive quella tabella, quindi la frase è vera",
-  `${scritture.join(", ")} — adesso si riempie: quella voce dice una cosa falsa e va riscritta`);
+ok(fileLetti > 300, `file dell'app letti: ${fileLetti} (pavimento 300)`);
+ok(letture.length === 0,
+  "…e nessun codice dell'app legge più le due tabelle",
+  `${letture.join(", ")} — dopo la migrazione quella lettura fallisce, e una somma di ore la conterebbe come zero`);
 
 const idVoci = VOCI_DEBITO.map((v) => v.id);
 const nominate = [...new Set(ATTESE.map((a) => a.nominataDa).filter(Boolean))];

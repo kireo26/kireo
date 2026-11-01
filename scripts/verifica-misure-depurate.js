@@ -102,7 +102,7 @@ const ESENTI = new Map([
   ],
   [
     "scripts/verifica-scrittura-dal-client.sql",
-    "Non è una misura: è la rassegna delle policy di scrittura del 4/10. Crea i propri studenti e il proprio ente finti dentro una transazione, PROVA A SCRIVERE le righe che non devono passare (fra cui su evidence, area_signal, presenze_live e student_activities) e fa ROLLBACK. Nomina quelle tabelle perché le sta provando, non perché conti qualcosa su una popolazione di studenti. OTTAVA volta che un controllo lessicale viene letto come una misura da un altro controllo lessicale: la cura resta l'esenzione con la ragione scritta, non il pattern allargato.",
+    "Non è una misura: è la rassegna delle policy di scrittura del 4/10. Crea i propri studenti e il proprio ente finti dentro una transazione, PROVA A SCRIVERE le righe che non devono passare (fra cui su evidence, area_signal, presenze_live e iscrizioni_eventi) e fa ROLLBACK. Nomina quelle tabelle perché le sta provando, non perché conti qualcosa su una popolazione di studenti. OTTAVA volta che un controllo lessicale viene letto come una misura da un altro controllo lessicale: la cura resta l'esenzione con la ragione scritta, non il pattern allargato.",
   ],
   [
     "scripts/verifica-completamento-ritiro.sql",

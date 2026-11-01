@@ -267,7 +267,6 @@ console.log("\n§5 · il CSV dice le ore");
   console.log("\n§4quater-bis · lo storico, eseguito con un client finto");
   const A = carica("lib/app/attivita.ts");
   const tabelle = {
-    student_activities: { data: [], error: null },
     iscrizioni_eventi: {
       data: [
         {

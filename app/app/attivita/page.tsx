@@ -24,7 +24,9 @@ export default async function AttivitaAppPage() {
     getSuggerimentiPerAree(supabase, contesto.userId, areeSlugs),
   ]);
 
-  const attivitaCertificate = storico.filter((v) => v.tipo === "attivita" && (v.oreCertificate ?? 0) > 0);
+  // Da dove vengono le ore: dal 01/11 solo dalle presenze certificate, quindi
+  // dagli eventi dello storico che ne hanno riconosciute.
+  const conOre = storico.filter((v) => (v.oreCertificate ?? 0) > 0);
 
   return (
     <div className="space-y-8">
@@ -114,7 +116,7 @@ export default async function AttivitaAppPage() {
       <div>
         <h2 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">Storico</h2>
         {storico.length === 0 ? (
-          <p className="mt-3 text-sm text-kireo-muted">Nessuna attività scolastica, iscrizione a eventi o guida di un ente scaricata, per ora.</p>
+          <p className="mt-3 text-sm text-kireo-muted">Nessuna iscrizione a eventi o guida di un ente scaricata, per ora.</p>
         ) : (
           <ul className="mt-4 space-y-3">
             {storico.map((voce) => (
@@ -125,7 +127,7 @@ export default async function AttivitaAppPage() {
                 <div>
                   <span
                     className={`mr-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-                      voce.tipo === "evento" ? "bg-kireo-orange/15 text-kireo-orange" : voce.tipo === "guida" ? "bg-white/10 text-kireo-light" : "bg-kireo-green/15 text-kireo-green-light"
+                      voce.tipo === "evento" ? "bg-kireo-orange/15 text-kireo-orange" : "bg-white/10 text-kireo-light"
                     }`}
                   >
                     {ETICHETTA_VOCE_STORICO[voce.tipo]}
@@ -152,9 +154,9 @@ export default async function AttivitaAppPage() {
             della virgola mobile. */}
         <p className="mt-1 text-sm text-kireo-muted">{testoOreCertificate(oreCertificate)}</p>
 
-        {attivitaCertificate.length > 0 && (
+        {conOre.length > 0 && (
           <ul className="mt-4 space-y-2">
-            {attivitaCertificate.map((v) => (
+            {conOre.map((v) => (
               <li key={v.id} className="flex items-center justify-between text-sm text-kireo-light">
                 <span>{v.titolo}</span>
                 <span className="text-kireo-muted">{numeroOre(v.oreCertificate)}h</span>
