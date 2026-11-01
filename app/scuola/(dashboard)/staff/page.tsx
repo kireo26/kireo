@@ -50,6 +50,7 @@ export default async function ScuolaStaffPage() {
                     </p>
                     <TogglePermessiTutor
                       staffId={t.id}
+                      nome={inAttesa ? (t.nome_invitato ?? null) : [profilo?.nome, profilo?.cognome].filter(Boolean).join(" ") || null}
                       permessiIniziali={{
                         puo_verificare_studenti: t.puo_verificare_studenti,
                         puo_gestire_classi: t.puo_gestire_classi,

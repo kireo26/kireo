@@ -3,15 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-
-type Permesso = "puo_verificare_studenti" | "puo_gestire_classi" | "puo_certificare_presenze" | "puo_inviare_comunicazioni";
-
-const ETICHETTE: { chiave: Permesso; label: string }[] = [
-  { chiave: "puo_verificare_studenti", label: "Verificare studenti" },
-  { chiave: "puo_gestire_classi", label: "Gestire classi" },
-  { chiave: "puo_certificare_presenze", label: "Certificare presenze" },
-  { chiave: "puo_inviare_comunicazioni", label: "Inviare comunicazioni" },
-];
+import { descriviErrore } from "@/lib/erroreSupabase";
+import { esitoDelega, PERMESSI, TESTI_DELEGA, testoConfermaDelega, type Permesso } from "@/lib/scuola/delega";
 
 // Toggle immediato dei 4 permessi delegabili al tutor (governati lato DB da
 // current_ha_permesso_staff, vedi 20260715110000): un cambio qui prende
@@ -19,33 +12,49 @@ const ETICHETTE: { chiave: Permesso; label: string }[] = [
 // restano sulla riga school_staff e valgono dal primo accesso del tutor).
 // Mai gestione staff né stato scuola: non delegabili per costruzione,
 // nessun toggle per quelli esiste in questo componente.
+//
+// 01/11: la casella si gira solo sul valore riletto, e sotto una riga dice cosa
+// è cambiato (lib/scuola/delega.ts).
 export default function TogglePermessiTutor({
   staffId,
+  nome,
   permessiIniziali,
 }: {
   staffId: string;
+  nome: string | null;
   permessiIniziali: Record<Permesso, boolean>;
 }) {
   const router = useRouter();
   const [permessi, setPermessi] = useState(permessiIniziali);
   const [caricamento, setCaricamento] = useState<Permesso | null>(null);
   const [errore, setErrore] = useState<string | null>(null);
+  const [conferma, setConferma] = useState<string | null>(null);
 
   async function toggle(chiave: Permesso) {
     const nuovoValore = !permessi[chiave];
     setCaricamento(chiave);
     setErrore(null);
+    setConferma(null);
     try {
       const supabase = createClient();
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("school_staff")
         .update({ [chiave]: nuovoValore })
-        .eq("id", staffId);
+        .eq("id", staffId)
+        .select(chiave);
       if (error) {
-        setErrore("Non è stato possibile aggiornare il permesso.");
+        console.error("[scuola] delega:", descriviErrore(error));
+        setErrore(TESTI_DELEGA.errore);
         return;
       }
-      setPermessi((prev) => ({ ...prev, [chiave]: nuovoValore }));
+      const esito = esitoDelega(data, chiave, nuovoValore);
+      if (esito.esito !== "salvato") {
+        console.error("[scuola] delega non atterrata:", esito.esito, staffId, chiave);
+        setErrore(TESTI_DELEGA.nonToccato);
+        return;
+      }
+      setPermessi((prev) => ({ ...prev, [chiave]: esito.valore }));
+      setConferma(testoConfermaDelega(nome, chiave, esito.valore));
       router.refresh();
     } finally {
       setCaricamento(null);
@@ -54,7 +63,7 @@ export default function TogglePermessiTutor({
 
   return (
     <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1.5">
-      {ETICHETTE.map(({ chiave, label }) => (
+      {PERMESSI.map(({ chiave, label }) => (
         <label key={chiave} className="flex items-center gap-1.5 text-xs text-kireo-light/90">
           <input
             type="checkbox"
@@ -66,6 +75,11 @@ export default function TogglePermessiTutor({
           {label}
         </label>
       ))}
+      {conferma && (
+        <p role="status" className="mt-1 w-full text-xs text-kireo-green-light">
+          {conferma}
+        </p>
+      )}
       {errore && <p className="mt-1 w-full text-xs text-red-400">{errore}</p>}
     </div>
   );
