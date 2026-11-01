@@ -5,7 +5,7 @@ import { finalizzaRegistrazioneSeNecessario } from "@/lib/finalizzaRegistrazione
 import { finalizzaRegistrazioneEnteSeNecessario } from "@/lib/finalizzaRegistrazioneEnte";
 import { finalizzaRegistrazioneScuolaSeNecessario } from "@/lib/finalizzaRegistrazioneScuola";
 import { finalizzaInvitoTutorSeNecessario } from "@/lib/finalizzaInvitoTutor";
-import { erroreLinkFallito } from "@/lib/auth/linkEmail";
+import { erroreLinkFallito, erroreScambioFallito } from "@/lib/auth/linkEmail";
 
 type EmailOtpType = "signup" | "invite" | "magiclink" | "recovery" | "email_change" | "email";
 
@@ -17,21 +17,36 @@ type EmailOtpType = "signup" | "invite" | "magiclink" | "recovery" | "email_chan
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const tokenHash = searchParams.get("token_hash");
+  const codice = searchParams.get("code");
   const type = searchParams.get("type") as EmailOtpType | null;
   const next = searchParams.get("next") ?? "/dopo-accesso";
 
-  if (!tokenHash || !type) {
+  if ((!tokenHash && !codice) || !type) {
     redirect("/accedi?errore=link_non_valido");
   }
 
   const supabase = await createClient();
-  const { data, error } = await supabase.auth.verifyOtp({ type, token_hash: tokenHash });
-
-  if (error || !data.user) {
-    // Un link di reset consumato e uno di conferma consumato portano a due
-    // cose diverse da fare (lib/auth/linkEmail.ts): il codice lo dice il tipo.
-    redirect(`/accedi?errore=${erroreLinkFallito(type)}`);
+  let user;
+  if (tokenHash) {
+    const { data, error } = await supabase.auth.verifyOtp({ type, token_hash: tokenHash });
+    if (error || !data.user) {
+      // Un link di reset consumato e uno di conferma consumato portano a due
+      // cose diverse da fare (lib/auth/linkEmail.ts): il codice lo dice il tipo.
+      redirect(`/accedi?errore=${erroreLinkFallito(type)}`);
+    }
+    user = data.user;
+  } else {
+    // Il modello predefinito dell'email (`{{ .ConfirmationURL }}`) arriva con
+    // `?code=`: il proxy lo manda qui (`instradaCodiceEmail`), e qui diventa
+    // una sessione. Senza questo scambio il recupero della password
+    // funzionava solo a chi era già collegato (01/11).
+    const { data, error } = await supabase.auth.exchangeCodeForSession(codice!);
+    if (error || !data.user) {
+      redirect(`/accedi?errore=${erroreScambioFallito(type, error?.code)}`);
+    }
+    user = data.user;
   }
+  const data = { user };
 
   if (type === "recovery") {
     redirect("/reimposta-password");

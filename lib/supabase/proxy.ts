@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { instradaCodiceEmail } from "@/lib/auth/linkEmail";
 
 // ⚠️ `/diretta` È L'UNICA AREA CONDIVISA FRA DUE RUOLI, e non è una svista:
 // la pagina di moderazione di una diretta la usano KIREO e l'ente, e due
@@ -40,6 +41,16 @@ function redirectAccedi(request: NextRequest) {
 const VECCHIO_PDF_RISERVATO = /^\/guide\/([a-z0-9-]+)\/([23])\.pdf$/;
 
 export async function updateSession(request: NextRequest) {
+  // Un link delle email di Supabase che arriva con `?code=` (reset della
+  // password, conferma dell'indirizzo) va scambiato per una sessione PRIMA che
+  // la pagina guardi se c'è un utente: altrimenti /reimposta-password rimanda
+  // all'accesso e /app protegge sé stessa dal suo stesso link. Vedi
+  // `instradaCodiceEmail` (lib/auth/linkEmail.ts).
+  const conCodice = instradaCodiceEmail(request.nextUrl.pathname, request.nextUrl.searchParams);
+  if (conCodice) {
+    return NextResponse.redirect(new URL(conCodice, request.url));
+  }
+
   const vecchio = VECCHIO_PDF_RISERVATO.exec(request.nextUrl.pathname);
   if (vecchio) {
     const url = request.nextUrl.clone();
