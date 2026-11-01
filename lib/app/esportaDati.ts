@@ -110,7 +110,7 @@ export const SEZIONI_EXPORT: SezioneExport[] = [
     chiave: "scuola",
     tabella: "student_profiles",
     colonna: "user_id",
-    select: "school_code, classe, anno_diploma, stato_verifica, verificato_il, created_at",
+    select: "school_code, classe, anno_diploma, stato_verifica, verificato_il, rifiuto_motivo, rifiuto_scuola_nome, rifiuto_il, created_at",
     singola: true,
     // ⚠️ Non «il tuo profilo»: questa tabella è la SCUOLA e la CLASSE. La
     // prima stesura della riga del debito le chiamava col nome di `profiles`,

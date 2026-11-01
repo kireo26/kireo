@@ -2,7 +2,8 @@ import { getAppContext } from "@/lib/app/studentContext";
 import { createClient } from "@/lib/supabase/server";
 import type { Indirizzo } from "@/components/ScuolaCascadeFields";
 import { CLASSI } from "@/lib/registrazione";
-import ProfiloForm, { BloccoPrivacy } from "@/components/app/ProfiloForm";
+import ProfiloForm, { BloccoPrivacy, type RifiutoVerifica } from "@/components/app/ProfiloForm";
+import { eMotivoRifiuto } from "@/lib/scuola/rifiutoVerifica";
 import ListaManifestazioniInteresse, { type ManifestazioneAttiva } from "@/components/app/ListaManifestazioniInteresse";
 import ComunicazioniStudente, { type IscrizioneNewsletter, type EnteSeguito } from "@/components/app/ComunicazioniStudente";
 import { statoEta } from "@/lib/eta";
@@ -53,6 +54,24 @@ export default async function ProfiloAppPage() {
   const conVerifica = await supabase.from("student_profiles").select("stato_verifica").eq("user_id", contesto.userId).maybeSingle();
   if (!conVerifica.error) {
     statoVerifica = conVerifica.data?.stato_verifica ?? null;
+  }
+
+  // Il motivo del rifiuto (passo 3 della scuola, 20261130110000), in una
+  // lettura a parte: se le colonne non ci sono ancora, la pagina resta quella
+  // di prima invece di perdere la sezione della scuola.
+  let rifiuto: RifiutoVerifica | null = null;
+  if (statoVerifica === "rifiutato") {
+    const conRifiuto = await supabase
+      .from("student_profiles")
+      .select("rifiuto_motivo, rifiuto_scuola_nome, rifiuto_il")
+      .eq("user_id", contesto.userId)
+      .maybeSingle();
+    const r = conRifiuto.data;
+    if (conRifiuto.error) {
+      console.error("[profilo] lettura del rifiuto", descriviErrore(conRifiuto.error));
+    } else if (r && eMotivoRifiuto(r.rifiuto_motivo) && r.rifiuto_scuola_nome && r.rifiuto_il) {
+      rifiuto = { motivo: r.rifiuto_motivo, scuola: r.rifiuto_scuola_nome, il: r.rifiuto_il };
+    }
   }
 
   const { data: righeAree } = await supabase
@@ -126,6 +145,7 @@ export default async function ProfiloAppPage() {
         areeInteresseIniziali={areeInteresseIniziali}
         statoVerifica={statoVerifica}
         nomeScuolaAttuale={nomeScuolaAttuale}
+        rifiuto={rifiuto}
       />
 
       <div id="comunicazioni">

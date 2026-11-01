@@ -143,7 +143,7 @@ set local request.jwt.claim.sub = 'bbbbbbbb-0000-0000-0000-00000000000b';
 do $$
 declare v text;
 begin
-  perform public.verifica_studente('aaaaaaaa-0000-0000-0000-000000000006', 'verificato');
+  perform public.verifica_studente('aaaaaaaa-0000-0000-0000-000000000006', 'verificato', null);
   -- Si rilegge con la funzione della scuola (20261128100000): il referente non
   -- legge più la tabella, e una rilettura dalla tabella darebbe «nessuna riga»
   -- anche a verifica riuscita.
@@ -176,7 +176,7 @@ set local request.jwt.claim.sub = 'bbbbbbbb-0000-0000-0000-00000000000b';
 do $$
 declare v text;
 begin
-  perform public.verifica_studente('aaaaaaaa-0000-0000-0000-000000000001', 'rifiutato');
+  perform public.verifica_studente('aaaaaaaa-0000-0000-0000-000000000001', 'rifiutato', 'scuola_sbagliata');
   -- Si scrive con l'identità del referente e si RILEGGE senza: la sua policy di
   -- select pretende `school_code = current_scuola_id()`, e il rifiuto l'ha
   -- azzerato — una rilettura come lui tornerebbe vuota e si leggerebbe come

@@ -10,6 +10,9 @@ import { createClient } from "@/lib/supabase/client";
 import { CLASSI } from "@/lib/registrazione";
 import AreeInteresseGrid from "./AreeInteresseGrid";
 import { formattaData } from "@/lib/formato";
+import { TESTI_RIFIUTO, rigaRifiuto, type MotivoRifiutoVerifica } from "@/lib/scuola/rifiutoVerifica";
+
+export type RifiutoVerifica = { motivo: MotivoRifiutoVerifica; scuola: string; il: string };
 import {
   SEZIONI_EXPORT,
   assemblaEsportazione,
@@ -117,12 +120,14 @@ function SezioneScuola({
   classeIniziale,
   statoVerifica,
   nomeScuolaAttuale,
+  rifiuto,
 }: {
   userId: string;
   scuolaValueIniziale: ScuolaCascadeValue;
   classeIniziale: string;
   statoVerifica: string | null;
   nomeScuolaAttuale: string | null;
+  rifiuto: RifiutoVerifica | null;
 }) {
   const [scuolaValue, setScuolaValue] = useState<ScuolaCascadeValue>(scuolaValueIniziale);
   const [classe, setClasse] = useState(classeIniziale);
@@ -132,7 +137,7 @@ function SezioneScuola({
   if (statoVerifica === "verificato") {
     const classeLabel = CLASSI.find((c) => c.value === classeIniziale)?.label ?? classeIniziale;
     return (
-      <div className="rounded-2xl border border-white/5 bg-kireo-card p-6">
+      <div id="scuola" className="rounded-2xl border border-white/5 bg-kireo-card p-6">
         <h2 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">Scuola e classe</h2>
         <p className="mt-2 text-kireo-light/90">
           {nomeScuolaAttuale ?? "—"} {classeLabel && `· ${classeLabel}`}
@@ -177,8 +182,20 @@ function SezioneScuola({
   }
 
   return (
-    <div className="rounded-2xl border border-white/5 bg-kireo-card p-6">
+    <div id="scuola" className="rounded-2xl border border-white/5 bg-kireo-card p-6">
       <h2 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">Scuola e classe</h2>
+      {/* Il rifiuto è lo stato di una pratica, non una macchia: sparisce quando
+          lo studente dichiara di nuovo una scuola (lo pulisce il trigger nel
+          database; qui si nasconde appena il salvataggio riesce). */}
+      {rifiuto && stato !== "ok" && (
+        <div className="mt-3 rounded-xl border border-kireo-orange/30 bg-kireo-orange/5 p-4">
+          <p className="text-sm font-semibold text-kireo-light">{TESTI_RIFIUTO.titolo}</p>
+          <p className="mt-1 text-sm text-kireo-light/90">
+            {rigaRifiuto(rifiuto.scuola, formattaData(rifiuto.il, "long"), rifiuto.motivo)}
+          </p>
+          <p className="mt-1 text-sm text-kireo-muted">{TESTI_RIFIUTO.cosaFare}</p>
+        </div>
+      )}
       <div className="mt-4 space-y-5">
         <ScuolaCascadeFields value={scuolaValue} onChange={handleScuolaChange} errors={errori} />
         <div>
@@ -423,6 +440,7 @@ export default function ProfiloForm({
   areeInteresseIniziali,
   statoVerifica = null,
   nomeScuolaAttuale = null,
+  rifiuto = null,
 }: {
   userId: string;
   nome: string;
@@ -434,6 +452,7 @@ export default function ProfiloForm({
   areeInteresseIniziali: string[];
   statoVerifica?: string | null;
   nomeScuolaAttuale?: string | null;
+  rifiuto?: RifiutoVerifica | null;
 }) {
   return (
     <div className="space-y-6">
@@ -445,6 +464,7 @@ export default function ProfiloForm({
         classeIniziale={classeIniziale}
         statoVerifica={statoVerifica}
         nomeScuolaAttuale={nomeScuolaAttuale}
+        rifiuto={rifiuto}
       />
       <SezioneAree userId={userId} areeIniziali={areeInteresseIniziali} />
     </div>
