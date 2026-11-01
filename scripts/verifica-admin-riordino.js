@@ -178,8 +178,17 @@ const D = require("@/lib/admin/coseDaDecidere");
     ok(linkNotifica("post_pubblicato", "p1") === "/admin/post#post-p1", "la notifica di un post nuovo porta alla pagina dei post");
     ok(!/in cima a questa pagina/.test(leggi("lib/admin/avvisiEnte.ts")), "l'avviso dopo una decisione non manda più «in cima a questa pagina»");
     const D2 = require("@/lib/admin/coseDaDecidere");
+    const { FILTRI_ENTI } = require("@/lib/admin/enti");
     for (const v of (await D2.coseDaDecidere(clientFinto({})))) {
-      const [p, ancora] = v.href.split("#");
+      // Dal lotto 2 (01/11) due voci portano a un filtro dell'elenco degli
+      // enti (`?stato=`): la pagina deve esserci, e il filtro deve essere uno
+      // di quelli che la pagina conosce, altrimenti si apre «Tutti».
+      const [conQuery, ancora] = v.href.split("#");
+      const [p, query] = conQuery.split("?");
+      if (query) {
+        const stato = new URLSearchParams(query).get("stato");
+        ok(p === "/admin/enti" && FILTRI_ENTI.some((f) => f.chiave === stato), `«${v.etichetta}» porta a un filtro che l'elenco degli enti conosce`, v.href);
+      }
       const f = path.join(ROOT, "app", p.slice(1), "page.tsx");
       const ok1 = fs.existsSync(f) && (!ancora || leggi(path.relative(ROOT, f)).includes(`id="${ancora}"`) || fs.readFileSync(f, "utf8").includes(`id="${ancora}"`));
       ok(ok1, `«${v.etichetta}» porta a una pagina che c'è${ancora ? `, con l'àncora #${ancora}` : ""}`, v.href);

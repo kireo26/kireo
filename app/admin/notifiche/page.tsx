@@ -1,9 +1,9 @@
-import Link from "next/link";
 import { requireAdmin } from "@/lib/admin/context";
 import CoseDaDecidere from "@/components/admin/CoseDaDecidere";
 import ToggleGestitaRichiesta from "@/components/admin/ToggleGestitaRichiesta";
 import { CRITERI, coseDaDecidere } from "@/lib/admin/coseDaDecidere";
 import { leggiFlusso } from "@/lib/admin/flusso";
+import GruppiFlusso from "@/components/admin/GruppiFlusso";
 import { GIORNI_FINESTRA_ADMIN } from "@/lib/admin/menu";
 import { formattaDataOra } from "@/lib/formato";
 import { descriviErrore } from "@/lib/erroreSupabase";
@@ -133,35 +133,7 @@ export default async function AdminNotifichePage() {
           Per ogni gruppo le ultime righe e quante sono in tutto nella finestra; l&apos;elenco intero è nella sua pagina. Ogni riga porta solo le date che abbiamo.
         </p>
         <div className="mt-6 space-y-8">
-          {flusso.map((g) => (
-            <section key={g.chiave} id={`flusso-${g.chiave}`}>
-              <h3 className="font-heading text-base font-semibold text-kireo-light">
-                {g.titolo}{" "}
-                <span className="text-sm font-normal text-kireo-muted">· {g.totale === null ? "non letto" : g.totale}</span>
-              </h3>
-              {g.totale === null ? (
-                <p className="mt-2 text-sm text-amber-200">Non siamo riusciti a leggerlo: ricarica la pagina.</p>
-              ) : g.righe.length === 0 ? (
-                <p className="mt-2 text-sm text-kireo-muted">Niente negli ultimi {GIORNI_FINESTRA_ADMIN} giorni.</p>
-              ) : (
-                <ul className="mt-2 space-y-1">
-                  {g.righe.map((r) => (
-                    <li key={r.id} className="text-sm text-kireo-light/90">
-                      {r.testo}
-                      {r.date.map((d) => (
-                        <span key={d.etichetta} className="text-xs text-kireo-muted">
-                          {" "}· {d.etichetta} {formattaDataOra(d.quando, "long")}
-                        </span>
-                      ))}
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <Link href={g.href} className="mt-2 inline-block text-xs text-kireo-orange underline underline-offset-2">
-                Vai all&apos;elenco intero →
-              </Link>
-            </section>
-          ))}
+          <GruppiFlusso gruppi={flusso} />
         </div>
       </section>
     </div>

@@ -12,10 +12,9 @@ import { leggiStatistiche, type StatisticheEnte } from "@/lib/ente/statistiche";
 // sezione non coincidono l'ente lo nota prima di noi.
 //
 // `null` vuol dire «non letto» (errore, o una forma inattesa): mai zeri.
-export const caricaStatisticheEnte = cache(async (): Promise<StatisticheEnte | null> => {
-  const contesto = await getEnteContext();
+const leggiDalDatabase = cache(async (istituzioneId: string): Promise<StatisticheEnte | null> => {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("statistiche_ente", { p_istituzione_id: contesto.istituzioneId });
+  const { data, error } = await supabase.rpc("statistiche_ente", { p_istituzione_id: istituzioneId });
   if (error) {
     console.error("[statistiche ente] statistiche_ente:", descriviErrore(error));
     return null;
@@ -24,3 +23,16 @@ export const caricaStatisticheEnte = cache(async (): Promise<StatisticheEnte | n
   if (!stats) console.error("[statistiche ente] statistiche_ente: forma inattesa");
   return stats;
 });
+
+export const caricaStatisticheEnte = cache(async (): Promise<StatisticheEnte | null> => {
+  const contesto = await getEnteContext();
+  return leggiDalDatabase(contesto.istituzioneId);
+});
+
+// LA PAGINA DI UN ENTE NELL'AREA ADMIN (01/11) legge gli stessi numeri che
+// l'ente vede, dalla stessa chiamata: `statistiche_ente` risponde all'admin
+// per qualunque ente. Chi la chiama controlla prima di essere l'admin
+// (`requireAdmin`); la funzione SQL lo ricontrolla.
+export async function caricaStatisticheDiUnEnte(istituzioneId: string): Promise<StatisticheEnte | null> {
+  return leggiDalDatabase(istituzioneId);
+}

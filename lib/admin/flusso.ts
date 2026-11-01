@@ -40,10 +40,16 @@ type Definizione = {
   colonne: string;
   /** La colonna che decide se una riga sta nella finestra. */
   data: string;
+  /**
+   * La colonna che dice di quale ente è la riga: serve al flusso ristretto a un
+   * ente (la sua pagina nell'admin). Un gruppo senza questa colonna non ha
+   * niente di un ente, e nel flusso ristretto non compare.
+   */
+  colonnaEnte?: string;
   filtro?: (q: Filtrabile) => Filtrabile;
   riga: (r: Record<string, unknown>) => RigaFlusso;
 };
-type Filtrabile = { neq: (c: string, v: unknown) => Filtrabile; not: (c: string, o: string, v: unknown) => Filtrabile };
+type Filtrabile = { neq: (c: string, v: unknown) => Filtrabile; not: (c: string, o: string, v: unknown) => Filtrabile; eq: (c: string, v: unknown) => Filtrabile };
 
 const nomeDi = (v: unknown): string => {
   const x = Array.isArray(v) ? v[0] : v;
@@ -61,6 +67,7 @@ export const DEFINIZIONI: Definizione[] = [
     tabella: "eventi",
     colonne: "id, titolo, stato, created_at, istituzioni(nome)",
     data: "created_at",
+    colonnaEnte: "organizzatore_id",
     filtro: (q) => q.neq("stato", "bozza"),
     riga: (r) => ({ id: testo(r.id), testo: `${nomeDi(r.istituzioni)} · ${testo(r.titolo)} · ${testo(r.stato)}`, date: data("proposto il", r.created_at) }),
   },
@@ -71,6 +78,7 @@ export const DEFINIZIONI: Definizione[] = [
     tabella: "post_enti",
     colonne: "id, corpo, stato, created_at, istituzioni(nome)",
     data: "created_at",
+    colonnaEnte: "istituzione_id",
     riga: (r) => ({ id: testo(r.id), testo: `${nomeDi(r.istituzioni)} · ${testo(r.corpo).slice(0, 80)}`, date: data("pubblicato il", r.created_at) }),
   },
   {
@@ -80,6 +88,7 @@ export const DEFINIZIONI: Definizione[] = [
     tabella: "post_enti",
     colonne: "id, corpo, tolto_il, istituzioni(nome)",
     data: "tolto_il",
+    colonnaEnte: "istituzione_id",
     riga: (r) => ({ id: testo(r.id), testo: `${nomeDi(r.istituzioni)} · ${testo(r.corpo).slice(0, 80)}`, date: data("tolto il", r.tolto_il) }),
   },
   {
@@ -89,6 +98,7 @@ export const DEFINIZIONI: Definizione[] = [
     tabella: "newsletter_enti",
     colonne: "id, oggetto, stato, created_at, approvata_il, istituzioni(nome)",
     data: "created_at",
+    colonnaEnte: "istituzione_id",
     filtro: (q) => q.neq("stato", "bozza"),
     riga: (r) => ({
       id: testo(r.id),
@@ -112,6 +122,7 @@ export const DEFINIZIONI: Definizione[] = [
     tabella: "istituzioni",
     colonne: "id, nome, stato, created_at",
     data: "created_at",
+    colonnaEnte: "id",
     riga: (r) => ({ id: testo(r.id), testo: `${testo(r.nome)} · ${testo(r.stato)}`, date: data("registrato il", r.created_at) }),
   },
   {
@@ -130,21 +141,26 @@ export const DEFINIZIONI: Definizione[] = [
   {
     chiave: "upgrade",
     titolo: "Richieste di cambio piano",
-    href: "/admin/enti#upgrade",
+    href: "/admin/enti?stato=cambio_piano",
     tabella: "richieste_upgrade",
     colonne: "id, stato, created_at, istituzioni(nome)",
     data: "created_at",
+    colonnaEnte: "istituzione_id",
     riga: (r) => ({ id: testo(r.id), testo: `${nomeDi(r.istituzioni)} · ${testo(r.stato)}`, date: data("richiesta il", r.created_at) }),
   },
 ];
 
-export async function leggiFlusso(supabase: SupabaseClient, adesso: Date = new Date()): Promise<GruppoFlusso[]> {
+// `istituzioneId`: il flusso ristretto a un ente (la sua pagina nell'admin).
+// Restano i soli gruppi che hanno la colonna dell'ente, filtrati su di lui.
+export async function leggiFlusso(supabase: SupabaseClient, adesso: Date = new Date(), istituzioneId?: string): Promise<GruppoFlusso[]> {
   const dal = inizioFinestraAdmin(adesso);
+  const definizioni = istituzioneId ? DEFINIZIONI.filter((d) => d.colonnaEnte) : DEFINIZIONI;
   return Promise.all(
-    DEFINIZIONI.map(async (d) => {
+    definizioni.map(async (d) => {
       try {
         let q = supabase.from(d.tabella).select(d.colonne, { count: "exact" }).gte(d.data, dal) as unknown as Filtrabile;
         if (d.filtro) q = d.filtro(q);
+        if (istituzioneId && d.colonnaEnte) q = q.eq(d.colonnaEnte, istituzioneId);
         const { data: righe, count, error } = await (q as unknown as {
           order: (c: string, o: { ascending: boolean }) => { limit: (n: number) => PromiseLike<{ data: unknown; count: number | null; error: unknown }> };
         })

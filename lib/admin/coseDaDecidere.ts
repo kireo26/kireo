@@ -49,11 +49,11 @@ export type CosaDaDecidere = {
 // poi chi aspetta una risposta su una cosa che ha scritto, poi la macchina.
 // Testi miei e provvisori.
 const VOCI: { chiave: string; etichetta: string; href: string }[] = [
-  { chiave: "istituzioni", etichetta: "Enti in attesa di attivazione", href: "/admin/enti#in-attesa" },
+  { chiave: "istituzioni", etichetta: "Enti in attesa di attivazione", href: "/admin/enti?stato=in_attesa" },
   { chiave: "scuole", etichetta: "Scuole in attesa di attivazione", href: "/admin/scuole#in-attesa" },
   { chiave: "eventi", etichetta: "Eventi da approvare", href: "/admin/eventi/da-approvare" },
   { chiave: "newsletter", etichetta: "Newsletter da approvare", href: "/admin/newsletter/da-approvare" },
-  { chiave: "upgrade", etichetta: "Richieste di cambio piano", href: "/admin/enti#upgrade" },
+  { chiave: "upgrade", etichetta: "Richieste di cambio piano", href: "/admin/enti?stato=cambio_piano" },
   { chiave: "contatti", etichetta: "Richieste di contatto da gestire", href: "/admin/notifiche#contatti" },
   { chiave: "email", etichetta: "Email all'ente non partite", href: "/admin/sistema#email" },
 ];
