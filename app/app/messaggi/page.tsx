@@ -28,7 +28,7 @@ export default async function MessaggiAppPage() {
 
       {!conversazioni || conversazioni.length === 0 ? (
         <div className="rounded-2xl border border-white/5 bg-kireo-card p-6 text-center text-kireo-muted">
-          Non hai ancora scritto a nessun ente. Puoi farlo dal profilo pubblico di un&apos;istituzione, se hai 18 anni o più.
+          Non hai ancora scritto a nessun ente. Puoi farlo dal profilo pubblico di un&apos;istituzione.
         </div>
       ) : (
         <ul className="space-y-3">

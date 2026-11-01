@@ -234,5 +234,31 @@ for (const f of ["app/app/esplora/page.tsx", "app/aree/[slug]/page.tsx"]) {
 ok(ancora(btnNewsletter, 'if (eta !== "maggiorenne" && !iscritto) return null;') < btnNewsletter.search(/\{didascalia &&[^\n]*\n\s*\{errore && \(/), "la didascalia della newsletter compare solo con il bottone");
 ok(/!mostraInfo \? \([\s\S]*?\{didascalia &&[\s\S]*?\) : \(/.test(pannello), "a pannello aperto la didascalia della condivisione sparisce");
 
+// §10 (01/11): «se hai 18 anni o più» è sopravvissuta un mese in «Messaggi»
+// dopo che il blocco dei 18 anni era uscito dal codice (20261109100000). Un
+// divieto che vive solo in una frase non lo trova nessuno cercando nel codice.
+// I 18 anni restano veri SOLO per le comunicazioni facoltative e le newsletter
+// (la promessa dell'informativa): una frase che li nomina fuori da questi file
+// è rossa, finché qualcuno non dice perché ci sta.
+console.log("§10 i 18 anni si nominano solo dove valgono");
+const DOVE_VALGONO_I_18 = new Set([
+  "lib/app/comunicazioniKireo.ts", // le comunicazioni facoltative di KIREO e le newsletter
+  "lib/app/gestiEnte.ts", // la didascalia della newsletter
+  "app/privacy/page.tsx", // l'informativa, che è la promessa stessa
+]);
+function elencaSorgenti(dir, out = []) {
+  for (const e of fs.readdirSync(path.join(ROOT, dir), { withFileTypes: true })) {
+    const rel = `${dir}/${e.name}`;
+    if (e.isDirectory()) elencaSorgenti(rel, out);
+    else if (/\.tsx?$/.test(e.name)) out.push(rel);
+  }
+  return out;
+}
+const sorgenti18 = ["app", "components", "lib"].flatMap((d) => elencaSorgenti(d));
+ok(sorgenti18.length > 300, `file letti: ${sorgenti18.length}`);
+const fuoriPosto = sorgenti18.filter((f) => !DOVE_VALGONO_I_18.has(f) && /18 anni|diciott['’]?anni|maggiore età/i.test(leggi(f)));
+ok(fuoriPosto.length === 0, "nessun testo nomina i 18 anni fuori dai posti dove valgono", fuoriPosto.join(", "));
+ok(!/18 anni/.test(leggi("app/app/messaggi/page.tsx")), "«Messaggi» non dice più «se hai 18 anni o più»");
+
 console.log(`\n${falliti === 0 ? "✓" : "✗"} ${fatte - falliti}/${fatte} proprietà`);
 process.exit(falliti === 0 ? 0 : 1);
