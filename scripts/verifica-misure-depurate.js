@@ -221,6 +221,10 @@ const ESENTI = new Map([
     "Stessa specie di verifica-motore-cron.js, e trovata dallo stesso falso positivo: non tocca nessun database — legge le MIGRAZIONI e cerca guardie fragili nei corpi delle funzioni. `evidence` e `workshop_iscrizioni` ci compaiono perché stanno nelle righe di taratura del controllo (le prove che verificano che il pattern riconosca una scrittura), non perché le interroghi. Un controllo lessicale scambiato per una misura da un altro controllo lessicale, la seconda volta.",
   ],
   [
+    "scripts/diagnostica-debito-export.sql",
+    "Non misura gli studenti: misura quanto pesa il debito di «Scarica i miei dati», cioè quante righe il file dei dati dovrebbe portare e non porta ancora. Una riga di un profilo di prova è comunque una riga che quel file deve saper dare al suo proprietario, quindi escluderle renderebbe il conto più piccolo del lavoro.",
+  ],
+  [
     "scripts/diagnostica-percorso.sql",
     "Da valutare insieme al primo giro del robot: alcune di queste viste contano quanti studenti hanno fatto cosa, e lì il filtro va messo; altre servono a controllare il robot stesso. Finché il robot non esiste, il file non è ancora stato deciso.",
   ],
