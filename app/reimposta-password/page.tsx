@@ -15,10 +15,12 @@ export default async function ReimpostaPassword() {
   } = await supabase.auth.getUser();
 
   // Questa pagina richiede la sessione temporanea di recupero creata da
-  // /auth/confirm?type=recovery: senza sessione attiva non ha senso stare
-  // qui, si torna al login.
+  // /auth/confirm?type=recovery. Senza sessione si torna al login, ma
+  // DICENDO perché (01/11): chi arriva qui senza sessione quasi sempre ha
+  // aperto un link di reset già usato o scaduto, e un modulo di accesso muto
+  // gli dice che KIREO non funziona. Vedi lib/auth/linkEmail.ts.
   if (!user) {
-    redirect("/accedi");
+    redirect("/accedi?errore=link_reset_usato");
   }
 
   return (

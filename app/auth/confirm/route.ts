@@ -5,6 +5,7 @@ import { finalizzaRegistrazioneSeNecessario } from "@/lib/finalizzaRegistrazione
 import { finalizzaRegistrazioneEnteSeNecessario } from "@/lib/finalizzaRegistrazioneEnte";
 import { finalizzaRegistrazioneScuolaSeNecessario } from "@/lib/finalizzaRegistrazioneScuola";
 import { finalizzaInvitoTutorSeNecessario } from "@/lib/finalizzaInvitoTutor";
+import { erroreLinkFallito } from "@/lib/auth/linkEmail";
 
 type EmailOtpType = "signup" | "invite" | "magiclink" | "recovery" | "email_change" | "email";
 
@@ -27,7 +28,9 @@ export async function GET(request: NextRequest) {
   const { data, error } = await supabase.auth.verifyOtp({ type, token_hash: tokenHash });
 
   if (error || !data.user) {
-    redirect("/accedi?errore=link_scaduto");
+    // Un link di reset consumato e uno di conferma consumato portano a due
+    // cose diverse da fare (lib/auth/linkEmail.ts): il codice lo dice il tipo.
+    redirect(`/accedi?errore=${erroreLinkFallito(type)}`);
   }
 
   if (type === "recovery") {

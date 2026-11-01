@@ -112,7 +112,8 @@
     "test:modalita": "node scripts/verifica-modalita-iscrizione.js",
     "test:invito": "node scripts/verifica-codice-invito.js",
     "test:delega": "node scripts/verifica-delega-tutor.js",
-    "test:responsabilita": "node scripts/verifica-colonne-di-responsabilita.js"
+    "test:responsabilita": "node scripts/verifica-colonne-di-responsabilita.js",
+    "test:linkemail": "node scripts/verifica-link-email.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.112.5",

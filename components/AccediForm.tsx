@@ -1,16 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "./Button";
 import { inputClass, fieldBorder } from "@/lib/formStyles";
 import { createClient } from "@/lib/supabase/client";
 import { messaggioErroreAuth } from "@/lib/authErrors";
+import { MESSAGGI_LINK_EMAIL, erroreDalFrammento } from "@/lib/auth/linkEmail";
 
 const MESSAGGI_ERRORE: Record<string, string> = {
-  link_non_valido: "Il link non è valido. Riprova ad accedere.",
-  link_scaduto: "Il link è scaduto o già utilizzato: prova ad accedere, oppure richiedi un nuovo link.",
+  ...MESSAGGI_LINK_EMAIL,
   registrazione_fallita: "Non siamo riusciti a completare la registrazione. Contattaci da /contatti.",
   dati_incompleti: "Mancano alcuni dati per completare la registrazione. Contattaci da /contatti.",
   scuola_non_valida: "La scuola collegata al tuo profilo non è più disponibile. Contattaci da /contatti.",
@@ -31,6 +31,16 @@ export default function AccediForm() {
     erroreParam ? (MESSAGGI_ERRORE[erroreParam] ?? "Si è verificato un errore.") : null,
   );
   const [caricamento, setCaricamento] = useState(false);
+
+  // Un link rifiutato dall'endpoint di Supabase arriva qui con l'errore nel
+  // frammento (#error_code=…), che il server non vede: si legge nel browser,
+  // e solo se l'indirizzo non porta già un errore suo.
+  useEffect(() => {
+    if (erroreParam) return;
+    const codice = erroreDalFrammento(window.location.hash);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- il frammento esiste solo nel browser
+    if (codice) setErroreGenerale(MESSAGGI_LINK_EMAIL[codice]);
+  }, [erroreParam]);
 
   function validate() {
     const next: Record<string, string> = {};
