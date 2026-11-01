@@ -62,8 +62,8 @@ export const ETICHETTA_TIPO: Record<TipoNotifica, string> = {
   newsletter_ente: "Una newsletter di un ente a cui sei iscritto",
   // ⚠️ Mio e provvisorio (31/10): la revoca di un'area, che sostituisce l'approvazione.
   area_revocata: "KIREO ha tolto una tua area di competenza",
-  // ⚠️ Mio e provvisorio (01/11): il motivo sta nel profilo, non qui.
-  verifica_rifiutata: "La scuola che avevi indicato non ha confermato che la frequenti",
+  // Di Mario (01/11), lo stesso titolo del profilo: il motivo sta lì, non qui.
+  verifica_rifiutata: "La scuola che hai indicato non ha confermato che la frequenti",
 };
 
 export const LINK_TIPO: Record<TipoNotifica, string> = {

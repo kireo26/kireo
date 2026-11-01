@@ -55,13 +55,14 @@ console.log("\n§2 — i testi\n");
   ok(R.TESTO_MOTIVO.scuola_sbagliata === "Hai scelto la scuola sbagliata", "il secondo motivo con le parole di Mario");
   ok(
     R.rigaRifiuto("Liceo Galilei", "1 novembre 2026", "scuola_sbagliata") ===
-      "«Liceo Galilei» ha risposto il 1 novembre 2026: «Hai scelto la scuola sbagliata».",
-    "la riga del profilo nomina la scuola copiata, il giorno e il motivo",
+      "Il 1 novembre 2026 «Liceo Galilei» non ha confermato: «Hai scelto la scuola sbagliata».",
+    "la riga del profilo: prima il giorno, poi la scuola copiata e il motivo",
   );
   const tutti = [...Object.values(R.TESTO_MOTIVO), ...Object.values(R.TESTI_RIFIUTO), ETICHETTA_TIPO.verifica_rifiutata];
   const accordi = tutti.flatMap((t) => trovaAccordi(t));
   ok(accordi.length === 0, `nessun testo accorda col genere di chi legge (${tutti.length} testi)`, accordi.join(", "));
   ok(!/come su[oa] student/i.test(tutti.join(" ")), "nessun «come suo studente»");
+  ok(!/ha risposto|avevi indicato/i.test(tutti.join(" ")), "nessuno scambio inventato e nessuna scelta messa al passato", "«ha risposto» suggerisce uno scambio che non c'è stato; «avevi indicato» tratta la scelta come un errore");
 }
 
 console.log("\n§3 — chi rifiuta sceglie da un elenco\n");
