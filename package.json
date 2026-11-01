@@ -67,6 +67,7 @@
     "test:fonti": "node scripts/verifica-fonti-dimensioni.js",
     "test:ore": "node scripts/verifica-ore-pcto.js",
     "test:studente": "node scripts/verifica-student-profiles.js",
+    "test:scuolastudenti": "node scripts/verifica-scuola-studenti.js",
     "test:registri": "node scripts/verifica-due-registri.js",
     "quarantena": "node scripts/quarantena.js",
     "test:quarantena": "node scripts/verifica-quarantena.js",
