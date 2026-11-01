@@ -65,7 +65,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const { chiave } = await getPassoCorrente(contesto.userId);
 
   return (
-    <AppShell userId={contesto.userId} passoCorrente={chiave}>
+    <AppShell
+      userId={contesto.userId}
+      passoCorrente={chiave}
+      account={{ nome: `${contesto.nome ?? ""} ${contesto.cognome ?? ""}`.trim(), email: contesto.email }}
+    >
       {children}
     </AppShell>
   );

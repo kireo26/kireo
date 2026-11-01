@@ -3,6 +3,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import Logo from "@/components/Logo";
+import AccountInUso, { type Account } from "@/components/app/AccountInUso";
 import { createClient } from "@/lib/supabase/client";
 import NotificheBell from "@/components/app/NotificheBell";
 
@@ -251,6 +252,7 @@ function VoceBarra({ item, pathname, passoCorrente }: { item: Voce; pathname: st
 export default function AppShell({
   userId,
   passoCorrente,
+  account,
   children,
 }: {
   userId: string;
@@ -259,6 +261,9 @@ export default function AppShell({
       passo a caso — un segno sbagliato indica a uno studente un posto in cui non
       è, e vale meno di nessun segno. */
   passoCorrente: ChiavePasso | null;
+  /** Con quale account si è dentro: nome ed email, in testa alla barra e
+      nell'header del telefono. Obbligatorio: vedi `AccountInUso`. */
+  account: Account;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -276,12 +281,13 @@ export default function AppShell({
   return (
     <div className="min-h-screen bg-kireo-dark md:flex">
       <aside className="hidden w-60 flex-none flex-col border-r border-white/5 px-4 py-6 md:flex">
-        <div className="flex items-center justify-between px-2 pb-8">
+        <div className="flex items-center justify-between px-2 pb-4">
           <Logo />
           {/* Sidebar: il pannello si apre verso il contenuto, non verso il bordo
               della finestra (vedi il commento in NotificheBell). */}
           <NotificheBell userId={userId} allineamento="sinistra" />
         </div>
+        <AccountInUso account={account} />
         <nav className="flex flex-1 flex-col gap-1" aria-label="Navigazione area personale">
           {GRUPPO_PERCORSO.map((item) => (
             <VoceBarra key={item.href} item={item} pathname={pathname} passoCorrente={passoCorrente} />
@@ -306,7 +312,10 @@ export default function AppShell({
 
       <div className="flex min-h-screen flex-1 flex-col">
         <header className="flex items-center justify-between border-b border-white/5 px-4 py-3 md:hidden">
-          <span className="font-heading text-base font-semibold text-kireo-light">{sezioneCorrente}</span>
+          <div className="min-w-0">
+            <span className="block font-heading text-base font-semibold text-kireo-light">{sezioneCorrente}</span>
+            <AccountInUso account={account} compatto />
+          </div>
           <div className="flex items-center gap-1">
             <NotificheBell userId={userId} />
             <button

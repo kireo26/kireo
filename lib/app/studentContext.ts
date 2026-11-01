@@ -6,6 +6,9 @@ import { isMaggiorenne } from "@/lib/eta";
 
 export type AppContext = {
   userId: string;
+  /** L'email dell'account, da auth: è quello che distingue due account con lo
+      stesso nome (vedi `components/app/AccountInUso.tsx`). */
+  email: string | null;
   nome: string;
   cognome: string;
   ruolo: string;
@@ -96,5 +99,5 @@ export const getAppContext = cache(async (): Promise<AppContext> => {
     schoolName = scuola?.denominazione ?? null;
   }
 
-  return { userId: user.id, nome, cognome, ruolo, schoolCode, schoolName, classe, dataNascita, maggiorenne: isMaggiorenne(dataNascita) };
+  return { userId: user.id, email: user.email ?? null, nome, cognome, ruolo, schoolCode, schoolName, classe, dataNascita, maggiorenne: isMaggiorenne(dataNascita) };
 });
