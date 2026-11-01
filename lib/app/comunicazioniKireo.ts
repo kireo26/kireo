@@ -88,6 +88,25 @@ export function testoAccountCollegato(email: string): string {
   return `Stai cambiando le scelte dell'account ${email}. Se l'email che hai ricevuto è di un altro indirizzo, esci ed entra con quello.`;
 }
 
+// L'USCITA CON IL CODICE (01/11, 20261126100000): la pagina del link in fondo
+// alle email. Vale per chi ha ricevuto l'email, senza fare l'accesso, e serve
+// solo a ritirare: un sì si dà dal profilo. Testi miei e provvisori.
+export const TESTI_USCITA_COMUNICAZIONI = {
+  titolo: "Disiscrizione dalle comunicazioni facoltative",
+  domanda:
+    "Non vuoi più ricevere le comunicazioni facoltative di KIREO? Premi il bottone: vale per l'account a cui è arrivata questa email, anche se su questo dispositivo c'è un altro account collegato.",
+  giaNo:
+    "Per l'account a cui è arrivata questa email hai già detto no alle comunicazioni facoltative di KIREO. Non devi fare altro.",
+  bottone: "No, non voglio riceverle",
+  fatto:
+    "Fatto: l'account a cui è arrivata questa email non riceve più le comunicazioni facoltative di KIREO. Se cambi idea, puoi dire sì dal tuo profilo.",
+  newsletter:
+    "Le newsletter degli enti sono un'altra cosa: per uscire da una di quelle c'è il link «Non voglio più riceverla» in fondo alla sua email.",
+  sconosciuto:
+    "Questo link non corrisponde a un account. Le tue scelte le trovi nel tuo profilo su KIREO.",
+  errore: "Non siamo riusciti a completare la richiesta. Riprova fra un momento.",
+};
+
 // Seguire un ente (Mario, 28/10: il quarto canale). Vero per costruzione: i
 // post degli enti seguiti stanno nella Bacheca (lib/app/bacheca.ts), e i
 // trigger notifica_follower_* (20260727140000) scrivono una notifica per i

@@ -95,9 +95,9 @@ const P = require("@/lib/ente/pianoSuccessivo");
   {
     const chiamate = [];
     const coda = [
-      { consegna_id: "c1", email: "a@x.it", nome: "A", oggetto: "Open day", corpo: "Vieni <b>sabato</b>.", ente_nome: "Ente", codice_uscita: "11111111-1111-1111-1111-111111111111", newsletter_id: "n1" },
-      { consegna_id: "c2", email: "b@x.it", nome: "B", oggetto: "Open day", corpo: "x", ente_nome: "Ente", codice_uscita: "22222222-2222-2222-2222-222222222222", newsletter_id: "n1" },
-      { consegna_id: "c3", email: "c@x.it", nome: "C", oggetto: "Open day", corpo: "x", ente_nome: "Ente", codice_uscita: "33333333-3333-3333-3333-333333333333", newsletter_id: "n1" },
+      { consegna_id: "c1", email: "a@x.it", nome: "A", oggetto: "Open day", corpo: "Vieni <b>sabato</b>.", ente_nome: "Ente", codice_uscita: "11111111-1111-1111-1111-111111111111", newsletter_id: "n1", codice_consenso: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa" },
+      { consegna_id: "c2", email: "b@x.it", nome: "B", oggetto: "Open day", corpo: "x", ente_nome: "Ente", codice_uscita: "22222222-2222-2222-2222-222222222222", newsletter_id: "n1", codice_consenso: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb" },
+      { consegna_id: "c3", email: "c@x.it", nome: "C", oggetto: "Open day", corpo: "x", ente_nome: "Ente", codice_uscita: "33333333-3333-3333-3333-333333333333", newsletter_id: "n1", codice_consenso: null },
     ];
     let giri = 0;
     const db = {
@@ -122,6 +122,13 @@ const P = require("@/lib/ente/pianoSuccessivo");
     const prima = mandate.find((m) => m.dest === "a@x.it");
     ok(prima && prima.html.includes("&lt;b&gt;sabato&lt;/b&gt;") && !prima.html.includes("<b>sabato"), "il testo dell'ente arriva come testo, non come markup");
     ok(prima && prima.html.includes("/disiscrizione/newsletter/11111111-1111-1111-1111-111111111111"), "ogni email ha la sua uscita, con il codice di quell'iscrizione");
+    // 01/11: dalla stessa email l'uscita dal consenso di KIREO scriveva sull'account
+    // collegato nel browser. Ora porta il codice di chi riceve (20261126100000).
+    ok(prima && prima.html.includes("/disiscrizione/consenso/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa") && !prima.html.includes('/disiscrizione"'),
+      "il piè di pagina porta il codice del consenso di chi riceve, non la pagina che guarda la sessione");
+    const terza = mandate.find((m) => m.dest === "c@x.it");
+    ok(terza && terza.html.includes('/disiscrizione"') && esito.guasti.some((g) => g.passo === "codice_consenso"),
+      "senza codice parte lo stesso, con il link generico, e il giro lo registra come guasto");
     ok(prima && prima.opzioni.intestazioni["List-Unsubscribe-Post"] === "List-Unsubscribe=One-Click"
       && prima.opzioni.intestazioni["List-Unsubscribe"].includes("/api/newsletter/uscita/11111111"), "…e le intestazioni di uscita con un clic (RFC 8058)");
     // Un guasto del database non si dice «zero inviate e basta».
@@ -190,7 +197,7 @@ const P = require("@/lib/ente/pianoSuccessivo");
       ...Object.values(R.TESTI_NEWSLETTER).map((t) => (typeof t === "function" ? t("2027-10-10", 3) : t)),
       ...R.testoEsitoNewsletter({ destinatari: 3, inviate: 1, inCoda: 1, fallite: 0, scadute: 1 }),
       ...Object.values(U.TESTI_USCITA).map((t) => (typeof t === "function" ? t("Ente") : t)),
-      T.templateNewsletter({ enteNome: "Ente", oggetto: "O", corpo: "C", linkLeggi: "https://kireo.it/a", linkUscita: "https://kireo.it/b" }),
+      T.templateNewsletter({ enteNome: "Ente", oggetto: "O", corpo: "C", linkLeggi: "https://kireo.it/a", linkUscita: "https://kireo.it/b", linkConsenso: "https://kireo.it/c" }),
     ];
     const accordi = testi.flatMap((t) => trovaAccordi(String(t)));
     ok(accordi.length === 0, "nessuna forma accordata col genere", accordi);

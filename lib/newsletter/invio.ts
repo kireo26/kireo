@@ -38,6 +38,9 @@ type Consegna = {
   ente_nome: string;
   codice_uscita: string;
   newsletter_id: string;
+  // Il codice del consenso di KIREO di chi la riceve, per il piè di pagina
+  // (20261126100000): l'uscita vale per chi riceve l'email.
+  codice_consenso: string | null;
 };
 
 export type EsitoGiro = {
@@ -49,6 +52,10 @@ export type EsitoGiro = {
 };
 
 export const LOTTO = 100;
+
+export function linkUscitaConsenso(codice: string): string {
+  return `${SITE_URL}/disiscrizione/consenso/${codice}`;
+}
 
 export function linkUscita(codice: string): string {
   return `${SITE_URL}/disiscrizione/newsletter/${codice}`;
@@ -92,12 +99,16 @@ export async function giroInvio(
     for (let i = 0; i < righe.length; i += concorrenza) {
       await Promise.all(
         righe.slice(i, i + concorrenza).map(async (c) => {
+          if (!c.codice_consenso) esito.guasti.push({ passo: "codice_consenso", dettaglio: `consegna ${c.consegna_id} senza codice del consenso` });
           const html = templateNewsletter({
             enteNome: c.ente_nome,
             oggetto: c.oggetto,
             corpo: c.corpo,
             linkLeggi: `${SITE_URL}/app/newsletter/${c.newsletter_id}`,
             linkUscita: linkUscita(c.codice_uscita),
+            // Il codice c'è per ogni profilo (20261126100000); se mancasse, il
+            // link generico, e un guasto che lo dice.
+            linkConsenso: c.codice_consenso ? linkUscitaConsenso(c.codice_consenso) : `${SITE_URL}/disiscrizione`,
           });
           let r: EsitoInvioEmail;
           try {

@@ -493,6 +493,14 @@ export const FUORI: { tabella: string; perche: string; termine: string[] | null 
     // dell'elaborato e non un tutor di scuola. Copertura parziale, dichiarata.
     termine: ["referente"],
   },
+  {
+    tabella: "codici_consenso_kireo",
+    perche:
+      "è una chiave nostra, il codice del link di disiscrizione nelle email (20261126100000): non è una cosa che lo studente ha fatto, e nel file starebbe solo come una chiave per ritirargli il consenso. Il consenso stesso, con la sua data, è nel file con il profilo",
+    // NON sorvegliabile: nessuno scriverebbe «il codice del link» in un elenco
+    // rivolto a uno studente.
+    termine: null,
+  },
 ];
 
 // ── I tre testi. Sono voce, e li ha scritti Mario.

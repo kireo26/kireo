@@ -227,6 +227,7 @@ const TEMPLATE_EMAIL = [
         corpo: "Primo paragrafo.\n\nSecondo.",
         linkLeggi: "https://kireo.it/app/newsletter/x",
         linkUscita: "https://kireo.it/disiscrizione/newsletter/x",
+        linkConsenso: "https://kireo.it/disiscrizione/consenso/x",
       }),
     ],
     invito: "mai",

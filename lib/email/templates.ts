@@ -44,7 +44,12 @@ export function linkSicuro(href: string): string {
   return pulito;
 }
 
-function involucroEmail(contenuto: string): string {
+// Il link «Disiscriviti dalle comunicazioni facoltative» (01/11): con il codice
+// di chi riceve l'email quando lo conosciamo (`linkConsenso`, da
+// `linkUscitaConsenso`), perché il link deve valere per chi l'ha ricevuta
+// e non per chi è collegato su quel telefono. Senza (un indirizzo scritto da un
+// visitatore, un account d'ente) resta la pagina generica.
+function involucroEmail(contenuto: string, linkConsenso?: string): string {
   return `<!doctype html>
 <html lang="it">
   <body style="margin:0;padding:0;background-color:#F0EDE8;font-family:Arial,Helvetica,sans-serif;color:#2C2C2A;">
@@ -66,7 +71,7 @@ function involucroEmail(contenuto: string): string {
               <td style="padding:0 32px 24px;font-size:12px;color:#9A9890;line-height:1.6;">
                 KIREO — Orientamento. Direzione. Futuro. — kireo.it
                 <br />
-                <a href="${SITE_URL}/disiscrizione" style="color:#9A9890;text-decoration:underline;">Disiscriviti dalle comunicazioni facoltative</a>
+                <a href="${esc(linkSicuro(linkConsenso ?? SITE_URL + "/disiscrizione"))}" style="color:#9A9890;text-decoration:underline;">Disiscriviti dalle comunicazioni facoltative</a>
               </td>
             </tr>
           </table>
@@ -191,6 +196,8 @@ export function templateNewsletter(dati: {
   corpo: string;
   linkLeggi: string;
   linkUscita: string;
+  // Il codice del consenso di KIREO di chi la riceve (20261126100000).
+  linkConsenso: string;
 }): string {
   return involucroEmail(`
     <p style="margin:0 0 4px;font-size:12px;color:#9A9890;">Newsletter di ${esc(dati.enteNome)}, tramite KIREO</p>
@@ -205,7 +212,7 @@ export function templateNewsletter(dati: {
     <p style="margin:24px 0 0;font-size:12px;color:#9A9890;">
       La ricevi perché hai scelto la newsletter di ${esc(dati.enteNome)} su KIREO. L'ente non vede il tuo indirizzo.
       <a href="${esc(linkSicuro(dati.linkUscita))}" style="color:#9A9890;text-decoration:underline;">Non voglio più riceverla</a>
-    </p>`);
+    </p>`, linkSicuro(dati.linkConsenso));
 }
 
 // L'avviso all'ente sulla decisione di KIREO su un evento o una newsletter
