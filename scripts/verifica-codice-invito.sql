@@ -5,7 +5,8 @@
 --   3-6  la verifica senza account passa solo dal server e conta per rete;
 --   7-9  il riscatto conta per account e non solleva sul codice sbagliato;
 --   10-11 i tentativi non li legge nessuno, e invecchiano;
---   12   le due porte di prima non ci sono più.
+--   12   le due porte di prima non ci sono più;
+--   13-14 il nome e l'email dell'invito si controllano (20261201120000).
 --
 -- CONTROPROVA: su una replica nata senza le due migrazioni sono rosse tutte
 -- tranne la 8: le funzioni nuove non esistono, la 1 riesce (il referente sceglie
@@ -169,6 +170,26 @@ select 12, 'verifica_invito_tutor e redeem_invito_staff sono uscite', 'nessuna',
     case when to_regprocedure('public.verifica_invito_tutor(text)') is not null then 'verifica_invito_tutor' end,
     case when to_regprocedure('public.redeem_invito_staff(text, text, text)') is not null then 'redeem_invito_staff' end), ''), 'nessuna'),
   to_regprocedure('public.verifica_invito_tutor(text)') is null and to_regprocedure('public.redeem_invito_staff(text, text, text)') is null;
+
+-- 13 · (20261201120000) l'email che non è un'email non entra, e il nome vuoto nemmeno.
+do $$ declare r1 text := 'riuscito'; r2 text := 'riuscito'; r3 text := 'riuscito'; begin
+  perform set_config('request.jwt.claim.sub', '77777777-0000-0000-0000-0000000000b1', true);
+  set local role authenticated;
+  begin perform public.crea_invito_tutor('Anna', 'Montefusco'); exception when others then r1 := sqlerrm; end;
+  begin perform public.crea_invito_tutor('   ', null); exception when others then r2 := sqlerrm; end;
+  begin perform public.crea_invito_tutor('Anna Montefusco', ''); exception when others then r3 := sqlerrm; end;
+  reset role;
+  insert into esiti values (13, 'l''invito rifiuta un''email che non è un''email e un nome vuoto, e accetta l''email lasciata vuota',
+    'email_non_valida · nome_mancante · riuscito', r1 || ' · ' || r2 || ' · ' || r3,
+    r1 = 'email_non_valida' and r2 = 'nome_mancante' and r3 = 'riuscito');
+end $$;
+
+-- 14 · …e un'email vuota si salva come nessuna email, non come stringa vuota.
+insert into esiti
+select 14, 'un''email lasciata vuota si salva come assente', 'assente',
+  coalesce(nullif(string_agg(coalesce(email_invitato, 'assente'), ','), ''), 'nessuna riga'),
+  count(*) = 1 and bool_and(email_invitato is null)
+from public.school_staff where nome_invitato = 'Anna Montefusco';
 
 select n, cosa, atteso, trovato, case when ok then '✓' else '✗ ROTTA' end as esito from esiti order by n;
 select count(*) filter (where not ok) || ' ROTTE su ' || count(*) as riassunto from esiti;

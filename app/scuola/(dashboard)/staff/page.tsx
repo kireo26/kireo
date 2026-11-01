@@ -46,7 +46,11 @@ export default async function ScuolaStaffPage() {
                       {inAttesa ? (t.nome_invitato ?? "Invito in attesa") : `${profilo?.nome} ${profilo?.cognome}`}
                     </p>
                     <p className="mt-1 text-xs text-kireo-muted">
-                      {inAttesa ? `In attesa di registrazione — codice ${t.codice_invito}` : t.attivo ? "Attivo" : "Disattivato"}
+                      {inAttesa
+                        ? `In attesa di registrazione — codice ${t.codice_invito}${t.email_invitato ? ` · email: ${t.email_invitato}` : ""}`
+                        : t.attivo
+                          ? "Attivo"
+                          : "Disattivato"}
                     </p>
                     <TogglePermessiTutor
                       staffId={t.id}

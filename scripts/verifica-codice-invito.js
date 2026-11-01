@@ -10,6 +10,7 @@ const path = require("path");
 const { abilitaTypeScript, ROOT } = require("./banco/ts");
 const { senzaCommenti } = require("./lib/senza-commenti");
 abilitaTypeScript();
+const { trovaAccordi } = require("@/lib/lingua/accordoGenere");
 
 let fatte = 0;
 let falliti = 0;
@@ -73,6 +74,31 @@ console.log("\n§3 — la pagina, la route, il riscatto\n");
 
   const ctx = leggi("lib/scuola/context.ts");
   ok(/\/scuola\/invito\?errore=\$\{esito\.motivo\}/.test(ctx), "un tutor che non riscatta torna alla pagina dell'invito, che sa dire perché");
+}
+
+console.log("\n§4 — il modulo dell'invito (passo 5.3)\n");
+{
+  const I = require(path.join(ROOT, "lib/scuola/invitoTutor.ts"));
+  ok(I.erroreInvitoTutor("Anna", "Montefusco") === "emailNonValida", "«Montefusco» nel campo email non passa (il caso del 28/10)");
+  ok(I.erroreInvitoTutor("Anna Montefusco", "") === null, "l'email lasciata vuota va bene");
+  ok(I.erroreInvitoTutor("Anna Montefusco", "anna@scuola.it") === null, "un'email vera va bene");
+  ok(I.erroreInvitoTutor("   ", "") === "nomeMancante", "il nome vuoto no");
+  ok(I.erroreInvitoTutor("x".repeat(121), "") === "nomeLungo", "un nome di 121 caratteri no");
+  // La forma è la stessa del database (attesi scritti a mano, non letti da qui).
+  const sql = fs.readFileSync(path.join(ROOT, "supabase/migrations/20261201120000_invito_tutor_controlla_i_campi.sql"), "utf8");
+  ok(sql.includes("'^[^@[:space:]]+@[^@[:space:]]+\\.[^@[:space:]]+$'") && I.FORMA_EMAIL_INVITO.source === "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$",
+    "il controllo dell'email è lo stesso nel modulo e nel database");
+  ok(sql.includes("length(v_nome) > 120") && I.LUNGHEZZA_MASSIMA_NOME_INVITO === 120, "anche il tetto del nome");
+
+  const f = leggi("components/scuola/InvitaTutorForm.tsx");
+  ok(/flex-col/.test(f) && !/flex-wrap items-end/.test(f), "i due campi stanno uno sotto l'altro, non affiancati");
+  ok(/\{T\.etichettaEmail\}/.test(f) && /\{T\.notaEmail\}/.test(f) && !/solo per tuo riferimento/.test(f), "l'etichetta dell'email dice cos'è, e la nota sta sotto");
+  ok(/erroreInvitoTutor\(nome, email\)/.test(f) && /noValidate/.test(f), "il controllo è nostro, non del browser");
+  ok(/email_non_valida/.test(f), "un rifiuto del database dice quale campo");
+  const p = leggi("app/scuola/(dashboard)/staff/page.tsx");
+  ok(/email: \$\{t\.email_invitato\}/.test(p), "l'email sta sulla riga dell'invito in attesa: «per tuo riferimento» è vero");
+  const testi = Object.values(I.TESTI_INVITO_TUTOR);
+  ok(testi.flatMap((t) => trovaAccordi(t)).length === 0, "nessun testo accorda col genere");
 }
 
 console.log(`\n${falliti === 0 ? "✅" : "❌"} ${fatte - falliti}/${fatte} proprietà (npm run test:invito)`);

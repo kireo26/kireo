@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/Button";
 import { inputClass, fieldBorder } from "@/lib/formStyles";
 import { createClient } from "@/lib/supabase/client";
+import { descriviErrore } from "@/lib/erroreSupabase";
+import { erroreInvitoTutor, TESTI_INVITO_TUTOR as T } from "@/lib/scuola/invitoTutor";
 
 // L'invio email reale non è ancora attivo (nessun provider collegato):
 // finché non lo sarà, il codice/link va condiviso a mano dal referente con
@@ -21,8 +23,9 @@ export default function InvitaTutorForm() {
     e.preventDefault();
     setErrore(null);
     setLink(null);
-    if (!nome.trim()) {
-      setErrore("Inserisci il nome del tutor da invitare.");
+    const erroreCampi = erroreInvitoTutor(nome, email);
+    if (erroreCampi) {
+      setErrore(T[erroreCampi]);
       return;
     }
 
@@ -31,7 +34,16 @@ export default function InvitaTutorForm() {
       const supabase = createClient();
       const { data: codice, error } = await supabase.rpc("crea_invito_tutor", { p_nome: nome.trim(), p_email: email.trim() || null });
       if (error || !codice) {
-        setErrore("Non è stato possibile creare l'invito. Riprova.");
+        if (error) console.error("[scuola] crea_invito_tutor:", descriviErrore(error));
+        // Il database ripete i controlli del modulo (20261201120000): se uno
+        // scatta lì, si dice quale, non «riprova».
+        const m = error?.message ?? "";
+        setErrore(
+          m.includes("email_non_valida") ? T.emailNonValida
+          : m.includes("nome_mancante") ? T.nomeMancante
+          : m.includes("nome_troppo_lungo") ? T.nomeLungo
+          : "Non è stato possibile creare l'invito. Riprova.",
+        );
         return;
       }
       setLink(`${window.location.origin}/scuola/invito?codice=${codice}`);
@@ -49,28 +61,35 @@ export default function InvitaTutorForm() {
       <p className="mt-1 text-sm text-kireo-muted">
         L&apos;invio email non è ancora attivo: dopo aver creato l&apos;invito, condividi tu il link con il tutor.
       </p>
-      <form onSubmit={handleSubmit} className="mt-4 flex flex-wrap items-end gap-3">
+      {/* Uno sotto l'altro, non affiancati: affiancati si leggevano «Nome | Cognome» (28/10). */}
+      <form onSubmit={handleSubmit} noValidate className="mt-4 flex max-w-md flex-col gap-4">
         <div>
           <label htmlFor="nomeTutor" className="mb-1.5 block text-sm font-medium text-kireo-light">
-            Nome e cognome
+            {T.etichettaNome}
           </label>
           <input id="nomeTutor" value={nome} onChange={(e) => setNome(e.target.value)} className={`${inputClass} ${fieldBorder(false)}`} />
         </div>
         <div>
           <label htmlFor="emailTutor" className="mb-1.5 block text-sm font-medium text-kireo-light">
-            Email (facoltativa, solo per tuo riferimento)
+            {T.etichettaEmail}
           </label>
           <input
             id="emailTutor"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            aria-describedby="notaEmailTutor"
             className={`${inputClass} ${fieldBorder(false)}`}
           />
+          <p id="notaEmailTutor" className="mt-1.5 text-xs text-kireo-muted">
+            {T.notaEmail}
+          </p>
         </div>
-        <Button type="submit" variant="primary" disabled={inviando}>
-          {inviando ? "Creazione…" : "Genera invito"}
-        </Button>
+        <div>
+          <Button type="submit" variant="primary" disabled={inviando}>
+            {inviando ? "Creazione…" : "Genera invito"}
+          </Button>
+        </div>
       </form>
       {errore && <p className="mt-3 text-sm text-red-400">{errore}</p>}
       {link && (
