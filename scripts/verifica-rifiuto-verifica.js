@@ -58,7 +58,14 @@ console.log("\n§2 — i testi\n");
       "Il 1 novembre 2026 «Liceo Galilei» non ha confermato: «Hai scelto la scuola sbagliata».",
     "la riga del profilo: prima il giorno, poi la scuola copiata e il motivo",
   );
-  const tutti = [...Object.values(R.TESTO_MOTIVO), ...Object.values(R.TESTI_RIFIUTO), ETICHETTA_TIPO.verifica_rifiutata];
+  // Anche le righe COMPOSTE, per ogni motivo: la guardia sulle parole vietate
+  // al primo giro guardava solo le costanti, e «ha risposto» sta nella riga.
+  const tutti = [
+    ...Object.values(R.TESTO_MOTIVO),
+    ...Object.values(R.TESTI_RIFIUTO),
+    ETICHETTA_TIPO.verifica_rifiutata,
+    ...R.MOTIVI_RIFIUTO.map((m) => R.rigaRifiuto("Liceo Galilei", "1 novembre 2026", m)),
+  ];
   const accordi = tutti.flatMap((t) => trovaAccordi(t));
   ok(accordi.length === 0, `nessun testo accorda col genere di chi legge (${tutti.length} testi)`, accordi.join(", "));
   ok(!/come su[oa] student/i.test(tutti.join(" ")), "nessun «come suo studente»");
