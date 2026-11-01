@@ -113,6 +113,17 @@ export function testoSeguaci(s: SchedaAdminEnte): string {
     : `Studenti che lo seguono: ${s.seguaciStudenti}`;
 }
 
+/**
+ * La riga di un ente in attesa: chi ha chiesto di entrare, con l'email, perché
+ * dall'elenco si attiva senza aprire la pagina. Mai «nessun account» per una
+ * lettura fallita.
+ */
+export function testoAccountInAttesa(s: SchedaAdminEnte | null): string {
+  if (!s) return "Non siamo riusciti a leggere l'account che ha chiesto di entrare: apri la pagina dell'ente prima di attivarlo.";
+  if (s.account.length === 0) return "Nessun account è collegato a questo ente.";
+  return `Account: ${s.account.map((a) => a.email ?? "email non letta").join(", ")}`;
+}
+
 export const TESTI_ENTI_ADMIN = {
   ricerca: "Cerca per nome dell'ente",
   nonLetti: "Non siamo riusciti a leggere gli enti: ricarica la pagina.",

@@ -11,6 +11,7 @@ const fs = require("fs");
 const ts = require("typescript");
 const Module = require("module");
 const { senzaCommenti } = require("./lib/senza-commenti");
+const { ancora } = require("./lib/ancora");
 
 const ROOT = path.join(__dirname, "..");
 const origResolve = Module._resolveFilename;
@@ -92,10 +93,37 @@ function clientFinto(risposte) {
     ok(/nascosti=\{/.test(s) && /extra=\{/.test(s), "la ricerca e le pagine portano con sé il filtro");
     ok(/href=\{`\/admin\/enti\/\$\{e\.id\}`\}/.test(s), "ogni ente apre la sua pagina");
     ok(!/PROVVISORIA/.test(fs.readFileSync(path.join(ROOT, "app/admin/enti/page.tsx"), "utf8")), "la pagina provvisoria è uscita nello stesso commit");
-    for (const c of ["AttivaIstituzioneButton", "RevocaArea", "AzioneApprovazioneUpgrade", "AzioneChiudiConversazione"]) ok(!new RegExp(`<${c}\\b`).test(s), `l'elenco non decide (${c} sta nella pagina dell'ente)`);
+    // Dal 01/11 (Mario) l'elenco attiva un ente in attesa dalla riga: è l'unica
+    // decisione che ci sta, perché il filtro «In attesa» esiste per farla.
+    // Le altre restano nella pagina dell'ente.
+    for (const c of ["RevocaArea", "AzioneApprovazioneUpgrade", "AzioneChiudiConversazione"]) ok(!new RegExp(`<${c}\\b`).test(s), `l'elenco non decide (${c} sta nella pagina dell'ente)`);
+    const piatto = s.replace(/\s+/g, " ");
+    ok(/e\.stato === "in_attesa" && \( <> .*<AttivaIstituzioneButton istituzioneId=\{e\.id as string\} nome=\{e\.nome as string\}/.test(piatto), "«Attiva» dalla riga, solo per un ente in attesa, con il suo nome");
+    ok((s.match(/<AttivaIstituzioneButton\b/g) || []).length === 1, "un bottone solo per riga");
+    ok(/testoAccountInAttesa\(/.test(s) && /rpc\("scheda_admin_ente"/.test(s), "la riga in attesa dice l'email dell'account, letta dalla funzione dell'admin");
     const r = leggi("components/admin/Ricerca.tsx");
     ok(/type="hidden"/.test(r), "la ricerca sa portare un campo nascosto");
     ok(/new URLSearchParams\(extra\)/.test(leggi("components/admin/Paginazione.tsx")), "le pagine sanno portare un filtro");
+  }
+
+  console.log("\n§4bis attivare: una conferma che nomina l'ente, e «fatto» solo se il database lo dice");
+  {
+    const A = require(path.join(ROOT, "lib/admin/attivaEnte.ts"));
+    ok(A.TESTI_ATTIVA_ENTE.domanda("Musica Academy") === "Attivare Musica Academy?", "la conferma nomina l'ente", A.TESTI_ATTIVA_ENTE.domanda("Musica Academy"));
+    ok(A.esitoAttivazione([{ stato: "attiva" }]) === "attivato", "una riga riletta attiva è «fatto»");
+    ok(A.esitoAttivazione([]) === "non_toccato", "zero righe toccate non è «fatto» (la RLS filtra senza errore)");
+    ok(A.esitoAttivazione([{ stato: "in_attesa" }]) === "non_toccato", "una riga rimessa da un trigger non è «fatto»");
+    ok(A.esitoAttivazione(null) === "errore", "una scrittura fallita è un errore");
+    const b = senzaCommenti(leggi("components/admin/AttivaIstituzioneButton.tsx"));
+    ok(/\.update\(\{ stato: "attiva" \}\)\.eq\("id", istituzioneId\)\.select\("stato"\)/.test(b), "l'attivazione rilegge la riga");
+    ok(/esitoAttivazione\(/.test(b) && /esito !== "attivato"/.test(b), "decide dall'esito riletto");
+    const iRefresh = ancora(b, "router.refresh()");
+    const iEsito = ancora(b, 'esito !== "attivato"');
+    ok(iEsito > 0 && iRefresh > iEsito, "la pagina si rilegge solo dopo un'attivazione confermata");
+    ok(/T\.domanda\(nome\)/.test(b) && /setChiedi\(true\)/.test(b), "il primo clic chiede, non attiva");
+    const E = require(path.join(ROOT, "lib/admin/enti.ts"));
+    ok(/^Non siamo riusciti/.test(E.testoAccountInAttesa(null)), "un account non letto si dice, non diventa «nessuno»");
+    ok(E.testoAccountInAttesa({ seguaciStudenti: 0, seguaciAltri: 0, account: [{ nome: "R", cognome: "E", email: "rita@ente.it", dal: null }] }) === "Account: rita@ente.it", "la riga dice l'email");
   }
 
   console.log("\n§5 la pagina dell'ente: le decisioni che c'erano, e niente letto di nascosto");

@@ -112,7 +112,7 @@ export default async function AdminEntePage({ params }: { params: Promise<{ id: 
         {ente.stato === "attiva" && ente.slug && (
           <Link href={`/istituzioni/${ente.slug}`} className="block text-xs text-kireo-orange underline underline-offset-2">La sua pagina pubblica →</Link>
         )}
-        {ente.stato === "in_attesa" && <AttivaIstituzioneButton istituzioneId={ente.id as string} />}
+        {ente.stato === "in_attesa" && <AttivaIstituzioneButton istituzioneId={ente.id as string} nome={ente.nome as string} />}
         <h3 className="pt-2 font-heading text-base font-semibold text-kireo-light">Gli account dell&apos;ente</h3>
         {!schedaLetta ? (
           <p className="text-sm text-amber-200">{T.schedaNonLetta}</p>
