@@ -20,6 +20,8 @@ import {
   type EsitoSezione,
 } from "@/lib/app/esportaDati";
 import { descriviErrore } from "@/lib/erroreSupabase";
+import { sessioneAncoraViva } from "@/lib/rifiutiScrittura";
+import { TESTO_NON_ATTERRATA, testoErroreAree, testoErroreScuola, testoErroreTelefono } from "@/lib/app/rifiutiStudente";
 import { USCITA_SOLO_QUI } from "@/lib/supabase/uscita";
 
 const MAX_AREE_INTERESSE = 3;
@@ -73,14 +75,25 @@ function SezioneAnagrafica({
 function SezioneTelefono({ userId, telefonoIniziale }: { userId: string; telefonoIniziale: string | null }) {
   const [telefono, setTelefono] = useState(telefonoIniziale ?? "");
   const [stato, setStato] = useState<StatoSalvataggio>("idle");
+  const [messaggio, setMessaggio] = useState("");
 
   async function handleSalva() {
     setStato("salvando");
     try {
       const supabase = createClient();
-      const { error } = await supabase.from("profiles").update({ telefono: telefono.trim() || null }).eq("id", userId);
-      setStato(error ? "errore" : "ok");
-    } catch {
+      // `.select()`: zero righe senza errore non è «Salvato».
+      const { data, error } = await supabase.from("profiles").update({ telefono: telefono.trim() || null }).eq("id", userId).select("id");
+      if (error) {
+        console.error("SezioneTelefono: salvataggio non riuscito", descriviErrore(error));
+        setMessaggio(testoErroreTelefono(error, await sessioneAncoraViva(supabase)));
+        setStato("errore");
+      } else if ((data ?? []).length === 0) {
+        setMessaggio(TESTO_NON_ATTERRATA);
+        setStato("errore");
+      } else setStato("ok");
+    } catch (e) {
+      console.error("SezioneTelefono: salvataggio non arrivato", descriviErrore(e));
+      setMessaggio(testoErroreTelefono(null, true));
       setStato("errore");
     }
   }
@@ -108,7 +121,7 @@ function SezioneTelefono({ userId, telefonoIniziale }: { userId: string; telefon
         <Button type="button" variant="primary" onClick={handleSalva} disabled={stato === "salvando"}>
           {stato === "salvando" ? "Salvataggio…" : "Salva telefono"}
         </Button>
-        <MessaggioSalvataggio stato={stato} messaggioErrore="Non è stato possibile salvare il telefono. Riprova più tardi." />
+        <MessaggioSalvataggio stato={stato} messaggioErrore={messaggio} />
       </div>
     </div>
   );
@@ -133,6 +146,7 @@ function SezioneScuola({
   const [classe, setClasse] = useState(classeIniziale);
   const [errori, setErrori] = useState<Record<string, string>>({});
   const [stato, setStato] = useState<StatoSalvataggio>("idle");
+  const [messaggio, setMessaggio] = useState("");
 
   if (statoVerifica === "verificato") {
     const classeLabel = CLASSI.find((c) => c.value === classeIniziale)?.label ?? classeIniziale;
@@ -171,12 +185,24 @@ function SezioneScuola({
     try {
       const supabase = createClient();
       const classeLabel = CLASSI.find((c) => c.value === classe)?.label ?? classe;
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("student_profiles")
         .update({ school_code: scuolaValue.scuola, classe: classeLabel })
-        .eq("user_id", userId);
-      setStato(error ? "errore" : "ok");
-    } catch {
+        .eq("user_id", userId)
+        .select("user_id");
+      if (error) {
+        // Il trigger `blocco_cambio_scuola_verificato` dice no se la scuola ha
+        // verificato mentre la pagina era aperta: lo si dice, non «riprova».
+        console.error("SezioneScuola: salvataggio non riuscito", descriviErrore(error));
+        setMessaggio(testoErroreScuola(error, await sessioneAncoraViva(supabase)));
+        setStato("errore");
+      } else if ((data ?? []).length === 0) {
+        setMessaggio(TESTO_NON_ATTERRATA);
+        setStato("errore");
+      } else setStato("ok");
+    } catch (e) {
+      console.error("SezioneScuola: salvataggio non arrivato", descriviErrore(e));
+      setMessaggio(testoErroreScuola(null, true));
       setStato("errore");
     }
   }
@@ -228,7 +254,7 @@ function SezioneScuola({
         <Button type="button" variant="primary" onClick={handleSalva} disabled={stato === "salvando"}>
           {stato === "salvando" ? "Salvataggio…" : "Salva scuola e classe"}
         </Button>
-        <MessaggioSalvataggio stato={stato} messaggioErrore="Non è stato possibile salvare. Riprova più tardi." />
+        <MessaggioSalvataggio stato={stato} messaggioErrore={messaggio} />
       </div>
     </div>
   );
@@ -238,6 +264,7 @@ function SezioneAree({ userId, areeIniziali }: { userId: string; areeIniziali: s
   const [aree, setAree] = useState<string[]>(areeIniziali);
   const [baseline, setBaseline] = useState<string[]>(areeIniziali);
   const [stato, setStato] = useState<StatoSalvataggio>("idle");
+  const [messaggio, setMessaggio] = useState("");
 
   function toggle(slug: string) {
     setAree((prev) => {
@@ -271,7 +298,12 @@ function SezioneAree({ userId, areeIniziali }: { userId: string; areeIniziali: s
       }
       setBaseline(aree);
       setStato("ok");
-    } catch {
+    } catch (e) {
+      // Un errore del database arriva qui con il suo codice (`throw error`
+      // sopra); un'eccezione della rete senza, e si legge come guasto.
+      console.error("SezioneAree: salvataggio non riuscito", descriviErrore(e));
+      const erroreDb = e && typeof e === "object" && "code" in e ? (e as { code?: unknown; message?: unknown }) : null;
+      setMessaggio(testoErroreAree(erroreDb, erroreDb ? await sessioneAncoraViva(createClient()) : true));
       setStato("errore");
     }
   }
@@ -292,7 +324,7 @@ function SezioneAree({ userId, areeIniziali }: { userId: string; areeIniziali: s
         <Button type="button" variant="primary" onClick={handleSalva} disabled={stato === "salvando"}>
           {stato === "salvando" ? "Salvataggio…" : "Salva aree"}
         </Button>
-        <MessaggioSalvataggio stato={stato} messaggioErrore="Non è stato possibile salvare le aree. Riprova più tardi." />
+        <MessaggioSalvataggio stato={stato} messaggioErrore={messaggio} />
       </div>
     </div>
   );

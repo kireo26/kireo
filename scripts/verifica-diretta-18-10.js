@@ -236,7 +236,9 @@ console.log("\n§5 — «Iscriviti» torna mentre la diretta è in corso (Mario,
     console.log(`    ${e.message}`);
   }
   ok(dopo, "…e solo DOPO che l'iscrizione è riuscita (entrare senza iscrizione porterebbe a «non risulti iscritto»)");
-  ok(/setErrore\(true\)/.test(bottone), "un'iscrizione che non riesce lo dice, invece di lasciare di nuovo una card muta");
+  // 01/11: l'errore non è più un sì/no con un «riprova» fisso, è il testo del
+  // suo perché (lib/app/iscrizioneEvento.ts, le regole in test:parenti).
+  ok(/if \(!esito\.ok\) \{[\s\S]{0,200}setErrore\(esito\.testo\)/.test(bottone), "un'iscrizione che non riesce lo dice, invece di lasciare di nuovo una card muta");
   const docente = leggi("components/docente/CardWebinarDocente.tsx");
   ok(/faseIscrizione\(/.test(docente) && /entraHref=\{hrefDiretta\}/.test(docente) && /fase === "prima"/.test(docente), "lo stesso nell'area docente (dove fino al 18/10 «Iscriviti» compariva anche su un webinar finito)");
 }

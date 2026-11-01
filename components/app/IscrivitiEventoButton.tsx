@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/Button";
 import { createClient } from "@/lib/supabase/client";
+import { annullaIscrizione, iscriviAEvento } from "@/lib/app/iscrizioneEvento";
 import { segnaNelRecinto } from "@/lib/app/recinto";
 import { registraAttivita } from "@/lib/app/activityLog";
 import { ETICHETTA_ISCRIVITI, ETICHETTA_ISCRIVITI_ED_ENTRA } from "@/lib/live";
@@ -30,7 +31,7 @@ export default function IscrivitiEventoButton({
   const pathname = usePathname();
   const [iscritto, setIscritto] = useState(iscrittoIniziale);
   const [caricamento, setCaricamento] = useState(false);
-  const [errore, setErrore] = useState(false);
+  const [errore, setErrore] = useState<string | null>(null);
   const etichetta = entraHref ? ETICHETTA_ISCRIVITI_ED_ENTRA : ETICHETTA_ISCRIVITI;
 
   // Visitatore non autenticato: non possiamo scrivere iscrizioni_eventi
@@ -48,26 +49,19 @@ export default function IscrivitiEventoButton({
 
   async function handleClick() {
     setCaricamento(true);
-    setErrore(false);
+    setErrore(null);
     try {
       const supabase = createClient();
       if (iscritto) {
-        const { error } = await supabase
-          .from("iscrizioni_eventi")
-          .delete()
-          .eq("student_id", userId as string)
-          .eq("evento_id", eventoId);
-        if (!error) setIscritto(false);
+        const esito = await annullaIscrizione(supabase, userId as string, eventoId);
+        if (esito.annullata) setIscritto(false);
+        else setErrore(esito.testo);
       } else {
-        const { error } = await supabase
-          .from("iscrizioni_eventi")
-          .insert({ student_id: userId, evento_id: eventoId });
-        if (error) {
-          // Un'iscrizione che non riesce non resta muta: per un ritardatario
-          // a diretta cominciata il silenzio è di nuovo una card che non dice
-          // niente.
-          console.error("IscrivitiEventoButton: iscrizione non riuscita", error);
-          setErrore(true);
+        const esito = await iscriviAEvento(supabase, userId as string, eventoId);
+        if (!esito.ok) {
+          // Un'iscrizione che non riesce non resta muta, e dice il suo perché:
+          // «riprova» solo a un guasto (lib/app/rifiutiStudente.ts).
+          setErrore(esito.testo);
         } else {
           setIscritto(true);
           if (areaSlug) registraAttivita(areaSlug, "iscrizione_webinar");
@@ -92,7 +86,7 @@ export default function IscrivitiEventoButton({
       <Button type="button" variant={iscritto ? "outline" : "primary"} onClick={handleClick} disabled={caricamento} className="flex-none">
         {caricamento ? "Un momento…" : iscritto ? "Iscritto ✓" : etichetta}
       </Button>
-      {errore && <p className="text-xs text-red-400">Non siamo riusciti a iscriverti. Riprova fra un momento.</p>}
+      {errore && <p className="max-w-xs text-right text-xs text-red-400">{errore}</p>}
     </div>
   );
 }

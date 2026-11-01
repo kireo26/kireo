@@ -4,6 +4,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/Button";
 import { createClient } from "@/lib/supabase/client";
+import { testoErroreCertificazioneDocente } from "@/lib/ente/certificazioneDocente";
+import { sessioneAncoraViva } from "@/lib/rifiutiScrittura";
+import { descriviErrore } from "@/lib/erroreSupabase";
 
 type Iscritto = {
   userId: string;
@@ -29,10 +32,18 @@ export default function RegistroPresenzeDocenti({ eventoId, iscritti }: { evento
       const supabase = createClient();
       const { error } = await supabase.rpc("certifica_partecipazione_docente", { p_evento_id: eventoId, p_user_id: userId });
       if (error) {
-        setErrore("Non è stato possibile certificare la partecipazione. Riprova più tardi.");
+        // Ogni rifiuto dice il suo perché: «riprova» solo a un guasto (vedi
+        // lib/ente/certificazioneDocente.ts, dove i rifiuti sono misurati).
+        console.error("RegistroPresenzeDocenti: certificazione non riuscita", descriviErrore(error));
+        setErrore(testoErroreCertificazioneDocente(error, await sessioneAncoraViva(supabase)));
+        // Chi ha annullato l'iscrizione sparisce dall'elenco: la pagina si rilegge.
+        if (error.message?.trim() === "non_iscritto") router.refresh();
         return;
       }
       router.refresh();
+    } catch (e) {
+      console.error("RegistroPresenzeDocenti: certificazione non arrivata", descriviErrore(e));
+      setErrore(testoErroreCertificazioneDocente(null, true));
     } finally {
       setCaricamentoId(null);
     }

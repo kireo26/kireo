@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/Button";
 import { inputClass, fieldBorder } from "@/lib/formStyles";
 import { createClient } from "@/lib/supabase/client";
+import { sessioneAncoraViva } from "@/lib/rifiutiScrittura";
+import { TESTO_NON_ATTERRATA, testoErroreDataNascita } from "@/lib/app/rifiutiStudente";
+import { descriviErrore } from "@/lib/erroreSupabase";
 
 const ETA_MINIMA = 14;
 const ETA_MASSIMA_PLAUSIBILE = 25;
@@ -50,14 +53,23 @@ export default function CompletaEtaForm({ userId }: { userId: string }) {
     setCaricamento(true);
     try {
       const supabase = createClient();
-      const { error } = await supabase.from("profiles").update({ data_nascita: dataNascita }).eq("id", userId);
+      // `.select()`: zero righe senza errore vuol dire che non è atterrata.
+      const { data, error } = await supabase.from("profiles").update({ data_nascita: dataNascita }).eq("id", userId).select("id");
       if (error) {
-        setErrore("Non è stato possibile salvare. Riprova.");
+        console.error("CompletaEtaForm: salvataggio non riuscito", descriviErrore(error));
+        // Il vincolo dell'età minima conta in UTC, il modulo in ora locale: a
+        // mezzanotte di un compleanno può dire no il database e non il modulo.
+        setErrore(testoErroreDataNascita(error, await sessioneAncoraViva(supabase), ETA_MINIMA));
+        return;
+      }
+      if ((data ?? []).length === 0) {
+        setErrore(TESTO_NON_ATTERRATA);
         return;
       }
       router.refresh();
-    } catch {
-      setErrore("Qualcosa è andato storto. Riprova tra qualche istante.");
+    } catch (e) {
+      console.error("CompletaEtaForm: salvataggio non arrivato", descriviErrore(e));
+      setErrore(testoErroreDataNascita(null, true, ETA_MINIMA));
     } finally {
       setCaricamento(false);
     }

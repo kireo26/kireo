@@ -114,7 +114,8 @@
     "test:delega": "node scripts/verifica-delega-tutor.js",
     "test:responsabilita": "node scripts/verifica-colonne-di-responsabilita.js",
     "test:linkemail": "node scripts/verifica-link-email.js",
-    "test:erroriauth": "node scripts/verifica-errori-auth.js"
+    "test:erroriauth": "node scripts/verifica-errori-auth.js",
+    "test:parenti": "node scripts/verifica-parenti-riprova.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.112.5",
