@@ -389,6 +389,24 @@
       "commit": "bca7015",
       "stato": "verificata",
       "fonte": "Mario 30/10, dallo schema: la colonna post_enti.link_titolo esiste (b_scheda true), il trigger post_enti_tipo_dal_piano non esiste (trigger_piano false); 0 post link_social"
+    },
+    {
+      "file": "20261130100000_rifiuto_verifica_parole.sql",
+      "commit": "7393f3f",
+      "stato": "verificata",
+      "fonte": "Mario 01/11: enum_range(motivo_rifiuto_verifica) = [non_risulta_studente, scuola_sbagliata]"
+    },
+    {
+      "file": "20261130110000_rifiuto_verifica_motivo.sql",
+      "commit": "7393f3f",
+      "stato": "verificata",
+      "fonte": "Mario 01/11: to_regprocedure(verifica_studente(uuid, stato_verifica_studente, motivo_rifiuto_verifica)) is not null = true; passo 3 visto a schermo"
+    },
+    {
+      "file": "20261130120000_verifica_studente_firma_vecchia.sql",
+      "commit": "7393f3f",
+      "stato": "verificata",
+      "fonte": "Mario 01/11: to_regprocedure(verifica_studente(uuid, stato_verifica_studente)) is null = true"
     }
   ]
 }
