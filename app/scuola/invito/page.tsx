@@ -17,7 +17,7 @@ export default async function InvitoTutorPage({
   return (
     <section className="mx-auto max-w-2xl px-6 py-20 sm:pt-28">
       <p className="mb-4 font-sans text-sm font-semibold uppercase tracking-wide text-kireo-orange">Registrazione tutor</p>
-      <h1 className="py-1 font-heading text-4xl font-bold leading-[1.25] text-kireo-light">Sei stato invitato come tutor</h1>
+      <h1 className="py-1 font-heading text-4xl font-bold leading-[1.25] text-kireo-light">Hai ricevuto un invito come tutor</h1>
       <p className="mt-4 text-lg text-kireo-muted">
         Inserisci il codice invito ricevuto dal referente della tua scuola e crea il tuo account.
       </p>

@@ -54,6 +54,17 @@ import { trovaConPattern, trovaConPatternInJson } from "@/lib/lingua/scansione";
 export const PATTERN_ACCORDO: RegExp[] = [
   /\b(?:ti\s+)?(?:sei|eri|fossi|sarai|saresti)\s+(?:gi[àa]\s+|subito\s+|poi\s+|anche\s+|mai\s+)?[a-zàèéìòù]+(?:ato|ito|uto|sso|sto|tto|rso|eso|orto|erto|olto)\b/g,
   /\b(?:ti\s+)?(?:sei|eri|fossi|sarai|saresti)\s+(?:gi[àa]\s+|subito\s+|poi\s+|anche\s+|mai\s+)?[a-zàèéìòù]+(?:ata|ita|uta|ssa|sta|tta|rsa|esa|orta|erta|olta)\b/g,
+  // L'INFINITO che parla a chi legge (01/11): «devi essere iscritto», «puoi
+  // esserti perso». Il pattern di sopra conosceva solo «sei/eri/…»; la frase
+  // del rifiuto delle domande in diretta stava fuori per questo. Due forme:
+  //   • un verbo modale in SECONDA persona + «essere» + participio: la seconda
+  //     persona dice che il soggetto è chi legge («deve essere approvato»,
+  //     terza persona, resta fuori, ed è giusto);
+  //   • «esserti» + participio: il riflessivo è sempre di chi legge, e accorda
+  //     anche lui (quindi «devi esserti iscritto» NON è la cura di «devi essere
+  //     iscritto»).
+  /\b(?:devi|puoi|vuoi|potresti|dovresti|vorresti|potrai|dovrai|potevi|dovevi)\s+(?:ancora\s+|gi[àa]\s+|anche\s+)?essere\s+(?:stat[oa]\s+)?[a-zàèéìòù]+(?:ato|ito|uto|sso|sto|tto|rso|eso|orto|erto|olto|ata|ita|uta|ssa|sta|tta|rsa|esa|orta|erta|olta)\b/g,
+  /\besserti\s+(?:gi[àa]\s+)?[a-zàèéìòù]+(?:ato|ito|uto|sso|sto|tto|rso|eso|orto|erto|olto|ata|ita|uta|ssa|sta|tta|rsa|esa|orta|erta|olta)\b/g,
   /\bda sol[oa]\b/g,
   // Il RIPIEGO TIPOGRAFICO: un segno al posto della vocale finale — chiocciola,
   // schwa, asterisco, x. Arrivato per un caso reale: la chiusura in carattere

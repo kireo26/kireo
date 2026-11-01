@@ -421,18 +421,21 @@ ok(orfane.length === 0, `nessuna voce di whitelist orfana (${orfane.length} orfa
 // significati dichiarati) valgono per il finale, che riporta senza aver letto;
 // una pagina di test o una schermata di workshop hanno altri mestieri.
 //
-// Fuori: /ente, /scuola, /docente, /admin e le pagine pubbliche. Altro
-// pubblico, altra lingua, altro giro — quando toccherà a loro, si allarga qui.
+// Dal 01/11 guarda tutto il prodotto (vedi RADICI_STUDENTE): il «fuori» che
+// c'era scritto qui è il buco da cui è passata la frase del 01/11.
 // ═══════════════════════════════════════════════════════════════════════════
 
 console.log("\n═══ FORMA 3 — accordo di genere sulle superfici dello studente ═══\n");
 
-const RADICI_STUDENTE = [
-  "app/app", "components/app", "components/escape", "components/test",
-  "components/workshop", "components/live", "components/messaggi",
-  "lib/escape", "lib/test", "lib/percorso", "lib/app", "lib/workshop",
-  "lib/guide", "lib/assistente",
-];
+// ⚠️ ALLARGATA il 01/11 a tutto il prodotto (Mario: «allarga quella, non
+// scriverne una seconda»). Prima guardava solo le cartelle dello studente, e
+// «Per mandare una domanda devi essere iscritto» stava in `lib/live`, che non
+// c'era. Misurato quel giorno: su tutto il prodotto sei frasi accordavano con
+// chi legge e stavano fuori (contatti, disiscrizione, invito del tutor,
+// registrazione, la domanda in diretta, una notifica), curate. E la lingua
+// invariante vale per chiunque: KIREO non conosce il genere di un docente, di
+// un tutor o di chi scrive per un ente più di quello di uno studente.
+const RADICI_STUDENTE = ["app", "components", "lib"];
 
 // I prompt sono istruzioni al MODELLO, non testo mostrato: la seconda persona
 // lì dentro parla al modello («Sei Renzo, 47 anni…»), non a chi legge.
@@ -481,6 +484,19 @@ const WHITELIST_SUPERFICI = new Map([
     "«da sola» è la palestra"],
   ["Quanto lasci come cuscinetto per i primi mesi, prima che l'enoteca cammini da sola?",
     "«cammini da sola» è l'enoteca"],
+  // Dal 01/11, con la guardia allargata a tutto il prodotto: «da solo/a» che
+  // concorda con un nome della frase, mai con chi legge.
+  ["Il PCTO che si gestisce da solo.", "«da solo» è il PCTO"],
+  ["Il PCTO che si gestisce da solo. Gratis.", "«da solo» è il PCTO"],
+  ["Il PCTO che si gestisce da solo", "«da solo» è il PCTO"],
+  ["Conferma che uno studente autodichiarato appartiene davvero alla tua scuola. La verifica è definitiva: uno studente verificato non può cambiare scuola da solo, e non può essere sganciato da qui.",
+    "«da solo» è lo studente di cui si parla, non il referente che legge"],
+  ["Qui ci sono solo numeri, mai un nome: e un gruppo di meno di 5 studenti non compare da solo. I nomi li trovi soltanto in «Interessati», e solo di chi ha scelto di mostrarsi a te, che può revocarlo quando vuole.",
+    "«da solo» è il gruppo"],
+  ["Un altro studente in un gruppo troppo piccolo per essere mostrato da solo.", "«da solo» è lo studente contato, non chi legge"],
+  ["Un'altra scelta, in un'area scelta da troppo pochi studenti per essere mostrata da sola.", "«da sola» è la scelta"],
+  ["Non riconosciamo questo link. Vanno bene youtube.com/watch?v=…, youtube.com/live/…, youtu.be/… oppure l'id del video da solo (11 caratteri).",
+    "«da solo» è l'id del video"],
   ["In un paese la prima persona decide come lo racconteranno tutti gli altri. Se la prima è quella che si lamenta di tutto, il presidio nasce già con una fama. Se è qualcuno di cui la gente si fida e che ha davvero un problema che il presidio risolve, la seconda arriva da sola.",
     "«la seconda arriva da sola» concorda con «la seconda persona», non con chi legge"],
 ]);
@@ -520,6 +536,10 @@ if (catturateSuperfici.length === 0) {
   console.log(`  ${catturateSuperfici.length} stringhe catturate:\n`);
   catturateSuperfici.forEach((c, i) => console.error(`  [${i + 1}] ${c.file}:${c.line}  [${c.colpi.join(", ")}]\n      ${c.testo.slice(0, 220)}\n`));
 }
+// Un pavimento sulle stringhe LETTE (modo 2): un lettore cieco conterebbe zero
+// catture su zero stringhe, verde. 25.968 il 01/11 sul prodotto intero (13.862
+// sulle sole cartelle dello studente); il numero sale, non scende.
+ok(bersagliSuperfici.length > 20000, `lette ${bersagliSuperfici.length} stringhe su tutto il prodotto (pavimento 20.000)`);
 ok(catturateSuperfici.length === 0, `nessuna forma accordata fuori whitelist (${catturateSuperfici.length} catture)`);
 
 const testiSuperfici = new Set(bersagliSuperfici.map((b) => b.testo));

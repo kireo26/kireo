@@ -98,7 +98,7 @@ export default async function Disiscrizione() {
           <p className="mt-3">
             {/* Dal 30/10 le newsletter degli enti partono davvero: la frase di prima («Oggi KIREO non manda
                 ancora comunicazioni facoltative») sarebbe diventata falsa il giorno del primo invio. */}
-            Le newsletter degli enti a cui sei iscritto le manda KIREO, e ognuna ha la sua uscita: qui sotto, e in fondo a
+            Le newsletter degli enti che ricevi le manda KIREO, e ognuna ha la sua uscita: qui sotto, e in fondo a
             ogni email. KIREO non manda ancora comunicazioni sue; il consenso che dai qui serve per quelle.
           </p>
           {studente ? (

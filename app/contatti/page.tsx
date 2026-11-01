@@ -38,7 +38,7 @@ const TARGET = [
   {
     titolo: "Docenti",
     testo:
-      "Sei interessato ai webinar, alle risorse scaricabili o alla newsletter per docenti? Fatti sentire.",
+      "Ti interessano i webinar, le risorse scaricabili o la newsletter per docenti? Fatti sentire.",
   },
   {
     titolo: "Media e partner",

@@ -483,7 +483,7 @@ export type CausaRifiutoDomanda = "sessione_persa" | "fuori_diretta" | "non_iscr
 export const TESTO_RIFIUTO_DOMANDA: Record<CausaRifiutoDomanda, string> = {
   sessione_persa: "Il tuo accesso qui non è più valido, quindi la domanda non è arrivata. Rientra e mandala di nuovo: il testo resta qui.",
   fuori_diretta: `La diretta è finita, e le domande si mandano mentre è aperta. Se c'è una domanda finale la trovi qui sotto: hai ${ORE_FINESTRA_CONSEGNA} ore per rispondere.`,
-  non_iscritto: "Per mandare una domanda devi essere iscritto a questo incontro.",
+  non_iscritto: "Per mandare una domanda serve l'iscrizione a questo incontro.",
   guasto: "La domanda non è arrivata per un problema nostro, non tuo. Riprova fra un momento.",
 };
 // 42501 è la RLS che respinge l'insert: senza sessione vuol dire sessione persa;

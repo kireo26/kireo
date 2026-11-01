@@ -89,7 +89,7 @@ export default function RegistrazioneForm() {
       }
 
       setStatoCodice("valido");
-      setMessaggioCodice(`Codice valido: sarai collegato alla classe ${risultato.classe} della tua scuola.`);
+      setMessaggioCodice(`Codice valido: entrerai nella classe ${risultato.classe} della tua scuola.`);
     } catch {
       setStatoCodice("non_valido");
       setMessaggioCodice("Non siamo riusciti a verificare il codice. Riprova tra qualche istante.");

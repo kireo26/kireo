@@ -59,7 +59,7 @@ export const ETICHETTA_TIPO: Record<TipoNotifica, string> = {
   evento_rifiutato: "KIREO non ha approvato un tuo evento",
   newsletter_approvata: "KIREO ha approvato una tua newsletter",
   newsletter_rifiutata: "KIREO non ha approvato una tua newsletter",
-  newsletter_ente: "Una newsletter di un ente a cui sei iscritto",
+  newsletter_ente: "Una newsletter che hai chiesto di ricevere",
   // ⚠️ Mio e provvisorio (31/10): la revoca di un'area, che sostituisce l'approvazione.
   area_revocata: "KIREO ha tolto una tua area di competenza",
   // Di Mario (01/11), lo stesso titolo del profilo: il motivo sta lì, non qui.
