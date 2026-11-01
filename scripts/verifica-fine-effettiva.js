@@ -79,6 +79,8 @@ const CLASSI = {
   // `app/ente/(dashboard)/eventi/page.tsx` è USCITA il 27/10: la lista non
   // monta più console, report e chiave, e il confine fra programmazione e
   // passati lo decide `lib/ente/eventiEnte.ts`.
+  "lib/scuola/home.ts": ["effettiva", "le prossime iscrizioni delle classi e il loro conto sulla fine effettiva (`eventoNonFinito`), dal 01/11"],
+  "app/scuola/(dashboard)/page.tsx": ["riceve", "legge le colonne e decide con `riepilogoIscrizioniClassi` (lib/scuola/home.ts)"],
   "lib/ente/eventiEnte.ts": ["effettiva", "in programmazione / passati sulla fine effettiva (`eventoNonFinito`): una diretta chiusa prima è passata"],
   "components/ente/PlanciaEnteEvento.tsx": ["effettiva", "passa la chiusura a `statoChiaveTrasmissione` (una chiave mai arrivata su una diretta chiusa è «mai arrivata»)"],
   "app/api/admin/presenze/[id]/route.ts": ["effettiva", "l'esito sa se la diretta è chiusa"],

@@ -107,7 +107,8 @@
     "test:admin": "node scripts/verifica-admin-niente-sparisce.js",
     "test:enti": "node scripts/verifica-admin-enti.js",
     "test:riordino": "node scripts/verifica-admin-riordino.js",
-    "test:rifiuto": "node scripts/verifica-rifiuto-verifica.js"
+    "test:rifiuto": "node scripts/verifica-rifiuto-verifica.js",
+    "test:scuolapasso4": "node scripts/verifica-scuola-passo4.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.112.5",

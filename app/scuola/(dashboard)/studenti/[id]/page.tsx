@@ -6,12 +6,8 @@ import { getDettaglioStudente } from "@/lib/scuola/studenteDettaglio";
 import { etichettaPrincipaleStudente, nomeCompletoStudente } from "@/lib/scuola/formatStudente";
 import { formattaData } from "@/lib/formato";
 import { numeroOre } from "@/lib/eventi/orePcto";
+import { etichettaCertificatore } from "@/lib/scuola/certificatore";
 
-const ETICHETTA_CERTIFICATORE: Record<string, string> = {
-  sistema: "Certificato automaticamente",
-  kireo: "Certificato da KIREO",
-  scuola: "Certificato dalla tua scuola",
-};
 
 // Scheda di uno studente verificato della propria scuola: solo dati
 // "amministrativi" (anagrafica, classe, partecipazioni certificate) — mai
@@ -75,7 +71,7 @@ export default async function ScuolaStudenteDettaglioPage({ params }: { params: 
                   {p.orePcto > 0 && ` · ${numeroOre(p.orePcto)}h PCTO`}
                 </p>
                 <p className="mt-1 text-xs text-kireo-muted">
-                  {(p.certificataDaTipo && ETICHETTA_CERTIFICATORE[p.certificataDaTipo]) ?? "Certificato"}
+                  {etichettaCertificatore(p.certificataDaTipo)}
                   {p.certificataDaTipo === "scuola" && p.certificataDaNome && ` — ${p.certificataDaNome}`}
                   {p.certificataIl && ` · ${formattaData(p.certificataIl, "long")}`}
                 </p>

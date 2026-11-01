@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getAppContext } from "@/lib/app/studentContext";
 import { createClient } from "@/lib/supabase/server";
 import { getStoricoAttivita, getPercorsoEsplorazione, getPercorsoRitratto, getSuggerimentiPerAree, ETICHETTA_VOCE_STORICO } from "@/lib/app/attivita";
-import { getOreCertificate, testoOreCertificate } from "@/lib/app/pcto";
+import { getOreCertificate, testoOreCertificate, TESTO_ORE_NON_LETTE } from "@/lib/app/pcto";
 import { formattaData } from "@/lib/formato";
 import { numeroOre } from "@/lib/eventi/orePcto";
 
@@ -152,7 +152,9 @@ export default async function AttivitaAppPage() {
         {/* Stessa frase della card in home, dalla stessa funzione: vedi
             `testoOreCertificate` per il singolare, il separatore e il rumore
             della virgola mobile. */}
-        <p className="mt-1 text-sm text-kireo-muted">{testoOreCertificate(oreCertificate)}</p>
+        <p className="mt-1 text-sm text-kireo-muted">
+          {oreCertificate === null ? TESTO_ORE_NON_LETTE : testoOreCertificate(oreCertificate)}
+        </p>
 
         {conOre.length > 0 && (
           <ul className="mt-4 space-y-2">

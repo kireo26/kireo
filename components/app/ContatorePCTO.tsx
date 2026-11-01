@@ -1,6 +1,16 @@
-import { TRAGUARDO_ORE_PCTO, testoOreCertificate } from "@/lib/app/pcto";
+import { TRAGUARDO_ORE_PCTO, TESTO_ORE_NON_LETTE, testoOreCertificate } from "@/lib/app/pcto";
 
-export default function ContatorePCTO({ oreCertificate }: { oreCertificate: number }) {
+// `null` = le ore non si sono lette: si dice, invece di uno zero che a uno
+// studente con quaranta ore direbbe che le abbiamo perse.
+export default function ContatorePCTO({ oreCertificate }: { oreCertificate: number | null }) {
+  if (oreCertificate === null) {
+    return (
+      <div className="rounded-2xl border border-white/5 bg-kireo-card p-6">
+        <h2 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">Ore PCTO</h2>
+        <p className="mt-1 text-sm text-kireo-muted">{TESTO_ORE_NON_LETTE}</p>
+      </div>
+    );
+  }
   const percentuale = Math.min(100, Math.round((oreCertificate / TRAGUARDO_ORE_PCTO) * 100));
 
   return (

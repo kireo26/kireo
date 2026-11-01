@@ -1,3 +1,4 @@
+import { descriviErrore } from "@/lib/erroreSupabase";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { fineEffettiva } from "@/lib/live";
 
@@ -229,16 +230,25 @@ export async function getProssimiEventiPerAree(supabase: SupabaseClient, areeSlu
 // `eventi.ore_pcto`: una certificazione emessa è un fatto, e correggere le ore
 // dichiarate di un evento non deve cambiare quelle già riconosciute
 // (`20261026100000`, sorvegliato da `npm run test:durata`).
-export async function getOrePctoDaEventi(supabase: SupabaseClient, userId: string): Promise<number> {
+// ⚠️ NULL VUOL DIRE «NON LETTO», MAI ZERO (01/11, passo 4 della scuola). Da
+// quando le ore della scuola sono uscite, queste presenze SONO le ore: uno
+// studente che ne ha quaranta e legge «0 ore certificate su 90» non pensa che
+// la pagina non ha letto, pensa che KIREO le ha perse (Mario). E la stessa
+// cosa la vede la sua scuola.
+export async function getOrePctoDaEventi(supabase: SupabaseClient, userId: string): Promise<number | null> {
   try {
     const { data, error } = await supabase
       .from("iscrizioni_eventi")
       .select("ore_riconosciute")
       .eq("student_id", userId)
       .eq("stato", "partecipato");
-    if (error) return 0;
+    if (error) {
+      console.error("getOrePctoDaEventi:", descriviErrore(error));
+      return null;
+    }
     return ((data ?? []) as { ore_riconosciute: number | string | null }[]).reduce((tot, riga) => tot + Number(riga.ore_riconosciute ?? 0), 0);
-  } catch {
-    return 0;
+  } catch (e) {
+    console.error("getOrePctoDaEventi:", e);
+    return null;
   }
 }
