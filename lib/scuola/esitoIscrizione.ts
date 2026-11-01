@@ -14,6 +14,8 @@
 // Un esito che non si legge (null: la funzione di prima, che rispondeva void,
 // o una risposta inattesa) non si racconta come un successo pieno: si dice che
 // l'iscrizione è partita e che i numeri non li abbiamo.
+import { TESTO_ESITO_COLLEGAMENTO_UNICO } from "./modalitaIscrizione";
+
 export type EsitoIscrizione = {
   iscritti?: number;
   gia_iscritti?: number;
@@ -32,7 +34,7 @@ function numero(v: unknown): number | null {
 export function testoEsitoIscrizione(esito: unknown): { testo: string; avviso: boolean } {
   if (!esito || typeof esito !== "object") return { testo: TESTO_ESITO_NON_LETTO, avviso: true };
   const e = esito as EsitoIscrizione;
-  if (e.gruppo === true) return { testo: "Classe iscritta come gruppo, a distanza.", avviso: false };
+  if (e.gruppo === true) return { testo: TESTO_ESITO_COLLEGAMENTO_UNICO, avviso: false };
   const iscritti = numero(e.iscritti);
   if (iscritti === null) return { testo: TESTO_ESITO_NON_LETTO, avviso: true };
   const gia = numero(e.gia_iscritti) ?? 0;

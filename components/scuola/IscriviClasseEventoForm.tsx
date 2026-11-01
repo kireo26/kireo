@@ -6,13 +6,14 @@ import { Button } from "@/components/Button";
 import { createClient } from "@/lib/supabase/client";
 import { descriviErrore } from "@/lib/erroreSupabase";
 import { testoEsitoIscrizione } from "@/lib/scuola/esitoIscrizione";
+import { CHI_MISURA_LA_PRESENZA, ETICHETTA_MODALITA, MODALITA_ISCRIZIONE, type ModalitaIscrizione } from "@/lib/scuola/modalitaIscrizione";
 
 type Classe = { id: string; nomeVisualizzato: string };
 
 export default function IscriviClasseEventoForm({ eventoId, classi }: { eventoId: string; classi: Classe[] }) {
   const router = useRouter();
   const [classeId, setClasseId] = useState("");
-  const [modalita, setModalita] = useState<"individuale" | "dad">("individuale");
+  const [modalita, setModalita] = useState<ModalitaIscrizione>("individuale");
   const [caricamento, setCaricamento] = useState(false);
   const [errore, setErrore] = useState<string | null>(null);
   const [esito, setEsito] = useState<{ testo: string; avviso: boolean } | null>(null);
@@ -54,17 +55,21 @@ export default function IscriviClasseEventoForm({ eventoId, classi }: { eventoId
       </select>
       <select
         value={modalita}
-        onChange={(e) => setModalita(e.target.value as "individuale" | "dad")}
+        onChange={(e) => setModalita(e.target.value as ModalitaIscrizione)}
         className="rounded-lg border border-white/10 bg-kireo-dark px-3 py-2 text-sm text-kireo-light"
       >
-        <option value="individuale">In presenza (individuale)</option>
-        <option value="dad">A distanza (gruppo)</option>
+        {MODALITA_ISCRIZIONE.map((m) => (
+          <option key={m} value={m}>
+            {ETICHETTA_MODALITA[m]}
+          </option>
+        ))}
       </select>
       <Button type="button" variant="outline" onClick={handleIscrivi} disabled={!classeId || caricamento}>
         {caricamento ? "…" : "Iscrivi classe"}
       </Button>
       {esito && <span className={`text-sm ${esito.avviso ? "text-kireo-orange" : "text-kireo-green-light"}`}>{esito.testo}</span>}
       {errore && <span className="text-sm text-red-400">{errore}</span>}
+      <p className="w-full text-xs text-kireo-muted">{CHI_MISURA_LA_PRESENZA[modalita]}</p>
     </div>
   );
 }

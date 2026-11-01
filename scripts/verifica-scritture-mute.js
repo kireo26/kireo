@@ -51,7 +51,12 @@ console.log("\n§2 — le iscrizioni d'ufficio dicono quanti sono entrati\n");
     "chi resta fuori è contato e nominato col perché, e la riga è un avviso", misto);
   ok(!/\b1 \w+i\b/.test(testoEsitoIscrizione({ iscritti: 1, gia_iscritti: 1, non_verificati: 1, altra_scuola: 1 }).testo),
     "con 1 nessun plurale da accordare («Etichetta: numero»)");
-  ok(testoEsitoIscrizione({ gruppo: true }).testo.includes("gruppo"), "una classe a distanza dice che è iscritta come gruppo");
+  // Dal 01/11 la classe con un collegamento solo non si dice più «a distanza»
+  // (le parole erano rovesciate: vedi lib/scuola/modalitaIscrizione.ts). L'esito
+  // deve dire il collegamento unico e mandare al registro, che è il lavoro dopo.
+  const gruppo = testoEsitoIscrizione({ gruppo: true }).testo;
+  ok(/collegamento solo/.test(gruppo) && /registro/.test(gruppo) && !/distanza|in presenza/i.test(gruppo),
+    "una classe con un collegamento solo lo dice, e manda al registro presenze", gruppo);
   // Il testo è di Mario: l'atteso è scritto qui, parola per parola.
   ok(testoEsitoIscrizione({ iscritti: 0, gia_iscritti: 20, non_verificati: 0, altra_scuola: 0 }).testo === "Erano già iscritti tutti e 20: nessuna iscrizione nuova.",
     "tutti già iscritti: davanti il fatto rassicurante, non uno zero");
