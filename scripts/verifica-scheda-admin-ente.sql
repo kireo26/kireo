@@ -40,7 +40,10 @@ do $$ declare v jsonb; begin
     jsonb_array_length(v -> 'account') = 1 and (v -> 'account' -> 0 ->> 'email') = 'ente-scheda@prova.it' and (v -> 'account' -> 0 ->> 'nome') = 'Rita',
     coalesce((v -> 'account')::text, 'null'));
 exception when others then
+  -- Le tre si scrivono anche qui: una prova che sparisce dall'uscita si conta verde.
   insert into esiti values (1, 'l''admin legge la scheda di un ente', 'un oggetto', false, 'errore: ' || sqlerrm);
+  insert into esiti values (2, 'chi segue si conta diviso: studenti e altri', '1 e 1', false, 'errore: ' || sqlerrm);
+  insert into esiti values (3, 'gli account dell''ente con nome ed email', 'Rita, ente-scheda@prova.it', false, 'errore: ' || sqlerrm);
 end $$;
 
 do $$ declare v jsonb; begin
