@@ -108,6 +108,7 @@ export default async function Disiscrizione() {
                 eta={studente.eta}
                 iscrizioniIniziali={studente.iscrizioni}
                 origine="disiscrizione"
+                emailAccount={user?.email ?? undefined}
               />
             </div>
           ) : user ? (

@@ -72,6 +72,22 @@ export function testoStatoConsenso(consenso: ConsensoKireo): string {
   return "Non ci hai ancora detto se vuoi ricevere le comunicazioni di KIREO.";
 }
 
+// LA CONFERMA E L'ACCOUNT (01/11, dal giro di Mario). Il bottone girava da
+// solo e nient'altro: una scrittura avvenuta deve dirlo dove è stata chiesta, e
+// con il valore RILETTO (la conferma si mostra solo se il database ha risposto
+// con il valore chiesto). E /disiscrizione si apre dal link di un'email, ma
+// cambia le scelte dell'account COLLEGATO in quel browser, che può non essere
+// chi ha ricevuto l'email: la pagina lo nomina, perché uno schermo senza il nome
+// dell'account è una prova senza soggetto. Testi miei e provvisori.
+export function testoConfermaConsenso(consenso: boolean): string {
+  return consenso
+    ? "Fatto: da adesso ricevi le comunicazioni di KIREO."
+    : "Fatto: da adesso non ricevi più le comunicazioni di KIREO.";
+}
+export function testoAccountCollegato(email: string): string {
+  return `Stai cambiando le scelte dell'account ${email}. Se l'email che hai ricevuto è di un altro indirizzo, esci ed entra con quello.`;
+}
+
 // Seguire un ente (Mario, 28/10: il quarto canale). Vero per costruzione: i
 // post degli enti seguiti stanno nella Bacheca (lib/app/bacheca.ts), e i
 // trigger notifica_follower_* (20260727140000) scrivono una notifica per i

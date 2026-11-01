@@ -260,5 +260,16 @@ const fuoriPosto = sorgenti18.filter((f) => !DOVE_VALGONO_I_18.has(f) && /18 ann
 ok(fuoriPosto.length === 0, "nessun testo nomina i 18 anni fuori dai posti dove valgono", fuoriPosto.join(", "));
 ok(!/18 anni/.test(leggi("app/app/messaggi/page.tsx")), "«Messaggi» non dice più «se hai 18 anni o più»");
 
+// §11 (01/11): dalla pagina aperta da un'email il bottone si girava e basta.
+console.log("§11 la scelta si conferma dal valore riletto, e la pagina dell'email dice di quale account");
+const compCom = leggi("components/app/ComunicazioniStudente.tsx");
+ok(/else \{\s*setConsenso\(riletto\);\s*setConfermato\(riletto\);/.test(compCom), "la conferma nasce solo dal valore riletto, nello stesso ramo che lo accetta");
+ok(/confermato !== null && confermato === consenso && \(/.test(compCom) && /testoConfermaConsenso\(confermato\)/.test(compCom), "la conferma si mostra solo se coincide con lo stato a schermo");
+ok(/emailAccount=\{user\?\.email/.test(leggi("app/disiscrizione/page.tsx")), "/disiscrizione passa l'indirizzo dell'account collegato");
+ok(/\{emailAccount && <p[^>]*>\{testoAccountCollegato\(emailAccount\)\}/.test(compCom), "e il componente lo nomina");
+ok(C.testoConfermaConsenso(false) !== C.testoConfermaConsenso(true) && /non ricevi/.test(C.testoConfermaConsenso(false)), "le due conferme dicono due cose diverse");
+ok(/test@esempio\.it/.test(C.testoAccountCollegato("test@esempio.it")), "la riga dell'account contiene l'indirizzo");
+for (const t of [C.testoConfermaConsenso(true), C.testoConfermaConsenso(false), C.testoAccountCollegato("a@b.it")]) ok(trovaAccordi(t).length === 0, "nessun accordo col genere", t);
+
 console.log(`\n${falliti === 0 ? "✓" : "✗"} ${fatte - falliti}/${fatte} proprietà`);
 process.exit(falliti === 0 ? 0 : 1);

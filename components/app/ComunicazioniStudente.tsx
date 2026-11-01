@@ -7,6 +7,8 @@ import { descriviErrore } from "@/lib/erroreSupabase";
 import {
   impostaComunicazioniKireo,
   testoStatoConsenso,
+  testoConfermaConsenso,
+  testoAccountCollegato,
   TESTO_A_COSA_SERVE,
   TESTO_SOLO_MAGGIORENNI,
   TESTO_NEWSLETTER_SOLO_MAGGIORENNI,
@@ -34,6 +36,7 @@ export default function ComunicazioniStudente({
   iscrizioniIniziali,
   seguitiIniziali,
   origine = "profilo",
+  emailAccount,
 }: {
   consensoIniziale: ConsensoKireo | undefined;
   // Tre stati (lib/eta.ts): a chi non ha una data non si dice «hai meno di 18
@@ -44,10 +47,14 @@ export default function ComunicazioniStudente({
   // la sezione non c'è. `undefined` passato dal profilo è «non letto».
   seguitiIniziali?: EnteSeguito[] | undefined;
   origine?: "profilo" | "disiscrizione";
+  // Solo da /disiscrizione: l'indirizzo dell'account collegato, perché la
+  // pagina si apre da un'email e può essere un altro account (01/11).
+  emailAccount?: string;
 }) {
   const [consenso, setConsenso] = useState(consensoIniziale);
   const [salvando, setSalvando] = useState(false);
   const [erroreConsenso, setErroreConsenso] = useState(false);
+  const [confermato, setConfermato] = useState<boolean | null>(null);
   const [iscrizioni, setIscrizioni] = useState(iscrizioniIniziali);
   const [uscendoDa, setUscendoDa] = useState<string | null>(null);
   const [erroreUscita, setErroreUscita] = useState<string | null>(null);
@@ -80,10 +87,14 @@ export default function ComunicazioniStudente({
   async function scegli(valore: boolean) {
     setSalvando(true);
     setErroreConsenso(false);
+    setConfermato(null);
     try {
       const riletto = await impostaComunicazioniKireo(createClient(), valore, origine);
       if (riletto === undefined || riletto !== valore) setErroreConsenso(true);
-      else setConsenso(riletto);
+      else {
+        setConsenso(riletto);
+        setConfermato(riletto);
+      }
     } finally {
       setSalvando(false);
     }
@@ -114,6 +125,7 @@ export default function ComunicazioniStudente({
       <div>
         <h3 className="font-heading text-base font-semibold text-kireo-light">Le comunicazioni di KIREO</h3>
         <p className="mt-1 text-sm text-kireo-muted">{TESTO_A_COSA_SERVE}</p>
+        {emailAccount && <p className="mt-2 text-sm text-kireo-light">{testoAccountCollegato(emailAccount)}</p>}
         {eta === "minorenne" ? (
           // Niente domanda a un minorenne: un sì non si può registrare
           // (consenso_solo_maggiorenni), e una domanda con una risposta sola
@@ -148,6 +160,11 @@ export default function ComunicazioniStudente({
                 </button>
               )}
             </div>
+            {confermato !== null && confermato === consenso && (
+              <p className="mt-2 text-sm text-kireo-green-light" role="status">
+                {testoConfermaConsenso(confermato)}
+              </p>
+            )}
             {erroreConsenso && (
               <p className="mt-2 text-sm text-red-400">Non siamo riusciti a salvare la tua scelta: riprova.</p>
             )}
