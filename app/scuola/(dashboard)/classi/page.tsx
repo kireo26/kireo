@@ -1,6 +1,6 @@
 import { getScuolaContext } from "@/lib/scuola/context";
 import { createClient } from "@/lib/supabase/server";
-import { getEmailStudenti } from "@/lib/scuola/email";
+import { emailVerificato, leggiStudentiDellaScuola, soloVerificati } from "@/lib/scuola/studenti";
 import CreaClasseForm from "@/components/scuola/CreaClasseForm";
 import GestioneClasseStudenti from "@/components/scuola/GestioneClasseStudenti";
 
@@ -8,7 +8,7 @@ export default async function ScuolaClassiPage() {
   const contesto = await getScuolaContext();
   const supabase = await createClient();
 
-  const [{ data: classi, error: erroreClassi }, { data: verificati, error: erroreVerificati }, { data: classiStudenti, error: erroreClassiStudenti }] =
+  const [{ data: classi, error: erroreClassi }, studenti, { data: classiStudenti, error: erroreClassiStudenti }] =
     await Promise.all([
       supabase
         .from("classi")
@@ -16,29 +16,19 @@ export default async function ScuolaClassiPage() {
         .eq("scuola_profilo_id", contesto.scuolaProfiloId)
         .order("anno", { ascending: true })
         .order("sezione", { ascending: true }),
-      supabase
-        .from("student_profiles")
-        .select("user_id, profiles!user_id(nome, cognome)")
-        .eq("school_code", contesto.scuolaId)
-        .eq("stato_verifica", "verificato"),
+      leggiStudentiDellaScuola(supabase),
       supabase.from("classi_studenti").select("classe_id, student_id"),
     ]);
 
   if (erroreClassi) console.error("[/scuola/classi] errore query classi:", erroreClassi);
-  if (erroreVerificati) console.error("[/scuola/classi] errore query verificati:", erroreVerificati);
   if (erroreClassiStudenti) console.error("[/scuola/classi] errore query classiStudenti:", erroreClassiStudenti);
 
-  const emailPerStudente = await getEmailStudenti(supabase, (verificati ?? []).map((s) => s.user_id));
-
-  const studentiVerificati = (verificati ?? []).map((s) => {
-    const profilo = Array.isArray(s.profiles) ? s.profiles[0] : s.profiles;
-    return {
-      userId: s.user_id,
-      nome: profilo?.nome ?? "",
-      cognome: profilo?.cognome ?? "",
-      email: emailPerStudente.get(s.user_id) ?? null,
-    };
-  });
+  const studentiVerificati = soloVerificati(studenti ?? []).map((s) => ({
+    userId: s.userId,
+    nome: s.nome ?? "",
+    cognome: s.cognome ?? "",
+    email: emailVerificato(s),
+  }));
 
   const membriPerClasse = new Map<string, Set<string>>();
   for (const riga of classiStudenti ?? []) {

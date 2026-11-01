@@ -144,7 +144,10 @@ do $$
 declare v text;
 begin
   perform public.verifica_studente('aaaaaaaa-0000-0000-0000-000000000006', 'verificato');
-  select stato_verifica::text into v from public.student_profiles
+  -- Si rilegge con la funzione della scuola (20261128100000): il referente non
+  -- legge più la tabella, e una rilettura dalla tabella darebbe «nessuna riga»
+  -- anche a verifica riuscita.
+  select stato_verifica::text into v from public.studenti_della_scuola()
    where user_id = 'aaaaaaaa-0000-0000-0000-000000000006';
   insert into esiti values (6, 'verifica_studente funziona ancora',
     'verificato', v = 'verificato', 'esito: ' || coalesce(v, '(nessuna riga)'));

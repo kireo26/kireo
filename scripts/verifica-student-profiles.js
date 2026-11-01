@@ -154,7 +154,10 @@ console.log("\n§4 · nessun punto dell'app scrive le tre colonne della verifica
         // ESENTE, con la ragione (29/10): `lib/app/esportaDati.ts` nomina
         // `verificato_da` come chiave di COLONNE_ESCLUSE, cioè per dire che
         // l'export NON la dà. È una dichiarazione, non una scrittura.
-        const esente = path.relative(RADICE, p) === path.join("lib", "app", "esportaDati.ts");
+        // ESENTE, con la ragione (01/11): `lib/scuola/studenti.ts` nomina
+        // `stato_verifica` e `verificato_il` nel tipo della riga che LEGGE da
+        // `studenti_della_scuola()`. È una lettura, e quel file non scrive niente.
+        const esente = [path.join("lib", "app", "esportaDati.ts"), path.join("lib", "scuola", "studenti.ts")].includes(path.relative(RADICE, p));
         if (!esente && /\b(stato_verifica|verificato_da|verificato_il)\s*:/.test(src)) {
           dentro.push(path.relative(RADICE, p));
         }

@@ -1,5 +1,6 @@
 import { getScuolaContext } from "@/lib/scuola/context";
 import { createClient } from "@/lib/supabase/server";
+import { leggiStudentiDellaScuola, soloVerificati } from "@/lib/scuola/studenti";
 import InviaMessaggioScuolaForm from "@/components/scuola/InviaMessaggioScuolaForm";
 import { formattaData } from "@/lib/formato";
 
@@ -13,29 +14,21 @@ export default async function ScuolaComunicazioniPage() {
   const contesto = await getScuolaContext();
   const supabase = await createClient();
 
-  const [{ data: inviati, error: erroreInviati }, { data: classi, error: erroreClassi }, { data: verificati, error: erroreVerificati }] = await Promise.all([
+  const [{ data: inviati, error: erroreInviati }, { data: classi, error: erroreClassi }, studenti] = await Promise.all([
     supabase
       .from("messaggi_scuola")
       .select("id, oggetto, destinatari, created_at")
       .eq("scuola_profilo_id", contesto.scuolaProfiloId)
       .order("created_at", { ascending: false }),
     supabase.from("classi").select("id, nome_visualizzato").eq("scuola_profilo_id", contesto.scuolaProfiloId).order("anno", { ascending: true }),
-    supabase
-      .from("student_profiles")
-      .select("user_id, profiles!user_id(nome, cognome)")
-      .eq("school_code", contesto.scuolaId)
-      .eq("stato_verifica", "verificato"),
+    leggiStudentiDellaScuola(supabase),
   ]);
 
   if (erroreInviati) console.error("[/scuola/comunicazioni] errore query inviati:", erroreInviati);
   if (erroreClassi) console.error("[/scuola/comunicazioni] errore query classi:", erroreClassi);
-  if (erroreVerificati) console.error("[/scuola/comunicazioni] errore query verificati:", erroreVerificati);
 
   const classiOpzioni = (classi ?? []).map((c) => ({ id: c.id, nomeVisualizzato: c.nome_visualizzato ?? "Classe" }));
-  const studentiOpzioni = (verificati ?? []).map((s) => {
-    const profilo = Array.isArray(s.profiles) ? s.profiles[0] : s.profiles;
-    return { userId: s.user_id, nome: profilo?.nome ?? "", cognome: profilo?.cognome ?? "" };
-  });
+  const studentiOpzioni = soloVerificati(studenti ?? []).map((s) => ({ userId: s.userId, nome: s.nome ?? "", cognome: s.cognome ?? "" }));
 
   return (
     <div className="space-y-8">

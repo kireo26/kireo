@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { getEmailStudenti } from "./email";
+import { emailVerificato, leggiStudentiDellaScuola, soloVerificati } from "./studenti";
 
 export type PartecipazioneCertificata = {
   eventoId: string;
@@ -35,20 +35,13 @@ export async function getDettaglioStudente(
   scuolaId: string,
   scuolaProfiloId: string,
 ): Promise<DettaglioStudente | null> {
-  const { data: sp, error: erroreStudentProfile } = await supabase
-    .from("student_profiles")
-    .select("user_id, stato_verifica, verificato_il, profiles!user_id(nome, cognome)")
-    .eq("user_id", studentId)
-    .eq("school_code", scuolaId)
-    .eq("stato_verifica", "verificato")
-    .maybeSingle();
-
-  if (erroreStudentProfile) console.error("[lib/scuola/studenteDettaglio.ts] errore query student_profiles:", erroreStudentProfile);
+  // La scheda è solo per uno studente VERIFICATO della scuola: lo dice
+  // studenti_della_scuola, che restituisce solo gli studenti della scuola di chi chiede.
+  const studenti = await leggiStudentiDellaScuola(supabase);
+  const sp = soloVerificati(studenti ?? []).find((s) => s.userId === studentId);
   if (!sp) return null;
 
-  const profilo = Array.isArray(sp.profiles) ? sp.profiles[0] : sp.profiles;
-
-  const [{ data: classeRiga, error: erroreClasse }, { data: partecipazioniRighe, error: errorePartecipazioni }, emailPerStudente] = await Promise.all([
+  const [{ data: classeRiga, error: erroreClasse }, { data: partecipazioniRighe, error: errorePartecipazioni }] = await Promise.all([
     supabase
       .from("classi_studenti")
       .select("classi!inner(nome_visualizzato, scuola_profilo_id)")
@@ -63,7 +56,6 @@ export async function getDettaglioStudente(
       .eq("student_id", studentId)
       .eq("stato", "partecipato")
       .order("certificata_il", { ascending: false }),
-    getEmailStudenti(supabase, [studentId]),
   ]);
 
   if (erroreClasse) console.error("[lib/scuola/studenteDettaglio.ts] errore query classe:", erroreClasse);
@@ -90,13 +82,13 @@ export async function getDettaglioStudente(
   const totaleOrePcto = partecipazioni.reduce((totale, p) => totale + p.orePcto, 0);
 
   return {
-    userId: sp.user_id,
-    nome: profilo?.nome ?? "",
-    cognome: profilo?.cognome ?? "",
-    email: emailPerStudente.get(studentId) ?? null,
+    userId: sp.userId,
+    nome: sp.nome ?? "",
+    cognome: sp.cognome ?? "",
+    email: emailVerificato(sp),
     classeAssegnata: classe?.nome_visualizzato ?? null,
-    statoVerifica: sp.stato_verifica,
-    verificatoIl: sp.verificato_il,
+    statoVerifica: sp.stato,
+    verificatoIl: sp.verificatoIl,
     partecipazioni,
     totaleOrePcto,
   };

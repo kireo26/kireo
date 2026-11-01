@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { getEmailStudenti } from "./email";
+import { emailVerificato, perId, type StudenteDellaScuola } from "./studenti";
 
 export type RigaPresenza = {
   studentId: string;
@@ -19,12 +19,15 @@ export async function getRegistroPresenze(
   supabase: SupabaseClient,
   eventoId: string,
   scuolaProfiloId: string,
-  scuolaId: string,
+  // Gli studenti della scuola letti una volta da chi chiama (studenti_della_scuola):
+  // nomi ed email vengono da lì, perché la scuola non legge più `profiles`.
+  studenti: StudenteDellaScuola[],
 ): Promise<RigaPresenza[]> {
+  const studentePerId = perId(studenti);
   const [{ data: righeDirette, error: erroreRigheDirette }, { data: classiDad, error: erroreClassiDad }] = await Promise.all([
     supabase
       .from("iscrizioni_eventi")
-      .select("student_id, stato, certificata_da_tipo, profiles!student_id(nome, cognome)")
+      .select("student_id, stato, certificata_da_tipo")
       .eq("evento_id", eventoId)
       .eq("origine", "scuola"),
     supabase
@@ -41,12 +44,12 @@ export async function getRegistroPresenze(
   const mappa = new Map<string, RigaPresenza>();
 
   for (const riga of righeDirette ?? []) {
-    const profilo = Array.isArray(riga.profiles) ? riga.profiles[0] : riga.profiles;
+    const studente = studentePerId.get(riga.student_id);
     mappa.set(riga.student_id, {
       studentId: riga.student_id,
-      nome: profilo?.nome ?? "",
-      cognome: profilo?.cognome ?? "",
-      email: null,
+      nome: studente?.nome ?? "",
+      cognome: studente?.cognome ?? "",
+      email: studente ? emailVerificato(studente) : null,
       stato: riga.stato as "iscritto" | "partecipato",
       certificataDaTipo: riga.certificata_da_tipo,
     });
@@ -56,28 +59,23 @@ export async function getRegistroPresenze(
   if (classeIds.length > 0) {
     const { data: membri, error: erroreMembri } = await supabase
       .from("classi_studenti")
-      .select("student_id, profiles!student_id(nome, cognome)")
+      .select("student_id")
       .in("classe_id", classeIds);
 
     if (erroreMembri) console.error("[lib/scuola/eventi.ts:getRegistroPresenze] errore query membri:", erroreMembri);
 
     for (const riga of membri ?? []) {
       if (mappa.has(riga.student_id)) continue;
-      const profilo = Array.isArray(riga.profiles) ? riga.profiles[0] : riga.profiles;
+      const studente = studentePerId.get(riga.student_id);
       mappa.set(riga.student_id, {
         studentId: riga.student_id,
-        nome: profilo?.nome ?? "",
-        cognome: profilo?.cognome ?? "",
-        email: null,
+        nome: studente?.nome ?? "",
+        cognome: studente?.cognome ?? "",
+        email: studente ? emailVerificato(studente) : null,
         stato: "iscritto",
         certificataDaTipo: null,
       });
     }
-  }
-
-  const emailPerStudente = await getEmailStudenti(supabase, Array.from(mappa.keys()));
-  for (const riga of mappa.values()) {
-    riga.email = emailPerStudente.get(riga.studentId) ?? null;
   }
 
   return Array.from(mappa.values()).sort((a, b) => a.cognome.localeCompare(b.cognome, "it"));
@@ -89,9 +87,8 @@ export async function getRegistroPresenze(
 // Nessuna FK diretta tra iscrizioni_eventi e student_profiles (entrambe
 // referenziano profiles separatamente), quindi niente embed PostgREST:
 // prima gli id degli studenti della scuola, poi le iscrizioni di quegli id.
-export async function getEventiConIscrizioniScuola(supabase: SupabaseClient, scuolaProfiloId: string, scuolaId: string) {
-  const { data: studentiScuola } = await supabase.from("student_profiles").select("user_id").eq("school_code", scuolaId);
-  const idStudenti = (studentiScuola ?? []).map((s) => s.user_id);
+export async function getEventiConIscrizioniScuola(supabase: SupabaseClient, scuolaProfiloId: string, studenti: StudenteDellaScuola[]) {
+  const idStudenti = studenti.map((s) => s.userId);
 
   const [{ data: perClasse }, { data: perStudente }] = await Promise.all([
     supabase.from("iscrizioni_classe_eventi").select("evento_id, classi!inner(scuola_profilo_id)").eq("classi.scuola_profilo_id", scuolaProfiloId),

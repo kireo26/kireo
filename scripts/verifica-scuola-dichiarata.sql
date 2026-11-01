@@ -185,7 +185,9 @@ set local request.jwt.claim.sub = 'bbbbbbbb-0000-0000-0000-00000000000b';
 do $$
 declare n int;
 begin
-  select count(*) into n from public.student_profiles where school_code = public.current_scuola_id();
+  -- Dal 20261128100000 la scuola legge i suoi studenti da `studenti_della_scuola()`,
+  -- non dalla tabella: la proprietà è la stessa, la strada è quella nuova.
+  select count(*) into n from public.studenti_della_scuola();
   insert into esiti values (12, 'lo staff VERIFICATO legge ancora i propri studenti',
     '1 riga', n = 1, n || ' righe');
 exception when others then

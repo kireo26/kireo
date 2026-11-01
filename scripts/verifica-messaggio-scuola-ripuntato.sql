@@ -1,8 +1,10 @@
--- ⏳ IN QUARANTENA — le proprietà 1, 2, 4 e 5 sono ROSSE, e lo sono di proposito.
+-- ✅ USCITA DALLA QUARANTENA il 01/11: la metà «update» l'ha curata 20261106100000
+-- (28/10), la metà «insert» 20261128100000, che rende `invia_messaggio_scuola`
+-- definer e toglie al client l'insert sui destinatari. Le proprietà erano già
+-- scritte come quelle del sistema curato: sono diventate verdi senza toccarle, e
+-- da qui la sonda è una prova come le altre (`npm run sql:tutti`).
 --
--- Scritte come le proprietà del sistema CURATO. Il giorno della cura non si
--- scrive niente di nuovo: si toglie il nome da `scripts/quarantena/elenco.js` e
--- si verifica che diventino verdi.
+-- Il testo che segue è quello della quarantena.
 --
 -- LE DUE FALLE (5/10/2026, dalla passata sulle tabelle mute). In
 -- `messaggi_scuola_destinatari` DUE policy verificano DI CHI è la riga e non

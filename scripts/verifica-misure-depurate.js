@@ -187,7 +187,7 @@ const ESENTI = new Map([
     "scripts/quarantena/diario-portfolio-attempt-altrui.sql",
     "Sonda in quarantena: crea due studenti con un tentativo ciascuno dentro una transazione, prova che un diario o un portfolio non si appendano al tentativo di un altro (due rosse di proposito) e fa ROLLBACK. Nomina mission_attempt e journal_entry perché le sta PROVANDO.",
   ],
-  // `messaggio-scuola-ripuntato.sql` NON ha bisogno di un'esenzione, e l'ha
+  // `verifica-messaggio-scuola-ripuntato.sql` (in quarantena fino al 01/11) NON ha bisogno di un'esenzione, e l'ha
   // detto la guardia degli orfani qui sotto quando gliene ho scritta una:
   // nessuna delle tabelle che tocca (`student_profiles`,
   // `messaggi_scuola_destinatari`, `messaggi_scuola`) sta in

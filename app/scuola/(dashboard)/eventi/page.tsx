@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getEventiConIscrizioniScuola, getRegistroPresenze } from "@/lib/scuola/eventi";
 import IscriviClasseEventoForm from "@/components/scuola/IscriviClasseEventoForm";
 import IscriviTuttiVerificatiButton from "@/components/scuola/IscriviTuttiVerificatiButton";
+import { leggiStudentiDellaScuola, soloVerificati } from "@/lib/scuola/studenti";
 import RegistroPresenzeEvento from "@/components/scuola/RegistroPresenzeEvento";
 import { formattaData, formattaDataOra } from "@/lib/formato";
 import { numeroOre } from "@/lib/eventi/orePcto";
@@ -11,26 +12,24 @@ export default async function ScuolaEventiPage() {
   const contesto = await getScuolaContext();
   const supabase = await createClient();
 
-  const [{ data: prossimi, error: erroreProssimi }, { data: classi, error: erroreClassi }, { data: verificati, error: erroreVerificati }, eventiConIscrizioni] =
-    await Promise.all([
-      supabase.from("eventi").select("id, titolo, tipo, data_inizio, ore_pcto").eq("stato", "approvato").gte("data_inizio", new Date().toISOString()).order("data_inizio", { ascending: true }),
-      supabase.from("classi").select("id, nome_visualizzato").eq("scuola_profilo_id", contesto.scuolaProfiloId).order("anno", { ascending: true }),
-      supabase.from("student_profiles").select("user_id").eq("school_code", contesto.scuolaId).eq("stato_verifica", "verificato"),
-      getEventiConIscrizioniScuola(supabase, contesto.scuolaProfiloId, contesto.scuolaId),
-    ]);
+  const studenti = await leggiStudentiDellaScuola(supabase);
+  const [{ data: prossimi, error: erroreProssimi }, { data: classi, error: erroreClassi }, eventiConIscrizioni] = await Promise.all([
+    supabase.from("eventi").select("id, titolo, tipo, data_inizio, ore_pcto").eq("stato", "approvato").gte("data_inizio", new Date().toISOString()).order("data_inizio", { ascending: true }),
+    supabase.from("classi").select("id, nome_visualizzato").eq("scuola_profilo_id", contesto.scuolaProfiloId).order("anno", { ascending: true }),
+    getEventiConIscrizioniScuola(supabase, contesto.scuolaProfiloId, studenti ?? []),
+  ]);
 
   if (erroreProssimi) console.error("[/scuola/eventi] errore query prossimi:", erroreProssimi);
   if (erroreClassi) console.error("[/scuola/eventi] errore query classi:", erroreClassi);
-  if (erroreVerificati) console.error("[/scuola/eventi] errore query verificati:", erroreVerificati);
 
   const classiOpzioni = (classi ?? []).map((c) => ({ id: c.id, nomeVisualizzato: c.nome_visualizzato ?? "Classe" }));
-  const idVerificati = (verificati ?? []).map((s) => s.user_id);
+  const idVerificati = soloVerificati(studenti ?? []).map((s) => s.userId);
 
   const eventiPassati = eventiConIscrizioni.filter((e) => new Date(e.data_inizio) < new Date());
   const registri = await Promise.all(
     eventiPassati.map(async (e) => ({
       evento: e,
-      righe: await getRegistroPresenze(supabase, e.id, contesto.scuolaProfiloId, contesto.scuolaId),
+      righe: await getRegistroPresenze(supabase, e.id, contesto.scuolaProfiloId, studenti ?? []),
     })),
   );
 

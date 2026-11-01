@@ -6,7 +6,7 @@
     "Per aprire una colonna: una migrazione nuova con il grant, e la colonna qui, con chi la scrive. Il totale ha un tetto (`tetto_colonne`) che si abbassa e non si alza senza dirlo: è il cricchetto.",
     "`chi` dice quale codice scrive la tabella: è la ragione per cui la colonna è aperta. Una colonna senza un `chi` vero è una porta che nessuno usa."
   ],
-  "tetto_colonne": 191,
+  "tetto_colonne": 181,
   "anon": {
     "richieste_contatto": {
       "insert": ["origine", "nome", "ruolo", "istituto", "codice_meccanografico", "email", "messaggio"],
@@ -90,15 +90,10 @@
       "update": ["revocata_il"],
       "chi": "components/app/ManifestazioneInteresseButton.tsx, components/app/ListaManifestazioniInteresse.tsx"
     },
-    "messaggi_scuola": {
-      "insert": ["id", "scuola_profilo_id", "mittente_user", "destinatari", "classe_id", "oggetto", "corpo", "canale"],
-      "update": [],
-      "chi": "invia_messaggio_scuola (non definer: scrive con i privilegi del referente)"
-    },
     "messaggi_scuola_destinatari": {
-      "insert": ["messaggio_id", "student_id"],
+      "insert": [],
       "update": ["letto_il"],
-      "chi": "invia_messaggio_scuola (insert), components/app/MessaggiScuola.tsx (update)"
+      "chi": "components/app/MessaggiScuola.tsx (update; l'insert lo fa invia_messaggio_scuola, definer dal 20261128100000)"
     },
     "mission_attempt": {
       "insert": ["student_id", "mission_slug"],

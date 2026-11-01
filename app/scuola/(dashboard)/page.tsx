@@ -2,26 +2,14 @@ import Link from "next/link";
 import { getScuolaContext } from "@/lib/scuola/context";
 import { createClient } from "@/lib/supabase/server";
 import { formattaData } from "@/lib/formato";
+import { leggiStudentiDellaScuola, soloDichiarati, soloVerificati } from "@/lib/scuola/studenti";
 
 export default async function ScuolaHomePage() {
   const contesto = await getScuolaContext();
   const supabase = await createClient();
 
-  const [
-    { count: daVerificare, error: erroreDaVerificare },
-    { count: verificati, error: erroreVerificati },
-    { data: prossimiEventi, error: erroreProssimiEventi },
-  ] = await Promise.all([
-    supabase
-      .from("student_profiles")
-      .select("user_id", { count: "exact", head: true })
-      .eq("school_code", contesto.scuolaId)
-      .eq("stato_verifica", "dichiarato"),
-    supabase
-      .from("student_profiles")
-      .select("user_id", { count: "exact", head: true })
-      .eq("school_code", contesto.scuolaId)
-      .eq("stato_verifica", "verificato"),
+  const [studenti, { data: prossimiEventi, error: erroreProssimiEventi }] = await Promise.all([
+    leggiStudentiDellaScuola(supabase),
     supabase
       .from("iscrizioni_classe_eventi")
       .select("evento_id, eventi(titolo, data_inizio), classi!inner(nome_visualizzato, scuola_profilo_id)")
@@ -30,8 +18,9 @@ export default async function ScuolaHomePage() {
       .limit(5),
   ]);
 
-  if (erroreDaVerificare) console.error("[/scuola] errore count daVerificare:", erroreDaVerificare);
-  if (erroreVerificati) console.error("[/scuola] errore count verificati:", erroreVerificati);
+  // ⚠️ Un conteggio non letto è ancora 0 a schermo: lo cura il passo 4 del lotto («non letto» ≠ 0).
+  const daVerificare = studenti ? soloDichiarati(studenti).length : 0;
+  const verificati = studenti ? soloVerificati(studenti).length : 0;
   if (erroreProssimiEventi) console.error("[/scuola] errore query prossimiEventi:", erroreProssimiEventi);
 
   return (
