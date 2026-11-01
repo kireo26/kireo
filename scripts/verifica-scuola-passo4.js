@@ -50,7 +50,12 @@ function clientFinto(risposta) {
   ok(Math.abs(lette - 1.4) < 1e-9, "una lettura riuscita somma le ore", String(lette));
   const vuote = await getOrePctoDaEventi(clientFinto({ data: [], error: null }), "u");
   ok(vuote === 0, "nessuna presenza certificata è zero, ed è vero", String(vuote));
-  ok(/le ore non sono perse/i.test(TESTO_ORE_NON_LETTE), "il testo del non letto dice che le ore non sono perse");
+  // Il testo è di Mario (01/11): la rassicurazione cade in fondo, dove resta.
+  ok(
+    TESTO_ORE_NON_LETTE === "Non siamo riusciti a leggere le tue ore certificate. Ricarica la pagina: le ore non sono perse.",
+    "il testo del non letto, parola per parola",
+    TESTO_ORE_NON_LETTE,
+  );
   for (const rel of ["components/app/ContatorePCTO.tsx", "app/app/attivita/page.tsx"]) {
     const src = leggi(rel);
     ok(/oreCertificate === null/.test(src) && src.includes("TESTO_ORE_NON_LETTE"), `${rel} dice il non letto invece di uno zero`);

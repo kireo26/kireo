@@ -67,9 +67,10 @@ export function testoOreCertificate(ore: number): string {
 // registrare ore fatte fuori da KIREO è un prodotto diverso, con chi certifica
 // cosa.
 // `null` = non letto (vedi getOrePctoDaEventi): chi la mostra dice
-// TESTO_ORE_NON_LETTE, mai «0 ore certificate».
+// TESTO_ORE_NON_LETTE, mai «0 ore certificate». Il testo è di Mario (01/11):
+// la rassicurazione cade in fondo, dove resta.
 export const TESTO_ORE_NON_LETTE =
-  "Non siamo riusciti a leggere le tue ore certificate: ricarica la pagina. Le ore non sono perse.";
+  "Non siamo riusciti a leggere le tue ore certificate. Ricarica la pagina: le ore non sono perse.";
 
 export async function getOreCertificate(supabase: SupabaseClient, userId: string): Promise<number | null> {
   return getOrePctoDaEventi(supabase, userId);
