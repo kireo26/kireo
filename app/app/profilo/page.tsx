@@ -2,7 +2,8 @@ import { getAppContext } from "@/lib/app/studentContext";
 import { createClient } from "@/lib/supabase/server";
 import type { Indirizzo } from "@/components/ScuolaCascadeFields";
 import { CLASSI } from "@/lib/registrazione";
-import ProfiloForm, { BloccoPrivacy, type RifiutoVerifica } from "@/components/app/ProfiloForm";
+import ProfiloForm, { type RifiutoVerifica } from "@/components/app/ProfiloForm";
+import Link from "next/link";
 import { eMotivoRifiuto } from "@/lib/scuola/rifiutoVerifica";
 import ListaManifestazioniInteresse, { type ManifestazioneAttiva } from "@/components/app/ListaManifestazioniInteresse";
 import ComunicazioniStudente, { type IscrizioneNewsletter, type EnteSeguito } from "@/components/app/ComunicazioniStudente";
@@ -168,7 +169,16 @@ export default async function ProfiloAppPage() {
         </div>
       </div>
 
-      <BloccoPrivacy userId={contesto.userId} />
+      {/* In fondo, dopo le comunicazioni e le condivisioni (Mario, 28/10): l'uscita
+          è l'ultima cosa che si incontra. Dal 02/11 «Scarica i miei dati» e
+          l'eliminazione stanno nella pagina dell'account, una per tutti i ruoli. */}
+      <div className="rounded-2xl border border-white/5 bg-kireo-card p-6">
+        <h2 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">Il tuo account</h2>
+        <p className="mt-1 text-sm text-kireo-muted">La password, una copia dei tuoi dati e l&apos;eliminazione dell&apos;account.</p>
+        <Link href="/account" className="mt-3 inline-block text-sm text-kireo-orange underline underline-offset-2">
+          Vai al tuo account
+        </Link>
+      </div>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { requireAdmin } from "@/lib/admin/context";
 import NotificheBell from "@/components/app/NotificheBell";
 import LogoutButton from "@/components/LogoutButton";
+import LinkMioAccount from "@/components/LinkMioAccount";
 import MenuAdmin from "@/components/admin/MenuAdmin";
 
 // L'AREA ADMIN, RIORDINATA (Mario, 31/10). Fino a oggi era una pagina sola di
@@ -23,6 +24,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         </div>
         <div className="flex items-center gap-3">
           <NotificheBell userId={userId} />
+          <LinkMioAccount variante="testo" />
           <LogoutButton />
         </div>
       </div>

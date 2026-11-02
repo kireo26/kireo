@@ -204,6 +204,7 @@ export const COLONNE_ESCLUSE: Record<string, Record<string, string>> = {
     updated_at: "tecnica: quando la riga è stata toccata l'ultima volta, non un fatto suo",
     di_prova: "nostra: dice come trattiamo l'account nei conteggi delle prove, non qualcosa su di lui",
     esente_cancelli: "nostra: dice se l'account salta i cancelli nelle prove, non qualcosa su di lui",
+    cancellato_il: "nostra: segna la lapide di un account cancellato che aveva firmato qualcosa; chi scarica i propri dati ha un account vivo, e qui è sempre vuota",
   },
   student_profiles: {
     updated_at: "tecnica: quando la riga è stata toccata l'ultima volta",

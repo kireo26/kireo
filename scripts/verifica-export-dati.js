@@ -371,14 +371,15 @@ ok(esitoVuoto.file === null, "se non si ottiene niente, non si scarica nessun fi
   "un file con la sola intestazione si apre e sembra «non ho niente su KIREO»");
 
 console.log("\n§8 · Il componente non ricompone il file a mano");
-const form = senzaCommenti(fs.readFileSync(path.join(ROOT, "components/app/ProfiloForm.tsx"), "utf8"));
+// Dal 02/11 il bottone sta nella pagina dell'account (`components/account/ScaricaIMieiDati.tsx`).
+const form = senzaCommenti(fs.readFileSync(path.join(ROOT, "components/account/ScaricaIMieiDati.tsx"), "utf8"));
 // Il corpo dell'export: dalla sua funzione a quella che la segue. Le due
 // àncore dichiarano il proprio conto — ognuna compare nella dichiarazione e
 // nell'`onClick` che la chiama.
 const esportazione = fetta(
   form,
-  { nome: "handleScaricaDati", volte: 2, dove: "ProfiloForm" },
-  { nome: "handleEliminaDefinitivo", volte: 2, dove: "ProfiloForm" },
+  { nome: "handleScaricaDati", volte: 2, dove: "ScaricaIMieiDati" },
+  { nome: "Preparazione…", volte: 1, dove: "ScaricaIMieiDati" },
 );
 ok(esportazione.includes("assemblaEsportazione") && esportazione.includes("SEZIONI_EXPORT"),
   "l'export chiama il modulo invece di scrivere le query a mano");

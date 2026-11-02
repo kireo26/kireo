@@ -1,5 +1,6 @@
 "use client";
 
+import LinkMioAccount from "@/components/LinkMioAccount";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import Logo from "@/components/Logo";
@@ -300,10 +301,11 @@ export default function AppShell({
             <VoceBarra key={item.href} item={item} pathname={pathname} passoCorrente={passoCorrente} />
           ))}
         </nav>
+        <LinkMioAccount variante="barra" />
         <button
           type="button"
           onClick={handleLogout}
-          className="mt-auto flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-kireo-light/70 transition-colors hover:bg-white/5 hover:text-kireo-light"
+          className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-kireo-light/70 transition-colors hover:bg-white/5 hover:text-kireo-light"
         >
           <IconLogout className="h-5 w-5 flex-none" />
           Esci
@@ -318,6 +320,7 @@ export default function AppShell({
           </div>
           <div className="flex items-center gap-1">
             <NotificheBell userId={userId} />
+            <LinkMioAccount variante="icona" />
             <button
               type="button"
               onClick={handleLogout}

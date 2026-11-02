@@ -6,6 +6,7 @@ import { Button } from "@/components/Button";
 import { inputClass, fieldBorder } from "@/lib/formStyles";
 import { createClient } from "@/lib/supabase/client";
 import { descriviErrore } from "@/lib/erroreSupabase";
+import { linkInvitoTutor } from "@/lib/scuola/linkInvito";
 import { erroreInvitoTutor, TESTI_INVITO_TUTOR as T } from "@/lib/scuola/invitoTutor";
 
 // L'invio email reale non è ancora attivo (nessun provider collegato):
@@ -46,7 +47,7 @@ export default function InvitaTutorForm() {
         );
         return;
       }
-      setLink(`${window.location.origin}/scuola/invito?codice=${codice}`);
+      setLink(linkInvitoTutor(window.location.origin, codice));
       setNome("");
       setEmail("");
       router.refresh();

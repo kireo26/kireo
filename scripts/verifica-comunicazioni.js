@@ -164,9 +164,11 @@ ok(!/disabled=\{[^}]*iscritto/.test(btnNewsletter), "«Iscritto» non è un bott
 ok(/\.from\("newsletter_iscrizioni"\)\s*\.delete\(\)[\s\S]*?\.select\("id"\)/.test(btnNewsletter), "l'uscita dalla pagina dell'ente conta le righe tolte");
 const paginaProfilo = leggi("app/app/profilo/page.tsx");
 const iCom = posizione(paginaProfilo, "<ComunicazioniStudente");
-const iPrivacy = posizione(paginaProfilo, "<BloccoPrivacy");
+// Dal 02/11 in fondo c'è il rimando alla pagina dell'account, dove stanno
+// «Scarica i miei dati» e l'eliminazione.
+const iPrivacy = posizione(paginaProfilo, 'href="/account"');
 const iCondivisi = posizione(paginaProfilo, "<ListaManifestazioniInteresse");
-ok(iCom > 0 && iCondivisi > iCom && iPrivacy > iCondivisi, "il profilo: comunicazioni, condivisioni, e in fondo privacy ed eliminazione", `${iCom} / ${iCondivisi} / ${iPrivacy}`);
+ok(iCom > 0 && iCondivisi > iCom && iPrivacy > iCondivisi, "il profilo: comunicazioni, condivisioni, e in fondo il rimando all'account", `${iCom} / ${iCondivisi} / ${iPrivacy}`);
 ok(!/<BloccoPrivacy/.test(leggi("components/app/ProfiloForm.tsx").replace(/export function BloccoPrivacy/, "")), "ProfiloForm non monta più l'eliminazione in mezzo alle sezioni");
 ok(/seguitiIniziali=\{seguiti\}/.test(paginaProfilo), "il profilo passa gli enti seguiti alle comunicazioni");
 ok(/\.from\("seguiti"\)\s*\.delete\(\)[\s\S]*?\.select\("istituzione_id"\)/.test(com), "smettere di seguire conta le righe tolte");

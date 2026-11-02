@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import InvitaTutorForm from "@/components/scuola/InvitaTutorForm";
 import DisattivaStaffButton from "@/components/scuola/DisattivaStaffButton";
 import TogglePermessiTutor from "@/components/scuola/TogglePermessiTutor";
+import CopiaLinkInvito from "@/components/scuola/CopiaLinkInvito";
+import PassaReferenteButton from "@/components/scuola/PassaReferenteButton";
 
 export default async function ScuolaStaffPage() {
   const contesto = await getScuolaContext();
@@ -52,6 +54,10 @@ export default async function ScuolaStaffPage() {
                           ? "Attivo"
                           : "Disattivato"}
                     </p>
+                    {inAttesa && t.codice_invito ? <CopiaLinkInvito codice={t.codice_invito} /> : null}
+                    {!inAttesa && t.attivo ? (
+                      <PassaReferenteButton staffId={t.id} nome={[profilo?.nome, profilo?.cognome].filter(Boolean).join(" ") || "questo tutor"} />
+                    ) : null}
                     <TogglePermessiTutor
                       staffId={t.id}
                       nome={inAttesa ? (t.nome_invitato ?? null) : [profilo?.nome, profilo?.cognome].filter(Boolean).join(" ") || null}

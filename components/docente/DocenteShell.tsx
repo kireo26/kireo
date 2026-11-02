@@ -1,5 +1,6 @@
 "use client";
 
+import LinkMioAccount from "@/components/LinkMioAccount";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import Logo from "@/components/Logo";
@@ -107,10 +108,11 @@ export default function DocenteShell({ nome, children }: { nome: string; childre
             );
           })}
         </nav>
+        <LinkMioAccount variante="barra" />
         <button
           type="button"
           onClick={handleLogout}
-          className="mt-auto flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-kireo-light/70 transition-colors hover:bg-white/5 hover:text-kireo-light"
+          className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-kireo-light/70 transition-colors hover:bg-white/5 hover:text-kireo-light"
         >
           <IconLogout className="h-5 w-5 flex-none" />
           Esci
@@ -120,6 +122,7 @@ export default function DocenteShell({ nome, children }: { nome: string; childre
       <div className="flex min-h-screen flex-1 flex-col">
         <header className="flex items-center justify-between border-b border-white/5 px-4 py-3 md:hidden">
           <span className="font-heading text-base font-semibold text-kireo-light">{sezioneCorrente}</span>
+          <LinkMioAccount variante="icona" />
           <button
             type="button"
             onClick={handleLogout}

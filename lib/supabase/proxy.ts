@@ -8,7 +8,7 @@ import { instradaCodiceEmail } from "@/lib/auth/linkEmail";
 // perché la guardia del middleware è per prefisso; chi dei due sia lo decide la
 // pagina (`lib/eventi/moderazione.ts`), e le RPC rifiutano comunque chiunque
 // non sia admin o l'organizzatore.
-const AREE_PROTETTE = ["/app", "/ente", "/admin", "/scuola", "/docente", "/diretta"];
+const AREE_PROTETTE = ["/app", "/ente", "/admin", "/scuola", "/docente", "/diretta", "/account"];
 
 function redirectAccedi(request: NextRequest) {
   const url = request.nextUrl.clone();

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/Button";
 import ScuolaCascadeFields, { SCUOLA_ALTRO, type ScuolaCascadeValue } from "@/components/ScuolaCascadeFields";
@@ -13,16 +12,9 @@ import { formattaData } from "@/lib/formato";
 import { TESTI_RIFIUTO, rigaRifiuto, type MotivoRifiutoVerifica } from "@/lib/scuola/rifiutoVerifica";
 
 export type RifiutoVerifica = { motivo: MotivoRifiutoVerifica; scuola: string; il: string };
-import {
-  SEZIONI_EXPORT,
-  assemblaEsportazione,
-  TESTO_NESSUN_FILE,
-  type EsitoSezione,
-} from "@/lib/app/esportaDati";
 import { descriviErrore } from "@/lib/erroreSupabase";
 import { sessioneAncoraViva } from "@/lib/rifiutiScrittura";
 import { TESTO_NON_ATTERRATA, testoErroreAree, testoErroreScuola, testoErroreTelefono } from "@/lib/app/rifiutiStudente";
-import { USCITA_SOLO_QUI } from "@/lib/supabase/uscita";
 
 const MAX_AREE_INTERESSE = 3;
 type StatoSalvataggio = "idle" | "salvando" | "ok" | "errore";
@@ -325,137 +317,6 @@ function SezioneAree({ userId, areeIniziali }: { userId: string; areeIniziali: s
           {stato === "salvando" ? "Salvataggio…" : "Salva aree"}
         </Button>
         <MessaggioSalvataggio stato={stato} messaggioErrore={messaggio} />
-      </div>
-    </div>
-  );
-}
-
-// In fondo alla pagina del profilo, sotto le comunicazioni (Mario, 28/10):
-// l'uscita definitiva è l'ultima cosa che si incontra, non una sezione fra le
-// altre. Per questo la monta la pagina e non ProfiloForm.
-export function BloccoPrivacy({ userId }: { userId: string }) {
-  const router = useRouter();
-  const [esportando, setEsportando] = useState(false);
-  const [erroreEsportazione, setErroreEsportazione] = useState<string | null>(null);
-  const [confermaRichiesta, setConfermaRichiesta] = useState(false);
-  const [eliminando, setEliminando] = useState(false);
-  const [erroreEliminazione, setErroreEliminazione] = useState<string | null>(null);
-
-  // Le sezioni vengono da `SEZIONI_EXPORT` e il file lo compone
-  // `assemblaEsportazione`: qui resta solo il giro di rete e lo scaricamento.
-  // Vedi `lib/app/esportaDati.ts` per la forma del file e per il difetto che
-  // l'ha fatta scrivere — un `?? []` che affermava «zero prenotazioni» per
-  // una tabella che non esiste da luglio.
-  async function handleScaricaDati() {
-    setEsportando(true);
-    setErroreEsportazione(null);
-    try {
-      const supabase = createClient();
-      const risposte = await Promise.all(
-        SEZIONI_EXPORT.map(async (s): Promise<EsitoSezione> => {
-          const query = supabase.from(s.tabella).select(s.select).eq(s.colonna, userId);
-          const { data, error } = s.singola ? await query.maybeSingle() : await query;
-          if (error) {
-            // Il browser non può registrare un guasto (`registra_guasto` è
-            // solo service-role), quindi questa riga è l'unica traccia che
-            // resta: senza, una query morta vive tre mesi.
-            console.error(`Export dati, sezione ${s.chiave} (${s.tabella}):`, descriviErrore(error));
-            return { ottenuta: false, motivo: error.code ?? "errore" };
-          }
-          return { ottenuta: true, dati: data };
-        }),
-      );
-
-      const esito = assemblaEsportazione(risposte);
-      if (esito.file === null) {
-        setErroreEsportazione(TESTO_NESSUN_FILE);
-        return;
-      }
-
-      const blob = new Blob([esito.file], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "kireo-i-miei-dati.json";
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch (errore) {
-      console.error("Export dati, non è stato possibile preparare il file:", errore);
-      setErroreEsportazione(TESTO_NESSUN_FILE);
-    } finally {
-      setEsportando(false);
-    }
-  }
-
-  async function handleEliminaDefinitivo() {
-    setEliminando(true);
-    setErroreEliminazione(null);
-    try {
-      const supabase = createClient();
-      const { error } = await supabase.rpc("delete_own_account");
-      if (error) {
-        setErroreEliminazione("Non è stato possibile completare l'operazione. Riprova più tardi o scrivici da /contatti.");
-        setEliminando(false);
-        return;
-      }
-      await supabase.auth.signOut({ scope: USCITA_SOLO_QUI });
-      router.push("/");
-      router.refresh();
-    } catch {
-      setErroreEliminazione("Non è stato possibile completare l'operazione. Riprova più tardi o scrivici da /contatti.");
-      setEliminando(false);
-    }
-  }
-
-  return (
-    <div className="space-y-4">
-      <div className="rounded-2xl border border-white/5 bg-kireo-card p-6">
-        <h2 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">Privacy</h2>
-        <p className="mt-1 text-sm text-kireo-muted">Scarica una copia di tutti i tuoi dati salvati su KIREO, in formato JSON.</p>
-        <Button type="button" variant="outline" className="mt-4" onClick={handleScaricaDati} disabled={esportando}>
-          {esportando ? "Preparazione…" : "Scarica i miei dati"}
-        </Button>
-        {erroreEsportazione ? (
-          <p className="mt-3 rounded-xl border border-amber-400/30 bg-amber-400/10 p-3 text-sm text-amber-200">
-            {erroreEsportazione}
-          </p>
-        ) : null}
-      </div>
-
-      <div className="rounded-2xl border border-red-500/30 bg-kireo-card p-6">
-        <h2 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">Elimina il mio account</h2>
-        <p className="mt-1 text-sm text-kireo-muted">
-          Rimuove definitivamente il tuo profilo, la scuola collegata, le aree di interesse, le attività e le
-          prenotazioni ai webinar. L&apos;operazione non è reversibile.
-        </p>
-
-        {!confermaRichiesta ? (
-          <button
-            type="button"
-            onClick={() => setConfermaRichiesta(true)}
-            className="mt-4 inline-flex items-center justify-center rounded-full border border-red-500/50 px-6 py-3 font-sans text-sm font-semibold text-red-400 transition-colors hover:bg-red-500/10"
-          >
-            Elimina il mio account
-          </button>
-        ) : (
-          <div className="mt-4 rounded-xl border border-red-500/40 bg-red-500/10 p-4">
-            <p className="text-sm text-red-300">Sei sicuro? Questa azione è definitiva e non si può annullare.</p>
-            <div className="mt-3 flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={handleEliminaDefinitivo}
-                disabled={eliminando}
-                className="inline-flex items-center justify-center rounded-full bg-red-500 px-6 py-3 font-sans text-sm font-semibold text-white transition-colors hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {eliminando ? "Eliminazione…" : "Sì, elimina definitivamente"}
-              </button>
-              <Button type="button" variant="ghost" onClick={() => setConfermaRichiesta(false)} disabled={eliminando}>
-                Annulla
-              </Button>
-            </div>
-            {erroreEliminazione && <p className="mt-3 text-sm text-red-400">{erroreEliminazione}</p>}
-          </div>
-        )}
       </div>
     </div>
   );
