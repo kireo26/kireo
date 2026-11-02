@@ -75,7 +75,7 @@ end $$;
 -- 3 · il referente non se ne va senza un successore, e lo stato lo dice prima.
 do $$ declare s jsonb; e text; begin
   perform pg_temp.come('44444444-0000-0000-0000-0000000000a1');
-  s := public.stato_cancellazione_mio_account();
+  begin s := public.stato_cancellazione_mio_account(); exception when others then s := jsonb_build_object('motivo', sqlerrm); end;
   e := pg_temp.prova('44444444-0000-0000-0000-0000000000a1');
   insert into esiti values (3, 'il referente: lo stato dice «passa la scuola», la cancellazione rifiuta, niente si tocca',
     'referente_senza_successore, 2 tutor, rifiutato, utente c''è',
@@ -88,7 +88,7 @@ end $$;
 -- 4 · il tutor che ha verificato una studentessa: l'account sparisce, il nome resta.
 do $$ declare s jsonb; e text; p record; begin
   perform pg_temp.come('44444444-0000-0000-0000-0000000000a2');
-  s := public.stato_cancellazione_mio_account();
+  begin s := public.stato_cancellazione_mio_account(); exception when others then s := jsonb_build_object('motivo', sqlerrm); end;
   e := pg_temp.prova('44444444-0000-0000-0000-0000000000a2');
   select nome, cognome, cancellato_il, data_nascita into p from public.profiles where id = '44444444-0000-0000-0000-0000000000a2';
   insert into esiti values (4, 'chi ha firmato: lo stato lo dice, l''utente sparisce, resta una lapide con il nome',
@@ -126,17 +126,18 @@ do $$ declare e1 text := 'riuscito'; e2 text := 'riuscito'; begin
 end $$;
 
 -- 8 · il referente passa la scuola: lui tutor senza deleghe, l'altra referente.
-do $$ declare r record; t record; begin
+do $$ declare r record; t record; e text := 'riuscito'; begin
   perform pg_temp.come('44444444-0000-0000-0000-0000000000a1');
-  perform public.passa_referente('ee000000-0000-0000-0000-0000000000c3');
+  -- Un errore qui non deve far sparire l'esito (il modo 2-ter): si para e si scrive.
+  begin perform public.passa_referente('ee000000-0000-0000-0000-0000000000c3'); exception when others then e := sqlerrm; end;
   select * into r from public.school_staff where id = 'ee000000-0000-0000-0000-0000000000c1';
   select * into t from public.school_staff where id = 'ee000000-0000-0000-0000-0000000000c3';
   insert into esiti values (8, 'il passaggio: chi lascia è tutor senza deleghe, chi entra è referente, e i ruoli seguono',
-    'tutor/false, referente, tutor_scuola, referente_scuola',
-    r.ruolo_staff || '/' || r.puo_verificare_studenti || ', ' || t.ruolo_staff || ', '
+    'riuscito: tutor/false, referente, tutor_scuola, referente_scuola',
+    e || ': ' || coalesce(r.ruolo_staff::text, 'nessuna riga') || '/' || coalesce(r.puo_verificare_studenti::text, '-') || ', ' || coalesce(t.ruolo_staff::text, '-') || ', '
       || (select ruolo from public.profiles where id = '44444444-0000-0000-0000-0000000000a1') || ', '
       || (select ruolo from public.profiles where id = '44444444-0000-0000-0000-0000000000a3'),
-    r.ruolo_staff = 'tutor' and not r.puo_verificare_studenti and not r.puo_gestire_classi
+    e = 'riuscito' and r.ruolo_staff = 'tutor' and not r.puo_verificare_studenti and not r.puo_gestire_classi
       and not r.puo_certificare_presenze and not r.puo_inviare_comunicazioni and t.ruolo_staff = 'referente'
       and (select ruolo from public.profiles where id = '44444444-0000-0000-0000-0000000000a1') = 'tutor_scuola'
       and (select ruolo from public.profiles where id = '44444444-0000-0000-0000-0000000000a3') = 'referente_scuola');
