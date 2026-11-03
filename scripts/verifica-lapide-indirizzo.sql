@@ -155,7 +155,9 @@ do $$ declare s jsonb := pg_temp.stato('55555555-0000-0000-0000-0000000000b5'); 
 end $$;
 
 -- 7 · l'elenco delle firme è il catalogo, non un numero scritto a mano.
-do $$ declare s jsonb := pg_temp.stato('55555555-0000-0000-0000-0000000000b5'); catalogo int; begin
+-- Sullo studente, che nessuna prova cancella: se la 6 morde e cancella Cora,
+-- la 7 non deve diventare rossa per lei (il modo 9).
+do $$ declare s jsonb := pg_temp.stato('55555555-0000-0000-0000-0000000000b3'); catalogo int; begin
   select count(*) into catalogo from pg_constraint c
     where c.contype = 'f' and c.confrelid = 'public.profiles'::regclass and c.confdeltype in ('a', 'r') and array_length(c.conkey, 1) = 1;
   insert into esiti values (7, 'le firme contate sono tutte le chiavi che bloccano, lette dal catalogo',
