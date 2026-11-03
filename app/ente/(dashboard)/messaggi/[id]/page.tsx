@@ -4,6 +4,7 @@ import { getEnteContext } from "@/lib/ente/context";
 import { createClient } from "@/lib/supabase/server";
 import { pianoAPagamento } from "@/lib/ente/pianoSuccessivo";
 import ThreadMessaggi from "@/components/messaggi/ThreadMessaggi";
+import { TESTO_CONVERSAZIONE_ACCOUNT_CANCELLATO } from "@/lib/account/testiRimossi";
 
 export default async function ConversazioneEntePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -31,6 +32,10 @@ export default async function ConversazioneEntePage({ params }: { params: Promis
   if (!aPagamento) notaNonScrivibile = "Il tuo piano attuale non include la risposta ai messaggi: passa a un piano superiore.";
   else if (conversazione.stato === "bloccata_da_studente") notaNonScrivibile = "Lo studente ha bloccato questa conversazione.";
   else if (conversazione.stato === "chiusa_da_admin") notaNonScrivibile = "Questa conversazione è stata chiusa da KIREO.";
+  // Conservare tutto (03/11): la conversazione resta, i messaggi dello studente
+  // sono svuotati, e non si risponde a nessuno. Va prima del piano: a pagamento
+  // o no, la ragione vera è questa.
+  if (conversazione.stato === "account_cancellato") notaNonScrivibile = TESTO_CONVERSAZIONE_ACCOUNT_CANCELLATO;
 
   return (
     <div className="mx-auto max-w-2xl space-y-4">

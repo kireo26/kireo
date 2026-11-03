@@ -38,16 +38,16 @@ ok(ref.testo === "Prima di andartene devi passare la scuola a qualcun altro: pro
 ok(p({ puo: false, ruolo: "istituzione", motivo: "ruolo_non_previsto" }).bottone === false, "un ente: niente bottone");
 ok(p({ puo: false, ruolo: "admin", motivo: "ruolo_non_previsto" }).testo.includes("admin"), "un admin: il suo testo, niente bottone");
 const firma = [{ tabella: "student_profiles", colonna: "verificato_da", n: 2 }];
-const tut = p({ puo: true, ruolo: "tutor_scuola", resta_il_nome: true, firme: firma });
+const tut = p({ puo: true, ruolo: "tutor_scuola", resta_il_nome: true, firme: firma, esito: "cancellato_resta_il_nome" });
 ok(tut.bottone && tut.testo.includes("2 verifiche di studenti"), "chi ha firmato: il bottone, e il numero detto PRIMA del clic");
-const doc = p({ puo: true, ruolo: "docente", resta_il_nome: false, firme: [{ ...firma[0], n: 0 }] });
+const doc = p({ puo: true, ruolo: "docente", resta_il_nome: false, firme: [{ ...firma[0], n: 0 }], esito: "anonimizzato" });
 ok(doc.bottone && !doc.testo.includes("resterà su"), "chi non ha firmato non legge di firme che non ha");
 
 console.log("\n§2 — lo stato si legge nella forma, o non si legge\n");
 ok(A.leggiStatoCancellazione(null) === null, "null → non letto");
 ok(A.leggiStatoCancellazione({ puo: "sì" }) === null, "una forma strana → non letto, mai un bottone");
 ok(A.leggiStatoCancellazione({ puo: false, motivo: "inventato" }) === null, "un motivo che non conosciamo → non letto");
-const letto = A.leggiStatoCancellazione({ puo: true, ruolo: "docente", resta_il_nome: true, firme: firma });
+const letto = A.leggiStatoCancellazione({ puo: true, ruolo: "docente", resta_il_nome: true, firme: firma, esito: "cancellato_resta_il_nome" });
 ok(letto && letto.puo && letto.resta_il_nome === true, "la forma vera passa");
 
 console.log("\n§3 — i rifiuti dicono la regola, «riprova» solo a un guasto\n");

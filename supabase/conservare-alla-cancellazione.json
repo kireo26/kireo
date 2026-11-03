@@ -1,0 +1,193 @@
+{
+  "_leggimi": "20261204110000, conservare tutto, togliere il nome: cosa succede a ogni tabella in cascata da profiles quando una persona cancella l'account. fatto = resta com'è; testo = il testo esce, la riga resta; rapporto = si chiude; fatto_e_rapporto = le due cose, secondo la riga; altro = fuori dal capitolo, con il perché. npm run test:conservare è rosso su una tabella in cascata che qui non c'è, e su una voce testo/rapporto che conserva_alla_cancellazione non nomina.",
+  "tabelle": {
+    "activity_log": {
+      "trattamento": "fatto",
+      "perche": "le attività, con l'area e il giorno: il fatto per eccellenza"
+    },
+    "area_signal": {
+      "trattamento": "fatto",
+      "perche": "i segnali per area, solo numeri"
+    },
+    "assistente_conversazioni": {
+      "trattamento": "fatto",
+      "perche": "una conversazione con l'assistente su un'area, con la data: nessun testo è salvato"
+    },
+    "assistente_richieste": {
+      "trattamento": "rapporto",
+      "perche": "il conto per il tetto dell'assistente"
+    },
+    "attestati": {
+      "trattamento": "fatto",
+      "perche": "un attestato resta, con il nome copiato: dice di chi è"
+    },
+    "classi_studenti": {
+      "trattamento": "rapporto",
+      "perche": "la classe: nessuna statistica la legge, la coorte sta in student_profiles"
+    },
+    "codici_consenso_kireo": {
+      "trattamento": "rapporto",
+      "perche": "il codice per ritirare il consenso: non c'è più niente da ritirare"
+    },
+    "consegne_evento": {
+      "trattamento": "testo",
+      "perche": "la domanda finale: il testo esce, la consegna resta"
+    },
+    "conversazioni_enti": {
+      "trattamento": "rapporto",
+      "perche": "la conversazione resta e si chiude con lo stato account_cancellato: l'ente la legge, senza poter rispondere"
+    },
+    "domande_live": {
+      "trattamento": "testo",
+      "perche": "il testo della domanda esce; la domanda, l'evento e la data restano"
+    },
+    "evidence": {
+      "trattamento": "testo",
+      "perche": "la prova resta con il suo valore; la motivazione è un testo nostro su di lui, ed esce"
+    },
+    "indirizzi_delle_lapidi": {
+      "trattamento": "altro",
+      "perche": "nostra: la scrive la cancellazione di chi ha firmato"
+    },
+    "institution_profiles": {
+      "trattamento": "altro",
+      "perche": "un account d'ente non si cancella da qui (ruolo_non_previsto); la riga si toglie comunque, se ci arrivasse"
+    },
+    "iscrizioni_eventi": {
+      "trattamento": "fatto_e_rapporto",
+      "perche": "una presenza a un evento cominciato è un fatto (con il nome copiato se certificata); un'iscrizione a un evento futuro è un rapporto, e se ne va"
+    },
+    "journal_entry": {
+      "trattamento": "testo",
+      "perche": "il diario: il testo esce, la riga resta"
+    },
+    "manifestazioni_interesse": {
+      "trattamento": "rapporto",
+      "perche": "il profilo condiviso si revoca (revocata_il): la riga resta perché «raggiunti dall'inizio» la conta"
+    },
+    "messaggi_enti": {
+      "trattamento": "testo",
+      "perche": "i suoi messaggi a un ente escono; quelli dell'ente restano"
+    },
+    "messaggi_scuola_destinatari": {
+      "trattamento": "fatto",
+      "perche": "ha ricevuto un messaggio della scuola: il testo è della scuola, non suo"
+    },
+    "mission_attempt": {
+      "trattamento": "fatto",
+      "perche": "un tentativo di missione, con il suo stato"
+    },
+    "newsletter_consegne": {
+      "trattamento": "fatto_e_rapporto",
+      "perche": "un'email partita è un fatto; una in coda è un rapporto, e scade"
+    },
+    "newsletter_docenti": {
+      "trattamento": "rapporto",
+      "perche": "l'iscrizione alla newsletter dei docenti se ne va"
+    },
+    "newsletter_iscrizioni": {
+      "trattamento": "rapporto",
+      "perche": "l'iscrizione alla newsletter se ne va (e conta come un'uscita)"
+    },
+    "notifiche_studenti": {
+      "trattamento": "rapporto",
+      "perche": "le notifiche: erano per lui"
+    },
+    "player_live_stato": {
+      "trattamento": "rapporto",
+      "perche": "lo stato del player in una diretta"
+    },
+    "portfolio_item": {
+      "trattamento": "testo",
+      "perche": "il portfolio: titolo e contenuto escono, la riga resta"
+    },
+    "post_salvati": {
+      "trattamento": "fatto",
+      "perche": "un post salvato, con la copia del post (dell'ente, non suo)"
+    },
+    "presenze_live": {
+      "trattamento": "fatto",
+      "perche": "i minuti contati di una diretta"
+    },
+    "recinto_enti": {
+      "trattamento": "fatto",
+      "perche": "gli enti incontrati: «raggiunti dall'inizio» lo conta"
+    },
+    "registrazioni_salvate": {
+      "trattamento": "fatto",
+      "perche": "una registrazione salvata"
+    },
+    "scaricamenti_allegati_post": {
+      "trattamento": "fatto",
+      "perche": "un allegato scaricato"
+    },
+    "scaricamenti_guide_enti": {
+      "trattamento": "fatto",
+      "perche": "una guida scaricata, con titolo ed ente copiati"
+    },
+    "school_staff": {
+      "trattamento": "rapporto",
+      "perche": "la propria riga nello staff di una scuola"
+    },
+    "seguiti": {
+      "trattamento": "rapporto",
+      "perche": "si chiude marcando chiuso_il: la riga resta perché «raggiunti dall'inizio» la conta"
+    },
+    "step_response": {
+      "trattamento": "testo",
+      "perche": "le scelte restano; la risposta aperta (payload.testo) esce"
+    },
+    "student_area_interests": {
+      "trattamento": "fatto",
+      "perche": "le aree dichiarate: le ripartizioni delle statistiche dell'ente le contano"
+    },
+    "student_profiles": {
+      "trattamento": "fatto",
+      "perche": "scuola, classe, anno di diploma e verifica: la coorte che le statistiche della scuola contano"
+    },
+    "style_signal": {
+      "trattamento": "fatto",
+      "perche": "il ritratto dello stile, solo numeri"
+    },
+    "teacher_profiles": {
+      "trattamento": "fatto",
+      "perche": "la scuola e la materia di un docente: un fatto, nessun testo suo"
+    },
+    "test_attempt": {
+      "trattamento": "fatto",
+      "perche": "un tentativo di test"
+    },
+    "test_response": {
+      "trattamento": "fatto",
+      "perche": "le risposte ai test sono tutte a scelta: nessun testo libero"
+    },
+    "workshop_chat_cliente": {
+      "trattamento": "testo",
+      "perche": "la chat col cliente esce tutta: la metà del cliente è nostra e lo cita"
+    },
+    "workshop_consegne": {
+      "trattamento": "testo",
+      "perche": "del giudizio sul file restano i numeri"
+    },
+    "workshop_elaborati": {
+      "trattamento": "testo",
+      "perche": "l'elaborato esce; del giudizio restano i numeri"
+    },
+    "workshop_fasi_stato": {
+      "trattamento": "testo",
+      "perche": "le tappe restano; della revisione restano i numeri, la reazione del cliente esce"
+    },
+    "workshop_iscrizioni": {
+      "trattamento": "rapporto",
+      "perche": "un workshop in corso diventa ritirato; uno completato resta"
+    },
+    "workshop_messaggi": {
+      "trattamento": "testo",
+      "perche": "i suoi messaggi a un altro studente escono; quelli dell'altro restano"
+    },
+    "workshop_tutor_log": {
+      "trattamento": "fatto",
+      "perche": "le richieste al tutor: sezione e modo, nessun testo"
+    }
+  }
+}

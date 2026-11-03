@@ -59,20 +59,24 @@ begin
   exception when others then return 'rifiutato: ' || sqlerrm; end;
 end $$;
 
--- 1 · una studentessa senza firme si cancella per intero.
+-- 1 · una studentessa senza firme: dal 20261204110000 non sparisce, diventa
+--     anonima («conservare tutto, togliere il nome»). Il profilo resta con
+--     l'etichetta, l'utente (l'accesso, l'indirizzo) se ne va.
 do $$ declare e text := pg_temp.prova('44444444-0000-0000-0000-0000000000a7'); begin
-  insert into esiti values (1, 'chi non ha firmato niente si cancella per intero', 'cancellato, nessuna riga',
-    e || ', profilo ' || (select count(*) from public.profiles where id = '44444444-0000-0000-0000-0000000000a7')
+  insert into esiti values (1, 'chi non ha firmato niente diventa anonimo: il profilo resta con l''etichetta, l''utente no', 'anonimizzato, Studente #N, utente 0',
+    e || ', ' || coalesce((select nome || ' ' || cognome from public.profiles where id = '44444444-0000-0000-0000-0000000000a7'), 'nessun profilo')
       || ', utente ' || (select count(*) from auth.users where id = '44444444-0000-0000-0000-0000000000a7'),
-    e = 'cancellato'
-      and not exists (select 1 from public.profiles where id = '44444444-0000-0000-0000-0000000000a7')
+    e = 'anonimizzato'
+      and exists (select 1 from public.profiles where id = '44444444-0000-0000-0000-0000000000a7'
+                  and nome = 'Studente' and cognome = '#' || numero_anonimo and cancellato_il is not null and data_nascita is null)
       and not exists (select 1 from auth.users where id = '44444444-0000-0000-0000-0000000000a7'));
 end $$;
 
--- 2 · un docente senza firme: lo stesso.
+-- 2 · un docente senza firme: lo stesso, con la sua etichetta.
 do $$ declare e text := pg_temp.prova('44444444-0000-0000-0000-0000000000a5'); begin
-  insert into esiti values (2, 'un docente senza firme si cancella per intero', 'cancellato', e,
-    e = 'cancellato' and not exists (select 1 from public.profiles where id = '44444444-0000-0000-0000-0000000000a5'));
+  insert into esiti values (2, 'un docente senza firme diventa anonimo, con la sua etichetta', 'anonimizzato, Docente #N', e || ', '
+      || coalesce((select nome || ' ' || cognome from public.profiles where id = '44444444-0000-0000-0000-0000000000a5'), 'nessun profilo'),
+    e = 'anonimizzato' and exists (select 1 from public.profiles where id = '44444444-0000-0000-0000-0000000000a5' and nome = 'Docente' and numero_anonimo is not null));
 end $$;
 
 -- 3 · il referente non se ne va senza un successore, e lo stato lo dice prima.

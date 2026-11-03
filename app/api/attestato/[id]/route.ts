@@ -37,7 +37,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const { data: attestato } = await supabase
     .from("attestati")
     .select(
-      "id, rilasciato_il, codice_verifica, profiles!user_id(nome, cognome), eventi(titolo, data_inizio, data_fine, diretta_chiusa_il, filone, organizzatore_id, istituzioni(nome))",
+      "id, rilasciato_il, codice_verifica, nome_alla_cancellazione, cognome_alla_cancellazione, profiles!user_id(nome, cognome), eventi(titolo, data_inizio, data_fine, diretta_chiusa_il, filone, organizzatore_id, istituzioni(nome))",
     )
     .eq("id", id)
     .maybeSingle();
@@ -57,7 +57,11 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const filoneLabel = getFiloneBySlug(evento.filone)?.nome ?? evento.filone ?? "";
 
   const pdf = generaAttestatoPdf({
-    nomeCompleto: `${profilo.nome} ${profilo.cognome}`,
+    // Un attestato dice di chi è: dopo la cancellazione dell'account il nome
+    // vero è quello copiato sulla riga (20261204110000), non l'etichetta anonima.
+    nomeCompleto: attestato.nome_alla_cancellazione
+      ? `${attestato.nome_alla_cancellazione} ${attestato.cognome_alla_cancellazione ?? ""}`.trim()
+      : `${profilo.nome} ${profilo.cognome}`,
     titoloWebinar: evento.titolo,
     filoneLabel,
     dataEventoLabel: formattaData(evento.data_inizio, "long"),

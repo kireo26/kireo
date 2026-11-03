@@ -117,6 +117,7 @@
     "test:erroriauth": "node scripts/verifica-errori-auth.js",
     "test:parenti": "node scripts/verifica-parenti-riprova.js",
     "test:mioaccount": "node scripts/verifica-account.js",
+    "test:conservare": "node scripts/verifica-conservare-tutto.js",
     "test:cancellazione": "node scripts/verifica-cancellazione.js"
   },
   "dependencies": {

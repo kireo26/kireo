@@ -23,6 +23,7 @@ import { rigaFreschezza, numeroStantio, numeroFermoAlle, type Freschezza } from 
 import { statoDiretta } from "@/lib/live";
 import { useSondaIncorporamento } from "@/lib/useSondaIncorporamento";
 import { sondaBlocca, testoSonda } from "@/lib/sondaYoutube";
+import { TESTO_DOMANDA_RIMOSSA } from "@/lib/account/testiRimossi";
 import { formattaOra } from "@/lib/formato";
 import { rigaPlayerRotti } from "@/lib/eventi/videoDiretta";
 
@@ -34,7 +35,8 @@ const MS_SONDA_DURANTE_DIRETTA = 120000;
 
 type Domanda = {
   id: string;
-  testo: string;
+  /** NULL quando chi l'ha fatta ha cancellato l'account (20261204110000): la domanda resta, il testo no. */
+  testo: string | null;
   stato: string;
   creata_il: string;
   nome_completo: string | null;
@@ -348,7 +350,11 @@ export default function ControlloDirettaEvento({
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     {d.nome_completo && <p className="text-xs font-semibold text-kireo-orange">{d.nome_completo}</p>}
-                    <p className="text-sm text-kireo-light/90">{d.testo}</p>
+                    {d.testo === null ? (
+                      <p className="text-sm italic text-kireo-muted">{TESTO_DOMANDA_RIMOSSA}</p>
+                    ) : (
+                      <p className="text-sm text-kireo-light/90">{d.testo}</p>
+                    )}
                     {tocco && <p className="mt-1 text-xs text-kireo-muted">{tocco}</p>}
                   </div>
                   <div className="flex flex-none gap-3">

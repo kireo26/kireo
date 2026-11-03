@@ -24,16 +24,37 @@ import {
   testoRifiutoSconosciutoScrittura,
 } from "@/lib/rifiutiScrittura";
 
+/** I tre esiti, decisi dal database (`stato_cancellazione_account`, 20261204110000). */
+export type EsitoCancellazione = "cancellato" | "cancellato_resta_il_nome" | "anonimizzato";
+
 export type StatoCancellazione =
-  | { puo: true; ruolo: string; resta_il_nome: boolean; firme: Firma[] }
+  | { puo: true; ruolo: string; resta_il_nome: boolean; firme: Firma[]; esito: EsitoCancellazione }
   | { puo: false; ruolo?: string; motivo: "referente_senza_successore" | "ruolo_non_previsto" | "profilo_mancante"; tutor_attivi?: number };
 
 export const TESTO_NON_RESTA_NIENTE =
   "Non resterà nulla di te: il profilo sparisce per intero e questo indirizzo tornerà libero.";
 
 /** Chi lascia firme: quali, quante, e che l'indirizzo non torna libero. */
-export function testoRestaIlNome(firme: Firma[], email: string): string {
-  return `Il tuo account sparisce, ma il tuo nome resterà su ${descriviFirme(firme)}. L'indirizzo ${email} non potrà più essere usato per registrarsi.`;
+export function testoRestaIlNome(firme: Firma[], email: string, ruolo?: string): string {
+  const base = `Il tuo account sparisce, ma il tuo nome resterà su ${descriviFirme(firme)}. L'indirizzo ${email} non potrà più essere usato per registrarsi.`;
+  // Uno studente o un docente con una firma è raro, ma le sue attività
+  // restano come quelle di tutti, e qui con il nome: lo si dice.
+  if (ruolo === "studente" || ruolo === "docente") return `${base} ${TESTO_ATTIVITA_CON_IL_NOME}`;
+  return base;
+}
+
+// CONSERVARE TUTTO, TOGLIERE IL NOME (Mario, 03/11): prima del clic si dicono
+// tre cose — le attività restano per sempre senza il nome; quello che ha
+// scritto viene cancellato; le ore certificate restano con il suo nome. Il
+// numero delle firme qui non c'è: chi diventa anonimo non ne ha.
+const TESTO_ATTIVITA_CON_IL_NOME =
+  "Le attività che hai fatto restano con il tuo nome; quello che hai scritto viene cancellato.";
+
+export function testoAnonimo(ruolo: string, email: string): string {
+  if (ruolo === "docente") {
+    return `Il tuo account sparisce, e il tuo nome esce da KIREO. Restano per sempre, senza il tuo nome, i webinar a cui hai partecipato. Quello che hai scritto viene cancellato: le domande che hai fatto durante le dirette. Gli attestati restano con il tuo nome: sono il documento della tua formazione. L'indirizzo ${email} tornerà libero.`;
+  }
+  return `Il tuo account sparisce, e il tuo nome esce da KIREO. Restano per sempre, senza il tuo nome, le attività che hai fatto: test, missioni, workshop, eventi. Quello che hai scritto viene cancellato: le risposte aperte, il diario, le domande e i messaggi. Le ore che ti sono state certificate restano con il tuo nome: sono il documento con cui la scuola le riconosce. L'indirizzo ${email} tornerà libero.`;
 }
 
 export const TESTO_REFERENTE_SENZA_SUCCESSORE =
@@ -64,13 +85,16 @@ export function presentaCancellazione(stato: StatoCancellazione | null, email: s
     if (stato.motivo === "profilo_mancante") return { bottone: false, testo: TESTI_ACCOUNT.profiloMancante, linkStaff: false };
     return { bottone: false, testo: stato.ruolo === "admin" ? TESTI_ACCOUNT.admin : TESTI_ACCOUNT.ente, linkStaff: false };
   }
-  if (!stato.resta_il_nome) return { bottone: true, testo: TESTO_NON_RESTA_NIENTE };
-  return { bottone: true, testo: testoRestaIlNome(stato.firme, email) };
+  if (stato.esito === "anonimizzato") return { bottone: true, testo: testoAnonimo(stato.ruolo, email) };
+  if (stato.esito === "cancellato") return { bottone: true, testo: TESTO_NON_RESTA_NIENTE };
+  return { bottone: true, testo: testoRestaIlNome(stato.firme, email, stato.ruolo) };
 }
 
 /** Dopo il clic: cosa è successo davvero, dall'esito che il database restituisce. */
 export function testoDopoLaCancellazione(esito: unknown, email: string): string {
   if (esito === "cancellato") return `Account cancellato. Non è rimasto niente di te, e l'indirizzo ${email} è di nuovo libero.`;
+  if (esito === "anonimizzato")
+    return `Account cancellato. Il tuo nome non c'è più: le attività restano senza nome, e quello che hai scritto è stato cancellato. L'indirizzo ${email} è di nuovo libero.`;
   if (esito === "cancellato_resta_il_nome")
     return `Account cancellato. Il tuo nome resta sulle firme che hai lasciato, e l'indirizzo ${email} non potrà più essere usato per registrarsi.`;
   return "Account cancellato.";
@@ -100,7 +124,12 @@ export function leggiStatoCancellazione(dati: unknown): StatoCancellazione | nul
     const firme = leggiFirme(d.firme);
     if (firme === null || firme.length === 0 || typeof d.resta_il_nome !== "boolean") return null;
     if (d.resta_il_nome !== totaleFirme(firme) > 0) return null;
-    return { puo: true, ruolo: d.ruolo, resta_il_nome: d.resta_il_nome, firme };
+    // L'esito deve dire la stessa cosa del conteggio: una lapide se ci sono
+    // firme, e altrimenti uno dei due. Uno che contraddice non si legge.
+    const esito = d.esito;
+    if (esito !== "cancellato" && esito !== "cancellato_resta_il_nome" && esito !== "anonimizzato") return null;
+    if ((esito === "cancellato_resta_il_nome") !== d.resta_il_nome) return null;
+    return { puo: true, ruolo: d.ruolo, resta_il_nome: d.resta_il_nome, firme, esito };
   }
   if (d.puo === false && (d.motivo === "referente_senza_successore" || d.motivo === "ruolo_non_previsto" || d.motivo === "profilo_mancante")) {
     return {

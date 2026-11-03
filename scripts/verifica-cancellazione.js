@@ -73,7 +73,7 @@ ok(
   ]) === "2 rimozioni di post e 1 altra firma",
   "una colonna senza parole non si tace: «1 altra firma»",
 );
-const prima = A.presentaCancellazione({ puo: true, ruolo: "tutor_scuola", resta_il_nome: true, firme }, "giulia@test.it");
+const prima = A.presentaCancellazione({ puo: true, ruolo: "tutor_scuola", resta_il_nome: true, firme, esito: "cancellato_resta_il_nome" }, "giulia@test.it");
 ok(
   prima.bottone &&
     prima.testo ===
@@ -82,8 +82,18 @@ ok(
   prima.testo,
 );
 ok(!/presenze che hai certificato/.test(prima.testo), "nessun testo fisso che nomina la cosa sbagliata");
-const zero = A.presentaCancellazione({ puo: true, ruolo: "docente", resta_il_nome: false, firme: [{ ...firme[0], n: 0 }] }, "r@t.it");
-ok(zero.testo === "Non resterà nulla di te: il profilo sparisce per intero e questo indirizzo tornerà libero.", "zero firme: il testo di Mario");
+const senzaFirme = [{ ...firme[0], n: 0 }];
+const zero = A.presentaCancellazione({ puo: true, ruolo: "tutor_scuola", resta_il_nome: false, firme: senzaFirme, esito: "cancellato" }, "r@t.it");
+ok(zero.testo === "Non resterà nulla di te: il profilo sparisce per intero e questo indirizzo tornerà libero.", "lo staff senza firme: il testo di Mario");
+// CONSERVARE TUTTO (03/11): le tre cose di Mario, cercate come fatti nella frase.
+const stud = A.presentaCancellazione({ puo: true, ruolo: "studente", resta_il_nome: false, firme: senzaFirme, esito: "anonimizzato" }, "s@t.it");
+ok(stud.bottone && /Restano per sempre, senza il tuo nome, le attività/.test(stud.testo), "lo studente: le attività restano per sempre, senza il nome", stud.testo);
+ok(/Quello che hai scritto viene cancellato/.test(stud.testo), "lo studente: quello che ha scritto viene cancellato");
+ok(/ore che ti sono state certificate restano con il tuo nome/.test(stud.testo), "lo studente: le ore certificate restano col nome");
+ok(/s@t\.it tornerà libero/.test(stud.testo) && !/Non resterà nulla/.test(stud.testo), "…e l'indirizzo torna libero, ma non «non resterà nulla», che sarebbe falso");
+const doc = A.presentaCancellazione({ puo: true, ruolo: "docente", resta_il_nome: false, firme: senzaFirme, esito: "anonimizzato" }, "d@t.it");
+ok(/webinar/.test(doc.testo) && /Gli attestati restano con il tuo nome/.test(doc.testo) && /viene cancellato/.test(doc.testo), "il docente: le stesse tre cose, con le sue parole", doc.testo);
+ok(/attività che hai fatto restano con il tuo nome/.test(A.presentaCancellazione({ puo: true, ruolo: "docente", resta_il_nome: true, firme, esito: "cancellato_resta_il_nome" }, "d@t.it").testo), "il docente con firme: la lapide, e le attività restano col nome");
 
 console.log("\n§3 — un conteggio che manca non diventa «non resterà niente»\n");
 const L = A.leggiStatoCancellazione;
@@ -91,11 +101,15 @@ ok(L({ puo: true, ruolo: "docente", resta_il_nome: false }) === null, "senza le 
 ok(L({ puo: true, ruolo: "docente", resta_il_nome: false, firme: [] }) === null, "un elenco vuoto non è un conteggio");
 ok(L({ puo: true, ruolo: "docente", resta_il_nome: false, firme: [{ tabella: "t", colonna: "c", n: 3 }] }) === null, "resta_il_nome che contraddice il conteggio: non letto");
 ok(L({ puo: true, ruolo: "docente", resta_il_nome: true, firme: [{ tabella: "t", colonna: "c", n: "3" }] }) === null, "un numero scritto male: non letto");
+ok(L({ puo: true, ruolo: "studente", resta_il_nome: false, firme: senzaFirme }) === null, "senza l'esito: non letto");
+ok(L({ puo: true, ruolo: "studente", resta_il_nome: false, firme: senzaFirme, esito: "cancellato_resta_il_nome" }) === null, "un esito che contraddice il conteggio: non letto");
+ok(L({ puo: true, ruolo: "studente", resta_il_nome: false, firme: senzaFirme, esito: "anonimizzato" })?.esito === "anonimizzato", "la forma vera passa con il suo esito");
 ok(A.presentaCancellazione(null, "x").bottone === false && /contare/.test(A.TESTI_ACCOUNT.nonLetto), "e il testo dice che non abbiamo contato, e che non si procede");
 
 console.log("\n§4 — dopo il clic si dice cosa è successo\n");
 ok(/non potrà più essere usato/.test(A.testoDopoLaCancellazione("cancellato_resta_il_nome", "g@t.it")), "la lapide lo dice");
 ok(/di nuovo libero/.test(A.testoDopoLaCancellazione("cancellato", "r@t.it")), "la cancellazione intera lo dice");
+ok(/le attività restano senza nome/.test(A.testoDopoLaCancellazione("anonimizzato", "s@t.it")) && /di nuovo libero/.test(A.testoDopoLaCancellazione("anonimizzato", "s@t.it")), "l'anonimato lo dice, con l'indirizzo libero");
 ok(A.testoErroreCancellazione({ code: "P0001", message: "stato_cambiato" }, true) === A.TESTI_ACCOUNT.statoCambiato, "una firma comparsa nel frattempo ha la sua frase");
 const comp = senzaCommenti(leggi("components/account/CancellaAccount.tsx"));
 ok(/rpc\("delete_own_account", \{ p_resta_il_nome_visto: stato\.resta_il_nome \}\)/.test(comp), "al clic si manda quello che la persona ha letto");
@@ -119,7 +133,8 @@ for (const m of moduli) {
 }
 ok(!/già|esiste|in uso/i.test(I.TESTO_INDIRIZZO_CANCELLATO), "la frase non assomiglia a «account già esistente»");
 const route = senzaCommenti(leggi("app/api/registrazione/indirizzo/route.ts"));
-ok(/createServiceRoleClient\(\)/.test(route) && /rpc\("indirizzo_di_un_account_cancellato", \{ p_email: email \}\)/.test(route), "la route chiede con la service role, e passa solo l'indirizzo");
+ok(/createServiceRoleClient\(\)/.test(route) && /rpc\("controlla_indirizzo_registrazione", \{ p_email: email, p_impronta: impronta\(req\) \}\)/.test(route), "la route chiede con la service role, e passa solo l'indirizzo e l'impronta della rete");
+ok(/status: 429/.test(route) && /createHash\("sha256"\)/.test(route), "il tetto: 429 oltre il limite, e la rete passa da un'impronta, mai in chiaro");
 
 console.log("\n§6 — i testi non accordano col genere\n");
 const testi = [
@@ -128,6 +143,9 @@ const testi = [
   prima.testo,
   A.testoDopoLaCancellazione("cancellato", "x"),
   A.testoDopoLaCancellazione("cancellato_resta_il_nome", "x"),
+  A.testoDopoLaCancellazione("anonimizzato", "x"),
+  stud.testo,
+  doc.testo,
   I.TESTO_INDIRIZZO_CANCELLATO,
   ...Object.values(F.PAROLE_DELLE_FIRME).flat(),
 ];

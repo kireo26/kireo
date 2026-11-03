@@ -21,6 +21,8 @@ export type EsitoIscrizione = {
   gia_iscritti?: number;
   non_verificati?: number;
   altra_scuola?: number;
+  /** Chi ha cancellato l'account mentre la pagina era aperta (20261204110000). */
+  account_cancellati?: number;
   gruppo?: boolean;
 };
 
@@ -40,11 +42,12 @@ export function testoEsitoIscrizione(esito: unknown): { testo: string; avviso: b
   const gia = numero(e.gia_iscritti) ?? 0;
   const nonVerificati = numero(e.non_verificati) ?? 0;
   const altra = numero(e.altra_scuola) ?? 0;
+  const cancellati = numero(e.account_cancellati) ?? 0;
   // ERANO GIÀ TUTTI DENTRO (Mario, 27/10): «Iscritti adesso: 0» in testa
   // spaventava — il numero in testa a una frase decide come si legge il resto.
   // Davanti il fatto rassicurante. La frase per 20 è di Mario; quella per uno
   // solo è mia (con 1 «tutti e 1» non si dice, e «era già iscritto» accorda).
-  if (iscritti === 0 && gia > 0 && nonVerificati === 0 && altra === 0) {
+  if (iscritti === 0 && gia > 0 && nonVerificati === 0 && altra === 0 && cancellati === 0) {
     return {
       testo: gia === 1 ? "Nessuna iscrizione nuova: la persona scelta aveva già un'iscrizione." : `Erano già iscritti tutti e ${gia}: nessuna iscrizione nuova.`,
       avviso: false,
@@ -54,5 +57,7 @@ export function testoEsitoIscrizione(esito: unknown): { testo: string; avviso: b
   if (gia > 0) parti.push(`già iscritti prima: ${gia}`);
   if (nonVerificati > 0) parti.push(`non iscritti perché non verificati: ${nonVerificati}`);
   if (altra > 0) parti.push(`non iscritti perché non risultano della tua scuola: ${altra}`);
-  return { testo: parti.join(" · ") + ".", avviso: nonVerificati > 0 || altra > 0 };
+  // Mio e provvisorio. «hanno cancellato» concorda col soggetto plurale, non con chi legge.
+  if (cancellati > 0) parti.push(`non iscritti perché hanno cancellato l'account: ${cancellati}`);
+  return { testo: parti.join(" · ") + ".", avviso: nonVerificati > 0 || altra > 0 || cancellati > 0 };
 }

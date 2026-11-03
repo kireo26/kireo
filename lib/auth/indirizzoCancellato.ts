@@ -8,7 +8,8 @@
 // quella persona a cercare una password che non esiste più (Mario). Mia e
 // provvisoria.
 //
-// Una domanda che non arriva risponde `null`, e la registrazione prosegue: se
+// Una domanda che non arriva (o oltre il tetto di 10 in un'ora per rete, 429)
+// risponde `null`, e la registrazione prosegue: se
 // l'indirizzo era di una lapide la ferma il trigger, con un errore peggio
 // scritto ma senza che niente si scriva.
 

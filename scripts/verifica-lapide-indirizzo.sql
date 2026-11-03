@@ -128,17 +128,19 @@ do $$ declare a text := pg_temp.registra('55555555-0000-0000-0000-0000000000c1',
     a like 'rifiutato: indirizzo_di_un_account_cancellato%' and b like 'rifiutato: indirizzo_di_un_account_cancellato%');
 end $$;
 
--- 5 · Rita, senza firme: nessuna riga, nessuna lapide, e l'indirizzo è di nuovo libero.
+-- 5 · Rita, senza firme: nessuna lapide e l'indirizzo è di nuovo libero. Dal
+--     20261204110000 il profilo resta, anonimo («conservare tutto»), e non
+--     porta né il suo nome né il suo indirizzo.
 do $$ declare s jsonb := pg_temp.stato('55555555-0000-0000-0000-0000000000b2'); e text; r text; begin
   e := pg_temp.cancella('55555555-0000-0000-0000-0000000000b2', false);
   r := pg_temp.registra('55555555-0000-0000-0000-0000000000c3', 'senza-firme@test.it');
-  insert into esiti values (5, 'chi non ha firmato sparisce per intero, e l''indirizzo si registra di nuovo',
-    'resta_il_nome false, cancellato, 0 profili, 0 indirizzi, registrato',
+  insert into esiti values (5, 'chi non ha firmato non lascia una lapide, il nome esce, e l''indirizzo si registra di nuovo',
+    'resta_il_nome false, anonimizzato, anonimo, 0 indirizzi, registrato',
     coalesce(s ->> 'resta_il_nome', 'null') || ', ' || e || ', '
-      || (select count(*) from public.profiles where id = '55555555-0000-0000-0000-0000000000b2') || ' profili, '
+      || coalesce((select case when numero_anonimo is not null then 'anonimo' else nome end from public.profiles where id = '55555555-0000-0000-0000-0000000000b2'), 'nessun profilo') || ', '
       || coalesce(pg_temp.indirizzi_con('senza-firme@test.it')::text, 'nessuna tabella') || ' indirizzi, ' || r,
-    not (s ->> 'resta_il_nome')::boolean and e = 'cancellato' and r = 'registrato'
-      and not exists (select 1 from public.profiles where id = '55555555-0000-0000-0000-0000000000b2')
+    not (s ->> 'resta_il_nome')::boolean and e = 'anonimizzato' and r = 'registrato'
+      and exists (select 1 from public.profiles where id = '55555555-0000-0000-0000-0000000000b2' and numero_anonimo is not null)
       and pg_temp.indirizzi_con('senza-firme@test.it') = 0);
 end $$;
 

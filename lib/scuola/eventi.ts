@@ -27,7 +27,7 @@ export async function getRegistroPresenze(
   const [{ data: righeDirette, error: erroreRigheDirette }, { data: classiDad, error: erroreClassiDad }] = await Promise.all([
     supabase
       .from("iscrizioni_eventi")
-      .select("student_id, stato, certificata_da_tipo")
+      .select("student_id, stato, certificata_da_tipo, nome_alla_cancellazione, cognome_alla_cancellazione")
       .eq("evento_id", eventoId)
       .eq("origine", "scuola"),
     supabase
@@ -45,10 +45,13 @@ export async function getRegistroPresenze(
 
   for (const riga of righeDirette ?? []) {
     const studente = studentePerId.get(riga.student_id);
+    // Chi ha cancellato l'account non è più fra gli studenti della scuola, ma
+    // la sua presenza è un fatto e resta nel registro: con il nome copiato se è
+    // certificata, con l'etichetta anonima altrimenti (20261204110000).
     mappa.set(riga.student_id, {
       studentId: riga.student_id,
-      nome: studente?.nome ?? "",
-      cognome: studente?.cognome ?? "",
+      nome: studente?.nome ?? riga.nome_alla_cancellazione ?? "",
+      cognome: studente?.cognome ?? riga.cognome_alla_cancellazione ?? "",
       email: studente ? emailVerificato(studente) : null,
       stato: riga.stato as "iscritto" | "partecipato",
       certificataDaTipo: riga.certificata_da_tipo,

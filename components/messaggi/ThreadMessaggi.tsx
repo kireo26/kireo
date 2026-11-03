@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/Button";
 import { createClient } from "@/lib/supabase/client";
 import { formattaDataOra } from "@/lib/formato";
+import { TESTO_MESSAGGIO_RIMOSSO } from "@/lib/account/testiRimossi";
 
-type Messaggio = { id: string; mittente: "studente" | "ente"; corpo: string; created_at: string; letta: boolean };
+// `corpo` è NULL quando lo studente ha cancellato l'account (20261204110000).
+type Messaggio = { id: string; mittente: "studente" | "ente"; corpo: string | null; created_at: string; letta: boolean };
 
 // Condiviso studente/ente (stesso thread, stessa RPC invia_messaggio_ente
 // che decide da sola chi sta scrivendo in base a auth.uid()). La nota
@@ -92,7 +94,11 @@ export default function ThreadMessaggi({
           return (
             <div key={m.id} className={`flex ${mio ? "justify-end" : "justify-start"}`}>
               <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${mio ? "bg-kireo-green text-kireo-light" : "bg-kireo-dark text-kireo-light/90"}`}>
-                <p className="whitespace-pre-wrap">{m.corpo}</p>
+                {m.corpo === null ? (
+                  <p className="italic text-kireo-muted">{TESTO_MESSAGGIO_RIMOSSO}</p>
+                ) : (
+                  <p className="whitespace-pre-wrap">{m.corpo}</p>
+                )}
                 <p className="mt-1 text-[10px] opacity-70">{formattaDataOra(m.created_at, "short")}</p>
               </div>
             </div>

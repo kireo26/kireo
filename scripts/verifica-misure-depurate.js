@@ -133,6 +133,10 @@ const ESENTI = new Map([
     "Non è una misura: è il controllo della consegna di una diretta. Nomina `evidence` dentro le stringhe di TARATURA con cui prova il giudizio (un client finto, nessuna rete) e dentro le ancore lessicali sulla migrazione. QUARTA volta che un controllo lessicale viene letto come una misura da un altro controllo lessicale (dopo verifica-motore-cron.js il 13/09, verifica-guardie-null.js il 26/09 e verifica-badge-confidence.sql): la cura resta l'esenzione con la ragione scritta, non il pattern allargato.",
   ],
   [
+    "scripts/verifica-conservare-tutto.sql",
+    "Stessa specie: crea i propri studenti finti dentro una transazione, ne cancella due e guarda cosa resta delle loro righe, poi ROLLBACK. Nomina le tabelle dei test e dei workshop perché le sta PROVANDO, non perché conti qualcosa su una popolazione di studenti.",
+  ],
+  [
     "scripts/verifica-consegna-evento.sql",
     "Stessa specie: crea il proprio studente finto e il proprio evento dentro una transazione, prova le proprietà della consegna e fa ROLLBACK. Nomina evidence e area_signal perché le sta PROVANDO, non perché conti qualcosa su una popolazione di studenti.",
   ],
