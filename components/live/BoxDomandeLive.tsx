@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { causaRifiutoDomanda, ETICHETTA_RIFAI_ACCESSO, TESTO_RIFIUTO_DOMANDA, type CausaRifiutoDomanda, VISIBILITA_DOMANDE } from "@/lib/live/presenza";
 import { statoDiretta } from "@/lib/live";
-import { parolaDiStato } from "@/lib/statoNonRiconosciuto";
+import { parolaDelloStato } from "@/lib/stati/parole";
 
 // La bozza sopravvive al rientro (25/10): «il testo resta qui» dev'essere vero
 // anche dopo il giro su /accedi. sessionStorage, per scheda, e ogni accesso in
@@ -31,11 +31,6 @@ function scriviBozza(eventoId: string, testo: string | null) {
 
 export type Domanda = { id: string; testo: string; stato: string; creata_il: string };
 
-const ETICHETTA_STATO: Record<string, string> = {
-  nuova: "In attesa",
-  letta: "Letta dall'organizzatore",
-  risposta_live: "Risposta in diretta",
-};
 
 // Solo studente/docente -> organizzatore, nessuna chat: qui si vedono solo
 // le proprie domande (domande_live_select_own), mai quelle di altri. Il
@@ -162,7 +157,7 @@ export default function BoxDomandeLive({
             <li key={d.id} className="flex items-start justify-between gap-3 text-sm">
               <span className="text-kireo-light/90">{d.testo}</span>
               <span className="flex-none rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-kireo-light/70">
-                {parolaDiStato(ETICHETTA_STATO, d.stato)}
+                {parolaDelloStato("domande_live.stato", d.stato, "schermo")}
               </span>
             </li>
           ))}

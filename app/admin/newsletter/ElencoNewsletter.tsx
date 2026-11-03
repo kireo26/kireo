@@ -6,18 +6,12 @@ import { intervallo, paginaDa, testoTotale } from "@/lib/admin/pagine";
 import { formattaData } from "@/lib/formato";
 import { descriviErrore } from "@/lib/erroreSupabase";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { parolaDiStato } from "@/lib/statoNonRiconosciuto";
+import { parolaDelloStato } from "@/lib/stati/parole";
 
 export type FiltroNewsletter = "tutte" | "da_approvare" | "approvate" | "rifiutate";
 
 // Una bozza non è ancora stata mandata in approvazione: è dell'ente, e qui non
 // c'è. «Approvate» comprende quelle già partite (`inviata`).
-const ETICHETTA: Record<string, string> = {
-  in_approvazione: "Da approvare",
-  approvata: "Approvata",
-  inviata: "Partita",
-  rifiutata: "Rifiutata",
-};
 
 // Dal 30/10 la newsletter nasce in `newsletter_enti`: le proposte di prima in
 // `comunicazioni` non le legge più nessuno, e non partono. La quota del piano
@@ -68,7 +62,7 @@ export default async function ElencoNewsletter({
                     <p className="font-heading text-sm font-semibold text-kireo-light">
                       {n.oggetto}{" "}
                       <span className="ml-1 inline-block rounded-full bg-white/5 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-kireo-muted">
-                        {parolaDiStato(ETICHETTA, n.stato as string)}
+                        {parolaDelloStato("newsletter_enti.stato", n.stato as string, "admin")}
                       </span>
                     </p>
                     <p className="mt-1 text-xs text-kireo-muted">

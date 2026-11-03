@@ -5,7 +5,7 @@ import { AREE } from "@/data/aree";
 import CardEnte from "@/components/app/CardEnte";
 import ProponiIncontroButton from "@/components/scuola/ProponiIncontroButton";
 import { formattaData } from "@/lib/formato";
-import { parolaDiStato } from "@/lib/statoNonRiconosciuto";
+import { parolaDelloStato } from "@/lib/stati/parole";
 
 const TIPI = [
   { value: "universita", label: "Università" },
@@ -14,12 +14,6 @@ const TIPI = [
   { value: "ente_professionale", label: "Ente di formazione professionale" },
 ];
 
-const ETICHETTA_STATO_PROPOSTA: Record<string, string> = {
-  inviata: "In attesa di risposta",
-  accettata: "Accettata",
-  rifiutata: "Rifiutata",
-  ritirata: "Ritirata",
-};
 
 export default async function ScuolaEsploraPage({
   searchParams,
@@ -110,7 +104,7 @@ export default async function ScuolaEsploraPage({
                 <li key={p.id} className="rounded-xl border border-white/5 bg-kireo-card p-4">
                   <p className="font-heading text-sm font-semibold text-kireo-light">{ente?.nome ?? "Ente"}</p>
                   <p className="mt-1 text-xs text-kireo-muted">
-                    {parolaDiStato(ETICHETTA_STATO_PROPOSTA, p.stato)} · {formattaData(p.created_at, "long")}
+                    {parolaDelloStato("proposte_incontro.stato", p.stato)} · {formattaData(p.created_at, "long")}
                   </p>
                   {p.risposta_ente && <p className="mt-2 text-sm text-kireo-light/90">&ldquo;{p.risposta_ente}&rdquo;</p>}
                 </li>

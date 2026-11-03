@@ -19,6 +19,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { inizioFinestraAdmin } from "@/lib/admin/menu";
 import { descriviErrore } from "@/lib/erroreSupabase";
+import { parolaDelloStato } from "@/lib/stati/parole";
 
 export const RIGHE_PER_GRUPPO = 10;
 
@@ -69,7 +70,7 @@ export const DEFINIZIONI: Definizione[] = [
     data: "created_at",
     colonnaEnte: "organizzatore_id",
     filtro: (q) => q.neq("stato", "bozza"),
-    riga: (r) => ({ id: testo(r.id), testo: `${nomeDi(r.istituzioni)} · ${testo(r.titolo)} · ${testo(r.stato)}`, date: data("proposto il", r.created_at) }),
+    riga: (r) => ({ id: testo(r.id), testo: `${nomeDi(r.istituzioni)} · ${testo(r.titolo)} · ${parolaDelloStato("eventi.stato", testo(r.stato)).toLowerCase()}`, date: data("proposto il", r.created_at) }),
   },
   {
     chiave: "post",
@@ -102,7 +103,7 @@ export const DEFINIZIONI: Definizione[] = [
     filtro: (q) => q.neq("stato", "bozza"),
     riga: (r) => ({
       id: testo(r.id),
-      testo: `${nomeDi(r.istituzioni)} · ${testo(r.oggetto)} · ${testo(r.stato)}`,
+      testo: `${nomeDi(r.istituzioni)} · ${testo(r.oggetto)} · ${parolaDelloStato("newsletter_enti.stato", testo(r.stato)).toLowerCase()}`,
       date: [...data("scritta il", r.created_at), ...data("approvata il", r.approvata_il)],
     }),
   },
@@ -123,7 +124,7 @@ export const DEFINIZIONI: Definizione[] = [
     colonne: "id, nome, stato, created_at",
     data: "created_at",
     colonnaEnte: "id",
-    riga: (r) => ({ id: testo(r.id), testo: `${testo(r.nome)} · ${testo(r.stato)}`, date: data("registrato il", r.created_at) }),
+    riga: (r) => ({ id: testo(r.id), testo: `${testo(r.nome)} · ${parolaDelloStato("istituzioni.stato", testo(r.stato)).toLowerCase()}`, date: data("registrato il", r.created_at) }),
   },
   {
     chiave: "scuole",
@@ -134,7 +135,7 @@ export const DEFINIZIONI: Definizione[] = [
     data: "created_at",
     riga: (r) => ({
       id: testo(r.id),
-      testo: `${testo(r.scuola_id)} · ${testo(r.stato)}`,
+      testo: `${testo(r.scuola_id)} · ${parolaDelloStato("scuole_profili.stato", testo(r.stato)).toLowerCase()}`,
       date: [...data("richiesta il", r.created_at), ...data("convenzione il", r.convenzione_firmata_il)],
     }),
   },
@@ -146,7 +147,7 @@ export const DEFINIZIONI: Definizione[] = [
     colonne: "id, stato, created_at, istituzioni(nome)",
     data: "created_at",
     colonnaEnte: "istituzione_id",
-    riga: (r) => ({ id: testo(r.id), testo: `${nomeDi(r.istituzioni)} · ${testo(r.stato)}`, date: data("richiesta il", r.created_at) }),
+    riga: (r) => ({ id: testo(r.id), testo: `${nomeDi(r.istituzioni)} · ${parolaDelloStato("richieste_upgrade.stato", testo(r.stato)).toLowerCase()}`, date: data("richiesta il", r.created_at) }),
   },
 ];
 

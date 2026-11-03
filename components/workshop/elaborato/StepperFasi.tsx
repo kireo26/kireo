@@ -1,12 +1,7 @@
 import type { FaseElaborato } from "@/lib/workshop/elaborato-config";
 import { tappaNonValutata, type FaseStatoRiga } from "@/lib/workshop/elaboratoValore";
+import { parolaDelloStato } from "@/lib/stati/parole";
 
-const ETICHETTA_STATO: Record<FaseStatoRiga["stato"], string> = {
-  bloccata: "Bloccata",
-  aperta: "In corso",
-  consegnata: "In revisione",
-  revisionata: "Revisionata",
-};
 
 export default function StepperFasi({
   fasi,
@@ -68,7 +63,7 @@ export default function StepperFasi({
                         : "Bloccata"
                       : nonValutata
                         ? "Superata, non revisionata"
-                        : ETICHETTA_STATO[stato]}
+                        : parolaDelloStato("workshop_fasi_stato.stato", stato)}
                   </span>
                 </span>
               </button>

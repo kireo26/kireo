@@ -44,9 +44,9 @@ export function hrefFiltro(filtro: FiltroEnti, q?: string): string {
 // Le parole degli stati di una richiesta di cambio di piano (`richiesta_upgrade_stato`).
 // Testi miei e provvisori.
 export const ETICHETTA_STATO_RICHIESTA_UPGRADE: Record<string, string> = {
-  in_attesa: "da decidere",
-  approvata: "approvata",
-  rifiutata: "rifiutata",
+  in_attesa: "Da decidere",
+  approvata: "Approvata",
+  rifiutata: "Rifiutata",
 };
 
 export const ETICHETTA_STATO_ENTE: Record<string, string> = {

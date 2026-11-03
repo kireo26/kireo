@@ -199,7 +199,7 @@ export function certificataDaPerExport(tipo: string | null): string | null {
   return CERTIFICATA_DA[tipo] ?? tipo;
 }
 
-const STATO_DOMANDA: Record<string, string> = {
+export const STATO_DOMANDA_CSV: Record<string, string> = {
   nuova: "Non ancora gestita",
   letta: "Letta in diretta",
   risposta_live: "Risposta in diretta",
@@ -207,7 +207,7 @@ const STATO_DOMANDA: Record<string, string> = {
 
 /** Lo stato di una domanda nel CSV. Un valore ignoto esce com'è: meglio grezzo che inventato. */
 export function statoDomandaPerExport(stato: string): string {
-  return STATO_DOMANDA[stato] ?? stato;
+  return STATO_DOMANDA_CSV[stato] ?? stato;
 }
 
 // ─────────────────────────── il report aggregato dell'ente (25/10)
