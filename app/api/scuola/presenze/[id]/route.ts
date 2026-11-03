@@ -6,6 +6,8 @@ import {
   INTESTAZIONE_ESITO,
   INTESTAZIONE_MINUTI_CONTATI,
   certificataDaPerExport,
+  INTESTAZIONE_CODICE_CERTIFICATORE,
+  INTESTAZIONE_CODICE_ISCRIZIONE,
   esitoPresenzaPerExport,
   INTESTAZIONE_ORE_RICONOSCIUTE,
   oreRiconosciutePerExport,
@@ -78,8 +80,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     INTESTAZIONE_DISTANZA,
     "Copertura %",
     INTESTAZIONE_ESITO,
+    INTESTAZIONE_CODICE_ISCRIZIONE,
     INTESTAZIONE_ORE_RICONOSCIUTE,
     "Certificata da",
+    INTESTAZIONE_CODICE_CERTIFICATORE,
     "Certificata da (nome)",
   ];
 
@@ -108,8 +112,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     istantePerExport(r.ultimo_ping),
     ...celleMisura(r),
     esitoPresenzaPerExport(r, Boolean(evento.diretta_chiusa_il), evento.diretta_durata_minuti ?? null),
+    r.stato_finale,
     oreRiconosciutePerExport(r, Boolean(evento.diretta_chiusa_il)),
     certificataDaPerExport(r.certificata_da_tipo),
+    r.certificata_da_tipo,
     r.certificata_da_nome,
   ]);
 

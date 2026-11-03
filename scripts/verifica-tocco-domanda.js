@@ -65,8 +65,12 @@ function caricaModulo(rel, risolvi) {
 const formato = caricaModulo("lib/formato.ts", () => {
   throw new Error("lib/formato.ts non deve importare niente");
 });
+const statoNonRiconosciuto = caricaModulo("lib/statoNonRiconosciuto.ts", () => {
+  throw new Error("lib/statoNonRiconosciuto.ts non deve importare niente");
+});
 const { rigaTocco } = caricaModulo("lib/eventi/tocco.ts", (nome) => {
   if (nome === "@/lib/formato") return formato;
+  if (nome === "@/lib/statoNonRiconosciuto") return statoNonRiconosciuto;
   throw new Error(`import non previsto: ${nome}`);
 });
 const SORGENTE_TOCCO = leggi("lib/eventi/tocco.ts");

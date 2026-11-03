@@ -14,6 +14,7 @@
 // `lib/guide/avvisoRifiuto.ts`.
 
 import { formattaOra, stessoGiornoItaliano, formattaDataOra } from "@/lib/formato";
+import { STATO_NON_RICONOSCIUTO } from "@/lib/statoNonRiconosciuto";
 
 export type ToccoDaTipo = "kireo" | "ente";
 
@@ -130,11 +131,13 @@ export function rigaTocco(
  * nessuno l'ha toccata davvero. Un valore registrato esce TRADOTTO (25/10).
  */
 // ⚠️ 25/10: «un valore registrato esce com'è» era il difetto — `kireo`/`ente`
-// sono i valori della macchina. Chi apre il CSV legge KIREO / L'organizzatore.
+// sono i valori della macchina. Chi apre il CSV legge KIREO / L'organizzatore,
+// e il codice nella colonna accanto (03/11); un valore ignoto dice che non lo
+// riconosciamo invece di uscire grezzo nella colonna della parola.
 const TOCCATA_DA_EXPORT: Record<ToccoDaTipo, string> = { kireo: "KIREO", ente: "L'organizzatore" };
 
 export function toccataDaPerExport(domanda: { stato: string; toccata_da: string | null }): string | null {
-  if (domanda.toccata_da) return TOCCATA_DA_EXPORT[domanda.toccata_da as ToccoDaTipo] ?? domanda.toccata_da;
+  if (domanda.toccata_da) return TOCCATA_DA_EXPORT[domanda.toccata_da as ToccoDaTipo] ?? STATO_NON_RICONOSCIUTO;
   if (domanda.stato === "nuova") return null;
   return SENZA_AUTORE;
 }

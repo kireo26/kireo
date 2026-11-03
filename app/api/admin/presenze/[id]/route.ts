@@ -6,6 +6,8 @@ import {
   INTESTAZIONE_ESITO,
   INTESTAZIONE_MINUTI_CONTATI,
   certificataDaPerExport,
+  INTESTAZIONE_CODICE_CERTIFICATORE,
+  INTESTAZIONE_CODICE_ISCRIZIONE,
   esitoPresenzaPerExport,
   INTESTAZIONE_ORE_RICONOSCIUTE,
   oreRiconosciutePerExport,
@@ -15,6 +17,8 @@ import {
   notaMinuti,
   notaPresenzaNonMisurata,
   statoDomandaPerExport,
+  INTESTAZIONE_CODICE_DOMANDA,
+  INTESTAZIONE_CODICE_TOCCO,
 } from "@/lib/eventi/exportPresenze";
 import { descriviErrore } from "@/lib/erroreSupabase";
 import { rifiutoExport } from "@/lib/eventi/rifiutoExport";
@@ -92,8 +96,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         INTESTAZIONE_DISTANZA,
         "Copertura %",
         INTESTAZIONE_ESITO,
+        INTESTAZIONE_CODICE_ISCRIZIONE,
         INTESTAZIONE_ORE_RICONOSCIUTE,
         "Certificata da",
+        INTESTAZIONE_CODICE_CERTIFICATORE,
         "Certificata da (nome)",
       ];
 
@@ -130,8 +136,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             istantePerExport(r.ultimo_ping),
             ...celleMisura(r),
             esitoPresenzaPerExport(r, chiusa, evento.diretta_durata_minuti ?? null),
+            r.stato_finale,
             oreRiconosciutePerExport(r, chiusa),
             certificataDaPerExport(r.certificata_da_tipo),
+            r.certificata_da_tipo,
             r.certificata_da_nome,
           ],
   );
@@ -152,7 +160,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     },
     {
       titolo: "Domande ricevute (anonime)",
-      intestazioni: ["Fatta il (ora italiana)", "Testo", "Stato", "Toccata da", "Toccata il (ora italiana)"],
+      intestazioni: ["Fatta il (ora italiana)", "Testo", "Stato", INTESTAZIONE_CODICE_DOMANDA, "Toccata da", INTESTAZIONE_CODICE_TOCCO, "Toccata il (ora italiana)"],
       righe: erroreDomande
         ? []
         : (domande ?? []).map(
@@ -160,7 +168,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
               istantePerExport(q.creata_il),
               q.testo,
               statoDomandaPerExport(q.stato),
+              q.stato,
               toccataDaPerExport(q),
+              q.toccata_da,
               toccataIlPerExport(q, formattaIstante),
             ],
           ),

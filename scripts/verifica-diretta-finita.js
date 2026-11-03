@@ -48,8 +48,12 @@ function caricaModulo(rel, risolvi) {
 const formato = caricaModulo("lib/formato.ts", () => {
   throw new Error("lib/formato.ts non deve importare niente");
 });
+const statoNonRiconosciuto = caricaModulo("lib/statoNonRiconosciuto.ts", () => {
+  throw new Error("lib/statoNonRiconosciuto.ts non deve importare niente");
+});
 const daFormato = (nome) => {
   if (nome === "@/lib/formato") return formato;
+  if (nome === "@/lib/statoNonRiconosciuto") return statoNonRiconosciuto;
   throw new Error(`import non previsto: ${nome}`);
 };
 const chiusura = caricaModulo("lib/eventi/chiusuraDiretta.ts", daFormato);
@@ -214,7 +218,12 @@ ok(toccataDaPerExport({ stato: "nuova", toccata_da: null }) === null, "una doman
 ok(toccataDaPerExport({ stato: "letta", toccata_da: "ente" }) === "L'organizzatore", "un autore registrato esce tradotto («L'organizzatore», non «ente»)");
 ok(toccataDaPerExport({ stato: "letta", toccata_da: "kireo" }) === "KIREO", "…e «KIREO», non «kireo»");
 const route = senzaCommenti(readFileSync(join(RADICE, "app/api/admin/presenze/[id]/route.ts"), "utf8"));
-ok(route.includes("toccataDaPerExport(q)") && !route.includes("q.toccata_da,"), "la route dell'export la chiama invece di stampare il campo grezzo");
+// ⚠️ RISCRITTA il 03/11 (Mario: «la macchina legge il codice, la persona legge
+// la parola»): il codice ora ESCE, ma solo nella sua colonna, subito dopo la
+// parola. Un valore ignoto non finisce grezzo nella colonna della parola.
+ok(/toccataDaPerExport\(q\),\s*q\.toccata_da,/.test(route) && (route.match(/q\.toccata_da,/g) ?? []).length === 1, "la route mette la parola e, subito accanto, il codice: una volta sola");
+ok(/"Toccata da", INTESTAZIONE_CODICE_TOCCO,/.test(route), "…e l'intestazione del codice sta accanto a «Toccata da»");
+ok(toccataDaPerExport({ stato: "letta", toccata_da: "marziano" }) === "Stato non riconosciuto", "un autore che non conosciamo non esce grezzo nella colonna della parola");
 // «Toccata il»: stessa cura, due centimetri più a destra (Mario, 11/10).
 const { toccataIlPerExport, ORA_NON_REGISTRATA } = tocco;
 const fmt = (iso) => `F(${iso})`;
@@ -360,20 +369,31 @@ ok(exportP.esitoPresenzaPerExport({ stato_finale: "iscritto", primo_ping: "x" },
 ok(exportP.esitoPresenzaPerExport({ stato_finale: "iscritto", primo_ping: null }, true, 5) === "Nessun collegamento", "chi non si è collegato resta «Nessun collegamento»: lì il fatto è sulla persona, ed è vero");
 ok(exportP.esitoPresenzaPerExport({ stato_finale: "iscritto", primo_ping: "x" }, false, null) === "Diretta non ancora chiusa", "…ma prima della chiusura non è «sotto la soglia»: il conteggio non è ancora fatto");
 ok(exportP.statoDomandaPerExport("risposta_live") === "Risposta in diretta" && exportP.statoDomandaPerExport("nuova") === "Non ancora gestita" && exportP.statoDomandaPerExport("letta") === "Letta in diretta", "gli stati delle domande, tradotti");
+ok(exportP.statoDomandaPerExport("archiviata") === "Stato non riconosciuto" && exportP.certificataDaPerExport("marziano") === "Stato non riconosciuto", "un valore ignoto non esce grezzo nella colonna della parola (03/11): il codice sta accanto");
 ok(exportP.certificataDaPerExport("ente") === "L'organizzatore" && exportP.certificataDaPerExport("sistema") !== "sistema" && exportP.certificataDaPerExport(null) === null, "«Certificata da» tradotta, vuota solo se nessuno ha certificato");
 ok(exportP.minutiContatiPerExport({ minuti_contati: 32 }) === 32 && exportP.minutiContatiPerExport({}) === "non disponibile", "i minuti contati escono; senza la colonna nuova lo si dice, non si scrive zero");
 for (const rel of ["app/api/admin/presenze/[id]/route.ts", "app/api/scuola/presenze/[id]/route.ts"]) {
   const r = senzaCommenti(readFileSync(join(RADICE, rel), "utf8"));
   ok(r.includes("INTESTAZIONE_MINUTI_CONTATI") && r.includes("INTESTAZIONE_DISTANZA") && r.includes("INTESTAZIONE_ESITO"), `${rel}: le tre intestazioni nuove`);
   // (`"Stato"` resta legittimo come intestazione delle DOMANDE: lì è lo stato di una domanda, e il valore è tradotto.)
-  ok(!r.includes("r.stato_finale,") && !r.includes("r.stato_finale]") && !r.includes("r.certificata_da_tipo,"), `${rel}: nessun valore grezzo della macchina nelle celle delle presenze`);
+  // ⚠️ RISCRITTA il 03/11: il codice esce, nella colonna sua accanto alla parola.
+  ok(
+    /esitoPresenzaPerExport\(r, [^\n]*\),\s*r\.stato_finale,/.test(r) && (r.match(/r\.stato_finale/g) ?? []).length === 1,
+    `${rel}: lo stato grezzo dell'iscrizione esce una volta sola, subito dopo l'esito a parole`,
+  );
+  ok(
+    /certificataDaPerExport\(r\.certificata_da_tipo\),\s*r\.certificata_da_tipo,/.test(r) && (r.match(/r\.certificata_da_tipo,/g) ?? []).length === 1,
+    `${rel}: il certificatore grezzo esce una volta sola, subito dopo la parola`,
+  );
+  ok(/INTESTAZIONE_ESITO,\s*INTESTAZIONE_CODICE_ISCRIZIONE,/.test(r) && /"Certificata da",\s*INTESTAZIONE_CODICE_CERTIFICATORE,/.test(r), `${rel}: le intestazioni del codice stanno accanto a quelle della parola`);
   ok(r.includes("esitoPresenzaPerExport(r,") && r.includes("diretta_chiusa_il"), `${rel}: l'esito sa se la diretta è chiusa`);
   ok(/esitoPresenzaPerExport\(r, [^)]*\), evento\.diretta_durata_minuti/.test(r) || /esitoPresenzaPerExport\(r, chiusa, evento\.diretta_durata_minuti/.test(r), `${rel}: l'esito riceve la durata vera dell'evento`);
   ok(/from\("eventi"\)\.select\("[^"]*diretta_durata_minuti/.test(r), `${rel}: …e la legge dalla select dell'evento`);
 }
 {
   const r = senzaCommenti(readFileSync(join(RADICE, "app/api/admin/presenze/[id]/route.ts"), "utf8"));
-  ok(r.includes("statoDomandaPerExport(q.stato)") && !r.includes("q.stato,"), "lo stato delle domande esce tradotto");
+  ok(/statoDomandaPerExport\(q\.stato\),\s*q\.stato,/.test(r) && (r.match(/q\.stato,/g) ?? []).length === 1, "lo stato delle domande esce a parole, e il codice subito accanto");
+  ok(/"Stato", INTESTAZIONE_CODICE_DOMANDA,/.test(r), "…con l'intestazione del codice accanto a «Stato»");
 }
 for (const rel of ["app/api/admin/presenze/[id]/route.ts", "app/api/scuola/presenze/[id]/route.ts"]) {
   const r = senzaCommenti(readFileSync(join(RADICE, rel), "utf8"));

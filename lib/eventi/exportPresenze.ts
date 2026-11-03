@@ -7,6 +7,7 @@ import type { SezioneCsv } from "@/lib/csv";
 import { fineEffettiva } from "@/lib/live";
 import { SOGLIA_PRESENZA } from "@/lib/live/presenza";
 import { MINUTI_MINIMI_CERTIFICAZIONE } from "@/lib/eventi/chiusuraDiretta";
+import { STATO_NON_RICONOSCIUTO } from "@/lib/statoNonRiconosciuto";
 
 /**
  * ⚠️ ZERO E NON UNA CELLA VUOTA per chi non si è mai collegato (Mario,
@@ -193,10 +194,16 @@ const CERTIFICATA_DA: Record<string, string> = {
   scuola: "La scuola",
 };
 
-/** «Certificata da»: chi ha certificato, detto con parole. Un valore ignoto esce com'è, mai inventato. */
+/**
+ * «Certificata da»: chi ha certificato, detto con parole. Un valore ignoto dice
+ * «Stato non riconosciuto»: il codice non si perde, perché sta nella colonna
+ * accanto (Mario, 03/11: «la macchina legge il codice, la persona legge la
+ * parola, e nessuno dei due perde niente»). Fino al 03/11 qui usciva il grezzo,
+ * e una parola della macchina si leggeva come una parola nostra.
+ */
 export function certificataDaPerExport(tipo: string | null): string | null {
   if (!tipo) return null;
-  return CERTIFICATA_DA[tipo] ?? tipo;
+  return CERTIFICATA_DA[tipo] ?? STATO_NON_RICONOSCIUTO;
 }
 
 export const STATO_DOMANDA_CSV: Record<string, string> = {
@@ -205,10 +212,19 @@ export const STATO_DOMANDA_CSV: Record<string, string> = {
   risposta_live: "Risposta in diretta",
 };
 
-/** Lo stato di una domanda nel CSV. Un valore ignoto esce com'è: meglio grezzo che inventato. */
+/** Lo stato di una domanda nel CSV, a parole. Il codice sta nella colonna accanto. */
 export function statoDomandaPerExport(stato: string): string {
-  return STATO_DOMANDA_CSV[stato] ?? stato;
+  return STATO_DOMANDA_CSV[stato] ?? STATO_NON_RICONOSCIUTO;
 }
+
+/**
+ * Le intestazioni delle colonne del codice, accanto a quelle della parola
+ * (03/11). Il codice esce sempre com'è: è la colonna che si legge a macchina.
+ */
+export const INTESTAZIONE_CODICE_ISCRIZIONE = "Stato dell'iscrizione (codice)";
+export const INTESTAZIONE_CODICE_CERTIFICATORE = "Certificata da (codice)";
+export const INTESTAZIONE_CODICE_DOMANDA = "Stato (codice)";
+export const INTESTAZIONE_CODICE_TOCCO = "Toccata da (codice)";
 
 // ─────────────────────────── il report aggregato dell'ente (25/10)
 
