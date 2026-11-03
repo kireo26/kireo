@@ -167,5 +167,26 @@ if (!CONN) {
   ok(/\b0 ROTTE su 9\b/.test(uscita), "verifica-lapide-indirizzo.sql: 9 su 9", uscita.split("\n").filter((r) => /ROTT/.test(r)).join("\n"));
 }
 
+console.log("\n§ le presenze che nessuno certificherà più (20261206100000)");
+{
+  // Gli attesi scritti a mano.
+  ok(A.testoPresenzeInSospeso(0) === null, "zero: nessuna riga");
+  ok(A.testoPresenzeInSospeso(1) === "Hai 1 presenza non ancora certificata: se ti cancelli adesso, quelle ore non potranno più esserti riconosciute.", "una: al singolare");
+  ok(A.testoPresenzeInSospeso(3) === "Hai 3 presenze non ancora certificate: se ti cancelli adesso, quelle ore non potranno più esserti riconosciute.", "tre: al plurale");
+  ok(/Non siamo riusciti a contare/.test(A.testoPresenzeInSospeso(null) ?? ""), "non contato: lo dice, non dice zero");
+  ok(trovaAccordi(A.testoPresenzeInSospeso(3) ?? "").length === 0 && trovaAccordi(A.testoPresenzeInSospeso(null) ?? "").length === 0, "le frasi non accordano col genere di chi legge");
+  const base = { puo: true, ruolo: "studente", resta_il_nome: false, firme: [{ tabella: "x", colonna: "y", n: 0 }], esito: "anonimizzato" };
+  ok(A.leggiStatoCancellazione({ ...base, presenze_in_sospeso: 2 })?.presenzeInSospeso === 2, "il numero si legge");
+  ok(A.leggiStatoCancellazione(base)?.presenzeInSospeso === null, "senza il numero lo stato si legge lo stesso, e il numero è «non contato»");
+  ok(A.leggiStatoCancellazione({ ...base, presenze_in_sospeso: -1 })?.presenzeInSospeso === null, "un numero storto è «non contato»");
+  const v = A.presentaCancellazione(A.leggiStatoCancellazione({ ...base, presenze_in_sospeso: 1 }), "a@b.it");
+  ok(v.bottone === true && /1 presenza/.test(v.sospese ?? ""), "prima del clic la pagina ha la riga");
+  const comp = senzaCommenti(fs.readFileSync(path.join(ROOT, "components/account/CancellaAccount.tsx"), "utf8"));
+  ok(/vista\.sospese/.test(comp), "il componente mostra la riga");
+  const reg = senzaCommenti(fs.readFileSync(path.join(ROOT, "components/scuola/RegistroPresenzeEvento.tsx"), "utf8"));
+  ok(/daCertificare = righe\.filter\(\(r\) => r\.stato !== "partecipato" && r\.fraGliStudenti\)/.test(reg), "il registro della scuola non mette fra i certificabili chi non è più fra gli studenti");
+  ok(/r\.fraGliStudenti \? \(\s*<Link/.test(reg), "e non lo porta a una scheda che non si apre");
+}
+
 console.log(`\n${falliti === 0 ? "✅" : "❌"} ${fatte - falliti}/${fatte} proprietà (npm run test:cancellazione)`);
 process.exit(falliti === 0 ? 0 : 1);
