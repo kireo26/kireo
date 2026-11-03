@@ -2,12 +2,8 @@ import Link from "next/link";
 import { getAppContext } from "@/lib/app/studentContext";
 import { createClient } from "@/lib/supabase/server";
 import { formattaData } from "@/lib/formato";
+import { paroleStatoConversazione } from "@/lib/messaggi/statoConversazione";
 
-const ETICHETTA_STATO: Record<string, string> = {
-  aperta: "Aperta",
-  bloccata_da_studente: "Bloccata",
-  chiusa_da_admin: "Chiusa",
-};
 
 export default async function MessaggiAppPage() {
   const contesto = await getAppContext();
@@ -41,7 +37,7 @@ export default async function MessaggiAppPage() {
                     <p className="font-heading text-sm font-semibold text-kireo-light">{istituzione?.nome ?? "Istituzione"}</p>
                     <p className="mt-1 text-xs text-kireo-muted">{formattaData(c.created_at, "long")}</p>
                   </div>
-                  <span className="text-xs text-kireo-muted">{ETICHETTA_STATO[c.stato] ?? c.stato}</span>
+                  <span className="text-xs text-kireo-muted">{paroleStatoConversazione(c.stato, "studente")}</span>
                 </Link>
               </li>
             );

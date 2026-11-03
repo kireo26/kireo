@@ -54,6 +54,11 @@ export const ETICHETTA_STATO: Record<string, { label: string; classe: string }> 
   rifiutato: { label: "Rifiutato", classe: "bg-red-500/15 text-red-300" },
 };
 
+// Le sole parole, per chi le scrive dentro una frase.
+export const PAROLE_STATO_EVENTO: Record<string, string> = Object.fromEntries(
+  Object.entries(ETICHETTA_STATO).map(([k, v]) => [k, v.label]),
+);
+
 // Le parole dell'ente per i tre tipi della colonna (`eventi.tipo`). Un webinar
 // è una diretta: lo si dice, perché è la cosa che cambia cosa c'è nella pagina.
 export const ETICHETTA_TIPO: Record<string, string> = {

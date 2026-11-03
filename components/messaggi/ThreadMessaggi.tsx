@@ -6,6 +6,7 @@ import { Button } from "@/components/Button";
 import { createClient } from "@/lib/supabase/client";
 import { formattaDataOra } from "@/lib/formato";
 import { TESTO_MESSAGGIO_RIMOSSO } from "@/lib/account/testiRimossi";
+import type { StatoConversazione } from "@/lib/messaggi/statoConversazione";
 
 // `corpo` è NULL quando lo studente ha cancellato l'account (20261204110000).
 type Messaggio = { id: string; mittente: "studente" | "ente"; corpo: string | null; created_at: string; letta: boolean };
@@ -25,7 +26,7 @@ export default function ThreadMessaggi({
   conversazioneId: string;
   ruolo: "studente" | "ente";
   messaggiIniziali: Messaggio[];
-  stato: "aperta" | "bloccata_da_studente" | "chiusa_da_admin";
+  stato: StatoConversazione;
   puoScrivere: boolean;
   notaNonScrivibile: string | null;
 }) {

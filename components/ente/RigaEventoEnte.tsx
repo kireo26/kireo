@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { formattaDataOra } from "@/lib/formato";
 import { ETICHETTA_STATO, ETICHETTA_TIPO, type EventoEnte } from "@/lib/ente/eventiEnte";
+import { STATO_NON_RICONOSCIUTO } from "@/lib/statoNonRiconosciuto";
 
 // UNA RIGA DELL'ELENCO DEGLI EVENTI DI UN ENTE (Mario, 27/10): pastiglia di
 // stato, titolo, data e ora, tipo, area, «Apri» — nient'altro. Tutto il resto
@@ -25,7 +26,7 @@ export default function RigaEventoEnte({
   esito?: string | null;
   ente?: string | null;
 }) {
-  const stato = ETICHETTA_STATO[evento.stato] ?? { label: evento.stato, classe: "bg-white/10 text-kireo-light" };
+  const stato = ETICHETTA_STATO[evento.stato] ?? { label: STATO_NON_RICONOSCIUTO, classe: "bg-white/10 text-kireo-light" };
   return (
     <li id={`evento-${evento.id}`} className="scroll-mt-24 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/5 bg-kireo-card p-4">
       <div className="min-w-0">

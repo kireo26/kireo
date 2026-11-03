@@ -3,12 +3,8 @@ import { getEnteContext } from "@/lib/ente/context";
 import { createClient } from "@/lib/supabase/server";
 import { pianoAPagamento } from "@/lib/ente/pianoSuccessivo";
 import { formattaData } from "@/lib/formato";
+import { paroleStatoConversazione } from "@/lib/messaggi/statoConversazione";
 
-const ETICHETTA_STATO: Record<string, string> = {
-  aperta: "Aperta",
-  bloccata_da_studente: "Bloccata dallo studente",
-  chiusa_da_admin: "Chiusa",
-};
 
 export default async function EnteMessaggiPage() {
   const contesto = await getEnteContext();
@@ -54,7 +50,7 @@ export default async function EnteMessaggiPage() {
                     </p>
                     <p className="mt-1 text-xs text-kireo-muted">{formattaData(c.created_at, "long")}</p>
                   </div>
-                  <span className="text-xs text-kireo-muted">{ETICHETTA_STATO[c.stato] ?? c.stato}</span>
+                  <span className="text-xs text-kireo-muted">{paroleStatoConversazione(c.stato, "ente")}</span>
                 </Link>
               </li>
             );

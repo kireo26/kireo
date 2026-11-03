@@ -229,7 +229,9 @@ function clientFinto(risposte) {
     ok(/key=\{`nuovo-\$\{appenaPubblicato/.test(pg) && /appenaPubblicato && \(/.test(pg), "la pagina rimonta il modulo vuoto e mostra la conferma accanto");
     ok(/some\(\(p\) => p\.id === pubblicato\)/.test(pg), "la conferma si dice solo se il post è nella lista riletta");
     ok(/troppi_post_nelle_24_ore/.test(leggi("components/ente/CreaPostForm.tsx")) && !/troppi_post_in_revisione/.test(leggi("components/ente/CreaPostForm.tsx")), "il form conosce il rifiuto nuovo, non quello della coda");
-    ok(P.etichettaStatoPost("sconosciuto").label === "sconosciuto" && P.etichettaStatoPost("tolto").label === "Tolto da KIREO", "uno stato sconosciuto si mostra col suo nome, non come «in approvazione»");
+    // Dal 03/11 uno stato sconosciuto non si mostra né «in approvazione» né col suo
+    // nome della macchina: si dice che non lo riconosciamo (lib/statoNonRiconosciuto.ts).
+    ok(P.etichettaStatoPost("sconosciuto").label === "Stato non riconosciuto" && P.etichettaStatoPost("tolto").label === "Tolto da KIREO", "uno stato sconosciuto dice che non lo riconosciamo, non «in approvazione» né il valore grezzo");
     ok(P.rigaMotivo("tolto", null, "x", null) === P.TESTI_POST.motivoNonLetto && P.rigaMotivo("pubblicato", null, "x", null) === null,
       "un motivo non letto lo dice; un post pubblicato non ha una riga di motivo");
     const mm = new Map([["x", { motivo_rifiuto: null, motivo_rimozione: "Promozione a tempo" }]]);

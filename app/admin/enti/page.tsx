@@ -20,6 +20,7 @@ import {
 import { ETICHETTA_PIANO } from "@/lib/ente/pianoSuccessivo";
 import { formattaData } from "@/lib/formato";
 import { descriviErrore } from "@/lib/erroreSupabase";
+import { parolaDiStato } from "@/lib/statoNonRiconosciuto";
 
 // L'ELENCO DEGLI ENTI (lotto 2 del riordino, 01/11): in ordine alfabetico,
 // cercato per nome, filtrato per stato, con il totale. Ogni ente apre la sua
@@ -117,7 +118,7 @@ export default async function AdminEntiPage({ searchParams }: { searchParams: Pr
                     </Link>
                     <p className="mt-1 text-xs text-kireo-muted">
                       {ETICHETTA_TIPO_ENTE[e.tipo as string] ?? (e.tipo as string) ?? "Tipo non indicato"} ·{" "}
-                      {ETICHETTA_STATO_ENTE[e.stato as string] ?? (e.stato as string)} · piano {ETICHETTA_PIANO[nomePiano] ?? (nomePiano || "non indicato")} · registrato il{" "}
+                      {parolaDiStato(ETICHETTA_STATO_ENTE, e.stato as string)} · piano {ETICHETTA_PIANO[nomePiano] ?? (nomePiano || "non indicato")} · registrato il{" "}
                       {formattaData(e.created_at as string, "long")}
                     </p>
                     {conUpgrade.has(e.id as string) && <p className="mt-1 text-xs text-kireo-orange">{T.cambioPiano}</p>}

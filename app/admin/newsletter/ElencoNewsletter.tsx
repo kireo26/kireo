@@ -6,6 +6,7 @@ import { intervallo, paginaDa, testoTotale } from "@/lib/admin/pagine";
 import { formattaData } from "@/lib/formato";
 import { descriviErrore } from "@/lib/erroreSupabase";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { parolaDiStato } from "@/lib/statoNonRiconosciuto";
 
 export type FiltroNewsletter = "tutte" | "da_approvare" | "approvate" | "rifiutate";
 
@@ -67,7 +68,7 @@ export default async function ElencoNewsletter({
                     <p className="font-heading text-sm font-semibold text-kireo-light">
                       {n.oggetto}{" "}
                       <span className="ml-1 inline-block rounded-full bg-white/5 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-kireo-muted">
-                        {ETICHETTA[n.stato as string] ?? n.stato}
+                        {parolaDiStato(ETICHETTA, n.stato as string)}
                       </span>
                     </p>
                     <p className="mt-1 text-xs text-kireo-muted">

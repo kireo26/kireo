@@ -118,7 +118,8 @@
     "test:parenti": "node scripts/verifica-parenti-riprova.js",
     "test:mioaccount": "node scripts/verifica-account.js",
     "test:conservare": "node scripts/verifica-conservare-tutto.js",
-    "test:cancellazione": "node scripts/verifica-cancellazione.js"
+    "test:cancellazione": "node scripts/verifica-cancellazione.js",
+    "test:staticonversazione": "node scripts/verifica-stati-conversazione.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.112.5",

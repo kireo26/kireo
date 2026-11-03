@@ -8,7 +8,7 @@ import AzioneApprovazioneUpgrade from "@/components/admin/AzioneApprovazioneUpgr
 import GruppiFlusso from "@/components/admin/GruppiFlusso";
 import { leggiFlusso } from "@/lib/admin/flusso";
 import { GIORNI_FINESTRA_ADMIN } from "@/lib/admin/menu";
-import { ETICHETTA_STATO_ENTE, ETICHETTA_TIPO_ENTE, TESTI_ENTI_ADMIN as T, leggiScheda, testoSeguaci } from "@/lib/admin/enti";
+import { ETICHETTA_STATO_ENTE, ETICHETTA_STATO_RICHIESTA_UPGRADE, ETICHETTA_TIPO_ENTE, TESTI_ENTI_ADMIN as T, leggiScheda, testoSeguaci } from "@/lib/admin/enti";
 import { TESTI_AREE_ADMIN } from "@/lib/admin/revocaArea";
 import { caricaStatisticheDiUnEnte } from "@/lib/ente/caricaStatistiche";
 import { riquadriIndice } from "@/lib/ente/statistiche";
@@ -16,6 +16,11 @@ import { ETICHETTA_PIANO } from "@/lib/ente/pianoSuccessivo";
 import { getAreaBySlug } from "@/data/aree";
 import { formattaData, formattaDataOra } from "@/lib/formato";
 import { descriviErrore } from "@/lib/erroreSupabase";
+import { paroleStatoConversazione } from "@/lib/messaggi/statoConversazione";
+import { parolaDiStato } from "@/lib/statoNonRiconosciuto";
+import { PAROLE_STATO_EVENTO } from "@/lib/ente/eventiEnte";
+import { etichettaStatoPost } from "@/lib/ente/post";
+import { ETICHETTA_STATO_NEWSLETTER } from "@/lib/newsletter/regole";
 
 // LA PAGINA DI UN ENTE (lotto 2 del riordino, Mario, 01/11): chi è, le aree con
 // la revoca, il piano con i cambi, cosa pubblica, i suoi numeri, le
@@ -97,7 +102,7 @@ export default async function AdminEntePage({ params }: { params: Promise<{ id: 
       <section id="chi" className="space-y-2">
         <h2 className="font-heading text-xl font-semibold text-kireo-light">Chi è</h2>
         <p className="text-sm text-kireo-light">
-          {ETICHETTA_TIPO_ENTE[ente.tipo as string] ?? ente.tipo ?? "Tipo non indicato"} · {ETICHETTA_STATO_ENTE[ente.stato as string] ?? ente.stato}
+          {ETICHETTA_TIPO_ENTE[ente.tipo as string] ?? ente.tipo ?? "Tipo non indicato"} · {parolaDiStato(ETICHETTA_STATO_ENTE, ente.stato as string)}
           {ente.provincia ? ` · Provincia di ${ente.provincia}` : ""}
         </p>
         <p className="text-xs text-kireo-muted">
@@ -174,7 +179,7 @@ export default async function AdminEntePage({ params }: { params: Promise<{ id: 
               return (
                 <li key={r.id} className="rounded-xl border border-white/5 bg-kireo-card p-4">
                   <p className="text-sm font-semibold text-kireo-light">→ {ETICHETTA_PIANO[verso] ?? verso}</p>
-                  <p className="mt-1 text-xs text-kireo-muted">richiesta il {formattaData(r.created_at as string, "long")} · {r.stato}</p>
+                  <p className="mt-1 text-xs text-kireo-muted">richiesta il {formattaData(r.created_at as string, "long")} · {parolaDiStato(ETICHETTA_STATO_RICHIESTA_UPGRADE, r.stato as string)}</p>
                   {r.note && <p className="mt-2 text-sm text-kireo-light/90">{r.note}</p>}
                   {r.stato === "in_attesa" && <AzioneApprovazioneUpgrade richiestaId={r.id as string} />}
                 </li>
@@ -193,7 +198,7 @@ export default async function AdminEntePage({ params }: { params: Promise<{ id: 
               {(eventi ?? []).map((e) => (
                 <li key={e.id} className="text-sm text-kireo-light/90">
                   <Link href={`/diretta/${e.id}`} className="underline-offset-2 hover:underline">{e.titolo}</Link>
-                  <span className="text-xs text-kireo-muted"> · {e.stato} · {formattaDataOra(e.data_inizio as string, "long")}</span>
+                  <span className="text-xs text-kireo-muted"> · {parolaDiStato(PAROLE_STATO_EVENTO, e.stato as string)} · {formattaDataOra(e.data_inizio as string, "long")}</span>
                 </li>
               ))}
             </ul>
@@ -212,7 +217,7 @@ export default async function AdminEntePage({ params }: { params: Promise<{ id: 
               {(post ?? []).map((p) => (
                 <li key={p.id} className="text-sm text-kireo-light/90">
                   {(p.corpo as string).slice(0, 100)}
-                  <span className="text-xs text-kireo-muted"> · {p.stato} · {formattaDataOra(p.created_at as string, "long")}</span>
+                  <span className="text-xs text-kireo-muted"> · {etichettaStatoPost(p.stato as string).label} · {formattaDataOra(p.created_at as string, "long")}</span>
                 </li>
               ))}
             </ul>
@@ -228,7 +233,7 @@ export default async function AdminEntePage({ params }: { params: Promise<{ id: 
               {(newsletter ?? []).map((n) => (
                 <li key={n.id} className="text-sm text-kireo-light/90">
                   {n.oggetto}
-                  <span className="text-xs text-kireo-muted"> · {n.stato} · scritta il {formattaData(n.created_at as string, "long")}</span>
+                  <span className="text-xs text-kireo-muted"> · {parolaDiStato(ETICHETTA_STATO_NEWSLETTER, n.stato as string)} · scritta il {formattaData(n.created_at as string, "long")}</span>
                 </li>
               ))}
             </ul>
@@ -296,9 +301,10 @@ export default async function AdminEntePage({ params }: { params: Promise<{ id: 
                     {studente?.nome ?? "Studente"} {studente?.cognome ?? ""}
                   </p>
                   <p className="mt-1 text-xs text-kireo-muted">
-                    {segnalata ? "segnalata: bloccata dallo studente" : c.stato} · {formattaData(c.created_at as string, "long")}
+                    {paroleStatoConversazione(c.stato as string, "admin")} · {formattaData(c.created_at as string, "long")}
                   </p>
-                  {c.stato !== "chiusa_da_admin" && (
+                  {/* Una conversazione chiusa da una cancellazione non si chiude di nuovo: la sua frase resta (20261205100000). */}
+                  {c.stato !== "chiusa_da_admin" && c.stato !== "account_cancellato" && (
                     <div className="mt-2">
                       <AzioneChiudiConversazione id={c.id as string} />
                     </div>

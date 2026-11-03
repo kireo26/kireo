@@ -6,6 +6,7 @@ import { ETICHETTA_PIANO, trovaPianoSuccessivo, type PianoQuote } from "@/lib/en
 import NewsletterForm, { type NewsletterIniziale } from "@/components/ente/NewsletterForm";
 import { formattaData } from "@/lib/formato";
 import { descriviErrore } from "@/lib/erroreSupabase";
+import { parolaDiStato } from "@/lib/statoNonRiconosciuto";
 import {
   ETICHETTA_STATO_NEWSLETTER,
   TESTI_NEWSLETTER,
@@ -139,7 +140,7 @@ export default async function EnteComunicazioniPage({ searchParams }: { searchPa
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <span className={`mr-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${CLASSE_STATO[r.stato]}`}>
-                    {ETICHETTA_STATO_NEWSLETTER[r.stato] ?? r.stato}
+                    {parolaDiStato(ETICHETTA_STATO_NEWSLETTER, r.stato)}
                   </span>
                   <span className="font-heading text-sm font-semibold text-kireo-light">{r.oggetto}</span>
                   <p className="mt-1 text-xs text-kireo-muted">

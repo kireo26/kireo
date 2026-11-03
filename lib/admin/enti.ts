@@ -41,6 +41,14 @@ export function hrefFiltro(filtro: FiltroEnti, q?: string): string {
   return qs ? `/admin/enti?${qs}` : "/admin/enti";
 }
 
+// Le parole degli stati di una richiesta di cambio di piano (`richiesta_upgrade_stato`).
+// Testi miei e provvisori.
+export const ETICHETTA_STATO_RICHIESTA_UPGRADE: Record<string, string> = {
+  in_attesa: "da decidere",
+  approvata: "approvata",
+  rifiutata: "rifiutata",
+};
+
 export const ETICHETTA_STATO_ENTE: Record<string, string> = {
   in_attesa: "In attesa di attivazione",
   attiva: "Attivo",

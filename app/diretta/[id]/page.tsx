@@ -11,6 +11,8 @@ import PlanciaEnteEvento from "@/components/ente/PlanciaEnteEvento";
 import PlanciaAdminEvento from "@/components/admin/PlanciaAdminEvento";
 import { formattaDataOra } from "@/lib/formato";
 import { getFiloneBySlug } from "@/data/filoniDocenti";
+import { parolaDiStato } from "@/lib/statoNonRiconosciuto";
+import { PAROLE_STATO_EVENTO } from "@/lib/ente/eventiEnte";
 
 // LA PAGINA DI UNA DIRETTA, PER CHI LA STA MODERANDO.
 //
@@ -71,7 +73,7 @@ export default async function ModerazioneDirettaPage({ params }: { params: Promi
             premendo è peggio che leggerlo. */}
         {evento.stato !== "approvato" && (
           <p className="mt-3 rounded-lg border border-kireo-orange/40 bg-kireo-orange/10 px-4 py-3 text-sm text-kireo-orange">
-            Questo evento non è approvato ({evento.stato}): finché non lo è, gli studenti non possono iscriversi né collegarsi.
+            Questo evento non è approvato ({parolaDiStato(PAROLE_STATO_EVENTO, evento.stato).toLowerCase()}): finché non lo è, gli studenti non possono iscriversi né collegarsi.
           </p>
         )}
         {/* La ragione del rifiuto, per tutti e due i ruoli (27/10): è la cosa

@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { formattaDataOra, formattaOra, giorniDiCalendarioItaliani } from "@/lib/formato";
 import { descriviErrore } from "@/lib/erroreSupabase";
+import { STATO_NON_RICONOSCIUTO } from "@/lib/statoNonRiconosciuto";
 
 // I POST DEGLI ENTI SI PUBBLICANO SUBITO, E KIREO PUÒ TOGLIERLI (Mario, 29/10;
 // migrazioni 20261113100000/110000/120000).
@@ -100,7 +101,7 @@ export const ETICHETTA_STATO_POST: Record<string, { label: string; classe: strin
 };
 
 export function etichettaStatoPost(stato: string): { label: string; classe: string } {
-  return ETICHETTA_STATO_POST[stato] ?? { label: stato, classe: "bg-white/10 text-kireo-light/80" };
+  return ETICHETTA_STATO_POST[stato] ?? { label: STATO_NON_RICONOSCIUTO, classe: "bg-white/10 text-kireo-light/80" };
 }
 
 export type MotiviPost = { motivo_rifiuto: string | null; motivo_rimozione: string | null };

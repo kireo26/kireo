@@ -5,6 +5,7 @@ import { AREE } from "@/data/aree";
 import CardEnte from "@/components/app/CardEnte";
 import ProponiIncontroButton from "@/components/scuola/ProponiIncontroButton";
 import { formattaData } from "@/lib/formato";
+import { parolaDiStato } from "@/lib/statoNonRiconosciuto";
 
 const TIPI = [
   { value: "universita", label: "Università" },
@@ -109,7 +110,7 @@ export default async function ScuolaEsploraPage({
                 <li key={p.id} className="rounded-xl border border-white/5 bg-kireo-card p-4">
                   <p className="font-heading text-sm font-semibold text-kireo-light">{ente?.nome ?? "Ente"}</p>
                   <p className="mt-1 text-xs text-kireo-muted">
-                    {ETICHETTA_STATO_PROPOSTA[p.stato] ?? p.stato} · {formattaData(p.created_at, "long")}
+                    {parolaDiStato(ETICHETTA_STATO_PROPOSTA, p.stato)} · {formattaData(p.created_at, "long")}
                   </p>
                   {p.risposta_ente && <p className="mt-2 text-sm text-kireo-light/90">&ldquo;{p.risposta_ente}&rdquo;</p>}
                 </li>

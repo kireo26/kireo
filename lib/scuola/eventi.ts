@@ -1,6 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { emailVerificato, perId, type StudenteDellaScuola } from "./studenti";
 
+// Testo mio e provvisorio.
+export const TESTO_NON_PIU_FRA_GLI_STUDENTI = "Non più fra i tuoi studenti";
+
 export type RigaPresenza = {
   studentId: string;
   nome: string;
@@ -47,11 +50,15 @@ export async function getRegistroPresenze(
     const studente = studentePerId.get(riga.student_id);
     // Chi ha cancellato l'account non è più fra gli studenti della scuola, ma
     // la sua presenza è un fatto e resta nel registro: con il nome copiato se è
-    // certificata, con l'etichetta anonima altrimenti (20261204110000).
+    // certificata (20261204110000). Su una riga non certificata il nome non è
+    // copiato (20261205100000), e la scuola non legge i profili: la riga dice
+    // la sola cosa che sappiamo, che non è più fra i suoi studenti. Vale anche
+    // per chi ha cambiato scuola, e per questo non dice «account cancellato».
+    const nomeCopiato = riga.nome_alla_cancellazione as string | null;
     mappa.set(riga.student_id, {
       studentId: riga.student_id,
-      nome: studente?.nome ?? riga.nome_alla_cancellazione ?? "",
-      cognome: studente?.cognome ?? riga.cognome_alla_cancellazione ?? "",
+      nome: studente?.nome ?? nomeCopiato ?? TESTO_NON_PIU_FRA_GLI_STUDENTI,
+      cognome: studente?.cognome ?? (nomeCopiato !== null ? (riga.cognome_alla_cancellazione ?? "") : ""),
       email: studente ? emailVerificato(studente) : null,
       stato: riga.stato as "iscritto" | "partecipato",
       certificataDaTipo: riga.certificata_da_tipo,
