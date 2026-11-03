@@ -68,6 +68,7 @@ export default function CancellaAccount({ stato, email }: { stato: StatoCancella
     <div className="rounded-2xl border border-red-500/30 bg-kireo-card p-6">
       <h2 className="py-0.5 font-heading text-lg font-semibold leading-[1.25] text-kireo-light">Elimina il mio account</h2>
       <p className="mt-1 text-sm text-kireo-muted">{vista.testo}</p>
+      {vista.bottone && vista.sospese && <p className="mt-2 text-sm text-kireo-orange">{vista.sospese}</p>}
 
       {!vista.bottone ? (
         vista.linkStaff ? (

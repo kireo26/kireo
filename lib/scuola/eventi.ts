@@ -11,6 +11,12 @@ export type RigaPresenza = {
   email: string | null;
   stato: "iscritto" | "partecipato";
   certificataDaTipo: string | null;
+  /**
+   * Falso quando la persona non è più fra gli studenti della scuola (ha
+   * cancellato l'account o ha cambiato scuola): la riga resta, perché è un
+   * fatto, ma non si certifica e non porta a una scheda (20261206100000).
+   */
+  fraGliStudenti: boolean;
 };
 
 // Costruisce il registro presenze di un evento per la scuola corrente:
@@ -62,6 +68,7 @@ export async function getRegistroPresenze(
       email: studente ? emailVerificato(studente) : null,
       stato: riga.stato as "iscritto" | "partecipato",
       certificataDaTipo: riga.certificata_da_tipo,
+      fraGliStudenti: Boolean(studente),
     });
   }
 
@@ -84,6 +91,7 @@ export async function getRegistroPresenze(
         email: studente ? emailVerificato(studente) : null,
         stato: "iscritto",
         certificataDaTipo: null,
+        fraGliStudenti: Boolean(studente),
       });
     }
   }

@@ -319,6 +319,49 @@ do $$ declare e text; begin
       and (select stato from public.conversazioni_enti where id = 'ab000000-0000-0000-0000-0000000000f1') = 'account_cancellato');
 end $$;
 
+-- 15 · prima del clic si contano le presenze che nessuno certificherà più (20261206100000):
+--      lo studente 4 ha una presenza passata iscritta dalla scuola, lo studente 3 nessuna.
+insert into public.iscrizioni_eventi (evento_id, student_id, stato, origine) values
+  ('eeeeeeee-0000-0000-0000-0000000000f1', '66666666-0000-0000-0000-000000000004', 'iscritto', 'scuola'),
+  ('eeeeeeee-0000-0000-0000-0000000000f1', '66666666-0000-0000-0000-000000000005', 'iscritto', 'studente');
+insert into esiti select 15, 'prima del clic si dicono le presenze in sospeso', '4: 1, 3: 0',
+  '4: ' || coalesce(public.stato_cancellazione_account('66666666-0000-0000-0000-000000000004') ->> 'presenze_in_sospeso', 'null')
+    || ', 3: ' || coalesce(public.stato_cancellazione_account('66666666-0000-0000-0000-000000000003') ->> 'presenze_in_sospeso', 'null'),
+  (public.stato_cancellazione_account('66666666-0000-0000-0000-000000000004') ->> 'presenze_in_sospeso')::int = 1
+  and (public.stato_cancellazione_account('66666666-0000-0000-0000-000000000003') ->> 'presenze_in_sospeso')::int = 0;
+
+-- 16 · dopo la cancellazione la scuola non certifica più quella presenza.
+do $$ declare e text; begin
+  perform public.cancella_account('66666666-0000-0000-0000-000000000004', false);
+  perform set_config('request.jwt.claim.sub', '66666666-0000-0000-0000-0000000000f1', true);
+  begin
+    perform public.certifica_presenza('eeeeeeee-0000-0000-0000-0000000000f1', '66666666-0000-0000-0000-000000000004');
+    e := 'certificata';
+  exception when others then e := 'respinta: ' || sqlerrm;
+  end;
+  perform set_config('request.jwt.claim.sub', '', true);
+  insert into esiti values (16, 'la scuola non certifica la presenza di un account cancellato',
+    'respinta: account_cancellato, iscritto',
+    e || ', ' || coalesce((select stato::text from public.iscrizioni_eventi where student_id = '66666666-0000-0000-0000-000000000004' and evento_id = 'eeeeeeee-0000-0000-0000-0000000000f1'), 'null'),
+    e = 'respinta: account_cancellato'
+      and (select stato from public.iscrizioni_eventi where student_id = '66666666-0000-0000-0000-000000000004' and evento_id = 'eeeeeeee-0000-0000-0000-0000000000f1') = 'iscritto');
+end $$;
+
+-- 17 · la chiusura della diretta certifica chi c'era, e salta chi si è cancellato.
+insert into public.presenze_live (evento_id, user_id, ping_totali) values
+  ('eeeeeeee-0000-0000-0000-0000000000f1', '66666666-0000-0000-0000-000000000004', 60),
+  ('eeeeeeee-0000-0000-0000-0000000000f1', '66666666-0000-0000-0000-000000000005', 60);
+do $$ begin
+  perform set_config('request.jwt.claim.sub', '66666666-0000-0000-0000-0000000000e1', true);
+  perform public.chiudi_diretta_evento('eeeeeeee-0000-0000-0000-0000000000f1');
+  perform set_config('request.jwt.claim.sub', '', true);
+end $$;
+insert into esiti select 17, 'la chiusura salta l''account cancellato', 'cancellato iscritto, l''altro partecipato',
+  'cancellato ' || coalesce((select stato::text from public.iscrizioni_eventi where student_id = '66666666-0000-0000-0000-000000000004' and evento_id = 'eeeeeeee-0000-0000-0000-0000000000f1'), 'null')
+    || ', l''altro ' || coalesce((select stato::text from public.iscrizioni_eventi where student_id = '66666666-0000-0000-0000-000000000005' and evento_id = 'eeeeeeee-0000-0000-0000-0000000000f1'), 'null'),
+  (select stato from public.iscrizioni_eventi where student_id = '66666666-0000-0000-0000-000000000004' and evento_id = 'eeeeeeee-0000-0000-0000-0000000000f1') = 'iscritto'
+  and (select stato from public.iscrizioni_eventi where student_id = '66666666-0000-0000-0000-000000000005' and evento_id = 'eeeeeeee-0000-0000-0000-0000000000f1') = 'partecipato';
+
 select n, case when ok then 'ok' else 'ROTTA' end as esito, cosa, atteso, trovato from esiti order by n;
 select count(*) filter (where not ok) || ' ROTTE su ' || count(*) as riassunto from esiti;
 

@@ -243,8 +243,11 @@ console.log("\n§4ter · la certificazione della scuola non ha tetto né minimo,
   ok(/coalesce\(e\.ore_pcto, 0\)/.test(corpo), "…e riconosce le ore dichiarate per l'evento");
   // …mentre la chiusura automatica le passa ancora di lì.
   const chiusure = fs.readdirSync(dir).filter((f) => f.endsWith(".sql")).sort()
-    .filter((f) => /create function public\.chiudi_diretta_evento\(/.test(fs.readFileSync(`${dir}/${f}`, "utf8")));
-  const ultimaC = fs.readFileSync(`${dir}/${chiusure[chiusure.length - 1]}`, "utf8").split(/create function public\.chiudi_diretta_evento\(/)[1].split(/\$\$;/)[0];
+    .filter((f) => /create (?:or replace )?function public\.chiudi_diretta_evento\(/.test(fs.readFileSync(`${dir}/${f}`, "utf8")));
+  // 03/11: anche «create or replace». Prima leggeva solo «create function», e una
+  // ridefinizione con l'altra forma lasciava la guardia su una versione vecchia.
+  const ultimaC = fs.readFileSync(`${dir}/${chiusure[chiusure.length - 1]}`, "utf8").split(/create (?:or replace )?function public\.chiudi_diretta_evento\(/)[1].split(/\$\$;/)[0];
+  ok(chiusure[chiusure.length - 1] >= "20261206100000", `la guardia legge l'ultima definizione della chiusura (${chiusure[chiusure.length - 1]})`);
   ok(/ore_riconoscibili_evento/.test(senzaCommentiSql(ultimaC)), "la chiusura automatica il tetto lo applica ancora");
 }
 

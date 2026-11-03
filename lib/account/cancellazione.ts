@@ -28,7 +28,7 @@ import {
 export type EsitoCancellazione = "cancellato" | "cancellato_resta_il_nome" | "anonimizzato";
 
 export type StatoCancellazione =
-  | { puo: true; ruolo: string; resta_il_nome: boolean; firme: Firma[]; esito: EsitoCancellazione }
+  | { puo: true; ruolo: string; resta_il_nome: boolean; firme: Firma[]; esito: EsitoCancellazione; presenzeInSospeso: number | null }
   | { puo: false; ruolo?: string; motivo: "referente_senza_successore" | "ruolo_non_previsto" | "profilo_mancante"; tutor_attivi?: number };
 
 export const TESTO_NON_RESTA_NIENTE =
@@ -73,8 +73,22 @@ export const TESTI_ACCOUNT = {
     "Per il tuo ruolo «Scarica i miei dati» non c'è ancora. Se ti serve una copia dei tuoi dati, scrivici da Contatti.",
 } as const;
 
+/**
+ * Le presenze che dopo la cancellazione nessuno certifica più (20261206100000,
+ * decisione di Mario del 03/11): si dicono prima del clic, con il numero. Un
+ * numero che non arriva non è zero: si dice che non l'abbiamo contato. Zero
+ * non ha una riga. Testo di Mario, senza «dalla tua scuola»: oltre alla scuola
+ * può certificare anche la chiusura di una diretta.
+ */
+export function testoPresenzeInSospeso(n: number | null): string | null {
+  if (n === null) return "Non siamo riusciti a contare le presenze che aspettano ancora una certificazione: se ne hai, cancellandoti quelle ore non potranno più esserti riconosciute.";
+  if (n <= 0) return null;
+  const quante = n === 1 ? "1 presenza non ancora certificata" : `${n} presenze non ancora certificate`;
+  return `Hai ${quante}: se ti cancelli adesso, quelle ore non potranno più esserti riconosciute.`;
+}
+
 export type PresentazioneCancellazione =
-  | { bottone: true; testo: string }
+  | { bottone: true; testo: string; sospese: string | null }
   | { bottone: false; testo: string; linkStaff: boolean };
 
 /** Cosa dice la sezione, e se il bottone c'è. `null` = non letto, e non si procede. */
@@ -85,9 +99,10 @@ export function presentaCancellazione(stato: StatoCancellazione | null, email: s
     if (stato.motivo === "profilo_mancante") return { bottone: false, testo: TESTI_ACCOUNT.profiloMancante, linkStaff: false };
     return { bottone: false, testo: stato.ruolo === "admin" ? TESTI_ACCOUNT.admin : TESTI_ACCOUNT.ente, linkStaff: false };
   }
-  if (stato.esito === "anonimizzato") return { bottone: true, testo: testoAnonimo(stato.ruolo, email) };
-  if (stato.esito === "cancellato") return { bottone: true, testo: TESTO_NON_RESTA_NIENTE };
-  return { bottone: true, testo: testoRestaIlNome(stato.firme, email, stato.ruolo) };
+  const sospese = testoPresenzeInSospeso(stato.presenzeInSospeso);
+  if (stato.esito === "anonimizzato") return { bottone: true, testo: testoAnonimo(stato.ruolo, email), sospese };
+  if (stato.esito === "cancellato") return { bottone: true, testo: TESTO_NON_RESTA_NIENTE, sospese };
+  return { bottone: true, testo: testoRestaIlNome(stato.firme, email, stato.ruolo), sospese };
 }
 
 /** Dopo il clic: cosa è successo davvero, dall'esito che il database restituisce. */
@@ -129,7 +144,11 @@ export function leggiStatoCancellazione(dati: unknown): StatoCancellazione | nul
     const esito = d.esito;
     if (esito !== "cancellato" && esito !== "cancellato_resta_il_nome" && esito !== "anonimizzato") return null;
     if ((esito === "cancellato_resta_il_nome") !== d.resta_il_nome) return null;
-    return { puo: true, ruolo: d.ruolo, resta_il_nome: d.resta_il_nome, firme, esito };
+    // Le presenze in sospeso non decidono niente, quindi un numero che manca
+    // non toglie la lettura: diventa «non contato», e la pagina lo dice.
+    const n = d.presenze_in_sospeso;
+    const presenzeInSospeso = typeof n === "number" && Number.isInteger(n) && n >= 0 ? n : null;
+    return { puo: true, ruolo: d.ruolo, resta_il_nome: d.resta_il_nome, firme, esito, presenzeInSospeso };
   }
   if (d.puo === false && (d.motivo === "referente_senza_successore" || d.motivo === "ruolo_non_previsto" || d.motivo === "profilo_mancante")) {
     return {
