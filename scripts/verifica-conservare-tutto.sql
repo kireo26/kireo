@@ -293,6 +293,32 @@ do $$ declare e text; begin
   insert into esiti values (12, 'una domanda senza testo e senza data di rimozione è respinta', 'respinta: 23514', e, e = 'respinta: 23514');
 end $$;
 
+-- 13 · una presenza passata NON certificata non riceve niente: né il nome vero
+--      né l'etichetta. «Nome alla cancellazione» porta un nome o niente (20261205100000).
+insert into esiti select 13, 'la riga non certificata non porta l''etichetta', 'null null',
+  coalesce((select coalesce(nome_alla_cancellazione, 'null') || ' ' || coalesce(cognome_alla_cancellazione, 'null') from public.iscrizioni_eventi
+            where student_id = '66666666-0000-0000-0000-000000000002' and evento_id = 'eeeeeeee-0000-0000-0000-0000000000f1'), 'riga sparita'),
+  (select nome_alla_cancellazione is null and cognome_alla_cancellazione is null from public.iscrizioni_eventi
+    where student_id = '66666666-0000-0000-0000-000000000002' and evento_id = 'eeeeeeee-0000-0000-0000-0000000000f1');
+
+-- 14 · l'admin non sovrascrive «account cancellato» con «chiusa da KIREO».
+insert into auth.users (id, email) values ('66666666-0000-0000-0000-0000000000a1', 'admin-cons@test.it');
+insert into public.profiles (id, ruolo, nome, cognome) values ('66666666-0000-0000-0000-0000000000a1', 'admin', 'Adm', 'Cons');
+do $$ declare e text; begin
+  perform set_config('request.jwt.claim.sub', '66666666-0000-0000-0000-0000000000a1', true);
+  begin
+    perform public.chiudi_conversazione_admin('ab000000-0000-0000-0000-0000000000f1');
+    e := 'chiusa';
+  exception when others then e := 'respinta: ' || sqlerrm;
+  end;
+  perform set_config('request.jwt.claim.sub', '', true);
+  insert into esiti values (14, 'l''admin non chiude una conversazione di un account cancellato',
+    'respinta: conversazione_account_cancellato, account_cancellato',
+    e || ', ' || coalesce((select stato::text from public.conversazioni_enti where id = 'ab000000-0000-0000-0000-0000000000f1'), 'null'),
+    e = 'respinta: conversazione_account_cancellato'
+      and (select stato from public.conversazioni_enti where id = 'ab000000-0000-0000-0000-0000000000f1') = 'account_cancellato');
+end $$;
+
 select n, case when ok then 'ok' else 'ROTTA' end as esito, cosa, atteso, trovato from esiti order by n;
 select count(*) filter (where not ok) || ' ROTTE su ' || count(*) as riassunto from esiti;
 
