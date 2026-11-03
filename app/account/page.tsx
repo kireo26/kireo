@@ -90,7 +90,7 @@ export default async function PaginaAccount() {
           )}
         </section>
 
-        <CancellaAccount stato={stato} />
+        <CancellaAccount stato={stato} email={user.email ?? ""} />
       </div>
     </div>
   );

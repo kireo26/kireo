@@ -29,25 +29,25 @@ const leggi = (f) => fs.readFileSync(path.join(ROOT, f), "utf8");
 const raise = (m) => ({ code: "P0001", message: m });
 
 console.log("\n§1 — cosa dice la sezione, e se il bottone c'è\n");
-const p = A.presentaCancellazione;
-ok(p(null).bottone === false && p(null).testo.includes("Non siamo riusciti a leggere"), "uno stato non letto non dà il bottone, e lo dice");
+// Il numero prima del clic e i suoi casi stanno in `npm run test:cancellazione`.
+const p = (s) => A.presentaCancellazione(s, "x@test.it");
+ok(p(null).bottone === false && p(null).testo.includes("Non siamo riusciti a contare"), "uno stato non letto non dà il bottone, e lo dice");
 const ref = p({ puo: false, ruolo: "referente_scuola", motivo: "referente_senza_successore", tutor_attivi: 0 });
 ok(ref.bottone === false && ref.linkStaff === true, "il referente senza successore: niente bottone, il link a Staff");
 ok(ref.testo === "Prima di andartene devi passare la scuola a qualcun altro: promuovi un tutor a referente, oppure invitane uno.", "…con il testo di Mario, parola per parola");
 ok(p({ puo: false, ruolo: "istituzione", motivo: "ruolo_non_previsto" }).bottone === false, "un ente: niente bottone");
 ok(p({ puo: false, ruolo: "admin", motivo: "ruolo_non_previsto" }).testo.includes("admin"), "un admin: il suo testo, niente bottone");
-const tut = p({ puo: true, ruolo: "tutor_scuola", resta_il_nome: true });
-ok(tut.bottone && tut.testo.startsWith("Il tuo account sparisce. Le presenze che hai certificato restano, con il tuo nome e la data"), "un tutor che ha firmato: il bottone, e il testo di Mario detto PRIMA del clic");
-ok(p({ puo: true, ruolo: "studente", resta_il_nome: false }).testo.startsWith("Rimuove definitivamente il tuo profilo"), "lo studente legge il testo di sempre");
-const doc = p({ puo: true, ruolo: "docente", resta_il_nome: false });
-ok(doc.bottone && !doc.testo.includes("presenze"), "un docente senza firme non legge di presenze che non ha certificato");
-ok(!p({ puo: true, ruolo: "tutor_scuola", resta_il_nome: false }).testo.includes("presenze che hai certificato"), "un tutor senza firme nemmeno");
+const firma = [{ tabella: "student_profiles", colonna: "verificato_da", n: 2 }];
+const tut = p({ puo: true, ruolo: "tutor_scuola", resta_il_nome: true, firme: firma });
+ok(tut.bottone && tut.testo.includes("2 verifiche di studenti"), "chi ha firmato: il bottone, e il numero detto PRIMA del clic");
+const doc = p({ puo: true, ruolo: "docente", resta_il_nome: false, firme: [{ ...firma[0], n: 0 }] });
+ok(doc.bottone && !doc.testo.includes("resterà su"), "chi non ha firmato non legge di firme che non ha");
 
 console.log("\n§2 — lo stato si legge nella forma, o non si legge\n");
 ok(A.leggiStatoCancellazione(null) === null, "null → non letto");
 ok(A.leggiStatoCancellazione({ puo: "sì" }) === null, "una forma strana → non letto, mai un bottone");
 ok(A.leggiStatoCancellazione({ puo: false, motivo: "inventato" }) === null, "un motivo che non conosciamo → non letto");
-const letto = A.leggiStatoCancellazione({ puo: true, ruolo: "docente", resta_il_nome: true });
+const letto = A.leggiStatoCancellazione({ puo: true, ruolo: "docente", resta_il_nome: true, firme: firma });
 ok(letto && letto.puo && letto.resta_il_nome === true, "la forma vera passa");
 
 console.log("\n§3 — i rifiuti dicono la regola, «riprova» solo a un guasto\n");
@@ -70,7 +70,7 @@ ok(/messaggioErroreAuth\(/.test(pw), "gli errori di Supabase passano dalla strad
 
 console.log("\n§5 — i testi non accordano col genere\n");
 const testi = [
-  ...Object.values(A.TESTI_ACCOUNT), A.TESTO_STAFF_RESTA_IL_NOME, A.TESTO_REFERENTE_SENZA_SUCCESSORE,
+  ...Object.values(A.TESTI_ACCOUNT), A.TESTO_NON_RESTA_NIENTE, A.TESTO_REFERENTE_SENZA_SUCCESSORE,
   ...Object.values(A.TESTI_PASSWORD), ...Object.values(A.TESTI_PASSAGGIO), A.testoConfermaPassaggio("Anna Rossi"),
 ];
 const accordati = testi.filter((t) => trovaAccordi(t).length > 0);
@@ -83,7 +83,7 @@ ok(/!vista\.bottone \?/.test(cancella), "il bottone esiste solo quando la regola
 ok(!/disabled=\{[^}]*vista/.test(cancella), "…e non è mai un bottone spento con una spiegazione accanto");
 const chiamanti = ["app", "components", "lib"].flatMap(function giro(d) {
   return fs.readdirSync(path.join(ROOT, d), { withFileTypes: true }).flatMap((x) =>
-    x.isDirectory() ? giro(path.join(d, x.name)) : /\.tsx?$/.test(x.name) && senzaCommenti(leggi(path.join(d, x.name))).includes('rpc("delete_own_account")') ? [path.join(d, x.name)] : [],
+    x.isDirectory() ? giro(path.join(d, x.name)) : /\.tsx?$/.test(x.name) && senzaCommenti(leggi(path.join(d, x.name))).includes('rpc("delete_own_account"') ? [path.join(d, x.name)] : [],
   );
 });
 ok(chiamanti.length === 1 && chiamanti[0] === path.join("components", "account", "CancellaAccount.tsx"), "la cancellazione la chiama un posto solo", chiamanti);

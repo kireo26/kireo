@@ -20,7 +20,7 @@ create function pg_temp.cancella(u uuid, caso text) returns void language plpgsq
 declare r text := 'si cancella'; begin
   perform set_config('request.jwt.claim.sub', u::text, true);
   set local role authenticated;
-  begin perform public.delete_own_account(); exception when others then r := 'BLOCCATO: ' || sqlerrm; end;
+  begin perform public.delete_own_account(coalesce((public.stato_cancellazione_mio_account() ->> 'resta_il_nome')::boolean, false)); exception when others then r := 'BLOCCATO: ' || sqlerrm; end;
   reset role;
   insert into casi values (caso, r); end $$;
 -- 1 solo la propria riga

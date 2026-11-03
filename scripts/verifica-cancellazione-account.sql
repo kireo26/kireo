@@ -52,7 +52,10 @@ create function pg_temp.prova(u uuid) returns text language plpgsql as $$
 declare r jsonb;
 begin
   perform pg_temp.come(u);
-  begin r := public.delete_own_account(); return coalesce(r ->> 'esito', 'null');
+  -- Dal 20261203100000 la cancellazione dice cosa la persona ha letto: qui
+  -- si manda quello che lo stato dice, come fa la pagina.
+  begin r := public.delete_own_account(coalesce((public.stato_cancellazione_mio_account() ->> 'resta_il_nome')::boolean, false));
+    return coalesce(r ->> 'esito', 'null');
   exception when others then return 'rifiutato: ' || sqlerrm; end;
 end $$;
 
@@ -170,11 +173,11 @@ end $$;
 -- 12 · i permessi: la regola per uuid non la esegue il client, la cancellazione non la esegue un visitatore.
 insert into esiti select 12, 'stato per uuid chiuso al client, cancellazione e passaggio chiusi ad anon', 'f f f f',
   has_function_privilege('authenticated', 'public.stato_cancellazione_account(uuid)', 'execute') || ' '
-    || has_function_privilege('anon', 'public.delete_own_account()', 'execute') || ' '
+    || has_function_privilege('anon', 'public.delete_own_account(boolean)', 'execute') || ' '
     || has_function_privilege('anon', 'public.passa_referente(uuid)', 'execute') || ' '
     || has_function_privilege('anon', 'public.stato_cancellazione_mio_account()', 'execute'),
   not has_function_privilege('authenticated', 'public.stato_cancellazione_account(uuid)', 'execute')
-    and not has_function_privilege('anon', 'public.delete_own_account()', 'execute')
+    and not has_function_privilege('anon', 'public.delete_own_account(boolean)', 'execute')
     and not has_function_privilege('anon', 'public.passa_referente(uuid)', 'execute')
     and not has_function_privilege('anon', 'public.stato_cancellazione_mio_account()', 'execute');
 

@@ -69,7 +69,6 @@
 // nessuno ha scritto. `tutteLePartiRichiesteOttenute` e `nonSiamoRiusciti`,
 // che sono i due campi che si imparano a cercare, ci sono sempre.
 
-import { EMAIL_PUBBLICA } from "@/lib/site";
 
 /** Una sezione del file: una tabella, la colonna con cui si filtra, il nome che prende nel file. */
 export type SezioneExport = {
@@ -476,6 +475,13 @@ export const FUORI: { tabella: string; perche: string; termine: string[] | null 
     // rivolto a uno studente.
     termine: null,
   },
+  {
+    tabella: "indirizzi_delle_lapidi",
+    perche:
+      "è l'indirizzo di un account GIÀ cancellato che ha lasciato firme (20261203100000): esiste solo quando l'account non c'è più, quindi nessuno studente vivo ha una riga qui da scaricare",
+    // NON sorvegliabile: nessuna voce rivolta a uno studente parla di lapidi.
+    termine: null,
+  },
 ];
 
 // ── I tre testi. Sono voce, e li ha scritti Mario.
@@ -495,7 +501,11 @@ export const FUORI: { tabella: string; perche: string; termine: string[] | null 
 export const COSA_CONTIENE = {
   inQuestoFile: SEZIONI_EXPORT.map((s) => s.voce),
   nonAncoraInQuestoFile: VOCI_DEBITO.map((v) => v.testo),
-  nota: `Stiamo completando l'esportazione. Se ti serve subito qualcosa del secondo elenco, scrivici a ${EMAIL_PUBBLICA} e te lo mandiamo.`,
+  // ⚠️ Fino al 03/11 qui c'era «scrivici a info@kireo.it e te lo mandiamo»: una
+  // promessa senza una procedura dietro (chi risponde, con cosa, in quanto
+  // tempo). Tolta (Mario): un'assenza dichiarata è meglio di una promessa che
+  // nessuno sa mantenere. Mia e provvisoria.
+  nota: "Le parti del secondo elenco non sono ancora in questo file: le stiamo aggiungendo.",
 };
 
 export const TESTO_AVVISO_INCOMPLETO =

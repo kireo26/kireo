@@ -1,5 +1,6 @@
 "use client";
 
+import { indirizzoDiUnAccountCancellato, TESTO_INDIRIZZO_CANCELLATO } from "@/lib/auth/indirizzoCancellato";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/Button";
@@ -113,6 +114,10 @@ export default function RiscattaInvitoTutorForm({ codiceIniziale }: { codiceIniz
 
     setCaricamento(true);
     try {
+      if ((await indirizzoDiUnAccountCancellato(email.trim())) === true) {
+        setErroreGenerale(TESTO_INDIRIZZO_CANCELLATO);
+        return;
+      }
       const supabase = createClient();
       const { error } = await supabase.auth.signUp({
         email: email.trim(),

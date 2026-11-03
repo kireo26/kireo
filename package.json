@@ -116,7 +116,8 @@
     "test:linkemail": "node scripts/verifica-link-email.js",
     "test:erroriauth": "node scripts/verifica-errori-auth.js",
     "test:parenti": "node scripts/verifica-parenti-riprova.js",
-    "test:mioaccount": "node scripts/verifica-account.js"
+    "test:mioaccount": "node scripts/verifica-account.js",
+    "test:cancellazione": "node scripts/verifica-cancellazione.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.112.5",

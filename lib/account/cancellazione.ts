@@ -3,13 +3,19 @@
 // `stato_cancellazione_account` (20261202100000), che la pagina legge prima e
 // `delete_own_account` riapplica dopo. Qui ci sono solo le parole.
 //
-// Testi di Mario (01/11): `TESTO_STAFF_RESTA_IL_NOME` e
-// `TESTO_REFERENTE_SENZA_SUCCESSORE`. Gli altri sono miei e provvisori.
+// Testi di Mario: `TESTO_REFERENTE_SENZA_SUCCESSORE` (01/11) e
+// `TESTO_NON_RESTA_NIENTE` (03/11). Gli altri sono miei e provvisori.
+//
+// ⚠️ Prima del clic si dice il NUMERO, non una frase (Mario, 03/11): il testo
+// fisso di prima («Le presenze che hai certificato restano») il 02/11 l'ha letto
+// una referente che aveva firmato dieci verifiche, e niente presenze. Il numero
+// lo conta il database, le parole stanno in `lib/account/firme.ts`.
 //
 // ⚠️ Al referente senza successore il bottone NON c'è, non è spento: *un
 // bottone spento con una spiegazione accanto invita a premerlo e poi dice di
 // no* (Mario). Lo stesso per l'ente e per l'admin.
 
+import { descriviFirme, totaleFirme, type Firma } from "@/lib/account/firme";
 import {
   classeErroreScrittura,
   messaggioErrore,
@@ -19,53 +25,83 @@ import {
 } from "@/lib/rifiutiScrittura";
 
 export type StatoCancellazione =
-  | { puo: true; ruolo: string; resta_il_nome: boolean }
+  | { puo: true; ruolo: string; resta_il_nome: boolean; firme: Firma[] }
   | { puo: false; ruolo?: string; motivo: "referente_senza_successore" | "ruolo_non_previsto" | "profilo_mancante"; tutor_attivi?: number };
 
-export const TESTO_STAFF_RESTA_IL_NOME =
-  "Il tuo account sparisce. Le presenze che hai certificato restano, con il tuo nome e la data: sono il documento con cui la scuola riconosce le ore ai tuoi studenti.";
+export const TESTO_NON_RESTA_NIENTE =
+  "Non resterà nulla di te: il profilo sparisce per intero e questo indirizzo tornerà libero.";
+
+/** Chi lascia firme: quali, quante, e che l'indirizzo non torna libero. */
+export function testoRestaIlNome(firme: Firma[], email: string): string {
+  return `Il tuo account sparisce, ma il tuo nome resterà su ${descriviFirme(firme)}. L'indirizzo ${email} non potrà più essere usato per registrarsi.`;
+}
 
 export const TESTO_REFERENTE_SENZA_SUCCESSORE =
   "Prima di andartene devi passare la scuola a qualcun altro: promuovi un tutor a referente, oppure invitane uno.";
 
 export const TESTI_ACCOUNT = {
-  studente:
-    "Rimuove definitivamente il tuo profilo, la scuola collegata, le aree di interesse, le attività e le iscrizioni agli eventi. Non si torna indietro.",
-  senzaFirme: "Il tuo account sparisce, con tutto quello che hai salvato su KIREO. Non si torna indietro.",
-  conFirme: "Il tuo account sparisce. Quello che hai firmato su KIREO resta, con il tuo nome e la data.",
   ente: "L'account di un ente non si chiude da qui: scrivici da Contatti, e decidiamo insieme cosa succede alla pagina dell'ente.",
   admin: "L'account di un admin non si chiude da qui.",
   profiloMancante: "Questo account risulta già cancellato.",
-  nonLetto: "Non siamo riusciti a leggere se puoi cancellare l'account adesso: ricarica la pagina.",
+  nonLetto:
+    "Non siamo riusciti a contare cosa resterebbe di te dopo la cancellazione, quindi per ora non si procede: ricarica la pagina.",
+  statoCambiato:
+    "Nel frattempo è cambiato quello che resterebbe di te dopo la cancellazione: l'account non è stato cancellato. Ricarica la pagina e rileggi prima di decidere.",
   domanda: "Vuoi davvero cancellare l'account? Non si torna indietro.",
   esportaNonDisponibile:
     "Per il tuo ruolo «Scarica i miei dati» non c'è ancora. Se ti serve una copia dei tuoi dati, scrivici da Contatti.",
 } as const;
 
-const STAFF = new Set(["tutor_scuola", "referente_scuola"]);
-
 export type PresentazioneCancellazione =
   | { bottone: true; testo: string }
   | { bottone: false; testo: string; linkStaff: boolean };
 
-/** Cosa dice la sezione, e se il bottone c'è. `null` = non letto. */
-export function presentaCancellazione(stato: StatoCancellazione | null): PresentazioneCancellazione {
+/** Cosa dice la sezione, e se il bottone c'è. `null` = non letto, e non si procede. */
+export function presentaCancellazione(stato: StatoCancellazione | null, email: string): PresentazioneCancellazione {
   if (stato === null) return { bottone: false, testo: TESTI_ACCOUNT.nonLetto, linkStaff: false };
   if (!stato.puo) {
     if (stato.motivo === "referente_senza_successore") return { bottone: false, testo: TESTO_REFERENTE_SENZA_SUCCESSORE, linkStaff: true };
     if (stato.motivo === "profilo_mancante") return { bottone: false, testo: TESTI_ACCOUNT.profiloMancante, linkStaff: false };
     return { bottone: false, testo: stato.ruolo === "admin" ? TESTI_ACCOUNT.admin : TESTI_ACCOUNT.ente, linkStaff: false };
   }
-  if (stato.ruolo === "studente" && !stato.resta_il_nome) return { bottone: true, testo: TESTI_ACCOUNT.studente };
-  if (!stato.resta_il_nome) return { bottone: true, testo: TESTI_ACCOUNT.senzaFirme };
-  return { bottone: true, testo: STAFF.has(stato.ruolo) ? TESTO_STAFF_RESTA_IL_NOME : TESTI_ACCOUNT.conFirme };
+  if (!stato.resta_il_nome) return { bottone: true, testo: TESTO_NON_RESTA_NIENTE };
+  return { bottone: true, testo: testoRestaIlNome(stato.firme, email) };
 }
 
-/** Lo stato letto dal database, controllato nella forma: altrimenti `null`. */
+/** Dopo il clic: cosa è successo davvero, dall'esito che il database restituisce. */
+export function testoDopoLaCancellazione(esito: unknown, email: string): string {
+  if (esito === "cancellato") return `Account cancellato. Non è rimasto niente di te, e l'indirizzo ${email} è di nuovo libero.`;
+  if (esito === "cancellato_resta_il_nome")
+    return `Account cancellato. Il tuo nome resta sulle firme che hai lasciato, e l'indirizzo ${email} non potrà più essere usato per registrarsi.`;
+  return "Account cancellato.";
+}
+
+function leggiFirme(v: unknown): Firma[] | null {
+  if (!Array.isArray(v)) return null;
+  const firme: Firma[] = [];
+  for (const x of v) {
+    if (!x || typeof x !== "object") return null;
+    const f = x as Record<string, unknown>;
+    if (typeof f.tabella !== "string" || typeof f.colonna !== "string" || typeof f.n !== "number" || !Number.isInteger(f.n) || f.n < 0) return null;
+    firme.push({ tabella: f.tabella, colonna: f.colonna, n: f.n });
+  }
+  return firme;
+}
+
+/**
+ * Lo stato letto dal database, controllato nella forma: altrimenti `null`.
+ * ⚠️ Senza le firme contate non si legge niente: il sostituto plausibile di un
+ * conteggio mancato è «non resterà niente», cioè una bugia che non si ritira.
+ */
 export function leggiStatoCancellazione(dati: unknown): StatoCancellazione | null {
   if (!dati || typeof dati !== "object") return null;
   const d = dati as Record<string, unknown>;
-  if (d.puo === true && typeof d.ruolo === "string") return { puo: true, ruolo: d.ruolo, resta_il_nome: d.resta_il_nome === true };
+  if (d.puo === true && typeof d.ruolo === "string") {
+    const firme = leggiFirme(d.firme);
+    if (firme === null || firme.length === 0 || typeof d.resta_il_nome !== "boolean") return null;
+    if (d.resta_il_nome !== totaleFirme(firme) > 0) return null;
+    return { puo: true, ruolo: d.ruolo, resta_il_nome: d.resta_il_nome, firme };
+  }
   if (d.puo === false && (d.motivo === "referente_senza_successore" || d.motivo === "ruolo_non_previsto" || d.motivo === "profilo_mancante")) {
     return {
       puo: false,
@@ -88,6 +124,7 @@ export function testoErroreCancellazione(errore: { code?: unknown; message?: unk
   if (motivo === "referente_senza_successore") return TESTO_REFERENTE_SENZA_SUCCESSORE;
   if (motivo === "ruolo_non_previsto") return TESTI_ACCOUNT.ente;
   if (motivo === "profilo_mancante") return TESTI_ACCOUNT.profiloMancante;
+  if (motivo === "stato_cambiato") return TESTI_ACCOUNT.statoCambiato;
   return testoRifiutoSconosciutoScrittura(FRASE);
 }
 
