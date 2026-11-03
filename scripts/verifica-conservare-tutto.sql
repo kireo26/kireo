@@ -55,7 +55,7 @@ insert into public.istituzioni (id, nome, slug, tipo, stato) values ('cccccccc-0
 insert into public.institution_profiles (user_id, istituzione_id) values ('66666666-0000-0000-0000-0000000000e1', 'cccccccc-0000-0000-0000-0000000000f1');
 
 -- I gesti verso l'ente, scelti perché «raggiunti» senta ogni rapporto chiuso:
--- l'1 SOLO segue (e condivide il profilo, e la newsletter), il 2 SOLO ha
+-- l'1 SOLO segue (più la newsletter, che «raggiunti» non conta), il 2 SOLO ha
 -- condiviso il profilo, gli altri seguono e passano dal recinto. Si cancellano
 -- l'1 e il 2: se la chiusura cancellasse la riga di `seguiti`, o se
 -- «raggiunti» guardasse la revoca, il numero scenderebbe.
@@ -64,7 +64,6 @@ insert into public.seguiti (student_id, istituzione_id)
 insert into public.recinto_enti (student_id, istituzione_id, origine)
   select ('66666666-0000-0000-0000-0000000000' || lpad(i::text, 2, '0'))::uuid, 'cccccccc-0000-0000-0000-0000000000f1', 'evento' from generate_series(3, 6) i;
 insert into public.manifestazioni_interesse (student_id, istituzione_id) values
-  ('66666666-0000-0000-0000-000000000001', 'cccccccc-0000-0000-0000-0000000000f1'),
   ('66666666-0000-0000-0000-000000000002', 'cccccccc-0000-0000-0000-0000000000f1');
 insert into public.newsletter_iscrizioni (student_id, istituzione_id) values ('66666666-0000-0000-0000-000000000001', 'cccccccc-0000-0000-0000-0000000000f1');
 
@@ -237,7 +236,7 @@ insert into esiti select 8, 'i rapporti si chiudono',
     || (select count(*) from public.notifiche_studenti where student_id = '66666666-0000-0000-0000-000000000001') || ' '
     || (select count(*) from public.iscrizioni_eventi where student_id = '66666666-0000-0000-0000-000000000001' and evento_id = 'eeeeeeee-0000-0000-0000-0000000000f2'),
   exists (select 1 from public.seguiti where student_id = '66666666-0000-0000-0000-000000000001' and chiuso_il is not null)
-  and exists (select 1 from public.manifestazioni_interesse where student_id = '66666666-0000-0000-0000-000000000001' and revocata_il is not null)
+  and exists (select 1 from public.manifestazioni_interesse where student_id = '66666666-0000-0000-0000-000000000002' and revocata_il is not null)
   and (select stato::text from public.conversazioni_enti where id = 'ab000000-0000-0000-0000-0000000000f1') = 'account_cancellato'
   and (select stato::text from public.workshop_iscrizioni where id = 'af000000-0000-0000-0000-0000000000f1') = 'ritirato'
   and (select stato from public.workshop_fasi_stato where iscrizione_id = 'af000000-0000-0000-0000-0000000000f1' and fase_id = 'fase2') = 'aperta'
