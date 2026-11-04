@@ -79,6 +79,16 @@ else
   echo "  ✓ solo la propria riga e l'admin"
 fi
 
+# LE DEFINER APERTE AD ANON SULLA REPLICA (04/11): la metà di `npm run
+# test:guardie` che legge pg_proc e non il modello delle migrazioni.
+echo "definer aperte ad anon, sulla replica:"
+if ! CONN="$CONN" node "$RADICE/scripts/verifica-guardie-null.js" >"$OUT/anon.out" 2>&1 || ! grep -q "sulla replica, le definer aperte ad anon" "$OUT/anon.out"; then
+  grep -E '✗' "$OUT/anon.out" | head -6 | sed 's/^/  /'
+  echo "  ✗ verifica-guardie-null (uscita in $OUT/anon.out)"; COLONNE_ROSSE=1
+else
+  echo "  ✓ le stesse del modello, tutte dichiarate"
+fi
+
 # Diagnostica, non asserzioni: il perché accanto a ognuno.
 declare -A DIAGNOSTICA=(
   [verifica-cascata-profili]="stampa la chiusura della cascata da confrontare con scripts/lib/cascata-profili.js"

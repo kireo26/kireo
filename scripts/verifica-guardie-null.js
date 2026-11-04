@@ -322,6 +322,118 @@ ok(
         .join("\n    "),
 );
 
+// ── 2bis · le definer che leggono, aperte ad anon ───────────────────────────
+// Il punto 2 guarda solo le definer che SCRIVONO. Una definer che legge e
+// risponde gira come proprietario anche lei, quindi da aperta ad `anon` dice a
+// un visitatore quello che dice al proprietario (04/11: `e_profilo_di_prova`
+// diceva a chiunque se un id è un profilo di prova). Qui ogni definer viva
+// eseguibile da chi non ha fatto l'accesso o è un trigger (EXECUTE non si
+// controlla quando il trigger scatta), o sta in APERTE_AD_ANON con la sua
+// ragione. Una nuova nata aperta è rossa; una dichiarata che si chiude è rossa
+// finché non si toglie dall'elenco (un elenco che non scende da solo invecchia);
+// e quelle «da decidere» hanno un tetto che può solo scendere.
+//
+// ⚠️ Il modello legge le migrazioni, e una funzione tolta con `drop function`
+// non è viva: lo stesso conto sulla replica (has_function_privilege('anon', …))
+// il 04/11 dava le stesse 28.
+const APERTE_AD_ANON = {
+  check_class_code: ["visitatore", "il modulo di registrazione controlla il codice classe prima dell'accesso"],
+  verifica_attestato: ["visitatore", "la pagina pubblica di verifica di un attestato"],
+  conteggio_follower: ["visitatore", "la pagina pubblica dell'ente mostra quanti la seguono"],
+  conteggio_manifestazioni_interesse: ["da_decidere", "la chiamano solo pagine dell'ente, da collegati"],
+  conteggio_presenti_live: ["da_decidere", "la chiama solo la console dell'ente, da collegati"],
+  current_e_maggiorenne: ["da_decidere", "predicato per le policy di authenticated; nessuna policy di anon la usa"],
+  current_ha_permesso_staff: ["da_decidere", "predicato per le policy di authenticated"],
+  current_istituzione_id: ["da_decidere", "predicato per le policy di authenticated"],
+  current_ruolo: ["da_decidere", "predicato per le policy di authenticated"],
+  current_ruolo_staff: ["da_decidere", "predicato per le policy di authenticated"],
+  current_school_code: ["da_decidere", "predicato per le policy di authenticated"],
+  current_scuola_id: ["da_decidere", "predicato per le policy di authenticated"],
+  current_scuola_profilo_id: ["da_decidere", "predicato per le policy di authenticated"],
+  e_destinatario_messaggio: ["da_decidere", "predicato per le policy di authenticated"],
+  manifestazioni_dettaglio_ente: ["da_decidere", "nessun chiamante dal 28/10 (la sostituisce interessati_ente)"],
+  peers_workshop: ["da_decidere", "la chiama solo la pagina del workshop di uno studente"],
+  ping_attesi_evento: ["da_decidere", "la chiamano solo altre definer"],
+  report_evento_aggregato: ["da_decidere", "la chiama solo il report dell'ente, da collegati"],
+  report_evento_distribuzione: ["da_decidere", "la chiama solo il report dell'ente, da collegati"],
+  ruoli_occupati_workshop: ["da_decidere", "nessun chiamante dal TypeScript"],
+  slug_istituzione_in_uso: ["da_decidere", "la chiamano solo altre definer"],
+};
+// IL TETTO: può solo scendere. Si abbassa quando una «da decidere» si chiude.
+const TETTO_DA_DECIDERE = 18;
+
+const vive = new Map(); // nome -> testa, l'ultima definizione non seguita da un drop
+for (const nome of fs.readdirSync(DIR).filter((n) => n.endsWith(".sql")).sort()) {
+  const sql = senzaCommenti(fs.readFileSync(path.join(DIR, nome), "utf8"));
+  const eventi = [];
+  for (const m of sql.matchAll(
+    /create\s+(?:or\s+replace\s+)?function\s+(?:public\.)?([a-z_0-9]+)\s*\([^;]*?\)\s*returns([^;]*?)\$(\w*)\$[\s\S]*?\$\3\$/gi,
+  ))
+    eventi.push([m.index, "crea", m[1], m[2]]);
+  for (const m of sql.matchAll(/drop\s+function\s+(?:if\s+exists\s+)?(?:public\.)?([a-z_0-9]+)/gi))
+    eventi.push([m.index, "togli", m[1]]);
+  eventi.sort((a, b) => a[0] - b[0]);
+  for (const [, tipo, n, testa] of eventi) {
+    if (tipo === "crea") vive.set(n, testa);
+    else vive.delete(n);
+  }
+}
+ok(vive.size >= 150, `le funzioni vive lette dalle migrazioni sono ${vive.size}`);
+
+const definerVive = [...vive].filter(([, testa]) => /security\s+definer/i.test(testa));
+const apertiAnon = definerVive.filter(([n]) => !chiusoAdAnon((permesso.get(n) ?? PREDEFINITI()).ruoli));
+const triggerAperti = apertiAnon.filter(([, testa]) => /\btrigger\b/i.test(testa)).map(([n]) => n);
+const rpcAperte = apertiAnon.filter(([, testa]) => !/\btrigger\b/i.test(testa)).map(([n]) => n);
+ok(definerVive.length >= 100, `le SECURITY DEFINER vive sono ${definerVive.length}`);
+console.log(
+  `  · aperte ad anon: ${apertiAnon.length}, di cui ${triggerAperti.length} trigger (EXECUTE non conta quando scattano)`,
+);
+
+const nonDichiarate = rpcAperte.filter((n) => !APERTE_AD_ANON[n]).sort();
+ok(
+  nonDichiarate.length === 0,
+  nonDichiarate.length === 0
+    ? `tutte le ${rpcAperte.length} definer non trigger aperte ad anon sono dichiarate, con la ragione`
+    : `${nonDichiarate.length} definer aperte ad anon e non dichiarate:\n    ` +
+        nonDichiarate
+          .map((n) => `${n} [${(permesso.get(n) ?? PREDEFINITI()).file ?? "nessun permesso scritto"}]\n      → revoke all on function public.${n}(…) from public, anon; (e il grant a chi la chiama)`)
+          .join("\n    "),
+);
+const stantie = Object.keys(APERTE_AD_ANON).filter((n) => !rpcAperte.includes(n)).sort();
+ok(
+  stantie.length === 0,
+  stantie.length === 0
+    ? "nessuna voce dell'elenco è una funzione ormai chiusa o tolta"
+    : `voci da togliere da APERTE_AD_ANON (chiuse o tolte): ${stantie.join(", ")}`,
+);
+const daDecidere = Object.values(APERTE_AD_ANON).filter(([c]) => c === "da_decidere").length;
+ok(
+  daDecidere <= TETTO_DA_DECIDERE,
+  `le «da decidere» sono ${daDecidere} (tetto ${TETTO_DA_DECIDERE}, può solo scendere)`,
+);
+ok(
+  Object.values(APERTE_AD_ANON).every(([c, m]) => (c === "visitatore" || c === "da_decidere") && m.length > 10),
+  "ogni voce ha una categoria nota e una ragione",
+);
+// Con la replica (CONN, la lancia `npm run sql:tutti`) lo stesso insieme si
+// legge da Postgres: il modello è una lettura delle migrazioni, e un modello
+// che si sbaglia direbbe «dichiarate tutte» su un insieme sbagliato.
+if (process.env.CONN) {
+  const { execFileSync } = require("child_process");
+  const dalDb = execFileSync("psql", [process.env.CONN, "-Atc",
+    "select p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace " +
+    "where n.nspname = 'public' and p.prosecdef and has_function_privilege('anon', p.oid, 'execute') order by 1"],
+    { encoding: "utf8" }).split("\n").filter(Boolean);
+  const dalModello = apertiAnon.map(([n]) => n).sort();
+  ok(
+    JSON.stringify(dalDb) === JSON.stringify(dalModello),
+    `sulla replica, le definer aperte ad anon sono le stesse del modello (${dalDb.length})` +
+      (JSON.stringify(dalDb) === JSON.stringify(dalModello) ? "" :
+        `: solo sul db ${dalDb.filter((n) => !dalModello.includes(n)).join(", ") || "—"}; solo nel modello ${dalModello.filter((n) => !dalDb.includes(n)).join(", ") || "—"}`),
+  );
+} else console.log("  · replica non collegata (CONN): le definer aperte ad anon non confrontate con Postgres");
+ok(!rpcAperte.includes("e_profilo_di_prova"), "e_profilo_di_prova non è eseguibile da anon (20261210100000)");
+
 // ── controprove ─────────────────────────────────────────────────────────────
 // Senza, «zero fragili» direbbe solo che la lista letta era vuota. Le prime tre
 // forme sono quelle vere trovate il 19/09, più quelle già corrette in passato.

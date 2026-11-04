@@ -62,13 +62,9 @@ const ok = (cond, msg) => {
 // chiamate dal codice solo via service-role. Ogni voce porta la ragione: una
 // lista di esenzioni senza motivi è una lista che fra sei mesi nessuno sa più
 // se sia ancora vera.
-const ESENTI = {
-  e_profilo_di_prova:
-    "predicato di sola lettura, usato anche dagli SQL di diagnostica che Mario " +
-    "lancia a mano (scripts/diagnostica-*.sql). Resta una domanda aperta — nell'SQL " +
-    "Editor non si gira come `authenticated` — ma è un booleano su un profilo, non " +
-    "una scrittura: si toglie quando si tocca quella migrazione per altro.",
-};
+// Vuoto dal 04/11: l'unica voce (`e_profilo_di_prova`) l'ha chiusa
+// `20261210100000`, che l'ha tolta ad authenticated e ad anon.
+const ESENTI = {};
 
 // ── i chiamanti, dal TypeScript ─────────────────────────────────────────────
 function sorgenti(dir, out = []) {
