@@ -1,3 +1,4 @@
+import { testoVerificatore } from "@/lib/scuola/nomiStaff";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getScuolaContext } from "@/lib/scuola/context";
@@ -50,6 +51,7 @@ export default async function ScuolaStudenteDettaglioPage({ params }: { params: 
               il {formattaData(studente.verificatoIl, "long")}
             </p>
           )}
+          <p className="mt-1 text-xs text-kireo-muted">{testoVerificatore(studente.verificatore)}</p>
         </div>
         <div className="rounded-2xl border border-white/5 bg-kireo-card p-5">
           <p className="text-xs font-semibold uppercase tracking-wide text-kireo-muted">Ore PCTO certificate</p>
