@@ -8,7 +8,7 @@
 import { useState } from "react";
 import { Button } from "@/components/Button";
 import { createClient } from "@/lib/supabase/client";
-import { SEZIONI_EXPORT, assemblaEsportazione, TESTO_NESSUN_FILE, type EsitoSezione } from "@/lib/app/esportaDati";
+import { SEZIONI_EXPORT, assemblaEsportazione, leggiSezioneExport, TESTO_NESSUN_FILE, type EsitoSezione } from "@/lib/app/esportaDati";
 import { descriviErrore } from "@/lib/erroreSupabase";
 
 export default function ScaricaIMieiDati({ userId }: { userId: string }) {
@@ -27,16 +27,16 @@ export default function ScaricaIMieiDati({ userId }: { userId: string }) {
       const supabase = createClient();
       const risposte = await Promise.all(
         SEZIONI_EXPORT.map(async (s): Promise<EsitoSezione> => {
-          const query = supabase.from(s.tabella).select(s.select).eq(s.colonna, userId);
-          const { data, error } = s.singola ? await query.maybeSingle() : await query;
-          if (error) {
+          // Le regole della lettura (il padre prima, «solo i suoi», un padre
+          // non letto che non diventa un elenco vuoto) stanno nel modulo.
+          const { esito, errore, dove } = await leggiSezioneExport(supabase, s, userId);
+          if (!esito.ottenuta) {
             // Il browser non può registrare un guasto (`registra_guasto` è
             // solo service-role), quindi questa riga è l'unica traccia che
             // resta: senza, una query morta vive tre mesi.
-            console.error(`Export dati, sezione ${s.chiave} (${s.tabella}):`, descriviErrore(error));
-            return { ottenuta: false, motivo: error.code ?? "errore" };
+            console.error(`Export dati, sezione ${s.chiave} (${dove}):`, descriviErrore(errore));
           }
-          return { ottenuta: true, dati: data };
+          return esito;
         }),
       );
 
