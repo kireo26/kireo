@@ -72,6 +72,7 @@ export type SpecieGuasto =
   | "misura_avvio_video" // il riquadro semplice: non sappiamo se il video è partito, la presenza non avanza
   | "misura_fine_video" // il player ha detto «finito»: la presenza si è fermata lì (non un guasto, una misura)
   | "sonda_registrazione" // la sonda delle registrazioni non ha letto gli eventi o non ha scritto un esito (31/10)
+  | "giro_cron" // un cron non ha scritto il proprio giro (inizio, fine), o la mail del lunedì non li ha letti (04/11)
 
   // — artefatti del workshop fuori dal cron
   | "feedback_elaborato" // il feedback finale della route consegna (v1)

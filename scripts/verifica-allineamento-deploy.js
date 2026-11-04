@@ -8,6 +8,7 @@ const fs = require("fs");
 const path = require("path");
 const { abilitaTypeScript, ROOT } = require("./banco/ts");
 const { senzaCommenti } = require("./lib/senza-commenti");
+const { ancora } = require("./lib/ancora");
 abilitaTypeScript();
 const A = require(path.join(ROOT, "lib/osservabilita/allineamentoDeploy.ts"));
 
@@ -95,8 +96,12 @@ const confrontoAvanti = { status: "ahead", ahead_by: 2, commits: [{ sha: "c".rep
   console.log("\n§4 — il cron\n");
   const cron = senzaCommenti(fs.readFileSync(path.join(ROOT, "app/api/cron/workshop-motore/route.ts"), "utf8"));
   ok(/const allineamento = alertRichiesto\s*\?\s*await leggiAllineamento\(process\.env/.test(cron), "il controllo lo fa la produzione, sul giro programmato");
-  ok(/if \(alertRichiesto && \(deployDaSegnalare \|\|/.test(cron), "un disallineamento o un non controllato fa partire la mail da solo");
-  ok(/const html = `\$\{allineamento \? `<p><strong>Deploy<\/strong> — \$\{testoAllineamento\(allineamento\)\}/.test(cron), "e sta in testa alla mail");
+  // Dal 04/11 nella condizione c'è anche il lunedì, e in testa alla mail il
+  // blocco dei giri: la riga del deploy viene subito dopo, prima dei segnali.
+  ok(/if \(alertRichiesto && \(lunedi \|\| deployDaSegnalare \|\|/.test(cron), "un disallineamento o un non controllato fa partire la mail da solo");
+  const html = cron.slice(ancora(cron, "const html = `", { dove: "la mail del cron" }));
+  const posDeploy = ancora(html, "<strong>Deploy</strong> — ${testoAllineamento(allineamento)}", { dove: "la riga del deploy" });
+  ok(posDeploy > 0 && posDeploy < ancora(html, "Nelle ultime 24 ore", { dove: "i segnali" }), "e sta in testa ai segnali, prima di ogni numero");
   ok(/deployDaSegnalare \? \(allineamento\?\.esito === "indietro"/.test(cron), "l'oggetto della mail lo dice");
 
   console.log(`\n${falliti === 0 ? "✓" : "✗"} ${fatte - falliti} su ${fatte}`);

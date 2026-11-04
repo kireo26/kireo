@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { pianoAPagamento } from "@/lib/ente/pianoSuccessivo";
 import { formattaData } from "@/lib/formato";
 import { paroleStatoConversazione } from "@/lib/messaggi/statoConversazione";
+import { leggiNomiInConversazione, nomeOppure } from "@/lib/ente/nomiPerEnte";
 
 
 export default async function EnteMessaggiPage() {
@@ -11,11 +12,16 @@ export default async function EnteMessaggiPage() {
   const supabase = await createClient();
   const aPagamento = pianoAPagamento(contesto.pianoNome);
 
-  const { data: conversazioni } = await supabase
-    .from("conversazioni_enti")
-    .select("id, stato, created_at, profiles!student_id(nome, cognome)")
-    .eq("istituzione_id", contesto.istituzioneId)
-    .order("created_at", { ascending: false });
+  // Il nome dello studente non viene dalla tabella dei profili (20261209100000):
+  // l'ente ne legge solo nome e cognome, da una funzione.
+  const [{ data: conversazioni }, nomi] = await Promise.all([
+    supabase
+      .from("conversazioni_enti")
+      .select("id, stato, created_at")
+      .eq("istituzione_id", contesto.istituzioneId)
+      .order("created_at", { ascending: false }),
+    leggiNomiInConversazione(supabase),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -40,13 +46,12 @@ export default async function EnteMessaggiPage() {
       ) : (
         <ul className="space-y-3">
           {conversazioni.map((c) => {
-            const profilo = Array.isArray(c.profiles) ? c.profiles[0] : c.profiles;
             return (
               <li key={c.id}>
                 <Link href={`/ente/messaggi/${c.id}`} className="flex items-center justify-between rounded-xl border border-white/5 bg-kireo-card p-4 transition-colors hover:border-kireo-green/40">
                   <div>
                     <p className="font-heading text-sm font-semibold text-kireo-light">
-                      {profilo?.nome ?? "Studente"} {profilo?.cognome ?? ""}
+                      {nomeOppure(nomi, c.id, "Studente")}
                     </p>
                     <p className="mt-1 text-xs text-kireo-muted">{formattaData(c.created_at, "long")}</p>
                   </div>

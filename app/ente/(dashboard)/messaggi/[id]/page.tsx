@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { pianoAPagamento } from "@/lib/ente/pianoSuccessivo";
 import ThreadMessaggi from "@/components/messaggi/ThreadMessaggi";
 import { TESTO_CONVERSAZIONE_ACCOUNT_CANCELLATO } from "@/lib/account/testiRimossi";
+import { leggiNomiInConversazione, nomeOppure } from "@/lib/ente/nomiPerEnte";
 
 export default async function ConversazioneEntePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -13,7 +14,7 @@ export default async function ConversazioneEntePage({ params }: { params: Promis
 
   const { data: conversazione } = await supabase
     .from("conversazioni_enti")
-    .select("id, stato, istituzione_id, profiles!student_id(nome, cognome)")
+    .select("id, stato, istituzione_id")
     .eq("id", id)
     .maybeSingle();
 
@@ -25,7 +26,8 @@ export default async function ConversazioneEntePage({ params }: { params: Promis
     .eq("conversazione_id", id)
     .order("created_at", { ascending: true });
 
-  const profilo = Array.isArray(conversazione.profiles) ? conversazione.profiles[0] : conversazione.profiles;
+  // Solo nome e cognome, da una funzione (20261209100000).
+  const nomi = await leggiNomiInConversazione(supabase);
   const aPagamento = pianoAPagamento(contesto.pianoNome);
 
   let notaNonScrivibile = "Questa conversazione non è più scrivibile.";
@@ -44,7 +46,7 @@ export default async function ConversazioneEntePage({ params }: { params: Promis
           ← Tutte le conversazioni
         </Link>
         <h1 className="mt-2 py-1 font-heading text-2xl font-bold leading-[1.25] text-kireo-light">
-          {profilo?.nome ?? "Studente"} {profilo?.cognome ?? ""}
+          {nomeOppure(nomi, conversazione.id, "Studente")}
         </h1>
       </div>
       <ThreadMessaggi

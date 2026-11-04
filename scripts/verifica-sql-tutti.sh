@@ -69,6 +69,16 @@ else
   echo "  ✓ $(grep "sulla replica le colonne" "$OUT/export.out" | sed 's/^ *ok *//')"
 fi
 
+# LE REGOLE DI LETTURA SU `profiles` SULLA REPLICA (04/11): la metà di
+# `npm run test:profili` che guarda pg_policies e non le migrazioni.
+echo "regole di lettura su profiles, sulla replica:"
+if ! CONN="$CONN" node "$RADICE/scripts/verifica-nomi-per-l-ente.js" >"$OUT/profili.out" 2>&1 || ! grep -q "sulla replica, pg_policies" "$OUT/profili.out"; then
+  grep -E '✗' "$OUT/profili.out" | head -6 | sed 's/^/  /'
+  echo "  ✗ verifica-nomi-per-l-ente (uscita in $OUT/profili.out)"; COLONNE_ROSSE=1
+else
+  echo "  ✓ solo la propria riga e l'admin"
+fi
+
 # Diagnostica, non asserzioni: il perché accanto a ognuno.
 declare -A DIAGNOSTICA=(
   [verifica-cascata-profili]="stampa la chiusura della cascata da confrontare con scripts/lib/cascata-profili.js"

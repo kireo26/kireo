@@ -57,6 +57,7 @@ const ORDINE = [
   "misura_avvio_video",
   "misura_fine_video",
   "sonda_registrazione",
+  "giro_cron",
   "consegna_esaurita",
   "prove_consegna_evento",
   "scrittura_consegna_evento",
@@ -108,6 +109,8 @@ const COSA_VUOL_DIRE = {
     "NON È UN GUASTO: il player di uno studente ha detto che il video è finito, e la sua presenza si è fermata lì (dal 25/10). Il dettaglio dice quanto prima o dopo la fine programmata. La cosa da leggere è l'ASSENZA: un evento con presenti e nessuna riga vuol dire che il segnale di fine non è arrivato a nessuno, quindi la presenza ha corso fino alla fine della finestra come prima — e senza questa riga quella differenza non si vedrebbe mai",
   sonda_registrazione:
     "la sonda delle registrazioni (il cron /api/cron/registrazioni, dal 31/10) non ha letto gli eventi da sondare (`lettura`: nessuna registrazione nuova diventa rivedibile finché non riesce) o non ha scritto l'esito su un evento (`scrittura`: quell'evento si risonda al giro dopo). Un video NON disponibile non è un guasto: è un esito, e sta sull'evento",
+  giro_cron:
+    "un cron non ha scritto il proprio giro in `giri_cron` (`inizio`, `fine`) o il cron dei workshop non li ha letti per la mail del lunedì (`lettura`). Non ferma il lavoro: vuol dire che la mail del lunedì mostrerà un buco che non è un giro saltato — prima di credere al buco, si guarda qui (dal 04/11)",
   consegna_esaurita:
     "tutte le letture di una consegna sono finite senza riuscire: quel testo non sarà giudicato da solo, e lo studente non ha più un bottone da premere",
   prove_consegna_evento:
