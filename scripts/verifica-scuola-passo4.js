@@ -135,7 +135,7 @@ function clientFinto(risposta) {
     ok(src.includes("leggiNomiCertificatori(") && src.includes("nomeDelCertificatore("), `${rel}: il nome passa dalla funzione`);
     ok(!/profiles!certificata_da_user/.test(src), `${rel}: niente embed su profiles, che perdeva la lapide e il tutor disattivato`);
   }
-  ok(/r\.certificataDaNome/.test(leggi("components/scuola/RegistroPresenzeEvento.tsx")), "il registro a schermo mostra il nome");
+  ok(/\{r\.certificataDaNome && <span[^>]*>certificata da \{r\.certificataDaNome\}/.test(leggi("components/scuola/RegistroPresenzeEvento.tsx")), "il registro a schermo mostra il nome, quando c'è");
   ok(!/certificataDaTipo === "scuola" && p\.certificataDaNome/.test(scheda), "la scheda mostra il nome per ogni tipo, non solo la scuola");
 
   console.log(`\n${falliti === 0 ? "✓" : "✗"} ${fatte - falliti}/${fatte} proprietà${falliti ? `, ${falliti} rotte` : ""}`);
