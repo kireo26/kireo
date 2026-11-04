@@ -4,6 +4,7 @@ import { registraConsumo } from "@/lib/ai/consumo";
 import { createServiceRoleClient } from "@/lib/supabase/serviceRole";
 import { chiamaJson } from "@/lib/ai/chiamaJson";
 import { inviaEmail } from "@/lib/email/brevo";
+import { allineamentoDaSegnalare, leggiAllineamento, testoAllineamento } from "@/lib/osservabilita/allineamentoDeploy";
 import { REGOLA_LINGUA_INVARIANTE } from "@/lib/lingua/accordoGenere";
 import { MODELLO_CLIENTE_WORKSHOP, WORKSHOP_CLIENTE_NOME, WORKSHOP_CLIENTE_PROMPTS } from "@/lib/workshop/config";
 import { WORKSHOP_ELABORATO, WORKSHOP_TUTOR_CONTESTO } from "@/lib/workshop/elaborato-config";
@@ -769,8 +770,18 @@ export async function GET(request: NextRequest) {
   // perché una piattaforma ha cambiato un'intestazione è il guasto peggiore
   // che questa route possa avere. Il default resta «manda».
   const alertRichiesto = new URL(request.url).searchParams.get("alert") !== "no";
-  if (alertRichiesto && (totaleFalliti > 0 || testSenzaEsito > 0 || guardiaAncoraAccordato > 0)) {
-    const html = `<p>Nelle ultime 24 ore, segnali di osservabilità da controllare:</p>
+  // ── La produzione è allineata a `main`? (04/11) ───────────────────────────
+  // Lo chiede la produzione che sta girando, solo sul giro programmato: il
+  // perché, la soglia e il limite sono in lib/osservabilita/allineamentoDeploy.ts.
+  // Un «non controllato» fa partire la mail come un disallineamento: non è un sì.
+  const allineamento = alertRichiesto
+    ? await leggiAllineamento(process.env, (url) =>
+        fetch(url, { headers: { accept: "application/vnd.github+json", "user-agent": "kireo-osservabilita" }, cache: "no-store" }),
+      )
+    : null;
+  const deployDaSegnalare = allineamento !== null && allineamentoDaSegnalare(allineamento);
+  if (alertRichiesto && (deployDaSegnalare || totaleFalliti > 0 || testSenzaEsito > 0 || guardiaAncoraAccordato > 0)) {
+    const html = `${allineamento ? `<p><strong>Deploy</strong> — ${testoAllineamento(allineamento)}</p>` : ""}<p>Nelle ultime 24 ore, segnali di osservabilità da controllare:</p>
 <ul>
   <li>Escape — proposte finali non lette dal revisore (24h): <strong>${escapeFalliti}</strong></li>
   <li>Workshop — tentativi AI falliti (questa esecuzione del cron): <strong>${revisoriFalliti}</strong></li>
@@ -802,7 +813,7 @@ where avvenuto_il &gt; now() - interval '24 hours' and not di_prova
 order by avvenuto_il desc;</pre>
 <p><code>specie</code> dice <strong>cosa non è arrivato</strong> — <code>revisione</code>, <code>feedback_finale</code>, <code>modo_di_lavorare</code>, <code>reazione_cliente</code>, le <code>scrittura_*</code> — e <code>motivo</code> dice cosa fare: <code>troncata</code> = la risposta si è fermata al tetto dei token, si alza il tetto nel chiamante; <code>chiamata</code> = l'API non ha risposto; <code>estrazione</code> = ha risposto ma senza JSON dentro, ed è l'unico dei tre che riguarda il prompt; <code>forma_non_valida</code> = JSON buono con i campi sbagliati, cioè prompt e validatore disallineati.</p>
 <p>Una cosa che quella tabella <strong>non</strong> sa dire: se il codice non parte affatto, nessuna riga viene scritta — e una tabella vuota si legge come «tutto bene» proprio quando va peggio. Per quella classe il guardiano resta <code>npm run test:log5xx</code>.</p>`;
-    const esitoMail = await inviaEmail(EMAIL_ADMIN, `KIREO — osservabilità (24h): ${totaleFalliti} revisori, ${testSenzaEsito} test senza esito`, html, { nome: "Mario" });
+    const esitoMail = await inviaEmail(EMAIL_ADMIN, `${deployDaSegnalare ? (allineamento?.esito === "indietro" ? "⚠️ Produzione indietro rispetto a main — " : "⚠️ Allineamento di main non controllato — ") : ""}KIREO — osservabilità (24h): ${totaleFalliti} revisori, ${testSenzaEsito} test senza esito`, html, { nome: "Mario" });
     // L'UNICO guasto diagnostico che si registra, e la ragione è che nasconde
     // tutti gli altri: se la mail non parte, di quella giornata non si sa più
     // niente — a meno che non resti scritto qui, che è il posto dove si va a
@@ -827,5 +838,6 @@ order by avvenuto_il desc;</pre>
     guardiaInterventiProva,
     guardiaAncoraAccordatoProva,
     alertInviato: alertRichiesto,
+    allineamento,
   });
 }
