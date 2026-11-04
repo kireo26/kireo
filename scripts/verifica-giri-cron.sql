@@ -34,9 +34,14 @@ exception when others then
   insert into esiti values (3, 'una fine prima dell''inizio si rifiuta', 'rifiutato', '!' || sqlerrm, false);
 end $$;
 
-insert into esiti select 4, 'la riga nasce con partito_il scritto dal database, e senza fine', 'true', v::text, v is true
-from (select case when to_regclass('public.giri_cron') is null then null else
-  (select partito_il is not null and finito_il is null from public.giri_cron where processo = 'cron/prova' limit 1) end v) x;
+do $$
+declare v boolean;
+begin
+  execute $q$select partito_il is not null and finito_il is null from public.giri_cron where processo = 'cron/prova' limit 1$q$ into v;
+  insert into esiti values (4, 'la riga nasce con partito_il scritto dal database, e senza fine', 'true', v::text, v is true);
+exception when others then
+  insert into esiti values (4, 'la riga nasce con partito_il scritto dal database, e senza fine', 'true', '!' || sqlerrm, false);
+end $$;
 
 select n, case when coalesce(ok, false) then 'ok' else 'ROTTA' end as esito, cosa, atteso, trovato from esiti order by n;
 select count(*) filter (where coalesce(ok, false)) || '/' || count(*) || ' verificate' as riepilogo from esiti;
