@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { emailVerificato, leggiStudentiDellaScuola, soloVerificati } from "./studenti";
 import { leggiNomiCertificatori, nomeDelCertificatore } from "./certificatore";
+import { leggiVerificatore, type Verificatore } from "./nomiStaff";
 
 export type PartecipazioneCertificata = {
   eventoId: string;
@@ -20,6 +21,7 @@ export type DettaglioStudente = {
   classeAssegnata: string | null;
   statoVerifica: string;
   verificatoIl: string | null;
+  verificatore: Verificatore;
   partecipazioni: PartecipazioneCertificata[];
   totaleOrePcto: number;
 };
@@ -67,6 +69,7 @@ export async function getDettaglioStudente(
   // 04/11: il nome di chi ha certificato da `nomi_dei_certificatori`, non da un
   // embed su `profiles`: l'embed lo perdeva in silenzio per un tutor
   // disattivato, per chi ha cancellato l'account e per chi non è dello staff.
+  const verificatore = await leggiVerificatore(supabase, studentId);
   const nomi = await leggiNomiCertificatori(supabase, (partecipazioniRighe ?? []).map((r) => r.certificata_da_user as string | null));
   const partecipazioni: PartecipazioneCertificata[] = (partecipazioniRighe ?? []).map((riga) => {
     const evento = Array.isArray(riga.eventi) ? riga.eventi[0] : riga.eventi;
@@ -92,6 +95,7 @@ export async function getDettaglioStudente(
     classeAssegnata: classe?.nome_visualizzato ?? null,
     statoVerifica: sp.stato,
     verificatoIl: sp.verificatoIl,
+    verificatore,
     partecipazioni,
     totaleOrePcto,
   };

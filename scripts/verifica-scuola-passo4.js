@@ -138,6 +138,31 @@ function clientFinto(risposta) {
   ok(/\{r\.certificataDaNome && <span[^>]*>certificata da \{r\.certificataDaNome\}/.test(leggi("components/scuola/RegistroPresenzeEvento.tsx")), "il registro a schermo mostra il nome, quando c'è");
   ok(!/certificataDaTipo === "scuola" && p\.certificataDaNome/.test(scheda), "la scheda mostra il nome per ogni tipo, non solo la scuola");
 
+  console.log("\n§ i nomi dei colleghi e chi ha verificato (04/11, 20261208100000)\n");
+  {
+    const N = require(path.join(ROOT, "lib/scuola/nomiStaff.ts"));
+    const finto = (risposta) => ({ rpc: async (f, a) => { finto.ultimo = { f, a }; return risposta; } });
+    ok(N.testoVerificatore({ esito: "letto", nome: "Sara Spenta" }) === "da Sara Spenta", "chi ha verificato si dice col nome");
+    ok(N.testoVerificatore({ esito: "nessuno" }) === "Chi l'ha verificato non è registrato", "nessun autore registrato si dice così");
+    ok(N.testoVerificatore({ esito: "non_letto" }) === "Non siamo riusciti a leggere chi l'ha verificato", "e il non letto in un altro modo");
+    const v1 = await N.leggiVerificatore(finto({ data: [{ user_id: "u", nome: "Sara", cognome: "Spenta" }], error: null }), "s1");
+    ok(v1.esito === "letto" && v1.nome === "Sara Spenta" && finto.ultimo.f === "verificatore_dello_studente" && finto.ultimo.a.p_student === "s1", "chiede alla funzione con lo studente", v1);
+    ok((await N.leggiVerificatore(finto({ data: [], error: null }), "s1")).esito === "nessuno", "zero righe: nessuno");
+    ok((await N.leggiVerificatore(finto({ data: null, error: { message: "x" } }), "s1")).esito === "non_letto", "una lettura fallita: non letto, mai nessuno");
+    const m = await N.leggiNomiDelloStaff(finto({ data: [{ user_id: "t1", nome: "Tino", cognome: "Tutor" }], error: null }));
+    ok(finto.ultimo.f === "nomi_dello_staff" && N.nomeDelCollega(m, "t1") === "Tino Tutor", "i nomi dello staff dalla funzione");
+    ok((await N.leggiNomiDelloStaff(finto({ data: null, error: { message: "x" } }))) === null, "una lettura fallita è null");
+    ok(N.nomeDelCollega(null, "t1") === N.TESTO_NOME_NON_LETTO, "e la pagina dice che non ha letto");
+    const staffSrc = leggi("app/scuola/(dashboard)/staff/page.tsx");
+    ok(!/profiles!/.test(staffSrc) && /leggiNomiDelloStaff\(supabase\)/.test(staffSrc) && /nomeDelCollega\(nomi, t\.user_id\)/.test(staffSrc), "la pagina Staff non legge più il profilo dei colleghi");
+    ok(/<p className="[^"]*">\{testoVerificatore\(studente\.verificatore\)\}<\/p>/.test(scheda), "la scheda dice chi ha verificato, o perché non lo dice");
+    ok(/leggiVerificatore\(supabase, studentId\)/.test(leggi("lib/scuola/studenteDettaglio.ts")), "e il dettaglio lo legge");
+    const mig = fs.readFileSync(path.join(ROOT, "supabase/migrations/20261208100000_nomi_dello_staff_e_chi_ha_verificato.sql"), "utf8");
+    ok(/drop policy if exists profiles_select_scuola_staff on public\.profiles;/.test(mig), "la policy sui profili dei colleghi esce");
+    const tornata = fs.readdirSync(path.join(ROOT, "supabase/migrations")).filter((f) => f > "20261208100000").filter((f) => /create policy profiles_select_scuola_staff/.test(fs.readFileSync(path.join(ROOT, "supabase/migrations", f), "utf8")));
+    ok(tornata.length === 0, "e nessuna migrazione dopo la rimette", tornata);
+  }
+
   console.log(`\n${falliti === 0 ? "✓" : "✗"} ${fatte - falliti}/${fatte} proprietà${falliti ? `, ${falliti} rotte` : ""}`);
   process.exit(falliti === 0 ? 0 : 1);
 })();
