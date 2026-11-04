@@ -17,8 +17,8 @@ type Iscritto = {
 // Registro presenze per un evento docenti dell'ente: certifica la
 // partecipazione di un docente iscritto → genera l'attestato (idempotente,
 // vedi certifica_partecipazione_docente). Nome/cognome dei docenti sono
-// visibili solo qui, solo per i propri eventi (RLS
-// profiles_select_organizzatore_docenti_iscritti), solo per poterli
+// visibili solo qui, solo per i propri eventi (dal 04/11 dalla funzione
+// nomi_dei_docenti_iscritti, solo nome e cognome), solo per poterli
 // certificare — mai dati aggregati o cross-evento.
 export default function RegistroPresenzeDocenti({ eventoId, iscritti }: { eventoId: string; iscritti: Iscritto[] }) {
   const router = useRouter();

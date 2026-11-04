@@ -6,6 +6,7 @@ import RegistroPresenzeDocenti from "@/components/ente/RegistroPresenzeDocenti";
 import ChiaveTrasmissione from "@/components/ente/ChiaveTrasmissione";
 import { statoChiaveTrasmissione } from "@/lib/eventi/chiaveTrasmissione";
 import type { ContestoModerazione } from "@/lib/eventi/moderazione";
+import { leggiNomiDocentiIscritti, nomeOppure } from "@/lib/ente/nomiPerEnte";
 
 // LE PARTI DELLA PLANCIA CHE SONO SOLO DELL'ENTE, nella pagina dell'evento
 // (Mario, 27/10). Fino al 27/10 stavano nella lista di `/ente/eventi`, una per
@@ -25,11 +26,13 @@ export default async function PlanciaEnteEvento({ evento }: { evento: ContestoMo
   // `getQuoteEnte` dà null anche quando la lettura fallisce, e il bottone non
   // deve sparire per questo (il limite lo difende la funzione SQL).
   const puoEvidenza = evento.stato === "approvato" && !evento.in_evidenza;
-  const [quote, iscrizioni, chiave] = await Promise.all([
+  const [quote, iscrizioni, nomiDocenti, chiave] = await Promise.all([
     puoEvidenza ? getQuoteEnte(supabase, contesto.istituzioneId, contesto.pianoNome) : Promise.resolve(null),
     eDocenti && evento.stato === "approvato"
-      ? supabase.from("iscrizioni_eventi").select("student_id, stato, profiles!student_id(nome, cognome)").eq("evento_id", evento.id)
+      ? supabase.from("iscrizioni_eventi").select("student_id, stato").eq("evento_id", evento.id)
       : Promise.resolve(null),
+    // Solo nome e cognome dei docenti, da una funzione (20261209100000).
+    eDocenti && evento.stato === "approvato" ? leggiNomiDocentiIscritti(supabase, evento.id) : Promise.resolve(null),
     // Le chiavi dei propri eventi ospitati da KIREO: la RLS fa già passare
     // solo le proprie (chiavi_trasmissione_select_propria). L'errore si logga —
     // una lettura muta qui direbbe «non ancora preparata» su una chiave che
@@ -41,10 +44,11 @@ export default async function PlanciaEnteEvento({ evento }: { evento: ContestoMo
   if (iscrizioni?.error) console.error("[ente/eventi] registro docenti:", iscrizioni.error);
   if (chiave?.error) console.error("[ente/eventi] chiavi_trasmissione:", chiave.error);
 
-  const registro = (iscrizioni?.data ?? []).map((riga) => {
-    const profilo = Array.isArray(riga.profiles) ? riga.profiles[0] : riga.profiles;
-    return { userId: riga.student_id, nomeCompleto: profilo ? `${profilo.nome} ${profilo.cognome}` : "Docente", stato: riga.stato };
-  });
+  const registro = (iscrizioni?.data ?? []).map((riga) => ({
+    userId: riga.student_id,
+    nomeCompleto: nomeOppure(nomiDocenti, riga.student_id, "Docente"),
+    stato: riga.stato,
+  }));
   const c = chiave?.data ?? null;
 
   if (!puoEvidenza && !iscrizioni && !conChiave && !evento.in_evidenza) return null;
