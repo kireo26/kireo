@@ -40,7 +40,10 @@ export default function ScaricaIMieiDati({ userId }: { userId: string }) {
         }),
       );
 
-      const esito = assemblaEsportazione(risposte);
+      // L'indirizzo sta in auth, non in `profiles`: lo legge il server dalla
+      // sessione (getUser), non il browser dalla sua copia locale.
+      const { data: utente } = await supabase.auth.getUser();
+      const esito = assemblaEsportazione(risposte, utente?.user?.email ?? null);
       if (esito.file === null) {
         setErroreEsportazione(TESTO_NESSUN_FILE);
         return;

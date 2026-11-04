@@ -138,17 +138,16 @@ export const SEZIONI_EXPORT: SezioneExport[] = [
   },
   // Dal 30/10 (20261117110000), nello stesso lotto dell'invio: la regola è che
   // una tabella con dentro qualcosa che riguarda lo studente entra nel file
-  // nello stesso commit. ⚠️ Senza oggetto né ente: la newsletter è una riga
-  // dell'ente che lo studente non legge dal client (la legge in KIREO dalla
-  // notifica). Il giorno in cui serve il titolo, va copiato nella consegna come
-  // per le guide.
+  // nello stesso commit. Dal 04/11 (20261207100000, Mario §6d) con il mittente:
+  // l'ente e l'oggetto copiati sulla consegna quando nasce, come per le guide,
+  // perché lo studente non legge `newsletter_enti` dal client.
   {
     chiave: "newsletterRicevute",
     tabella: "newsletter_consegne",
     colonna: "student_id",
-    select: "stato, inviata_il, created_at",
+    select: "ente_nome, oggetto, stato, inviata_il, created_at",
     singola: false,
-    voce: "Le newsletter degli enti che ti abbiamo mandato: quando e se sono arrivate per email",
+    voce: "Le newsletter degli enti che ti abbiamo mandato: chi te l'ha mandata, l'oggetto, e quando e se è arrivata per email",
   },
   // Dal 30/10 (20261119110000), nello stesso lotto di «salva»: la copia che il
   // database ha fatto al momento del gesto, quindi anche dei post che non sono
@@ -528,7 +527,7 @@ export type Esportazione =
  *
  * `esiti` è nell'ordine di `SEZIONI_EXPORT`.
  */
-export function assemblaEsportazione(esiti: EsitoSezione[], adesso: Date = new Date()): Esportazione {
+export function assemblaEsportazione(esiti: EsitoSezione[], email: string | null, adesso: Date = new Date()): Esportazione {
   const nonSiamoRiusciti = SEZIONI_EXPORT.filter((_, i) => !esiti[i]?.ottenuta).map((s) => s.chiave);
 
   // Niente ottenuto: nessun file. Un file con la sola intestazione si apre e
@@ -546,8 +545,17 @@ export function assemblaEsportazione(esiti: EsitoSezione[], adesso: Date = new D
     // alla domanda che il ragazzo si sta facendo aprendo il file; i due campi
     // rispondono a una domanda nostra.
     cosaContiene: COSA_CONTIENE,
-    tutteLePartiRichiesteOttenute,
-    nonSiamoRiusciti,
+    // ⚠️ 04/11 (Mario, §6a): qui c'era `tutteLePartiRichiesteOttenute: true`,
+    // vero rispetto a quello che il codice aveva chiesto, e letto come «ho
+    // tutto» accanto a un elenco di parti che non ci sono. Un `true` assoluto
+    // accanto a delle assenze è un allarme che si impara a ignorare: ora il
+    // file dice quante parti su quante, e quante non sono ancora nel file.
+    parti: {
+      inQuestoFile: SEZIONI_EXPORT.length,
+      ottenute: SEZIONI_EXPORT.length - nonSiamoRiusciti.length,
+      nonOttenute: nonSiamoRiusciti,
+      nonAncoraInQuestoFile: VOCI_DEBITO.length,
+    },
   };
   if (!tutteLePartiRichiesteOttenute) contenuto.avviso = TESTO_AVVISO_INCOMPLETO;
 
@@ -556,6 +564,13 @@ export function assemblaEsportazione(esiti: EsitoSezione[], adesso: Date = new D
     const esito = esiti[i];
     if (esito?.ottenuta) contenuto[s.chiave] = esito.dati;
   });
+  // 04/11 (Mario, §6c): l'indirizzo email non stava nel file, ed è il dato che
+  // lo identifica (e dal 03/11 la chiave della lapide). Non sta in `profiles`,
+  // sta in auth: lo passa chi chiama, dalla sessione. Senza un indirizzo letto
+  // lo si dice, non lo si tace.
+  if (contenuto.profilo && typeof contenuto.profilo === "object") {
+    contenuto.profilo = { email: email ?? "non letto: non siamo riusciti a leggere il tuo indirizzo", ...(contenuto.profilo as object) };
+  }
 
   return { file: JSON.stringify(contenuto, null, 2), tutteLePartiRichiesteOttenute, nonSiamoRiusciti };
 }

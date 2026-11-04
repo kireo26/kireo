@@ -321,27 +321,33 @@ const tuttiOk = SEZIONI_EXPORT.map((_, i) => ({ ottenuta: true, dati: i === ULTI
 const unaPersa = tuttiOk.map((e, i) => (i === ULTIMA ? { ottenuta: false, motivo: "PGRST205" } : e));
 const nessuna = tuttiOk.map(() => ({ ottenuta: false, motivo: "PGRST205" }));
 
-const esitoCompleto = assemblaEsportazione(tuttiOk, adesso);
-const esitoIncompleto = assemblaEsportazione(unaPersa, adesso);
-const esitoVuoto = assemblaEsportazione(nessuna, adesso);
+const esitoCompleto = assemblaEsportazione(tuttiOk, "studente@esempio.it", adesso);
+const esitoIncompleto = assemblaEsportazione(unaPersa, "studente@esempio.it", adesso);
+const esitoVuoto = assemblaEsportazione(nessuna, "studente@esempio.it", adesso);
 
 const chiavi = SEZIONI_EXPORT.map((s) => s.chiave);
 const fileOk = JSON.parse(esitoCompleto.file);
 const fileRotto = JSON.parse(esitoIncompleto.file);
 const mancante = chiavi[ULTIMA];
 
-ok(fileOk.tutteLePartiRichiesteOttenute === true &&
-   Array.isArray(fileOk.nonSiamoRiusciti) && fileOk.nonSiamoRiusciti.length === 0,
-  "un file completo porta comunque `tutteLePartiRichiesteOttenute` e `nonSiamoRiusciti`",
+// RISCRITTA il 04/11 (Mario, §6a): non più un `true` assoluto accanto alle
+// parti che non ci sono, ma il denominatore. Attesi scritti a mano.
+ok(fileOk.parti?.inQuestoFile === SEZIONI_EXPORT.length && fileOk.parti?.ottenute === SEZIONI_EXPORT.length &&
+   Array.isArray(fileOk.parti?.nonOttenute) && fileOk.parti.nonOttenute.length === 0 &&
+   fileOk.parti?.nonAncoraInQuestoFile === VOCI_DEBITO.length,
+  "un file completo dice quante parti su quante, e quante non sono ancora nel file",
   "un campo che compare solo quando le cose vanno male è un campo che nessuno impara a cercare");
+ok(!("tutteLePartiRichiesteOttenute" in fileOk) && !("nonSiamoRiusciti" in fileOk),
+  "il `true` assoluto non è più nel file",
+  "accanto a nove assenze si leggeva «ho tutto»");
 // Il nome vecchio prometteva più della cosa che afferma: non deve rientrare,
 // e nemmeno restare accanto al nuovo.
 ok(!("completo" in fileOk) && !("completo" in fileRotto),
   "nessun campo si chiama `completo`",
   "rispondeva a «le query sono riuscite?» e si leggeva come «questo è tutto quello che avete su di me»");
 ok(fileOk.avviso === undefined, "un file completo non porta un avviso di incompletezza");
-const intestazione = Object.keys(fileOk).slice(0, 4);
-ok(intestazione.join(",") === "esportatoIl,cosaContiene,tutteLePartiRichiesteOttenute,nonSiamoRiusciti",
+const intestazione = Object.keys(fileOk).slice(0, 3);
+ok(Object.keys(fileOk).slice(0, 3).join(",") === "esportatoIl,cosaContiene,parti",
   `l'intestazione sta in cima, prima dei dati (${intestazione.join(", ")})`);
 
 for (const [nome, f] of [["completo", fileOk], ["incompleto", fileRotto]]) {
@@ -357,7 +363,7 @@ ok(typeof fileOk.cosaContiene !== "string",
   "`cosaContiene` non è tornato a essere una frase sola",
   "con quattro sezioni su trentacinque tabelle, una frase che elenca le mancanze afferma che il resto è dentro");
 
-ok(fileRotto.tutteLePartiRichiesteOttenute === false && fileRotto.nonSiamoRiusciti.join() === mancante,
+ok(fileRotto.parti?.ottenute === SEZIONI_EXPORT.length - 1 && fileRotto.parti?.nonOttenute.join() === mancante,
   `un file incompleto nomina la sezione mancante (${mancante})`);
 ok(!(mancante in fileRotto),
   `la sezione mancante NON compare nel file`,
@@ -367,6 +373,18 @@ ok(typeof fileRotto.avviso === "string" && fileRotto.avviso.includes("non vuol d
   "è la frase che porta il peso: la regola di casa detta a un sedicenne");
 ok(chiavi.filter((c) => c !== mancante).every((c) => c in fileRotto),
   "le altre sezioni restano nel file");
+// 04/11 (Mario, §6c e §6d). Attesi scritti a mano.
+ok(fileOk.profilo?.email === "studente@esempio.it", "l'indirizzo email sta nel profilo del file (§6c)", fileOk.profilo);
+{
+  const senzaEmail = JSON.parse(assemblaEsportazione(tuttiOk, null, adesso).file);
+  ok(typeof senzaEmail.profilo?.email === "string" && /non letto/.test(senzaEmail.profilo.email),
+    "un indirizzo non letto lo dice, non lo tace", senzaEmail.profilo);
+}
+{
+  const nl = SEZIONI_EXPORT.find((x) => x.chiave === "newsletterRicevute");
+  const col = (nl?.select ?? "").split(",").map((c) => c.trim());
+  ok(col.includes("ente_nome") && col.includes("oggetto"), "le newsletter ricevute dicono chi le ha mandate e l'oggetto (§6d)", nl?.select);
+}
 ok(esitoVuoto.file === null, "se non si ottiene niente, non si scarica nessun file",
   "un file con la sola intestazione si apre e sembra «non ho niente su KIREO»");
 
