@@ -79,7 +79,7 @@ const confrontoAvanti = { status: "ahead", ahead_by: 2, commits: [{ sha: "c".rep
   ok(await nc(finto([["/compare/", risposta(403, { message: "rate limit" })]])), "GitHub che risponde 403 (il tetto delle richieste): non controllato");
   ok(await nc(finto([["/compare/", risposta(404, {})]])), "un commit che GitHub non conosce: non controllato");
   ok(await nc(finto([["/compare/", risposta(200, { status: "ahead" })]])), "una forma senza commits: non controllato");
-  ok(await nc(finto([["/compare/", risposta(200, { status: "diverged", ahead_by: 1, behind_by: 1, commits: [{ sha: T }] })]])), "la produzione fuori da main: non controllato, non allineato");
+  ok(await nc(finto([["/compare/", risposta(200, { status: "diverged", ahead_by: 1, behind_by: 1, commits: [{ sha: T }] })], ["/statuses", risposta(200, [])]])), "la produzione fuori da main: non controllato, non allineato");
   ok(await nc(finto([["/compare/", risposta(200, confrontoAvanti)], ["/statuses", risposta(500, {})]])), "gli stati che non arrivano: non controllato");
   ok(await nc(finto([["/compare/", risposta(200, confrontoAvanti)], ["/statuses", risposta(200, { message: "x" })]])), "gli stati in una forma strana: non controllato");
 
