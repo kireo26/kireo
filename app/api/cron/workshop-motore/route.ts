@@ -1,3 +1,4 @@
+import { segnaGiroIniziato, segnaGiroFinito, eLunedìARoma, leggiGiri, testoGiri, giriDaSegnalare } from "@/lib/osservabilita/giriCron";
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { registraConsumo } from "@/lib/ai/consumo";
@@ -110,6 +111,11 @@ export async function GET(request: NextRequest) {
   if (!cronSecret || header !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ errore: "Non autorizzato." }, { status: 401 });
   }
+
+  // Il giro si scrive appena autorizzato, prima di qualunque cosa possa
+  // fermarlo: un giro partito e mai finito è un'informazione (04/11). La mail
+  // del lunedì conta solo i programmati; `?alert=no` dichiara un giro a mano.
+  const giro = await segnaGiroIniziato(PROCESSO, new URL(request.url).searchParams.get("alert") !== "no");
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
@@ -780,8 +786,15 @@ export async function GET(request: NextRequest) {
       )
     : null;
   const deployDaSegnalare = allineamento !== null && allineamentoDaSegnalare(allineamento);
-  if (alertRichiesto && (deployDaSegnalare || totaleFalliti > 0 || testSenzaEsito > 0 || guardiaAncoraAccordato > 0)) {
-    const html = `${allineamento ? `<p><strong>Deploy</strong> — ${testoAllineamento(allineamento)}</p>` : ""}<p>Nelle ultime 24 ore, segnali di osservabilità da controllare:</p>
+  // ── Il lunedì la mail parte comunque (04/11, Mario) ──────────────────────
+  // Nei giorni sani resta muta; il lunedì dice che è viva e, soprattutto,
+  // quando ogni cron ha girato l'ultima volta: un giro saltato si vede dalla
+  // data. Gli altri giorni i giri si leggono solo se la mail parte già.
+  const lunedi = alertRichiesto && eLunedìARoma(new Date());
+  const giri = lunedi ? await leggiGiri(supabase, new Date(), giro?.id ?? null) : null;
+  const giriRotti = lunedi && giriDaSegnalare(giri);
+  if (alertRichiesto && (lunedi || deployDaSegnalare || totaleFalliti > 0 || testSenzaEsito > 0 || guardiaAncoraAccordato > 0)) {
+    const html = `${lunedi ? `<p><strong>È lunedì: la mail dell'osservabilità parte comunque.</strong> Negli altri giorni parte solo se c'è qualcosa da guardare.</p>${testoGiri(giri)}` : ""}${allineamento ? `<p><strong>Deploy</strong> — ${testoAllineamento(allineamento)}</p>` : ""}<p>Nelle ultime 24 ore, segnali di osservabilità da controllare:</p>
 <ul>
   <li>Escape — proposte finali non lette dal revisore (24h): <strong>${escapeFalliti}</strong></li>
   <li>Workshop — tentativi AI falliti (questa esecuzione del cron): <strong>${revisoriFalliti}</strong></li>
@@ -813,7 +826,7 @@ where avvenuto_il &gt; now() - interval '24 hours' and not di_prova
 order by avvenuto_il desc;</pre>
 <p><code>specie</code> dice <strong>cosa non è arrivato</strong> — <code>revisione</code>, <code>feedback_finale</code>, <code>modo_di_lavorare</code>, <code>reazione_cliente</code>, le <code>scrittura_*</code> — e <code>motivo</code> dice cosa fare: <code>troncata</code> = la risposta si è fermata al tetto dei token, si alza il tetto nel chiamante; <code>chiamata</code> = l'API non ha risposto; <code>estrazione</code> = ha risposto ma senza JSON dentro, ed è l'unico dei tre che riguarda il prompt; <code>forma_non_valida</code> = JSON buono con i campi sbagliati, cioè prompt e validatore disallineati.</p>
 <p>Una cosa che quella tabella <strong>non</strong> sa dire: se il codice non parte affatto, nessuna riga viene scritta — e una tabella vuota si legge come «tutto bene» proprio quando va peggio. Per quella classe il guardiano resta <code>npm run test:log5xx</code>.</p>`;
-    const esitoMail = await inviaEmail(EMAIL_ADMIN, `${deployDaSegnalare ? (allineamento?.esito === "indietro" ? "⚠️ Produzione indietro rispetto a main — " : "⚠️ Allineamento di main non controllato — ") : ""}KIREO — osservabilità (24h): ${totaleFalliti} revisori, ${testSenzaEsito} test senza esito`, html, { nome: "Mario" });
+    const esitoMail = await inviaEmail(EMAIL_ADMIN, `${giriRotti ? "⚠️ Un cron ha saltato un giro — " : ""}${deployDaSegnalare ? (allineamento?.esito === "indietro" ? "⚠️ Produzione indietro rispetto a main — " : "⚠️ Allineamento di main non controllato — ") : ""}KIREO — osservabilità (24h): ${totaleFalliti} revisori, ${testSenzaEsito} test senza esito`, html, { nome: "Mario" });
     // L'UNICO guasto diagnostico che si registra, e la ragione è che nasconde
     // tutti gli altri: se la mail non parte, di quella giornata non si sa più
     // niente — a meno che non resti scritto qui, che è il posto dove si va a
@@ -825,6 +838,7 @@ order by avvenuto_il desc;</pre>
       );
   }
 
+  await segnaGiroFinito(giro, PROCESSO);
   return NextResponse.json({
     processate,
     saltate,
@@ -839,5 +853,6 @@ order by avvenuto_il desc;</pre>
     guardiaAncoraAccordatoProva,
     alertInviato: alertRichiesto,
     allineamento,
+    giri,
   });
 }

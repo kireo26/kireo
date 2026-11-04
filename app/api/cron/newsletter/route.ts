@@ -1,3 +1,4 @@
+import { segnaGiroIniziato, segnaGiroFinito } from "@/lib/osservabilita/giriCron";
 import { NextResponse, type NextRequest } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/serviceRole";
 import { inviaEmail } from "@/lib/email/brevo";
@@ -27,8 +28,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ errore: "Non autorizzato." }, { status: 401 });
   }
 
+  // Il giro si scrive appena autorizzato, prima di qualunque cosa possa
+  // fermarlo: un giro partito e mai finito è un'informazione (04/11). La mail
+  // del lunedì conta solo i programmati; `?alert=no` dichiara un giro a mano.
+  const giro = await segnaGiroIniziato(PROCESSO, new URL(request.url).searchParams.get("alert") !== "no");
+
   const adesso = new Date();
   if (!eOraDiInvio(adesso)) {
+    await segnaGiroFinito(giro, PROCESSO);
     return NextResponse.json({ fatto: false, motivo: "fuori orario: si manda alle 7:30 ora italiana" });
   }
 
@@ -61,5 +68,6 @@ export async function GET(request: NextRequest) {
     });
   }
 
+  await segnaGiroFinito(giro, PROCESSO);
   return NextResponse.json({ fatto: true, oggi, ...esito, guasti: esito.guasti.length });
 }

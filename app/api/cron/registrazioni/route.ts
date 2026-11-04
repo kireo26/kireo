@@ -1,3 +1,4 @@
+import { segnaGiroIniziato, segnaGiroFinito } from "@/lib/osservabilita/giriCron";
 import { NextResponse, type NextRequest } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/serviceRole";
 import { registraGuasto } from "@/lib/guasti/registra";
@@ -23,6 +24,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ errore: "Non autorizzato." }, { status: 401 });
   }
 
+  // Il giro si scrive appena autorizzato, prima di qualunque cosa possa
+  // fermarlo: un giro partito e mai finito è un'informazione (04/11). La mail
+  // del lunedì conta solo i programmati; `?alert=no` dichiara un giro a mano.
+  const giro = await segnaGiroIniziato(PROCESSO, new URL(request.url).searchParams.get("alert") !== "no");
+
   let supabase;
   try {
     supabase = createServiceRoleClient();
@@ -41,5 +47,6 @@ export async function GET(request: NextRequest) {
     console.error(`[${PROCESSO}] gli eventi da sondare non si sono letti: nessuna sonda in questo giro`);
     return NextResponse.json({ errore: "Non sono riuscito a leggere gli eventi da sondare." }, { status: 500 });
   }
+  await segnaGiroFinito(giro, PROCESSO);
   return NextResponse.json({ letti: esito.letti, richieste: esito.richieste, sondati: esito.sondati, guasti: esito.guasti.length });
 }
