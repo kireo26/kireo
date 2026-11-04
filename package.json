@@ -109,6 +109,7 @@
     "test:riordino": "node scripts/verifica-admin-riordino.js",
     "test:rifiuto": "node scripts/verifica-rifiuto-verifica.js",
     "test:scuolapasso4": "node scripts/verifica-scuola-passo4.js",
+    "test:profili": "node scripts/verifica-nomi-per-l-ente.js",
     "test:modalita": "node scripts/verifica-modalita-iscrizione.js",
     "test:invito": "node scripts/verifica-codice-invito.js",
     "test:delega": "node scripts/verifica-delega-tutor.js",

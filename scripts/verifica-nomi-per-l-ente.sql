@@ -4,7 +4,8 @@
 --
 -- CONTROPROVA: su una replica nata senza la migrazione la 1 e la 2 sono rosse
 -- (le due policy lasciano leggere data di nascita e telefono: il difetto di
--- prima) e le altre non partono (le funzioni non ci sono).
+-- prima) e lo sono anche la 3-7, perché le funzioni non ci sono. Verde solo il
+-- controllo (8).
 --
 -- Transazione con ROLLBACK.
 
