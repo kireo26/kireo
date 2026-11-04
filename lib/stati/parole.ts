@@ -74,7 +74,7 @@ const etichette = (m: Record<string, { label: string }>): Parole =>
  * i valori: una che ne copre una parte è una frase muta che aspetta il valore
  * mancante.
  */
-export const PAROLE_DEGLI_STATI: Record<string, { tipo: string | null; parole: Record<string, Parole> }> = {
+export const PAROLE_DEGLI_STATI = {
   "conversazioni_enti.stato": { tipo: "conversazione_ente_stato", parole: { ...PAROLE_STATO_CONVERSAZIONE } },
   "eventi.stato": { tipo: "evento_stato", parole: { tutti: PAROLE_STATO_EVENTO } },
   "post_enti.stato": { tipo: "post_ente_stato", parole: { tutti: etichette(ETICHETTA_STATO_POST) } },
@@ -85,7 +85,7 @@ export const PAROLE_DEGLI_STATI: Record<string, { tipo: string | null; parole: R
   "proposte_incontro.stato": { tipo: "proposta_incontro_stato", parole: { tutti: PAROLE_STATO_PROPOSTA } },
   "domande_live.stato": { tipo: null, parole: { schermo: PAROLE_STATO_DOMANDA_LIVE, csv: STATO_DOMANDA_CSV } },
   "workshop_fasi_stato.stato": { tipo: null, parole: { tutti: PAROLE_STATO_TAPPA } },
-};
+} satisfies Record<string, { tipo: string | null; parole: Record<string, Parole> }>;
 
 /**
  * Le colonne di stato che nessuna schermata mostra come una parola, con il
@@ -106,8 +106,25 @@ export const STATI_SENZA_PAROLE: Record<string, string> = {
   "student_profiles.stato_verifica": "decide un ramo e una frase nel profilo e nella scuola, mai stampato",
 };
 
-/** La parola di uno stato di una colonna registrata; senza parola, lo dice. */
-export function parolaDelloStato(colonna: keyof typeof PAROLE_DEGLI_STATI, valore: string | null | undefined, chi = "tutti"): string {
-  const voce = PAROLE_DEGLI_STATI[colonna];
-  return parolaDiStato(voce?.parole[chi] ?? {}, valore);
+/**
+ * La parola di uno stato di una colonna registrata; senza parola, lo dice.
+ *
+ * ⚠️ IL PUBBLICO È OBBLIGATORIO, E DEVE ESISTERE (04/11). Fino a oggi aveva un
+ * valore di partenza, «tutti», e un pubblico che la colonna non aveva diventava
+ * in silenzio una tabella vuota: la newsletter (che ha «ente» e «admin», non
+ * «tutti») diceva «Stato non riconosciuto» a ogni valore, sulla pagina
+ * dell'ente nell'admin. *La rete che dichiara una parola mancante l'ha
+ * dichiarata, ed era vero; ma mancava la tabella, non la parola.* Ora il tipo
+ * non lascia scrivere un pubblico che la colonna non ha, e se ci si arriva lo
+ * stesso (un valore costruito a runtime) la funzione lancia: un errore di chi
+ * chiama non si traveste da stato sconosciuto.
+ */
+export function parolaDelloStato<C extends keyof typeof PAROLE_DEGLI_STATI>(
+  colonna: C,
+  valore: string | null | undefined,
+  chi: keyof (typeof PAROLE_DEGLI_STATI)[C]["parole"] & string,
+): string {
+  const parole = (PAROLE_DEGLI_STATI[colonna].parole as Record<string, Parole>)[chi];
+  if (!parole) throw new Error(`parolaDelloStato: la colonna ${String(colonna)} non ha parole per «${chi}»`);
+  return parolaDiStato(parole, valore);
 }

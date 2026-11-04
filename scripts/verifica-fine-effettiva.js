@@ -297,7 +297,9 @@ console.log("\n§5 — il CSV: «non misurata» dove non c'era niente da misurar
   // La riga del 22/09 nel CSV di Mario: certificata dalla scuola, nessun battito.
   const dad = { stato_finale: "partecipato", certificata_da_tipo: "scuola", primo_ping: null, minuti_presenza: null, minuti_contati: 0, copertura_percento: 0 };
   const celle = E.celleMisura(dad);
-  ok(celle.every((c) => c === E.PRESENZA_NON_MISURATA), "certificata a mano senza battito: le tre celle dicono «non misurata», non 0", celle);
+  // RISCRITTA il 04/11 (Mario): vuote, non «non misurata», perché sono colonne
+  // di numeri e una parola le fa diventare testo nel foglio di calcolo. Mai 0.
+  ok(celle.every((c) => c === null), "certificata a mano senza battito: le tre celle sono vuote, né 0 né una parola", celle);
   ok(E.notaPresenzaNonMisurata([dad]) === E.NOTA_PRESENZA_NON_MISURATA, "…e la nota sotto la sezione lo spiega");
   const auto = { ...dad, certificata_da_tipo: "sistema", primo_ping: "x", minuti_presenza: 23.5, minuti_contati: 22, copertura_percento: 91.7 };
   ok(JSON.stringify(E.celleMisura(auto)) === JSON.stringify([22, 23.5, 91.7]), "certificata dal conteggio: i numeri veri", E.celleMisura(auto));

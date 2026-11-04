@@ -158,9 +158,8 @@ export function esitoPresenzaPerExport(
  * conteggio automatico, e SENZA un battito. Se uno studente certificato a mano
  * si è anche collegato, i suoi numeri sono misure vere ed escono come sono.
  */
-export const PRESENZA_NON_MISURATA = "non misurata";
 export const NOTA_PRESENZA_NON_MISURATA =
-  "«non misurata» significa che la presenza è stata certificata a mano (per esempio una classe in DAD): il conteggio automatico non si applica, quindi non c'è nessun minuto da riportare.";
+  "Minuti e copertura vuoti su una presenza certificata vogliono dire che la presenza è stata certificata a mano (per esempio una classe in DAD): il conteggio automatico non si applica, quindi non c'è nessun minuto da riportare.";
 
 export function presenzaNonMisurata(r: { stato_finale: string; certificata_da_tipo: string | null; primo_ping: string | null }): boolean {
   return r.stato_finale === "partecipato" && r.certificata_da_tipo !== null && r.certificata_da_tipo !== "sistema" && !r.primo_ping;
@@ -178,7 +177,12 @@ export function celleMisura(r: {
   minuti_contati?: number | null;
   copertura_percento: number | null;
 }): (number | string | null)[] {
-  if (presenzaNonMisurata(r)) return [PRESENZA_NON_MISURATA, PRESENZA_NON_MISURATA, PRESENZA_NON_MISURATA];
+  // Vuote, non «non misurata» (Mario, 04/11): sono colonne di numeri, e una
+  // parola dentro le fa diventare testo nel foglio di calcolo, che smette di
+  // sommarle. La spiegazione sta nella nota sotto la sezione, e chi deve
+  // distinguere «zero» da «non misurata» lo legge da «Certificata da»: il
+  // conteggio automatico è «sistema», e qui non lo è.
+  if (presenzaNonMisurata(r)) return [null, null, null];
   return [minutiContatiPerExport(r), minutiPerExport(r), r.copertura_percento];
 }
 
@@ -221,7 +225,11 @@ export function statoDomandaPerExport(stato: string): string {
  * Le intestazioni delle colonne del codice, accanto a quelle della parola
  * (03/11). Il codice esce sempre com'è: è la colonna che si legge a macchina.
  */
-export const INTESTAZIONE_CODICE_ISCRIZIONE = "Stato dell'iscrizione (codice)";
+// ⚠️ Non «(codice)», e non è un errore (04/11): «Esito presenza» non è la
+// parola di questo valore, è una classificazione che ne legge quattro (lo stato,
+// il collegamento, la chiusura, la durata). Chiamarlo «(codice)» faceva credere
+// a una coppia che non c'è.
+export const INTESTAZIONE_CODICE_ISCRIZIONE = "Stato dell'iscrizione nel sistema";
 export const INTESTAZIONE_CODICE_CERTIFICATORE = "Certificata da (codice)";
 export const INTESTAZIONE_CODICE_DOMANDA = "Stato (codice)";
 export const INTESTAZIONE_CODICE_TOCCO = "Toccata da (codice)";

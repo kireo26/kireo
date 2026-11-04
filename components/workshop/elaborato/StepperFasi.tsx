@@ -63,7 +63,7 @@ export default function StepperFasi({
                         : "Bloccata"
                       : nonValutata
                         ? "Superata, non revisionata"
-                        : parolaDelloStato("workshop_fasi_stato.stato", stato)}
+                        : parolaDelloStato("workshop_fasi_stato.stato", stato, "tutti")}
                   </span>
                 </span>
               </button>

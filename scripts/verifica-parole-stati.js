@@ -72,8 +72,15 @@ for (const [colonna, voce] of voci) {
 ok(!voci.some(([c]) => c in S.STATI_SENZA_PAROLE), "nessuna colonna è insieme registrata ed esclusa");
 ok(Object.values(S.STATI_SENZA_PAROLE).every((r) => typeof r === "string" && r.length > 15), "ogni esclusione dice il perché");
 // Gli attesi scritti a mano, non letti dal registro.
-ok(S.parolaDelloStato("eventi.stato", "approvato") === "Approvato", "«approvato» passa da una parola, anche se sembra già una");
-ok(S.parolaDelloStato("eventi.stato", "inventato") === "Stato non riconosciuto", "un valore che il registro non conosce lo dice");
+ok(S.parolaDelloStato("eventi.stato", "approvato", "tutti") === "Approvato", "«approvato» passa da una parola, anche se sembra già una");
+ok(S.parolaDelloStato("eventi.stato", "inventato", "tutti") === "Stato non riconosciuto", "un valore che il registro non conosce lo dice");
+ok(S.parolaDelloStato("newsletter_enti.stato", "inviata", "admin") === "Partita", "la newsletter, letta dall'admin, dice la sua parola (04/11: diceva «non riconosciuto»)");
+// 04/11: un pubblico che la colonna non ha NON è uno stato sconosciuto, è un
+// errore di chi chiama. Prima diventava una tabella vuota, e la rete diceva
+// «Stato non riconosciuto» a ogni valore della newsletter.
+let lancia = false;
+try { S.parolaDelloStato("newsletter_enti.stato", "inviata", "tutti"); } catch { lancia = true; }
+ok(lancia, "un pubblico che la colonna non ha fa errore, non «Stato non riconosciuto»");
 
 console.log("\n§3 nessun testo prende uno stato senza una parola");
 const AMMESSI = /parolaDelloStato|parolaDiStato|paroleStatoConversazione|etichetta\w*\(|ETICHETTA\w*\[|PAROLE\w*\[|CLASSE\w*\[|MESSAGGIO\w*\[|TESTI\w*\.|===|!==/;
@@ -115,6 +122,38 @@ function scorri(d) {
 for (const d of ["app", "components", "lib"]) scorri(path.join(ROOT, d));
 ok(letti > 400, `file letti: ${letti}`);
 ok(crudi.length === 0, "nessuno stato stampato com'è", crudi.join("\n      "));
+
+// §3bis (04/11): il §3 accettava qualunque chiamata a parolaDelloStato come
+// «una parola è stata cercata», senza guardare se la chiamata arrivava a una
+// tabella. La newsletter chiedeva «tutti», che quella colonna non ha: verde
+// qui, «Stato non riconosciuto» a schermo. Ora ogni chiamata nomina colonna e
+// pubblico come letterali, e la coppia deve esistere nel registro. E una
+// parola non si cambia di maiuscole dopo: «Approvata» abbassata diventa
+// «approvata», cioè il valore grezzo, e la guardia del §2 non lo vede più.
+console.log("\n§3bis ogni chiamata arriva a una tabella di parole, e la parola non si ritocca");
+const chiamate = [];
+const ritoccate = [];
+function scorriChiamate(d) {
+  for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+    const p = path.join(d, e.name);
+    const rel = path.relative(ROOT, p);
+    if (e.isDirectory()) { if (rel !== "lib/stati") scorriChiamate(p); continue; }
+    if (!/\.(tsx|ts)$/.test(e.name)) continue;
+    const s = senzaCommenti(fs.readFileSync(p, "utf8"));
+    for (const m of s.matchAll(/parolaDelloStato\(([^()]*(?:\([^()]*\)[^()]*)*)\)/g)) {
+      const arg = m[1].split(",").map((x) => x.trim());
+      chiamate.push({ rel, colonna: (arg[0] ?? "").replace(/^"|"$/g, ""), chi: (arg[2] ?? "").replace(/^"|"$/g, ""), letterali: /^".*"$/.test(arg[0] ?? "") && /^".*"$/.test(arg[2] ?? "") });
+    }
+    for (const m of s.matchAll(/(?:parolaDelloStato|parolaDiStato|paroleStatoConversazione)\([^;]*?\)\s*\.\s*to(?:Lower|Upper|LocaleLower|LocaleUpper)Case/g)) ritoccate.push(`${rel}: ${m[0].slice(0, 90)}`);
+  }
+}
+for (const d of ["app", "components", "lib"]) scorriChiamate(path.join(ROOT, d));
+ok(chiamate.length >= 8, `chiamate trovate: ${chiamate.length}`);
+const senzaLetterali = chiamate.filter((c) => !c.letterali).map((c) => `${c.rel}: ${c.colonna}, ${c.chi}`);
+ok(senzaLetterali.length === 0, "colonna e pubblico sono scritti per esteso in ogni chiamata", senzaLetterali.join("\n      "));
+const senzaTabella = chiamate.filter((c) => c.letterali && !S.PAROLE_DEGLI_STATI[c.colonna]?.parole?.[c.chi]).map((c) => `${c.rel}: ${c.colonna} per «${c.chi}»`);
+ok(senzaTabella.length === 0, "ogni coppia colonna-pubblico ha la sua tabella", senzaTabella.join("\n      "));
+ok(ritoccate.length === 0, "nessuna parola cambiata di maiuscole dopo essere stata cercata", ritoccate.join("\n      "));
 
 console.log("\n§4 sulla replica: ogni colonna di stato è registrata o esclusa");
 const CONN = process.env.CONN;
