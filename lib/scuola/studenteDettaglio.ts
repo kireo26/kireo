@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { emailVerificato, leggiStudentiDellaScuola, soloVerificati } from "./studenti";
+import { leggiNomiCertificatori, nomeDelCertificatore } from "./certificatore";
 
 export type PartecipazioneCertificata = {
   eventoId: string;
@@ -51,7 +52,7 @@ export async function getDettaglioStudente(
     supabase
       .from("iscrizioni_eventi")
       .select(
-        "evento_id, certificata_da_tipo, certificata_da_user, certificata_il, ore_riconosciute, eventi(titolo, data_inizio), profiles!certificata_da_user(nome, cognome)",
+        "evento_id, certificata_da_tipo, certificata_da_user, certificata_il, ore_riconosciute, eventi(titolo, data_inizio)",
       )
       .eq("student_id", studentId)
       .eq("stato", "partecipato")
@@ -63,10 +64,12 @@ export async function getDettaglioStudente(
 
   const classe = Array.isArray(classeRiga?.classi) ? classeRiga?.classi[0] : classeRiga?.classi;
 
+  // 04/11: il nome di chi ha certificato da `nomi_dei_certificatori`, non da un
+  // embed su `profiles`: l'embed lo perdeva in silenzio per un tutor
+  // disattivato, per chi ha cancellato l'account e per chi non è dello staff.
+  const nomi = await leggiNomiCertificatori(supabase, (partecipazioniRighe ?? []).map((r) => r.certificata_da_user as string | null));
   const partecipazioni: PartecipazioneCertificata[] = (partecipazioniRighe ?? []).map((riga) => {
     const evento = Array.isArray(riga.eventi) ? riga.eventi[0] : riga.eventi;
-    const certificatore = Array.isArray(riga.profiles) ? riga.profiles[0] : riga.profiles;
-    const nomeCertificatore = certificatore ? `${certificatore.nome} ${certificatore.cognome}`.trim() : "";
     return {
       eventoId: riga.evento_id,
       titolo: evento?.titolo ?? "Evento",
@@ -75,7 +78,7 @@ export async function getDettaglioStudente(
       orePcto: Number(riga.ore_riconosciute ?? 0),
       certificataDaTipo: riga.certificata_da_tipo,
       certificataIl: riga.certificata_il,
-      certificataDaNome: nomeCertificatore || null,
+      certificataDaNome: nomeDelCertificatore(nomi, riga.certificata_da_tipo, riga.certificata_da_user as string | null) ?? null,
     };
   });
 

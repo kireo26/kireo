@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { emailVerificato, perId, type StudenteDellaScuola } from "./studenti";
+import { leggiNomiCertificatori, nomeDelCertificatore } from "./certificatore";
 
 // Testo mio e provvisorio.
 export const TESTO_NON_PIU_FRA_GLI_STUDENTI = "Non più fra i tuoi studenti";
@@ -11,6 +12,8 @@ export type RigaPresenza = {
   email: string | null;
   stato: "iscritto" | "partecipato";
   certificataDaTipo: string | null;
+  // Il nome di chi ha certificato (04/11); assente se non c'è da dire niente.
+  certificataDaNome?: string;
   /**
    * Falso quando la persona non è più fra gli studenti della scuola (ha
    * cancellato l'account o ha cambiato scuola): la riga resta, perché è un
@@ -36,7 +39,7 @@ export async function getRegistroPresenze(
   const [{ data: righeDirette, error: erroreRigheDirette }, { data: classiDad, error: erroreClassiDad }] = await Promise.all([
     supabase
       .from("iscrizioni_eventi")
-      .select("student_id, stato, certificata_da_tipo, nome_alla_cancellazione, cognome_alla_cancellazione")
+      .select("student_id, stato, certificata_da_tipo, certificata_da_user, nome_alla_cancellazione, cognome_alla_cancellazione")
       .eq("evento_id", eventoId)
       .eq("origine", "scuola"),
     supabase
@@ -51,6 +54,9 @@ export async function getRegistroPresenze(
   if (erroreClassiDad) console.error("[lib/scuola/eventi.ts:getRegistroPresenze] errore query classiDad:", erroreClassiDad);
 
   const mappa = new Map<string, RigaPresenza>();
+  // 04/11: chi ha certificato, per nome, anche se ha cancellato l'account o non
+  // è più nello staff (20261207110000).
+  const nomiCertificatori = await leggiNomiCertificatori(supabase, (righeDirette ?? []).map((r) => r.certificata_da_user as string | null));
 
   for (const riga of righeDirette ?? []) {
     const studente = studentePerId.get(riga.student_id);
@@ -68,6 +74,7 @@ export async function getRegistroPresenze(
       email: studente ? emailVerificato(studente) : null,
       stato: riga.stato as "iscritto" | "partecipato",
       certificataDaTipo: riga.certificata_da_tipo,
+      certificataDaNome: nomeDelCertificatore(nomiCertificatori, riga.certificata_da_tipo, riga.certificata_da_user as string | null),
       fraGliStudenti: Boolean(studente),
     });
   }

@@ -102,7 +102,10 @@ export default function RegistroPresenzeEvento({
               )}
             </label>
             {r.stato === "partecipato" ? (
-              <span className="rounded-full bg-kireo-green/15 px-2.5 py-0.5 text-xs font-semibold text-kireo-green-light">Presente ✓</span>
+              <span className="flex items-center gap-2">
+                <span className="rounded-full bg-kireo-green/15 px-2.5 py-0.5 text-xs font-semibold text-kireo-green-light">Presente ✓</span>
+                {r.certificataDaNome && <span className="text-xs text-kireo-muted">certificata da {r.certificataDaNome}</span>}
+              </span>
             ) : !r.fraGliStudenti ? (
               <span className="text-xs text-kireo-muted">{TESTO_NON_CERTIFICABILE}</span>
             ) : puoCertificare ? (

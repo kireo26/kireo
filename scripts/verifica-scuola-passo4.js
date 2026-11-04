@@ -15,7 +15,7 @@ abilitaTypeScript();
 const { getOrePctoDaEventi } = require("@/lib/app/eventi");
 const { TESTO_ORE_NON_LETTE } = require("@/lib/app/pcto");
 const { riepilogoIscrizioniClassi, PROSSIME_ISCRIZIONI_MASSIMO } = require("@/lib/scuola/home");
-const { etichettaCertificatore } = require("@/lib/scuola/certificatore");
+const { etichettaCertificatore, ETICHETTA_CERTIFICATORE, nomeDelCertificatore, leggiNomiCertificatori, TESTO_CERTIFICATORE_NON_LETTO } = require("@/lib/scuola/certificatore");
 
 let fatte = 0;
 let falliti = 0;
@@ -111,7 +111,32 @@ function clientFinto(risposta) {
     const m = fs.readFileSync(path.join(ROOT, "supabase/migrations", f), "utf8").match(/certificata_da_tipo in \(([^)]*)\)/);
     if (m) ammessi = [...m[1].matchAll(/'([^']+)'/g)].map((x) => x[1]);
   }
-  ok(ammessi !== null && ammessi.every((t) => !etichettaCertificatore(t).startsWith("Certificato (")), `ogni tipo ammesso dal database ha un'etichetta (${ammessi ? ammessi.join(", ") : "nessuno letto"})`);
+  // ⚠️ RISCRITTA il 04/11: guardava il ripiego («Certificato (tipo)»), che è
+  // cambiato; letta così sarebbe rimasta verde per niente. Ora guarda la tabella.
+  ok(ammessi !== null && ammessi.length >= 4 && ammessi.every((t) => ETICHETTA_CERTIFICATORE[t]), `ogni tipo ammesso dal database ha un'etichetta (${ammessi ? ammessi.join(", ") : "nessuno letto"})`);
+  ok(!etichettaCertificatore("marziano").includes("marziano"), "un tipo che non conosciamo non esce grezzo nella frase");
+
+  console.log("\n§ il nome di chi ha certificato (04/11, 20261207110000)\n");
+  const mappa = new Map([["u1", "Giulia Lapide"]]);
+  ok(nomeDelCertificatore(mappa, "scuola", "u1") === "Giulia Lapide", "il nome letto si mostra");
+  ok(nomeDelCertificatore(mappa, "kireo", "u1") === "Giulia Lapide", "anche per chi non è la scuola: il CSV lo stampa per tutti");
+  ok(nomeDelCertificatore(mappa, "sistema", "u1") === undefined, "il conteggio automatico non ha un nome");
+  ok(nomeDelCertificatore(null, "scuola", "u1") === TESTO_CERTIFICATORE_NON_LETTO, "non letto si dice, non si tace");
+  ok(nomeDelCertificatore(mappa, "scuola", "u9") === undefined, "una persona che la funzione non restituisce non ha nome");
+  {
+    let chiesto = null;
+    const finto = (risposta) => ({ rpc: async (f, a) => { chiesto = { f, a }; return risposta; } });
+    const m = await leggiNomiCertificatori(finto({ data: [{ user_id: "u1", nome: "Giulia", cognome: "Lapide" }], error: null }), ["u1", "u1", null]);
+    ok(chiesto?.f === "nomi_dei_certificatori" && chiesto.a.p_ids.length === 1 && m.get("u1") === "Giulia Lapide", "chiede alla funzione, una volta per persona");
+    ok((await leggiNomiCertificatori(finto({ data: null, error: { message: "x" } }), ["u1"])) === null, "una lettura fallita è null, non una mappa vuota");
+  }
+  for (const rel of ["lib/scuola/studenteDettaglio.ts", "lib/scuola/eventi.ts"]) {
+    const src = leggi(rel);
+    ok(src.includes("leggiNomiCertificatori(") && src.includes("nomeDelCertificatore("), `${rel}: il nome passa dalla funzione`);
+    ok(!/profiles!certificata_da_user/.test(src), `${rel}: niente embed su profiles, che perdeva la lapide e il tutor disattivato`);
+  }
+  ok(/r\.certificataDaNome/.test(leggi("components/scuola/RegistroPresenzeEvento.tsx")), "il registro a schermo mostra il nome");
+  ok(!/certificataDaTipo === "scuola" && p\.certificataDaNome/.test(scheda), "la scheda mostra il nome per ogni tipo, non solo la scuola");
 
   console.log(`\n${falliti === 0 ? "✓" : "✗"} ${fatte - falliti}/${fatte} proprietà${falliti ? `, ${falliti} rotte` : ""}`);
   process.exit(falliti === 0 ? 0 : 1);

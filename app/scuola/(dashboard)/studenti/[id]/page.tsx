@@ -72,7 +72,7 @@ export default async function ScuolaStudenteDettaglioPage({ params }: { params: 
                 </p>
                 <p className="mt-1 text-xs text-kireo-muted">
                   {etichettaCertificatore(p.certificataDaTipo)}
-                  {p.certificataDaTipo === "scuola" && p.certificataDaNome && ` — ${p.certificataDaNome}`}
+                  {p.certificataDaNome && ` — ${p.certificataDaNome}`}
                   {p.certificataIl && ` · ${formattaData(p.certificataIl, "long")}`}
                 </p>
               </li>
