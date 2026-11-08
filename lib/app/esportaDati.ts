@@ -91,7 +91,73 @@ export type SezioneExport = {
    * due non possono dire cose diverse.
    */
   voce: string;
+  /**
+   * Per una tabella che non ha la colonna dello studente (le risposte di un
+   * tentativo, le tappe di un'iscrizione, i messaggi di una conversazione):
+   * prima si leggono gli `id` delle righe sue in `padre` (filtrate su
+   * `colonnaPadre`), poi le righe di questa tabella con `colonna` in quegli id.
+   * Il filtro è esplicito, non affidato alla RLS: una policy che un giorno
+   * lasciasse leggere righe di altri non le porterebbe nel file.
+   *
+   * ⚠️ La chiave si chiama `padre` e non `tabella` apposta: `npm run
+   * test:export` legge le tabelle dell'elenco cercando `tabella:`, e un padre
+   * contato come sezione sarebbe un doppione.
+   */
+  via?: { padre: string; colonnaPadre: string };
+  /** Filtri fissi in più: «solo i suoi messaggi» dove una tabella ha anche quelli dell'altro. */
+  soloSe?: Record<string, string>;
+  /**
+   * Il nome della cosa a cui la riga si riferisce (il titolo di un evento, il
+   * nome di un ente), letto accanto alla riga invece dell'identificativo, che
+   * da solo non dice niente a chi legge. `chiave` è la colonna della sezione
+   * che punta a `da`; nel file la cosa sta sotto `alias`.
+   *
+   * ⚠️ Si legge con i permessi dello studente: un evento non più approvato o un
+   * ente non più attivo esce `null`, e la riga resta.
+   */
+  incorpora?: { alias: string; da: string; chiave: string; select: string }[];
 };
+
+/** La `select` che si manda davvero: le colonne della sezione, più le cose incorporate. */
+export function selectCompleta(s: SezioneExport): string {
+  const extra = (s.incorpora ?? []).map((i) => `${i.alias}:${i.da}!${i.chiave}(${i.select})`);
+  return [s.select, ...extra].join(", ");
+}
+
+/**
+ * La lettura di una sezione, con il client dello studente. Sta qui e non nel
+ * componente perché le regole (il padre letto prima, «solo i suoi», un padre
+ * non letto che non diventa un elenco vuoto) si provano con un client finto,
+ * non rileggendo un file. Il componente ci aggiunge solo la traccia nel log.
+ */
+type ClientExport = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- il costruttore delle query di supabase-js è troppo generico per tiparlo qui
+  from: (tabella: string) => any;
+};
+export async function leggiSezioneExport(
+  client: ClientExport,
+  s: SezioneExport,
+  userId: string,
+): Promise<{ esito: EsitoSezione; errore: unknown; dove: string }> {
+  let ids: string[] | null = null;
+  if (s.via) {
+    const padre = await client.from(s.via.padre).select("id").eq(s.via.colonnaPadre, userId);
+    if (padre.error || !Array.isArray(padre.data)) {
+      return { esito: { ottenuta: false, motivo: padre.error?.code ?? "padre_non_letto" }, errore: padre.error ?? "padre senza dati", dove: s.via.padre };
+    }
+    const letti = padre.data.map((r: { id: string }) => r.id);
+    ids = letti;
+    // Un padre letto e vuoto è un vuoto vero: nessun tentativo, nessuna
+    // risposta. Un padre non letto non arriva fin qui.
+    if (letti.length === 0) return { esito: { ottenuta: true, dati: [] }, errore: null, dove: s.tabella };
+  }
+  let query = client.from(s.tabella).select(selectCompleta(s));
+  query = ids ? query.in(s.colonna, ids) : query.eq(s.colonna, userId);
+  for (const [colonna, valore] of Object.entries(s.soloSe ?? {})) query = query.eq(colonna, valore);
+  const { data, error } = s.singola ? await query.maybeSingle() : await query;
+  if (error) return { esito: { ottenuta: false, motivo: error.code ?? "errore" }, errore: error, dove: s.tabella };
+  return { esito: { ottenuta: true, dati: data }, errore: null, dove: s.tabella };
+}
 
 // Le sezioni sono DATI e non query sparse nel componente, perché è questo che
 // rende possibile la guardia: un elenco si confronta con la cascata, cinque
@@ -179,6 +245,266 @@ export const SEZIONI_EXPORT: SezioneExport[] = [
     singola: false,
     voce: "I file dei post degli enti che hai scaricato: il nome, l'ente e quando",
   },
+  // ── Dal 04/11 (Mario, 6b): le parti che sono sue. Fino a oggi il file gli
+  // restituiva il contorno, e le sue parole stavano nell'elenco di quello che
+  // mancava. Le voci di queste sezioni sono mie e provvisorie.
+  {
+    chiave: "test",
+    tabella: "test_attempt",
+    colonna: "student_id",
+    select: "id, test_slug, stato, started_at, completed_at",
+    singola: false,
+    voce: "I test che hai fatto: quale, quando e se l'hai finito",
+  },
+  {
+    chiave: "testRisposte",
+    tabella: "test_response",
+    colonna: "attempt_id",
+    via: { padre: "test_attempt", colonnaPadre: "student_id" },
+    select: "attempt_id, item_id, payload, created_at",
+    singola: false,
+    voce: "Le risposte che hai dato nei test, domanda per domanda",
+  },
+  {
+    chiave: "missioni",
+    tabella: "mission_attempt",
+    colonna: "student_id",
+    select: "id, mission_slug, stato, started_at, completed_at",
+    singola: false,
+    voce: "Le missioni che hai giocato: quale, quando e se l'hai finita",
+  },
+  {
+    chiave: "missioniRisposte",
+    tabella: "step_response",
+    colonna: "attempt_id",
+    via: { padre: "mission_attempt", colonnaPadre: "student_id" },
+    select: "attempt_id, stanza, step_id, tipo, payload, created_at",
+    singola: false,
+    voce: "Le risposte che hai dato nelle missioni, stanza per stanza, comprese le proposte e le riflessioni che hai scritto",
+  },
+  {
+    chiave: "diario",
+    tabella: "journal_entry",
+    colonna: "student_id",
+    select: "attempt_id, testo, created_at",
+    singola: false,
+    voce: "Il diario che hai scritto nelle missioni",
+  },
+  {
+    chiave: "portfolio",
+    tabella: "portfolio_item",
+    colonna: "student_id",
+    select: "attempt_id, titolo, contenuto, created_at",
+    singola: false,
+    voce: "Le cose che hai salvato dalle missioni",
+  },
+  {
+    chiave: "attivita",
+    tabella: "activity_log",
+    colonna: "student_id",
+    select: "area_slug, tipo_attivita, livello, peso, created_at",
+    singola: false,
+    voce: "Il conto delle attività che hai fatto in ogni area",
+  },
+  {
+    chiave: "workshop",
+    tabella: "workshop_iscrizioni",
+    colonna: "student_id",
+    select: "id, stato, created_at",
+    incorpora: [
+      { alias: "workshop", da: "workshop", chiave: "workshop_id", select: "titolo" },
+      { alias: "ruolo", da: "workshop_ruoli", chiave: "ruolo_id", select: "titolo" },
+    ],
+    singola: false,
+    voce: "I workshop: i ruoli che hai preso, lasciato o completato",
+  },
+  {
+    chiave: "workshopElaborati",
+    tabella: "workshop_elaborati",
+    colonna: "iscrizione_id",
+    via: { padre: "workshop_iscrizioni", colonnaPadre: "student_id" },
+    select: "iscrizione_id, contenuto, stato, updated_at, consegnato_at",
+    singola: false,
+    voce: "Gli elaborati dei workshop: quello che hai scritto, tappa per tappa",
+  },
+  {
+    chiave: "workshopConsegne",
+    tabella: "workshop_consegne",
+    colonna: "iscrizione_id",
+    via: { padre: "workshop_iscrizioni", colonnaPadre: "student_id" },
+    select: "iscrizione_id, file_nome, file_tipo, file_dimensione, stato, created_at",
+    singola: false,
+    voce: "I file che hai consegnato nei workshop: il nome e quando",
+  },
+  {
+    chiave: "workshopChatCliente",
+    tabella: "workshop_chat_cliente",
+    colonna: "iscrizione_id",
+    via: { padre: "workshop_iscrizioni", colonnaPadre: "student_id" },
+    select: "iscrizione_id, mittente, contenuto, created_at",
+    singola: false,
+    // Le risposte del cliente le scrive un modello, non una persona: stanno nel
+    // file insieme alle sue domande, perché senza non si capiscono.
+    voce: "Le conversazioni con il cliente dei workshop: le tue domande e le risposte del cliente",
+  },
+  {
+    chiave: "workshopTutor",
+    tabella: "workshop_tutor_log",
+    colonna: "iscrizione_id",
+    via: { padre: "workshop_iscrizioni", colonnaPadre: "student_id" },
+    select: "iscrizione_id, sezione_id, modo, created_at",
+    singola: false,
+    voce: "Quando hai chiesto aiuto al tutor dei workshop (il testo della richiesta non lo conserviamo)",
+  },
+  {
+    // ⚠️ Solo i SUOI messaggi (Mario, 6b): le parole dell'altro minorenne non
+    // sono un suo dato, e una conversazione a metà è il prezzo normale. Il
+    // filtro sta sulla colonna, non sulla RLS, che gli lascia leggere anche
+    // quelli ricevuti.
+    chiave: "workshopMessaggi",
+    tabella: "workshop_messaggi",
+    colonna: "mittente_id",
+    select: "workshop_id, contenuto, created_at",
+    singola: false,
+    voce: "I messaggi che hai scritto ai compagni nei workshop (solo i tuoi: quelli dei compagni sono loro)",
+  },
+  {
+    chiave: "eventiIscrizioni",
+    tabella: "iscrizioni_eventi",
+    colonna: "student_id",
+    select: "stato, origine, certificata_da_tipo, certificata_il, ore_riconosciute, created_at",
+    incorpora: [{ alias: "evento", da: "eventi", chiave: "evento_id", select: "titolo, data_inizio" }],
+    singola: false,
+    voce: "Gli eventi: le tue iscrizioni, le presenze certificate e le ore riconosciute",
+  },
+  {
+    chiave: "eventiPresenze",
+    tabella: "presenze_live",
+    colonna: "user_id",
+    select: "primo_ping, ultimo_ping, ping_totali",
+    incorpora: [{ alias: "evento", da: "eventi", chiave: "evento_id", select: "titolo, data_inizio" }],
+    singola: false,
+    voce: "Le presenze misurate nelle dirette: il primo e l'ultimo collegamento, e i minuti contati",
+  },
+  {
+    chiave: "eventiDomande",
+    tabella: "domande_live",
+    colonna: "user_id",
+    select: "testo, creata_il, stato, stato_da_tipo, stato_il, letta_il",
+    incorpora: [{ alias: "evento", da: "eventi", chiave: "evento_id", select: "titolo, data_inizio" }],
+    singola: false,
+    voce: "Le domande che hai fatto durante le dirette",
+  },
+  {
+    chiave: "eventiConsegne",
+    tabella: "consegne_evento",
+    colonna: "student_id",
+    select: "testo, valutata_il, created_at",
+    incorpora: [{ alias: "evento", da: "eventi", chiave: "evento_id", select: "titolo, data_inizio" }],
+    singola: false,
+    voce: "Le risposte che hai dato alla domanda finale delle dirette",
+  },
+  {
+    chiave: "entiSeguiti",
+    tabella: "seguiti",
+    colonna: "student_id",
+    select: "created_at, chiuso_il",
+    incorpora: [{ alias: "ente", da: "istituzioni", chiave: "istituzione_id", select: "nome" }],
+    singola: false,
+    voce: "Gli enti che segui, o che hai seguito, e da quando",
+  },
+  {
+    chiave: "entiProfiloCondiviso",
+    tabella: "manifestazioni_interesse",
+    colonna: "student_id",
+    select: "created_at, revocata_il, copre_attivita, copre_contenuti",
+    incorpora: [{ alias: "ente", da: "istituzioni", chiave: "istituzione_id", select: "nome" }],
+    singola: false,
+    voce: "Gli enti con cui hai condiviso il profilo, e cosa copriva la condivisione",
+  },
+  {
+    chiave: "entiIncontrati",
+    tabella: "recinto_enti",
+    colonna: "student_id",
+    select: "origine, created_at",
+    incorpora: [{ alias: "ente", da: "istituzioni", chiave: "istituzione_id", select: "nome" }],
+    singola: false,
+    voce: "Gli enti che hai incontrato con un evento, una guida o la newsletter",
+  },
+  {
+    chiave: "entiNewsletter",
+    tabella: "newsletter_iscrizioni",
+    colonna: "student_id",
+    select: "created_at",
+    incorpora: [{ alias: "ente", da: "istituzioni", chiave: "istituzione_id", select: "nome" }],
+    singola: false,
+    voce: "Le tue iscrizioni alle newsletter degli enti",
+  },
+  {
+    chiave: "entiConversazioni",
+    tabella: "conversazioni_enti",
+    colonna: "student_id",
+    select: "id, stato, created_at",
+    incorpora: [{ alias: "ente", da: "istituzioni", chiave: "istituzione_id", select: "nome" }],
+    singola: false,
+    voce: "Le conversazioni con gli enti",
+  },
+  {
+    // Solo i suoi, come per i compagni: quello che ha scritto l'ente è dell'ente.
+    chiave: "entiMessaggi",
+    tabella: "messaggi_enti",
+    colonna: "conversazione_id",
+    via: { padre: "conversazioni_enti", colonnaPadre: "student_id" },
+    soloSe: { mittente: "studente" },
+    select: "conversazione_id, corpo, created_at",
+    singola: false,
+    voce: "I messaggi che hai scritto agli enti (solo i tuoi: le risposte sono dell'ente)",
+  },
+  {
+    chiave: "assistenteConversazioni",
+    tabella: "assistente_conversazioni",
+    colonna: "student_id",
+    select: "area_slug, created_at",
+    singola: false,
+    voce: "Le conversazioni che hai aperto con l'assistente (il testo non lo conserviamo)",
+  },
+  {
+    chiave: "assistenteDomande",
+    tabella: "assistente_richieste",
+    colonna: "student_id",
+    select: "created_at",
+    singola: false,
+    voce: "Quando hai fatto una domanda all'assistente (il testo non lo conserviamo)",
+  },
+  {
+    // Il nome della classe la scuola lo tiene per sé (lo studente non legge
+    // `classi`): nel file c'è l'identificativo e da quando.
+    chiave: "classi",
+    tabella: "classi_studenti",
+    colonna: "student_id",
+    select: "classe_id, created_at",
+    singola: false,
+    voce: "Le classi a cui la scuola ti ha assegnato, e da quando (il nome della classe lo tiene la scuola)",
+  },
+  {
+    // L'oggetto e la data, non il corpo: è il testo della scuola, come per le
+    // newsletter degli enti.
+    chiave: "comunicazioniScuola",
+    tabella: "messaggi_scuola_destinatari",
+    colonna: "student_id",
+    select: "letto_il",
+    incorpora: [{ alias: "messaggio", da: "messaggi_scuola", chiave: "messaggio_id", select: "oggetto, created_at" }],
+    singola: false,
+    voce: "Le comunicazioni che hai ricevuto dalla tua scuola: l'oggetto, quando, e se le hai lette",
+  },
+  {
+    chiave: "notifiche",
+    tabella: "notifiche_studenti",
+    colonna: "student_id",
+    select: "tipo, letta, created_at",
+    singola: false,
+    voce: "Le notifiche che ti abbiamo mandato, e se le hai lette",
+  },
 ];
 
 /**
@@ -234,6 +560,126 @@ export const COLONNE_ESCLUSE: Record<string, Record<string, string>> = {
     id: "tecnica: l'identificativo interno della riga",
     post_id: "tecnica: l'identificativo interno del post; il nome del file copiato sta nel file",
     istituzione_id: "tecnica: l'identificativo interno dell'ente; il nome copiato sta nel file",
+  },
+  // ── Dal 04/11 (6b). Ragioni mie e provvisorie.
+  test_attempt: {
+    item_corrente: "tecnica: a che domanda era arrivato il test mentre lo facevi, un segnaposto per riprendere",
+    updated_at: "tecnica: quando la riga è stata toccata l'ultima volta",
+  },
+  test_response: {
+    id: "tecnica: l'identificativo interno della riga",
+  },
+  mission_attempt: {
+    stanza_corrente: "tecnica: a che stanza era arrivata la missione, un segnaposto per riprendere",
+    updated_at: "tecnica: quando la riga è stata toccata l'ultima volta",
+    revisore_esito: "nostra: dice se il nostro revisore automatico è riuscito a leggere la proposta, un fatto del nostro sistema e non qualcosa che hai fatto",
+  },
+  step_response: {
+    id: "tecnica: l'identificativo interno della riga",
+  },
+  journal_entry: {
+    id: "tecnica: l'identificativo interno della riga",
+    testo_rimosso_il: "nostra: segna quando il testo è stato tolto alla cancellazione di un account; chi scarica i propri dati ha un account vivo, e qui è sempre vuota",
+  },
+  portfolio_item: {
+    id: "tecnica: l'identificativo interno della riga",
+    testo_rimosso_il: "nostra: segna quando il testo è stato tolto alla cancellazione di un account; chi scarica i propri dati ha un account vivo, e qui è sempre vuota",
+  },
+  activity_log: {
+    id: "tecnica: l'identificativo interno della riga",
+  },
+  workshop_iscrizioni: {
+    workshop_id: "tecnica: l'identificativo interno del workshop; il titolo sta accanto, sotto `workshop`",
+    ruolo_id: "tecnica: l'identificativo interno del ruolo; il titolo sta accanto, sotto `ruolo`",
+  },
+  workshop_elaborati: {
+    id: "tecnica: l'identificativo interno della riga",
+    fase_corrente: "tecnica: una colonna che nessuno scrive più dal motore a tappe",
+    fasi_completate: "tecnica: una colonna che nessuno scrive più dal motore a tappe",
+    feedback_ai: "dedotta da noi: è un giudizio di KIREO, ed entra nel file con la decisione su quello che abbiamo dedotto (il secondo elenco del file)",
+    fiducia: "dedotta da noi: è un giudizio di KIREO, ed entra nel file con la decisione su quello che abbiamo dedotto (il secondo elenco del file)",
+  },
+  workshop_consegne: {
+    id: "tecnica: l'identificativo interno della riga",
+    file_percorso: "tecnica: dove sta il file nel nostro spazio, un indirizzo interno",
+    feedback_ai: "dedotta da noi: è un giudizio di KIREO, ed entra nel file con la decisione su quello che abbiamo dedotto (il secondo elenco del file)",
+  },
+  workshop_chat_cliente: {
+    id: "tecnica: l'identificativo interno della riga",
+    testo_rimosso_il: "nostra: segna quando il testo è stato tolto alla cancellazione di un account; chi scarica i propri dati ha un account vivo, e qui è sempre vuota",
+  },
+  workshop_tutor_log: {
+    id: "tecnica: l'identificativo interno della riga",
+  },
+  workshop_messaggi: {
+    id: "tecnica: l'identificativo interno della riga",
+    destinatario_id: "di un'altra persona: l'identificativo del compagno a cui hai scritto",
+    letto: "di un'altra persona: se il compagno ha letto il messaggio",
+    testo_rimosso_il: "nostra: segna quando il testo è stato tolto alla cancellazione di un account; chi scarica i propri dati ha un account vivo, e qui è sempre vuota",
+  },
+  iscrizioni_eventi: {
+    id: "tecnica: l'identificativo interno della riga",
+    evento_id: "tecnica: l'identificativo interno dell'evento; il titolo e la data stanno accanto, sotto `evento`",
+    iscritto_da: "di un'altra persona: l'identificativo del referente che ti ha iscritto d'ufficio",
+    certificata_da_user: "di un'altra persona: l'identificativo di chi ha certificato la presenza (chi l'ha fatto, come ruolo, è in `certificata_da_tipo`)",
+    nome_alla_cancellazione: "nostra: il nome copiato alla cancellazione di un account; chi scarica i propri dati ha un account vivo, e qui è sempre vuota",
+    cognome_alla_cancellazione: "nostra: il cognome copiato alla cancellazione di un account; chi scarica i propri dati ha un account vivo, e qui è sempre vuota",
+  },
+  presenze_live: {
+    id: "tecnica: l'identificativo interno della riga",
+    evento_id: "tecnica: l'identificativo interno dell'evento; il titolo e la data stanno accanto, sotto `evento`",
+  },
+
+  domande_live: {
+    id: "tecnica: l'identificativo interno della riga",
+    evento_id: "tecnica: l'identificativo interno dell'evento; il titolo e la data stanno accanto, sotto `evento`",
+    testo_rimosso_il: "nostra: segna quando il testo è stato tolto alla cancellazione di un account; chi scarica i propri dati ha un account vivo, e qui è sempre vuota",
+  },
+  consegne_evento: {
+    id: "tecnica: l'identificativo interno della riga",
+    evento_id: "tecnica: l'identificativo interno dell'evento; il titolo e la data stanno accanto, sotto `evento`",
+    letture_tentate: "tecnica: quante volte il nostro sistema ha provato a leggere la risposta",
+    testo_rimosso_il: "nostra: segna quando il testo è stato tolto alla cancellazione di un account; chi scarica i propri dati ha un account vivo, e qui è sempre vuota",
+  },
+  seguiti: {
+    istituzione_id: "tecnica: l'identificativo interno dell'ente; il nome sta accanto, sotto `ente`",
+  },
+  manifestazioni_interesse: {
+    id: "tecnica: l'identificativo interno della riga",
+    istituzione_id: "tecnica: l'identificativo interno dell'ente; il nome sta accanto, sotto `ente`",
+  },
+  recinto_enti: {
+    id: "tecnica: l'identificativo interno della riga",
+    istituzione_id: "tecnica: l'identificativo interno dell'ente; il nome sta accanto, sotto `ente`",
+  },
+  newsletter_iscrizioni: {
+    id: "tecnica: l'identificativo interno della riga",
+    istituzione_id: "tecnica: l'identificativo interno dell'ente; il nome sta accanto, sotto `ente`",
+    codice_uscita: "nostra: la chiave del link per uscire dalla newsletter; nel file starebbe solo come un modo per disiscriverti",
+  },
+  conversazioni_enti: {
+    istituzione_id: "tecnica: l'identificativo interno dell'ente; il nome sta accanto, sotto `ente`",
+  },
+  messaggi_enti: {
+    id: "tecnica: l'identificativo interno della riga",
+    mittente: "tecnica: nel file ci sono solo i messaggi che hai scritto tu, quindi direbbe sempre «studente»",
+    letta: "di un'altra persona: se l'ente ha letto il messaggio",
+    testo_rimosso_il: "nostra: segna quando il testo è stato tolto alla cancellazione di un account; chi scarica i propri dati ha un account vivo, e qui è sempre vuota",
+  },
+  assistente_conversazioni: {
+    id: "tecnica: l'identificativo interno della riga",
+  },
+  assistente_richieste: {
+    id: "tecnica: l'identificativo interno della riga",
+  },
+  classi_studenti: {
+  },
+  messaggi_scuola_destinatari: {
+    messaggio_id: "tecnica: l'identificativo interno della comunicazione; l'oggetto e la data stanno accanto, sotto `messaggio`",
+  },
+  notifiche_studenti: {
+    id: "tecnica: l'identificativo interno della riga",
+    riferimento_id: "tecnica: l'identificativo interno della cosa a cui la notifica rimandava",
   },
   scaricamenti_guide_enti: {
     guida_id: "tecnica: l'identificativo interno della guida, che dopo una cancellazione non porta a niente; il titolo copiato sta nel file",
@@ -293,7 +739,6 @@ export type NaturaDato = "scritto" | "fatto" | "dedotto" | "terzo" | "nostro";
  * una voce che nomina una cosa non sua non è imprecisa: promette.
  */
 export const VOCI_DEBITO = [
-  { id: "test_missioni", testo: "I test e le missioni che hai fatto: le risposte che hai dato, il diario che hai scritto e le cose che hai salvato" },
   // Staccata dai test di proposito: è la categoria che pesa, ed è l'unica di
   // tutte che un ragazzo ha il diritto di vedere e non immaginerebbe mai che
   // esista. Quando entrerà nel file, entrerà con la `motivazione` leggibile
@@ -303,14 +748,7 @@ export const VOCI_DEBITO = [
   // deliberatamente inquietante: deve esserlo. Questo pezzo di testo è
   // letteralmente l'unico posto del prodotto in cui diciamo a uno studente che
   // quel ritratto esiste.
-  { id: "dedotto", testo: "Quello che KIREO ha dedotto da quello che hai fatto: i punteggi e le ipotesi sulle aree, e il ritratto del tuo modo di lavorare" },
-  { id: "conto_attivita", testo: "Il conto delle attività che hai fatto in ogni area" },
-  { id: "workshop", testo: "I workshop: iscrizioni, elaborati, consegne, le chat con il cliente e con i compagni, quello che hai chiesto al tutor e le revisioni di ogni tappa" },
-  { id: "eventi", testo: "Gli eventi: le iscrizioni, le presenze, le domande in diretta e le risposte alla domanda finale" },
-  { id: "enti", testo: "Gli enti: chi segui, a chi hai manifestato interesse, i messaggi che vi siete scritti e gli enti che hai incontrato con un evento, una guida o la newsletter" },
-  { id: "classi", testo: "Le classi a cui la scuola ti ha assegnato" },
-  { id: "notifiche", testo: "Le notifiche che ti abbiamo mandato e le comunicazioni della scuola" },
-  { id: "assistente_newsletter", testo: "Quante volte hai usato l'assistente, e le iscrizioni alla newsletter" },
+  { id: "dedotto", testo: "Quello che KIREO ha dedotto da quello che hai fatto: i punteggi e le ipotesi sulle aree, il ritratto del tuo modo di lavorare, e i giudizi sui tuoi workshop (le revisioni di ogni tappa, il giudizio finale e la fiducia)" },
 ] as const;
 
 export type IdVoceDebito = (typeof VOCI_DEBITO)[number]["id"];
@@ -337,31 +775,11 @@ export type IdVoceDebito = (typeof VOCI_DEBITO)[number]["id"];
  */
 export const ATTESE: { tabella: string; natura: NaturaDato; nominataDa: IdVoceDebito | null; cosa: string }[] = [
   // ── scritto da lui
-  { tabella: "consegne_evento", natura: "scritto", nominataDa: "eventi", cosa: "la risposta alla domanda finale di una diretta" },
-  { tabella: "domande_live", natura: "scritto", nominataDa: "eventi", cosa: "le domande fatte durante una diretta" },
-  { tabella: "workshop_elaborati", natura: "scritto", nominataDa: "workshop", cosa: "l'elaborato a tappe (più il giudizio finale e la fiducia, che sono dedotti)" },
-  { tabella: "step_response", natura: "scritto", nominataDa: "test_missioni", cosa: "le risposte alle stanze di una missione, aperte e strutturate" },
-  { tabella: "test_response", natura: "scritto", nominataDa: "test_missioni", cosa: "le risposte ai tre test" },
   // Nominate dalla voce dal 10/10/2026 («il diario che hai scritto e le cose
   // che hai salvato»): prima stavano dentro il suo perimetro e fuori da quello
   // che enumerava, cioè escluse dalle sue stesse parole.
-  { tabella: "journal_entry", natura: "scritto", nominataDa: "test_missioni", cosa: "il diario di una missione" },
-  { tabella: "portfolio_item", natura: "scritto", nominataDa: "test_missioni", cosa: "l'artefatto salvato da una missione" },
-  { tabella: "workshop_consegne", natura: "scritto", nominataDa: "workshop", cosa: "i file consegnati col motore workshop v1" },
-  { tabella: "workshop_chat_cliente", natura: "scritto", nominataDa: "workshop", cosa: "le sue domande al cliente simulato (le risposte le scrive un modello)" },
 
   // ── fatto da lui
-  { tabella: "activity_log", natura: "fatto", nominataDa: "conto_attivita", cosa: "dove ha messo piede, area per area" },
-  { tabella: "iscrizioni_eventi", natura: "fatto", nominataDa: "eventi", cosa: "a cosa si è iscritto (lo stato e la certificazione sono di un terzo)" },
-  { tabella: "presenze_live", natura: "fatto", nominataDa: "eventi", cosa: "i battiti di presenza di una diretta" },
-  { tabella: "player_live_stato", natura: "fatto", nominataDa: "eventi", cosa: "il segnale che il suo player non riproduceva il video di una diretta (18/10)" },
-  { tabella: "seguiti", natura: "fatto", nominataDa: "enti", cosa: "gli enti che segue" },
-  { tabella: "manifestazioni_interesse", natura: "fatto", nominataDa: "enti", cosa: "gli enti a cui ha manifestato interesse" },
-  { tabella: "assistente_conversazioni", natura: "fatto", nominataDa: "assistente_newsletter", cosa: "quante conversazioni ha aperto con l'assistente — mai il contenuto, che non si salva" },
-  { tabella: "assistente_richieste", natura: "fatto", nominataDa: "assistente_newsletter", cosa: "quando ha fatto una domanda all'assistente (il tetto del giorno, dal 27/10) — mai il testo" },
-  { tabella: "workshop_iscrizioni", natura: "fatto", nominataDa: "workshop", cosa: "i ruoli di workshop presi, lasciati, completati" },
-  { tabella: "test_attempt", natura: "fatto", nominataDa: "test_missioni", cosa: "i tentativi dei tre test" },
-  { tabella: "mission_attempt", natura: "fatto", nominataDa: "test_missioni", cosa: "le missioni giocate" },
   // Era una delle due SCOPERTE del 10/10: la voce degli enti enumerava chi
   // segui, a chi hai manifestato interesse e i messaggi, e una guida scaricata
   // non è nessuna delle tre. Dal 10/10 la nominava («e le guide che hai
@@ -369,12 +787,9 @@ export const ATTESE: { tabella: string; natura: NaturaDato; nominataDa: IdVoceDe
   // (`scaricamenti_guide_enti`), e la voce dice quello che il recinto è
   // davvero: con quali enti c'è stato un contatto, e da quale gesto. Testo mio
   // e provvisorio: la voce di prima era di Mario.
-  { tabella: "recinto_enti", natura: "fatto", nominataDa: "enti", cosa: "gli enti con cui c'è stato un contatto: un evento, una guida, la newsletter" },
   // ⚠️ «le iscrizioni alla newsletter» è la newsletter DI UN ENTE, cioè una
   // riga sua. `newsletter_docenti` è in `FUORI` ed è un'altra cosa: per questo
   // la parola «newsletter» non può essere un `termine` di sorveglianza.
-  { tabella: "newsletter_iscrizioni", natura: "fatto", nominataDa: "assistente_newsletter", cosa: "le newsletter di un ente a cui si è iscritto" },
-  { tabella: "workshop_tutor_log", natura: "fatto", nominataDa: "workshop", cosa: "quante volte ha chiesto aiuto al tutor — mai il contenuto" },
 
   // ── dedotto da noi: la categoria che pesa, perché è quello che pensiamo di lui
   { tabella: "evidence", natura: "dedotto", nominataDa: "dedotto", cosa: "le prove, ognuna con la sua motivazione leggibile — scritta apposta per poter essere letta da lui" },
@@ -385,17 +800,11 @@ export const ATTESE: { tabella: string; natura: NaturaDato; nominataDa: IdVoceDe
   // voce e non imparava che esiste. Ora la nomina, e la nomina con le parole
   // giuste: «il ritratto del tuo modo di lavorare».
   { tabella: "style_signal", natura: "dedotto", nominataDa: "dedotto", cosa: "il profilo di stile dei quattro assi" },
-  { tabella: "workshop_fasi_stato", natura: "dedotto", nominataDa: "workshop", cosa: "la revisione di ogni tappa e la reazione del cliente" },
+  { tabella: "workshop_fasi_stato", natura: "dedotto", nominataDa: "dedotto", cosa: "la revisione di ogni tappa e la reazione del cliente" },
 
   // ── coinvolge un terzo
-  { tabella: "conversazioni_enti", natura: "terzo", nominataDa: "enti", cosa: "le conversazioni con un ente" },
-  { tabella: "messaggi_enti", natura: "terzo", nominataDa: "enti", cosa: "i messaggi scambiati con un ente — metà li ha scritti l'ente" },
-  { tabella: "workshop_messaggi", natura: "terzo", nominataDa: "workshop", cosa: "i messaggi con i compagni di progetto: l'altro è un altro minorenne" },
-  { tabella: "messaggi_scuola_destinatari", natura: "terzo", nominataDa: "notifiche", cosa: "le comunicazioni ricevute dalla scuola — il corpo è della scuola" },
-  { tabella: "classi_studenti", natura: "terzo", nominataDa: "classi", cosa: "la classe a cui la scuola lo ha assegnato" },
 
   // ── mandato da noi
-  { tabella: "notifiche_studenti", natura: "nostro", nominataDa: "notifiche", cosa: "le notifiche che gli abbiamo mandato" },
 ];
 
 /**
@@ -430,6 +839,15 @@ export const ATTESE: { tabella: string; natura: NaturaDato; nominataDa: IdVoceDe
  * nel tipo apposta: una sesta riga non si può aggiungere senza decidere.
  */
 export const FUORI: { tabella: string; perche: string; termine: string[] | null }[] = [
+  {
+    tabella: "player_live_stato",
+    // Il 04/11 era una sezione del 6b, e la guardia sulla replica l'ha fermata:
+    // la tabella non ha una policy di lettura, quindi lo studente avrebbe letto
+    // zero righe per sempre, un «vuoto» che non è vero. E non serve aprirla:
+    // la riga si cancella quando il player si riprende.
+    perche: "è lo stato del player in questo momento (il video non parte adesso), e si cancella quando il video riparte: non conserva niente di quello che hai fatto",
+    termine: null,
+  },
   {
     tabella: "teacher_profiles",
     perche: "è la riga di un docente (o di un referente scuola), non di uno studente — e l'area docente non ha un proprio export",
@@ -498,9 +916,19 @@ export const FUORI: { tabella: string; perche: string; termine: string[] | null 
  * esista fra i dati. Una lista scritta a mano accanto a quella vera è la
  * copia che nessuno rilegge.
  */
+/**
+ * Le voci del debito che coprono ancora almeno una tabella: il conto lo dà il
+ * mondo (le righe di `ATTESE`), non l'elenco delle voci. 04/11 (Mario, 6a): una
+ * voce che non copre più niente promette al ragazzo una cosa che non manca, e
+ * il denominatore del file la conterebbe lo stesso. `npm run test:export`
+ * tiene anche l'elenco pulito (ogni voce copre qualcosa), ma è questa la
+ * strada che decide.
+ */
+export const VOCI_APERTE = VOCI_DEBITO.filter((v) => ATTESE.some((a) => a.nominataDa === v.id));
+
 export const COSA_CONTIENE = {
   inQuestoFile: SEZIONI_EXPORT.map((s) => s.voce),
-  nonAncoraInQuestoFile: VOCI_DEBITO.map((v) => v.testo),
+  nonAncoraInQuestoFile: VOCI_APERTE.map((v) => v.testo),
   // ⚠️ Fino al 03/11 qui c'era «scrivici a info@kireo.it e te lo mandiamo»: una
   // promessa senza una procedura dietro (chi risponde, con cosa, in quanto
   // tempo). Tolta (Mario): un'assenza dichiarata è meglio di una promessa che
@@ -554,7 +982,7 @@ export function assemblaEsportazione(esiti: EsitoSezione[], email: string | null
       inQuestoFile: SEZIONI_EXPORT.length,
       ottenute: SEZIONI_EXPORT.length - nonSiamoRiusciti.length,
       nonOttenute: nonSiamoRiusciti,
-      nonAncoraInQuestoFile: VOCI_DEBITO.length,
+      nonAncoraInQuestoFile: VOCI_APERTE.length,
     },
   };
   if (!tutteLePartiRichiesteOttenute) contenuto.avviso = TESTO_AVVISO_INCOMPLETO;

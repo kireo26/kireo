@@ -50,6 +50,9 @@ const {
   FUORI,
   COSA_CONTIENE,
   COLONNE_ESCLUSE,
+  VOCI_APERTE,
+  leggiSezioneExport,
+  selectCompleta,
 } = require("@/lib/app/esportaDati");
 const { colonneDalleMigrazioni } = require("./lib/colonne-tabelle.js");
 const { execFileSync } = require("child_process");
@@ -187,7 +190,7 @@ ok(senzaVoce.length === 0,
   `tutte le ${SEZIONI_EXPORT.length} sezioni del file hanno la loro voce nel primo elenco`,
   `${senzaVoce.join(", ")} — una sezione senza voce è una sezione che il file dà e non nomina`);
 ok(COSA_CONTIENE.inQuestoFile.length === SEZIONI_EXPORT.length &&
-   COSA_CONTIENE.nonAncoraInQuestoFile.length === VOCI_DEBITO.length,
+   COSA_CONTIENE.nonAncoraInQuestoFile.length === VOCI_APERTE.length,
   `i due elenchi hanno una voce per cosa (${COSA_CONTIENE.inQuestoFile.length} + ${COSA_CONTIENE.nonAncoraInQuestoFile.length})`,
   "se divergono dai dati da cui nascono, non sono derivati: sono una copia");
 // ⚠️ IL CONTO NON BASTA: un elenco scritto a mano con lo stesso numero di voci
@@ -195,7 +198,8 @@ ok(COSA_CONTIENE.inQuestoFile.length === SEZIONI_EXPORT.length &&
 // La proprietà è che siano DERIVATI, e quella si legge solo nel sorgente.
 const moduloExport = senzaCommenti(fs.readFileSync(path.join(ROOT, "lib/app/esportaDati.ts"), "utf8"));
 ok(/inQuestoFile:\s*SEZIONI_EXPORT\.map\(/.test(moduloExport) &&
-   /nonAncoraInQuestoFile:\s*VOCI_DEBITO\.map\(/.test(moduloExport),
+   /nonAncoraInQuestoFile:\s*VOCI_APERTE\.map\(/.test(moduloExport) &&
+   /VOCI_APERTE\s*=\s*VOCI_DEBITO\.filter\(\(v\)\s*=>\s*ATTESE\.some\(/.test(moduloExport),
   "…e sono derivati dai dati, non elencati a mano",
   "una lista a mano accanto a quella vera è la copia che nessuno rilegge: " +
   "il primo elenco nasce dalle `voce` delle sezioni, il secondo dai `testo` delle voci del debito");
@@ -334,7 +338,7 @@ const mancante = chiavi[ULTIMA];
 // parti che non ci sono, ma il denominatore. Attesi scritti a mano.
 ok(fileOk.parti?.inQuestoFile === SEZIONI_EXPORT.length && fileOk.parti?.ottenute === SEZIONI_EXPORT.length &&
    Array.isArray(fileOk.parti?.nonOttenute) && fileOk.parti.nonOttenute.length === 0 &&
-   fileOk.parti?.nonAncoraInQuestoFile === VOCI_DEBITO.length,
+   fileOk.parti?.nonAncoraInQuestoFile === VOCI_APERTE.length,
   "un file completo dice quante parti su quante, e quante non sono ancora nel file",
   "un campo che compare solo quando le cose vanno male è un campo che nessuno impara a cercare");
 ok(!("tutteLePartiRichiesteOttenute" in fileOk) && !("nonSiamoRiusciti" in fileOk),
@@ -352,7 +356,7 @@ ok(Object.keys(fileOk).slice(0, 3).join(",") === "esportatoIl,cosaContiene,parti
 
 for (const [nome, f] of [["completo", fileOk], ["incompleto", fileRotto]]) {
   ok(Array.isArray(f.cosaContiene?.inQuestoFile) && f.cosaContiene.inQuestoFile.length === SEZIONI_EXPORT.length &&
-     Array.isArray(f.cosaContiene?.nonAncoraInQuestoFile) && f.cosaContiene.nonAncoraInQuestoFile.length === VOCI_DEBITO.length &&
+     Array.isArray(f.cosaContiene?.nonAncoraInQuestoFile) && f.cosaContiene.nonAncoraInQuestoFile.length === VOCI_APERTE.length &&
      typeof f.cosaContiene?.nota === "string",
     `i due elenchi ci sono nel file ${nome}, con la nota`,
     "il debito non è un guasto: è quello che l'export non copre ancora, e vale anche quando tutto è andato bene");
@@ -420,7 +424,8 @@ console.log("\n§9 · Il debito può solo scendere (29/10)");
 // tetto non può più uscirne finendo in ATTESE: va nel file, o in FUORI con il
 // perché. Il tetto si abbassa quando una tabella esce dal debito, mai si alza.
 // Il pavimento sta sulla cascata (§1), che non scende quando l'export cresce.
-const ATTESE_MASSIME = 33;
+// 33 fino al 04/11; il 6b ne ha portate 29 nel file.
+const ATTESE_MASSIME = 4;
 ok(ATTESE.length <= ATTESE_MASSIME,
   `le tabelle dovute e non date sono ${ATTESE.length} (tetto ${ATTESE_MASSIME})`,
   "una tabella nuova è finita nel debito invece che nel file: mettila in SEZIONI_EXPORT nello stesso commit che la crea");
@@ -470,5 +475,115 @@ if (!CONN) {
     `solo sulla replica: ${vere.filter((x) => !lette.includes(x)).join(", ")} · solo lette: ${lette.filter((x) => !vere.includes(x)).join(", ")}`);
 }
 
-console.log(`\n${rossi === 0 ? "✓" : "✗"} ${fatti - rossi}/${fatti} proprietà verificate\n`);
-process.exit(rossi === 0 ? 0 : 1);
+console.log("\n§11 · Il 6b (04/11): le parti che sono sue, e il debito che le conta");
+// Attesi scritti a mano, dal messaggio di Mario (6b), non dal modulo.
+{
+  const per = Object.fromEntries(SEZIONI_EXPORT.map((s) => [s.tabella, s]));
+  const DOVUTE_6B = [
+    "test_response", "step_response", "journal_entry", "workshop_elaborati", "workshop_chat_cliente",
+    "workshop_tutor_log", "workshop_messaggi", "domande_live", "consegne_evento", "iscrizioni_eventi",
+    "presenze_live", "seguiti", "notifiche_studenti", "classi_studenti",
+  ];
+  const mancanti = DOVUTE_6B.filter((t) => !per[t]);
+  ok(mancanti.length === 0, "le categorie del 6b sono nel file", mancanti.join(", "));
+  ok(per.workshop_messaggi?.colonna === "mittente_id",
+    "dei messaggi con i compagni ci sono solo i suoi (il filtro è su chi li ha scritti)",
+    "le parole dell'altro minorenne non sono un suo dato");
+  ok(per.messaggi_enti?.soloSe?.mittente === "studente",
+    "dei messaggi con gli enti ci sono solo i suoi", per.messaggi_enti?.soloSe);
+  ok(VOCI_APERTE.length === 1 && VOCI_APERTE[0].id === "dedotto",
+    `nel secondo elenco resta solo quello che abbiamo dedotto (${VOCI_APERTE.map((v) => v.id).join(", ")})`,
+    "il 6b ha chiuso le altre otto voci: se ne resta un'altra, una sua parte non è entrata");
+  ok(ATTESE.every((a) => a.natura === "dedotto"),
+    "il debito è fatto solo di cose dedotte da noi", ATTESE.filter((a) => a.natura !== "dedotto").map((a) => a.tabella).join(", "));
+  // Il conto del file viene dal debito, non dall'elenco delle voci: tolta
+  // l'ultima tabella a una voce, la voce esce dal conto anche se resta scritta.
+  ok(VOCI_DEBITO.filter((v) => ATTESE.some((a) => a.nominataDa === v.id)).length === VOCI_APERTE.length,
+    "il conto delle voci aperte è quello del debito");
+  // Le colonne dedotte di un elaborato restano fuori, con la ragione del dedotto.
+  ok(!/\b(feedback_ai|fiducia)\b/.test(per.workshop_elaborati?.select ?? "") &&
+     /dedott/.test(COLONNE_ESCLUSE.workshop_elaborati?.feedback_ai ?? ""),
+    "il giudizio e la fiducia di un elaborato non entrano con il 6b: sono dedotti, ed entrano con la decisione sul dedotto");
+}
+
+console.log("\n§12 · Le cose incorporate: il nome accanto all'identificativo");
+for (const s of SEZIONI_EXPORT.filter((x) => x.incorpora)) {
+  const colTab = colonne.get(s.tabella) ?? new Map();
+  const daColonne = colonneDalleMigrazioni(s.incorpora.map((i) => i.da));
+  for (const inc of s.incorpora) {
+    ok(colTab.has(inc.chiave) && (inc.chiave in (COLONNE_ESCLUSE[s.tabella] ?? {}) || selezionate(s).includes(inc.chiave)),
+      `${s.tabella}.${inc.chiave} esiste ed è decisa (incorpora ${inc.da})`);
+    const vere = daColonne.get(inc.da) ?? new Map();
+    const cols = inc.select.split(",").map((c) => c.trim());
+    ok(cols.every((c) => vere.has(c)), `${inc.da}: le colonne incorporate esistono (${inc.select})`);
+    ok(cols.every((c) => vere.get(c) !== true), `${inc.da}: nessuna colonna incorporata punta a una persona`);
+  }
+}
+ok(selectCompleta({ select: "a", incorpora: [{ alias: "e", da: "eventi", chiave: "evento_id", select: "titolo" }] }) === "a, e:eventi!evento_id(titolo)",
+  "la select incorporata usa la forma di PostgREST con la chiave dichiarata");
+
+console.log("\n§13 · La lettura di una sezione, con un client finto");
+{
+  // Un client finto che registra i filtri e risponde con quello che gli si dà.
+  const finto = (risposte) => {
+    const chiamate = [];
+    return {
+      chiamate,
+      from(t) {
+        const q = { t, filtri: [], sel: null };
+        chiamate.push(q);
+        const b = {
+          select(x) { q.sel = x; return b; },
+          eq(c, v) { q.filtri.push(["eq", c, v]); return b; },
+          in(c, v) { q.filtri.push(["in", c, v]); return b; },
+          maybeSingle() { return Promise.resolve(risposte(q)); },
+          then(r, e) { return Promise.resolve(risposte(q)).then(r, e); },
+        };
+        return b;
+      },
+    };
+  };
+  const msg = SEZIONI_EXPORT.find((x) => x.chiave === "entiMessaggi");
+  (async () => {
+    const c1 = finto((q) => (q.t === "conversazioni_enti" ? { data: [{ id: "c1" }, { id: "c2" }], error: null } : { data: [{ corpo: "x" }], error: null }));
+    const r1 = await leggiSezioneExport(c1, msg, "me");
+    const figlio = c1.chiamate.find((q) => q.t === "messaggi_enti");
+    ok(r1.esito.ottenuta && JSON.stringify(figlio?.filtri) === JSON.stringify([["in", "conversazione_id", ["c1", "c2"]], ["eq", "mittente", "studente"]]),
+      "una sezione con un padre legge prima gli id suoi, poi le righe in quegli id, con «solo i suoi»", figlio?.filtri);
+    const c2 = finto((q) => (q.t === "conversazioni_enti" ? { data: null, error: { code: "42501" } } : { data: [{ corpo: "x" }], error: null }));
+    const r2 = await leggiSezioneExport(c2, msg, "me");
+    ok(!r2.esito.ottenuta && !c2.chiamate.some((q) => q.t === "messaggi_enti"),
+      "un padre non letto è una sezione non ottenuta, e non si legge il figlio", r2.esito);
+    const c3 = finto((q) => (q.t === "conversazioni_enti" ? { data: [], error: null } : { data: [{ corpo: "x" }], error: null }));
+    const r3 = await leggiSezioneExport(c3, msg, "me");
+    ok(r3.esito.ottenuta && Array.isArray(r3.esito.dati) && r3.esito.dati.length === 0,
+      "un padre letto e vuoto è un vuoto vero");
+    const c4 = finto(() => ({ data: [], error: null }));
+    await leggiSezioneExport(c4, SEZIONI_EXPORT.find((x) => x.chiave === "workshopMessaggi"), "me");
+    ok(JSON.stringify(c4.chiamate[0]?.filtri) === JSON.stringify([["eq", "mittente_id", "me"]]),
+      "i messaggi ai compagni si filtrano su chi li ha scritti", c4.chiamate[0]?.filtri);
+    fine();
+  })().catch((e) => { ok(false, "la lettura con il client finto non crasha", String(e)); fine(); });
+}
+
+if (process.env.CONN) {
+  console.log("\n§14 · Sulla replica: lo studente legge ogni colonna che il file chiede");
+  const righe = [];
+  for (const s of SEZIONI_EXPORT) {
+    for (const c of selezionate(s)) righe.push(`select '${s.tabella}.${c}', has_column_privilege('authenticated','public.${s.tabella}','${c}','SELECT')`);
+    for (const inc of s.incorpora ?? []) for (const c of inc.select.split(",").map((x) => x.trim())) righe.push(`select '${inc.da}.${c}', has_column_privilege('authenticated','public.${inc.da}','${c}','SELECT')`);
+    if (s.via) righe.push(`select '${s.via.padre}.id', has_column_privilege('authenticated','public.${s.via.padre}','id','SELECT')`);
+    righe.push(`select 'policy ${s.tabella}', exists (select 1 from pg_policies where schemaname='public' and tablename='${s.tabella}' and cmd in ('SELECT','ALL') and 'authenticated' = any(roles))`);
+  }
+  const out = execFileSync("psql", [process.env.CONN, "-At", "-F", "|", "-c", righe.join(" union all ")], { encoding: "utf8" }).trim().split("\n");
+  const chiuse = out.filter((r) => r.endsWith("|f")).map((r) => r.split("|")[0]);
+  ok(out.length > 100 && chiuse.length === 0, `sulla replica, lettura dello studente: ${out.length} controlli`, `chiuse: ${chiuse.join(", ")}`);
+}
+
+let finito = false;
+function fine() {
+  if (finito) return;
+  finito = true;
+  console.log(`\n${rossi === 0 ? "✓" : "✗"} ${fatti - rossi}/${fatti} proprietà verificate\n`);
+  process.exit(rossi === 0 ? 0 : 1);
+}
