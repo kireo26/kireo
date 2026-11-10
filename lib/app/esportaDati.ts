@@ -192,6 +192,17 @@ export const SEZIONI_EXPORT: SezioneExport[] = [
     voce: "Le aree di orientamento che hai scelto",
   },
   {
+    // Dal 10/11 (20261211100000), nello stesso lotto della tabella: le guide di
+    // KIREO che ha aperto, una riga per area e livello. È la riga da cui si
+    // apre la guida dopo, e la riga è sua.
+    chiave: "guideKireoAperte",
+    tabella: "guide_kireo_aperte",
+    colonna: "student_id",
+    select: "area_slug, livello, aperta_il",
+    singola: false,
+    voce: "Le guide di KIREO che hai aperto: l'area, il livello e quando",
+  },
+  {
     // Dal 29/10 (Mario: «Includila»). Il titolo e l'ente sono quelli del
     // momento in cui l'ha scaricata (20261116100000): la riga resta anche se
     // l'ente ha cancellato o sostituito la guida.
@@ -680,6 +691,9 @@ export const COLONNE_ESCLUSE: Record<string, Record<string, string>> = {
   notifiche_studenti: {
     id: "tecnica: l'identificativo interno della riga",
     riferimento_id: "tecnica: l'identificativo interno della cosa a cui la notifica rimandava",
+  },
+  guide_kireo_aperte: {
+    da_activity_log: "nostra: dice se la riga l'abbiamo ricopiata dal registro di prima del 10/11 (20261211100000), cioè una nota sulla nostra conoscenza, non una cosa che hai fatto; e il client non la legge",
   },
   scaricamenti_guide_enti: {
     guida_id: "tecnica: l'identificativo interno della guida, che dopo una cancellazione non porta a niente; il titolo copiato sta nel file",

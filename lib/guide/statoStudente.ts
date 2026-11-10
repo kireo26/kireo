@@ -16,18 +16,22 @@ export async function caricaContestoGuide(supabase: SB, userId: string): Promise
     supabase.from("area_signal").select("area_slug, interest_score, confidence, status").eq("student_id", userId),
     supabase.from("mission_attempt").select("mission_slug, stato").eq("student_id", userId).eq("stato", "completata"),
     supabase.from("test_attempt").select("id").eq("student_id", userId).eq("test_slug", SLUG_T3).eq("stato", "completata").limit(1),
-    supabase.from("activity_log").select("area_slug, livello").eq("student_id", userId).eq("tipo_attivita", "download_guida"),
+    // Le guide già aperte si leggono da `guide_kireo_aperte`, che scrive solo il
+    // server (20261211100000), MAI da activity_log: *un registro di attività non
+    // è un titolo di accesso* (Mario, 10/11). Fino al 10/11 qui c'era
+    // activity_log, che il client poteva scriversi da sé con il livello che
+    // voleva, e una riga bastava ad aprire la guida 3.
+    supabase.from("guide_kireo_aperte").select("area_slug, livello").eq("student_id", userId),
   ]);
 
   const perArea = new Map((segnali ?? []).map((s) => [s.area_slug, s]));
   const missioniCompletate = new Set((missioni ?? []).map((m) => m.mission_slug));
   const t3Completato = (t3 ?? []).length > 0;
 
-  // Quali livelli sono già stati aperti, per area. Una riga con `livello` NULL è
-  // un download di quando la colonna non esisteva ancora, e in quell'epoca
-  // l'unica guida scaricabile era la Panoramica (il lead-magnet di
-  // /aree/<slug>): la contiamo come livello 1. È la lettura storicamente
-  // corretta, ed è anche quella che non toglie niente a nessuno.
+  // Quali livelli sono già stati aperti, per area. Il livello non è mai vuoto
+  // (la colonna è not null): le righe di prima che il livello esistesse sono
+  // diventate Panoramiche nel riempimento di 20261211100000. Il ripiego a 1
+  // resta per una risposta che arrivasse senza.
   const apertePerArea = new Map<string, Set<LivelloGuida>>();
   for (const r of aperture ?? []) {
     if (!r.area_slug) continue;

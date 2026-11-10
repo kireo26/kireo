@@ -2,10 +2,9 @@ import { NextResponse, after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getAreaBySlug } from "@/data/aree";
 import { percorsoGuidaUno } from "@/lib/guide/config";
-import { PESO_GUIDA } from "@/lib/app/activityLog";
+import { registraAperturaGuida } from "@/lib/guide/apertura";
 import { SITE_URL } from "@/lib/site";
 import { segnalaGuasto } from "@/lib/guasti/registra";
-import { descriviErrore } from "@/lib/erroreSupabase";
 import { CAMPO_RITORNO, conEsito, destinatarioGuida, ritornoSicuro } from "@/lib/guide/scaricamento";
 import { mandaEmailGuida } from "@/lib/guide/emailGuida";
 
@@ -19,7 +18,7 @@ import { mandaEmailGuida } from "@/lib/guide/emailGuida";
 // A differenza della guida di un ente, qui la traccia non decide il file: se la
 // scrittura fallisce si registra il guasto e il file parte lo stesso — la
 // Panoramica è aperta a tutti, e la traccia è il percorso dello studente, non
-// un permesso. Il cap di una riga al giorno (23505) non è un guasto.
+// un permesso.
 //
 // Il file lo decide `percorsoGuidaUno`, come in ogni altro punto che scarica la
 // Guida 1: nessun ripiego scritto qui.
@@ -40,19 +39,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ are
     } = await supabase.auth.getUser();
     if (user) {
       emailAccount = user.email ?? null;
-      const { error } = await supabase.from("activity_log").insert({
-        student_id: user.id,
-        area_slug: area.slug,
-        tipo_attivita: "download_guida",
-        peso: PESO_GUIDA[1],
-        livello: 1,
-      });
-      if (error && error.code !== "23505") {
-        await segnalaGuasto(
-          { processo: PROCESSO, specie: "traccia_guida", motivo: "activity_log", dettaglio: descriviErrore(error) },
-          "Errore [scarica-guida-area]: la riga in activity_log non è stata scritta —",
-        );
-      }
+      // Dal 10/11 la riga la scrive la service role, non la sessione: l'apertura
+      // di una guida è il fatto che il cancello legge, e il browser non lo
+      // scrive più (lib/guide/apertura.ts).
+      await registraAperturaGuida(PROCESSO, user.id, area.slug, 1);
     }
   } catch (errore) {
     await segnalaGuasto(

@@ -1,48 +1,30 @@
-"use client";
+import { percorsoAperturaGuida, type LivelloGuida } from "@/lib/guide/config";
 
-import { registraAttivita } from "@/lib/app/activityLog";
-import type { LivelloGuida } from "@/lib/guide/config";
-
-// Aprire una guida è UN gesto, e vive qui perché ha due punti di montaggio: la
-// card (`CardGuida`) e la riga di azioni in fondo alla pagina dell'area, quando
-// il passo che manca è la sequenza.
+// Aprire una guida di KIREO passa da UN posto solo, ed è un link al server.
 //
-// PERCHÉ NON UN LINK. Il fatto che fa avanzare la sequenza è la riga in
-// `activity_log` con il `livello`: `statoSblocco` guarda `giaAperte`, non il
-// filesystem. Un `<a href={pdf}>` in fondo alla pagina aprirebbe il PDF **senza
-// registrare niente**, quindi la Guida 2 resterebbe chiusa e la pagina
-// continuerebbe a chiedere di aprire la Panoramica a chi l'ha appena aperta: un
-// giro chiuso, e il tipo di difetto che nessuna prova automatica prende perché il
-// PDF si scarica davvero.
-//
-// PERCHÉ UN COMPONENTE E NON DUE COPIE DELLE TRE RIGHE. Sono tre righe, ed è
-// proprio la taglia che invita a ricopiarle — e una copia del gesto che registra
-// è una copia che un giorno si dimentica il `livello`, cioè torna al difetto di
-// sopra per un'altra strada. `npm run test:guide` pretende che l'apertura di una
-// guida passi solo da qui.
+// Fino al 10/11 questo bottone scriveva l'apertura in activity_log dal browser e
+// poi apriva il PDF: era la riga che il cancello dei livelli 2 e 3 leggeva come
+// «l'hai già scaricata», e il client poteva scriversela da sé. Ora l'apertura la
+// scrive la route (`/api/guide/<area>/<livello>`, dopo il cancello), che poi
+// serve il file: *un registro di attività non è un titolo di accesso*. Qui non
+// si scrive niente.
 export default function ApriGuidaButton({
   areaSlug,
   livello,
-  pdf,
   etichetta,
 }: {
   areaSlug: string;
   livello: LivelloGuida;
-  pdf: string;
   etichetta: string;
 }) {
-  function apri() {
-    registraAttivita(areaSlug, "download_guida", livello);
-    window.open(pdf, "_blank", "noopener,noreferrer");
-  }
-
   return (
-    <button
-      type="button"
-      onClick={apri}
+    <a
+      href={percorsoAperturaGuida(areaSlug, livello)}
+      target="_blank"
+      rel="noopener noreferrer"
       className="inline-block rounded-full bg-kireo-green px-4 py-1.5 text-sm font-semibold text-white hover:bg-kireo-green-light"
     >
       {etichetta}
-    </button>
+    </a>
   );
 }

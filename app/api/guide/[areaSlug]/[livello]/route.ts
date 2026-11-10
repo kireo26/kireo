@@ -3,7 +3,8 @@ import path from "node:path";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getAreaBySlug } from "@/data/aree";
-import { guidaPronta, statoSblocco, type LivelloGuida } from "@/lib/guide/config";
+import { guidaPronta, percorsoGuida, statoSblocco, type LivelloGuida } from "@/lib/guide/config";
+import { registraAperturaGuida } from "@/lib/guide/apertura";
 import { caricaContestoGuide } from "@/lib/guide/statoStudente";
 import { segnalaGuasto } from "@/lib/guasti/registra";
 
@@ -23,16 +24,22 @@ import { segnalaGuasto } from "@/lib/guasti/registra";
 // copia a un indirizzo pubblico: non c'è niente da mettere in cache, e il
 // cancello non dipende da una cosa che non sappiamo.
 //
-// Il livello 1 NON passa da qui: resta statico in `public/guide/<area>/1.pdf`,
-// aperto anche da anonimo, perché è il magnete del funnel e perché quell'URL sta
+// Il FILE del livello 1 resta statico in `public/guide/<area>/1.pdf`, aperto
+// anche da anonimo, perché è il magnete del funnel e perché quell'URL sta
 // dentro email già mandate — un indirizzo in un'email non si sposta mai più.
+// Dal 10/11 però il bottone «Apri» della Panoramica passa da qui: si scrive
+// l'apertura e si rimanda al file.
 //
-// L'attività (`activity_log`, con il livello) la registra il CLIENT prima di
-// aprire, come ogni altro punto del sito: qui non si scrive niente.
+// L'APERTURA LA SCRIVE QUESTA ROUTE (dal 10/11), dopo il cancello, con la
+// service role (`registraAperturaGuida`, lib/guide/apertura.ts). Prima la
+// scriveva il browser in activity_log, e il client poteva scriversela da sé
+// con il livello che voleva: il cancello leggeva quella riga come «l'hai già
+// scaricata», cioè un registro di attività faceva da titolo di accesso.
 
 export const runtime = "nodejs";
 
 const LIVELLI_RISERVATI: LivelloGuida[] = [2, 3];
+const PROCESSO = "guide/riservata";
 
 function allePagineDelleGuide(area: string, extra: Record<string, string> = {}) {
   const qs = new URLSearchParams(extra).toString();
@@ -43,7 +50,31 @@ export async function GET(richiesta: Request, { params }: { params: Promise<{ ar
   const { areaSlug, livello: livelloRaw } = await params;
 
   const livello = Number(livelloRaw) as LivelloGuida;
-  if (!LIVELLI_RISERVATI.includes(livello) || !getAreaBySlug(areaSlug)) {
+  if (!getAreaBySlug(areaSlug)) {
+    return new NextResponse("Guida non trovata", { status: 404 });
+  }
+
+  // LA PANORAMICA: aperta a tutti, quindi nessun cancello. Per chi ha fatto
+  // l'accesso si scrive l'apertura (è il primo passo della sequenza), poi il
+  // file pubblico. Un'apertura non scritta non ferma il file: resta un guasto.
+  if (livello === 1) {
+    if (!guidaPronta(areaSlug, 1)) return new NextResponse("Guida non trovata", { status: 404 });
+    try {
+      const supabase = await createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user) await registraAperturaGuida(PROCESSO, user.id, areaSlug, 1);
+    } catch (errore) {
+      await segnalaGuasto(
+        { processo: PROCESSO, specie: "traccia_guida", motivo: "sessione_non_letta", dettaglio: errore },
+        `[guide] Sessione non letta aprendo ${areaSlug}/1: l'apertura non è stata scritta`,
+      );
+    }
+    return NextResponse.redirect(new URL(percorsoGuida(areaSlug, 1), richiesta.url), 303);
+  }
+
+  if (!LIVELLI_RISERVATI.includes(livello)) {
     return new NextResponse("Guida non trovata", { status: 404 });
   }
   // Una guida non ancora scritta è un 404 onesto, non un rifiuto: non c'è
@@ -70,7 +101,7 @@ export async function GET(richiesta: Request, { params }: { params: Promise<{ ar
     if (utenteId) contesto = await caricaContestoGuide(supabase, utenteId);
   } catch (errore) {
     await segnalaGuasto(
-      { processo: "guide/riservata", specie: "guida_riservata", motivo: "segnali_non_letti", dettaglio: errore },
+      { processo: PROCESSO, specie: "guida_riservata", motivo: "segnali_non_letti", dettaglio: errore },
       `[guide] Segnali non letti su ${areaSlug}/${livello}`,
     );
     return NextResponse.redirect(new URL(allePagineDelleGuide(areaSlug, { bloccata: String(livello), guasto: "1" }), richiesta.url));
@@ -96,6 +127,9 @@ export async function GET(richiesta: Request, { params }: { params: Promise<{ ar
   // next.config.ts li mette nel bundle. Se un giorno quella riga si perde,
   // questo catch è l'allarme — un 500 muto su una guida sarebbe invisibile.
   const file = path.join(process.cwd(), "content", "guide", areaSlug, `${livello}.pdf`);
+  // L'apertura si scrive qui, dopo il cancello e prima del file: è il fatto da
+  // cui la guida dopo si apre, e domani questa resterà «già tua».
+  await registraAperturaGuida(PROCESSO, utenteId, areaSlug, livello);
   try {
     const bytes = await fs.readFile(file);
     return new NextResponse(new Uint8Array(bytes), {
@@ -108,7 +142,7 @@ export async function GET(richiesta: Request, { params }: { params: Promise<{ ar
     });
   } catch (errore) {
     await segnalaGuasto(
-      { processo: "guide/riservata", specie: "guida_riservata", motivo: "pdf_non_letto", dettaglio: errore },
+      { processo: PROCESSO, specie: "guida_riservata", motivo: "pdf_non_letto", dettaglio: errore },
       `[guide] PDF non leggibile: ${file}`,
     );
     return new NextResponse("Non siamo riusciti a consegnare questa guida. È un problema nostro: riprova fra poco.", { status: 500 });

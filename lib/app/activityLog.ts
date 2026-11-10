@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import { descriviErrore } from "@/lib/erroreSupabase";
 
 // Stesso valori descritti nella migration activity_log: unica fonte di
 // verità lato client per non disperdere i "numeri magici" nei punti di
@@ -38,37 +39,35 @@ export type LivelloGuida = 1 | 2 | 3;
 // partecipazione a webinar (15). Sostituisce il peso unico 5 per le guide.
 export const PESO_GUIDA: Record<LivelloGuida, number> = { 1: 2, 2: 3, 3: 5 };
 
+// I quattro tipi che il BROWSER registra (dal 10/11). Gli altri li scrive il
+// server: `download_guida` la route che serve la guida (lib/guide/apertura.ts),
+// i tipi di presenza e di workshop le funzioni che certificano. Il peso lo
+// decide `registra_attivita` nel database, con gli stessi numeri di
+// PESI_ATTIVITA (`npm run test:registroattivita` li confronta): chi chiama
+// sceglie solo l'area e il tipo, fra questi quattro.
+export type TipoAttivitaDalBrowser = "visita_area" | "lettura_articolo" | "chat_assistente" | "iscrizione_webinar";
+
 // Registra un'attività di esplorazione per area. Va chiamata solo da
-// componenti client (pagine pubbliche statiche incluse): usa il client
-// Supabase del browser, mai una chiamata server-side.
+// componenti client: usa il client Supabase del browser.
 //
-// `livello` (1/2/3) va passato SOLO per le guide (download_guida): distingue
-// quale guida è stata aperta e, col cap DB su coalesce(livello,0), fa sì che le
-// tre guide di un'area producano tre righe/giorno invece di una. Per ogni altra
-// attività resta null (una riga/giorno per studente+area+tipo, come prima).
+// ⚠️ activity_log è un CONTEGGIO (il radar, lo storico), non un titolo di
+// accesso: nessun cancello lo legge per decidere (Mario, 10/11; sorvegliato da
+// `npm run test:registroattivita`). Dal 10/11 il browser non ci inserisce più
+// righe: chiama `registra_attivita`, che accetta solo questi quattro tipi.
 //
-// Il cap di una riga al giorno è un vincolo DB vero (indice unico sull'espressione
-// data in activity_log): una violazione (23505) qui significa "già registrato
-// oggi", non un errore — va ignorata in silenzio. Stesso trattamento per qualunque
-// altro errore (inclusa la tabella/colonna non ancora migrata): è telemetria in
-// background, mai qualcosa che deve interrompere o disturbare l'esperienza.
-export async function registraAttivita(areaSlug: string, tipo: TipoAttivita, livello?: LivelloGuida): Promise<void> {
+// Il tetto di una riga al giorno lo tiene il database (`gia_oggi`). Un errore
+// qui non disturba l'esperienza (è un conteggio in background), ma non si
+// butta: va nel log del browser.
+export async function registraAttivita(areaSlug: string, tipo: TipoAttivitaDalBrowser): Promise<void> {
   try {
     const supabase = createClient();
     const {
       data: { session },
     } = await supabase.auth.getSession();
     if (!session?.user) return; // visitatore anonimo: nessuna attività da registrare
-
-    const conLivello = tipo === "download_guida" && livello != null;
-    await supabase.from("activity_log").insert({
-      student_id: session.user.id,
-      area_slug: areaSlug,
-      tipo_attivita: tipo,
-      peso: conLivello ? PESO_GUIDA[livello] : PESI_ATTIVITA[tipo],
-      livello: conLivello ? livello : null,
-    });
-  } catch {
-    // telemetria in background: nessun errore deve risalire al chiamante
+    const { error } = await supabase.rpc("registra_attivita", { p_area: areaSlug, p_tipo: tipo });
+    if (error) console.error("[attività] non registrata:", tipo, areaSlug, descriviErrore(error));
+  } catch (errore) {
+    console.error("[attività] non registrata:", tipo, areaSlug, errore);
   }
 }

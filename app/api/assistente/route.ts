@@ -142,10 +142,11 @@ export async function POST(request: NextRequest) {
   // activity_log (1 riga/giorno per studente+area+tipo) — nessun contenuto
   // salvato, solo il segnale che oggi c'è stata un'interazione con
   // l'assistente in quest'area. Le chiamate successive lo stesso giorno
-  // violano l'indice unico (23505): da ignorare in silenzio, non un errore.
-  await supabase
-    .from("activity_log")
-    .insert({ student_id: user.id, area_slug: areaSlug, tipo_attivita: "chat_assistente", peso: 3 });
+  // non scrivono una riga in più (registra_attivita risponde gia_oggi): non è un errore.
+  // Dal 10/11 passa da `registra_attivita` (il peso lo decide il database):
+  // il client non inserisce più in activity_log.
+  const { error: erroreAttivita } = await supabase.rpc("registra_attivita", { p_area: areaSlug, p_tipo: "chat_assistente" });
+  if (erroreAttivita) console.error("[assistente] attività non registrata:", descriviErrore(erroreAttivita));
 
   const client = new Anthropic({ apiKey });
   const systemPrompt = buildSystemPrompt(area);

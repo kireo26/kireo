@@ -22,7 +22,7 @@ import { getAreaBySlug } from "@/data/aree";
 //                   dipende dalla scelta score_aree vs area_signal: isolata in
 //                   leggiAffinita() (vedi sotto), il punto unico da cambiare.
 //   3. Guide      — tutte e tre le guide dell'area (livelli 1/2/3) scaricate.
-//                   Per area. Usa activity_log.livello.
+//                   Per area. Usa guide_kireo_aperte (dal 10/11, mai activity_log).
 //   4. Esperienza — almeno una missione completata O un workshop consegnato.
 //                   GLOBALE: vale qualunque missione/workshop, non per forza
 //                   dell'area corrente.
@@ -404,11 +404,10 @@ async function caricaGuidePerArea(supabase: SupabaseClient, studentId: string): 
   const mappa = new Map<string, Set<number>>();
   try {
     const { data, error } = await supabase
-      .from("activity_log")
+      // Da `guide_kireo_aperte`, non da activity_log: vedi lib/guide/statoStudente.ts.
+      .from("guide_kireo_aperte")
       .select("area_slug, livello")
-      .eq("student_id", studentId)
-      .eq("tipo_attivita", "download_guida")
-      .not("livello", "is", null);
+      .eq("student_id", studentId);
     if (error || !data) return mappa;
     for (const riga of data) {
       if (riga.livello == null) continue;

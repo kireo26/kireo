@@ -77,6 +77,14 @@ export function percorsoGuida(areaSlug: string, livello: LivelloGuida): string {
   return livello === 1 ? `/guide/${areaSlug}/1.pdf` : `/api/guide/${areaSlug}/${livello}`;
 }
 
+// Dove porta il bottone «Apri» di una guida, per tutti e tre i livelli: alla
+// route che scrive l'apertura (dal 10/11, lib/guide/apertura.ts) e poi serve il
+// file. Non è `percorsoGuida`, che è dove il FILE vive: un link diretto al file
+// aprirebbe la guida senza scrivere l'apertura, e la sequenza non avanzerebbe.
+export function percorsoAperturaGuida(areaSlug: string, livello: LivelloGuida): string {
+  return `/api/guide/${areaSlug}/${livello}`;
+}
+
 export const TUTTE_LE_GUIDE: Guida[] = AREE.flatMap((a) => guideDiArea(a.slug));
 
 // ─────────────────────────────────────────── Disponibilità del PDF (config, non fs)

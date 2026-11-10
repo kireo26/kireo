@@ -349,6 +349,34 @@ La storia delle fasi (1 → 11, lug-ago 2026) è in `CLAUDE-archivio.md`, sezion
 - **Area "Salute & Professioni sanitarie"**: la descrizione attuale in `data/aree.ts` copre medicina/infermieristica/benessere ma non menziona esplicitamente la veterinaria — da integrare in un prossimo aggiornamento dei contenuti
 - **3 articoli News in attesa di revisione**: `draft: true` su tutti e tre (vedi "Linea editoriale News") — Mario deve rivederli e passarli a `draft: false` prima che compaiano in produzione
 
+## Un registro di attività non è un titolo di accesso: le guide aperte, activity_log chiuso al client (2026-11-10 — solo codice, NON distribuito; 2 migrazioni, A → deploy → B)
+**Decisione di Mario (10/11)**: il cancello delle guide 2 e 3 era l'unico posto in cui un registro dava un diritto. Il fatto «hai aperto questa guida» esce da `activity_log`, e `activity_log` torna a essere solo un conteggio.
+- **A `20261211100000`**:
+  - `guide_kireo_aperte` (una riga per studente, area e livello): la scrive solo `registra_apertura_guida_kireo`, che la esegue solo la service role;
+  - la chiamano le due route che servono una guida: `/api/guide/<area>/<livello>`, DOPO il cancello e prima di leggere il file, e da oggi anche per il livello 1, che poi rimanda al file pubblico; `/api/scarica-guida/area` per la Panoramica (`lib/guide/apertura.ts`);
+  - la stessa funzione scrive la riga del conteggio con i pesi di `PESO_GUIDA`.
+  - **Il cancello** (`lib/guide/statoStudente.ts`) e il passo «guide» del percorso (`lib/percorso/stato.ts`) leggono da lì.
+  - **Il bottone «Apri»** è un link alla route, e non scrive più niente dal browser.
+  - **Il browser** scrive `activity_log` solo con `registra_attivita` (definer): quattro tipi (visita_area 1, lettura_articolo 2, chat_assistente 3, iscrizione_webinar 8), con il peso deciso dal database. L'iscrizione a un webinar conta solo se c'è l'iscrizione a un evento di quell'area (`senza_iscrizione`).
+- ⚠️ **Il riempimento è un buco nella conoscenza, dichiarato**: le righe di prima si copiano da `activity_log` (`da_activity_log = true`), e una scritta a mano dal client non si distingue da una vera. Il 10/11 i profili sono tutti nostri.
+- **B `20261211110000`, DOPO il deploy**: via insert e update del client su `activity_log` e la sua policy di insert; il riempimento si ripete, per le aperture scritte dal codice di prima fra A e il deploy. Registro delle colonne 174 → 169.
+- **La guardia che Mario ha chiesto, «nessun lettore di activity_log può autorizzare qualcosa»**: `npm run test:registroattivita`.
+  - §1: chi scrive activity_log, nel codice e nelle ultime definizioni SQL.
+  - §2: i pesi del database contro `PESI_ATTIVITA` e `PESO_GUIDA`.
+  - §3: ogni lettore è in `LETTORI` con quello che ne fa (oggi due: lo storico e il radar). Un lettore nuovo nasce rosso, e i cinque file che decidono un accesso non nominano activity_log né importano un lettore.
+  - Nessuna policy lo legge; con la replica, dal catalogo.
+  - ⚠️ **Il limite, scritto in testa alla guardia**: è lessicale e sbaglia per difetto. Un cancello che riceve le righe da un lettore elencato attraverso una variabile non lo vede. Per questo `LETTORI` dice per ognuno che cosa ne fa: un uso che decide deve cambiare quella riga, e la riga dice la regola. *La regola, per chi non legge la guardia: activity_log racconta e conta, e non apre niente. Un diritto sta in una tabella che il browser non scrive.*
+- **L'export** ha `guide_kireo_aperte` (area, livello, data); `da_activity_log` è esclusa, perché è una nota nostra sulla nostra conoscenza.
+- ⚠️⚠️ **L'ORDINE, PER MARIO**: **A** prima del deploy (le route chiamano `registra_apertura_guida_kireo`, il browser `registra_attivita`; con A il codice di prima funziona); poi il deploy; poi **B**.
+  - **Come si verificano**: A si rilegge da sé, e da fuori `select to_regclass('public.guide_kireo_aperte') is not null` → vero, e `select count(*) from public.guide_kireo_aperte where da_activity_log` → quante aperture c'erano. B → `select has_any_column_privilege('authenticated','public.activity_log','INSERT')` → falso.
+  - **A schermo**: test7 apre la guida 1 e la 2 di un'area da `/app/guide/<area>`, il livello 3 resta chiuso se non lo ha guadagnato; la home dice «Dove hai esplorato» come prima; una visita a un'area muove ancora il radar.
+- **Rossi attesi, scritti prima** (`/tmp/claude-0/-home-user-kireo/e446ac4c-68a9-5e7e-9a5e-b305c7b5bef6/scratchpad/rossi-attesi-guide-aperte.md`): arrivati i certi, `test:guide`, `test:export`, `test:conservare`, `test:colonne` (questo anche perché il suo lettore non capiva un revoke di tabella: curato). **Fuori lista**: `test:errori` (un `.message`, la regola che continuo a dimenticare) e `test:prova` (lo script SQL nuovo letto come misura, la quarta volta).
+- **Verificato**:
+  - `scripts/verifica-guide-kireo-aperte.sql` 10/10, controprova **RIUSCITA** su una replica nata senza B (rosse esattamente 1 e 10);
+  - `npm run test:registroattivita` 30/30, 33 con la replica;
+  - `npm test` verde su 109 suite; `npm run sql:tutti` 78 verdi su 80 + 2 diagnostiche; typecheck, eslint e build puliti.
+- **Non verificato**: niente a schermo.
+
 ## `activity_log` lo scrive lo studente: chi ci scrive oggi, chi lo legge (2026-11-08 — misura, niente costruito)
 **Mario: prima di chiudere la porta, cosa passa di lì di legittimo.** [letto nel codice; i privilegi e i due insert eseguiti sulla replica]
 - **Le strade che scrivono, dieci**:

@@ -45,6 +45,10 @@
       "trattamento": "testo",
       "perche": "la prova resta con il suo valore; la motivazione è un testo nostro su di lui, ed esce"
     },
+    "guide_kireo_aperte": {
+      "trattamento": "fatto",
+      "perche": "le guide di KIREO aperte, una riga per area e livello: il fatto che il cancello delle guide legge"
+    },
     "indirizzi_delle_lapidi": {
       "trattamento": "altro",
       "perche": "nostra: la scrive la cancellazione di chi ha firmato"
