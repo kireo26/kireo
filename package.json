@@ -123,7 +123,8 @@
     "test:cancellazione": "node scripts/verifica-cancellazione.js",
     "test:staticonversazione": "node scripts/verifica-stati-conversazione.js",
     "test:stati": "node scripts/verifica-parole-stati.js",
-    "test:deploy": "node scripts/verifica-allineamento-deploy.js"
+    "test:deploy": "node scripts/verifica-allineamento-deploy.js",
+    "test:registroattivita": "node scripts/verifica-registro-attivita.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.112.5",

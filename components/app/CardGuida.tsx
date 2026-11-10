@@ -16,10 +16,10 @@ import ApriGuidaButton from "./ApriGuidaButton";
 // scheda nuova, ed è la peggior forma di un no — per questo la card non ci fa
 // nemmeno arrivare.
 //
-// L'apertura traccia `download_guida` in activity_log CON IL LIVELLO: non è
-// telemetria, è il fatto che la sequenza legge («la 2 si apre dopo la 1») — e sta
-// in `ApriGuidaButton`, insieme all'apertura, perché anche la riga di azioni in
-// fondo alla pagina apre una guida e un secondo gesto che registra divergerebbe.
+// L'apertura passa da `ApriGuidaButton`, un link alla route che la scrive dal
+// server e poi serve il file (dal 10/11): è il fatto che la sequenza legge («la
+// 2 si apre dopo la 1»), e anche la riga di azioni in fondo alla pagina apre
+// una guida, quindi un secondo gesto divergerebbe.
 export default function CardGuida({
   guida,
   disponibile,
@@ -55,7 +55,7 @@ export default function CardGuida({
 
       <div className="mt-4">
         {apribile ? (
-          <ApriGuidaButton areaSlug={guida.areaSlug} livello={guida.livello} pdf={guida.pdf} etichetta="Apri la guida →" />
+          <ApriGuidaButton areaSlug={guida.areaSlug} livello={guida.livello} etichetta="Apri la guida →" />
         ) : !disponibile ? (
           <span className="inline-block rounded-full border border-white/10 px-4 py-1.5 text-sm text-kireo-muted">In preparazione</span>
         ) : (

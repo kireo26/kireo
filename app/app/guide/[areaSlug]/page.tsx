@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { getAppContext } from "@/lib/app/studentContext";
 import { createClient } from "@/lib/supabase/server";
 import { getAreaBySlug } from "@/data/aree";
-import { guideDiArea, statoSblocco, GATE_GUIDE_ATTIVO, guidaPronta, TESTO_SBLOCCO_GUIDE, percorsoGuida } from "@/lib/guide/config";
+import { guideDiArea, statoSblocco, GATE_GUIDE_ATTIVO, guidaPronta, TESTO_SBLOCCO_GUIDE } from "@/lib/guide/config";
 import { caricaContestoGuide } from "@/lib/guide/statoStudente";
 import { avvisoRifiuto } from "@/lib/guide/avvisoRifiuto";
 import { passiPagina } from "@/lib/guide/passiPagina";
@@ -101,7 +101,6 @@ export default async function GuideAreaPage({
               key={`apri-${p.livello}`}
               areaSlug={areaSlug}
               livello={p.livello}
-              pdf={percorsoGuida(areaSlug, p.livello)}
               etichetta={p.etichetta}
             />
           ) : (

@@ -115,6 +115,16 @@ const concesse = new Set();
       }
       // Lo stato: il rovesciamento azzera, poi le concessioni e le revoche di colonna.
       if (/^revoke insert, update on all tables in schema public from anon, authenticated$/i.test(frase)) concesse.clear();
+      // Una revoca di TABELLA toglie anche le concessioni di colonna (misurato
+      // sulla replica il 28/10): 20261211110000 chiude activity_log così.
+      const revTab = frase.match(/^revoke ([a-z, ]+?) on (?:table )?public\.(\w+) from ([\w ,]+)$/i);
+      if (revTab) {
+        const privilegi = revTab[1].split(",").map((s) => s.trim().toLowerCase()).filter((p) => p === "insert" || p === "update");
+        const ruoli = revTab[3].split(",").map((s) => s.trim()).filter((r) => RUOLI.includes(r));
+        for (const k of [...concesse]) {
+          for (const ruolo of ruoli) for (const p of privilegi) if (k.startsWith(`${ruolo}.${revTab[2]}.${p}.`)) concesse.delete(k);
+        }
+      }
       const col = frase.match(/^(grant|revoke) (insert|update) \(([^)]*)\) on (?:table )?public\.(\w+) (to|from) ([\w ,]+)$/i);
       if (col) {
         const colonne = col[3].split(",").map((s) => s.trim());

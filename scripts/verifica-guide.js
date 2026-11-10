@@ -402,17 +402,30 @@ ok(tutteAperte.length === 3, "…e sono le tre di sempre");
 ok(/passiPagina\s*\(/.test(pag), "la pagina dell'area chiama passiPagina");
 ok(!/Fai «Più a fondo»/.test(pag), "…e non tiene più la riga di bottoni scritta a mano");
 
-// ── Aprire una guida passa da UN posto solo ───────────────────────────────────
-// La sequenza avanza solo se l'apertura finisce in activity_log col livello. Un
-// link diretto al PDF dal fondo pagina aprirebbe il file senza registrare
-// niente: la guida successiva resterebbe chiusa e la pagina continuerebbe a
-// chiedere lo stesso passo a chi l'ha appena fatto. Un giro chiuso, e il PDF si
-// scarica davvero — quindi nessuna prova automatica se ne accorgerebbe da sola.
-console.log("\n12) Aprire una guida registra l'apertura, sempre");
+// ── Aprire una guida passa da UN posto solo, e l'apertura la scrive il server ──
+// La sequenza avanza solo se l'apertura finisce in `guide_kireo_aperte`. Fino al
+// 10/11 la scriveva il browser in activity_log, e il client poteva scriversela
+// da sé: una riga bastava ad aprire la guida 3. Ora il bottone è un link alla
+// route, che scrive l'apertura DOPO il cancello e PRIMA del file.
+console.log("\n12) Aprire una guida passa dalla route, che scrive l'apertura");
 
 const opener = fs.readFileSync(path.join(ROOT, "components/app/ApriGuidaButton.tsx"), "utf8");
-ok(/registraAttivita\(/.test(opener) && /window\.open\(/.test(opener), "ApriGuidaButton registra l'apertura e poi apre");
-ok(/"download_guida",\s*livello/.test(opener), "…col LIVELLO, che è il fatto che la sequenza legge");
+const openerVivo = opener.replace(/\/\/.*$/gm, "");
+ok(/percorsoAperturaGuida\(/.test(openerVivo) && /<a\b/.test(openerVivo), "ApriGuidaButton è un link alla route dell'apertura");
+ok(!/registraAttivita|activity_log|\.rpc\(|\.insert\(|window\.open\(/.test(openerVivo), "…e dal browser non scrive niente");
+{
+  const { percorsoAperturaGuida } = require("@/lib/guide/config");
+  ok([1, 2, 3].every((l) => percorsoAperturaGuida("salute-professioni-sanitarie", l) === `/api/guide/salute-professioni-sanitarie/${l}`),
+    "tutti e tre i livelli passano da /api/guide/<area>/<livello>, la Panoramica compresa");
+}
+const rotta = fs.readFileSync(path.join(ROOT, "app/api/guide/[areaSlug]/[livello]/route.ts"), "utf8").replace(/\/\/.*$/gm, "");
+const { ancora: ancoraGuide } = require("./lib/ancora");
+const posSblocco = ancoraGuide(rotta, "statoSblocco(livello", { dove: "route delle guide" });
+// due scritture: la Panoramica (prima del rimando al file pubblico) e i livelli 2 e 3
+const posScrittura = ancoraGuide(rotta, "registraAperturaGuida(", { volte: 2, quale: 1, dove: "route delle guide" });
+const posFile = ancoraGuide(rotta, "fs.readFile(file)", { dove: "route delle guide" });
+ok(posSblocco > 0 && posScrittura > posSblocco && posFile > posScrittura,
+  "la route scrive l'apertura dopo il cancello e prima del file");
 
 const card = fs.readFileSync(path.join(ROOT, "components/app/CardGuida.tsx"), "utf8");
 ok(/ApriGuidaButton/.test(card), "la card apre attraverso quel componente");
